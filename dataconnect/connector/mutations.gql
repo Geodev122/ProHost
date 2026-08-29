@@ -1,0 +1,295 @@
+# Mutations for ProSpace App
+
+mutation UpsertAppUser(
+  $id: String!
+  $email: String!
+  $fullName: String!
+  $role: String!
+  $specialty: String!
+  $phone: String!
+  $affiliation: String!
+  $syndicateNumber: String!
+  $governorate: String!
+  $isVerified: Boolean!
+  $subscriptionExpiryMillis: Int64
+) {
+  appUser_upsert(data: {
+    id: $id
+    email: $email
+    fullName: $fullName
+    role: $role
+    specialty: $specialty
+    phone: $phone
+    affiliation: $affiliation
+    syndicateNumber: $syndicateNumber
+    governorate: $governorate
+    isVerified: $isVerified
+    subscriptionExpiryMillis: $subscriptionExpiryMillis
+  })
+}
+
+mutation UpsertSpaceListing(
+  $id: String!
+  $title: String!
+  $spaceType: String!
+  $governorate: String!
+  $district: String!
+  $streetAddress: String!
+  $floorInfo: String!
+  $lat: Float!
+  $lng: Float!
+  $isShared: Boolean!
+  $complementarySpecialties: [String!]!
+  $residentPractitioners: [String!]!
+  $essentialFacilities: [String!]!
+  $equipmentJson: String!
+  $rentalFormulasJson: String!
+  $rulesJson: String!
+  $scheduleJson: String!
+  $ownerId: String!
+  $ownerName: String!
+  $ownerPhone: String!
+  $ownerEmail: String!
+  $isVerified: Boolean!
+  $isActiveSubscription: Boolean!
+  $subscriptionExpiryMillis: Int64!
+  $imageUrls: [String!]!
+  $videoTourDurationSec: Int!
+  $baseMonthlyRateUsd: Float!
+  $avatarEngagementViews: Int!
+  $avatarInquiryClicks: Int!
+  $subdivisionsJson: String
+) {
+  spaceListing_upsert(data: {
+    id: $id
+    title: $title
+    spaceType: $spaceType
+    governorate: $governorate
+    district: $district
+    streetAddress: $streetAddress
+    floorInfo: $floorInfo
+    lat: $lat
+    lng: $lng
+    isShared: $isShared
+    complementarySpecialties: $complementarySpecialties
+    residentPractitioners: $residentPractitioners
+    essentialFacilities: $essentialFacilities
+    equipmentJson: $equipmentJson
+    rentalFormulasJson: $rentalFormulasJson
+    rulesJson: $rulesJson
+    scheduleJson: $scheduleJson
+    ownerId: $ownerId
+    ownerName: $ownerName
+    ownerPhone: $ownerPhone
+    ownerEmail: $ownerEmail
+    isVerified: $isVerified
+    isActiveSubscription: $isActiveSubscription
+    subscriptionExpiryMillis: $subscriptionExpiryMillis
+    imageUrls: $imageUrls
+    videoTourDurationSec: $videoTourDurationSec
+    baseMonthlyRateUsd: $baseMonthlyRateUsd
+    avatarEngagementViews: $avatarEngagementViews
+    avatarInquiryClicks: $avatarInquiryClicks
+    subdivisionsJson: $subdivisionsJson
+  })
+}
+
+mutation UpsertSpaceSubdivision(
+  $id: String!
+  $spaceId: String!
+  $name: String!
+  $type: String!
+  $amenities: [String!]!
+  $strategiesJson: String!
+) {
+  spaceSubdivision_upsert(data: {
+    id: $id
+    spaceId: $spaceId
+    name: $name
+    type: $type
+    amenities: $amenities
+    strategiesJson: $strategiesJson
+  })
+}
+
+mutation DeleteSpaceSubdivision($id: String!) {
+  spaceSubdivision_delete(id: $id)
+}
+
+mutation UpsertBookingRequest(
+  $id: String!
+  $spaceId: String!
+  $spaceTitle: String!
+  $spaceDistrict: String!
+  $governorate: String!
+  $ownerId: String!
+  $ownerName: String!
+  $ownerPhone: String!
+  $practitionerId: String!
+  $practitionerName: String!
+  $practitionerEmail: String!
+  $practitionerPhone: String!
+  $practitionerSpecialty: String!
+  $practitionerSyndicateNumber: String!
+  $formulaJson: String!
+  $startDate: String!
+  $endDate: String!
+  $selectedDays: [String!]!
+  $selectedStartHour: String!
+  $selectedEndHour: String!
+  $selectedShift: String!
+  $selectedDateTimeRange: String!
+  $durationMonths: Int!
+  $totalAmountUsd: Float!
+  $clinicalNotes: String!
+  $status: String!
+  $createdAt: Int64!
+  $reviewedAt: Int64
+  $rejectionReason: String
+  $isExternalPaymentSettled: Boolean!
+  $subdivisionId: String
+  $subdivisionName: String
+  $selectedStrategy: String
+) {
+  bookingRequest_upsert(data: {
+    id: $id
+    spaceId: $spaceId
+    spaceTitle: $spaceTitle
+    spaceDistrict: $spaceDistrict
+    governorate: $governorate
+    ownerId: $ownerId
+    ownerName: $ownerName
+    ownerPhone: $ownerPhone
+    practitionerId: $practitionerId
+    practitionerName: $practitionerName
+    practitionerEmail: $practitionerEmail
+    practitionerPhone: $practitionerPhone
+    practitionerSpecialty: $practitionerSpecialty
+    practitionerSyndicateNumber: $practitionerSyndicateNumber
+    formulaJson: $formulaJson
+    startDate: $startDate
+    endDate: $endDate
+    selectedDays: $selectedDays
+    selectedStartHour: $selectedStartHour
+    selectedEndHour: $selectedEndHour
+    selectedShift: $selectedShift
+    selectedDateTimeRange: $selectedDateTimeRange
+    durationMonths: $durationMonths
+    totalAmountUsd: $totalAmountUsd
+    clinicalNotes: $clinicalNotes
+    status: $status
+    createdAt: $createdAt
+    reviewedAt: $reviewedAt
+    rejectionReason: $rejectionReason
+    isExternalPaymentSettled: $isExternalPaymentSettled
+    subdivisionId: $subdivisionId
+    subdivisionName: $subdivisionName
+    selectedStrategy: $selectedStrategy
+  })
+}
+
+mutation InsertWhishTransaction(
+  $id: String!
+  $orderId: String!
+  $amountUsd: Float!
+  $currency: String!
+  $status: String!
+  $timestamp: Int64!
+  $payerName: String!
+  $payerPhone: String!
+  $channelId: String!
+  $sourceEmail: String!
+  $signatureHash: String!
+  $spaceId: String!
+  $spaceTitle: String!
+) {
+  whishTransaction_insert(data: {
+    id: $id
+    orderId: $orderId
+    amountUsd: $amountUsd
+    currency: $currency
+    status: $status
+    timestamp: $timestamp
+    payerName: $payerName
+    payerPhone: $payerPhone
+    channelId: $channelId
+    sourceEmail: $sourceEmail
+    signatureHash: $signatureHash
+    spaceId: $spaceId
+    spaceTitle: $spaceTitle
+  })
+}
+
+mutation InsertAuditSecurityLog(
+  $id: String!
+  $timestamp: Int64!
+  $actionType: String!
+  $details: String!
+  $actorEmail: String!
+  $severity: String!
+  $ipAddress: String!
+) {
+  auditSecurityLog_insert(data: {
+    id: $id
+    timestamp: $timestamp
+    actionType: $actionType
+    details: $details
+    actorEmail: $actorEmail
+    severity: $severity
+    ipAddress: $ipAddress
+  })
+}
+
+mutation UpsertAvatarCampaign(
+  $id: String!
+  $spaceId: String!
+  $spaceTitle: String!
+  $instagramHandle: String!
+  $totalReelViews: Int!
+  $linkClicks: Int!
+  $inquiriesGenerated: Int!
+  $generatedCaption: String!
+  $storyOverlayTag: String!
+  $lastNudgeText: String!
+) {
+  avatarCampaign_upsert(data: {
+    id: $id
+    spaceId: $spaceId
+    spaceTitle: $spaceTitle
+    instagramHandle: $instagramHandle
+    totalReelViews: $totalReelViews
+    linkClicks: $linkClicks
+    inquiriesGenerated: $inquiriesGenerated
+    generatedCaption: $generatedCaption
+    storyOverlayTag: $storyOverlayTag
+    lastNudgeText: $lastNudgeText
+  })
+}
+
+mutation UpsertAdminPricingState(
+  $id: String!
+  $monthlySubscriptionFeeUsd: Float!
+  $baselineFeeUsd: Float!
+  $presetOptions: [Float!]!
+  $merchantChannelId: String!
+  $merchantSource: String!
+  $merchantSecretKeyMasked: String!
+) {
+  adminPricingState_upsert(data: {
+    id: $id
+    monthlySubscriptionFeeUsd: $monthlySubscriptionFeeUsd
+    baselineFeeUsd: $baselineFeeUsd
+    presetOptions: $presetOptions
+    merchantChannelId: $merchantChannelId
+    merchantSource: $merchantSource
+    merchantSecretKeyMasked: $merchantSecretKeyMasked
+  })
+}
+
+mutation DeleteSpaceListing($id: String!) {
+  spaceListing_delete(id: $id)
+}
+
+mutation DeleteBookingRequest($id: String!) {
+  bookingRequest_delete(id: $id)
+}

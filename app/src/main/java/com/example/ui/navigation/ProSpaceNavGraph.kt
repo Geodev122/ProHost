@@ -1,0 +1,274 @@
+package com.example.ui.navigation
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.data.model.SpaceListing
+import com.example.data.model.UserRole
+import com.example.ui.components.*
+import com.example.ui.components.dialogs.DrawerDialogsHandler
+import com.example.ui.components.drawer.AdminDrawerContent
+import com.example.ui.components.drawer.OwnerDrawerContent
+import com.example.ui.components.drawer.ProfessionalDrawerContent
+import com.example.ui.screens.*
+import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.util.InAppUpdateManager
+import com.example.util.UpdateState
+import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProSpaceAppRoot(
+    deepLinkTab: String? = null,
+    deepLinkBookingId: String? = null,
+    inAppUpdateManager: InAppUpdateManager? = null,
+    viewModel: ProSpaceViewModel = viewModel()
+) {
+    val currentUser by viewModel.currentUser.collectAsState()
+    var detailedSpace by remember { mutableStateOf<SpaceListing?>(null) }
+    var activeTabId by remember { mutableStateOf("search_map") }
+    var activeDrawerTabDialog by remember { mutableStateOf<String?>(null) }
+
+    // Synchronize initial tab based on user role or incoming deep link
+    LaunchedEffect(currentUser?.role, deepLinkTab) {
+        if (!deepLinkTab.isNullOrBlank()) {
+            activeTabId = deepLinkTab
+        } else {
+            when (currentUser?.role) {
+                UserRole.ADMIN -> activeTabId = "admin_console"
+                UserRole.SPACE_OWNER -> activeTabId = "manage_listings"
+                UserRole.PROFESSIONAL -> activeTabId = "search_map"
+                null -> activeTabId = "auth"
+            }
+        }
+    }
+
+    var showSplash by remember { mutableStateOf(true) }
+
+    if (showSplash) {
+        SplashScreen(
+            onSplashCompleted = {
+                showSplash = false
+            }
+        )
+    } else if (currentUser == null) {
+        LoginAuthScreen(
+            viewModel = viewModel,
+            onLoginSuccess = {
+                // Handled via LaunchedEffect
+            }
+        )
+    } else {
+        val currentRole = currentUser?.role ?: UserRole.PROFESSIONAL
+        val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+        val scope = rememberCoroutineScope()
+
+        // Determine visible tabs strictly according to role
+        val roleTabs: List<AppNavTab> = when (currentRole) {
+            UserRole.PROFESSIONAL -> listOf(
+                AppNavTab.SearchMap,
+                AppNavTab.ProfessionalRentals,
+                AppNavTab.ProfessionalProfile
+            )
+            UserRole.SPACE_OWNER -> listOf(
+                AppNavTab.ManageListings,
+                AppNavTab.OwnerRentalRequests,
+                AppNavTab.OwnerRentingProgress,
+                AppNavTab.OwnerProfile
+            )
+            UserRole.ADMIN -> listOf(
+                AppNavTab.AdminConsole,
+                AppNavTab.AdminProfile
+            )
+        }
+
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            gesturesEnabled = detailedSpace == null,
+            drawerContent = {
+                ModalDrawerSheet(
+                    modifier = Modifier.width(310.dp),
+                    drawerContainerColor = MaterialTheme.colorScheme.surface,
+                    drawerTonalElevation = 4.dp
+                ) {
+                    when (currentRole) {
+                        UserRole.PROFESSIONAL -> {
+                            ProfessionalDrawerContent(
+                                currentUser = currentUser,
+                                activeTabId = activeTabId,
+                                onTabSelected = { tabId ->
+                                    activeTabId = tabId
+                                    scope.launch { drawerState.close() }
+                                },
+                                onDrawerAction = { actionId ->
+                                    activeDrawerTabDialog = actionId
+                                    scope.launch { drawerState.close() }
+                                }
+                            )
+                        }
+                        UserRole.SPACE_OWNER -> {
+                            OwnerDrawerContent(
+                                currentUser = currentUser,
+                                activeTabId = activeTabId,
+                                onTabSelected = { tabId ->
+                                    activeTabId = tabId
+                                    scope.launch { drawerState.close() }
+                                },
+                                onDrawerAction = { actionId ->
+                                    activeDrawerTabDialog = actionId
+                                    scope.launch { drawerState.close() }
+                                }
+                            )
+                        }
+                        UserRole.ADMIN -> {
+                            AdminDrawerContent(
+                                currentUser = currentUser,
+                                activeTabId = activeTabId,
+                                onTabSelected = { tabId ->
+                                    activeTabId = tabId
+                                    scope.launch { drawerState.close() }
+                                },
+                                onDrawerAction = { actionId ->
+                                    activeDrawerTabDialog = actionId
+                                    scope.launch { drawerState.close() }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        ) {
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                topBar = {
+                    if (detailedSpace == null) {
+                        val alertsList = viewModel.fcmAlerts.collectAsState().value
+                        val unreadCount = alertsList.count { !it.isRead }
+
+                        ProSpaceTopAppBar(
+                            currentRole = currentRole,
+                            unreadAlertCount = unreadCount,
+                            onMenuClick = { scope.launch { drawerState.open() } },
+                            onAlertsClick = { activeDrawerTabDialog = "fcm_alerts" }
+                        )
+                    }
+                },
+                bottomBar = {
+                    if (detailedSpace == null) {
+                        NavigationBar(
+                            tonalElevation = 6.dp,
+                            modifier = Modifier.testTag("bottom_navigation_bar")
+                        ) {
+                            roleTabs.forEach { tab ->
+                                val isSelected = activeTabId == tab.id
+                                NavigationBarItem(
+                                    selected = isSelected,
+                                    onClick = { activeTabId = tab.id },
+                                    icon = {
+                                        Icon(
+                                            imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+                                            contentDescription = tab.title
+                                        )
+                                    },
+                                    label = { Text(tab.title, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                    modifier = Modifier.testTag("nav_item_${tab.id}")
+                                )
+                            }
+                        }
+                    }
+                }
+            ) { innerPadding ->
+                val updateState by (inAppUpdateManager?.updateState?.collectAsState() ?: remember { mutableStateOf(UpdateState.IDLE) })
+                val downloadProgress by (inAppUpdateManager?.downloadProgress?.collectAsState() ?: remember { mutableStateOf(0f) })
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // In-App Update persistent banner when downloading or downloaded
+                        InAppUpdateBanner(
+                            updateState = updateState,
+                            downloadProgress = downloadProgress,
+                            onCompleteUpdate = { inAppUpdateManager?.completeUpdate() }
+                        )
+
+                        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                            if (detailedSpace != null) {
+                                SpaceDetailsScreen(
+                                    space = detailedSpace!!,
+                                    viewModel = viewModel,
+                                    onBack = { detailedSpace = null }
+                                )
+                            } else {
+                                when (activeTabId) {
+                                    AppNavTab.SearchMap.id -> DiscoveryScreen(
+                                        viewModel = viewModel,
+                                        onSelectSpace = { detailedSpace = it }
+                                    )
+                                    AppNavTab.ProfessionalRentals.id -> MyBookingsScreen(
+                                        viewModel = viewModel,
+                                        onNavigateToDiscovery = { activeTabId = AppNavTab.SearchMap.id },
+                                        onSelectSpace = { detailedSpace = it }
+                                    )
+                                    AppNavTab.ManageListings.id -> OwnerHubScreen(
+                                        viewModel = viewModel,
+                                        onSelectSpace = { detailedSpace = it }
+                                    )
+                                    AppNavTab.OwnerRentalRequests.id -> OwnerRentalRequestsScreen(
+                                        viewModel = viewModel
+                                    )
+                                    AppNavTab.OwnerRentingProgress.id -> OwnerRentingProgressScreen(
+                                        viewModel = viewModel
+                                    )
+                                    AppNavTab.Stats.id -> OwnerAnalyticsScreen(
+                                        viewModel = viewModel
+                                    )
+                                    AppNavTab.AdminConsole.id -> AdminConsoleScreen(
+                                        viewModel = viewModel
+                                    )
+                                    AppNavTab.ProfessionalProfile.id,
+                                    AppNavTab.OwnerProfile.id,
+                                    AppNavTab.AdminProfile.id -> SpecialistProfileScreen(
+                                        viewModel = viewModel,
+                                        inAppUpdateManager = inAppUpdateManager,
+                                        onSignOut = {
+                                            viewModel.logout()
+                                            activeTabId = "auth"
+                                        }
+                                    )
+                                    else -> DiscoveryScreen(
+                                        viewModel = viewModel,
+                                        onSelectSpace = { detailedSpace = it }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Handler for role-based custom dialog sheets
+        DrawerDialogsHandler(
+            dialogId = activeDrawerTabDialog,
+            viewModel = viewModel,
+            onNavigateToTab = { targetTab ->
+                activeTabId = targetTab
+                activeDrawerTabDialog = null
+            },
+            onDismiss = { activeDrawerTabDialog = null }
+        )
+    }
+}

@@ -1,0 +1,10 @@
+specVersion: "v1"
+serviceId: "prospace"
+location: "us-central1"
+schema:
+  datasource:
+    postgresql:
+      database: "prospace"
+      schemaValidation: "COMPATIBLE"
+connectorDirs:
+  - "./connector"

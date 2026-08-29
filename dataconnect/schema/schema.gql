@@ -1,0 +1,143 @@
+# ProSpace Database Schema for Firebase Data Connect (SQL Connect)
+# Automatically mapped to fully-managed Cloud SQL PostgreSQL database tables.
+
+type AppUser @table(name: "users", key: ["id"]) {
+  id: String!
+  email: String!
+  fullName: String!
+  role: String! # PROFESSIONAL, SPACE_OWNER, ADMIN
+  specialty: String!
+  phone: String!
+  affiliation: String!
+  syndicateNumber: String!
+  governorate: String! # BEIRUT, MOUNT_LEBANON, etc.
+  isVerified: Boolean!
+  subscriptionExpiryMillis: Int64 # Nullable
+}
+
+type SpaceListing @table(name: "space_listings", key: ["id"]) {
+  id: String!
+  title: String!
+  spaceType: String!
+  governorate: String!
+  district: String!
+  streetAddress: String!
+  floorInfo: String!
+  lat: Float!
+  lng: Float!
+  isShared: Boolean!
+  complementarySpecialties: [String!]!
+  residentPractitioners: [String!]!
+  essentialFacilities: [String!]!
+  equipmentJson: String!
+  rentalFormulasJson: String!
+  rulesJson: String!
+  scheduleJson: String!
+  ownerId: String!
+  ownerName: String!
+  ownerPhone: String!
+  ownerEmail: String!
+  isVerified: Boolean!
+  isActiveSubscription: Boolean!
+  subscriptionExpiryMillis: Int64!
+  imageUrls: [String!]!
+  videoTourDurationSec: Int!
+  baseMonthlyRateUsd: Float!
+  avatarEngagementViews: Int!
+  avatarInquiryClicks: Int!
+  subdivisionsJson: String # Embedded subdivisions array JSON
+}
+
+type SpaceSubdivision @table(name: "space_subdivisions", key: ["id"]) {
+  id: String!
+  spaceId: String! # Reference to the Level 1 SpaceListing parent
+  name: String! # Room/Subdivision designation name
+  type: String! # CLINICAL_ROOM, DENTAL_CHAIR, THERAPY_SUITE, etc.
+  amenities: [String!]! # Custom specific equipment/features of this room
+  strategiesJson: String! # JSON payload representing rental pricing models for this specific subdivision
+}
+
+type BookingRequest @table(name: "booking_requests", key: ["id"]) {
+  id: String!
+  spaceId: String!
+  spaceTitle: String!
+  spaceDistrict: String!
+  governorate: String!
+  ownerId: String!
+  ownerName: String!
+  ownerPhone: String!
+  practitionerId: String!
+  practitionerName: String!
+  practitionerEmail: String!
+  practitionerPhone: String!
+  practitionerSpecialty: String!
+  practitionerSyndicateNumber: String!
+  formulaJson: String!
+  startDate: String!
+  endDate: String!
+  selectedDays: [String!]!
+  selectedStartHour: String!
+  selectedEndHour: String!
+  selectedShift: String!
+  selectedDateTimeRange: String!
+  durationMonths: Int!
+  totalAmountUsd: Float!
+  clinicalNotes: String!
+  status: String!
+  createdAt: Int64!
+  reviewedAt: Int64
+  rejectionReason: String
+  isExternalPaymentSettled: Boolean!
+  subdivisionId: String # Optional Level 2 subdivision room selected
+  subdivisionName: String # Optional designated room name
+  selectedStrategy: String # Optional chosen strategy (HOURLY, SHIFT, MONTHLY)
+}
+
+type WhishTransaction @table(name: "whish_transactions", key: ["id"]) {
+  id: String!
+  orderId: String!
+  amountUsd: Float!
+  currency: String!
+  status: String!
+  timestamp: Int64!
+  payerName: String!
+  payerPhone: String!
+  channelId: String!
+  sourceEmail: String!
+  signatureHash: String!
+  spaceId: String!
+  spaceTitle: String!
+}
+
+type AuditSecurityLog @table(name: "audit_security_logs", key: ["id"]) {
+  id: String!
+  timestamp: Int64!
+  actionType: String!
+  details: String!
+  actorEmail: String!
+  severity: String!
+  ipAddress: String!
+}
+
+type AvatarCampaign @table(name: "avatar_campaigns", key: ["id"]) {
+  id: String!
+  spaceId: String!
+  spaceTitle: String!
+  instagramHandle: String!
+  totalReelViews: Int!
+  linkClicks: Int!
+  inquiriesGenerated: Int!
+  generatedCaption: String!
+  storyOverlayTag: String!
+  lastNudgeText: String!
+}
+
+type AdminPricingState @table(name: "admin_pricing_states", key: ["id"]) {
+  id: String!
+  monthlySubscriptionFeeUsd: Float!
+  baselineFeeUsd: Float!
+  presetOptions: [Float!]!
+  merchantChannelId: String!
+  merchantSource: String!
+  merchantSecretKeyMasked: String!
+}

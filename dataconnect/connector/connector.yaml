@@ -1,0 +1,5 @@
+connectorId: "prospace-connector"
+generate:
+  kotlinSdk:
+    outputDir: "../../app/src/main/java/com/example/data/dataconnect"
+    package: "com.example.data.dataconnect"

@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Group centered strictly within the 66dp safe zone (canvas 108dp) -->
+    <group
+        android:name="prospace_icon_group">
+
+        <!-- ============================================== -->
+        <!-- Architectural Building Silhouette (Background) -->
+        <!-- ============================================== -->
+        
+        <!-- Left Wing Building -->
+        <path
+            android:pathData="M 28,44 L 39,36 L 39,72 L 28,68 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="28"
+                    android:startY="36"
+                    android:endX="39"
+                    android:endY="72"
+                    android:type="linear">
+                    <item android:offset="0.0" android:color="#FF1E5EC8" />
+                    <item android:offset="1.0" android:color="#FF15418F" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        
+        <!-- Left Wing Windows -->
+        <path
+            android:fillColor="#33FFFFFF"
+            android:pathData="M 31,48 H 35 V 51 H 31 Z M 31,54 H 35 V 57 H 31 Z" />
+
+        <!-- Right Wing Building -->
+        <path
+            android:pathData="M 69,36 L 80,44 L 80,68 L 69,72 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="69"
+                    android:startY="36"
+                    android:endX="80"
+                    android:endY="72"
+                    android:type="linear">
+                    <item android:offset="0.0" android:color="#FF1A50B0" />
+                    <item android:offset="1.0" android:color="#FF123473" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        
+        <!-- Right Wing Windows -->
+        <path
+            android:fillColor="#33FFFFFF"
+            android:pathData="M 73,48 H 77 V 51 H 73 Z M 73,54 H 77 V 57 H 73 Z" />
+
+        <!-- Central High-Rise Tower -->
+        <path
+            android:pathData="M 39,34 L 54,22 L 69,34 L 69,72 L 39,72 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="39"
+                    android:startY="22"
+                    android:endX="69"
+                    android:endY="72"
+                    android:type="linear">
+                    <item android:offset="0.0" android:color="#FF246BEE" />
+                    <item android:offset="0.6" android:color="#FF1E56C3" />
+                    <item android:offset="1.0" android:color="#FF143A85" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        
+        <!-- Central Tower Skyline Windows -->
+        <path
+            android:fillColor="#40FFFFFF"
+            android:pathData="M 44,29 H 48 V 32 H 44 Z M 50,29 H 54 V 32 H 50 Z M 44,35 H 48 V 38 H 44 Z M 50,35 H 54 V 38 H 50 Z" />
+
+        <!-- Dynamic Horizon Wave at Base (Carnation Orange -> Bright Orange Gradient) -->
+        <path
+            android:pathData="M 27,62 Q 54,74 81,62 L 81,75 Q 54,79 27,75 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="27"
+                    android:startY="62"
+                    android:endX="81"
+                    android:endY="75"
+                    android:type="linear">
+                    <item android:offset="0.0" android:color="#FFF25F4C" />
+                    <item android:offset="0.5" android:color="#FFF98B1D" />
+                    <item android:offset="1.0" android:color="#FFF25F4C" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        
+        <!-- Base highlight warm tint -->
+        <path
+            android:pathData="M 28,68 L 44,57 L 54,64 L 64,57 L 80,68 L 80,74 L 28,74 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="28"
+                    android:startY="57"
+                    android:endX="80"
+                    android:endY="74"
+                    android:type="linear">
+                    <item android:offset="0.0" android:color="#FFF98B1D" />
+                    <item android:offset="0.5" android:color="#FFFFB74D" />
+                    <item android:offset="1.0" android:color="#FFF25F4C" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- ============================================== -->
+        <!-- Core Symbol: ProSpace Location Pin & Checkmark  -->
+        <!-- ============================================== -->
+
+        <!-- Pin Outer Shadow / Border for strong 3D depth -->
+        <path
+            android:fillColor="#260A1A3A"
+            android:pathData="M 54,78 C 52,75 32,58 32,44 C 32,31.85 41.85,22 54,22 C 66.15,22 76,31.85 76,44 C 76,58 56,75 54,78 Z" />
+
+        <!-- Pin Main Vibrant Body -->
+        <path
+            android:pathData="M 54,76 C 52.3,73.2 34,57 34,44 C 34,32.95 42.95,24 54,24 C 65.05,24 74,32.95 74,44 C 74,57 55.7,73.2 54,76 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="34"
+                    android:startY="24"
+                    android:endX="74"
+                    android:endY="76"
+                    android:type="linear">
+                    <item android:offset="0.0" android:color="#FF3880FF" />
+                    <item android:offset="0.45" android:color="#FF246BEE" />
+                    <item android:offset="1.0" android:color="#FF1547A8" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Pin Inner Bevel & Depth Ring -->
+        <path
+            android:pathData="M 54,67 C 52.8,64.8 38,52 38,44 C 38,35.16 45.16,28 54,28 C 62.84,28 70,35.16 70,44 C 70,52 55.2,64.8 54,67 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="38"
+                    android:startY="28"
+                    android:endX="70"
+                    android:endY="67"
+                    android:type="linear">
+                    <item android:offset="0.0" android:color="#FF1F5CCC" />
+                    <item android:offset="1.0" android:color="#FF103780" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Crisp Bold White Checkmark (Signifying instant booking confirmation) -->
+        <!-- Checkmark drop shadow -->
+        <path
+            android:fillColor="#33081E47"
+            android:pathData="M 45,46.5 L 51,52.5 L 63,40.5 L 66.5,44 L 51,59.5 L 41.5,50 Z" />
+
+        <!-- Checkmark Pure White Solid Foreground -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M 45,45 L 51,51 L 63,39 L 66.5,42.5 L 51,58 L 41.5,48.5 Z" />
+
+        <!-- Soft top-left specular gleam on the pin -->
+        <path
+            android:fillColor="#33FFFFFF"
+            android:pathData="M 54,24 C 44.5,24 36.6,31.2 34.6,40.5 C 37,33.5 44.5,28 54,28 C 58.5,28 62.5,29.5 65.8,32.2 C 62.5,27.2 58.5,24 54,24 Z" />
+
+    </group>
+</vector>

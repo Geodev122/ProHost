@@ -1,0 +1,185 @@
+# Queries for ProSpace App
+
+query GetAppUsers {
+  appUsers {
+    id
+    email
+    fullName
+    role
+    specialty
+    phone
+    affiliation
+    syndicateNumber
+    governorate
+    isVerified
+    subscriptionExpiryMillis
+  }
+}
+
+query GetAppUserById($id: String!) {
+  appUser(id: $id) {
+    id
+    email
+    fullName
+    role
+    specialty
+    phone
+    affiliation
+    syndicateNumber
+    governorate
+    isVerified
+    subscriptionExpiryMillis
+  }
+}
+
+query GetSpaceListings {
+  spaceListings {
+    id
+    title
+    spaceType
+    governorate
+    district
+    streetAddress
+    floorInfo
+    lat
+    lng
+    isShared
+    complementarySpecialties
+    residentPractitioners
+    essentialFacilities
+    equipmentJson
+    rentalFormulasJson
+    rulesJson
+    scheduleJson
+    ownerId
+    ownerName
+    ownerPhone
+    ownerEmail
+    isVerified
+    isActiveSubscription
+    subscriptionExpiryMillis
+    imageUrls
+    videoTourDurationSec
+    baseMonthlyRateUsd
+    avatarEngagementViews
+    avatarInquiryClicks
+    subdivisionsJson
+  }
+}
+
+query GetSpaceSubdivisions {
+  spaceSubdivisions {
+    id
+    spaceId
+    name
+    type
+    amenities
+    strategiesJson
+  }
+}
+
+query GetSpaceSubdivisionsBySpaceId($spaceId: String!) {
+  spaceSubdivisions(where: { spaceId: { eq: $spaceId } }) {
+    id
+    spaceId
+    name
+    type
+    amenities
+    strategiesJson
+  }
+}
+
+query GetBookingRequests {
+  bookingRequests {
+    id
+    spaceId
+    spaceTitle
+    spaceDistrict
+    governorate
+    ownerId
+    ownerName
+    ownerPhone
+    practitionerId
+    practitionerName
+    practitionerEmail
+    practitionerPhone
+    practitionerSpecialty
+    practitionerSyndicateNumber
+    formulaJson
+    startDate
+    endDate
+    selectedDays
+    selectedStartHour
+    selectedEndHour
+    selectedShift
+    selectedDateTimeRange
+    durationMonths
+    totalAmountUsd
+    clinicalNotes
+    status
+    createdAt
+    reviewedAt
+    rejectionReason
+    isExternalPaymentSettled
+    subdivisionId
+    subdivisionName
+    selectedStrategy
+  }
+}
+
+query GetWhishTransactions {
+  whishTransactions {
+    id
+    orderId
+    amountUsd
+    currency
+    status
+    timestamp
+    payerName
+    payerPhone
+    channelId
+    sourceEmail
+    signatureHash
+    spaceId
+    spaceTitle
+  }
+}
+
+query GetAuditSecurityLogs {
+  auditSecurityLogs {
+    id
+    timestamp
+    actionType
+    details
+    actorEmail
+    severity
+    ipAddress
+  }
+}
+
+query GetAvatarCampaigns {
+  avatarCampaigns {
+    id
+    spaceId
+    spaceTitle
+    instagramHandle
+    totalReelViews
+    linkClicks
+    inquiriesGenerated
+    generatedCaption
+    storyOverlayTag
+    lastNudgeText
+  }
+}
+
+query GetAdminPricingStates {
+  adminPricingStates {
+    id
+    monthlySubscriptionFeeUsd
+    baselineFeeUsd
+    presetOptions
+    merchantChannelId
+    merchantSource
+    merchantSecretKeyMasked
+  }
+}

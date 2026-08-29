@@ -1,0 +1,54 @@
+package com.example
+
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import com.example.data.crypto.WhishSecurity
+import com.example.data.repository.ProSpaceRepository
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
+class ExampleRobolectricTest {
+
+  @Test
+  fun `read string from context`() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val appName = context.getString(R.string.app_name)
+    assertEquals("ProSpace", appName)
+  }
+
+  @Test
+  fun `test whish signature and crypto`() {
+    val sigSha256 = WhishSecurity.generateSignature(
+      channel = "15462415",
+      amount = 1.80,
+      currency = "USD",
+      orderId = "ORD-TEST-001"
+    )
+    assertNotNull(sigSha256)
+    assertEquals(64, sigSha256.length)
+
+    val sigMd5 = WhishSecurity.generateMd5Signature(
+      channel = "15462415",
+      amount = 1.80,
+      currency = "USD",
+      orderId = "ORD-TEST-001"
+    )
+    assertNotNull(sigMd5)
+    assertEquals(32, sigMd5.length)
+  }
+
+  @Test
+  fun `test financial calculations`() {
+    val repo = ProSpaceRepository()
+    assertEquals(1.80, repo.pricingState.value.monthlySubscriptionFeeUsd, 0.01)
+    val mrr = repo.calculateActiveMrr()
+    assert(mrr > 0)
+  }
+}
+

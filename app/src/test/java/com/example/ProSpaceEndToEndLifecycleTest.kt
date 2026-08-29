@@ -1,0 +1,186 @@
+package com.example
+
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import com.example.data.crypto.WhishSecurity
+import com.example.data.model.*
+import com.example.data.repository.ProSpaceRepository
+import com.example.ui.viewmodel.ProSpaceViewModel
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/**
+ * ProSpace End-to-End Flow & Critical User Journey (CUJ) Tests
+ * Covers all 3 core role workflows: Professional Practitioner, Space Owner, and Super Admin.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
+class ProSpaceEndToEndLifecycleTest {
+
+    private lateinit var repository: ProSpaceRepository
+    private lateinit var viewModel: ProSpaceViewModel
+    private lateinit var context: Context
+
+    @Before
+    fun setUp() {
+        context = ApplicationProvider.getApplicationContext()
+        repository = ProSpaceRepository()
+        viewModel = ProSpaceViewModel(repository)
+    }
+
+    @Test
+    fun `test complete booking lifecycle - discovery to owner approval to whish renewal`() {
+        // 1. Practitioner logs in
+        val practitioner = repository.login("dr.sami@prospace.lb", UserRole.PROFESSIONAL)
+        assertNotNull(practitioner)
+        assertEquals(UserRole.PROFESSIONAL, practitioner.role)
+
+        // 2. Discover available space
+        val spaces = repository.spaces.value
+        assertTrue("Spaces should be populated", spaces.isNotEmpty())
+        val targetSpace = spaces.first { it.rentalFormulas.isNotEmpty() }
+        val selectedFormula = targetSpace.rentalFormulas.first()
+
+        // 3. Submit Booking Application
+        val bookingRequest = repository.createBookingRequest(
+            space = targetSpace,
+            formula = selectedFormula,
+            practitioner = practitioner,
+            startDate = "2026-09-01",
+            durationMonths = 3,
+            notes = "Require access for clinical cardiology consultations",
+            selectedDays = selectedFormula.daysOfWeek,
+            selectedStartHour = selectedFormula.startHour,
+            selectedEndHour = selectedFormula.endHour,
+            selectedShift = "Morning Shift",
+            calculatedTotalUsd = selectedFormula.rateUsd * 3
+        )
+
+        assertNotNull(bookingRequest)
+        assertEquals(BookingRequestStatus.PENDING, bookingRequest.status)
+        assertEquals(selectedFormula.rateUsd * 3, bookingRequest.totalAmountUsd, 0.01)
+
+        // 4. Verify Owner sees incoming request
+        val ownerIncoming = repository.bookingRequests.value.filter { it.spaceId == targetSpace.id }
+        assertTrue(ownerIncoming.any { it.id == bookingRequest.id })
+
+        // 5. Owner Accepts Booking Application
+        val accepted = repository.acceptBookingRequest(bookingRequest.id)
+        assertTrue(accepted)
+
+        val updatedRequest = repository.bookingRequests.value.find { it.id == bookingRequest.id }
+        assertNotNull(updatedRequest)
+        assertEquals(BookingRequestStatus.ACCEPTED, updatedRequest?.status)
+        assertTrue(updatedRequest?.isExternalPaymentSettled == true)
+
+        // Verify space has resident practitioner added
+        val updatedSpace = repository.spaces.value.find { it.id == targetSpace.id }
+        assertTrue(updatedSpace?.residentPractitioners?.any { it.contains(practitioner.fullName) } == true)
+
+        // 6. Whish Pay Renewal / Direct Payment Settlement
+        val sampleSignature = WhishSecurity.generateSignature(
+            channel = WhishSecurity.CHANNEL_ID,
+            amount = bookingRequest.totalAmountUsd,
+            currency = "USD",
+            orderId = "ORD-BKG-" + bookingRequest.id
+        )
+        assertNotNull(sampleSignature)
+
+        val paymentSettled = repository.processWhishPayBooking(
+            bookingId = bookingRequest.id,
+            payerName = practitioner.fullName,
+            payerPhone = practitioner.phone,
+            txId = "TX-WHISH-" + bookingRequest.id,
+            signature = sampleSignature
+        )
+        assertTrue(paymentSettled)
+
+        // Verify transaction logged in ledger
+        val transactions = repository.transactions.value
+        assertTrue(transactions.any { it.orderId.contains(bookingRequest.id) && it.status == TransactionStatus.SUCCESS })
+    }
+
+    @Test
+    fun `test space owner rejection workflow and audit logging`() {
+        val practitioner = repository.login("dr.maya@prospace.lb", UserRole.PROFESSIONAL)
+        val space = repository.spaces.value.first()
+        val formula = space.rentalFormulas.first()
+
+        val request = repository.createBookingRequest(
+            space = space,
+            formula = formula,
+            practitioner = practitioner,
+            startDate = "2026-10-01",
+            durationMonths = 1,
+            notes = "Need specialized pediatric space"
+        )
+
+        assertEquals(BookingRequestStatus.PENDING, request.status)
+
+        // Owner declines with reason
+        val reason = "Slot conflict with existing dermatology clinic"
+        val declined = repository.rejectBookingRequest(request.id, note = reason)
+        assertTrue(declined)
+
+        val refreshed = repository.bookingRequests.value.find { it.id == request.id }
+        assertEquals(BookingRequestStatus.REJECTED, refreshed?.status)
+        assertEquals(reason, refreshed?.rejectionReason)
+
+        // Verify audit trail captured event
+        val auditLogs = repository.auditLogs.value
+        assertTrue(auditLogs.any { it.actionType == "RENTAL_REQUEST_DECLINED" && it.details.contains(request.id) })
+    }
+
+    @Test
+    fun `test super admin pricing governance and listing verification override`() {
+        // Admin login
+        val admin = repository.login("geo.elnajjar@gmail.com", UserRole.ADMIN)
+        assertEquals(UserRole.ADMIN, admin.role)
+
+        val space = repository.spaces.value.first()
+        val initialVerification = space.isVerified
+
+        // Toggle verification
+        repository.toggleListingVerification(space.id)
+        val toggledSpace = repository.spaces.value.find { it.id == space.id }
+        assertEquals(!initialVerification, toggledSpace?.isVerified)
+
+        // Update pricing formula
+        val originalMonthlyFee = repository.pricingState.value.monthlySubscriptionFeeUsd
+        repository.updateMonthlySubscriptionFee(2.50)
+        assertEquals(2.50, repository.pricingState.value.monthlySubscriptionFeeUsd, 0.001)
+    }
+
+    @Test
+    fun `test resilient offline transaction queuing and network recovery`() {
+        val testTx = WhishTransaction(
+            id = "TX-OFFLINE-001",
+            orderId = "ORD-OFFLINE-001",
+            amountUsd = 45.0,
+            currency = "USD",
+            status = TransactionStatus.SUCCESS,
+            timestamp = System.currentTimeMillis(),
+            payerName = "Dr. Test Offline",
+            payerPhone = "+961 70 111 222",
+            channelId = WhishSecurity.CHANNEL_ID,
+            sourceEmail = WhishSecurity.SOURCE_EMAIL,
+            signatureHash = "SIG-OFFLINE",
+            spaceId = "SPC-BEI-01",
+            spaceTitle = "Offline Beirut Clinic",
+            daysGranted = 30
+        )
+
+        repository.queueOfflineTransaction(testTx)
+        assertEquals(1, repository.pendingOfflineTransactions.value.size)
+
+        repository.retryOfflineTransactions()
+        assertEquals(0, repository.pendingOfflineTransactions.value.size)
+
+        val auditLogs = repository.auditLogs.value
+        assertTrue(auditLogs.any { it.actionType == "OFFLINE_TX_RECOVERED" })
+    }
+}
