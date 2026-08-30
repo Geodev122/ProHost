@@ -593,23 +593,26 @@ fun SpecialistProfileScreen(
             // 4. ROLE-TAILORED HUBS & ACCREDITATION SECTIONS
             // =========================================================================
 
-            if (user.role == UserRole.ADMIN) {
-                // ADMIN SOVEREIGN GOVERNANCE CARD
+            if (user.role == UserRole.PROFESSIONAL) {
+                // SPECIALIST PRACTITIONER FRIENDLY WORKSPACE HUB
                 ProSurfaceCard {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         ProSectionHeader(
-                            title = "Governance Authority Clearance",
-                            subtitle = "Sovereign platform administration and regulatory compliance node",
-                            icon = Icons.Default.AdminPanelSettings,
+                            title = "Practitioner Workspace & Booking Hub",
+                            subtitle = "Manage clinical and consulting room rentals across Lebanon with real-time availability",
+                            icon = Icons.Default.MedicalServices,
                             trailingContent = {
-                                ProStatusBadge(ProBadgeType.SUPER_ADMIN)
+                                ProStatusBadge(
+                                    type = if (user.isVerified) ProBadgeType.CUSTOM_SUCCESS else ProBadgeType.CUSTOM_WARNING,
+                                    customText = if (user.isVerified) "Syndicate Verified" else "Verification Pending"
+                                )
                             }
                         )
 
                         Surface(
                             shape = RoundedCornerShape(14.dp),
-                            color = StatusWarningContainer,
-                            border = BorderStroke(1.dp, AmberWarning.copy(alpha = 0.6f)),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -620,55 +623,59 @@ fun SpecialistProfileScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    Surface(
-                                        color = AmberWarning,
-                                        shape = CircleShape,
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(Icons.Default.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-                                        }
-                                    }
+                                    Icon(
+                                        Icons.Default.VerifiedUser,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
                                     Column {
                                         Text(
-                                            text = "Root Supervisory Clearance • 100% Accredited",
+                                            text = "Welcome back, Dr. / Specialist ${user.fullName}",
                                             style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = StatusOnWarningContainer
+                                            fontWeight = FontWeight.Bold
                                         )
                                         Text(
-                                            text = "Node Account: ${user.email}",
+                                            text = "Syndicate No: ${user.syndicateNumber.ifBlank { "Pending Registration" }} • ${user.governorate.displayName}",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = StatusOnWarningContainer.copy(alpha = 0.8f)
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
 
                                 Text(
-                                    text = "As Super Administrator, your account operates as central platform governance and is exempt from standard user document requirements. You hold supervisory clearance over space taxonomies, member accreditations, and Whish Money transaction ledgers.",
+                                    text = "You have $activeLeasesCount active workspace leases and $pendingApplicationsCount pending applications. All bookings factor in live operating hours, accepted tenant schedules, and host blackout maintenance slots.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = StatusOnWarningContainer
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-
-                                HorizontalDivider(color = AmberWarning.copy(alpha = 0.3f))
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text(
-                                        text = "🛡️ Cryptographic Integrity: Active",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = StatusOnWarningContainer
-                                    )
-                                    Text(
-                                        text = "Role: SUPER_ADMIN",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = StatusOnWarningContainer
-                                    )
+                                    Button(
+                                        onClick = {
+                                            Toast.makeText(context, "Explore available clinics & offices in Explore tab", Toast.LENGTH_SHORT).show()
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Find Workspaces", style = MaterialTheme.typography.labelMedium)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            Toast.makeText(context, "Active leases and formula calculations are synchronized", Toast.LENGTH_SHORT).show()
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Icon(Icons.Default.EventNote, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("View Bookings", style = MaterialTheme.typography.labelMedium)
+                                    }
                                 }
                             }
                         }
@@ -841,75 +848,44 @@ fun SpecialistProfileScreen(
                     }
                 }
 
-                // REQUIRED CREDENTIAL DOCUMENTS LIST
-                ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        ProSectionHeader(
-                            title = if (user.role == UserRole.SPACE_OWNER) "Property & Commercial Permits" else "Syndicate & Legal Credentials",
-                            subtitle = if (user.role == UserRole.SPACE_OWNER)
-                                "Commercial Register (Sijil Tejari), Title Deed (Sanad Melkiyeh), and National ID"
-                            else
-                                "Syndicate Membership Card, Practice Decree, and National ID",
-                            icon = Icons.Default.VerifiedUser,
-                            trailingContent = {
-                                ProStatusBadge(
-                                    type = when (user.verificationStatus) {
-                                        MemberVerificationStatus.VERIFIED -> ProBadgeType.CUSTOM_SUCCESS
-                                        MemberVerificationStatus.PENDING_REVIEW -> ProBadgeType.CUSTOM_WARNING
-                                        MemberVerificationStatus.ACTION_REQUIRED -> ProBadgeType.CUSTOM_ERROR
-                                        MemberVerificationStatus.UNVERIFIED -> ProBadgeType.CUSTOM_INFO
-                                    },
-                                    customText = user.verificationStatus.displayName
-                                )
-                            }
-                        )
+                if (user.role != UserRole.ADMIN) {
+                    // REQUIRED CREDENTIAL DOCUMENTS LIST
+                    ProSurfaceCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            ProSectionHeader(
+                                title = if (user.role == UserRole.SPACE_OWNER) "Property & Commercial Permits" else "Syndicate & Legal Credentials",
+                                subtitle = if (user.role == UserRole.SPACE_OWNER)
+                                    "Commercial Register (Sijil Tejari), Title Deed (Sanad Melkiyeh), and National ID"
+                                else
+                                    "Syndicate Membership Card, Practice Decree, and National ID",
+                                icon = Icons.Default.VerifiedUser,
+                                trailingContent = {
+                                    ProStatusBadge(
+                                        type = when (user.verificationStatus) {
+                                            MemberVerificationStatus.VERIFIED -> ProBadgeType.CUSTOM_SUCCESS
+                                            MemberVerificationStatus.PENDING_REVIEW -> ProBadgeType.CUSTOM_WARNING
+                                            MemberVerificationStatus.ACTION_REQUIRED -> ProBadgeType.CUSTOM_ERROR
+                                            MemberVerificationStatus.UNVERIFIED -> ProBadgeType.CUSTOM_INFO
+                                        },
+                                        customText = user.verificationStatus.displayName
+                                    )
+                                }
+                            )
 
-                        // Required documents
-                        Text(
-                            text = "Required Official Credentials (${user.role.displayName})",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            requiredDocTypes.forEach { docType ->
-                                val uploadedDoc = userDocuments.find { it.type == docType && it.status != DocumentStatus.NOT_UPLOADED }
-                                CredentialDocumentItemCard(
-                                    docType = docType,
-                                    uploadedDoc = uploadedDoc,
-                                    isRequired = true,
-                                    onUploadClick = {
-                                        selectedDocTypeForUpload = docType
-                                        showUploadDialog = true
-                                    },
-                                    onPreviewClick = { doc ->
-                                        previewingDocument = doc
-                                    },
-                                    onRemoveClick = { docId ->
-                                        viewModel.removeCredentialDocument(docId)
-                                        Toast.makeText(context, "Document removed", Toast.LENGTH_SHORT).show()
-                                    }
-                                )
-                            }
-                        }
-
-                        // Optional / Supplementary documents
-                        if (optionalDocTypes.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(4.dp))
+                            // Required documents
                             Text(
-                                text = "Supplementary / Recommended Certificates",
+                                text = "Required Official Credentials (${user.role.displayName})",
                                 style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                fontWeight = FontWeight.Bold
                             )
 
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                optionalDocTypes.forEach { docType ->
+                                requiredDocTypes.forEach { docType ->
                                     val uploadedDoc = userDocuments.find { it.type == docType && it.status != DocumentStatus.NOT_UPLOADED }
                                     CredentialDocumentItemCard(
                                         docType = docType,
                                         uploadedDoc = uploadedDoc,
-                                        isRequired = false,
+                                        isRequired = true,
                                         onUploadClick = {
                                             selectedDocTypeForUpload = docType
                                             showUploadDialog = true
@@ -924,72 +900,105 @@ fun SpecialistProfileScreen(
                                     )
                                 }
                             }
-                        }
 
-                        // Upload New Credential Action Button
-                        OutlinedButton(
-                            onClick = {
-                                selectedDocTypeForUpload = null
-                                showUploadDialog = true
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Upload Additional Supporting Document", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
-                        }
+                            // Optional / Supplementary documents
+                            if (optionalDocTypes.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Supplementary / Recommended Certificates",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
 
-                        // Submit For Review Action (if not yet verified)
-                        if (user.verificationStatus != MemberVerificationStatus.VERIFIED) {
-                            Button(
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    optionalDocTypes.forEach { docType ->
+                                        val uploadedDoc = userDocuments.find { it.type == docType && it.status != DocumentStatus.NOT_UPLOADED }
+                                        CredentialDocumentItemCard(
+                                            docType = docType,
+                                            uploadedDoc = uploadedDoc,
+                                            isRequired = false,
+                                            onUploadClick = {
+                                                selectedDocTypeForUpload = docType
+                                                showUploadDialog = true
+                                            },
+                                            onPreviewClick = { doc ->
+                                                previewingDocument = doc
+                                            },
+                                            onRemoveClick = { docId ->
+                                                viewModel.removeCredentialDocument(docId)
+                                                Toast.makeText(context, "Document removed", Toast.LENGTH_SHORT).show()
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Upload New Credential Action Button
+                            OutlinedButton(
                                 onClick = {
-                                    viewModel.submitForVerification()
-                                    Toast.makeText(context, "Verification package submitted for administrative compliance check!", Toast.LENGTH_LONG).show()
+                                    selectedDocTypeForUpload = null
+                                    showUploadDialog = true
                                 },
                                 shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = primaryAccent)
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Submit Accreditation Package for Review", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                Text("Upload Additional Supporting Document", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                             }
-                        }
 
-                        // Legal & Regulatory note
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = SandstoneContainer.copy(alpha = 0.5f),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.Top,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            // Submit For Review Action (if not yet verified)
+                            if (user.verificationStatus != MemberVerificationStatus.VERIFIED) {
+                                Button(
+                                    onClick = {
+                                        viewModel.submitForVerification()
+                                        Toast.makeText(context, "Verification package submitted for administrative compliance check!", Toast.LENGTH_LONG).show()
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = primaryAccent)
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Submit Accreditation Package for Review", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            // Legal & Regulatory note
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = SandstoneContainer.copy(alpha = 0.5f),
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Gavel,
-                                    contentDescription = null,
-                                    tint = SandstoneDark,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    Text(
-                                        text = "Lebanese Regulatory & Syndicate Compliance",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = SandstoneDark
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.Top,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Gavel,
+                                        contentDescription = null,
+                                        tint = SandstoneDark,
+                                        modifier = Modifier.size(18.dp)
                                     )
-                                    Text(
-                                        text = if (user.role == UserRole.SPACE_OWNER)
-                                            "Commercial property hosts must verify Sanad Melkiyeh (Title Deed) or official lease contract to ensure legal occupancy, valid subleasing, and generator power supply compliance."
-                                        else
-                                            "Under Lebanese syndicate regulations (OEA, LOP, BBA), practitioners renting professional clinic or studio suites must be accredited members in good standing for liability protection.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 11.sp
-                                    )
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            text = "Lebanese Regulatory & Syndicate Compliance",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = SandstoneDark
+                                        )
+                                        Text(
+                                            text = if (user.role == UserRole.SPACE_OWNER)
+                                                "Commercial property hosts must verify Sanad Melkiyeh (Title Deed) or official lease contract to ensure legal occupancy, valid subleasing, and generator power supply compliance."
+                                            else
+                                                "Under Lebanese syndicate regulations (OEA, LOP, BBA), practitioners renting professional clinic or studio suites must be accredited members in good standing for liability protection.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 11.sp
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,6 +25,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
@@ -56,6 +58,7 @@ fun OwnerHubScreen(
     var selectedSpaceForSchedule by remember { mutableStateOf<SpaceListing?>(null) }
     var activeCampaignForAvatar by remember { mutableStateOf<AvatarCampaign?>(null) }
     var showCreateListingDialog by remember { mutableStateOf(false) }
+    var showPackageSelectionDialog by remember { mutableStateOf(false) }
 
     OwnerHubScreenContent(
         ownerSpaces = ownerSpaces,
@@ -70,43 +73,105 @@ fun OwnerHubScreen(
             activeCampaignForAvatar = cmp
             selectedSpaceForAvatar = space
         },
-        onOpenCreateListing = { showCreateListingDialog = true }
+        onOpenCreateListing = { showCreateListingDialog = true },
+        onOpenPackageSelection = { showPackageSelectionDialog = true }
     )
 
-    // Space Schedule & Availability Editor Dialog
-    selectedSpaceForSchedule?.let { space ->
-        SpaceScheduleEditorDialog(
-            space = space,
-            viewModel = viewModel,
-            onDismiss = { selectedSpaceForSchedule = null }
-        )
-    }
+    // Package Selection Dialog
+    if (showPackageSelectionDialog) {
+        Dialog(onDismissRequest = { showPackageSelectionDialog = false }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = "Owner Package Tiers & Governance",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Current Package: ${currentUser?.ownerPackageTier?.title ?: "Pay As You Go"} (${pricingState.governanceTag})",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
 
-    // Whish Pay Checkout Modal
-    selectedSpaceForWhish?.let { space ->
-        WhishPayModal(
-            space = space,
-            currentFeeUsd = pricingState.monthlySubscriptionFeeUsd,
-            onDismiss = { selectedSpaceForWhish = null },
-            onConfirmPayment = { name, phone ->
-                viewModel.paySubscriptionViaWhish(space.id, name, phone, context)
-            }
-        )
-    }
+                    OutlinedCard(
+                        onClick = {
+                            viewModel.payOwnerPackageViaWhish(
+                                tier = OwnerPackageTier.PAY_AS_YOU_GO,
+                                payerName = currentUser?.fullName ?: "Space Owner",
+                                payerPhone = currentUser?.phone ?: "+961 70 888 999",
+                                spaceTypeForPayg = SpaceType.PRIVATE_OFFICE,
+                                context = context
+                            )
+                            showPackageSelectionDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(OwnerPackageTier.PAY_AS_YOU_GO.title, fontWeight = FontWeight.Bold)
+                            Text(OwnerPackageTier.PAY_AS_YOU_GO.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("PAYG fee per listing type", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
 
-    // AI Avatar Studio Dialog
-    if (selectedSpaceForAvatar != null && activeCampaignForAvatar != null) {
-        AvatarStudioDialog(
-            space = selectedSpaceForAvatar!!,
-            campaign = activeCampaignForAvatar!!,
-            onDismiss = {
-                selectedSpaceForAvatar = null
-                activeCampaignForAvatar = null
-            },
-            onRegenerateCampaign = {
-                viewModel.generateAvatarCampaignForSpace(selectedSpaceForAvatar!!)
+                    OutlinedCard(
+                        onClick = {
+                            viewModel.payOwnerPackageViaWhish(
+                                tier = OwnerPackageTier.LIMITED_3_TIER,
+                                payerName = currentUser?.fullName ?: "Space Owner",
+                                payerPhone = currentUser?.phone ?: "+961 70 888 999",
+                                spaceTypeForPayg = null,
+                                context = context
+                            )
+                            showPackageSelectionDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(OwnerPackageTier.LIMITED_3_TIER.title, fontWeight = FontWeight.Bold)
+                            Text(OwnerPackageTier.LIMITED_3_TIER.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("$${pricingState.package2MonthlyFeeUsd} / month • Up to 3 active listings", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+
+                    OutlinedCard(
+                        onClick = {
+                            viewModel.payOwnerPackageViaWhish(
+                                tier = OwnerPackageTier.UNLIMITED_TIER,
+                                payerName = currentUser?.fullName ?: "Space Owner",
+                                payerPhone = currentUser?.phone ?: "+961 70 888 999",
+                                spaceTypeForPayg = null,
+                                context = context
+                            )
+                            showPackageSelectionDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(OwnerPackageTier.UNLIMITED_TIER.title, fontWeight = FontWeight.Bold)
+                            Text(OwnerPackageTier.UNLIMITED_TIER.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("$${pricingState.package3MonthlyFeeUsd} / month • Unlimited active workspaces", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+
+                    Button(
+                        onClick = { showPackageSelectionDialog = false },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Close")
+                    }
+                }
             }
-        )
+        }
     }
 
     // Create Granular Space Listing Dialog
@@ -115,8 +180,17 @@ fun OwnerHubScreen(
             currentUser = currentUser,
             onDismiss = { showCreateListingDialog = false },
             onListingCreated = { newListing ->
-                viewModel.createNewSpaceListing(newListing)
-                showCreateListingDialog = false
+                val success = viewModel.createNewSpaceListing(newListing)
+                if (success) {
+                    showCreateListingDialog = false
+                    android.widget.Toast.makeText(context, "Workspace listing published successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    android.widget.Toast.makeText(
+                        context,
+                        "Package 2 Limit Reached (3 listings max). Please upgrade to Package 3 (Unlimited) in Owner Portal.",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         )
     }
@@ -133,6 +207,7 @@ fun OwnerHubScreenContent(
     onOpenScheduleEditor: (SpaceListing) -> Unit,
     onOpenAvatarStudio: (SpaceListing) -> Unit,
     onOpenCreateListing: () -> Unit,
+    onOpenPackageSelection: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -243,7 +318,19 @@ fun OwnerHubScreenContent(
                             ) {
                                 Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Renew with Whish Pay", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                Text("Renew", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            }
+
+                            OutlinedButton(
+                                onClick = onOpenPackageSelection,
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                                border = BorderStroke(1.dp, Color.White)
+                            ) {
+                                Icon(Icons.Default.Layers, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Manage Packages", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

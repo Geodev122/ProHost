@@ -212,8 +212,37 @@ class ProSpaceViewModel(
     }
 
     // --- Space Owner Listing Creation ---
-    fun createNewSpaceListing(listing: SpaceListing) {
+    fun createNewSpaceListing(listing: SpaceListing): Boolean {
+        val user = currentUser.value
+        val tier = user?.ownerPackageTier ?: OwnerPackageTier.PAY_AS_YOU_GO
+        val ownerSpaces = spaces.value.filter { it.ownerId == listing.ownerId || it.ownerEmail.equals(listing.ownerEmail, ignoreCase = true) }
+
+        if (tier == OwnerPackageTier.LIMITED_3_TIER && ownerSpaces.size >= 3) {
+            repository.addAuditLog(
+                actionType = "LISTING_BLOCKED_PACKAGE_LIMIT",
+                details = "Owner reached Package 2 limit (3 listings max). Upgrade to Package 3 Unlimited required.",
+                severity = "WARN"
+            )
+            return false
+        }
+
         repository.addSpaceListing(listing)
+        return true
+    }
+
+    fun payOwnerPackageViaWhish(
+        tier: OwnerPackageTier,
+        payerName: String,
+        payerPhone: String,
+        spaceTypeForPayg: SpaceType?,
+        context: Context
+    ) {
+        val tx = repository.processOwnerPackagePayment(tier, payerName, payerPhone, spaceTypeForPayg)
+        Toast.makeText(
+            context,
+            "Whish Pay Settled! Package ${tier.title} activated successfully. Order: ${tx.orderId}",
+            Toast.LENGTH_LONG
+        ).show()
     }
 
     // --- Firebase Auth & Google Credential Manager States ---

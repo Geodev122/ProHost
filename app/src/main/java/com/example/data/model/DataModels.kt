@@ -1049,8 +1049,6 @@ data class AdminPricingState(
             SpaceType.CENTER -> paygCenterUsd
             SpaceType.POLYCLINIC -> paygPolyclinicUsd
             SpaceType.COWORKING_SPACE -> paygCoworkingUsd
-            SpaceType.EXECUTIVE_BOARDROOM -> paygExecutiveBoardroomUsd
-            SpaceType.CONSULTATION_SUITE -> paygConsultationSuiteUsd
         }
     }
 

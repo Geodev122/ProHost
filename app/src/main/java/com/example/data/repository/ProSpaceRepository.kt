@@ -876,6 +876,43 @@ class ProSpaceRepository {
         )
     }
 
+    fun updatePaygFee(spaceType: SpaceType, fee: Double) {
+        val current = _pricingState.value
+        val updated = when (spaceType) {
+            SpaceType.PRIVATE_OFFICE -> current.copy(paygPrivateOfficeUsd = fee)
+            SpaceType.CENTER -> current.copy(paygCenterUsd = fee)
+            SpaceType.POLYCLINIC -> current.copy(paygPolyclinicUsd = fee)
+            SpaceType.COWORKING_SPACE -> current.copy(paygCoworkingUsd = fee)
+        }
+        _pricingState.value = updated
+        addAuditLog(
+            actionType = "PAYG_PRICING_UPDATED",
+            details = "PAYG fee for ${spaceType.displayName} updated to $${String.format(Locale.US, "%.2f", fee)} USD",
+            severity = "INFO"
+        )
+    }
+
+    fun updatePackageFees(package2Fee: Double, package3Fee: Double) {
+        _pricingState.value = _pricingState.value.copy(
+            package2MonthlyFeeUsd = package2Fee,
+            package3MonthlyFeeUsd = package3Fee
+        )
+        addAuditLog(
+            actionType = "PACKAGE_FEES_UPDATED",
+            details = "Package 2 (3-limit) fee updated to $${String.format(Locale.US, "%.2f", package2Fee)}, Package 3 (Unlimited) fee updated to $${String.format(Locale.US, "%.2f", package3Fee)}",
+            severity = "INFO"
+        )
+    }
+
+    fun updateGovernanceTag(tag: String) {
+        _pricingState.value = _pricingState.value.copy(governanceTag = tag)
+        addAuditLog(
+            actionType = "ADMIN_GOVERNANCE_TAG_UPDATED",
+            details = "Admin governance control tag updated to: $tag",
+            severity = "WARN"
+        )
+    }
+
     fun resetMonthlySubscriptionFee() {
         val baseline = _pricingState.value.baselineFeeUsd
         _pricingState.value = _pricingState.value.copy(
@@ -957,6 +994,61 @@ class ProSpaceRepository {
         addAuditLog(
             actionType = "WHISH_PAYMENT_SUCCESS",
             details = "Order ${tx.orderId} ($${String.format(Locale.US, "%.2f", currentFee)}) settled. Signature: ${signature.take(12)}... Entitlement granted for ${spaceTitle}",
+            severity = "SECURE",
+            actorEmail = payerName
+        )
+
+        return tx
+    }
+
+    fun processOwnerPackagePayment(
+        tier: OwnerPackageTier,
+        payerName: String,
+        payerPhone: String,
+        spaceTypeForPayg: SpaceType? = null
+    ): WhishTransaction {
+        val pricing = _pricingState.value
+        val amount = when (tier) {
+            OwnerPackageTier.PAY_AS_YOU_GO -> spaceTypeForPayg?.let { pricing.getPaygFeeForType(it) } ?: pricing.monthlySubscriptionFeeUsd
+            OwnerPackageTier.LIMITED_3_TIER -> pricing.package2MonthlyFeeUsd
+            OwnerPackageTier.UNLIMITED_TIER -> pricing.package3MonthlyFeeUsd
+        }
+
+        val orderId = "ORD-PKG-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+        val signature = WhishSecurity.generateSignature(amount = amount, orderId = orderId)
+
+        val user = _currentUser.value
+        val tx = WhishTransaction(
+            id = "TX-WSH-PKG-" + UUID.randomUUID().toString().take(8).uppercase(),
+            orderId = orderId,
+            amountUsd = amount,
+            currency = "USD",
+            status = TransactionStatus.SUCCESS,
+            timestamp = System.currentTimeMillis(),
+            payerName = payerName,
+            payerPhone = payerPhone,
+            channelId = WhishSecurity.CHANNEL_ID,
+            sourceEmail = WhishSecurity.SOURCE_EMAIL,
+            signatureHash = signature,
+            spaceId = "OWNER-PKG-${tier.name}",
+            spaceTitle = "Owner Package Subscription: ${tier.title}",
+            daysGranted = 30
+        )
+
+        _transactions.value = listOf(tx) + _transactions.value
+
+        if (user != null) {
+            val updatedUser = user.copy(
+                ownerPackageTier = tier,
+                ownerPackageExpiryMillis = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000)
+            )
+            _currentUser.value = updatedUser
+            updateUser(updatedUser)
+        }
+
+        addAuditLog(
+            actionType = "OWNER_PACKAGE_PAYMENT_SUCCESS",
+            details = "Owner package subscription ${tier.title} ($${String.format(Locale.US, "%.2f", amount)}) settled via Whish Pay. Order: $orderId",
             severity = "SECURE",
             actorEmail = payerName
         )

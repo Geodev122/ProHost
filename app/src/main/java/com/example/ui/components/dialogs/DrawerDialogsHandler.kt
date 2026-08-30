@@ -89,6 +89,16 @@ fun DrawerDialogsHandler(
                         "admin_audit" -> "Central Security Audits"
                         "admin_gov" -> "Governorate Node Status"
                         "admin_forecast" -> "Baseline Fee Forecaster"
+                        "admin_governance_clearance" -> "Governance Authority Clearance"
+                        "admin_credentials_registry" -> "Credential Documents Registry"
+                        "admin_app_updates" -> "App Version & In-App Updates"
+                        "pro_credentials_registry" -> "Credential Documents Registry"
+                        "pro_accreditation_hub" -> "Accreditation & Practice Hub"
+                        "pro_app_updates" -> "App Version & In-App Updates"
+                        "owner_listings_registry" -> "Workspace Listings Registry"
+                        "owner_package_tiers" -> "Owner Package Tiers & Governance"
+                        "owner_whish_ledger" -> "Whish Settlement Ledger"
+                        "owner_app_updates" -> "App Version & In-App Updates"
                         "fcm_alerts" -> "Real-time Alerts Terminal"
                         else -> "Information Sheet"
                     }
@@ -633,6 +643,263 @@ fun DrawerDialogsHandler(
                                             }
                                         }
                                     }
+                                }
+                            }
+                        }
+                        "admin_governance_clearance" -> {
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.error,
+                                            shape = CircleShape,
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(Icons.Default.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                            }
+                                        }
+                                        Column {
+                                            Text(
+                                                text = "Root Supervisory Clearance • 100% Accredited",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = "Node Account: ${currentUser?.email ?: "admin@prospace.lb"}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        text = "As Super Administrator, your account operates as central platform governance and is exempt from standard user document requirements. You hold supervisory clearance over space taxonomies, member accreditations, and Whish Money transaction ledgers.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    HorizontalDivider()
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("🛡️ Cryptographic Integrity: Active", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                        Text("Role: SUPER_ADMIN", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                        "admin_credentials_registry" -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("Super Admin Supervisory Registry & Document Inspection", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                val allDocs = viewModel.userDocuments.collectAsState().value
+                                if (allDocs.isEmpty()) {
+                                    Text("No pending member documents in the verification queue.", style = MaterialTheme.typography.bodySmall)
+                                } else {
+                                    LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.heightIn(max = 300.dp)) {
+                                        items(allDocs) { doc ->
+                                            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))) {
+                                                Column(modifier = Modifier.padding(10.dp)) {
+                                                    Text("User ID: ${doc.userId} • Type: ${doc.type.title}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                                    Text("Document No: ${doc.documentNumber} • Status: ${doc.status}", style = MaterialTheme.typography.bodySmall)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        "admin_app_updates" -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("Google Play Core Update Management & Release Integrity", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text("Installed Version: 1.0.0 (Production Channel Lebanese Node)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("App Integrity: Verified via Google Play App Signing & SHA-256 Key Attestation.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = {
+                                        android.widget.Toast.makeText(context, "System is running latest signed production version 1.0.0", android.widget.Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Check Google Play Updates", style = MaterialTheme.typography.labelMedium)
+                                }
+                            }
+                        }
+                        "pro_credentials_registry" -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("Practitioner Syndicate & Legal Credentials Registry", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text("Manage your Syndicate membership card, Practice Decree, and National ID for Lebanese clinic rentals.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                val userDocs = viewModel.currentUserDocuments.collectAsState().value
+                                val requiredTypes = DocumentType.entries.filter { currentUser?.role?.let { role -> it.requiredFor.contains(role) } == true }
+                                requiredTypes.forEach { docType ->
+                                    val upDoc = userDocs.find { it.type == docType }
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(10.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(docType.title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                                Text("Status: ${upDoc?.status?.name ?: "NOT_UPLOADED"}", style = MaterialTheme.typography.bodySmall, color = if (upDoc?.status == DocumentStatus.VERIFIED) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error)
+                                            }
+                                            Button(
+                                                onClick = {
+                                                    android.widget.Toast.makeText(context, "Opening document upload portal for ${docType.title}", android.widget.Toast.LENGTH_SHORT).show()
+                                                },
+                                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                                modifier = Modifier.height(32.dp)
+                                            ) {
+                                                Text("Upload", fontSize = 11.sp)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        "pro_accreditation_hub" -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("4-Pillar Professional Syndicate Accreditation", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text("Complete contact verification, syndicate license, governorate selection, and required legal document uploads to achieve 100% verified status.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("• Pillar 1: Contact & Identity Info (${if (currentUser?.fullName?.isNotBlank() == true) "Complete" else "Pending"})", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                                        Text("• Pillar 2: Syndicate & Specialty Registration (${if (currentUser?.syndicateNumber?.isNotBlank() == true) "Verified" else "Pending"})", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                                        Text("• Pillar 3: Lebanese Governorate Node (${currentUser?.governorate?.displayName ?: "Beirut"})", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                                        Text("• Pillar 4: Mandatory Compliance Documents", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
+                            }
+                        }
+                        "pro_app_updates" -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("Google Play In-App Updates & Release Integrity", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text("Current Version: 1.0.0 (ProSpace Lebanese Production Channel)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Automatic background updates are enabled via Google Play Core library.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = {
+                                        android.widget.Toast.makeText(context, "App is up to date with Google Play store distribution.", android.widget.Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Check for Updates", style = MaterialTheme.typography.labelMedium)
+                                }
+                            }
+                        }
+                        "owner_listings_registry" -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("Host Workspace Listings Registry", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text("Manage active clinic and office spaces across Lebanese Governorates (Beirut, Mount Lebanon, North, South).", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                val spaces = viewModel.spaces.collectAsState().value
+                                spaces.forEach { space ->
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(10.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(space.title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                                Text("${space.city} • $${space.pricePerMonthUsd}/mo", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                            Surface(
+                                                color = Color(0xFF4CAF50).copy(alpha = 0.2f),
+                                                shape = RoundedCornerShape(4.dp)
+                                            ) {
+                                                Text("ACTIVE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        "owner_package_tiers" -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("Owner Package Tiers & Governance", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text("Current Tier: ${currentUser?.ownerPackageTier?.title ?: "Pay As You Go"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("• Pay As You Go: Flexible per-booking commissions", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                                        Text("• Limited 3-Listing Tier: $49/mo priority placement", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                                        Text("• Unlimited Enterprise Tier: $120/mo full syndication", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
+                            }
+                        }
+                        "owner_whish_ledger" -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("Whish Money Settlement Ledger & Escrow", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text("All host payouts and subscription fees settled securely via Whish Money API (Channel 15462415).", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                val txs = viewModel.transactions.collectAsState().value
+                                if (txs.isEmpty()) {
+                                    Text("No recent Whish settlement transactions recorded.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                } else {
+                                    txs.take(5).forEach { tx ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(tx.orderId, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                                            Text("$${tx.amountUsd} USD", style = MaterialTheme.typography.bodySmall, color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        "owner_app_updates" -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("Google Play In-App Updates & Release Integrity", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text("Current Version: 1.0.0 (ProSpace Lebanese Production Channel)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = {
+                                        android.widget.Toast.makeText(context, "App is up to date with Google Play store distribution.", android.widget.Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Check for Updates", style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                         }

@@ -86,6 +86,27 @@ class AdminViewModel(
         }
     }
 
+    fun updatePaygFee(spaceType: SpaceType, fee: Double) {
+        viewModelScope.launch {
+            repository.updatePaygFee(spaceType, fee)
+            _events.emit(AdminUiEvent.ShowToast("PAYG fee updated for ${spaceType.displayName}"))
+        }
+    }
+
+    fun updatePackageFees(package2Fee: Double, package3Fee: Double) {
+        viewModelScope.launch {
+            repository.updatePackageFees(package2Fee, package3Fee)
+            _events.emit(AdminUiEvent.ShowToast("Owner package pricing updated successfully"))
+        }
+    }
+
+    fun updateGovernanceTag(tag: String) {
+        viewModelScope.launch {
+            repository.updateGovernanceTag(tag)
+            _events.emit(AdminUiEvent.ShowToast("Admin governance control tag updated"))
+        }
+    }
+
     fun applyPresetFee(fee: Double) {
         setSubscriptionFee(fee)
     }

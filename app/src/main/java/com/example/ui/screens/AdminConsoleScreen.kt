@@ -570,6 +570,107 @@ private fun AdminRevenueTab(
             }
         }
 
+        // Owner Packages & Governance Hub Card
+        item {
+            ProSurfaceCard {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    ProSectionHeader(
+                        title = "Owner Packages & Governance Hub",
+                        subtitle = "Configure Package Tiers, PAYG fees per workspace type, and Control Tag",
+                        icon = Icons.Default.AdminPanelSettings
+                    )
+
+                    var tagInput by remember(uiState.pricingState.governanceTag) { mutableStateOf(uiState.pricingState.governanceTag) }
+                    OutlinedTextField(
+                        value = tagInput,
+                        onValueChange = { tagInput = it },
+                        label = { Text("Admin Governance Control Tag") },
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            IconButton(onClick = { adminViewModel.updateGovernanceTag(tagInput) }) {
+                                Icon(Icons.Default.Check, contentDescription = "Save Tag", tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    )
+
+                    HorizontalDivider()
+
+                    Text(
+                        text = "Package 1: Pay As You Go (Per-Listing Fees by Type)",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = uiState.pricingState.paygPrivateOfficeUsd.toString(),
+                            onValueChange = { val d = it.toDoubleOrNull(); if (d != null) adminViewModel.updatePaygFee(SpaceType.PRIVATE_OFFICE, d) },
+                            label = { Text("Private Office ($)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = uiState.pricingState.paygCenterUsd.toString(),
+                            onValueChange = { val d = it.toDoubleOrNull(); if (d != null) adminViewModel.updatePaygFee(SpaceType.CENTER, d) },
+                            label = { Text("Center ($)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = uiState.pricingState.paygPolyclinicUsd.toString(),
+                            onValueChange = { val d = it.toDoubleOrNull(); if (d != null) adminViewModel.updatePaygFee(SpaceType.POLYCLINIC, d) },
+                            label = { Text("Polyclinic ($)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = uiState.pricingState.paygCoworkingUsd.toString(),
+                            onValueChange = { val d = it.toDoubleOrNull(); if (d != null) adminViewModel.updatePaygFee(SpaceType.COWORKING_SPACE, d) },
+                            label = { Text("Coworking ($)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    HorizontalDivider()
+
+                    Text(
+                        text = "Package 2 (3 Listings Limit) & Package 3 (Unlimited)",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    var pkg2Fee by remember(uiState.pricingState.package2MonthlyFeeUsd) { mutableStateOf(uiState.pricingState.package2MonthlyFeeUsd.toString()) }
+                    var pkg3Fee by remember(uiState.pricingState.package3MonthlyFeeUsd) { mutableStateOf(uiState.pricingState.package3MonthlyFeeUsd.toString()) }
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = pkg2Fee,
+                            onValueChange = { pkg2Fee = it },
+                            label = { Text("Pkg 2 Fee ($/mo)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = pkg3Fee,
+                            onValueChange = { pkg3Fee = it },
+                            label = { Text("Pkg 3 Fee ($/mo)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            val f2 = pkg2Fee.toDoubleOrNull() ?: 3.99
+                            val f3 = pkg3Fee.toDoubleOrNull() ?: 8.99
+                            adminViewModel.updatePackageFees(f2, f3)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Save Package Bundle Fees")
+                    }
+                }
+            }
+        }
+
         // Quick Export Hub Shortcuts
         item {
             ProSurfaceCard {

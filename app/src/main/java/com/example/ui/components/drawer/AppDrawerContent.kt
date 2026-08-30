@@ -142,6 +142,37 @@ fun ProfessionalDrawerContent(
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
 
         Text(
+            text = "PRACTITIONER CONFIGURATION",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = CarnationOrange,
+            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Credential Documents Registry", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("pro_credentials_registry") },
+            icon = { Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = OxfordBlue) }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NavigationDrawerItem(
+            label = { Text("Accreditation & Practice Hub", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("pro_accreditation_hub") },
+            icon = { Icon(Icons.Default.MedicalServices, contentDescription = null, tint = CarnationOrange) }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NavigationDrawerItem(
+            label = { Text("App Version & Updates", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("pro_app_updates") },
+            icon = { Icon(Icons.Default.SystemUpdate, contentDescription = null, tint = VibrantBlue) }
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
+
+        Text(
             text = "RENTER TABS (DRAWER ONLY)",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
@@ -331,6 +362,44 @@ fun OwnerDrawerContent(
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
 
         Text(
+            text = "HOST CONFIGURATION",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = FreshGreen,
+            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Workspace Listings Registry", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("owner_listings_registry") },
+            icon = { Icon(Icons.Default.HomeWork, contentDescription = null, tint = OxfordBlue) }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NavigationDrawerItem(
+            label = { Text("Owner Package Tiers & Governance", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("owner_package_tiers") },
+            icon = { Icon(Icons.Default.Verified, contentDescription = null, tint = FreshGreen) }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NavigationDrawerItem(
+            label = { Text("Whish Settlement Ledger", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("owner_whish_ledger") },
+            icon = { Icon(Icons.Default.ReceiptLong, contentDescription = null, tint = CarnationOrange) }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NavigationDrawerItem(
+            label = { Text("App Version & Updates", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("owner_app_updates") },
+            icon = { Icon(Icons.Default.SystemUpdate, contentDescription = null, tint = VibrantBlue) }
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
+
+        Text(
             text = "HOST POWER-UPS (DRAWER ONLY)",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
@@ -465,6 +534,37 @@ fun AdminDrawerContent(
                 selectedTextColor = OxfordBlue,
                 unselectedTextColor = CoolGray
             )
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
+
+        Text(
+            text = "ADMIN GOVERNANCE POPUPS",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = OxfordBlue,
+            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Governance Clearance", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("admin_governance_clearance") },
+            icon = { Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = OxfordBlue) }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NavigationDrawerItem(
+            label = { Text("Credential Documents Registry", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("admin_credentials_registry") },
+            icon = { Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = VibrantBlue) }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NavigationDrawerItem(
+            label = { Text("App Version & Updates", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("admin_app_updates") },
+            icon = { Icon(Icons.Default.SystemUpdate, contentDescription = null, tint = FreshGreen) }
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
