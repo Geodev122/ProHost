@@ -1,6 +1,7 @@
 package com.example.data.repository
 
 import android.util.Log
+import com.example.data.auth.FirebaseFunctionsClient
 import com.example.data.crypto.WhishSecurity
 import com.example.data.firestore.FirestoreSchema
 import com.example.data.firestore.FirestoreService
@@ -40,6 +41,7 @@ class ProSpaceRepository {
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     private val firestoreService = FirestoreService.getInstance()
+    private val functionsClient = FirebaseFunctionsClient()
 
     private val _subscriptionFormulas = MutableStateFlow<List<SubscriptionFormula>>(
         firestoreService.getDefaultSubscriptionFormulas()
@@ -153,15 +155,18 @@ class ProSpaceRepository {
                 }
             )
 
-            // Pricing: if an admin has already configured pricing on this project, use it;
-            // otherwise seed the doc with local defaults so the initiateWhishPayment Cloud
-            // Function has something real to read from day one.
+            // Pricing: read-only from the client's side. If an admin has already
+            // configured pricing on this project, use it; otherwise keep the local
+            // AdminPricingState() defaults, which match the fallback defaults
+            // functions/src/lib/pricing.ts uses server-side when the doc doesn't
+            // exist yet — no client write needed to give initiateWhishPayment
+            // something real to read. Writing system_metadata/pricing at all is now
+            // exclusively the updatePricing Cloud Function's job (Phase 7 rules deny
+            // every client write to it, admin or not).
             coroutineScope.launch {
                 val remotePricing = firestoreService.getPricingState()
                 if (remotePricing != null) {
                     _pricingState.value = remotePricing
-                } else {
-                    firestoreService.savePricingState(_pricingState.value)
                 }
             }
         } catch (e: Exception) {
@@ -347,7 +352,29 @@ class ProSpaceRepository {
     }
 
     // --- Security & Audit Logging ---
+    // actorEmail is kept as a parameter only for the local optimistic display copy
+    // below — Firestore rules deny every direct client write to audit_security_logs,
+    // and the recordClientAuditLog Cloud Function this now calls always uses the
+    // caller's own verified token email server-side, ignoring whatever's passed
+    // here. That closes the exact gap the original audit flagged: actorEmail used to
+    // be a plain client-supplied (spoofable) value in the persisted record.
     fun addAuditLog(
+        actionType: String,
+        details: String,
+        severity: String = "INFO",
+        actorEmail: String = _currentUser.value?.email ?: "system@prohost.app"
+    ) {
+        addLocalAuditLogEntry(actionType, details, severity, actorEmail)
+        coroutineScope.launch { functionsClient.recordAuditLog(actionType, details, severity) }
+    }
+
+    /**
+     * Updates only the local, in-memory audit log list (no server write). Used by
+     * actions that already have their own dedicated Cloud Function writing the real
+     * audit entry (pricing, credential review, listing verification/subscription
+     * overrides) — calling [addAuditLog] there too would double-write.
+     */
+    private fun addLocalAuditLogEntry(
         actionType: String,
         details: String,
         severity: String = "INFO",
@@ -362,16 +389,28 @@ class ProSpaceRepository {
             severity = severity
         )
         _auditLogs.value = listOf(log) + _auditLogs.value
-        coroutineScope.launch { firestoreService.recordAuditLog(log) }
     }
 
     // --- Admin Governance & Revenue Pricing ---
-    // Persisted to Firestore (system_metadata/pricing) after every change — the
-    // initiateWhishPayment Cloud Function reads this same document server-side to
-    // compute real charge amounts, so an admin price change that never leaves the
-    // device would silently never take effect for actual payments.
+    // Firestore rules deny every client write to system_metadata (it's read
+    // server-side by initiateWhishPayment to compute real charge amounts), so this
+    // now goes through the updatePricing Cloud Function instead of a direct write —
+    // it also writes its own audit log entry, so this intentionally doesn't call
+    // addAuditLog itself.
     private fun persistPricingState() {
-        coroutineScope.launch { firestoreService.savePricingState(_pricingState.value) }
+        val state = _pricingState.value
+        val fields = mapOf(
+            "monthlySubscriptionFeeUsd" to state.monthlySubscriptionFeeUsd,
+            "paygPrivateOfficeUsd" to state.paygPrivateOfficeUsd,
+            "paygCenterUsd" to state.paygCenterUsd,
+            "paygPolyclinicUsd" to state.paygPolyclinicUsd,
+            "paygCoworkingUsd" to state.paygCoworkingUsd,
+            "package2MonthlyFeeUsd" to state.package2MonthlyFeeUsd,
+            "package3MonthlyFeeUsd" to state.package3MonthlyFeeUsd,
+            "governanceTag" to state.governanceTag,
+            "isPackagingGovernanceActive" to state.isPackagingGovernanceActive
+        )
+        coroutineScope.launch { functionsClient.updatePricing(fields) }
     }
 
     fun updateMonthlySubscriptionFee(newFeeUsd: Double) {
@@ -380,11 +419,10 @@ class ProSpaceRepository {
             monthlySubscriptionFeeUsd = newFeeUsd
         )
         persistPricingState()
-        addAuditLog(
+        addLocalAuditLogEntry(
             actionType = "PRICING_ADJUSTMENT",
             details = "Monthly fee changed from $${String.format(Locale.US, "%.2f", oldFee)} to $${String.format(Locale.US, "%.2f", newFeeUsd)} USD",
-            severity = "WARN",
-            actorEmail = _currentUser.value?.email ?: "system@prohost.app"
+            severity = "WARN"
         )
     }
 
@@ -398,7 +436,7 @@ class ProSpaceRepository {
         }
         _pricingState.value = updated
         persistPricingState()
-        addAuditLog(
+        addLocalAuditLogEntry(
             actionType = "PAYG_PRICING_UPDATED",
             details = "PAYG fee for ${spaceType.displayName} updated to $${String.format(Locale.US, "%.2f", fee)} USD",
             severity = "INFO"
@@ -411,7 +449,7 @@ class ProSpaceRepository {
             package3MonthlyFeeUsd = package3Fee
         )
         persistPricingState()
-        addAuditLog(
+        addLocalAuditLogEntry(
             actionType = "PACKAGE_FEES_UPDATED",
             details = "Package 2 (3-limit) fee updated to $${String.format(Locale.US, "%.2f", package2Fee)}, Package 3 (Unlimited) fee updated to $${String.format(Locale.US, "%.2f", package3Fee)}",
             severity = "INFO"
@@ -421,7 +459,7 @@ class ProSpaceRepository {
     fun updateGovernanceTag(tag: String) {
         _pricingState.value = _pricingState.value.copy(governanceTag = tag)
         persistPricingState()
-        addAuditLog(
+        addLocalAuditLogEntry(
             actionType = "ADMIN_GOVERNANCE_TAG_UPDATED",
             details = "Admin governance control tag updated to: $tag",
             severity = "WARN"
@@ -434,7 +472,7 @@ class ProSpaceRepository {
             monthlySubscriptionFeeUsd = baseline
         )
         persistPricingState()
-        addAuditLog(
+        addLocalAuditLogEntry(
             actionType = "PRICING_RESET",
             details = "Monthly fee reset to official baseline $${String.format(Locale.US, "%.2f", baseline)} USD",
             severity = "INFO"
@@ -520,15 +558,37 @@ class ProSpaceRepository {
         )
     }
 
+    /**
+     * Generic profile edit (name, phone, specialty, syndicate number, etc.) from the
+     * Admin Console's edit-user dialog. role/isVerified/verificationStatus/
+     * verificationTier/trustScore are always preserved from the current stored
+     * value here, regardless of what's passed in: Firestore rules deny any client
+     * write that changes those fields, so silently keeping them unchanged avoids a
+     * write that would otherwise be denied outright (and this method's caller
+     * showing a false "updated successfully" toast). Use grantAdminRole /
+     * reviewCredentialDocument / submitUserVerification for those instead.
+     */
     fun updateUser(updated: AppUser) {
-        _users.value = _users.value.map { if (it.id == updated.id) updated else it }
-        if (_currentUser.value?.id == updated.id) {
-            _currentUser.value = updated
+        val current = _users.value.find { it.id == updated.id }
+        val safeUpdate = if (current != null) {
+            updated.copy(
+                role = current.role,
+                isVerified = current.isVerified,
+                verificationStatus = current.verificationStatus,
+                verificationTier = current.verificationTier,
+                trustScore = current.trustScore
+            )
+        } else {
+            updated
         }
-        coroutineScope.launch { firestoreService.saveUserProfile(updated) }
+        _users.value = _users.value.map { if (it.id == safeUpdate.id) safeUpdate else it }
+        if (_currentUser.value?.id == safeUpdate.id) {
+            _currentUser.value = safeUpdate
+        }
+        coroutineScope.launch { firestoreService.saveUserProfile(safeUpdate) }
         addAuditLog(
             actionType = "USER_UPDATED",
-            details = "Admin updated user profile for ${updated.fullName} (${updated.email})",
+            details = "Admin updated user profile for ${safeUpdate.fullName} (${safeUpdate.email})",
             severity = "INFO"
         )
     }
@@ -683,30 +743,48 @@ class ProSpaceRepository {
         )
     }
 
+    /**
+     * Firestore rules deny every client write to workspace_listings.isVerified — only
+     * setListingVerification's Admin SDK write can change it. This used to only ever
+     * mutate local state (never actually reached Firestore, regardless of rules); now
+     * it awaits the real server change before updating local state, so the two can't
+     * drift if the call fails.
+     */
     fun toggleListingVerification(spaceId: String) {
-        val target = _spaces.value.find { it.id == spaceId }
-        val nextStatus = !(target?.isVerified ?: false)
-        _spaces.value = _spaces.value.map {
-            if (it.id == spaceId) it.copy(isVerified = nextStatus) else it
+        val target = _spaces.value.find { it.id == spaceId } ?: return
+        val nextStatus = !target.isVerified
+        coroutineScope.launch {
+            val result = functionsClient.setListingVerification(spaceId, nextStatus)
+            if (result.isSuccess) {
+                _spaces.value = _spaces.value.map {
+                    if (it.id == spaceId) it.copy(isVerified = nextStatus) else it
+                }
+                addLocalAuditLogEntry(
+                    actionType = "VERIFICATION_OVERRIDE",
+                    details = "Workspace #${spaceId} verified status changed to $nextStatus by Super Admin",
+                    severity = "SECURE"
+                )
+            }
         }
-        addAuditLog(
-            actionType = "VERIFICATION_OVERRIDE",
-            details = "Workspace #${spaceId} verified status changed to $nextStatus by Super Admin",
-            severity = "SECURE"
-        )
     }
 
+    /** Same pattern as [toggleListingVerification] — see its doc comment. */
     fun toggleListingActive(spaceId: String) {
-        val target = _spaces.value.find { it.id == spaceId }
-        val nextStatus = !(target?.isActiveSubscription ?: false)
-        _spaces.value = _spaces.value.map {
-            if (it.id == spaceId) it.copy(isActiveSubscription = nextStatus) else it
+        val target = _spaces.value.find { it.id == spaceId } ?: return
+        val nextStatus = !target.isActiveSubscription
+        coroutineScope.launch {
+            val result = functionsClient.setListingSubscriptionActive(spaceId, nextStatus)
+            if (result.isSuccess) {
+                _spaces.value = _spaces.value.map {
+                    if (it.id == spaceId) it.copy(isActiveSubscription = nextStatus) else it
+                }
+                addLocalAuditLogEntry(
+                    actionType = "SUBSCRIPTION_STATUS_TOGGLE",
+                    details = "Listing #${spaceId} subscription active status set to $nextStatus by Super Admin",
+                    severity = "WARN"
+                )
+            }
         }
-        addAuditLog(
-            actionType = "SUBSCRIPTION_STATUS_TOGGLE",
-            details = "Listing #${spaceId} subscription active status set to $nextStatus by Super Admin",
-            severity = "WARN"
-        )
     }
 
     // --- Smart Booking & In-App Rental Request Engine ---
@@ -782,6 +860,16 @@ class ProSpaceRepository {
         return request
     }
 
+    /**
+     * Owner accepting a booking locks in the schedule/terms — it never implies payment
+     * was settled. isExternalPaymentSettled used to be forced to true right here,
+     * unconditionally, regardless of whether the practitioner had paid anything —
+     * the same self-reported-settlement pattern the whole Whish remediation was
+     * about, just for bookings. It's now exclusively set by the payment webhook /
+     * checkWhishStatus reconciliation (functions/src/payments/reconcile.ts) once a
+     * real Whish payment for this booking actually succeeds — see
+     * RentalsViewModel.settleBookingPayment, the practitioner's separate later step.
+     */
     fun acceptBookingRequest(requestId: String): Boolean {
         val request = _bookingRequests.value.find { it.id == requestId } ?: return false
         val now = System.currentTimeMillis()
@@ -790,8 +878,7 @@ class ProSpaceRepository {
             if (it.id == requestId) {
                 it.copy(
                     status = BookingRequestStatus.ACCEPTED,
-                    reviewedAt = now,
-                    isExternalPaymentSettled = true
+                    reviewedAt = now
                 )
             } else it
         }
@@ -1088,7 +1175,12 @@ class ProSpaceRepository {
             actorEmail = _currentUser.value?.email ?: "member@prospace.lb"
         )
 
-        recalculateUserVerification(userId)
+        // Recomputes verificationStatus/verificationTier/trustScore server-side — those
+        // fields are no longer client-writable (see submitUserVerification's comment).
+        coroutineScope.launch {
+            functionsClient.submitVerificationForReview()
+            refreshUserProfile(userId)
+        }
         return doc
     }
 
@@ -1102,7 +1194,10 @@ class ProSpaceRepository {
                 severity = "INFO",
                 actorEmail = _currentUser.value?.email ?: "member@prospace.lb"
             )
-            recalculateUserVerification(doc.userId)
+            coroutineScope.launch {
+                functionsClient.submitVerificationForReview()
+                refreshUserProfile(doc.userId)
+            }
         }
     }
 
@@ -1118,104 +1213,88 @@ class ProSpaceRepository {
             MemberVerificationStatus.ACTION_REQUIRED
         }
 
+        // verificationNotes is a free-text field the owner can write themselves (not
+        // one of the restricted fields), so this part still writes directly; the
+        // actual verificationStatus change happens server-side just below.
         val updated = user.copy(
-            verificationStatus = newStatus,
             verificationNotes = "Submitted on ${SimpleDateFormat("dd MMM yyyy", Locale.US).format(Date())}. Pending admin accreditation."
         )
         if (_currentUser.value?.id == userId) {
             _currentUser.value = updated
         }
         _users.value = _users.value.map { if (it.id == userId) updated else it }
-        coroutineScope.launch { firestoreService.saveUserProfile(updated) }
-
-        addAuditLog(
-            actionType = "VERIFICATION_SUBMITTED",
-            details = "Member ${user.fullName} submitted ${uploadedRequired.size}/${requiredTypes.size} credential documents for compliance review",
-            severity = "INFO",
-            actorEmail = user.email
-        )
+        coroutineScope.launch {
+            firestoreService.saveUserProfile(updated)
+            // Server-side: recomputes and writes verificationStatus/verificationTier/
+            // trustScore from the same credential documents, since Firestore rules deny
+            // every client write to those fields on user_profiles.
+            functionsClient.submitVerificationForReview()
+            addLocalAuditLogEntry(
+                actionType = "VERIFICATION_SUBMITTED",
+                details = "Member ${user.fullName} submitted ${uploadedRequired.size}/${requiredTypes.size} credential documents for compliance review",
+                severity = "INFO",
+                actorEmail = user.email
+            )
+            refreshUserProfile(userId)
+        }
     }
 
+    /**
+     * Approving/rejecting a credential document and the resulting change to the
+     * member's verification status/tier/trust score are both server-authoritative
+     * now (Firestore rules deny every client write to those fields) — this and
+     * [adminRejectDocument] call reviewCredentialDocument instead of writing
+     * directly, then refresh local state from Firestore once the server is done.
+     */
     fun adminApproveDocument(documentId: String, reviewerNotes: String = "Validated against Lebanese Syndicate Registry") {
         val doc = _credentialDocuments.value.find { it.id == documentId } ?: return
-        val updatedDoc = doc.copy(
-            status = DocumentStatus.VERIFIED,
-            reviewerNotes = reviewerNotes,
-            rejectionReason = null
-        )
-        _credentialDocuments.value = _credentialDocuments.value.map { if (it.id == documentId) updatedDoc else it }
-        coroutineScope.launch { firestoreService.saveCredentialDocument(updatedDoc) }
-
-        addAuditLog(
-            actionType = "DOCUMENT_ACCREDITED",
-            details = "Admin approved ${doc.type.title} (#${doc.documentNumber}) for member ${doc.userId}",
-            severity = "SECURE",
-            actorEmail = _currentUser.value?.email ?: "admin@prospace.lb"
-        )
-        recalculateUserVerification(doc.userId)
+        coroutineScope.launch {
+            val result = functionsClient.reviewCredentialDocument(documentId, approve = true, reviewerNotes = reviewerNotes)
+            if (result.isSuccess) {
+                addLocalAuditLogEntry(
+                    actionType = "DOCUMENT_ACCREDITED",
+                    details = "Admin approved ${doc.type.title} (#${doc.documentNumber}) for member ${doc.userId}",
+                    severity = "SECURE",
+                    actorEmail = _currentUser.value?.email ?: "admin@prospace.lb"
+                )
+                refreshCredentialDocument(documentId)
+                refreshUserProfile(doc.userId)
+            }
+        }
     }
 
     fun adminRejectDocument(documentId: String, reason: String) {
         val doc = _credentialDocuments.value.find { it.id == documentId } ?: return
-        val updatedDoc = doc.copy(
-            status = DocumentStatus.REJECTED,
-            rejectionReason = reason,
-            reviewerNotes = "Revision requested: $reason"
-        )
-        _credentialDocuments.value = _credentialDocuments.value.map { if (it.id == documentId) updatedDoc else it }
-        coroutineScope.launch { firestoreService.saveCredentialDocument(updatedDoc) }
-
-        addAuditLog(
-            actionType = "DOCUMENT_REVISION_REQUESTED",
-            details = "Admin requested revision on ${doc.type.title} (#${doc.documentNumber}): $reason",
-            severity = "WARN",
-            actorEmail = _currentUser.value?.email ?: "admin@prospace.lb"
-        )
-        recalculateUserVerification(doc.userId)
+        coroutineScope.launch {
+            val result = functionsClient.reviewCredentialDocument(documentId, approve = false, rejectionReason = reason)
+            if (result.isSuccess) {
+                addLocalAuditLogEntry(
+                    actionType = "DOCUMENT_REVISION_REQUESTED",
+                    details = "Admin requested revision on ${doc.type.title} (#${doc.documentNumber}): $reason",
+                    severity = "WARN",
+                    actorEmail = _currentUser.value?.email ?: "admin@prospace.lb"
+                )
+                refreshCredentialDocument(documentId)
+                refreshUserProfile(doc.userId)
+            }
+        }
     }
 
-    fun recalculateUserVerification(userId: String) {
-        val user = _users.value.find { it.id == userId } ?: _currentUser.value ?: return
-        val userDocs = _credentialDocuments.value.filter { it.userId == userId }
-        val requiredTypes = DocumentType.values().filter { it.requiredFor.contains(user.role) }
+    /** Re-reads one credential document from Firestore into local state after a server-side change. */
+    private suspend fun refreshCredentialDocument(documentId: String) {
+        val data = firestoreService.getCredentialDocument(documentId) ?: return
+        val updatedDoc = CredentialDocument.fromFirestoreMap(documentId, data)
+        _credentialDocuments.value = _credentialDocuments.value.map { if (it.id == documentId) updatedDoc else it }
+    }
 
-        val verifiedCount = requiredTypes.count { req -> userDocs.any { it.type == req && it.status == DocumentStatus.VERIFIED } }
-        val hasRejected = userDocs.any { it.status == DocumentStatus.REJECTED }
-        val hasPending = userDocs.any { it.status == DocumentStatus.PENDING_REVIEW }
-
-        val newStatus = when {
-            verifiedCount == requiredTypes.size && requiredTypes.isNotEmpty() -> MemberVerificationStatus.VERIFIED
-            hasRejected -> MemberVerificationStatus.ACTION_REQUIRED
-            hasPending || verifiedCount > 0 -> MemberVerificationStatus.PENDING_REVIEW
-            else -> MemberVerificationStatus.UNVERIFIED
-        }
-
-        val isFullyVerified = newStatus == MemberVerificationStatus.VERIFIED
-        val tier = when (user.role) {
-            UserRole.SPACE_OWNER -> if (isFullyVerified) VerificationTier.TIER_3_COMMERCIAL_HOST else VerificationTier.TIER_1_BASIC
-            UserRole.PROFESSIONAL -> if (isFullyVerified) VerificationTier.TIER_2_PROFESSIONAL else VerificationTier.TIER_1_BASIC
-            UserRole.ADMIN -> VerificationTier.TIER_3_COMMERCIAL_HOST
-        }
-
-        val trustScore = when (newStatus) {
-            MemberVerificationStatus.VERIFIED -> 98
-            MemberVerificationStatus.PENDING_REVIEW -> 75
-            MemberVerificationStatus.ACTION_REQUIRED -> 45
-            MemberVerificationStatus.UNVERIFIED -> 30
-        }
-
-        val updated = user.copy(
-            isVerified = isFullyVerified,
-            verificationStatus = newStatus,
-            verificationTier = tier,
-            trustScore = trustScore
-        )
-
+    /** Re-reads one user profile from Firestore into local state after a server-side change. */
+    private suspend fun refreshUserProfile(userId: String) {
+        val data = firestoreService.getUserProfile(userId) ?: return
+        val updated = AppUser.fromFirestoreMap(userId, data)
         if (_currentUser.value?.id == userId) {
             _currentUser.value = updated
         }
         _users.value = _users.value.map { if (it.id == userId) updated else it }
-        coroutineScope.launch { firestoreService.saveUserProfile(updated) }
     }
 
     // --- AI Avatar Marketing Generator ---

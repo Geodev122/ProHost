@@ -1,20 +1,167 @@
 rules_version = '2';
+
+// Real collections only (workspace_listings, user_profiles, etc. — see
+// FirestoreSchema.kt). The previous version of this file protected
+// prospace_bookings/users, which the app never actually used; under
+// Firestore's default-deny, that meant every real collection had zero rules
+// at all. No rules had ever been deployed for this project before this file
+// (confirmed directly against the Firebase Rules API), so this is a from-zero
+// rewrite, not a patch to a working ruleset.
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Shared validation rules for the ProSpace booking and listing ecosystem
-    match /prospace_bookings/{bookingId} {
-      // Require authentication for reading or submitting booking requests
-      allow read: if request.auth != null;
-      
-      // Allow professionals to create bookings, and space owners or admins to update status
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null;
+
+    function isSignedIn() {
+      return request.auth != null;
     }
-    
-    match /users/{userId} {
-      // Allow users to view profiles, but only the owner can modify their profile data
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+
+    function role() {
+      return request.auth.token.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && role() == "ADMIN";
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ---------------------------------------------------------------
+    // workspace_listings — public discovery, owner-managed
+    // ---------------------------------------------------------------
+    match /workspace_listings/{spaceId} {
+      allow read: if true;
+
+      allow create: if isSignedIn() &&
+        (role() == "SPACE_OWNER" || isAdmin()) &&
+        request.resource.data.ownerId == request.auth.uid;
+
+      // isVerified / isActiveSubscription / subscriptionExpiryMillis are
+      // money- and verification-status fields — only setListingVerification /
+      // setListingSubscriptionActive / the Whish entitlement grant (all via
+      // the Admin SDK, which bypasses rules) can change them. ownerId can
+      // never be reassigned by a client write.
+      allow update: if isSignedIn() &&
+        (isAdmin() || (role() == "SPACE_OWNER" && resource.data.ownerId == request.auth.uid)) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(
+          ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId"]
+        );
+
+      allow delete: if isSignedIn() &&
+        (isAdmin() || resource.data.ownerId == request.auth.uid);
+    }
+
+    // ---------------------------------------------------------------
+    // user_profiles
+    // ---------------------------------------------------------------
+    match /user_profiles/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+
+      // Initial role/isVerified values on create come from the client today
+      // (see AuthFlow.kt) — the actual authority for "role" is the custom
+      // claim (assignInitialRole/grantAdminRole Cloud Functions), which every
+      // other collection's rules check via request.auth.token.role, not this
+      // field. This field is a display/query mirror of that claim.
+      allow create: if isOwner(userId);
+
+      // Once the profile exists, role/isVerified/verificationStatus/
+      // verificationTier/trustScore can never change via a direct client
+      // write, self or Admin — only grantAdminRole, reviewCredentialDocument,
+      // and submitVerificationForReview (Cloud Functions, Admin SDK) can.
+      allow update: if (isOwner(userId) || isAdmin()) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(
+          ["role", "isVerified", "verificationStatus", "verificationTier", "trustScore"]
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // subscription_formulas — reference/catalog data, not per-user pricing
+    // ---------------------------------------------------------------
+    match /subscription_formulas/{formulaId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // booking_requests
+    // ---------------------------------------------------------------
+    match /booking_requests/{bookingId} {
+      allow read: if isSignedIn() &&
+        (isAdmin() ||
+         resource.data.practitionerId == request.auth.uid ||
+         resource.data.ownerId == request.auth.uid);
+
+      allow create: if isSignedIn() &&
+        request.resource.data.practitionerId == request.auth.uid &&
+        request.resource.data.isExternalPaymentSettled == false;
+
+      // isExternalPaymentSettled can only be flipped by the payment
+      // webhook / checkWhishStatus reconciliation (Admin SDK) once a real
+      // Whish payment actually succeeds — never by the owner accepting, the
+      // practitioner, or an admin's own client.
+      allow update: if isSignedIn() &&
+        (isAdmin() ||
+         resource.data.practitionerId == request.auth.uid ||
+         resource.data.ownerId == request.auth.uid) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(["isExternalPaymentSettled"]);
+
+      allow delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // user_credentials — professional/owner credential documents
+    // ---------------------------------------------------------------
+    match /user_credentials/{documentId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.status in ["NOT_UPLOADED", "PENDING_REVIEW"];
+
+      // status/reviewerNotes/rejectionReason only change via
+      // reviewCredentialDocument (Admin SDK) — a user can still edit their
+      // own document's other fields (document number, expiry date, etc.)
+      // before it's reviewed.
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(
+          ["status", "reviewerNotes", "rejectionReason", "userId"]
+        );
+
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // ---------------------------------------------------------------
+    // whish_transactions — server-only, ground truth for real payments
+    // ---------------------------------------------------------------
+    match /whish_transactions/{txId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // audit_security_logs — server-only (see recordClientAuditLog /
+    // admin/* Cloud Functions, which are the only writers now)
+    // ---------------------------------------------------------------
+    match /audit_security_logs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // system_metadata — server-only (updatePricing Cloud Function is the
+    // only writer; FirestoreService.initializeSchema, which would have
+    // written schema_info directly, has no call sites anywhere in the app).
+    // ---------------------------------------------------------------
+    match /system_metadata/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Default deny for anything not explicitly matched above.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

@@ -298,33 +298,6 @@ class FirestoreService(
         }
     }
 
-    suspend fun updateUserVerificationStatus(
-        userId: String,
-        status: MemberVerificationStatus,
-        tier: VerificationTier,
-        notes: String?
-    ): Boolean {
-        return try {
-            val db = firestore ?: return false
-            val updateMap = mutableMapOf<String, Any>(
-                "verificationStatus" to status.name,
-                "verificationTier" to tier.name,
-                "isVerified" to (status == MemberVerificationStatus.VERIFIED),
-                "updatedAt" to System.currentTimeMillis()
-            )
-            if (notes != null) updateMap["verificationNotes"] = notes
-
-            db.collection(FirestoreSchema.Collections.USER_PROFILES)
-                .document(userId)
-                .set(updateMap, SetOptions.merge())
-                .await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error updating verification status: ${e.message}", e)
-            false
-        }
-    }
-
     // ==========================================
     // ADMIN PRICING STATE
     // ==========================================
@@ -531,6 +504,17 @@ class FirestoreService(
         } catch (e: Exception) {
             Log.e(TAG, "Error saving credential document: ${e.message}", e)
             false
+        }
+    }
+
+    suspend fun getCredentialDocument(documentId: String): Map<String, Any>? {
+        return try {
+            val db = firestore ?: return null
+            val doc = db.collection(FirestoreSchema.Collections.USER_CREDENTIALS).document(documentId).get().await()
+            doc.data
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching credential document: ${e.message}", e)
+            null
         }
     }
 

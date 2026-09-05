@@ -20,3 +20,9 @@ export { bootstrapSuperAdmin } from "./roles/bootstrapSuperAdmin";
 export { initiateWhishPayment } from "./payments/initiateWhishPayment";
 export { whishWebhook } from "./payments/whishWebhook";
 export { checkWhishStatus } from "./payments/checkWhishStatus";
+
+export { updatePricing } from "./admin/pricing";
+export { submitVerificationForReview, reviewCredentialDocument } from "./admin/verification";
+export { setListingVerification, setListingSubscriptionActive } from "./admin/listings";
+
+export { recordClientAuditLog } from "./audit/recordClientAuditLog";
