@@ -92,7 +92,7 @@ fun SplashScreen(
             ) {
                 Image(
                     painter = painterResource(id = com.example.R.drawable.ic_prospace_logo_brand),
-                    contentDescription = "ProSpace Lebanon Smart Space Logo",
+                    contentDescription = "ProHost Smart Space Logo",
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp))
                 )
@@ -102,7 +102,7 @@ fun SplashScreen(
 
             // Main Display Typography
             Text(
-                text = "ProSpace Lebanon",
+                text = "ProHost",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface,

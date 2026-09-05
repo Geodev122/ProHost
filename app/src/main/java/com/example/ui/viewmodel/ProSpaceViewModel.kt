@@ -245,6 +245,24 @@ class ProSpaceViewModel(
         ).show()
     }
 
+    fun payPaygListingViaWhish(
+        spaceType: SpaceType,
+        payerName: String,
+        payerPhone: String,
+        context: Context
+    ) {
+        val tx = repository.processPaygListingPayment(spaceType, payerName, payerPhone)
+        Toast.makeText(
+            context,
+            "Whish Pay Settled! PAYG listing slot for ${spaceType.displayName} purchased. Order: ${tx.orderId}",
+            Toast.LENGTH_LONG
+        ).show()
+    }
+
+    fun exportRevenueCsv(startDateMillis: Long?, endDateMillis: Long?): String {
+        return repository.exportTransactionsToCsv(startDateMillis, endDateMillis)
+    }
+
     // --- Firebase Auth & Google Credential Manager States ---
     private val _isAuthenticating = MutableStateFlow(false)
     val isAuthenticating: StateFlow<Boolean> = _isAuthenticating.asStateFlow()
@@ -496,10 +514,10 @@ class ProSpaceViewModel(
 
         val rawMessage = "Hello ${space.ownerName},\n\n" +
                 "I am ${professionalName} (${specialty}, affiliated with ${affiliation}, ID #${syndicate}).\n\n" +
-                "I am contacting you regarding your space \"${space.title}\" located in ${space.district}, ${space.governorate.displayName} on ProSpace Lebanon.\n" +
+                "I am contacting you regarding your space \"${space.title}\" located in ${space.district}, ${space.governorate.displayName} on ProHost.\n" +
                 "Selected Formula: ${formulaText}$requestSnippet\n\n" +
                 "I would like to finalize payment and walk-through details.\n" +
-                "Listing Ref: ProSpace #LB-${space.id}"
+                "Listing Ref: ProHost #LB-${space.id}"
 
         try {
             val encoded = URLEncoder.encode(rawMessage, "UTF-8")
@@ -714,9 +732,9 @@ class ProSpaceViewModel(
     fun shareExportData(context: Context, format: String, content: String) {
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, "ProSpace Lebanon - $format Export")
+            putExtra(Intent.EXTRA_SUBJECT, "ProHost - $format Export")
             putExtra(Intent.EXTRA_TEXT, content)
         }
-        context.startActivity(Intent.createChooser(intent, "Export ProSpace Lebanon Data"))
+        context.startActivity(Intent.createChooser(intent, "Export ProHost Data"))
     }
 }

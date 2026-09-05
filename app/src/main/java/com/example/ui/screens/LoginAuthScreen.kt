@@ -103,7 +103,7 @@ fun LoginAuthScreen(
         ) {
             Image(
                 painter = painterResource(id = com.example.R.drawable.ic_prospace_logo_brand),
-                contentDescription = "ProSpace Lebanon Logo",
+                contentDescription = "ProHost Logo",
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxSize()
@@ -114,7 +114,7 @@ fun LoginAuthScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "ProSpace Lebanon",
+            text = "ProHost",
             fontSize = 24.sp,
             fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.onSurface
@@ -1018,7 +1018,7 @@ fun GoogleChooserDialog(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "to continue to ProSpace Lebanon",
+                    text = "to continue to ProHost",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 20.dp),

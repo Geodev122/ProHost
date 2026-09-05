@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 /**
- * ProSpace Lebanon Cloud Firestore & Firebase Data Connect Integration Bridge
+ * ProHost Cloud Firestore & Firebase Data Connect Integration Bridge
  * 
  * Bridges Firebase Firestore cloud storage and Data Connect database services with
  * local state flows, resilient offline caching, and automatic schema initialization.

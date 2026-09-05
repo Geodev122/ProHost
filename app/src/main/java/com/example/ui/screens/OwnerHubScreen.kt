@@ -35,13 +35,13 @@ import java.util.Locale
 @Composable
 fun OwnerHubScreen(
     viewModel: ProSpaceViewModel,
-    onSelectSpace: (SpaceListing) -> Unit
+    onSelectSpace: (SpaceListing) -> Unit,
+    onOpenSubscriptions: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
     val pricingState by viewModel.pricingState.collectAsState()
     val spaces by viewModel.spaces.collectAsState()
-    val campaigns by viewModel.avatarCampaigns.collectAsState()
     val allBookingRequests by viewModel.bookingRequests.collectAsState()
 
     val ownerSpaces = remember(spaces, currentUser) {
@@ -54,9 +54,7 @@ fun OwnerHubScreen(
     }
 
     var selectedSpaceForWhish by remember { mutableStateOf<SpaceListing?>(null) }
-    var selectedSpaceForAvatar by remember { mutableStateOf<SpaceListing?>(null) }
     var selectedSpaceForSchedule by remember { mutableStateOf<SpaceListing?>(null) }
-    var activeCampaignForAvatar by remember { mutableStateOf<AvatarCampaign?>(null) }
     var showCreateListingDialog by remember { mutableStateOf(false) }
     var showPackageSelectionDialog by remember { mutableStateOf(false) }
 
@@ -68,13 +66,14 @@ fun OwnerHubScreen(
         onSelectSpace = onSelectSpace,
         onOpenWhishRenewal = { space -> selectedSpaceForWhish = space },
         onOpenScheduleEditor = { space -> selectedSpaceForSchedule = space },
-        onOpenAvatarStudio = { space ->
-            val cmp = campaigns.find { it.spaceId == space.id } ?: viewModel.generateAvatarCampaignForSpace(space)
-            activeCampaignForAvatar = cmp
-            selectedSpaceForAvatar = space
-        },
         onOpenCreateListing = { showCreateListingDialog = true },
-        onOpenPackageSelection = { showPackageSelectionDialog = true }
+        onOpenPackageSelection = {
+            if (onOpenSubscriptions != null) {
+                onOpenSubscriptions()
+            } else {
+                showPackageSelectionDialog = true
+            }
+        }
     )
 
     // Package Selection Dialog
@@ -158,20 +157,43 @@ fun OwnerHubScreen(
                         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(OwnerPackageTier.UNLIMITED_TIER.title, fontWeight = FontWeight.Bold)
                             Text(OwnerPackageTier.UNLIMITED_TIER.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("$${pricingState.package3MonthlyFeeUsd} / month • Unlimited active workspaces", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            Text("$${pricingState.package3MonthlyFeeUsd} / month • Unlimited active listings", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                         }
                     }
 
                     Button(
                         onClick = { showPackageSelectionDialog = false },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Close")
                     }
                 }
             }
         }
+    }
+
+    // Whish Settlement Dialog for Renewal
+    selectedSpaceForWhish?.let { space ->
+        WhishPayModal(
+            space = space,
+            currentFeeUsd = pricingState.monthlySubscriptionFeeUsd,
+            viewModel = viewModel,
+            onDismiss = { selectedSpaceForWhish = null },
+            onConfirmPayment = { name, phone ->
+                viewModel.paySubscriptionViaWhish(space.id, name, phone, context)
+                selectedSpaceForWhish = null
+                android.widget.Toast.makeText(context, "Renewal submitted successfully via Whish Pay!", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    // Space Availability Schedule Editor Dialog
+    selectedSpaceForSchedule?.let { space ->
+        SpaceScheduleEditorDialog(
+            space = space,
+            viewModel = viewModel,
+            onDismiss = { selectedSpaceForSchedule = null }
+        )
     }
 
     // Create Granular Space Listing Dialog
@@ -187,7 +209,7 @@ fun OwnerHubScreen(
                 } else {
                     android.widget.Toast.makeText(
                         context,
-                        "Package 2 Limit Reached (3 listings max). Please upgrade to Package 3 (Unlimited) in Owner Portal.",
+                        "Package Limit Reached. Please upgrade your package tier in Owner Portal.",
                         android.widget.Toast.LENGTH_LONG
                     ).show()
                 }
@@ -205,7 +227,6 @@ fun OwnerHubScreenContent(
     onSelectSpace: (SpaceListing) -> Unit,
     onOpenWhishRenewal: (SpaceListing?) -> Unit,
     onOpenScheduleEditor: (SpaceListing) -> Unit,
-    onOpenAvatarStudio: (SpaceListing) -> Unit,
     onOpenCreateListing: () -> Unit,
     onOpenPackageSelection: () -> Unit,
     modifier: Modifier = Modifier
@@ -338,80 +359,52 @@ fun OwnerHubScreenContent(
             }
         }
 
-        // Quick Actions Row: Add Listing & AI Avatar Studio
+        // Highlighted & Centered Add Workspace Action Button Card
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                contentAlignment = Alignment.Center
             ) {
-                // Add Listing Button Card
-                ProSurfaceCard(
+                Card(
                     modifier = Modifier
-                        .weight(1f)
-                        .clickable { onOpenCreateListing() }
+                        .fillMaxWidth()
+                        .shadow(6.dp, RoundedCornerShape(16.dp))
+                        .clickable { onOpenCreateListing() },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
                     ) {
                         Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer,
+                            color = MaterialTheme.colorScheme.primary,
                             shape = CircleShape,
-                            modifier = Modifier.size(40.dp)
+                            modifier = Modifier.size(48.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.AddBusiness, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.AddBusiness, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Add Workspace",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "Granular Listing",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                // AI Avatar Marketing Studio Card
-                ProSurfaceCard(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable {
-                            val target = ownerSpaces.firstOrNull() ?: allSpaces.firstOrNull()
-                            target?.let { onOpenAvatarStudio(it) }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(
+                                text = "Add New Workspace Listing",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = "Publish clinic, office, or studio space with smart pricing formulas",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            )
                         }
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Surface(
-                            color = InstagramPink.copy(alpha = 0.15f),
-                            shape = CircleShape,
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.SmartToy, contentDescription = null, tint = InstagramPink, modifier = Modifier.size(20.dp))
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "AI Avatar Studio",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "Instagram & Reels",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
                 }
             }
@@ -437,7 +430,7 @@ fun OwnerHubScreenContent(
             item {
                 ProEmptyState(
                     title = "No Listings Published",
-                    description = "You don't have any workspace listings yet. Click 'Add Workspace' above to publish your first office or clinic.",
+                    description = "You don't have any workspace listings yet. Click 'Add New Workspace Listing' above to publish your first office or clinic.",
                     icon = Icons.Default.HomeWork
                 )
             }
@@ -555,24 +548,12 @@ fun OwnerHubScreenContent(
                             // Availability & Schedule Control Button
                             Button(
                                 onClick = { onOpenScheduleEditor(space) },
-                                modifier = Modifier.weight(1.3f),
+                                modifier = Modifier.weight(1.5f),
                                 shape = RoundedCornerShape(10.dp)
                             ) {
                                 Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("Availability", style = MaterialTheme.typography.labelMedium)
-                            }
-
-                            // AI Reels Marketing Button
-                            Button(
-                                onClick = { onOpenAvatarStudio(space) },
-                                modifier = Modifier.weight(1.1f),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = InstagramPink)
-                            ) {
-                                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("AI Reels", style = MaterialTheme.typography.labelMedium, color = Color.White)
                             }
                         }
                     }

@@ -9,12 +9,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,7 +34,7 @@ fun ProfessionalDrawerContent(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        // Oxford Blue & Carnation Orange Practitioner Header
+        // Practitioner Header
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -142,7 +140,7 @@ fun ProfessionalDrawerContent(
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
 
         Text(
-            text = "PRACTITIONER CONFIGURATION",
+            text = "CONFIGURATION & SETTINGS",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = CarnationOrange,
@@ -157,62 +155,10 @@ fun ProfessionalDrawerContent(
         )
         Spacer(modifier = Modifier.height(4.dp))
         NavigationDrawerItem(
-            label = { Text("Accreditation & Practice Hub", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("pro_accreditation_hub") },
-            icon = { Icon(Icons.Default.MedicalServices, contentDescription = null, tint = CarnationOrange) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
             label = { Text("App Version & Updates", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { onDrawerAction("pro_app_updates") },
             icon = { Icon(Icons.Default.SystemUpdate, contentDescription = null, tint = VibrantBlue) }
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
-
-        Text(
-            text = "RENTER TABS (DRAWER ONLY)",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = CarnationOrange,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-        )
-
-        NavigationDrawerItem(
-            label = { Text("Pending Rent Requests", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("pro_pending") },
-            icon = { Icon(Icons.Default.Schedule, contentDescription = null, tint = OxfordBlue) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Payment Due Reminders", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("pro_dues") },
-            icon = { Icon(Icons.Default.NotificationImportant, contentDescription = null, tint = CarnationOrange) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Real-time Push Alerts", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("fcm_alerts") },
-            icon = { Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = VibrantBlue) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Syndicate Verification", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("pro_syndicate") },
-            icon = { Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = FreshGreen) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Lebanese Rent Laws", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("pro_laws") },
-            icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = OxfordBlue) }
         )
 
         ProSpaceDrawerFooter()
@@ -232,7 +178,7 @@ fun OwnerDrawerContent(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        // Oxford Blue & Fresh Green Host Header
+        // Host Header
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -313,9 +259,9 @@ fun OwnerDrawerContent(
         Spacer(modifier = Modifier.height(4.dp))
         NavigationDrawerItem(
             label = { Text("Renting Requests", fontWeight = FontWeight.Bold) },
-            selected = activeTabId == "owner_requests",
-            onClick = { onTabSelected("owner_requests") },
-            icon = { Icon(Icons.Default.Inbox, contentDescription = null, tint = if (activeTabId == "owner_requests") FreshGreen else OxfordBlue) },
+            selected = false,
+            onClick = { onDrawerAction("owner_requests_popup") },
+            icon = { Icon(Icons.Default.Inbox, contentDescription = null, tint = OxfordBlue) },
             colors = NavigationDrawerItemDefaults.colors(
                 selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
                 selectedTextColor = OxfordBlue,
@@ -358,6 +304,18 @@ fun OwnerDrawerContent(
                 unselectedTextColor = CoolGray
             )
         )
+        Spacer(modifier = Modifier.height(4.dp))
+        NavigationDrawerItem(
+            label = { Text("Subscription & Packages", fontWeight = FontWeight.Bold) },
+            selected = activeTabId == "owner_subscriptions",
+            onClick = { onTabSelected("owner_subscriptions") },
+            icon = { Icon(Icons.Default.Layers, contentDescription = null, tint = if (activeTabId == "owner_subscriptions") FreshGreen else OxfordBlue) },
+            colors = NavigationDrawerItemDefaults.colors(
+                selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
+                selectedTextColor = OxfordBlue,
+                unselectedTextColor = CoolGray
+            )
+        )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
 
@@ -370,62 +328,10 @@ fun OwnerDrawerContent(
         )
 
         NavigationDrawerItem(
-            label = { Text("Workspace Listings Registry", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("owner_listings_registry") },
-            icon = { Icon(Icons.Default.HomeWork, contentDescription = null, tint = OxfordBlue) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Owner Package Tiers & Governance", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("owner_package_tiers") },
-            icon = { Icon(Icons.Default.Verified, contentDescription = null, tint = FreshGreen) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Whish Settlement Ledger", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("owner_whish_ledger") },
-            icon = { Icon(Icons.Default.ReceiptLong, contentDescription = null, tint = CarnationOrange) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
             label = { Text("App Version & Updates", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { onDrawerAction("owner_app_updates") },
             icon = { Icon(Icons.Default.SystemUpdate, contentDescription = null, tint = VibrantBlue) }
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
-
-        Text(
-            text = "HOST POWER-UPS (DRAWER ONLY)",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = FreshGreen,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-        )
-
-        NavigationDrawerItem(
-            label = { Text("Social Reels Campaign", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("owner_reels") },
-            icon = { Icon(Icons.Default.VideoLibrary, contentDescription = null, tint = InstagramPink) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Whish Settlements Log", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("owner_whish") },
-            icon = { Icon(Icons.Default.Receipt, contentDescription = null, tint = CarnationOrange) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("House Guidelines", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("owner_guidelines") },
-            icon = { Icon(Icons.AutoMirrored.Filled.Rule, contentDescription = null, tint = OxfordBlue) }
         )
 
         ProSpaceDrawerFooter()
@@ -445,7 +351,7 @@ fun AdminDrawerContent(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        // Oxford Blue & Vibrant Blue Super Admin Header
+        // Admin Header
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -535,42 +441,23 @@ fun AdminDrawerContent(
                 unselectedTextColor = CoolGray
             )
         )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
-
-        Text(
-            text = "ADMIN GOVERNANCE POPUPS",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = OxfordBlue,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-        )
-
-        NavigationDrawerItem(
-            label = { Text("Governance Clearance", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("admin_governance_clearance") },
-            icon = { Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = OxfordBlue) }
-        )
         Spacer(modifier = Modifier.height(4.dp))
         NavigationDrawerItem(
-            label = { Text("Credential Documents Registry", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("admin_credentials_registry") },
-            icon = { Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = VibrantBlue) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("App Version & Updates", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("admin_app_updates") },
-            icon = { Icon(Icons.Default.SystemUpdate, contentDescription = null, tint = FreshGreen) }
+            label = { Text("Package Revenue & Performance", fontWeight = FontWeight.Bold) },
+            selected = activeTabId == "admin_revenue",
+            onClick = { onTabSelected("admin_revenue") },
+            icon = { Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = if (activeTabId == "admin_revenue") CarnationOrange else OxfordBlue) },
+            colors = NavigationDrawerItemDefaults.colors(
+                selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
+                selectedTextColor = OxfordBlue,
+                unselectedTextColor = CoolGray
+            )
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
 
         Text(
-            text = "SYSTEM AUDIT & PRICING (DRAWER ONLY)",
+            text = "SYSTEM AUDIT & PRICING",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = OxfordBlue,
@@ -589,13 +476,6 @@ fun AdminDrawerContent(
             selected = false,
             onClick = { onDrawerAction("admin_gov") },
             icon = { Icon(Icons.Default.Dns, contentDescription = null, tint = VibrantBlue) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Financial Baseline Slider", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("admin_forecast") },
-            icon = { Icon(Icons.Default.BarChart, contentDescription = null, tint = FreshGreen) }
         )
         Spacer(modifier = Modifier.height(4.dp))
         NavigationDrawerItem(
@@ -634,15 +514,15 @@ fun ProSpaceDrawerFooter() {
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "ProSpace Lebanon",
+                        text = "ProHost Lebanon",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = OxfordBlue
                     )
-                    ProSpaceCedarBadge(text = "v2.4", isCompact = true)
+                    ProSpaceCedarBadge(text = "v2.5", isCompact = true)
                 }
                 Text(
-                    text = "Syndicate & OEA Verified Workspace Grid",
+                    text = "Verified Professional Workspace Grid",
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 10.sp,
                     color = CoolGray

@@ -377,37 +377,6 @@ private fun AdminRevenueTab(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Governance Exemption Badge
-        item {
-            Surface(
-                color = StatusWarningContainer,
-                shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, AmberWarning.copy(alpha = 0.5f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = AmberWarning, modifier = Modifier.size(24.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Admin Governance Exemption Active",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = StatusOnWarningContainer
-                        )
-                        Text(
-                            text = "As the governance authority (geo.elnajjar@gmail.com), administrator profiles are exempt from front-user document uploads (National ID / Syndicate permits) and hold direct supervisory authority over all platform schemas, fee rates, and listings.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = StatusOnWarningContainer.copy(alpha = 0.85f)
-                        )
-                    }
-                }
-            }
-        }
-
         // Financial Run-Rate Summary Cards
         item {
             ProSurfaceCard {

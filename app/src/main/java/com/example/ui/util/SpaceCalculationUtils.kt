@@ -92,10 +92,10 @@ object SpaceCalculationUtils {
 
         val rawMessage = "Hello ${ownerName},\n\n" +
                 "I am ${professionalName} (${specialty}, affiliated with ${affiliation}, ID #${syndicate}).\n\n" +
-                "I am contacting you regarding your space \"${space.title}\" located in ${space.district}, ${space.governorate.displayName} on ProSpace Lebanon.\n" +
+                "I am contacting you regarding your space \"${space.title}\" located in ${space.district}, ${space.governorate.displayName} on ProHost.\n" +
                 "Selected Formula: ${formulaText}$requestSnippet\n\n" +
                 "I would like to finalize payment and walk-through details.\n" +
-                "Listing Ref: ProSpace #LB-${space.id}"
+                "Listing Ref: ProHost #LB-${space.id}"
 
         val encoded = URLEncoder.encode(rawMessage, "UTF-8")
         val cleanPhone = ownerPhone.replace("+", "").replace(" ", "").replace("-", "")

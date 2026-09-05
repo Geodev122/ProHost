@@ -145,38 +145,44 @@ class ProSpaceRepository {
                 }
             )
 
-            val firestore = FirebaseFirestore.getInstance()
-            firestoreListener?.remove()
-            firestoreListener = firestore.collection("prospace_bookings")
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.w(TAG, "Firestore sync listener note: ${error.message}. Operating in resilient offline mode.")
-                        _isOfflineMode.value = true
-                        _syncStatusMessage.value = "Offline Cache Active • Local Persistence Ready"
-                        return@addSnapshotListener
-                    }
-                    if (snapshot != null && !snapshot.isEmpty) {
-                        _isOfflineMode.value = false
-                        _syncStatusMessage.value = "Real-time Cloud Sync Active"
-                        snapshot.documents.forEach { doc ->
-                            val statusStr = doc.getString("status")
-                            val reqId = doc.id
-                            if (statusStr != null) {
-                                val newStatus = runCatching { BookingRequestStatus.valueOf(statusStr) }.getOrNull()
-                                if (newStatus != null) {
-                                    _bookingRequests.value = _bookingRequests.value.map { req ->
-                                        if (req.id == reqId && req.status != newStatus) {
-                                            req.copy(
-                                                status = newStatus,
-                                                reviewedAt = doc.getLong("reviewedAt") ?: System.currentTimeMillis()
-                                            )
-                                        } else req
+            try {
+                val firestore = FirebaseFirestore.getInstance()
+                firestoreListener?.remove()
+                firestoreListener = firestore.collection("prospace_bookings")
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Firestore sync listener note: ${error.message}. Operating in resilient offline mode.")
+                            _isOfflineMode.value = true
+                            _syncStatusMessage.value = "Offline Cache Active • Local Persistence Ready"
+                            return@addSnapshotListener
+                        }
+                        if (snapshot != null && !snapshot.isEmpty) {
+                            _isOfflineMode.value = false
+                            _syncStatusMessage.value = "Real-time Cloud Sync Active"
+                            snapshot.documents.forEach { doc ->
+                                val statusStr = doc.getString("status")
+                                val reqId = doc.id
+                                if (statusStr != null) {
+                                    val newStatus = runCatching { BookingRequestStatus.valueOf(statusStr) }.getOrNull()
+                                    if (newStatus != null) {
+                                        _bookingRequests.value = _bookingRequests.value.map { req ->
+                                            if (req.id == reqId && req.status != newStatus) {
+                                                req.copy(
+                                                    status = newStatus,
+                                                    reviewedAt = doc.getLong("reviewedAt") ?: System.currentTimeMillis()
+                                                )
+                                            } else req
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
+            } catch (e: Exception) {
+                Log.w(TAG, "FirebaseFirestore unavailable in test/offline environment: ${e.message}")
+                _isOfflineMode.value = true
+                _syncStatusMessage.value = "Offline Cache Active • Local Persistence Ready"
+            }
         } catch (e: Exception) {
             Log.w(TAG, "Firebase Firestore init fallback: ${e.message}")
             _isOfflineMode.value = true
@@ -352,7 +358,43 @@ class ProSpaceRepository {
         )
         _credentialDocuments.value = initialDocuments
 
-        val initialSpaces = emptyList<SpaceListing>()
+        val initialSpaces = listOf(
+            SpaceListing(
+                id = "SP-001",
+                title = "Achrafieh Executive Medical Suite",
+                spaceType = SpaceType.POLYCLINIC,
+                governorate = Governorate.BEIRUT,
+                district = "Achrafieh",
+                streetAddress = "Sursock Street, Beirut",
+                floorInfo = "2nd Floor, Suite 204",
+                lat = 33.8886,
+                lng = 35.5142,
+                isShared = true,
+                complementarySpecialties = listOf("Cardiology", "Dermatology", "Pediatrics"),
+                residentPractitioners = listOf("Dr. Sami Haddad"),
+                essentialFacilities = listOf("High-Speed Wi-Fi", "Receptionist", "Sterilization Suite"),
+                equipment = listOf(EquipmentItem("EQ-1", "Exam Table", EquipmentCategory.WORKSPACES, 1, "Hydraulic exam table")),
+                rentalFormulas = listOf(
+                    RentalFormula(
+                        id = "F1",
+                        type = RentalFormulaType.SHIFT,
+                        rateUsd = 350.0,
+                        scheduleDescription = "Morning Shift (08:00 - 14:00)",
+                        daysOfWeek = listOf("Mon", "Wed", "Fri"),
+                        startHour = "08:00",
+                        endHour = "14:00",
+                        totalWeeklyHours = 18,
+                        shiftName = "Morning Shift"
+                    )
+                ),
+                rules = PremisesRules(),
+                ownerId = "USR-OWNER-01",
+                ownerName = "Achrafieh Commercial Properties",
+                ownerPhone = "+961 3 123456",
+                ownerEmail = "host.achrafieh@prohost.lb",
+                baseMonthlyRateUsd = 450.0
+            )
+        )
         _spaces.value = initialSpaces
 
         _transactions.value = emptyList()
@@ -475,7 +517,7 @@ class ProSpaceRepository {
         )
 
         val targetSpace = _spaces.value.find { it.id == spaceId }
-        val spaceTitle = targetSpace?.title ?: "ProSpace Lebanon Subscription"
+        val spaceTitle = targetSpace?.title ?: "ProHost Subscription"
 
         val tx = WhishTransaction(
             id = "TX-WSH-" + UUID.randomUUID().toString().take(8).uppercase(),
@@ -548,7 +590,8 @@ class ProSpaceRepository {
             signatureHash = signature,
             spaceId = "OWNER-PKG-${tier.name}",
             spaceTitle = "Owner Package Subscription: ${tier.title}",
-            daysGranted = 30
+            daysGranted = 30,
+            userId = user?.id ?: ""
         )
 
         _transactions.value = listOf(tx) + _transactions.value
@@ -570,6 +613,73 @@ class ProSpaceRepository {
         )
 
         return tx
+    }
+
+    fun processPaygListingPayment(
+        spaceType: SpaceType,
+        payerName: String,
+        payerPhone: String
+    ): WhishTransaction {
+        val pricing = _pricingState.value
+        val amount = pricing.getPaygFeeForType(spaceType)
+        val orderId = "ORD-PAYG-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+        val signature = WhishSecurity.generateSignature(amount = amount, orderId = orderId)
+        val user = _currentUser.value
+
+        val tx = WhishTransaction(
+            id = "TX-WSH-PAYG-" + UUID.randomUUID().toString().take(8).uppercase(),
+            orderId = orderId,
+            amountUsd = amount,
+            currency = "USD",
+            status = TransactionStatus.SUCCESS,
+            timestamp = System.currentTimeMillis(),
+            payerName = payerName,
+            payerPhone = payerPhone,
+            channelId = WhishSecurity.CHANNEL_ID,
+            sourceEmail = WhishSecurity.SOURCE_EMAIL,
+            signatureHash = signature,
+            spaceId = "PAYG-SLOT-${spaceType.name}",
+            spaceTitle = "PAYG Listing Slot (${spaceType.displayName})",
+            daysGranted = 30,
+            userId = user?.id ?: ""
+        )
+
+        _transactions.value = listOf(tx) + _transactions.value
+
+        if (user != null) {
+            val updatedUser = user.copy(
+                paygListingsBoughtCount = user.paygListingsBoughtCount + 1
+            )
+            _currentUser.value = updatedUser
+            updateUser(updatedUser)
+        }
+
+        addAuditLog(
+            actionType = "PAYG_LISTING_PURCHASE_SUCCESS",
+            details = "PAYG listing slot for ${spaceType.displayName} ($${String.format(Locale.US, "%.2f", amount)}) purchased via Whish Pay.",
+            severity = "SECURE",
+            actorEmail = payerName
+        )
+
+        return tx
+    }
+
+    fun exportTransactionsToCsv(startDateMillis: Long? = null, endDateMillis: Long? = null): String {
+        val txs = _transactions.value.filter { tx ->
+            val matchesStart = startDateMillis == null || tx.timestamp >= startDateMillis
+            val matchesEnd = endDateMillis == null || tx.timestamp <= endDateMillis
+            matchesStart && matchesEnd
+        }
+
+        val sb = StringBuilder()
+        sb.appendLine("Package ID,User ID,Price,Date bought,Expiration Date,Transaction ID,Phone number (whish)")
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+        for (tx in txs) {
+            val dateBought = dateFormat.format(Date(tx.timestamp))
+            val expiryDate = dateFormat.format(Date(tx.timestamp + (tx.daysGranted.toLong() * 24 * 60 * 60 * 1000)))
+            sb.appendLine("${tx.spaceId},${tx.userId.ifBlank { "N/A" }},${String.format(Locale.US, "%.2f", tx.amountUsd)},$dateBought,$expiryDate,${tx.id},${tx.payerPhone}")
+        }
+        return sb.toString()
     }
 
     fun processWhishPayBooking(
@@ -1482,7 +1592,7 @@ class ProSpaceRepository {
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
         val sb = StringBuilder()
         sb.appendLine("{")
-        sb.appendLine("  \"platform\": \"ProSpace Lebanon\",")
+        sb.appendLine("  \"platform\": \"ProHost\",")
         sb.appendLine("  \"exportedAt\": \"${sdf.format(Date())}\",")
         sb.appendLine("  \"adminGovernance\": {")
         sb.appendLine("    \"currentMonthlyFeeUsd\": ${_pricingState.value.monthlySubscriptionFeeUsd},")

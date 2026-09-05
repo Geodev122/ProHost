@@ -23,9 +23,11 @@ sealed class AppNavTab(
     object OwnerRentalRequests : AppNavTab("owner_requests", "Renting Requests", Icons.Filled.Inbox, Icons.Outlined.Inbox)
     object OwnerRentingProgress : AppNavTab("owner_progress", "Renting Progress", Icons.Filled.Schedule, Icons.Outlined.Schedule)
     object Stats : AppNavTab("stats", "Stats", Icons.Filled.Analytics, Icons.Outlined.Analytics)
+    object OwnerSubscriptions : AppNavTab("owner_subscriptions", "Subscription & Packages", Icons.Filled.Layers, Icons.Outlined.Layers)
     object OwnerProfile : AppNavTab("owner_profile", "Profile", Icons.Filled.Person, Icons.Outlined.Person)
 
     // Super Admin tab (restricted exclusively to Super Admin role)
     object AdminConsole : AppNavTab("admin_console", "Admin Console", Icons.Filled.AdminPanelSettings, Icons.Outlined.AdminPanelSettings)
+    object AdminRevenue : AppNavTab("admin_revenue", "Package Revenue", Icons.Filled.MonetizationOn, Icons.Outlined.MonetizationOn)
     object AdminProfile : AppNavTab("admin_profile", "Security ID", Icons.Filled.Shield, Icons.Outlined.Shield)
 }

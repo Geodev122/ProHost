@@ -1,5 +1,6 @@
 package com.example.ui.components.dialogs
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.*
+import com.example.ui.components.OwnerBookingRequestCard
 import com.example.ui.components.drawer.LawBulletinCard
 import com.example.ui.theme.LebaneseCedarGreen
 import com.example.ui.theme.StatusSuccess
@@ -80,7 +82,7 @@ fun DrawerDialogsHandler(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val title = when (dialogId) {
-                        "pro_pending" -> "Pending Rent Requests"
+                        "owner_requests_popup" -> "Incoming Renting Requests"
                         "pro_dues" -> "Payment Due Reminders"
                         "pro_syndicate" -> "Syndicate ID Verification"
                         "pro_laws" -> "Lebanese Rent Laws"
@@ -96,9 +98,7 @@ fun DrawerDialogsHandler(
                         "pro_credentials_registry" -> "Credential Documents Registry"
                         "pro_accreditation_hub" -> "Accreditation & Practice Hub"
                         "pro_app_updates" -> "App Version & In-App Updates"
-                        "owner_listings_registry" -> "Workspace Listings Registry"
                         "owner_package_tiers" -> "Owner Package Tiers & Governance"
-                        "owner_whish_ledger" -> "Whish Settlement Ledger"
                         "owner_app_updates" -> "App Version & In-App Updates"
                         "fcm_alerts" -> "Real-time Alerts Terminal"
                         else -> "Information Sheet"
@@ -123,6 +123,47 @@ fun DrawerDialogsHandler(
                         .heightIn(max = 480.dp)
                 ) {
                     when (dialogId) {
+                        "owner_requests_popup" -> {
+                            val ownerSpacesList = allSpaces.filter { it.ownerId == currentUser?.id }
+                            val ownerSpaceIds = ownerSpacesList.map { it.id }.toSet()
+                            val incoming = bookingRequests.filter { it.spaceId in ownerSpaceIds || it.ownerId == currentUser?.id }
+                            if (incoming.isEmpty()) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(Icons.Default.Inbox, contentDescription = null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(48.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text("No Renting Requests Received", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
+                                }
+                            } else {
+                                LazyColumn(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    items(incoming) { request ->
+                                        OwnerBookingRequestCard(
+                                            request = request,
+                                            spaces = allSpaces,
+                                            onAccept = {
+                                                viewModel.acceptBookingRequest(request.id, context)
+                                            },
+                                            onReject = {
+                                                viewModel.rejectBookingRequest(request.id, "Declined by owner", context)
+                                            },
+                                            onWhatsAppProfessional = {
+                                                viewModel.launchWhatsAppToPractitioner(context, request)
+                                            },
+                                            onSendPaymentReminder = {
+                                                Toast.makeText(context, "Payment Reminder sent to ${request.practitionerName}", Toast.LENGTH_SHORT).show()
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
                         "pro_pending" -> {
                             val userPending = bookingRequests.filter {
                                 it.status == BookingRequestStatus.PENDING &&
@@ -375,7 +416,7 @@ fun DrawerDialogsHandler(
                                     .verticalScroll(rememberScrollState()),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("Guidelines to follow as a verified workspace host on ProSpace Lebanon:", style = MaterialTheme.typography.bodySmall)
+                                Text("Guidelines to follow as a verified workspace host on ProHost:", style = MaterialTheme.typography.bodySmall)
                                 Text("• Hygiene and Sanitization: Workspace suites must be sanitized daily between tenant practitioner shifts.", style = MaterialTheme.typography.labelMedium)
                                 Text("• Access and Front-desk: Inform receptionist desk of practitioner scheduled patients list for easy welcoming.", style = MaterialTheme.typography.labelMedium)
                                 Text("• Lockers & Shared IT: High-speed Wi-Fi network and printing capabilities must remain functional.", style = MaterialTheme.typography.labelMedium)
@@ -815,38 +856,6 @@ fun DrawerDialogsHandler(
                                 }
                             }
                         }
-                        "owner_listings_registry" -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Host Workspace Listings Registry", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("Manage active clinic and office spaces across Lebanese Governorates (Beirut, Mount Lebanon, North, South).", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                val spaces = viewModel.spaces.collectAsState().value
-                                spaces.forEach { space ->
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(10.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(space.title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                                                Text("${space.district} • $${space.baseMonthlyRateUsd}/mo", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                            }
-                                            Surface(
-                                                color = Color(0xFF4CAF50).copy(alpha = 0.2f),
-                                                shape = RoundedCornerShape(4.dp)
-                                            ) {
-                                                Text("ACTIVE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
                         "owner_package_tiers" -> {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Text("Owner Package Tiers & Governance", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
@@ -861,27 +870,6 @@ fun DrawerDialogsHandler(
                                         Text("• Pay As You Go: Flexible per-booking commissions", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                                         Text("• Limited 3-Listing Tier: $49/mo priority placement", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                                         Text("• Unlimited Enterprise Tier: $120/mo full syndication", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                    }
-                                }
-                            }
-                        }
-                        "owner_whish_ledger" -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Whish Money Settlement Ledger & Escrow", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("All host payouts and subscription fees settled securely via Whish Money API (Channel 15462415).", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                val txs = viewModel.transactions.collectAsState().value
-                                if (txs.isEmpty()) {
-                                    Text("No recent Whish settlement transactions recorded.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                } else {
-                                    txs.take(5).forEach { tx ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Text(tx.orderId, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                                            Text("$${tx.amountUsd} USD", style = MaterialTheme.typography.bodySmall, color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
-                                        }
                                     }
                                 }
                             }

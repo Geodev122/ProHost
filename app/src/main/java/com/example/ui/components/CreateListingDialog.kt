@@ -571,37 +571,51 @@ fun CreateListingDialog(
                                     }
                                 }
                             } else {
+                                // Smart Dynamic Pricing & Formula Wizard (Step 2)
                                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                    Text("Flexible Renting Formulas", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text("Smart Dynamic Pricing & Formula Wizard", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
+                                    Text("Enter your base monthly valuation. The system automatically computes and suggests pro-rata fractional rates for shifting and day-per-week rentals.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                                     InputField(
                                         value = baseMonthlyRate,
-                                        onValueChange = { baseMonthlyRate = it },
-                                        label = "Full Month Dedicated Rate (USD/mo)",
+                                        onValueChange = {
+                                            baseMonthlyRate = it
+                                            val baseVal = it.toDoubleOrNull() ?: 500.0
+                                            shiftRate = (baseVal * 0.4 / 4).toInt().toString()
+                                            dayPerWeekRate = (baseVal * 0.35).toInt().toString()
+                                        },
+                                        label = "Base Monthly Valuation (USD/mo)",
                                         modifier = Modifier.fillMaxWidth(),
                                         singleLine = true
                                     )
 
+                                    val baseNum = baseMonthlyRate.toDoubleOrNull() ?: 500.0
+                                    val suggestedShift = (baseNum * 0.4 / 4).toInt()
+                                    val suggestedDayPerWk = (baseNum * 0.35).toInt()
+                                    val suggestedHourly = (baseNum / 160).toInt().coerceAtLeast(15)
+
                                     Card(
                                         modifier = Modifier.fillMaxWidth(),
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                                        shape = RoundedCornerShape(10.dp)
+                                        shape = RoundedCornerShape(12.dp)
                                     ) {
-                                        Column(modifier = Modifier.padding(12.dp)) {
+                                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Text("Shift / Time-Slot Basis", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text("Shift / Time-Slot Basis (40% pro-rata)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                                    Text("Suggested: $$suggestedShift USD / slot", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                                                }
                                                 Switch(checked = shiftFormulaEnabled, onCheckedChange = { shiftFormulaEnabled = it })
                                             }
                                             if (shiftFormulaEnabled) {
-                                                Spacer(modifier = Modifier.height(8.dp))
                                                 InputField(
                                                     value = shiftRate,
                                                     onValueChange = { shiftRate = it },
-                                                    label = "Shift Rate (USD per shift slot)",
+                                                    label = "Shift Rate (USD)",
                                                     modifier = Modifier.fillMaxWidth(),
                                                     singleLine = true
                                                 )
@@ -612,23 +626,25 @@ fun CreateListingDialog(
                                     Card(
                                         modifier = Modifier.fillMaxWidth(),
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                                        shape = RoundedCornerShape(10.dp)
+                                        shape = RoundedCornerShape(12.dp)
                                     ) {
-                                        Column(modifier = Modifier.padding(12.dp)) {
+                                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Text("Day-per-Week Basis", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text("Day-per-Week Basis (35% pro-rata)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                                    Text("Suggested: $$suggestedDayPerWk USD / mo", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                                                }
                                                 Switch(checked = dayPerWeekEnabled, onCheckedChange = { dayPerWeekEnabled = it })
                                             }
                                             if (dayPerWeekEnabled) {
-                                                Spacer(modifier = Modifier.height(8.dp))
                                                 InputField(
                                                     value = dayPerWeekRate,
                                                     onValueChange = { dayPerWeekRate = it },
-                                                    label = "Rate for Fixed Days (USD/mo)",
+                                                    label = "Day-per-Week Rate (USD)",
                                                     modifier = Modifier.fillMaxWidth(),
                                                     singleLine = true
                                                 )
@@ -636,35 +652,25 @@ fun CreateListingDialog(
                                         }
                                     }
 
-                                    Text("Complementary Professional Disciplines", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        items(commonSpecialties) { spec ->
-                                            val isSel = selectedSpecialties.contains(spec)
-                                            FilterChip(
-                                                selected = isSel,
-                                                onClick = {
-                                                    selectedSpecialties = if (isSel) selectedSpecialties - spec else selectedSpecialties + spec
-                                                },
-                                                label = { Text(spec, fontSize = 11.sp) }
-                                            )
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("Hourly consulting reference rate is auto-calculated at ~$suggestedHourly USD/hr.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
                                         }
                                     }
-
-                                    InputField(
-                                        value = ownerPhone,
-                                        onValueChange = { ownerPhone = it },
-                                        label = "Space Owner WhatsApp Phone (+961 ...)",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true
-                                    )
                                 }
                             }
                         }
 
                         3 -> {
+                            // Step 3: Operating Hours, Blackouts & Contact
                             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("Complementary Disciplines & Contact Info", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
-                                Text("This helps matching professionals who shared this office space.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Operating Hours, Blackouts & Contact", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
+                                Text("Define operating days, shift hours, and host contact details for bookings.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                                 Text("Complementary Professional Disciplines", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

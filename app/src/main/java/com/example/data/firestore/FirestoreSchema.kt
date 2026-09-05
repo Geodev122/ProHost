@@ -1,7 +1,7 @@
 package com.example.data.firestore
 
 /**
- * ProSpace Lebanon Cloud Firestore & Data Connect Schema Definitions
+ * ProHost Cloud Firestore & Data Connect Schema Definitions
  * 
  * Formalized NoSQL collections, indexes, and document contracts supporting:
  * 1. Professional Workspace Listings with Subdivisions and Operating Schedules

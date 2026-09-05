@@ -15,7 +15,7 @@ import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
+@Config(qualifiers = "w411dp-h891dp-420dpi", sdk = [34])
 class GreetingScreenshotTest {
 
   @get:Rule val composeTestRule = createComposeRule()
@@ -24,7 +24,7 @@ class GreetingScreenshotTest {
   fun greeting_screenshot() {
     composeTestRule.setContent {
       ProSpaceTheme {
-        Text("ProSpace Lebanon")
+        Text("ProHost")
       }
     }
 

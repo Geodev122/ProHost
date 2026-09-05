@@ -28,7 +28,7 @@ import org.robolectric.annotation.Config
  * 4. Master repository data flows and export pipelines.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
+@Config(sdk = [34])
 class AppFeatureComplianceAndDebuggerTest {
 
     private lateinit var context: Context

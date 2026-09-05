@@ -18,7 +18,7 @@ import org.robolectric.annotation.Config
  * Covers all 3 core role workflows: Professional Practitioner, Space Owner, and Super Admin.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
+@Config(sdk = [34])
 class ProSpaceEndToEndLifecycleTest {
 
     private lateinit var repository: ProSpaceRepository

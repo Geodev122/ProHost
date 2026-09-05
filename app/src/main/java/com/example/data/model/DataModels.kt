@@ -576,7 +576,8 @@ data class WhishTransaction(
     val signatureHash: String,
     val spaceId: String,
     val spaceTitle: String,
-    val daysGranted: Int = 30
+    val daysGranted: Int = 30,
+    val userId: String = ""
 ) {
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
@@ -593,7 +594,8 @@ data class WhishTransaction(
             "signatureHash" to signatureHash,
             "spaceId" to spaceId,
             "spaceTitle" to spaceTitle,
-            "daysGranted" to daysGranted
+            "daysGranted" to daysGranted,
+            "userId" to userId
         )
     }
 
@@ -617,7 +619,8 @@ data class WhishTransaction(
                 signatureHash = data["signatureHash"] as? String ?: "",
                 spaceId = data["spaceId"] as? String ?: "",
                 spaceTitle = data["spaceTitle"] as? String ?: "",
-                daysGranted = (data["daysGranted"] as? Number)?.toInt() ?: 30
+                daysGranted = (data["daysGranted"] as? Number)?.toInt() ?: 30,
+                userId = data["userId"] as? String ?: ""
             )
         }
     }
@@ -784,7 +787,8 @@ data class AppUser(
     val trustScore: Int = 98,
     val subscriptionExpiryMillis: Long? = null,
     val ownerPackageTier: OwnerPackageTier = OwnerPackageTier.PAY_AS_YOU_GO,
-    val ownerPackageExpiryMillis: Long? = null
+    val ownerPackageExpiryMillis: Long? = null,
+    val paygListingsBoughtCount: Int = 0
 ) {
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
@@ -805,6 +809,7 @@ data class AppUser(
             "subscriptionExpiryMillis" to subscriptionExpiryMillis,
             "ownerPackageTier" to ownerPackageTier.name,
             "ownerPackageExpiryMillis" to ownerPackageExpiryMillis,
+            "paygListingsBoughtCount" to paygListingsBoughtCount,
             "updatedAt" to System.currentTimeMillis()
         )
     }
@@ -845,7 +850,8 @@ data class AppUser(
                 trustScore = (data["trustScore"] as? Number)?.toInt() ?: 95,
                 subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong(),
                 ownerPackageTier = pkgTier,
-                ownerPackageExpiryMillis = (data["ownerPackageExpiryMillis"] as? Number)?.toLong()
+                ownerPackageExpiryMillis = (data["ownerPackageExpiryMillis"] as? Number)?.toLong(),
+                paygListingsBoughtCount = (data["paygListingsBoughtCount"] as? Number)?.toInt() ?: 0
             )
         }
     }

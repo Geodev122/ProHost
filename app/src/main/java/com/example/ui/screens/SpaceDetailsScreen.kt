@@ -78,7 +78,7 @@ fun SpaceDetailsScreen(
             viewModel.launchWhatsAppInquiry(context, liveSpace, selectedFormula)
         },
         onShareClick = {
-            val shareText = "🏢 ProSpace Lebanon: ${liveSpace.title}\n📍 ${liveSpace.district}, ${liveSpace.governorate.displayName}\n💰 $${liveSpace.baseMonthlyRateUsd.toInt()}/mo • WhatsApp: ${liveSpace.ownerPhone}"
+            val shareText = "🏢 ProHost: ${liveSpace.title}\n📍 ${liveSpace.district}, ${liveSpace.governorate.displayName}\n💰 $${liveSpace.baseMonthlyRateUsd.toInt()}/mo • WhatsApp: ${liveSpace.ownerPhone}"
             viewModel.shareExportData(context, "Listing", shareText)
         },
         onBack = onBack
@@ -344,6 +344,16 @@ fun SpaceDetailsScreenContent(
                 SpaceAvailabilityCalendarView(
                     space = liveSpace,
                     acceptedBookings = acceptedBookings
+                )
+
+                // Weekly Availability Matrix (Visitor Tap-to-Book Heatmap)
+                WeeklyAvailabilityMatrix(
+                    space = liveSpace,
+                    acceptedBookings = acceptedBookings,
+                    onCellClicked = { formula, day, shiftName ->
+                        onSelectFormula(formula)
+                        onRequestRentClick()
+                    }
                 )
 
                 // Flexible Renting Formulas Selector (with Attached Defined Hours)

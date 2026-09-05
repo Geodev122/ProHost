@@ -82,12 +82,13 @@ fun ProSpaceAppRoot(
             )
             UserRole.SPACE_OWNER -> listOf(
                 AppNavTab.ManageListings,
-                AppNavTab.OwnerRentalRequests,
                 AppNavTab.OwnerRentingProgress,
+                AppNavTab.OwnerSubscriptions,
                 AppNavTab.OwnerProfile
             )
             UserRole.ADMIN -> listOf(
                 AppNavTab.AdminConsole,
+                AppNavTab.AdminRevenue,
                 AppNavTab.AdminProfile
             )
         }
@@ -222,9 +223,10 @@ fun ProSpaceAppRoot(
                                         onNavigateToDiscovery = { activeTabId = AppNavTab.SearchMap.id },
                                         onSelectSpace = { detailedSpace = it }
                                     )
-                                    AppNavTab.ManageListings.id -> OwnerHubScreen(
+                                     AppNavTab.ManageListings.id -> OwnerHubScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { detailedSpace = it }
+                                        onSelectSpace = { detailedSpace = it },
+                                        onOpenSubscriptions = { activeTabId = AppNavTab.OwnerSubscriptions.id }
                                     )
                                     AppNavTab.OwnerRentalRequests.id -> OwnerRentalRequestsScreen(
                                         viewModel = viewModel
@@ -235,7 +237,13 @@ fun ProSpaceAppRoot(
                                     AppNavTab.Stats.id -> OwnerAnalyticsScreen(
                                         viewModel = viewModel
                                     )
+                                    AppNavTab.OwnerSubscriptions.id -> OwnerSubscriptionsScreen(
+                                        viewModel = viewModel
+                                    )
                                     AppNavTab.AdminConsole.id -> AdminConsoleScreen(
+                                        viewModel = viewModel
+                                    )
+                                    AppNavTab.AdminRevenue.id -> AdminRevenueScreen(
                                         viewModel = viewModel
                                     )
                                     AppNavTab.ProfessionalProfile.id,

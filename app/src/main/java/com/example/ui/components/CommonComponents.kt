@@ -1719,7 +1719,7 @@ fun ProSpaceBrandLogo(
     ) {
         Image(
             painter = painterResource(id = com.example.R.drawable.ic_prospace_logo_brand),
-            contentDescription = "ProSpace Lebanon Logo",
+            contentDescription = "ProHost Logo",
             contentScale = ContentScale.Fit,
             modifier = Modifier
                 .fillMaxSize()
