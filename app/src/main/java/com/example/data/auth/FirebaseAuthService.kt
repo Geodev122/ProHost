@@ -96,12 +96,9 @@ class FirebaseAuthService(private val context: Context) {
 
         val auth = firebaseAuth
         if (auth == null) {
-            // Local fallback if Firebase services are not provisioned in this environment
-            return AuthResult.Success(
-                firebaseUser = null,
-                email = trimmedEmail,
-                displayName = trimmedEmail.substringBefore("@").replace(".", " ").capitalizeWords()
-            )
+            // Firebase Auth isn't available (misconfigured/unreachable) — this must fail
+            // closed, never silently accept arbitrary credentials as a "success".
+            return AuthResult.Error("Authentication service unavailable. Please check your connection and try again.")
         }
 
         return try {
@@ -145,11 +142,7 @@ class FirebaseAuthService(private val context: Context) {
 
         val auth = firebaseAuth
         if (auth == null) {
-            return AuthResult.Success(
-                firebaseUser = null,
-                email = trimmedEmail,
-                displayName = displayName.ifBlank { trimmedEmail.substringBefore("@").capitalizeWords() }
-            )
+            return AuthResult.Error("Authentication service unavailable. Please check your connection and try again.")
         }
 
         return try {
@@ -218,17 +211,21 @@ class FirebaseAuthService(private val context: Context) {
                 val photoUrl = googleIdTokenCredential.profilePictureUri?.toString()
 
                 val auth = firebaseAuth
-                val firebaseUser: FirebaseUser? = if (auth != null && idToken.isNotBlank()) {
-                    try {
-                        val authCredential = GoogleAuthProvider.getCredential(idToken, null)
-                        val authResult = auth.signInWithCredential(authCredential).awaitTask()
-                        authResult.user
-                    } catch (e: Exception) {
-                        Log.w(tag, "GoogleAuthProvider signInWithCredential fallback: ${e.message}")
-                        null
-                    }
-                } else {
-                    null
+                if (auth == null) {
+                    return AuthResult.Error("Authentication service unavailable. Please check your connection and try again.")
+                }
+                if (idToken.isBlank()) {
+                    return AuthResult.Error("Google sign-in did not return a valid identity token.")
+                }
+
+                val firebaseUser: FirebaseUser = try {
+                    val authCredential = GoogleAuthProvider.getCredential(idToken, null)
+                    val authResult = auth.signInWithCredential(authCredential).awaitTask()
+                    authResult.user
+                        ?: return AuthResult.Error("Google sign-in did not return a Firebase user.")
+                } catch (e: Exception) {
+                    Log.e(tag, "GoogleAuthProvider signInWithCredential error: ${e.message}", e)
+                    return AuthResult.Error("Google sign-in failed: ${e.localizedMessage}", e)
                 }
 
                 AuthResult.Success(
@@ -263,7 +260,8 @@ class FirebaseAuthService(private val context: Context) {
      */
     suspend fun sendPasswordResetEmail(email: String): Result<Unit> {
         val trimmed = email.trim().lowercase()
-        val auth = firebaseAuth ?: return Result.success(Unit)
+        val auth = firebaseAuth
+            ?: return Result.failure(IllegalStateException("Authentication service unavailable."))
         return try {
             auth.sendPasswordResetEmail(trimmed).awaitTask()
             Result.success(Unit)

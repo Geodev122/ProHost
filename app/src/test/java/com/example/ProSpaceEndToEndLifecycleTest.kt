@@ -35,7 +35,7 @@ class ProSpaceEndToEndLifecycleTest {
     @Test
     fun `test complete booking lifecycle - discovery to owner approval to whish renewal`() {
         // 1. Practitioner logs in
-        val practitioner = repository.login("dr.sami@prospace.lb", UserRole.PROFESSIONAL)
+        val practitioner = repository.login(uid = "uid-dr-sami", email = "dr.sami@prospace.lb", verifiedRole = UserRole.PROFESSIONAL)
         assertNotNull(practitioner)
         assertEquals(UserRole.PROFESSIONAL, practitioner.role)
 
@@ -106,7 +106,7 @@ class ProSpaceEndToEndLifecycleTest {
 
     @Test
     fun `test space owner rejection workflow and audit logging`() {
-        val practitioner = repository.login("dr.maya@prospace.lb", UserRole.PROFESSIONAL)
+        val practitioner = repository.login(uid = "uid-dr-maya", email = "dr.maya@prospace.lb", verifiedRole = UserRole.PROFESSIONAL)
         val space = repository.spaces.value.first()
         val formula = space.rentalFormulas.first()
 
@@ -138,7 +138,7 @@ class ProSpaceEndToEndLifecycleTest {
     @Test
     fun `test super admin pricing governance and listing verification override`() {
         // Admin login
-        val admin = repository.login("geo.elnajjar@gmail.com", UserRole.ADMIN)
+        val admin = repository.login(uid = "uid-admin-test", email = "admin@prohost.test", verifiedRole = UserRole.ADMIN)
         assertEquals(UserRole.ADMIN, admin.role)
 
         val space = repository.spaces.value.first()
@@ -182,5 +182,39 @@ class ProSpaceEndToEndLifecycleTest {
 
         val auditLogs = repository.auditLogs.value
         assertTrue(auditLogs.any { it.actionType == "OFFLINE_TX_RECOVERED" })
+    }
+
+    // --- Regression tests for the two most severe bugs this app shipped with ---
+
+    @Test
+    fun `fresh repository starts signed out, not pre-authenticated as Super Admin`() {
+        // A brand-new ProSpaceRepository used to default currentUser to a fully-populated
+        // ADMIN AppUser, meaning every fresh install opened straight into the Admin
+        // console with zero authentication. A freshly constructed repository (as happens
+        // on process start) must start with no signed-in user.
+        val freshRepository = ProSpaceRepository()
+        assertNull(
+            "A new repository instance must start signed out — it must NOT default to a pre-authenticated Admin session",
+            freshRepository.currentUser.value
+        )
+    }
+
+    @Test
+    fun `login role comes only from the verifiedRole argument, never inferred from email`() {
+        // login(uid, email, verifiedRole) must trust exactly what the caller (which, in the
+        // real app, is only ever code that already confirmed the role via a Firebase Auth
+        // ID token custom claim) passes as verifiedRole — never infer ADMIN from the email
+        // string itself, the way the old login(email, desiredRole) used to special-case
+        // "geo.elnajjar@gmail.com".
+        val user = repository.login(
+            uid = "uid-arbitrary",
+            email = "geo.elnajjar@gmail.com",
+            verifiedRole = UserRole.PROFESSIONAL
+        )
+        assertEquals(
+            "The role actually assigned must be exactly the verifiedRole argument, regardless of which email was used",
+            UserRole.PROFESSIONAL,
+            user.role
+        )
     }
 }

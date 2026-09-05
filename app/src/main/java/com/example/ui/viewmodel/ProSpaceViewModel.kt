@@ -278,12 +278,17 @@ class ProSpaceViewModel(
         _authSuccessMessage.value = null
     }
 
-    // --- Authentication, Member Registration & Role Switching ---
+    // --- Authentication & Member Registration ---
+    // Role is NEVER taken from the client here. Sign-in resolves the caller's role from
+    // their Firebase Auth ID token's custom claim (assigned server-side by the
+    // assignInitialRole/requestRoleUpgrade/grantAdminRole Cloud Functions) — see
+    // com.example.data.auth.completeVerifiedLogin / completeVerifiedRegistration.
+    private val functionsClient = com.example.data.auth.FirebaseFunctionsClient()
+
     fun signInWithEmailAndPassword(
         context: Context,
         email: String,
         password: String,
-        desiredRole: UserRole,
         onSuccess: () -> Unit
     ) {
         viewModelScope.launch {
@@ -292,7 +297,13 @@ class ProSpaceViewModel(
             val authService = com.example.data.auth.FirebaseAuthService(context)
             when (val result = authService.signInWithEmail(email, password)) {
                 is com.example.data.auth.AuthResult.Success -> {
-                    val user = repository.login(result.email, desiredRole)
+                    val firebaseUser = result.firebaseUser
+                    if (firebaseUser == null) {
+                        _isAuthenticating.value = false
+                        _authErrorMessage.value = "Sign-in did not return a valid session. Please try again."
+                        return@launch
+                    }
+                    val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
                     _isAuthenticating.value = false
                     _authSuccessMessage.value = "Signed in successfully as ${user.fullName}"
                     onSuccess()
@@ -314,7 +325,7 @@ class ProSpaceViewModel(
         email: String,
         password: String,
         phone: String,
-        role: UserRole,
+        requestedRole: UserRole,
         specialty: String,
         syndicateNumber: String,
         affiliation: String,
@@ -327,11 +338,19 @@ class ProSpaceViewModel(
             val authService = com.example.data.auth.FirebaseAuthService(context)
             when (val result = authService.registerWithEmail(email, password, fullName)) {
                 is com.example.data.auth.AuthResult.Success -> {
-                    val user = repository.registerMember(
+                    val firebaseUser = result.firebaseUser
+                    if (firebaseUser == null) {
+                        _isAuthenticating.value = false
+                        _authErrorMessage.value = "Registration did not return a valid session. Please try again."
+                        return@launch
+                    }
+                    val user = com.example.data.auth.completeVerifiedRegistration(
+                        repository = repository,
+                        functionsClient = functionsClient,
+                        firebaseUser = firebaseUser,
+                        requestedRole = requestedRole,
                         fullName = fullName,
-                        email = result.email,
                         phone = phone,
-                        role = role,
                         specialty = specialty,
                         syndicateNumber = syndicateNumber,
                         affiliation = affiliation,
@@ -362,7 +381,13 @@ class ProSpaceViewModel(
             val authService = com.example.data.auth.FirebaseAuthService(activityContext)
             when (val result = authService.signInWithGoogleCredentialManager(activityContext)) {
                 is com.example.data.auth.AuthResult.Success -> {
-                    val user = repository.login(result.email, null)
+                    val firebaseUser = result.firebaseUser
+                    if (firebaseUser == null) {
+                        _isAuthenticating.value = false
+                        _authErrorMessage.value = "Google sign-in did not return a valid session. Please try again."
+                        return@launch
+                    }
+                    val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
                     _isAuthenticating.value = false
                     _authSuccessMessage.value = "Google identity verified: ${user.fullName}"
                     onSuccess()
@@ -396,38 +421,20 @@ class ProSpaceViewModel(
         }
     }
 
-    fun registerMember(
-        fullName: String,
-        email: String,
-        phone: String,
-        role: UserRole,
-        specialty: String,
-        syndicateNumber: String,
-        affiliation: String,
-        governorate: Governorate
-    ): AppUser {
-        return repository.registerMember(
-            fullName = fullName,
-            email = email,
-            phone = phone,
-            role = role,
-            specialty = specialty,
-            syndicateNumber = syndicateNumber,
-            affiliation = affiliation,
-            governorate = governorate
-        )
-    }
-
-    fun login(email: String, desiredRole: UserRole? = null): AppUser {
-        return repository.login(email, desiredRole)
-    }
+    // registerMember(...)/login(...) synchronous wrappers were removed here — both let a
+    // caller hand in an arbitrary role with zero server verification (the exact bug this
+    // whole auth rewrite exists to close). Registration/sign-in now only ever happens
+    // through signInWithEmailAndPassword/registerMemberWithFirebase/
+    // signInWithGoogleCredentialManager above, which resolve role via Firebase Auth +
+    // Cloud Functions custom claims.
+    //
+    // switchUserRole(...) was also removed — it let any already-logged-in user instantly
+    // become ADMIN locally with no server check. A real role change now only happens via
+    // FirebaseFunctionsClient.requestSpaceOwnerUpgrade()/grantAdminRole().
 
     fun logout() {
+        com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
         repository.logout()
-    }
-
-    fun switchUserRole(role: UserRole) {
-        repository.switchRole(role)
     }
 
     fun logSecurityAction(actionType: String, details: String, severity: String = "INFO") {

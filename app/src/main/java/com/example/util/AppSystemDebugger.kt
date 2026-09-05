@@ -5,7 +5,6 @@ import android.util.Log
 import com.example.data.api.WhishPayApi
 import com.example.data.auth.FirebaseAuthService
 import com.example.data.crypto.WhishSecurity
-import com.example.data.firestore.FirestoreDataConnectBridge
 import com.example.data.firestore.FirestoreSchema
 import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
@@ -60,31 +59,49 @@ object AppSystemDebugger {
         // -------------------------------------------------------------
         try {
             val authService = FirebaseAuthService(context)
-            val authAvailable = true
+            val firebaseUser = authService.currentFirebaseUser
+            val authAvailable = firebaseUser != null
             results.add(
                 DiagnosticItem(
                     category = "Authentication & Identity",
                     featureName = "Firebase Auth & Google SSO Integration",
-                    status = DiagnosticStatus.PASSED,
-                    details = "FirebaseAuthService initialized. Google Credential Manager & SSO options configured."
+                    status = if (authAvailable) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
+                    details = if (authAvailable)
+                        "FirebaseAuthService initialized and a user is currently signed in."
+                    else
+                        "FirebaseAuthService initialized, but no user is currently signed in — this is expected when signed out, not necessarily a failure."
                 )
             )
 
-            // Test Role Switching & Hierarchy
-            val practitioner = repository.login("dr.sami@prospace.lb", UserRole.PROFESSIONAL)
-            val owner = repository.login("host.achrafieh@prospace.lb", UserRole.SPACE_OWNER)
-            val admin = repository.login("geo.elnajjar@gmail.com", UserRole.ADMIN)
-
-            val rolesValid = practitioner.role == UserRole.PROFESSIONAL &&
-                    owner.role == UserRole.SPACE_OWNER &&
-                    admin.role == UserRole.ADMIN
-
+            // Real check: does the CURRENT session's ID token actually carry a role claim
+            // matching the locally-held AppUser? This used to "test" RBAC by logging in as
+            // three different hardcoded accounts (including forging Admin) and reporting
+            // PASSED when that succeeded — i.e. it treated the privilege-escalation bug
+            // itself as a passing security control, and clobbered whoever was actually
+            // signed in as a side effect of "running diagnostics".
+            val currentAppUser = repository.currentUser.value
+            val tokenRole = firebaseUser?.let {
+                runCatching {
+                    com.example.data.auth.FirebaseFunctionsClient.readRoleClaim(it, forceRefresh = false)
+                }.getOrNull()
+            }
+            val rbacStatus = when {
+                firebaseUser == null || currentAppUser == null -> DiagnosticStatus.WARNING
+                tokenRole == null -> DiagnosticStatus.FAILED
+                tokenRole == currentAppUser.role.name -> DiagnosticStatus.PASSED
+                else -> DiagnosticStatus.FAILED
+            }
             results.add(
                 DiagnosticItem(
                     category = "Authentication & Identity",
-                    featureName = "Multi-Role RBAC (Practitioner, Host, Admin)",
-                    status = if (rolesValid) DiagnosticStatus.PASSED else DiagnosticStatus.FAILED,
-                    details = "Verified RBAC permissions for Professional, Space Owner, and Super Admin (${admin.email})."
+                    featureName = "Server-Verified Role Claim Matches Local Session",
+                    status = rbacStatus,
+                    details = when {
+                        firebaseUser == null || currentAppUser == null -> "No active session to check."
+                        tokenRole == null -> "Signed in, but the ID token carries no role claim at all."
+                        tokenRole == currentAppUser.role.name -> "ID token role claim ($tokenRole) matches local session (${currentAppUser.role.name})."
+                        else -> "MISMATCH: ID token claims '$tokenRole' but local session shows '${currentAppUser.role.name}'."
+                    }
                 )
             )
 
@@ -114,7 +131,6 @@ object AppSystemDebugger {
         // -------------------------------------------------------------
         try {
             val firestoreService = FirestoreService.getInstance()
-            val firestoreBridge = FirestoreDataConnectBridge.getInstance()
             val complianceReport = firestoreService.runDataConnectComplianceAudit()
 
             complianceReport.checks.forEach { check ->
@@ -250,46 +266,25 @@ object AppSystemDebugger {
         // 5. BOOKING LIFECYCLE & RENTING PROGRESS
         // -------------------------------------------------------------
         try {
-            // Test Booking Request Generation & Transition
-            val testSpace = repository.spaces.value.firstOrNull()
-            if (testSpace != null && testSpace.rentalFormulas.isNotEmpty()) {
-                val formula = testSpace.rentalFormulas.first()
-                val testUser = repository.login("geo.elnajjar@gmail.com", UserRole.ADMIN)
-                val testBooking = repository.createBookingRequest(
-                    space = testSpace,
-                    formula = formula,
-                    practitioner = testUser,
-                    startDate = "2026-09-01",
-                    durationMonths = 1,
-                    notes = "Automated Diagnostic Test Booking",
-                    selectedDays = formula.daysOfWeek,
-                    selectedStartHour = formula.startHour,
-                    selectedEndHour = formula.endHour,
-                    selectedShift = "Standard Diagnostic Shift",
-                    calculatedTotalUsd = formula.rateUsd
+            // This used to "test" the booking pipeline by forging an Admin login
+            // (repository.login("geo.elnajjar@gmail.com", UserRole.ADMIN)) and creating +
+            // accepting a REAL booking against live data as a side effect of running
+            // diagnostics. A diagnostics tool should never mutate production state or
+            // fabricate a privileged identity to do so — this now only inspects existing
+            // state.
+            val hasBookableSpace = repository.spaces.value.any { it.rentalFormulas.isNotEmpty() }
+            val bookingRequestsReachable = runCatching { repository.bookingRequests.value }.isSuccess
+            results.add(
+                DiagnosticItem(
+                    category = "Booking & Leases",
+                    featureName = "Booking Pipeline Structural Check",
+                    status = if (hasBookableSpace && bookingRequestsReachable) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
+                    details = if (hasBookableSpace)
+                        "At least one space with a rental formula exists; booking-requests state is reachable. (No test booking is created — this check is read-only.)"
+                    else
+                        "No space with a rental formula currently exists to book."
                 )
-
-                val bookingCreated = testBooking.id.isNotEmpty()
-                val bookingAccepted = repository.acceptBookingRequest(testBooking.id)
-
-                results.add(
-                    DiagnosticItem(
-                        category = "Booking & Leases",
-                        featureName = "End-to-End Booking Pipeline (Request -> Approval -> QR Pass)",
-                        status = if (bookingCreated && bookingAccepted) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
-                        details = "Verified booking creation, state validation, owner acceptance, and QR Access Pass generation."
-                    )
-                )
-            } else {
-                results.add(
-                    DiagnosticItem(
-                        category = "Booking & Leases",
-                        featureName = "End-to-End Booking Pipeline",
-                        status = DiagnosticStatus.PASSED,
-                        details = "Booking lifecycle tested against live repositories."
-                    )
-                )
-            }
+            )
 
             results.add(
                 DiagnosticItem(

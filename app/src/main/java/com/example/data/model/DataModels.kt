@@ -1,5 +1,6 @@
 package com.example.data.model
 
+import com.example.data.config.MerchantConfig
 import java.util.UUID
 
 enum class SpaceType(val displayName: String, val iconName: String) {
@@ -571,8 +572,8 @@ data class WhishTransaction(
     val timestamp: Long,
     val payerName: String,
     val payerPhone: String,
-    val channelId: String = "15462415",
-    val sourceEmail: String = "ceo@hopebearer-award.com",
+    val channelId: String = MerchantConfig.WHISH_CHANNEL_ID,
+    val sourceEmail: String = MerchantConfig.WHISH_MERCHANT_EMAIL,
     val signatureHash: String,
     val spaceId: String,
     val spaceTitle: String,
@@ -614,8 +615,8 @@ data class WhishTransaction(
                 timestamp = (data["timestamp"] as? Number)?.toLong() ?: System.currentTimeMillis(),
                 payerName = data["payerName"] as? String ?: "",
                 payerPhone = data["payerPhone"] as? String ?: "",
-                channelId = data["channelId"] as? String ?: "15462415",
-                sourceEmail = data["sourceEmail"] as? String ?: "ceo@hopebearer-award.com",
+                channelId = data["channelId"] as? String ?: MerchantConfig.WHISH_CHANNEL_ID,
+                sourceEmail = data["sourceEmail"] as? String ?: MerchantConfig.WHISH_MERCHANT_EMAIL,
                 signatureHash = data["signatureHash"] as? String ?: "",
                 spaceId = data["spaceId"] as? String ?: "",
                 spaceTitle = data["spaceTitle"] as? String ?: "",
@@ -641,9 +642,9 @@ data class AuditSecurityLog(
     val timestamp: Long = System.currentTimeMillis(),
     val actionType: String,
     val details: String,
-    val actorEmail: String = "geo.elnajjar@gmail.com",
+    val actorEmail: String = "system@prohost.app",
     val severity: String = "INFO", // INFO, WARN, SECURE
-    val ipAddress: String = "192.168.1.108"
+    val ipAddress: String = "127.0.0.1"
 ) {
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
@@ -1045,8 +1046,8 @@ data class AdminPricingState(
     val package2Limit: Int = 3,
     val package2MonthlyFeeUsd: Double = 3.99,
     val package3MonthlyFeeUsd: Double = 8.99,
-    val merchantChannelId: String = "15462415",
-    val merchantSource: String = "ceo@hopebearer-award.com",
+    val merchantChannelId: String = MerchantConfig.WHISH_CHANNEL_ID,
+    val merchantSource: String = MerchantConfig.WHISH_MERCHANT_EMAIL,
     val merchantSecretKeyMasked: String = "whish_sec_994a****87x"
 ) {
     fun getPaygFeeForType(type: SpaceType): Double {

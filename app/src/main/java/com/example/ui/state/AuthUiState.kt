@@ -11,6 +11,7 @@ data class AuthUiState(
     val selectedRole: UserRole = UserRole.PROFESSIONAL,
     val isLoginMode: Boolean = true,
     val emailInput: String = "",
+    val passwordInput: String = "",
     val fullNameInput: String = "",
     val phoneInput: String = "+961 ",
     val specialtyInput: String = "",
