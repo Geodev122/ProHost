@@ -67,6 +67,18 @@ class MainActivity : ComponentActivity() {
         if (!bookingId.isNullOrBlank()) {
             targetBookingId = bookingId
         }
+
+        // App Link return from the Whish checkout page (hopebearer-award.com/payment/...).
+        // The specific transaction isn't carried in the URL — checkWhishStatus polling,
+        // already running since initiateWhishPayment was called, is what actually
+        // confirms the result. This just brings the right tab to the front; role-based
+        // resolution of "payment_return" happens in ProSpaceNavGraph.
+        val data = intent.data
+        if (data != null && data.scheme == "https" && data.host == "hopebearer-award.com" &&
+            data.path?.startsWith("/payment") == true
+        ) {
+            targetTab = "payment_return"
+        }
     }
 }
 

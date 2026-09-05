@@ -41,7 +41,14 @@ fun ProSpaceAppRoot(
 
     // Synchronize initial tab based on user role or incoming deep link
     LaunchedEffect(currentUser?.role, deepLinkTab) {
-        if (!deepLinkTab.isNullOrBlank()) {
+        if (deepLinkTab == "payment_return") {
+            // Returned via the Whish payment App Link (hopebearer-award.com/payment/...).
+            // No specific screen is encoded in the URL — route to wherever each role
+            // settles Whish payments, mirroring the alert-tap routing in
+            // DrawerDialogsHandler. The actual result comes from checkWhishStatus
+            // polling already running in that screen, not from this navigation event.
+            activeTabId = if (currentUser?.role == UserRole.PROFESSIONAL) "pro_rentals" else "owner_progress"
+        } else if (!deepLinkTab.isNullOrBlank()) {
             activeTabId = deepLinkTab
         } else {
             when (currentUser?.role) {

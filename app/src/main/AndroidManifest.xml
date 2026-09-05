@@ -27,6 +27,7 @@
             android:name="com.example.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:theme="@style/Theme.MyApplication">
@@ -34,6 +35,21 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Whish payment redirect App Link: hopebearer-award.com/payment/success|failure
+                 (see functions/src/payments/initiateWhishPayment.ts). Verified via
+                 https://hopebearer-award.com/.well-known/assetlinks.json. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="https"
+                    android:host="hopebearer-award.com"
+                    android:pathPrefix="/payment" />
             </intent-filter>
         </activity>
 
