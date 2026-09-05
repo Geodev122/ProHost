@@ -26,6 +26,33 @@ import com.example.util.InAppUpdateManager
 import com.example.util.UpdateState
 import kotlinx.coroutines.launch
 
+/**
+ * The complete set of tab ids a given role may ever land on — bottom-nav tabs
+ * plus drawer-only destinations (e.g. Owner's "stats"/"owner_requests" aren't
+ * in the bottom nav but are still legitimately reachable). This is the single
+ * source of truth for validating externally-supplied tab ids (see below).
+ */
+private fun allowedTabIdsForRole(role: UserRole): Set<String> = when (role) {
+    UserRole.PROFESSIONAL -> setOf(
+        AppNavTab.SearchMap.id,
+        AppNavTab.ProfessionalRentals.id,
+        AppNavTab.ProfessionalProfile.id
+    )
+    UserRole.SPACE_OWNER -> setOf(
+        AppNavTab.ManageListings.id,
+        AppNavTab.OwnerRentalRequests.id,
+        AppNavTab.OwnerRentingProgress.id,
+        AppNavTab.Stats.id,
+        AppNavTab.OwnerSubscriptions.id,
+        AppNavTab.OwnerProfile.id
+    )
+    UserRole.ADMIN -> setOf(
+        AppNavTab.AdminConsole.id,
+        AppNavTab.AdminRevenue.id,
+        AppNavTab.AdminProfile.id
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProSpaceAppRoot(
@@ -41,14 +68,22 @@ fun ProSpaceAppRoot(
 
     // Synchronize initial tab based on user role or incoming deep link
     LaunchedEffect(currentUser?.role, deepLinkTab) {
+        val role = currentUser?.role
         if (deepLinkTab == "payment_return") {
             // Returned via the Whish payment App Link (hopebearer-award.com/payment/...).
             // No specific screen is encoded in the URL — route to wherever each role
             // settles Whish payments, mirroring the alert-tap routing in
             // DrawerDialogsHandler. The actual result comes from checkWhishStatus
             // polling already running in that screen, not from this navigation event.
-            activeTabId = if (currentUser?.role == UserRole.PROFESSIONAL) "pro_rentals" else "owner_progress"
-        } else if (!deepLinkTab.isNullOrBlank()) {
+            activeTabId = if (role == UserRole.PROFESSIONAL) "pro_rentals" else "owner_progress"
+        } else if (!deepLinkTab.isNullOrBlank() && role != null && deepLinkTab in allowedTabIdsForRole(role)) {
+            // MainActivity is an exported activity (required for the launcher intent
+            // and the Whish payment App Link) and reads "target_tab" straight from an
+            // Intent extra for FCM-notification-tap deep links. Without this check,
+            // any other app on the device could launch MainActivity with
+            // target_tab=admin_console and force a signed-in non-admin user into the
+            // Admin Console UI — only ever accept a deep-linked tab id that's actually
+            // valid for this user's current role.
             activeTabId = deepLinkTab
         } else {
             when (currentUser?.role) {
@@ -89,6 +124,7 @@ fun ProSpaceAppRoot(
             )
             UserRole.SPACE_OWNER -> listOf(
                 AppNavTab.ManageListings,
+                AppNavTab.OwnerRentalRequests,
                 AppNavTab.OwnerRentingProgress,
                 AppNavTab.OwnerSubscriptions,
                 AppNavTab.OwnerProfile
@@ -220,7 +256,19 @@ fun ProSpaceAppRoot(
                                     onBack = { detailedSpace = null }
                                 )
                             } else {
-                                when (activeTabId) {
+                                // Defense in depth: even though activeTabId's only
+                                // externally-influenced source (the deep-link branch
+                                // above) is already role-validated, never render a
+                                // screen outside the current role's allowed set —
+                                // this is the actual authorization boundary for what
+                                // the user sees, not the bottom nav/drawer (which
+                                // only control what's offered, not what can render).
+                                val safeActiveTabId = if (activeTabId in allowedTabIdsForRole(currentRole)) {
+                                    activeTabId
+                                } else {
+                                    roleTabs.firstOrNull()?.id ?: activeTabId
+                                }
+                                when (safeActiveTabId) {
                                     AppNavTab.SearchMap.id -> DiscoveryScreen(
                                         viewModel = viewModel,
                                         onSelectSpace = { detailedSpace = it }

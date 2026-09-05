@@ -1,6 +1,5 @@
 package com.example.ui.components.dialogs
 
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.*
-import com.example.ui.components.OwnerBookingRequestCard
 import com.example.ui.components.drawer.LawBulletinCard
 import com.example.ui.theme.LebaneseCedarGreen
 import com.example.ui.theme.StatusSuccess
@@ -57,7 +55,6 @@ fun DrawerDialogsHandler(
     val allSpaces by viewModel.spaces.collectAsState()
     val bookingRequests by viewModel.bookingRequests.collectAsState()
     val auditLogs by viewModel.auditLogs.collectAsState()
-    val avatarCampaigns by viewModel.avatarCampaigns.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
     val fcmAlerts by viewModel.fcmAlerts.collectAsState()
 
@@ -82,11 +79,9 @@ fun DrawerDialogsHandler(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val title = when (dialogId) {
-                        "owner_requests_popup" -> "Incoming Renting Requests"
                         "pro_dues" -> "Payment Due Reminders"
                         "pro_syndicate" -> "Syndicate ID Verification"
                         "pro_laws" -> "Lebanese Rent Laws"
-                        "owner_reels" -> "AI Marketing Campaigns"
                         "owner_whish" -> "Whish Money Transactions"
                         "owner_guidelines" -> "Practice Guidelines"
                         "admin_audit" -> "Central Security Audits"
@@ -123,47 +118,11 @@ fun DrawerDialogsHandler(
                         .heightIn(max = 480.dp)
                 ) {
                     when (dialogId) {
-                        "owner_requests_popup" -> {
-                            val ownerSpacesList = allSpaces.filter { it.ownerId == currentUser?.id }
-                            val ownerSpaceIds = ownerSpacesList.map { it.id }.toSet()
-                            val incoming = bookingRequests.filter { it.spaceId in ownerSpaceIds || it.ownerId == currentUser?.id }
-                            if (incoming.isEmpty()) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(Icons.Default.Inbox, contentDescription = null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(48.dp))
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text("No Renting Requests Received", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
-                                }
-                            } else {
-                                LazyColumn(
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    items(incoming) { request ->
-                                        OwnerBookingRequestCard(
-                                            request = request,
-                                            spaces = allSpaces,
-                                            onAccept = {
-                                                viewModel.acceptBookingRequest(request.id, context)
-                                            },
-                                            onReject = {
-                                                viewModel.rejectBookingRequest(request.id, "Declined by owner", context)
-                                            },
-                                            onWhatsAppProfessional = {
-                                                viewModel.launchWhatsAppToPractitioner(context, request)
-                                            },
-                                            onSendPaymentReminder = {
-                                                Toast.makeText(context, "Payment Reminder sent to ${request.practitionerName}", Toast.LENGTH_SHORT).show()
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                        // "Renting Requests" now routes to the real OwnerRentalRequestsScreen
+                        // (via onTabSelected("owner_requests")) instead of this dialog — the
+                        // screen has real filtering, a real reject-reason prompt, and a real
+                        // payment-reminder notification, none of which this cramped duplicate
+                        // ever had (its "Send Payment Reminder" button was Toast-only fakery).
                         "pro_pending" -> {
                             val userPending = bookingRequests.filter {
                                 it.status == BookingRequestStatus.PENDING &&
@@ -340,37 +299,6 @@ fun DrawerDialogsHandler(
                                     title = "Digital Transaction Stability",
                                     content = "Any financial deposit routed through Whish Money is backed by standard audit logs, serving as official legal proof of rental settlement."
                                 )
-                            }
-                        }
-                        "owner_reels" -> {
-                            if (avatarCampaigns.isEmpty()) {
-                                Text("No active AI campaign statistics found. Generate custom promotional reels inside your listing dashboard to view stats.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            } else {
-                                LazyColumn(
-                                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    items(avatarCampaigns) { campaign ->
-                                        Card(
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Column(modifier = Modifier.padding(12.dp)) {
-                                                Text(campaign.spaceTitle, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                                Text("🎬 Instagram: ${campaign.instagramHandle}", style = MaterialTheme.typography.labelSmall)
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.SpaceBetween
-                                                ) {
-                                                    Text("Reel Views: ${campaign.totalReelViews}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                                                    Text("Clicks: ${campaign.linkClicks}", style = MaterialTheme.typography.bodySmall)
-                                                }
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Text("Generated Nudge: ${campaign.lastNudgeText}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                                            }
-                                        }
-                                    }
-                                }
                             }
                         }
                         "owner_whish" -> {

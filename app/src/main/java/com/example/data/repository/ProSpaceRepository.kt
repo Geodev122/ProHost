@@ -98,9 +98,6 @@ class ProSpaceRepository {
     private val _credentialDocuments = MutableStateFlow<List<CredentialDocument>>(emptyList())
     val credentialDocuments: StateFlow<List<CredentialDocument>> = _credentialDocuments.asStateFlow()
 
-    private val _avatarCampaigns = MutableStateFlow<List<AvatarCampaign>>(emptyList())
-    val avatarCampaigns: StateFlow<List<AvatarCampaign>> = _avatarCampaigns.asStateFlow()
-
     private val _bookingRequests = MutableStateFlow<List<RentalBookingRequest>>(emptyList())
     val bookingRequests: StateFlow<List<RentalBookingRequest>> = _bookingRequests.asStateFlow()
 
@@ -274,7 +271,6 @@ class ProSpaceRepository {
         _spaces.value = initialSpaces
 
         _transactions.value = emptyList()
-        _avatarCampaigns.value = emptyList()
         _bookingRequests.value = emptyList()
     }
 
@@ -1262,36 +1258,6 @@ class ProSpaceRepository {
             _currentUser.value = updated
         }
         _users.value = _users.value.map { if (it.id == userId) updated else it }
-    }
-
-    // --- AI Avatar Marketing Generator ---
-    fun generateAvatarCampaign(space: SpaceListing): AvatarCampaign {
-        val formulasText = space.rentalFormulas.joinToString(", ") { "${it.type.displayName} ($${it.rateUsd})" }
-        val facilitiesHighlight = space.essentialFacilities.take(3).joinToString(" • ")
-        val specialtiesText = space.complementarySpecialties.joinToString(", ")
-
-        val caption = "🏢 ${space.title} in ${space.district}, ${space.governorate.displayName}!\n" +
-                "✨ Facilities: $facilitiesHighlight\n" +
-                "💼 Ideal Synergy for: $specialtiesText\n" +
-                "📅 Rental Formula: $formulasText\n" +
-                "📲 Connect directly with ${space.ownerName} via WhatsApp or tap link in bio!\n" +
-                "#ProSpaceLebanon #OfficeShare #CoworkingLebanon #${space.governorate.name}Workspace"
-
-        val campaign = AvatarCampaign(
-            id = "CMP-" + UUID.randomUUID().toString().take(6).uppercase(),
-            spaceId = space.id,
-            spaceTitle = space.title,
-            instagramHandle = "@prospace.lebanon",
-            totalReelViews = 0,
-            linkClicks = 0,
-            inquiriesGenerated = 0,
-            generatedCaption = caption,
-            storyOverlayTag = "${space.district} • ${space.spaceType.displayName} • 24/7 Power",
-            lastNudgeText = "Live AI Social campaign configured. Broadcast ready."
-        )
-
-        _avatarCampaigns.value = listOf(campaign) + _avatarCampaigns.value.filter { it.spaceId != space.id }
-        return campaign
     }
 
     // --- Multi-Format Data Export Hub ---

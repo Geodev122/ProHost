@@ -37,7 +37,6 @@ class ProSpaceViewModel(
     val currentUser: StateFlow<AppUser?> = repository.currentUser
     val credentialDocuments: StateFlow<List<CredentialDocument>> = repository.credentialDocuments
     val auditLogs: StateFlow<List<AuditSecurityLog>> = repository.auditLogs
-    val avatarCampaigns: StateFlow<List<AvatarCampaign>> = repository.avatarCampaigns
     val bookingRequests: StateFlow<List<RentalBookingRequest>> = repository.bookingRequests
     val fcmAlerts: StateFlow<List<FCMAlert>> = repository.fcmAlerts
     val isOfflineMode: StateFlow<Boolean> = repository.isOfflineMode
@@ -770,11 +769,6 @@ class ProSpaceViewModel(
 
     fun getPendingBookingsForSpace(spaceId: String): List<RentalBookingRequest> {
         return bookingRequests.value.filter { it.spaceId == spaceId && it.status == BookingRequestStatus.PENDING }
-    }
-
-    // --- AI Avatar Marketing Campaign Generator ---
-    fun generateAvatarCampaignForSpace(space: SpaceListing): AvatarCampaign {
-        return repository.generateAvatarCampaign(space)
     }
 
     // --- Data Export Hub ---

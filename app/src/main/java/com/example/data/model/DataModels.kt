@@ -1125,19 +1125,6 @@ data class AdminPricingState(
     }
 }
 
-data class AvatarCampaign(
-    val id: String,
-    val spaceId: String,
-    val spaceTitle: String,
-    val instagramHandle: String = "@prospace.lebanon",
-    val totalReelViews: Int = 1420,
-    val linkClicks: Int = 28,
-    val inquiriesGenerated: Int = 9,
-    val generatedCaption: String,
-    val storyOverlayTag: String,
-    val lastNudgeText: String = "Your collaborative workspace Reel reached 1,420 professionals in Mount Lebanon! 9 inquiries redirected to WhatsApp."
-)
-
 data class FCMAlert(
     val id: String = java.util.UUID.randomUUID().toString(),
     val title: String,
