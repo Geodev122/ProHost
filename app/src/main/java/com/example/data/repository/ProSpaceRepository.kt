@@ -178,6 +178,10 @@ class ProSpaceRepository {
                 onTransactionsUpdated = { updatedTransactions ->
                     _transactions.value = updatedTransactions
                     _isCloudConnected.value = true
+                },
+                onSchemaUpdated = { updatedSchema ->
+                    _spaceArchitectureSchema.value = updatedSchema
+                    _isCloudConnected.value = true
                 }
             )
 
@@ -535,14 +539,26 @@ class ProSpaceRepository {
         return success
     }
 
-    fun deleteSpaceListing(spaceId: String) {
+    /**
+     * This used to only mutate local state — the confirmation dialog claimed a
+     * "permanent" removal, but the Firestore document was never touched, so the
+     * listing simply reappeared the next time the live listener fired. Firestore
+     * rules already permit an admin (or the owning user) to delete this document
+     * directly (firestore.rules workspace_listings: allow delete), so no Cloud
+     * Function is needed here.
+     */
+    suspend fun deleteSpaceListing(spaceId: String): Boolean {
         val target = _spaces.value.find { it.id == spaceId }
-        _spaces.value = _spaces.value.filterNot { it.id == spaceId }
-        addAuditLog(
-            actionType = "LISTING_DELETED",
-            details = "Admin permanently deleted workspace listing #${spaceId} (${target?.title ?: "Unknown"})",
-            severity = "WARN"
-        )
+        val success = firestoreService.deleteWorkspace(spaceId)
+        if (success) {
+            _spaces.value = _spaces.value.filterNot { it.id == spaceId }
+            addAuditLog(
+                actionType = "LISTING_DELETED",
+                details = "Admin permanently deleted workspace listing #${spaceId} (${target?.title ?: "Unknown"})",
+                severity = "WARN"
+            )
+        }
+        return success
     }
 
     /**
@@ -584,14 +600,28 @@ class ProSpaceRepository {
         return success
     }
 
-    fun deleteUser(userId: String) {
+    /**
+     * This used to only mutate local state — the confirmation dialog claimed a
+     * "permanent" removal, but the Firestore document was never touched, so the
+     * profile simply reappeared the next time the live listener fired. Firestore
+     * rules already permit an admin to delete this document directly
+     * (firestore.rules user_profiles: allow delete: if isAdmin()). Note this does
+     * NOT revoke the user's Firebase Auth account or custom claim — only a Cloud
+     * Function with the Admin SDK could do that; this removes their platform
+     * profile record, which is what the confirmation dialog actually describes.
+     */
+    suspend fun deleteUser(userId: String): Boolean {
         val target = _users.value.find { it.id == userId }
-        _users.value = _users.value.filterNot { it.id == userId }
-        addAuditLog(
-            actionType = "USER_DELETED",
-            details = "Admin removed user profile #${userId} (${target?.fullName ?: "Unknown"})",
-            severity = "WARN"
-        )
+        val success = firestoreService.deleteUserProfile(userId)
+        if (success) {
+            _users.value = _users.value.filterNot { it.id == userId }
+            addAuditLog(
+                actionType = "USER_DELETED",
+                details = "Admin removed user profile #${userId} (${target?.fullName ?: "Unknown"})",
+                severity = "WARN"
+            )
+        }
+        return success
     }
 
     /**
@@ -618,7 +648,13 @@ class ProSpaceRepository {
     }
 
     // --- Dynamic Space Architecture Schema Management ---
-    fun addSchemaItem(item: SchemaItem) {
+    // All four of these used to be 100% local — they never called Firestore at all,
+    // despite AdminConsoleScreen's copy claiming edits went to a "database registry"/
+    // "cloud" and the toasts implying a real save. Now they persist via
+    // firestoreService.saveSchema (schema_architecture/main, admin-write-gated —
+    // see firestore.rules), and only update local state once that write is confirmed.
+
+    suspend fun addSchemaItem(item: SchemaItem): Boolean {
         val current = _spaceArchitectureSchema.value
         val updated = when (item.category) {
             "SPACE_TYPE" -> current.copy(spaceTypes = current.spaceTypes + item)
@@ -629,15 +665,19 @@ class ProSpaceRepository {
             "RENTAL_STRATEGY" -> current.copy(rentalStrategies = current.rentalStrategies + item)
             else -> current
         }
-        _spaceArchitectureSchema.value = updated
-        addAuditLog(
-            actionType = "SCHEMA_ITEM_ADDED",
-            details = "Admin added schema node '${item.name}' under category '${item.category}'",
-            severity = "SECURE"
-        )
+        val success = firestoreService.saveSchema(updated)
+        if (success) {
+            _spaceArchitectureSchema.value = updated
+            addAuditLog(
+                actionType = "SCHEMA_ITEM_ADDED",
+                details = "Admin added schema node '${item.name}' under category '${item.category}'",
+                severity = "SECURE"
+            )
+        }
+        return success
     }
 
-    fun toggleSchemaItem(itemId: String) {
+    suspend fun toggleSchemaItem(itemId: String): Boolean {
         val current = _spaceArchitectureSchema.value
         val updated = current.copy(
             spaceTypes = current.spaceTypes.map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it },
@@ -647,15 +687,19 @@ class ProSpaceRepository {
             specialties = current.specialties.map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it },
             rentalStrategies = current.rentalStrategies.map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it }
         )
-        _spaceArchitectureSchema.value = updated
-        addAuditLog(
-            actionType = "SCHEMA_ITEM_TOGGLED",
-            details = "Admin toggled schema item #$itemId active status",
-            severity = "INFO"
-        )
+        val success = firestoreService.saveSchema(updated)
+        if (success) {
+            _spaceArchitectureSchema.value = updated
+            addAuditLog(
+                actionType = "SCHEMA_ITEM_TOGGLED",
+                details = "Admin toggled schema item #$itemId active status",
+                severity = "INFO"
+            )
+        }
+        return success
     }
 
-    fun deleteSchemaItem(itemId: String) {
+    suspend fun deleteSchemaItem(itemId: String): Boolean {
         val current = _spaceArchitectureSchema.value
         val updated = current.copy(
             spaceTypes = current.spaceTypes.filterNot { it.id == itemId },
@@ -665,21 +709,30 @@ class ProSpaceRepository {
             specialties = current.specialties.filterNot { it.id == itemId },
             rentalStrategies = current.rentalStrategies.filterNot { it.id == itemId }
         )
-        _spaceArchitectureSchema.value = updated
-        addAuditLog(
-            actionType = "SCHEMA_ITEM_DELETED",
-            details = "Admin removed custom schema item #$itemId",
-            severity = "WARN"
-        )
+        val success = firestoreService.saveSchema(updated)
+        if (success) {
+            _spaceArchitectureSchema.value = updated
+            addAuditLog(
+                actionType = "SCHEMA_ITEM_DELETED",
+                details = "Admin removed custom schema item #$itemId",
+                severity = "WARN"
+            )
+        }
+        return success
     }
 
-    fun resetSchemaToDefaults() {
-        _spaceArchitectureSchema.value = createDefaultSchema()
-        addAuditLog(
-            actionType = "SCHEMA_RESET_DEFAULTS",
-            details = "Admin restored factory baseline schema definitions for Lebanese workspaces",
-            severity = "SECURE"
-        )
+    suspend fun resetSchemaToDefaults(): Boolean {
+        val defaults = createDefaultSchema()
+        val success = firestoreService.saveSchema(defaults)
+        if (success) {
+            _spaceArchitectureSchema.value = defaults
+            addAuditLog(
+                actionType = "SCHEMA_RESET_DEFAULTS",
+                details = "Admin restored factory baseline schema definitions for Lebanese workspaces",
+                severity = "SECURE"
+            )
+        }
+        return success
     }
 
     private fun createDefaultSchema(): SpaceArchitectureSchema {

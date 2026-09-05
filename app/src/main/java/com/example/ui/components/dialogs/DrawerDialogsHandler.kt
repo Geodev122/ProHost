@@ -97,7 +97,6 @@ fun DrawerDialogsHandler(
                         "owner_guidelines" -> "Practice Guidelines"
                         "admin_audit" -> "Central Security Audits"
                         "admin_gov" -> "Governorate Node Status"
-                        "admin_forecast" -> "Baseline Fee Forecaster"
                         "admin_governance_clearance" -> "Governance Authority Clearance"
                         "admin_credentials_registry" -> "Credential Documents Registry"
                         "admin_app_updates" -> "App Version & In-App Updates"
@@ -415,46 +414,6 @@ fun DrawerDialogsHandler(
                                             }
                                         }
                                     }
-                                }
-                            }
-                        }
-                        "admin_forecast" -> {
-                            val activeCount = allSpaces.size
-                            val currentFee = viewModel.pricingState.collectAsState().value.monthlySubscriptionFeeUsd
-                            var sliderValue by remember { mutableStateOf(currentFee.toFloat()) }
-
-                            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Set baseline subscription fee for workspace listings in Lebanon:", style = MaterialTheme.typography.bodySmall)
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("Current Fee: $${currentFee} USD", fontWeight = FontWeight.Bold)
-                                    Text("Target Fee: $${String.format(Locale.US, "%.2f", sliderValue)} USD", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
-                                }
-                                Slider(
-                                    value = sliderValue,
-                                    onValueChange = { sliderValue = it },
-                                    valueRange = 0.5f..15.0f,
-                                    steps = 29
-                                )
-                                Button(
-                                    onClick = {
-                                        viewModel.setSubscriptionFee(sliderValue.toDouble())
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Update Global Baseline Fee")
-                                }
-                                HorizontalDivider()
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    val monthlyRevenue = activeCount * sliderValue
-                                    val annualRevenue = monthlyRevenue * 12
-                                    Text("Projected Platform Metrics (Lebanese Market Nodes):", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                    Text("• Active Subscribed Spaces: $activeCount", style = MaterialTheme.typography.bodySmall)
-                                    Text("• Monthly Revenue (MRR): $${String.format(Locale.US, "%.2f", monthlyRevenue)} USD", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                                    Text("• Annual Recurring Revenue (ARR): $${String.format(Locale.US, "%.2f", annualRevenue)} USD", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = LebaneseCedarGreen)
                                 }
                             }
                         }

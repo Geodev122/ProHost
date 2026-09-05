@@ -159,6 +159,19 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ---------------------------------------------------------------
+    // schema_architecture — space type/amenity/equipment/specialty taxonomy.
+    // Unlike system_metadata (money/pricing), this touches no financial or
+    // verification field, so — per the established Phase 7 design split —
+    // it's a direct admin-gated write rather than a Cloud Function. Public
+    // read is required: every client (not just admins) needs this taxonomy
+    // to render listing creation/discovery filters.
+    // ---------------------------------------------------------------
+    match /schema_architecture/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Default deny for anything not explicitly matched above.
     match /{document=**} {
       allow read, write: if false;

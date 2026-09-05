@@ -201,9 +201,13 @@ class AdminViewModel(
 
     fun confirmDeleteUser(userId: String) {
         viewModelScope.launch {
-            repository.deleteUser(userId)
+            val success = repository.deleteUser(userId)
             closeDeleteUserDialog()
-            _events.emit(AdminUiEvent.ShowToast("User account removed from platform"))
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "User profile removed from platform" else "Failed to remove user — please try again"
+                )
+            )
         }
     }
 
@@ -314,9 +318,13 @@ class AdminViewModel(
 
     fun confirmDeleteListing(spaceId: String) {
         viewModelScope.launch {
-            repository.deleteSpaceListing(spaceId)
+            val success = repository.deleteSpaceListing(spaceId)
             closeDeleteListingDialog()
-            _events.emit(AdminUiEvent.ShowToast("Listing permanently removed from catalog"))
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "Listing permanently removed from catalog" else "Failed to remove listing — please try again"
+                )
+            )
         }
     }
 
@@ -355,15 +363,23 @@ class AdminViewModel(
 
     fun toggleSchemaItemEnabled(itemId: String, category: String = "", currentEnabled: Boolean = false) {
         viewModelScope.launch {
-            repository.toggleSchemaItem(itemId)
-            _events.emit(AdminUiEvent.ShowToast("Schema item status updated"))
+            val success = repository.toggleSchemaItem(itemId)
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "Schema item status updated" else "Failed to update schema item — please try again"
+                )
+            )
         }
     }
 
     fun deleteSchemaItem(itemId: String, category: String = "") {
         viewModelScope.launch {
-            repository.deleteSchemaItem(itemId)
-            _events.emit(AdminUiEvent.ShowToast("Schema item deleted from database registry"))
+            val success = repository.deleteSchemaItem(itemId)
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "Schema item deleted from database registry" else "Failed to delete schema item — please try again"
+                )
+            )
         }
     }
 
@@ -400,9 +416,13 @@ class AdminViewModel(
                 isEnabled = true,
                 isSystemDefault = false
             )
-            repository.addSchemaItem(newItem)
+            val success = repository.addSchemaItem(newItem)
             closeAddSchemaItemDialog()
-            _events.emit(AdminUiEvent.ShowToast("New schema entry added: $name"))
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "New schema entry added: $name" else "Failed to add schema entry — please try again"
+                )
+            )
         }
     }
 
@@ -420,9 +440,13 @@ class AdminViewModel(
 
     fun confirmResetSchemaToDefaults() {
         viewModelScope.launch {
-            repository.resetSchemaToDefaults()
+            val success = repository.resetSchemaToDefaults()
             closeResetSchemaDialog()
-            _events.emit(AdminUiEvent.ShowToast("Database schema architecture reset to Lebanese defaults"))
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "Database schema architecture reset to Lebanese defaults" else "Failed to reset schema — please try again"
+                )
+            )
         }
     }
 

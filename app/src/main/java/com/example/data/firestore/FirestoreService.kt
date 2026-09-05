@@ -104,7 +104,8 @@ class FirestoreService(
         onUsersUpdated: (List<AppUser>) -> Unit,
         onBookingsUpdated: (List<RentalBookingRequest>) -> Unit,
         onFormulasUpdated: (List<SubscriptionFormula>) -> Unit,
-        onTransactionsUpdated: (List<WhishTransaction>) -> Unit
+        onTransactionsUpdated: (List<WhishTransaction>) -> Unit,
+        onSchemaUpdated: (SpaceArchitectureSchema) -> Unit = {}
     ) {
         val db = firestore ?: return
 
@@ -188,6 +189,24 @@ class FirestoreService(
                     }
                 }
             activeListeners.add(transactionListener)
+
+            // Single-document taxonomy: space types/amenities/equipment/specialties/
+            // rental strategies. Public read (firestore.rules), admin-only write — no
+            // document exists until an admin makes their first edit, so a missing
+            // snapshot here just means the caller keeps its local default schema.
+            val schemaListener = db.collection(FirestoreSchema.Collections.SCHEMA_ARCHITECTURE)
+                .document("main")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.w(TAG, "Schema sync note: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    val data = snapshot?.data
+                    if (data != null) {
+                        onSchemaUpdated(SpaceArchitectureSchema.fromFirestoreMap(data))
+                    }
+                }
+            activeListeners.add(schemaListener)
         } catch (e: Exception) {
             Log.w(TAG, "Live listeners attachment warning: ${e.message}")
         }
@@ -207,6 +226,17 @@ class FirestoreService(
      * subdivisions included) — previously this wrote only a partial field subset, silently
      * dropping nested data on every save.
      */
+    suspend fun deleteWorkspace(spaceId: String): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS).document(spaceId).delete().await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting workspace: ${e.message}", e)
+            false
+        }
+    }
+
     suspend fun saveWorkspace(space: SpaceListing): Boolean {
         return try {
             val db = firestore ?: return false
@@ -258,6 +288,17 @@ class FirestoreService(
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error saving user profile: ${e.message}", e)
+            false
+        }
+    }
+
+    suspend fun deleteUserProfile(userId: String): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.USER_PROFILES).document(userId).delete().await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting user profile: ${e.message}", e)
             false
         }
     }
@@ -460,6 +501,24 @@ class FirestoreService(
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error updating booking status: ${e.message}", e)
+            false
+        }
+    }
+
+    // ==========================================
+    // SPACE ARCHITECTURE SCHEMA (taxonomy)
+    // ==========================================
+
+    suspend fun saveSchema(schema: SpaceArchitectureSchema): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.SCHEMA_ARCHITECTURE)
+                .document("main")
+                .set(schema.toFirestoreMap(), SetOptions.merge())
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving schema architecture: ${e.message}", e)
             false
         }
     }

@@ -2094,7 +2094,7 @@ private fun AdminDeleteUserDialog(
         icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError) },
         title = { Text("Delete User Record?") },
         text = {
-            Text("Are you sure you want to permanently remove '${user.fullName}' (${user.email}) from the platform? This will delete all associated session data.")
+            Text("Are you sure you want to permanently remove '${user.fullName}' (${user.email})'s profile from the platform? Their sign-in credentials are not revoked by this action.")
         },
         confirmButton = {
             Button(
