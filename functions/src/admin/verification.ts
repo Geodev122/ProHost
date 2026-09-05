@@ -186,3 +186,67 @@ export const reviewCredentialDocument = onCall<ReviewCredentialDocumentData>(asy
   await recalculateUserVerification(doc.userId);
   return { ok: true };
 });
+
+interface AdminSetUserVerificationData {
+  userId?: string;
+  verified?: boolean;
+}
+
+/**
+ * Admin-only direct override of a user's verification status — independent of
+ * the document-based recalculation above (e.g. a manual accreditation with no
+ * documents on file yet, or a manual revocation). Replaces
+ * ProSpaceRepository.toggleUserVerification's direct write, which computed the
+ * new state locally and called updateUser() — a write Firestore rules now deny
+ * outright since it touches verificationStatus/verificationTier/trustScore.
+ */
+export const adminSetUserVerification = onCall<AdminSetUserVerificationData>(async (request) => {
+  const auth = request.auth;
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Sign in required.");
+  }
+  if (auth.token.role !== "ADMIN") {
+    throw new HttpsError("permission-denied", "Only an Admin can change a user's verification status.");
+  }
+
+  const { userId, verified } = request.data ?? {};
+  if (!userId || typeof verified !== "boolean") {
+    throw new HttpsError("invalid-argument", "userId and verified (boolean) are required.");
+  }
+
+  const db = getFirestore();
+  const userRef = db.collection("user_profiles").doc(userId);
+  const userSnap = await userRef.get();
+  if (!userSnap.exists) {
+    throw new HttpsError("not-found", "User profile not found.");
+  }
+  const targetRole = userSnap.data()!.role as "PROFESSIONAL" | "SPACE_OWNER" | "ADMIN";
+
+  const newStatus: VerificationStatus = verified ? "VERIFIED" : "UNVERIFIED";
+  const tier = verified
+    ? targetRole === "SPACE_OWNER"
+      ? "TIER_3_COMMERCIAL_HOST"
+      : "TIER_2_PROFESSIONAL"
+    : "TIER_1_BASIC";
+  const trustScore = verified ? 98 : 30;
+
+  await userRef.set(
+    {
+      isVerified: verified,
+      verificationStatus: newStatus,
+      verificationTier: tier,
+      trustScore,
+      updatedAt: Date.now(),
+    },
+    { merge: true }
+  );
+
+  await recordAuditLog({
+    actionType: "USER_VERIFICATION_TOGGLE",
+    details: `Admin ${auth.token.email ?? auth.uid} set verification for user ${userId} to ${verified} (${newStatus})`,
+    actorEmail: auth.token.email ?? "system@prohost.app",
+    severity: "SECURE",
+  });
+
+  return { ok: true };
+});

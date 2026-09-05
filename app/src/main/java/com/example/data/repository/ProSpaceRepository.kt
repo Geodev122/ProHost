@@ -539,11 +539,33 @@ class ProSpaceRepository {
         )
     }
 
+    /**
+     * Generic listing edit (title, address, base rate, etc.) from the Admin
+     * Console's Edit Listing dialog. Never actually reached Firestore before —
+     * local-only mutation, a real gap independent of Phase 7's rules. Now
+     * persists via firestoreService.saveWorkspace, but — same pattern as
+     * updateUser() — always preserves the current stored isVerified/
+     * isActiveSubscription/subscriptionExpiryMillis/ownerId regardless of what's
+     * passed in, since Firestore rules deny any client write that changes them.
+     * Use setListingVerification / setListingSubscriptionActive for those.
+     */
     fun updateSpaceListing(updated: SpaceListing) {
-        _spaces.value = _spaces.value.map { if (it.id == updated.id) updated else it }
+        val current = _spaces.value.find { it.id == updated.id }
+        val safeUpdate = if (current != null) {
+            updated.copy(
+                ownerId = current.ownerId,
+                isVerified = current.isVerified,
+                isActiveSubscription = current.isActiveSubscription,
+                subscriptionExpiryMillis = current.subscriptionExpiryMillis
+            )
+        } else {
+            updated
+        }
+        _spaces.value = _spaces.value.map { if (it.id == safeUpdate.id) safeUpdate else it }
+        coroutineScope.launch { firestoreService.saveWorkspace(safeUpdate) }
         addAuditLog(
             actionType = "LISTING_UPDATED",
-            details = "Admin updated workspace listing #${updated.id} (${updated.title})",
+            details = "Admin updated workspace listing #${safeUpdate.id} (${safeUpdate.title})",
             severity = "INFO"
         )
     }
@@ -603,27 +625,27 @@ class ProSpaceRepository {
         )
     }
 
-    fun toggleUserVerification(userId: String) {
-        val target = _users.value.find { it.id == userId } ?: return
+    /**
+     * Admin-only direct verification override (adminSetUserVerification Cloud
+     * Function) — Firestore rules deny any client write to verificationStatus/
+     * verificationTier/trustScore, including through updateUser(), which this
+     * used to compute the new state and call. Returns whether it actually
+     * succeeded, so the caller can show a real success/failure result instead
+     * of an unconditional one.
+     */
+    suspend fun toggleUserVerification(userId: String): Boolean {
+        val target = _users.value.find { it.id == userId } ?: return false
         val nextVerified = !target.isVerified
-        val nextStatus = if (nextVerified) MemberVerificationStatus.VERIFIED else MemberVerificationStatus.UNVERIFIED
-        val nextTier = if (nextVerified) {
-            if (target.role == UserRole.SPACE_OWNER) VerificationTier.TIER_3_COMMERCIAL_HOST else VerificationTier.TIER_2_PROFESSIONAL
-        } else {
-            VerificationTier.TIER_1_BASIC
+        val result = functionsClient.setUserVerification(userId, nextVerified)
+        if (result.isSuccess) {
+            refreshUserProfile(userId)
+            addLocalAuditLogEntry(
+                actionType = "USER_VERIFICATION_TOGGLE",
+                details = "Admin toggled verification for ${target.fullName} to $nextVerified",
+                severity = "SECURE"
+            )
         }
-        val updated = target.copy(
-            isVerified = nextVerified,
-            verificationStatus = nextStatus,
-            verificationTier = nextTier,
-            trustScore = if (nextVerified) 98 else 30
-        )
-        updateUser(updated)
-        addAuditLog(
-            actionType = "USER_VERIFICATION_TOGGLE",
-            details = "Admin toggled verification for ${target.fullName} to $nextVerified ($nextStatus)",
-            severity = "SECURE"
-        )
+        return result.isSuccess
     }
 
     // --- Dynamic Space Architecture Schema Management ---
@@ -750,41 +772,40 @@ class ProSpaceRepository {
      * it awaits the real server change before updating local state, so the two can't
      * drift if the call fails.
      */
-    fun toggleListingVerification(spaceId: String) {
-        val target = _spaces.value.find { it.id == spaceId } ?: return
+    /** Returns whether the change actually succeeded, so the caller can show a real result. */
+    suspend fun toggleListingVerification(spaceId: String): Boolean {
+        val target = _spaces.value.find { it.id == spaceId } ?: return false
         val nextStatus = !target.isVerified
-        coroutineScope.launch {
-            val result = functionsClient.setListingVerification(spaceId, nextStatus)
-            if (result.isSuccess) {
-                _spaces.value = _spaces.value.map {
-                    if (it.id == spaceId) it.copy(isVerified = nextStatus) else it
-                }
-                addLocalAuditLogEntry(
-                    actionType = "VERIFICATION_OVERRIDE",
-                    details = "Workspace #${spaceId} verified status changed to $nextStatus by Super Admin",
-                    severity = "SECURE"
-                )
+        val result = functionsClient.setListingVerification(spaceId, nextStatus)
+        if (result.isSuccess) {
+            _spaces.value = _spaces.value.map {
+                if (it.id == spaceId) it.copy(isVerified = nextStatus) else it
             }
+            addLocalAuditLogEntry(
+                actionType = "VERIFICATION_OVERRIDE",
+                details = "Workspace #${spaceId} verified status changed to $nextStatus by Super Admin",
+                severity = "SECURE"
+            )
         }
+        return result.isSuccess
     }
 
     /** Same pattern as [toggleListingVerification] — see its doc comment. */
-    fun toggleListingActive(spaceId: String) {
-        val target = _spaces.value.find { it.id == spaceId } ?: return
+    suspend fun toggleListingActive(spaceId: String): Boolean {
+        val target = _spaces.value.find { it.id == spaceId } ?: return false
         val nextStatus = !target.isActiveSubscription
-        coroutineScope.launch {
-            val result = functionsClient.setListingSubscriptionActive(spaceId, nextStatus)
-            if (result.isSuccess) {
-                _spaces.value = _spaces.value.map {
-                    if (it.id == spaceId) it.copy(isActiveSubscription = nextStatus) else it
-                }
-                addLocalAuditLogEntry(
-                    actionType = "SUBSCRIPTION_STATUS_TOGGLE",
-                    details = "Listing #${spaceId} subscription active status set to $nextStatus by Super Admin",
-                    severity = "WARN"
-                )
+        val result = functionsClient.setListingSubscriptionActive(spaceId, nextStatus)
+        if (result.isSuccess) {
+            _spaces.value = _spaces.value.map {
+                if (it.id == spaceId) it.copy(isActiveSubscription = nextStatus) else it
             }
+            addLocalAuditLogEntry(
+                actionType = "SUBSCRIPTION_STATUS_TOGGLE",
+                details = "Listing #${spaceId} subscription active status set to $nextStatus by Super Admin",
+                severity = "WARN"
+            )
         }
+        return result.isSuccess
     }
 
     // --- Smart Booking & In-App Rental Request Engine ---

@@ -181,11 +181,11 @@ class ProSpaceViewModel(
     }
 
     fun toggleListingVerification(spaceId: String) {
-        repository.toggleListingVerification(spaceId)
+        viewModelScope.launch { repository.toggleListingVerification(spaceId) }
     }
 
     fun toggleListingActive(spaceId: String) {
-        repository.toggleListingActive(spaceId)
+        viewModelScope.launch { repository.toggleListingActive(spaceId) }
     }
 
     // --- Whish Pay Settlement ---

@@ -203,6 +203,19 @@ class FirebaseFunctionsClient {
         }
     }
 
+    /** Admin-only: directly override a user's verification status (functions/src/admin/verification.ts). */
+    suspend fun setUserVerification(userId: String, verified: Boolean): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("adminSetUserVerification")
+                .call(mapOf("userId" to userId, "verified" to verified))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "setUserVerification failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     /** Admin-only: override a listing's verified badge (functions/src/admin/listings.ts). */
     suspend fun setListingVerification(spaceId: String, verified: Boolean): Result<Unit> {
         return try {

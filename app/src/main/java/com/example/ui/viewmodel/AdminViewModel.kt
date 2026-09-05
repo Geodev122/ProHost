@@ -196,8 +196,12 @@ class AdminViewModel(
 
     fun toggleUserVerification(userId: String) {
         viewModelScope.launch {
-            repository.toggleUserVerification(userId)
-            _events.emit(AdminUiEvent.ShowToast("User verification status updated"))
+            val success = repository.toggleUserVerification(userId)
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "User verification status updated" else "Failed to update verification status"
+                )
+            )
         }
     }
 
@@ -310,22 +314,32 @@ class AdminViewModel(
 
     fun toggleListingVerification(spaceId: String, currentVerified: Boolean = false) {
         viewModelScope.launch {
-            repository.toggleListingVerification(spaceId)
-            _events.emit(AdminUiEvent.ShowToast("Verification status toggled for space"))
+            val success = repository.toggleListingVerification(spaceId)
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "Verification status toggled for space" else "Failed to toggle verification status"
+                )
+            )
         }
     }
 
+    /**
+     * Used to manually mutate isActiveSubscription/subscriptionExpiryMillis and
+     * call the generic (and, before Phase 7 extended, never-persisted)
+     * updateSpaceListing — bypassing setListingSubscriptionActive entirely, and
+     * fabricating a +30-day expiry that had nothing to do with any real
+     * subscription term. Firestore rules now deny a direct write to either
+     * field anyway, so this goes through the Cloud Function like
+     * toggleListingVerification does.
+     */
     fun toggleListingSubscription(spaceId: String, currentActive: Boolean = false) {
         viewModelScope.launch {
-            val space = repository.spaces.value.find { it.id == spaceId }
-            if (space != null) {
-                val updated = space.copy(
-                    isActiveSubscription = !space.isActiveSubscription,
-                    subscriptionExpiryMillis = if (!space.isActiveSubscription) System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000) else System.currentTimeMillis() - 1000
+            val success = repository.toggleListingActive(spaceId)
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "Listing subscription active status toggled" else "Failed to toggle subscription status"
                 )
-                repository.updateSpaceListing(updated)
-            }
-            _events.emit(AdminUiEvent.ShowToast("Listing subscription active status toggled"))
+            )
         }
     }
 
