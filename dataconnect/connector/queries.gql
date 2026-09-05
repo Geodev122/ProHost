@@ -1,6 +1,6 @@
 # Queries for ProSpace App
 
-query GetAppUsers {
+query GetAppUsers @auth(level: NO_ACCESS) {
   appUsers {
     id
     email
@@ -16,7 +16,7 @@ query GetAppUsers {
   }
 }
 
-query GetAppUserById($id: String!) {
+query GetAppUserById($id: String!) @auth(level: NO_ACCESS) {
   appUser(id: $id) {
     id
     email
@@ -32,7 +32,7 @@ query GetAppUserById($id: String!) {
   }
 }
 
-query GetSpaceListings {
+query GetSpaceListings @auth(level: NO_ACCESS) {
   spaceListings {
     id
     title
@@ -67,7 +67,7 @@ query GetSpaceListings {
   }
 }
 
-query GetSpaceSubdivisions {
+query GetSpaceSubdivisions @auth(level: NO_ACCESS) {
   spaceSubdivisions {
     id
     spaceId
@@ -78,7 +78,7 @@ query GetSpaceSubdivisions {
   }
 }
 
-query GetSpaceSubdivisionsBySpaceId($spaceId: String!) {
+query GetSpaceSubdivisionsBySpaceId($spaceId: String!) @auth(level: NO_ACCESS) {
   spaceSubdivisions(where: { spaceId: { eq: $spaceId } }) {
     id
     spaceId
@@ -89,7 +89,7 @@ query GetSpaceSubdivisionsBySpaceId($spaceId: String!) {
   }
 }
 
-query GetBookingRequests {
+query GetBookingRequests @auth(level: NO_ACCESS) {
   bookingRequests {
     id
     spaceId
@@ -127,7 +127,7 @@ query GetBookingRequests {
   }
 }
 
-query GetWhishTransactions {
+query GetWhishTransactions @auth(level: NO_ACCESS) {
   whishTransactions {
     id
     orderId
@@ -142,10 +142,36 @@ query GetWhishTransactions {
     signatureHash
     spaceId
     spaceTitle
+    daysGranted
+    userId
   }
 }
 
-query GetAuditSecurityLogs {
+# --- Revenue queries (AdminRevenueScreen / OwnerAnalyticsScreen) ---
+# Firestore's in-memory filtering handles date-range queries over every
+# transaction poorly at scale; this runs as a real SQL WHERE clause against
+# Postgres instead. `_aggregate` root fields (SUM/COUNT) aren't available in
+# this schema/emulator version (confirmed against firebase dataconnect:compile
+# — "Cannot query field whishTransactions_aggregate on type Query"), so the
+# summary and per-owner breakdown are both computed client-side from this same
+# already-server-filtered list — spaceId here joins against the already-cached
+# SpaceListing.ownerId, no relationship directive needed in the schema for it.
+query GetSuccessfulTransactionsInRange($startTimestamp: Int64!, $endTimestamp: Int64!) @auth(level: NO_ACCESS) {
+  whishTransactions(
+    where: { status: { eq: "SUCCESS" }, timestamp: { ge: $startTimestamp, le: $endTimestamp } }
+    orderBy: { timestamp: DESC }
+  ) {
+    id
+    spaceId
+    spaceTitle
+    amountUsd
+    currency
+    timestamp
+    userId
+  }
+}
+
+query GetAuditSecurityLogs @auth(level: NO_ACCESS) {
   auditSecurityLogs {
     id
     timestamp
@@ -157,7 +183,7 @@ query GetAuditSecurityLogs {
   }
 }
 
-query GetAvatarCampaigns {
+query GetAvatarCampaigns @auth(level: NO_ACCESS) {
   avatarCampaigns {
     id
     spaceId
@@ -172,7 +198,7 @@ query GetAvatarCampaigns {
   }
 }
 
-query GetAdminPricingStates {
+query GetAdminPricingStates @auth(level: NO_ACCESS) {
   adminPricingStates {
     id
     monthlySubscriptionFeeUsd

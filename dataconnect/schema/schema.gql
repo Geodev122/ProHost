@@ -12,7 +12,14 @@ type AppUser @table(name: "users", key: ["id"]) {
   syndicateNumber: String!
   governorate: String! # BEIRUT, MOUNT_LEBANON, etc.
   isVerified: Boolean!
+  verificationStatus: String! # UNVERIFIED, PENDING_REVIEW, VERIFIED, ACTION_REQUIRED
+  verificationTier: String! # TIER_1_BASIC, TIER_2_PROFESSIONAL, TIER_3_COMMERCIAL_HOST
+  verificationNotes: String # Nullable
+  trustScore: Int!
   subscriptionExpiryMillis: Int64 # Nullable
+  ownerPackageTier: String! # PAY_AS_YOU_GO, LIMITED_3_TIER, UNLIMITED_TIER
+  ownerPackageExpiryMillis: Int64 # Nullable
+  paygListingsBoughtCount: Int!
 }
 
 type SpaceListing @table(name: "space_listings", key: ["id"]) {
@@ -107,6 +114,8 @@ type WhishTransaction @table(name: "whish_transactions", key: ["id"]) {
   signatureHash: String!
   spaceId: String!
   spaceTitle: String!
+  daysGranted: Int!
+  userId: String!
 }
 
 type AuditSecurityLog @table(name: "audit_security_logs", key: ["id"]) {

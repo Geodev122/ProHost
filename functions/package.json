@@ -16,13 +16,14 @@
     "test": "npm run build && node --test lib/**/*.test.js"
   },
   "dependencies": {
+    "@prohost/dataconnect-generated": "file:src/dataconnect-generated",
     "firebase-admin": "^13.0.0",
     "firebase-functions": "^6.1.0"
   },
   "devDependencies": {
-    "typescript": "^5.6.0",
+    "@types/node": "^20.0.0",
     "firebase-functions-test": "^3.4.0",
-    "@types/node": "^20.0.0"
+    "typescript": "^5.6.0"
   },
   "private": true
 }
