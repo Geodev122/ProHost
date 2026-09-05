@@ -179,10 +179,15 @@ fun OwnerHubScreen(
             currentFeeUsd = pricingState.monthlySubscriptionFeeUsd,
             viewModel = viewModel,
             onDismiss = { selectedSpaceForWhish = null },
-            onConfirmPayment = { name, phone ->
-                viewModel.paySubscriptionViaWhish(space.id, name, phone, context)
+            onConfirmPayment = { _, _ ->
+                // WhishPayModal's own "Authorize Settlement" button already calls
+                // viewModel.paySubscriptionViaWhish and dismisses itself — calling it again
+                // here used to double-fire the payment (two initiateWhishPayment calls, two
+                // browser launches, two polling loops for one tap). This callback only needs
+                // to clear local state now. Settlement isn't confirmed yet at this point —
+                // the app is still opening Whish's checkout page — so no success toast here;
+                // the Firestore listener reflects the real outcome once Whish confirms it.
                 selectedSpaceForWhish = null
-                android.widget.Toast.makeText(context, "Renewal submitted successfully via Whish Pay!", android.widget.Toast.LENGTH_SHORT).show()
             }
         )
     }

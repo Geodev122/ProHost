@@ -637,9 +637,11 @@ fun MyBookingsScreen(
                 booking = bkg,
                 viewModel = viewModel,
                 onDismiss = { showWhishPaymentBooking = null },
-                onConfirmPayment = { payerName, payerPhone ->
+                onConfirmPayment = { _, _ ->
+                    // Settlement isn't confirmed yet here — the app is only just opening
+                    // Whish's checkout page. The Firestore listener reflects the real
+                    // outcome once Whish confirms it; no success toast belongs here.
                     showWhishPaymentBooking = null
-                    Toast.makeText(context, "Payment for Booking #${bkg.id} completed via Whish Money by $payerName ($payerPhone)!", Toast.LENGTH_LONG).show()
                 }
             )
         }

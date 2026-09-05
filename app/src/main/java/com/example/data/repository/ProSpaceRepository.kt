@@ -219,93 +219,20 @@ class ProSpaceRepository {
         )
     }
 
+    // Demo/placeholder listings below are seeded so the app has something to show before
+    // the real Firestore listeners attach — harmless, since they use fictional owner
+    // identities. Users/audit logs/credential documents used to be seeded with a fake
+    // "USR-ADMIN-ROOT" identity hardcoded to the real developer's email
+    // (geo.elnajjar@gmail.com), pre-marked VERIFIED/ADMIN/Tier-3, with fabricated audit
+    // log entries ("Root security & governance clearance granted to...") and fabricated
+    // "verified" ID/tax documents attached to it — the same hardcoded-real-identity
+    // pattern already fixed elsewhere this session, just in the seed data instead of a
+    // screen fallback. These all get overwritten moments later by the real Firestore
+    // listeners anyway, so there's no functional loss in starting them empty instead.
     private fun seedInitialData() {
-        val initialUsers = listOf(
-            AppUser(
-                id = "USR-ADMIN-ROOT",
-                email = "geo.elnajjar@gmail.com",
-                fullName = "Geo El-Najjar",
-                role = UserRole.ADMIN,
-                specialty = "Super Administrator & Security Governance",
-                phone = "+961 70 888 999",
-                affiliation = "ProSpace Executive HQ & Central Governance",
-                syndicateNumber = "SUPER-ADMIN-01",
-                governorate = Governorate.BEIRUT,
-                isVerified = true,
-                verificationStatus = MemberVerificationStatus.VERIFIED,
-                verificationTier = VerificationTier.TIER_3_COMMERCIAL_HOST,
-                trustScore = 100
-            )
-        )
-        _users.value = initialUsers
-
-        val initialAuditLogs = listOf(
-            AuditSecurityLog(
-                id = "LOG-1001",
-                timestamp = System.currentTimeMillis() - 1000 * 60 * 60 * 2,
-                actionType = "SUPER_ADMIN_AUTHORIZATION",
-                details = "Root security & governance clearance granted to geo.elnajjar@gmail.com",
-                actorEmail = "geo.elnajjar@gmail.com",
-                severity = "SECURE"
-            ),
-            AuditSecurityLog(
-                id = "LOG-1002",
-                timestamp = System.currentTimeMillis() - 1000 * 60 * 45,
-                actionType = "WHISH_CRYPTO_INITIALIZED",
-                details = "Channel ID 15462415 MD5 verification active for Lebanon settlement corridor",
-                actorEmail = "system@prospace.lb",
-                severity = "INFO"
-            ),
-            AuditSecurityLog(
-                id = "LOG-1003",
-                timestamp = System.currentTimeMillis() - 1000 * 60 * 20,
-                actionType = "PRICING_ENGINE_BASELINE",
-                details = "Dynamic monthly listing fee verified at $1.80 USD baseline",
-                actorEmail = "geo.elnajjar@gmail.com",
-                severity = "INFO"
-            ),
-            AuditSecurityLog(
-                id = "LOG-1004",
-                timestamp = System.currentTimeMillis() - 1000 * 60 * 5,
-                actionType = "ROLE_SECURITY_FIREWALL",
-                details = "Role-based access matrix enforced: Super Admin restricted exclusively to Governance & Security Console",
-                actorEmail = "geo.elnajjar@gmail.com",
-                severity = "SECURE"
-            )
-        )
-        _auditLogs.value = initialAuditLogs
-
-        val initialDocuments = listOf(
-            CredentialDocument(
-                id = "DOC-ADMIN-01",
-                userId = "USR-ADMIN-ROOT",
-                type = DocumentType.NATIONAL_ID,
-                fileName = "Biometric_Passport_Geo_ElNajjar.pdf",
-                fileSizeKb = 2600,
-                uploadedAt = System.currentTimeMillis() - 1000L * 60 * 60 * 24 * 30,
-                status = DocumentStatus.VERIFIED,
-                documentNumber = "PASS-RL8829104",
-                issuingAuthority = "General Directorate of General Security",
-                expiryDate = "2034-03-15",
-                verificationHash = "SHA256:ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
-                reviewerNotes = "Super Admin Identity Accreditation Complete"
-            ),
-            CredentialDocument(
-                id = "DOC-ADMIN-02",
-                userId = "USR-ADMIN-ROOT",
-                type = DocumentType.TAX_REGISTRATION,
-                fileName = "Ministry_Of_Finance_Raqam_Mali.pdf",
-                fileSizeKb = 1890,
-                uploadedAt = System.currentTimeMillis() - 1000L * 60 * 60 * 24 * 30,
-                status = DocumentStatus.VERIFIED,
-                documentNumber = "MOF-774921-601",
-                issuingAuthority = "Republic of Lebanon Ministry of Finance",
-                expiryDate = "2028-12-31",
-                verificationHash = "SHA256:2c624232cdd221771294dfbb310aca000a0df6ac9b66bb",
-                reviewerNotes = "Financial registration verified"
-            )
-        )
-        _credentialDocuments.value = initialDocuments
+        _users.value = emptyList()
+        _auditLogs.value = emptyList()
+        _credentialDocuments.value = emptyList()
 
         val initialSpaces = listOf(
             SpaceListing(
@@ -397,36 +324,27 @@ class ProSpaceRepository {
     // now goes through the updatePricing Cloud Function instead of a direct write —
     // it also writes its own audit log entry, so this intentionally doesn't call
     // addAuditLog itself.
-    private fun persistPricingState() {
-        val state = _pricingState.value
-        val fields = mapOf(
-            "monthlySubscriptionFeeUsd" to state.monthlySubscriptionFeeUsd,
-            "paygPrivateOfficeUsd" to state.paygPrivateOfficeUsd,
-            "paygCenterUsd" to state.paygCenterUsd,
-            "paygPolyclinicUsd" to state.paygPolyclinicUsd,
-            "paygCoworkingUsd" to state.paygCoworkingUsd,
-            "package2MonthlyFeeUsd" to state.package2MonthlyFeeUsd,
-            "package3MonthlyFeeUsd" to state.package3MonthlyFeeUsd,
-            "governanceTag" to state.governanceTag,
-            "isPackagingGovernanceActive" to state.isPackagingGovernanceActive
-        )
-        coroutineScope.launch { functionsClient.updatePricing(fields) }
+    /** Returns whether the server actually accepted the change. */
+    private suspend fun persistPricingState(fields: Map<String, Any>): Boolean {
+        return functionsClient.updatePricing(fields).isSuccess
     }
 
-    fun updateMonthlySubscriptionFee(newFeeUsd: Double) {
+    /** Returns whether the change actually succeeded, so the caller can show a real result. */
+    suspend fun updateMonthlySubscriptionFee(newFeeUsd: Double): Boolean {
         val oldFee = _pricingState.value.monthlySubscriptionFeeUsd
-        _pricingState.value = _pricingState.value.copy(
-            monthlySubscriptionFeeUsd = newFeeUsd
-        )
-        persistPricingState()
-        addLocalAuditLogEntry(
-            actionType = "PRICING_ADJUSTMENT",
-            details = "Monthly fee changed from $${String.format(Locale.US, "%.2f", oldFee)} to $${String.format(Locale.US, "%.2f", newFeeUsd)} USD",
-            severity = "WARN"
-        )
+        val success = persistPricingState(mapOf("monthlySubscriptionFeeUsd" to newFeeUsd))
+        if (success) {
+            _pricingState.value = _pricingState.value.copy(monthlySubscriptionFeeUsd = newFeeUsd)
+            addLocalAuditLogEntry(
+                actionType = "PRICING_ADJUSTMENT",
+                details = "Monthly fee changed from $${String.format(Locale.US, "%.2f", oldFee)} to $${String.format(Locale.US, "%.2f", newFeeUsd)} USD",
+                severity = "WARN"
+            )
+        }
+        return success
     }
 
-    fun updatePaygFee(spaceType: SpaceType, fee: Double) {
+    suspend fun updatePaygFee(spaceType: SpaceType, fee: Double): Boolean {
         val current = _pricingState.value
         val updated = when (spaceType) {
             SpaceType.PRIVATE_OFFICE -> current.copy(paygPrivateOfficeUsd = fee)
@@ -434,49 +352,67 @@ class ProSpaceRepository {
             SpaceType.POLYCLINIC -> current.copy(paygPolyclinicUsd = fee)
             SpaceType.COWORKING_SPACE -> current.copy(paygCoworkingUsd = fee)
         }
-        _pricingState.value = updated
-        persistPricingState()
-        addLocalAuditLogEntry(
-            actionType = "PAYG_PRICING_UPDATED",
-            details = "PAYG fee for ${spaceType.displayName} updated to $${String.format(Locale.US, "%.2f", fee)} USD",
-            severity = "INFO"
-        )
+        val field = when (spaceType) {
+            SpaceType.PRIVATE_OFFICE -> "paygPrivateOfficeUsd"
+            SpaceType.CENTER -> "paygCenterUsd"
+            SpaceType.POLYCLINIC -> "paygPolyclinicUsd"
+            SpaceType.COWORKING_SPACE -> "paygCoworkingUsd"
+        }
+        val success = persistPricingState(mapOf(field to fee))
+        if (success) {
+            _pricingState.value = updated
+            addLocalAuditLogEntry(
+                actionType = "PAYG_PRICING_UPDATED",
+                details = "PAYG fee for ${spaceType.displayName} updated to $${String.format(Locale.US, "%.2f", fee)} USD",
+                severity = "INFO"
+            )
+        }
+        return success
     }
 
-    fun updatePackageFees(package2Fee: Double, package3Fee: Double) {
-        _pricingState.value = _pricingState.value.copy(
-            package2MonthlyFeeUsd = package2Fee,
-            package3MonthlyFeeUsd = package3Fee
+    suspend fun updatePackageFees(package2Fee: Double, package3Fee: Double): Boolean {
+        val success = persistPricingState(
+            mapOf("package2MonthlyFeeUsd" to package2Fee, "package3MonthlyFeeUsd" to package3Fee)
         )
-        persistPricingState()
-        addLocalAuditLogEntry(
-            actionType = "PACKAGE_FEES_UPDATED",
-            details = "Package 2 (3-limit) fee updated to $${String.format(Locale.US, "%.2f", package2Fee)}, Package 3 (Unlimited) fee updated to $${String.format(Locale.US, "%.2f", package3Fee)}",
-            severity = "INFO"
-        )
+        if (success) {
+            _pricingState.value = _pricingState.value.copy(
+                package2MonthlyFeeUsd = package2Fee,
+                package3MonthlyFeeUsd = package3Fee
+            )
+            addLocalAuditLogEntry(
+                actionType = "PACKAGE_FEES_UPDATED",
+                details = "Package 2 (3-limit) fee updated to $${String.format(Locale.US, "%.2f", package2Fee)}, Package 3 (Unlimited) fee updated to $${String.format(Locale.US, "%.2f", package3Fee)}",
+                severity = "INFO"
+            )
+        }
+        return success
     }
 
-    fun updateGovernanceTag(tag: String) {
-        _pricingState.value = _pricingState.value.copy(governanceTag = tag)
-        persistPricingState()
-        addLocalAuditLogEntry(
-            actionType = "ADMIN_GOVERNANCE_TAG_UPDATED",
-            details = "Admin governance control tag updated to: $tag",
-            severity = "WARN"
-        )
+    suspend fun updateGovernanceTag(tag: String): Boolean {
+        val success = persistPricingState(mapOf("governanceTag" to tag))
+        if (success) {
+            _pricingState.value = _pricingState.value.copy(governanceTag = tag)
+            addLocalAuditLogEntry(
+                actionType = "ADMIN_GOVERNANCE_TAG_UPDATED",
+                details = "Admin governance control tag updated to: $tag",
+                severity = "WARN"
+            )
+        }
+        return success
     }
 
-    fun resetMonthlySubscriptionFee() {
+    suspend fun resetMonthlySubscriptionFee(): Boolean {
         val baseline = _pricingState.value.baselineFeeUsd
-        _pricingState.value = _pricingState.value.copy(
-            monthlySubscriptionFeeUsd = baseline
-        )
-        persistPricingState()
-        addLocalAuditLogEntry(
-            actionType = "PRICING_RESET",
-            details = "Monthly fee reset to official baseline $${String.format(Locale.US, "%.2f", baseline)} USD",
-            severity = "INFO"
-        )
+        val success = persistPricingState(mapOf("monthlySubscriptionFeeUsd" to baseline))
+        if (success) {
+            _pricingState.value = _pricingState.value.copy(monthlySubscriptionFeeUsd = baseline)
+            addLocalAuditLogEntry(
+                actionType = "PRICING_RESET",
+                details = "Monthly fee reset to official baseline $${String.format(Locale.US, "%.2f", baseline)} USD",
+                severity = "INFO"
+            )
+        }
+        return success
     }
 
     fun calculateActiveMrr(): Double {
@@ -549,7 +485,8 @@ class ProSpaceRepository {
      * passed in, since Firestore rules deny any client write that changes them.
      * Use setListingVerification / setListingSubscriptionActive for those.
      */
-    fun updateSpaceListing(updated: SpaceListing) {
+    /** Returns whether the write actually succeeded, so the caller can show a real result. */
+    suspend fun updateSpaceListing(updated: SpaceListing): Boolean {
         val current = _spaces.value.find { it.id == updated.id }
         val safeUpdate = if (current != null) {
             updated.copy(
@@ -561,13 +498,16 @@ class ProSpaceRepository {
         } else {
             updated
         }
-        _spaces.value = _spaces.value.map { if (it.id == safeUpdate.id) safeUpdate else it }
-        coroutineScope.launch { firestoreService.saveWorkspace(safeUpdate) }
-        addAuditLog(
-            actionType = "LISTING_UPDATED",
-            details = "Admin updated workspace listing #${safeUpdate.id} (${safeUpdate.title})",
-            severity = "INFO"
-        )
+        val success = firestoreService.saveWorkspace(safeUpdate)
+        if (success) {
+            _spaces.value = _spaces.value.map { if (it.id == safeUpdate.id) safeUpdate else it }
+            addAuditLog(
+                actionType = "LISTING_UPDATED",
+                details = "Admin updated workspace listing #${safeUpdate.id} (${safeUpdate.title})",
+                severity = "INFO"
+            )
+        }
+        return success
     }
 
     fun deleteSpaceListing(spaceId: String) {
@@ -590,7 +530,8 @@ class ProSpaceRepository {
      * showing a false "updated successfully" toast). Use grantAdminRole /
      * reviewCredentialDocument / submitUserVerification for those instead.
      */
-    fun updateUser(updated: AppUser) {
+    /** Returns whether the write actually succeeded, so the caller can show a real result. */
+    suspend fun updateUser(updated: AppUser): Boolean {
         val current = _users.value.find { it.id == updated.id }
         val safeUpdate = if (current != null) {
             updated.copy(
@@ -603,16 +544,19 @@ class ProSpaceRepository {
         } else {
             updated
         }
-        _users.value = _users.value.map { if (it.id == safeUpdate.id) safeUpdate else it }
-        if (_currentUser.value?.id == safeUpdate.id) {
-            _currentUser.value = safeUpdate
+        val success = firestoreService.saveUserProfile(safeUpdate)
+        if (success) {
+            _users.value = _users.value.map { if (it.id == safeUpdate.id) safeUpdate else it }
+            if (_currentUser.value?.id == safeUpdate.id) {
+                _currentUser.value = safeUpdate
+            }
+            addAuditLog(
+                actionType = "USER_UPDATED",
+                details = "Admin updated user profile for ${safeUpdate.fullName} (${safeUpdate.email})",
+                severity = "INFO"
+            )
         }
-        coroutineScope.launch { firestoreService.saveUserProfile(safeUpdate) }
-        addAuditLog(
-            actionType = "USER_UPDATED",
-            details = "Admin updated user profile for ${safeUpdate.fullName} (${safeUpdate.email})",
-            severity = "INFO"
-        )
+        return success
     }
 
     fun deleteUser(userId: String) {
@@ -889,7 +833,9 @@ class ProSpaceRepository {
      * about, just for bookings. It's now exclusively set by the payment webhook /
      * checkWhishStatus reconciliation (functions/src/payments/reconcile.ts) once a
      * real Whish payment for this booking actually succeeds — see
-     * RentalsViewModel.settleBookingPayment, the practitioner's separate later step.
+     * ProSpaceViewModel.payBookingViaWhish, the practitioner's separate later step
+     * (MyBookingsScreen's "Pay Whish" button, not the orphaned RentalsViewModel, which
+     * was deleted — it duplicated this same flow but had no screen wired to it).
      */
     fun acceptBookingRequest(requestId: String): Boolean {
         val request = _bookingRequests.value.find { it.id == requestId } ?: return false
@@ -1267,38 +1213,38 @@ class ProSpaceRepository {
      * [adminRejectDocument] call reviewCredentialDocument instead of writing
      * directly, then refresh local state from Firestore once the server is done.
      */
-    fun adminApproveDocument(documentId: String, reviewerNotes: String = "Validated against Lebanese Syndicate Registry") {
-        val doc = _credentialDocuments.value.find { it.id == documentId } ?: return
-        coroutineScope.launch {
-            val result = functionsClient.reviewCredentialDocument(documentId, approve = true, reviewerNotes = reviewerNotes)
-            if (result.isSuccess) {
-                addLocalAuditLogEntry(
-                    actionType = "DOCUMENT_ACCREDITED",
-                    details = "Admin approved ${doc.type.title} (#${doc.documentNumber}) for member ${doc.userId}",
-                    severity = "SECURE",
-                    actorEmail = _currentUser.value?.email ?: "admin@prospace.lb"
-                )
-                refreshCredentialDocument(documentId)
-                refreshUserProfile(doc.userId)
-            }
+    /** Returns whether the review actually succeeded, so the caller can show a real result. */
+    suspend fun adminApproveDocument(documentId: String, reviewerNotes: String = "Validated against Lebanese Syndicate Registry"): Boolean {
+        val doc = _credentialDocuments.value.find { it.id == documentId } ?: return false
+        val result = functionsClient.reviewCredentialDocument(documentId, approve = true, reviewerNotes = reviewerNotes)
+        if (result.isSuccess) {
+            addLocalAuditLogEntry(
+                actionType = "DOCUMENT_ACCREDITED",
+                details = "Admin approved ${doc.type.title} (#${doc.documentNumber}) for member ${doc.userId}",
+                severity = "SECURE",
+                actorEmail = _currentUser.value?.email ?: "admin@prospace.lb"
+            )
+            refreshCredentialDocument(documentId)
+            refreshUserProfile(doc.userId)
         }
+        return result.isSuccess
     }
 
-    fun adminRejectDocument(documentId: String, reason: String) {
-        val doc = _credentialDocuments.value.find { it.id == documentId } ?: return
-        coroutineScope.launch {
-            val result = functionsClient.reviewCredentialDocument(documentId, approve = false, rejectionReason = reason)
-            if (result.isSuccess) {
-                addLocalAuditLogEntry(
-                    actionType = "DOCUMENT_REVISION_REQUESTED",
-                    details = "Admin requested revision on ${doc.type.title} (#${doc.documentNumber}): $reason",
-                    severity = "WARN",
-                    actorEmail = _currentUser.value?.email ?: "admin@prospace.lb"
-                )
-                refreshCredentialDocument(documentId)
-                refreshUserProfile(doc.userId)
-            }
+    /** Returns whether the review actually succeeded, so the caller can show a real result. */
+    suspend fun adminRejectDocument(documentId: String, reason: String): Boolean {
+        val doc = _credentialDocuments.value.find { it.id == documentId } ?: return false
+        val result = functionsClient.reviewCredentialDocument(documentId, approve = false, rejectionReason = reason)
+        if (result.isSuccess) {
+            addLocalAuditLogEntry(
+                actionType = "DOCUMENT_REVISION_REQUESTED",
+                details = "Admin requested revision on ${doc.type.title} (#${doc.documentNumber}): $reason",
+                severity = "WARN",
+                actorEmail = _currentUser.value?.email ?: "admin@prospace.lb"
+            )
+            refreshCredentialDocument(documentId)
+            refreshUserProfile(doc.userId)
         }
+        return result.isSuccess
     }
 
     /** Re-reads one credential document from Firestore into local state after a server-side change. */

@@ -46,39 +46,10 @@ class FirestoreService(
     private val listenerScope = CoroutineScope(Dispatchers.IO)
     private val activeListeners = mutableListOf<ListenerRegistration>()
 
-    /**
-     * Initializes the Firestore database schema with metadata and system verification markers.
-     */
-    suspend fun initializeSchema(): Boolean {
-        return try {
-            val db = firestore ?: return false
-            val metadata = mapOf(
-                "schemaVersion" to FirestoreSchema.SCHEMA_VERSION,
-                "dataConnectService" to FirestoreSchema.DATA_CONNECT_SERVICE_ID,
-                "databaseId" to FirestoreSchema.DEFAULT_DATABASE_ID,
-                "initializedAt" to System.currentTimeMillis(),
-                "status" to "HEALTHY",
-                "collections" to listOf(
-                    FirestoreSchema.Collections.WORKSPACE_LISTINGS,
-                    FirestoreSchema.Collections.USER_PROFILES,
-                    FirestoreSchema.Collections.SUBSCRIPTION_FORMULAS,
-                    FirestoreSchema.Collections.BOOKING_REQUESTS,
-                    FirestoreSchema.Collections.USER_CREDENTIALS,
-                    FirestoreSchema.Collections.WHISH_TRANSACTIONS,
-                    FirestoreSchema.Collections.AUDIT_SECURITY_LOGS
-                )
-            )
-            db.collection(FirestoreSchema.Collections.SYSTEM_METADATA)
-                .document("schema_info")
-                .set(metadata, SetOptions.merge())
-                .await()
-            Log.i(TAG, "Firestore Schema initialized successfully version: ${FirestoreSchema.SCHEMA_VERSION}")
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize Firestore schema: ${e.message}", e)
-            false
-        }
-    }
+    // initializeSchema() (wrote system_metadata/schema_info) was removed: Firestore rules
+    // deny every client write to system_metadata (Phase 7), so it could never succeed
+    // again, and it was cascading into aborting the rest of seedInitialData() below
+    // whenever it ran first in that shared try block.
 
     /**
      * Fire-and-forget seed of default/starter data (subscription formulas, and whatever
@@ -93,7 +64,11 @@ class FirestoreService(
         val db = firestore ?: return
         listenerScope.launch {
             try {
-                initializeSchema()
+                // initializeSchema() used to run first here, writing system_metadata/
+                // schema_info — Firestore rules now deny every client write to
+                // system_metadata (Phase 7), so that call always threw and — since
+                // everything below was one shared try block — silently aborted the
+                // formulas/spaces/users seeding beneath it too, every single time.
                 initialFormulas.forEach { formula ->
                     db.collection(FirestoreSchema.Collections.SUBSCRIPTION_FORMULAS)
                         .document(formula.id)

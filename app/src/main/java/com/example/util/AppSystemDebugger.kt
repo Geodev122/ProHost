@@ -104,14 +104,21 @@ object AppSystemDebugger {
                 )
             )
 
-            // Syndicate Verification & Accreditations
+            // Syndicate Verification & Accreditations — a real check against loaded
+            // profiles (used to be hardcoded PASSED regardless of actual data).
             val userProfiles = repository.users.value
+            val professionalsMissingSyndicateNumber = userProfiles.filter {
+                it.role == UserRole.PROFESSIONAL && it.syndicateNumber.isBlank()
+            }
             results.add(
                 DiagnosticItem(
                     category = "Authentication & Identity",
                     featureName = "Lebanese Syndicate Accreditation & KYC",
-                    status = DiagnosticStatus.PASSED,
-                    details = "Validated syndicate fields: Order of Physicians, Dentists, Allied Health with tier scoring."
+                    status = if (professionalsMissingSyndicateNumber.isEmpty()) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
+                    details = if (professionalsMissingSyndicateNumber.isEmpty())
+                        "All ${userProfiles.count { it.role == UserRole.PROFESSIONAL }} professional profiles have a syndicate/license number on file."
+                    else
+                        "${professionalsMissingSyndicateNumber.size} professional profile(s) missing a syndicate/license number."
                 )
             )
         } catch (e: Exception) {
@@ -143,14 +150,18 @@ object AppSystemDebugger {
                 )
             }
 
-            // Schema initialisation check
-            val initialized = firestoreService.initializeSchema()
+            // Schema version check — used to call firestoreService.initializeSchema(),
+            // which writes system_metadata/schema_info. Firestore rules now deny every
+            // client write to system_metadata (Phase 7), so that write always fails and
+            // would show a false WARNING on every diagnostics run for a client-side
+            // limitation, not a real problem. This just confirms the schema constant
+            // the app was built against, no write attempted.
             results.add(
                 DiagnosticItem(
                     category = "Firebase & Data Connect",
-                    featureName = "Firestore Schema Metadata Sync",
-                    status = if (initialized) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
-                    details = "Schema Version ${FirestoreSchema.SCHEMA_VERSION} initialized on target database."
+                    featureName = "Firestore Schema Version",
+                    status = DiagnosticStatus.PASSED,
+                    details = "App built against schema version ${FirestoreSchema.SCHEMA_VERSION}."
                 )
             )
 

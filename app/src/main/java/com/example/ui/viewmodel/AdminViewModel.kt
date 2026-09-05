@@ -2,6 +2,7 @@ package com.example.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.auth.FirebaseFunctionsClient
 import com.example.data.model.*
 import com.example.data.repository.ProSpaceRepository
 import com.example.ui.state.AdminUiEvent
@@ -17,6 +18,8 @@ import java.util.UUID
 class AdminViewModel(
     private val repository: ProSpaceRepository = ProSpaceRepository.getInstance()
 ) : ViewModel() {
+
+    private val functionsClient = FirebaseFunctionsClient()
 
     private val _uiState = MutableStateFlow(AdminUiState())
     val uiState: StateFlow<AdminUiState> = _uiState.asStateFlow()
@@ -81,29 +84,44 @@ class AdminViewModel(
 
     fun setSubscriptionFee(fee: Double) {
         viewModelScope.launch {
-            repository.updateMonthlySubscriptionFee(fee)
-            _events.emit(AdminUiEvent.PricingUpdated(fee))
+            if (repository.updateMonthlySubscriptionFee(fee)) {
+                _events.emit(AdminUiEvent.PricingUpdated(fee))
+            } else {
+                _events.emit(AdminUiEvent.ShowToast("Failed to update subscription fee"))
+            }
         }
     }
 
     fun updatePaygFee(spaceType: SpaceType, fee: Double) {
         viewModelScope.launch {
-            repository.updatePaygFee(spaceType, fee)
-            _events.emit(AdminUiEvent.ShowToast("PAYG fee updated for ${spaceType.displayName}"))
+            val success = repository.updatePaygFee(spaceType, fee)
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "PAYG fee updated for ${spaceType.displayName}" else "Failed to update PAYG fee for ${spaceType.displayName}"
+                )
+            )
         }
     }
 
     fun updatePackageFees(package2Fee: Double, package3Fee: Double) {
         viewModelScope.launch {
-            repository.updatePackageFees(package2Fee, package3Fee)
-            _events.emit(AdminUiEvent.ShowToast("Owner package pricing updated successfully"))
+            val success = repository.updatePackageFees(package2Fee, package3Fee)
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "Owner package pricing updated successfully" else "Failed to update owner package pricing"
+                )
+            )
         }
     }
 
     fun updateGovernanceTag(tag: String) {
         viewModelScope.launch {
-            repository.updateGovernanceTag(tag)
-            _events.emit(AdminUiEvent.ShowToast("Admin governance control tag updated"))
+            val success = repository.updateGovernanceTag(tag)
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "Admin governance control tag updated" else "Failed to update governance tag"
+                )
+            )
         }
     }
 
@@ -113,8 +131,11 @@ class AdminViewModel(
 
     fun resetSubscriptionFeeBaseline() {
         viewModelScope.launch {
-            repository.resetMonthlySubscriptionFee()
-            _events.emit(AdminUiEvent.PricingUpdated(repository.pricingState.value.baselineFeeUsd))
+            if (repository.resetMonthlySubscriptionFee()) {
+                _events.emit(AdminUiEvent.PricingUpdated(repository.pricingState.value.baselineFeeUsd))
+            } else {
+                _events.emit(AdminUiEvent.ShowToast("Failed to reset subscription fee"))
+            }
         }
     }
 
@@ -149,49 +170,14 @@ class AdminViewModel(
 
     fun saveUser(user: AppUser) {
         viewModelScope.launch {
-            repository.updateUser(user)
+            val success = repository.updateUser(user)
             closeEditUserDialog()
-            _events.emit(AdminUiEvent.ShowToast("User profile updated successfully"))
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "User profile updated successfully" else "Failed to update user profile"
+                )
+            )
         }
-    }
-
-    fun saveUserEdits(
-        userId: String,
-        fullName: String,
-        role: UserRole,
-        specialty: String,
-        syndicateNumber: String,
-        affiliation: String,
-        phone: String,
-        verificationStatus: MemberVerificationStatus,
-        verificationTier: VerificationTier,
-        trustScore: Int,
-        verificationNotes: String?
-    ) {
-        val existing = _uiState.value.allUsers.find { it.id == userId }
-        val updated = (existing ?: AppUser(
-            id = userId,
-            email = "",
-            fullName = fullName,
-            role = role,
-            specialty = specialty,
-            phone = phone,
-            affiliation = affiliation,
-            syndicateNumber = syndicateNumber
-        )).copy(
-            fullName = fullName,
-            role = role,
-            specialty = specialty,
-            syndicateNumber = syndicateNumber,
-            affiliation = affiliation,
-            phone = phone,
-            isVerified = verificationStatus == MemberVerificationStatus.VERIFIED,
-            verificationStatus = verificationStatus,
-            verificationTier = verificationTier,
-            trustScore = trustScore,
-            verificationNotes = verificationNotes
-        )
-        saveUser(updated)
     }
 
     fun toggleUserVerification(userId: String) {
@@ -218,6 +204,31 @@ class AdminViewModel(
             repository.deleteUser(userId)
             closeDeleteUserDialog()
             _events.emit(AdminUiEvent.ShowToast("User account removed from platform"))
+        }
+    }
+
+    // --- Grant Admin ---
+    // The only path that can grant the ADMIN role (grantAdminRole Cloud Function, which
+    // only succeeds if the caller's own token already carries role == ADMIN). Until this
+    // was added, there was no in-app way to promote a second admin at all — the only
+    // account with the role got it from a one-off bootstrap script.
+    fun openGrantAdminDialog(user: AppUser) {
+        _uiState.update { it.copy(grantingAdminUser = user, isGrantAdminDialogOpen = true) }
+    }
+
+    fun closeGrantAdminDialog() {
+        _uiState.update { it.copy(grantingAdminUser = null, isGrantAdminDialogOpen = false) }
+    }
+
+    fun confirmGrantAdmin(email: String) {
+        viewModelScope.launch {
+            val result = functionsClient.grantAdminRole(email)
+            closeGrantAdminDialog()
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (result.isSuccess) "Admin role granted to $email" else "Failed to grant Admin role"
+                )
+            )
         }
     }
 
@@ -252,64 +263,14 @@ class AdminViewModel(
 
     fun saveListing(listing: SpaceListing) {
         viewModelScope.launch {
-            repository.updateSpaceListing(listing)
+            val success = repository.updateSpaceListing(listing)
             closeEditListingDialog()
-            _events.emit(AdminUiEvent.ShowToast("Listing updated successfully"))
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "Listing updated successfully" else "Failed to update listing"
+                )
+            )
         }
-    }
-
-    fun saveListingEdits(
-        spaceId: String,
-        title: String,
-        spaceType: SpaceType,
-        governorate: Governorate,
-        district: String,
-        streetAddress: String,
-        floorInfo: String,
-        baseMonthlyRateUsd: Double,
-        isVerified: Boolean,
-        isActiveSubscription: Boolean,
-        ownerName: String,
-        ownerPhone: String,
-        ownerEmail: String
-    ) {
-        val existing = _uiState.value.allSpaces.find { it.id == spaceId }
-        val updated = (existing ?: SpaceListing(
-            id = spaceId,
-            title = title,
-            spaceType = spaceType,
-            governorate = governorate,
-            district = district,
-            streetAddress = streetAddress,
-            floorInfo = floorInfo,
-            lat = 33.8938,
-            lng = 35.5018,
-            isShared = false,
-            complementarySpecialties = emptyList(),
-            residentPractitioners = emptyList(),
-            essentialFacilities = emptyList(),
-            equipment = emptyList(),
-            rentalFormulas = emptyList(),
-            rules = PremisesRules(),
-            ownerId = "",
-            ownerName = ownerName,
-            ownerPhone = ownerPhone,
-            ownerEmail = ownerEmail
-        )).copy(
-            title = title,
-            spaceType = spaceType,
-            governorate = governorate,
-            district = district,
-            streetAddress = streetAddress,
-            floorInfo = floorInfo,
-            baseMonthlyRateUsd = baseMonthlyRateUsd,
-            isVerified = isVerified,
-            isActiveSubscription = isActiveSubscription,
-            ownerName = ownerName,
-            ownerPhone = ownerPhone,
-            ownerEmail = ownerEmail
-        )
-        saveListing(updated)
     }
 
     fun toggleListingVerification(spaceId: String, currentVerified: Boolean = false) {

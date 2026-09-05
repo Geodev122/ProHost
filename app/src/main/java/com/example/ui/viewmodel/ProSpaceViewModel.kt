@@ -173,11 +173,11 @@ class ProSpaceViewModel(
 
     // --- Admin Pricing Governance ---
     fun setSubscriptionFee(fee: Double) {
-        repository.updateMonthlySubscriptionFee(fee)
+        viewModelScope.launch { repository.updateMonthlySubscriptionFee(fee) }
     }
 
     fun resetSubscriptionFeeBaseline() {
-        repository.resetMonthlySubscriptionFee()
+        viewModelScope.launch { repository.resetMonthlySubscriptionFee() }
     }
 
     fun toggleListingVerification(spaceId: String) {
@@ -531,12 +531,12 @@ class ProSpaceViewModel(
         repository.submitUserVerification(user.id)
     }
 
-    fun adminApproveDocument(documentId: String, notes: String = "Validated against Lebanese Syndicate Registry") {
-        repository.adminApproveDocument(documentId, notes)
+    suspend fun adminApproveDocument(documentId: String, notes: String = "Validated against Lebanese Syndicate Registry"): Boolean {
+        return repository.adminApproveDocument(documentId, notes)
     }
 
-    fun adminRejectDocument(documentId: String, reason: String) {
-        repository.adminRejectDocument(documentId, reason)
+    suspend fun adminRejectDocument(documentId: String, reason: String): Boolean {
+        return repository.adminRejectDocument(documentId, reason)
     }
 
     // --- WhatsApp Direct Connection ---

@@ -40,6 +40,7 @@ import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProSpaceViewModel
 import com.example.util.InAppUpdateManager
 import com.example.util.UpdateState
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,24 +50,23 @@ fun SpecialistProfileScreen(
     onSignOut: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val currentUser by viewModel.currentUser.collectAsState()
     val userDocuments by viewModel.currentUserDocuments.collectAsState()
 
-    val user = currentUser ?: AppUser(
-        id = "USR-ADMIN-ROOT",
-        email = "geo.elnajjar@gmail.com",
-        fullName = "Geo El-Najjar",
-        role = UserRole.ADMIN,
-        specialty = "Super Administrator & Security Governance",
-        phone = "+961 70 888 999",
-        affiliation = "ProSpace Executive HQ & Central Governance",
-        syndicateNumber = "SUPER-ADMIN-01",
-        governorate = Governorate.BEIRUT,
-        isVerified = true,
-        verificationStatus = MemberVerificationStatus.VERIFIED,
-        verificationTier = VerificationTier.TIER_3_COMMERCIAL_HOST,
-        trustScore = 100
-    )
+    // No fabricated Super Admin fallback here anymore — a null currentUser means the
+    // session genuinely isn't signed in (this screen used to bake in a real hardcoded
+    // identity, geo.elnajjar@gmail.com as ADMIN, as its "no user yet" placeholder).
+    val user = currentUser
+    if (user == null) {
+        ProEmptyState(
+            title = "Not signed in",
+            description = "Sign in to view your profile.",
+            icon = Icons.Default.PersonOff,
+            modifier = Modifier.fillMaxSize()
+        )
+        return
+    }
 
     var name by remember(user) { mutableStateOf(user.fullName) }
     var specialty by remember(user) { mutableStateOf(user.specialty) }
@@ -1375,14 +1375,26 @@ fun SpecialistProfileScreen(
                 previewingDocument = null
             },
             onApproveDocument = { docId ->
-                viewModel.adminApproveDocument(docId)
                 previewingDocument = null
-                Toast.makeText(context, "Document approved and accredited!", Toast.LENGTH_SHORT).show()
+                coroutineScope.launch {
+                    val success = viewModel.adminApproveDocument(docId)
+                    Toast.makeText(
+                        context,
+                        if (success) "Document approved and accredited!" else "Failed to approve document — try again",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             },
             onRejectDocument = { docId, reason ->
-                viewModel.adminRejectDocument(docId, reason)
                 previewingDocument = null
-                Toast.makeText(context, "Revision requested from member", Toast.LENGTH_SHORT).show()
+                coroutineScope.launch {
+                    val success = viewModel.adminRejectDocument(docId, reason)
+                    Toast.makeText(
+                        context,
+                        if (success) "Revision requested from member" else "Failed to request revision — try again",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         )
     }
