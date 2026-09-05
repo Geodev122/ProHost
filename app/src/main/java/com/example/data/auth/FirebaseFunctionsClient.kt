@@ -137,6 +137,111 @@ class FirebaseFunctionsClient {
         }
     }
 
+    /**
+     * Routine audit log entry (functions/src/audit/recordClientAuditLog.ts) — the
+     * only remaining path for non-admin audit events now that audit_security_logs
+     * denies every direct client write. actorEmail is never accepted from the
+     * client; the server always uses the caller's own verified token email.
+     */
+    suspend fun recordAuditLog(actionType: String, details: String, severity: String = "INFO"): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("recordClientAuditLog")
+                .call(mapOf("actionType" to actionType, "details" to details, "severity" to severity))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "recordAuditLog failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Admin-only pricing patch (functions/src/admin/pricing.ts) — the only path
+     * that can write system_metadata/pricing now that Phase 7's Firestore rules
+     * deny every client write to it. Pass only the fields being changed.
+     */
+    suspend fun updatePricing(fields: Map<String, Any>): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("updatePricing").call(fields).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "updatePricing failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /** Self-service: ask for the caller's own uploaded credential documents to be reviewed. */
+    suspend fun submitVerificationForReview(): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("submitVerificationForReview").call().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "submitVerificationForReview failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /** Admin-only: approve or reject a credential document (functions/src/admin/verification.ts). */
+    suspend fun reviewCredentialDocument(
+        documentId: String,
+        approve: Boolean,
+        reviewerNotes: String? = null,
+        rejectionReason: String? = null
+    ): Result<Unit> {
+        return try {
+            val payload = mutableMapOf<String, Any>(
+                "documentId" to documentId,
+                "decision" to if (approve) "APPROVE" else "REJECT"
+            )
+            reviewerNotes?.let { payload["reviewerNotes"] = it }
+            rejectionReason?.let { payload["rejectionReason"] = it }
+            functions.getHttpsCallable("reviewCredentialDocument").call(payload).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "reviewCredentialDocument failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /** Admin-only: directly override a user's verification status (functions/src/admin/verification.ts). */
+    suspend fun setUserVerification(userId: String, verified: Boolean): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("adminSetUserVerification")
+                .call(mapOf("userId" to userId, "verified" to verified))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "setUserVerification failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /** Admin-only: override a listing's verified badge (functions/src/admin/listings.ts). */
+    suspend fun setListingVerification(spaceId: String, verified: Boolean): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("setListingVerification")
+                .call(mapOf("spaceId" to spaceId, "verified" to verified))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "setListingVerification failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /** Admin-only: override a listing's subscription-active flag (functions/src/admin/listings.ts). */
+    suspend fun setListingSubscriptionActive(spaceId: String, active: Boolean): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("setListingSubscriptionActive")
+                .call(mapOf("spaceId" to spaceId, "active" to active))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "setListingSubscriptionActive failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     companion object {
         /**
          * Reads the role custom claim from the given user's current ID token,

@@ -2,6 +2,7 @@ package com.example.ui.components.dialogs
 
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,12 +26,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.*
-import com.example.ui.components.OwnerBookingRequestCard
+import com.example.ui.components.DocumentPreviewDialog
 import com.example.ui.components.drawer.LawBulletinCard
 import com.example.ui.theme.LebaneseCedarGreen
 import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.viewmodel.ProSpaceViewModel
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -53,13 +55,19 @@ fun DrawerDialogsHandler(
     }
 
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val currentUser by viewModel.currentUser.collectAsState()
     val allSpaces by viewModel.spaces.collectAsState()
     val bookingRequests by viewModel.bookingRequests.collectAsState()
     val auditLogs by viewModel.auditLogs.collectAsState()
-    val avatarCampaigns by viewModel.avatarCampaigns.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
     val fcmAlerts by viewModel.fcmAlerts.collectAsState()
+
+    // The admin credential-document registry (below) is the only place an admin can
+    // ever actually approve/reject a document — SpecialistProfileScreen's own preview
+    // dialog is reachable only from a user's OWN document list, which explicitly
+    // excludes ADMIN, so `isAdmin` could never be true at that call site.
+    var previewingAdminDocument by remember { mutableStateOf<CredentialDocument?>(null) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -82,17 +90,13 @@ fun DrawerDialogsHandler(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val title = when (dialogId) {
-                        "owner_requests_popup" -> "Incoming Renting Requests"
                         "pro_dues" -> "Payment Due Reminders"
                         "pro_syndicate" -> "Syndicate ID Verification"
                         "pro_laws" -> "Lebanese Rent Laws"
-                        "owner_reels" -> "AI Marketing Campaigns"
                         "owner_whish" -> "Whish Money Transactions"
                         "owner_guidelines" -> "Practice Guidelines"
                         "admin_audit" -> "Central Security Audits"
                         "admin_gov" -> "Governorate Node Status"
-                        "admin_forecast" -> "Baseline Fee Forecaster"
-                        "admin_governance_clearance" -> "Governance Authority Clearance"
                         "admin_credentials_registry" -> "Credential Documents Registry"
                         "admin_app_updates" -> "App Version & In-App Updates"
                         "pro_credentials_registry" -> "Credential Documents Registry"
@@ -123,47 +127,11 @@ fun DrawerDialogsHandler(
                         .heightIn(max = 480.dp)
                 ) {
                     when (dialogId) {
-                        "owner_requests_popup" -> {
-                            val ownerSpacesList = allSpaces.filter { it.ownerId == currentUser?.id }
-                            val ownerSpaceIds = ownerSpacesList.map { it.id }.toSet()
-                            val incoming = bookingRequests.filter { it.spaceId in ownerSpaceIds || it.ownerId == currentUser?.id }
-                            if (incoming.isEmpty()) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(Icons.Default.Inbox, contentDescription = null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(48.dp))
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text("No Renting Requests Received", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
-                                }
-                            } else {
-                                LazyColumn(
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    items(incoming) { request ->
-                                        OwnerBookingRequestCard(
-                                            request = request,
-                                            spaces = allSpaces,
-                                            onAccept = {
-                                                viewModel.acceptBookingRequest(request.id, context)
-                                            },
-                                            onReject = {
-                                                viewModel.rejectBookingRequest(request.id, "Declined by owner", context)
-                                            },
-                                            onWhatsAppProfessional = {
-                                                viewModel.launchWhatsAppToPractitioner(context, request)
-                                            },
-                                            onSendPaymentReminder = {
-                                                Toast.makeText(context, "Payment Reminder sent to ${request.practitionerName}", Toast.LENGTH_SHORT).show()
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                        // "Renting Requests" now routes to the real OwnerRentalRequestsScreen
+                        // (via onTabSelected("owner_requests")) instead of this dialog — the
+                        // screen has real filtering, a real reject-reason prompt, and a real
+                        // payment-reminder notification, none of which this cramped duplicate
+                        // ever had (its "Send Payment Reminder" button was Toast-only fakery).
                         "pro_pending" -> {
                             val userPending = bookingRequests.filter {
                                 it.status == BookingRequestStatus.PENDING &&
@@ -327,7 +295,7 @@ fun DrawerDialogsHandler(
                                 )
                                 LawBulletinCard(
                                     number = "Decree 159/92",
-                                    title = "Professional Practice Spaces",
+                                    title = "Specialist Practice Spaces",
                                     content = "Guarantees professionals the right to rent dedicated shared offices without creating standard full-lease tenant property titles, facilitating flexible multi-day shifts."
                                 )
                                 LawBulletinCard(
@@ -340,37 +308,6 @@ fun DrawerDialogsHandler(
                                     title = "Digital Transaction Stability",
                                     content = "Any financial deposit routed through Whish Money is backed by standard audit logs, serving as official legal proof of rental settlement."
                                 )
-                            }
-                        }
-                        "owner_reels" -> {
-                            if (avatarCampaigns.isEmpty()) {
-                                Text("No active AI campaign statistics found. Generate custom promotional reels inside your listing dashboard to view stats.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            } else {
-                                LazyColumn(
-                                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    items(avatarCampaigns) { campaign ->
-                                        Card(
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Column(modifier = Modifier.padding(12.dp)) {
-                                                Text(campaign.spaceTitle, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                                Text("🎬 Instagram: ${campaign.instagramHandle}", style = MaterialTheme.typography.labelSmall)
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.SpaceBetween
-                                                ) {
-                                                    Text("Reel Views: ${campaign.totalReelViews}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                                                    Text("Clicks: ${campaign.linkClicks}", style = MaterialTheme.typography.bodySmall)
-                                                }
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Text("Generated Nudge: ${campaign.lastNudgeText}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                                            }
-                                        }
-                                    }
-                                }
                             }
                         }
                         "owner_whish" -> {
@@ -476,46 +413,6 @@ fun DrawerDialogsHandler(
                                             }
                                         }
                                     }
-                                }
-                            }
-                        }
-                        "admin_forecast" -> {
-                            val activeCount = allSpaces.size
-                            val currentFee = viewModel.pricingState.collectAsState().value.monthlySubscriptionFeeUsd
-                            var sliderValue by remember { mutableStateOf(currentFee.toFloat()) }
-
-                            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Set baseline subscription fee for workspace listings in Lebanon:", style = MaterialTheme.typography.bodySmall)
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("Current Fee: $${currentFee} USD", fontWeight = FontWeight.Bold)
-                                    Text("Target Fee: $${String.format(Locale.US, "%.2f", sliderValue)} USD", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
-                                }
-                                Slider(
-                                    value = sliderValue,
-                                    onValueChange = { sliderValue = it },
-                                    valueRange = 0.5f..15.0f,
-                                    steps = 29
-                                )
-                                Button(
-                                    onClick = {
-                                        viewModel.setSubscriptionFee(sliderValue.toDouble())
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Update Global Baseline Fee")
-                                }
-                                HorizontalDivider()
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    val monthlyRevenue = activeCount * sliderValue
-                                    val annualRevenue = monthlyRevenue * 12
-                                    Text("Projected Platform Metrics (Lebanese Market Nodes):", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                    Text("• Active Subscribed Spaces: $activeCount", style = MaterialTheme.typography.bodySmall)
-                                    Text("• Monthly Revenue (MRR): $${String.format(Locale.US, "%.2f", monthlyRevenue)} USD", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                                    Text("• Annual Recurring Revenue (ARR): $${String.format(Locale.US, "%.2f", annualRevenue)} USD", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = LebaneseCedarGreen)
                                 }
                             }
                         }
@@ -665,20 +562,12 @@ fun DrawerDialogsHandler(
                                                                     Text("Open Screen", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                                                 }
                                                             }
-
-                                                            Button(
-                                                                onClick = {
-                                                                    val cleanPhone = "9613987654"
-                                                                    val msg = java.net.URLEncoder.encode("Hello, following up on alert: ${alert.title}", "UTF-8")
-                                                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://wa.me/$cleanPhone?text=$msg"))
-                                                                    context.startActivity(intent)
-                                                                },
-                                                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                                                modifier = Modifier.height(28.dp)
-                                                            ) {
-                                                                Text("WhatsApp", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                                            }
+                                                            // A "WhatsApp" quick-reply button used to live here, but FCMAlert
+                                                            // carries no related contact/phone at all — it always messaged a
+                                                            // single hardcoded number regardless of which alert or user it
+                                                            // was for. Removed rather than left sending real messages to an
+                                                            // unrelated number; "Open Screen" above still routes to the real
+                                                            // screen the alert is about.
                                                         }
                                                     }
                                                 }
@@ -688,70 +577,22 @@ fun DrawerDialogsHandler(
                                 }
                             }
                         }
-                        "admin_governance_clearance" -> {
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                    ) {
-                                        Surface(
-                                            color = MaterialTheme.colorScheme.error,
-                                            shape = CircleShape,
-                                            modifier = Modifier.size(36.dp)
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Icon(Icons.Default.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-                                            }
-                                        }
-                                        Column {
-                                            Text(
-                                                text = "Root Supervisory Clearance • 100% Accredited",
-                                                style = MaterialTheme.typography.titleSmall,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Text(
-                                                text = "Node Account: ${currentUser?.email ?: "admin@prospace.lb"}",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                    Text(
-                                        text = "As Super Administrator, your account operates as central platform governance and is exempt from standard user document requirements. You hold supervisory clearance over space taxonomies, member accreditations, and Whish Money transaction ledgers.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    HorizontalDivider()
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text("🛡️ Cryptographic Integrity: Active", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                        Text("Role: SUPER_ADMIN", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                            }
-                        }
                         "admin_credentials_registry" -> {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Text("Super Admin Supervisory Registry & Document Inspection", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Tap a document to approve or request a revision.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                                 val allDocs = viewModel.credentialDocuments.collectAsState().value
                                 if (allDocs.isEmpty()) {
                                     Text("No pending member documents in the verification queue.", style = MaterialTheme.typography.bodySmall)
                                 } else {
                                     LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.heightIn(max = 300.dp)) {
                                         items(allDocs) { doc ->
-                                            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))) {
+                                            Card(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable { previewingAdminDocument = doc },
+                                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                            ) {
                                                 Column(modifier = Modifier.padding(10.dp)) {
                                                     Text("User ID: ${doc.userId} • Type: ${doc.type.title}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                                                     Text("Document No: ${doc.documentNumber} • Status: ${doc.status}", style = MaterialTheme.typography.bodySmall)
@@ -763,23 +604,7 @@ fun DrawerDialogsHandler(
                             }
                         }
                         "admin_app_updates" -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Google Play Core Update Management & Release Integrity", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("Installed Version: 1.0.0 (Production Channel Lebanese Node)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("App Integrity: Verified via Google Play App Signing & SHA-256 Key Attestation.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Button(
-                                    onClick = {
-                                        android.widget.Toast.makeText(context, "System is running latest signed production version 1.0.0", android.widget.Toast.LENGTH_SHORT).show()
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Check Google Play Updates", style = MaterialTheme.typography.labelMedium)
-                                }
-                            }
+                            AppUpdatesInfo(profileTabId = "admin_profile", onNavigateToTab = onNavigateToTab, onDismiss = onDismiss)
                         }
                         "pro_credentials_registry" -> {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -804,14 +629,17 @@ fun DrawerDialogsHandler(
                                                 Text(docType.title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                                                 Text("Status: ${upDoc?.status?.name ?: "NOT_UPLOADED"}", style = MaterialTheme.typography.bodySmall, color = if (upDoc?.status == DocumentStatus.VERIFIED) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error)
                                             }
-                                            Button(
-                                                onClick = {
-                                                    android.widget.Toast.makeText(context, "Opening document upload portal for ${docType.title}", android.widget.Toast.LENGTH_SHORT).show()
-                                                },
-                                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                                modifier = Modifier.height(32.dp)
-                                            ) {
-                                                Text("Upload", fontSize = 11.sp)
+                                            if (onNavigateToTab != null) {
+                                                Button(
+                                                    onClick = {
+                                                        onNavigateToTab("pro_profile")
+                                                        onDismiss()
+                                                    },
+                                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                                    modifier = Modifier.height(32.dp)
+                                                ) {
+                                                    Text("Upload", fontSize = 11.sp)
+                                                }
                                             }
                                         }
                                     }
@@ -820,7 +648,7 @@ fun DrawerDialogsHandler(
                         }
                         "pro_accreditation_hub" -> {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("4-Pillar Professional Syndicate Accreditation", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text("4-Pillar Specialist Syndicate Accreditation", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                                 Text("Complete contact verification, syndicate license, governorate selection, and required legal document uploads to achieve 100% verified status.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Surface(
@@ -838,23 +666,7 @@ fun DrawerDialogsHandler(
                             }
                         }
                         "pro_app_updates" -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Google Play In-App Updates & Release Integrity", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("Current Version: 1.0.0 (ProSpace Lebanese Production Channel)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("Automatic background updates are enabled via Google Play Core library.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Button(
-                                    onClick = {
-                                        android.widget.Toast.makeText(context, "App is up to date with Google Play store distribution.", android.widget.Toast.LENGTH_SHORT).show()
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Check for Updates", style = MaterialTheme.typography.labelMedium)
-                                }
-                            }
+                            AppUpdatesInfo(profileTabId = "pro_profile", onNavigateToTab = onNavigateToTab, onDismiss = onDismiss)
                         }
                         "owner_package_tiers" -> {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -875,22 +687,7 @@ fun DrawerDialogsHandler(
                             }
                         }
                         "owner_app_updates" -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Google Play In-App Updates & Release Integrity", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("Current Version: 1.0.0 (ProSpace Lebanese Production Channel)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Button(
-                                    onClick = {
-                                        android.widget.Toast.makeText(context, "App is up to date with Google Play store distribution.", android.widget.Toast.LENGTH_SHORT).show()
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Check for Updates", style = MaterialTheme.typography.labelMedium)
-                                }
-                            }
+                            AppUpdatesInfo(profileTabId = "owner_profile", onNavigateToTab = onNavigateToTab, onDismiss = onDismiss)
                         }
                     }
                 }
@@ -903,6 +700,74 @@ fun DrawerDialogsHandler(
                 ) {
                     Text("Close Panel")
                 }
+            }
+        }
+    }
+
+    previewingAdminDocument?.let { doc ->
+        DocumentPreviewDialog(
+            document = doc,
+            isAdmin = true,
+            onDismiss = { previewingAdminDocument = null },
+            onApproveDocument = { docId ->
+                coroutineScope.launch {
+                    val success = viewModel.adminApproveDocument(docId)
+                    Toast.makeText(
+                        context,
+                        if (success) "Document approved and accredited!" else "Failed to approve document — please try again",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            },
+            onRejectDocument = { docId, reason ->
+                coroutineScope.launch {
+                    val success = viewModel.adminRejectDocument(docId, reason)
+                    Toast.makeText(
+                        context,
+                        if (success) "Revision requested from member" else "Failed to request revision — please try again",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        )
+    }
+}
+
+/**
+ * All three role-specific "App Version & Updates" drawer dialogs used to be an
+ * identical fake update checker: a hardcoded "1.0.0" version and a button that
+ * always Toasted "up to date," completely disconnected from the real
+ * InAppUpdateManager already wired into the app's persistent update banner and
+ * SpecialistProfileScreen's genuine update UI. Rather than duplicate that real
+ * check here too (this dialog has no InAppUpdateManager instance available),
+ * this honestly points to where the real status actually lives.
+ */
+@Composable
+private fun AppUpdatesInfo(
+    profileTabId: String,
+    onNavigateToTab: ((String) -> Unit)?,
+    onDismiss: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("App Updates", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+        Text(
+            "Update availability and version info are shown on your Profile tab, along with an in-app download banner whenever a new version is ready via Google Play.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (onNavigateToTab != null) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Button(
+                onClick = {
+                    onNavigateToTab(profileTabId)
+                    onDismiss()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Go to Profile", style = MaterialTheme.typography.labelMedium)
             }
         }
     }

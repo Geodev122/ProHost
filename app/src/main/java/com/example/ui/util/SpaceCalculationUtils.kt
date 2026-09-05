@@ -1,7 +1,6 @@
 package com.example.ui.util
 
 import com.example.data.model.*
-import java.net.URLEncoder
 
 /**
  * Pure helper functions for pricing calculations, slot validations, and WhatsApp URL generation.
@@ -56,49 +55,9 @@ object SpaceCalculationUtils {
         return baseMonthlyRate * effectiveMonths
     }
 
-    /**
-     * Builds a structured, URLEncoded WhatsApp inquiry link for a listing or booking request.
-     */
-    fun buildWhatsAppInquiryUrl(
-        ownerPhone: String,
-        ownerName: String,
-        space: SpaceListing,
-        user: AppUser?,
-        selectedFormula: RentalFormula?,
-        request: RentalBookingRequest? = null
-    ): String {
-        val professionalName = user?.fullName ?: "Professional Member"
-        val specialty = user?.specialty ?: "Independent Professional"
-        val affiliation = user?.affiliation ?: "ProSpace Member Network"
-        val syndicate = user?.syndicateNumber ?: "PRO-LB-VERIFIED"
-
-        val formulaText = selectedFormula?.let { "${it.type.displayName} (${it.scheduleDescription} @ $${it.rateUsd}/mo)" }
-            ?: "Full Practice Month ($${space.baseMonthlyRateUsd})"
-
-        val requestSnippet = if (request != null) {
-            val daysStr = if (request.selectedDays.isNotEmpty()) request.selectedDays.joinToString() else request.formula.daysOfWeek.joinToString()
-            val timesStr = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank()) "${request.selectedStartHour} - ${request.selectedEndHour}" else "${request.formula.startHour} - ${request.formula.endHour}"
-            val shiftStr = if (request.selectedShift.isNotBlank()) " (${request.selectedShift})" else ""
-
-            "\n\n[In-App Booking Request Details]\n" +
-            "• Request ID: #${request.id}\n" +
-            "• Formula: ${request.formula.type.displayName} - ${request.formula.scheduleDescription}\n" +
-            "• Chosen Availability: $daysStr @ $timesStr$shiftStr\n" +
-            "• Start Date: ${request.startDate} (${request.durationMonths} month${if (request.durationMonths > 1) "s" else ""})\n" +
-            "• Total Agreement Value: $${request.totalAmountUsd.toInt()} USD\n" +
-            "• Professional Notes: ${request.clinicalNotes}\n" +
-            "• In-App Status: PENDING HOST APPROVAL"
-        } else ""
-
-        val rawMessage = "Hello ${ownerName},\n\n" +
-                "I am ${professionalName} (${specialty}, affiliated with ${affiliation}, ID #${syndicate}).\n\n" +
-                "I am contacting you regarding your space \"${space.title}\" located in ${space.district}, ${space.governorate.displayName} on ProHost.\n" +
-                "Selected Formula: ${formulaText}$requestSnippet\n\n" +
-                "I would like to finalize payment and walk-through details.\n" +
-                "Listing Ref: ProHost #LB-${space.id}"
-
-        val encoded = URLEncoder.encode(rawMessage, "UTF-8")
-        val cleanPhone = ownerPhone.replace("+", "").replace(" ", "").replace("-", "")
-        return "https://wa.me/$cleanPhone?text=$encoded"
-    }
+    // A buildWhatsAppInquiryUrl(...) helper used to live here, duplicating
+    // ProSpaceViewModel.launchWhatsAppInquiry's message-building logic almost
+    // verbatim with zero callers anywhere in the app — a stale fork that would
+    // have drifted out of sync with the real, live version. Removed; use
+    // ProSpaceViewModel.launchWhatsAppInquiry instead.
 }

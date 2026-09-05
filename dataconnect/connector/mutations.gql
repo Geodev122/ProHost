@@ -11,8 +11,15 @@ mutation UpsertAppUser(
   $syndicateNumber: String!
   $governorate: String!
   $isVerified: Boolean!
+  $verificationStatus: String!
+  $verificationTier: String!
+  $verificationNotes: String
+  $trustScore: Int!
   $subscriptionExpiryMillis: Int64
-) {
+  $ownerPackageTier: String!
+  $ownerPackageExpiryMillis: Int64
+  $paygListingsBoughtCount: Int!
+) @auth(level: NO_ACCESS) {
   appUser_upsert(data: {
     id: $id
     email: $email
@@ -24,7 +31,14 @@ mutation UpsertAppUser(
     syndicateNumber: $syndicateNumber
     governorate: $governorate
     isVerified: $isVerified
+    verificationStatus: $verificationStatus
+    verificationTier: $verificationTier
+    verificationNotes: $verificationNotes
+    trustScore: $trustScore
     subscriptionExpiryMillis: $subscriptionExpiryMillis
+    ownerPackageTier: $ownerPackageTier
+    ownerPackageExpiryMillis: $ownerPackageExpiryMillis
+    paygListingsBoughtCount: $paygListingsBoughtCount
   })
 }
 
@@ -59,7 +73,7 @@ mutation UpsertSpaceListing(
   $avatarEngagementViews: Int!
   $avatarInquiryClicks: Int!
   $subdivisionsJson: String
-) {
+) @auth(level: NO_ACCESS) {
   spaceListing_upsert(data: {
     id: $id
     title: $title
@@ -101,7 +115,7 @@ mutation UpsertSpaceSubdivision(
   $type: String!
   $amenities: [String!]!
   $strategiesJson: String!
-) {
+) @auth(level: NO_ACCESS) {
   spaceSubdivision_upsert(data: {
     id: $id
     spaceId: $spaceId
@@ -112,7 +126,7 @@ mutation UpsertSpaceSubdivision(
   })
 }
 
-mutation DeleteSpaceSubdivision($id: String!) {
+mutation DeleteSpaceSubdivision($id: String!) @auth(level: NO_ACCESS) {
   spaceSubdivision_delete(id: $id)
 }
 
@@ -150,7 +164,7 @@ mutation UpsertBookingRequest(
   $subdivisionId: String
   $subdivisionName: String
   $selectedStrategy: String
-) {
+) @auth(level: NO_ACCESS) {
   bookingRequest_upsert(data: {
     id: $id
     spaceId: $spaceId
@@ -202,7 +216,9 @@ mutation InsertWhishTransaction(
   $signatureHash: String!
   $spaceId: String!
   $spaceTitle: String!
-) {
+  $daysGranted: Int!
+  $userId: String!
+) @auth(level: NO_ACCESS) {
   whishTransaction_insert(data: {
     id: $id
     orderId: $orderId
@@ -217,6 +233,44 @@ mutation InsertWhishTransaction(
     signatureHash: $signatureHash
     spaceId: $spaceId
     spaceTitle: $spaceTitle
+    daysGranted: $daysGranted
+    userId: $userId
+  })
+}
+
+mutation UpsertWhishTransaction(
+  $id: String!
+  $orderId: String!
+  $amountUsd: Float!
+  $currency: String!
+  $status: String!
+  $timestamp: Int64!
+  $payerName: String!
+  $payerPhone: String!
+  $channelId: String!
+  $sourceEmail: String!
+  $signatureHash: String!
+  $spaceId: String!
+  $spaceTitle: String!
+  $daysGranted: Int!
+  $userId: String!
+) @auth(level: NO_ACCESS) {
+  whishTransaction_upsert(data: {
+    id: $id
+    orderId: $orderId
+    amountUsd: $amountUsd
+    currency: $currency
+    status: $status
+    timestamp: $timestamp
+    payerName: $payerName
+    payerPhone: $payerPhone
+    channelId: $channelId
+    sourceEmail: $sourceEmail
+    signatureHash: $signatureHash
+    spaceId: $spaceId
+    spaceTitle: $spaceTitle
+    daysGranted: $daysGranted
+    userId: $userId
   })
 }
 
@@ -228,7 +282,7 @@ mutation InsertAuditSecurityLog(
   $actorEmail: String!
   $severity: String!
   $ipAddress: String!
-) {
+) @auth(level: NO_ACCESS) {
   auditSecurityLog_insert(data: {
     id: $id
     timestamp: $timestamp
@@ -251,7 +305,7 @@ mutation UpsertAvatarCampaign(
   $generatedCaption: String!
   $storyOverlayTag: String!
   $lastNudgeText: String!
-) {
+) @auth(level: NO_ACCESS) {
   avatarCampaign_upsert(data: {
     id: $id
     spaceId: $spaceId
@@ -274,7 +328,7 @@ mutation UpsertAdminPricingState(
   $merchantChannelId: String!
   $merchantSource: String!
   $merchantSecretKeyMasked: String!
-) {
+) @auth(level: NO_ACCESS) {
   adminPricingState_upsert(data: {
     id: $id
     monthlySubscriptionFeeUsd: $monthlySubscriptionFeeUsd
@@ -286,10 +340,10 @@ mutation UpsertAdminPricingState(
   })
 }
 
-mutation DeleteSpaceListing($id: String!) {
+mutation DeleteSpaceListing($id: String!) @auth(level: NO_ACCESS) {
   spaceListing_delete(id: $id)
 }
 
-mutation DeleteBookingRequest($id: String!) {
+mutation DeleteBookingRequest($id: String!) @auth(level: NO_ACCESS) {
   bookingRequest_delete(id: $id)
 }

@@ -517,19 +517,19 @@ fun SpaceDetailsScreenContent(
                     }
                 }
 
-                // Co-Sharing & Professional Synergy
+                // Co-Sharing & Specialist Synergy
                 if (liveSpace.complementarySpecialties.isNotEmpty() || liveSpace.residentPractitioners.isNotEmpty()) {
                     ProSurfaceCard {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             ProSectionHeader(
-                                title = "Co-Working & Professional Synergy",
+                                title = "Co-Working & Specialist Synergy",
                                 subtitle = "Networking and collaborative peers on premises",
                                 icon = Icons.Default.Groups
                             )
 
                             if (liveSpace.residentPractitioners.isNotEmpty()) {
                                 Text(
-                                    text = "Resident Professionals & Teams On-Site:",
+                                    text = "Resident Specialists & Teams On-Site:",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant

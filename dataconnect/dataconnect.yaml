@@ -1,10 +1,13 @@
 specVersion: "v1"
-serviceId: "prospace"
-location: "us-central1"
+serviceId: "prospace-dataconnect-medlb"
+location: "europe-west1"
 schema:
+  source: "./schema"
   datasource:
     postgresql:
       database: "prospace"
+      cloudSql:
+        instanceId: "prohost-dataconnect"
       schemaValidation: "COMPATIBLE"
 connectorDirs:
   - "./connector"

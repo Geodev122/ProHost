@@ -29,13 +29,39 @@ fun OwnerAnalyticsScreen(
     viewModel: ProSpaceViewModel
 ) {
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
-    val allSpaces by viewModel.spaces.collectAsState()
+    val bookingRequests by viewModel.bookingRequests.collectAsState()
     val user by viewModel.currentUser.collectAsState()
     val pricingState by viewModel.pricingState.collectAsState()
 
-    val displayListings = if (ownerSpaces.isNotEmpty()) ownerSpaces else allSpaces.take(3)
+    // Used to silently fall back to up to 3 arbitrary OTHER owners' listings when this
+    // owner had none of their own — a real data leak (their pricing/occupancy shown
+    // under a "Workspace Analytics" header with no indication it wasn't the viewer's
+    // own data) as well as misleading UX. An owner with no listings now sees a real
+    // empty state instead (below).
+    val displayListings = ownerSpaces
     val totalRevenuePotential = displayListings.sumOf { it.baseMonthlyRateUsd }
-    val totalFormulasCount = displayListings.sumOf { it.rentalFormulas.size }
+    val totalInquiries = displayListings.sumOf { it.avatarInquiryClicks }
+
+    val ownerSpaceIds = remember(displayListings) { displayListings.map { it.id }.toSet() }
+    val specialtyDemand = remember(bookingRequests, ownerSpaceIds) {
+        bookingRequests
+            .filter { it.spaceId in ownerSpaceIds }
+            .groupingBy { it.practitionerSpecialty.ifBlank { "Unspecified" } }
+            .eachCount()
+            .toList()
+            .sortedByDescending { it.second }
+            .take(5)
+    }
+
+    if (displayListings.isEmpty()) {
+        ProEmptyState(
+            title = "No listings yet",
+            description = "Publish a workspace listing to start seeing real analytics here.",
+            icon = Icons.Default.Analytics,
+            modifier = Modifier.fillMaxSize().testTag("owner_analytics_screen")
+        )
+        return
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -72,7 +98,7 @@ fun OwnerAnalyticsScreen(
                         )
                         ProMetricTile(
                             title = "Inquiries",
-                            value = "${displayListings.size * 7 + 4}",
+                            value = "$totalInquiries",
                             subtitle = "WhatsApp Leads",
                             icon = Icons.AutoMirrored.Filled.Chat,
                             iconTint = WhatsAppGreen,
@@ -95,7 +121,7 @@ fun OwnerAnalyticsScreen(
                         ProMetricTile(
                             title = "Whish Fee",
                             value = "$${pricingState.monthlySubscriptionFeeUsd}",
-                            subtitle = "Per Space / 30d",
+                            subtitle = "Per Space / Month",
                             icon = Icons.Default.Payment,
                             iconTint = WhishRed,
                             modifier = Modifier.weight(1f)
@@ -105,23 +131,37 @@ fun OwnerAnalyticsScreen(
             }
         }
 
-        // Listing Occupancy & Inquiry Breakdown
+        // Listing Occupancy & Inquiry Breakdown — computed from real booking requests
+        // against this owner's own listings (previously five hardcoded percentages
+        // that never changed, badged "Live Telemetry" as if real).
         item {
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ProSectionHeader(
                         title = "Specialist Demand by Discipline",
-                        subtitle = "Incoming practitioner booking interest over the past 30 days",
+                        subtitle = "Based on booking requests received for your listings",
                         icon = Icons.Default.LocalHospital
                     )
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    DisciplineDemandBar("Dentistry & Oral Surgery", 88, OxfordBlue)
-                    DisciplineDemandBar("Dermatology & Aesthetics", 74, VibrantBlue)
-                    DisciplineDemandBar("Cardiology & Internal Med", 65, CarnationOrange)
-                    DisciplineDemandBar("Psychotherapy & Wellness", 52, BrightOrange)
-                    DisciplineDemandBar("Physiotherapy & Sports Rehab", 43, LebaneseCedarGreen)
+                    if (specialtyDemand.isEmpty()) {
+                        Text(
+                            text = "No booking requests yet — demand by discipline will appear here once practitioners start booking.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        val demandColors = listOf(OxfordBlue, VibrantBlue, CarnationOrange, BrightOrange, LebaneseCedarGreen)
+                        val maxCount = specialtyDemand.first().second
+                        specialtyDemand.forEachIndexed { index, (specialty, count) ->
+                            DisciplineDemandBar(
+                                name = specialty,
+                                percentage = if (maxCount > 0) (count * 100 / maxCount) else 0,
+                                color = demandColors[index % demandColors.size]
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -216,7 +256,7 @@ fun ListingHealthCard(space: SpaceListing) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = if (space.isActiveSubscription) "✅ Whish 30-Day Entitlement Active" else "⚠️ Needs Whish Renewal ($1.80)",
+                        text = if (space.isActiveSubscription) "✅ Whish Subscription Active" else "⚠️ Needs Whish Renewal",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = if (space.isActiveSubscription) StatusSuccess else StatusError

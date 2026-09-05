@@ -1,5 +1,8 @@
 package com.example.ui.components
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,7 +26,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import coil.compose.AsyncImage
 import com.example.data.model.*
+import com.example.data.storage.FirebaseStorageService
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,6 +53,35 @@ fun CreateListingDialog(
     )
 
     val context = androidx.compose.ui.platform.LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val storageService = remember { FirebaseStorageService.getInstance() }
+
+    // Generated up front (not just at submit time) so photos can upload to their final
+    // listings/{listingId}/ path as soon as they're picked, instead of at the end.
+    val listingId = remember { "SPC-LB-" + UUID.randomUUID().toString().take(6).uppercase() }
+    var uploadedPhotoUrls by remember { mutableStateOf<List<String>>(emptyList()) }
+    var isUploadingPhoto by remember { mutableStateOf(false) }
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris: List<Uri> ->
+        if (uris.isEmpty()) return@rememberLauncherForActivityResult
+        coroutineScope.launch {
+            isUploadingPhoto = true
+            uris.forEach { uri ->
+                val imageId = UUID.randomUUID().toString().take(8)
+                val url = storageService.uploadListingImage(
+                    spaceId = listingId,
+                    imageId = imageId,
+                    fileUri = uri,
+                    fileExtension = "jpg"
+                )
+                if (url != null) {
+                    uploadedPhotoUrls = uploadedPhotoUrls + url
+                }
+            }
+            isUploadingPhoto = false
+        }
+    }
 
     var title by remember { mutableStateOf("") }
     var selectedSpaceType by remember { mutableStateOf(SpaceType.PRIVATE_OFFICE) }
@@ -254,6 +289,63 @@ fun CreateListingDialog(
                                         Text("Shared with complementary doctors", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Switch(checked = isShared, onCheckedChange = { isShared = it })
+                                }
+
+                                Text("Cover Photos", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text(
+                                    "Real photos of the space — shown first in search results. Optional, but listings without any get a plain placeholder.",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    items(uploadedPhotoUrls) { url ->
+                                        Box(
+                                            modifier = Modifier
+                                                .size(88.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                        ) {
+                                            AsyncImage(
+                                                model = url,
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                            )
+                                            IconButton(
+                                                onClick = { uploadedPhotoUrls = uploadedPhotoUrls - url },
+                                                modifier = Modifier
+                                                    .align(Alignment.TopEnd)
+                                                    .size(24.dp)
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Close,
+                                                    contentDescription = "Remove photo",
+                                                    tint = Color.White,
+                                                    modifier = Modifier
+                                                        .clip(CircleShape)
+                                                        .background(Color.Black.copy(alpha = 0.5f))
+                                                )
+                                            }
+                                        }
+                                    }
+                                    item {
+                                        Surface(
+                                            modifier = Modifier
+                                                .size(88.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .clickable(enabled = !isUploadingPhoto) {
+                                                    photoPickerLauncher.launch("image/*")
+                                                },
+                                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                if (isUploadingPhoto) {
+                                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                                } else {
+                                                    Icon(Icons.Default.AddAPhoto, contentDescription = "Add photo")
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -538,17 +630,15 @@ fun CreateListingDialog(
                                                         subStrategies.add(SubdivisionStrategy(RentalStrategy.MONTHLY, subMonthlyRate.toDoubleOrNull() ?: 450.0))
                                                     }
                                                     
-                                                    val subImgUrl = when (subType) {
-                                                        Level2Type.ROOMS -> "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=400"
-                                                        Level2Type.CONFERENCE_ROOM -> "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&q=80&w=400"
-                                                        Level2Type.THEATER_TRAINING -> "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=400"
-                                                        Level2Type.DESK_IN_SHARED_AREA -> "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&q=80&w=400"
-                                                    }
-
+                                                    // No hardcoded stock photo per type anymore (was a fixed
+                                                    // Unsplash URL regardless of the actual room/desk). Rooms
+                                                    // and desks inherit the parent listing's real cover photos
+                                                    // visually; a dedicated per-subdivision photo picker is a
+                                                    // separate feature, not part of this fix.
                                                     val newSub = Subdivision(
                                                         name = subName,
                                                         type = subType,
-                                                        imageUrls = listOf(subImgUrl),
+                                                        imageUrls = emptyList(),
                                                         amenities = subAmenitiesSelected.toList(),
                                                         rentalStrategies = subStrategies
                                                     )
@@ -672,7 +762,7 @@ fun CreateListingDialog(
                                 Text("Operating Hours, Blackouts & Contact", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
                                 Text("Define operating days, shift hours, and host contact details for bookings.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-                                Text("Complementary Professional Disciplines", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Complementary Specialist Disciplines", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     items(commonSpecialties) { spec ->
                                         val isSel = selectedSpecialties.contains(spec)
@@ -791,7 +881,7 @@ fun CreateListingDialog(
                                 }
 
                                 val newListing = SpaceListing(
-                                    id = "SPC-LB-" + UUID.randomUUID().toString().take(6).uppercase(),
+                                    id = listingId,
                                     title = if (title.isNotBlank()) title else "${selectedGovernorate.displayName} ${selectedSpaceType.displayName}",
                                     spaceType = selectedSpaceType,
                                     governorate = selectedGovernorate,
@@ -814,7 +904,8 @@ fun CreateListingDialog(
                                     isVerified = true,
                                     isActiveSubscription = true,
                                     baseMonthlyRateUsd = monthly,
-                                    subdivisions = subdivisionsList
+                                    subdivisions = subdivisionsList,
+                                    imageUrls = uploadedPhotoUrls
                                 )
 
                                 onListingCreated(newListing)

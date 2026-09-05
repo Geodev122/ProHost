@@ -46,39 +46,10 @@ class FirestoreService(
     private val listenerScope = CoroutineScope(Dispatchers.IO)
     private val activeListeners = mutableListOf<ListenerRegistration>()
 
-    /**
-     * Initializes the Firestore database schema with metadata and system verification markers.
-     */
-    suspend fun initializeSchema(): Boolean {
-        return try {
-            val db = firestore ?: return false
-            val metadata = mapOf(
-                "schemaVersion" to FirestoreSchema.SCHEMA_VERSION,
-                "dataConnectService" to FirestoreSchema.DATA_CONNECT_SERVICE_ID,
-                "databaseId" to FirestoreSchema.DEFAULT_DATABASE_ID,
-                "initializedAt" to System.currentTimeMillis(),
-                "status" to "HEALTHY",
-                "collections" to listOf(
-                    FirestoreSchema.Collections.WORKSPACE_LISTINGS,
-                    FirestoreSchema.Collections.USER_PROFILES,
-                    FirestoreSchema.Collections.SUBSCRIPTION_FORMULAS,
-                    FirestoreSchema.Collections.BOOKING_REQUESTS,
-                    FirestoreSchema.Collections.USER_CREDENTIALS,
-                    FirestoreSchema.Collections.WHISH_TRANSACTIONS,
-                    FirestoreSchema.Collections.AUDIT_SECURITY_LOGS
-                )
-            )
-            db.collection(FirestoreSchema.Collections.SYSTEM_METADATA)
-                .document("schema_info")
-                .set(metadata, SetOptions.merge())
-                .await()
-            Log.i(TAG, "Firestore Schema initialized successfully version: ${FirestoreSchema.SCHEMA_VERSION}")
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize Firestore schema: ${e.message}", e)
-            false
-        }
-    }
+    // initializeSchema() (wrote system_metadata/schema_info) was removed: Firestore rules
+    // deny every client write to system_metadata (Phase 7), so it could never succeed
+    // again, and it was cascading into aborting the rest of seedInitialData() below
+    // whenever it ran first in that shared try block.
 
     /**
      * Fire-and-forget seed of default/starter data (subscription formulas, and whatever
@@ -93,7 +64,11 @@ class FirestoreService(
         val db = firestore ?: return
         listenerScope.launch {
             try {
-                initializeSchema()
+                // initializeSchema() used to run first here, writing system_metadata/
+                // schema_info — Firestore rules now deny every client write to
+                // system_metadata (Phase 7), so that call always threw and — since
+                // everything below was one shared try block — silently aborted the
+                // formulas/spaces/users seeding beneath it too, every single time.
                 initialFormulas.forEach { formula ->
                     db.collection(FirestoreSchema.Collections.SUBSCRIPTION_FORMULAS)
                         .document(formula.id)
@@ -129,7 +104,8 @@ class FirestoreService(
         onUsersUpdated: (List<AppUser>) -> Unit,
         onBookingsUpdated: (List<RentalBookingRequest>) -> Unit,
         onFormulasUpdated: (List<SubscriptionFormula>) -> Unit,
-        onTransactionsUpdated: (List<WhishTransaction>) -> Unit
+        onTransactionsUpdated: (List<WhishTransaction>) -> Unit,
+        onSchemaUpdated: (SpaceArchitectureSchema) -> Unit = {}
     ) {
         val db = firestore ?: return
 
@@ -213,6 +189,24 @@ class FirestoreService(
                     }
                 }
             activeListeners.add(transactionListener)
+
+            // Single-document taxonomy: space types/amenities/equipment/specialties/
+            // rental strategies. Public read (firestore.rules), admin-only write — no
+            // document exists until an admin makes their first edit, so a missing
+            // snapshot here just means the caller keeps its local default schema.
+            val schemaListener = db.collection(FirestoreSchema.Collections.SCHEMA_ARCHITECTURE)
+                .document("main")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.w(TAG, "Schema sync note: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    val data = snapshot?.data
+                    if (data != null) {
+                        onSchemaUpdated(SpaceArchitectureSchema.fromFirestoreMap(data))
+                    }
+                }
+            activeListeners.add(schemaListener)
         } catch (e: Exception) {
             Log.w(TAG, "Live listeners attachment warning: ${e.message}")
         }
@@ -232,6 +226,17 @@ class FirestoreService(
      * subdivisions included) — previously this wrote only a partial field subset, silently
      * dropping nested data on every save.
      */
+    suspend fun deleteWorkspace(spaceId: String): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS).document(spaceId).delete().await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting workspace: ${e.message}", e)
+            false
+        }
+    }
+
     suspend fun saveWorkspace(space: SpaceListing): Boolean {
         return try {
             val db = firestore ?: return false
@@ -287,6 +292,17 @@ class FirestoreService(
         }
     }
 
+    suspend fun deleteUserProfile(userId: String): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.USER_PROFILES).document(userId).delete().await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting user profile: ${e.message}", e)
+            false
+        }
+    }
+
     suspend fun getUserProfile(userId: String): Map<String, Any>? {
         return try {
             val db = firestore ?: return null
@@ -295,33 +311,6 @@ class FirestoreService(
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching user profile: ${e.message}", e)
             null
-        }
-    }
-
-    suspend fun updateUserVerificationStatus(
-        userId: String,
-        status: MemberVerificationStatus,
-        tier: VerificationTier,
-        notes: String?
-    ): Boolean {
-        return try {
-            val db = firestore ?: return false
-            val updateMap = mutableMapOf<String, Any>(
-                "verificationStatus" to status.name,
-                "verificationTier" to tier.name,
-                "isVerified" to (status == MemberVerificationStatus.VERIFIED),
-                "updatedAt" to System.currentTimeMillis()
-            )
-            if (notes != null) updateMap["verificationNotes"] = notes
-
-            db.collection(FirestoreSchema.Collections.USER_PROFILES)
-                .document(userId)
-                .set(updateMap, SetOptions.merge())
-                .await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error updating verification status: ${e.message}", e)
-            false
         }
     }
 
@@ -517,6 +506,24 @@ class FirestoreService(
     }
 
     // ==========================================
+    // SPACE ARCHITECTURE SCHEMA (taxonomy)
+    // ==========================================
+
+    suspend fun saveSchema(schema: SpaceArchitectureSchema): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.SCHEMA_ARCHITECTURE)
+                .document("main")
+                .set(schema.toFirestoreMap(), SetOptions.merge())
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving schema architecture: ${e.message}", e)
+            false
+        }
+    }
+
+    // ==========================================
     // CREDENTIAL DOCUMENTS
     // ==========================================
 
@@ -531,6 +538,61 @@ class FirestoreService(
         } catch (e: Exception) {
             Log.e(TAG, "Error saving credential document: ${e.message}", e)
             false
+        }
+    }
+
+    suspend fun getCredentialDocument(documentId: String): Map<String, Any>? {
+        return try {
+            val db = firestore ?: return null
+            val doc = db.collection(FirestoreSchema.Collections.USER_CREDENTIALS).document(documentId).get().await()
+            doc.data
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching credential document: ${e.message}", e)
+            null
+        }
+    }
+
+    suspend fun deleteCredentialDocument(documentId: String): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.USER_CREDENTIALS).document(documentId).delete().await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting credential document: ${e.message}", e)
+            false
+        }
+    }
+
+    /**
+     * Real-time listener for credential documents, scoped per firestore.rules:
+     * a non-admin can only ever read documents where userId == their own uid, so an
+     * unfiltered collection listener would be denied outright the moment any other
+     * user's document exists — admins alone can listen to the whole collection.
+     * Returns the registration so the caller can detach it on logout/user change
+     * (unlike [attachLiveListeners]'s listeners, this one's scope changes per user).
+     */
+    fun attachCredentialDocumentsListener(
+        userId: String,
+        isAdmin: Boolean,
+        onUpdated: (List<CredentialDocument>) -> Unit
+    ): ListenerRegistration? {
+        val db = firestore ?: return null
+        val query = if (isAdmin) {
+            db.collection(FirestoreSchema.Collections.USER_CREDENTIALS)
+        } else {
+            db.collection(FirestoreSchema.Collections.USER_CREDENTIALS).whereEqualTo("userId", userId)
+        }
+        return query.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Log.w(TAG, "Credential documents sync note: ${error.message}")
+                return@addSnapshotListener
+            }
+            if (snapshot != null) {
+                val docs = snapshot.documents.mapNotNull { doc ->
+                    doc.data?.let { data -> CredentialDocument.fromFirestoreMap(doc.id, data) }
+                }
+                onUpdated(docs)
+            }
         }
     }
 

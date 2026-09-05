@@ -148,7 +148,7 @@ fun RentalBookingDialog(
 
     var clinicalNotes by remember {
         mutableStateOf(
-            "Professional workspace rental (${currentUser?.specialty ?: "Professional"}). License / ID #${currentUser?.syndicateNumber ?: "PRO-LB-VERIFIED"}."
+            "Specialist workspace rental (${currentUser?.specialty ?: "Specialist"}). License / ID #${currentUser?.syndicateNumber ?: "PRO-LB-VERIFIED"}."
         )
     }
 
@@ -855,7 +855,7 @@ fun RentalBookingDialog(
                     // 5. Notes & Scope
                     Column {
                         Text(
-                            text = "5. Professional Requirements & Notes",
+                            text = "5. Specialist Requirements & Notes",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary

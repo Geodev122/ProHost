@@ -219,7 +219,7 @@ fun SpaceAvailabilityCalendarView(
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
-                                        text = "Resident Professional: ${booking.practitionerName} (${booking.practitionerSpecialty})",
+                                        text = "Resident Specialist: ${booking.practitionerName} (${booking.practitionerSpecialty})",
                                         fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

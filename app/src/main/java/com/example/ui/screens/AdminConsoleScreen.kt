@@ -58,6 +58,7 @@ fun AdminConsoleScreen(
 ) {
     val context = LocalContext.current
     val uiState by adminViewModel.uiState.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsState()
     var isDebuggerDialogOpen by remember { mutableStateOf(false) }
 
     // Listen to admin events (Toasts & export triggers)
@@ -124,7 +125,7 @@ fun AdminConsoleScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "geo.elnajjar@gmail.com • Central Node",
+                                text = "${currentUser?.email ?: "Unknown admin"} • Central Node",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -327,6 +328,15 @@ fun AdminConsoleScreen(
         )
     }
 
+    // 3b. Grant Admin Confirmation Dialog
+    if (uiState.isGrantAdminDialogOpen && uiState.grantingAdminUser != null) {
+        AdminGrantAdminDialog(
+            user = uiState.grantingAdminUser!!,
+            onDismiss = { adminViewModel.closeGrantAdminDialog() },
+            onConfirm = { adminViewModel.confirmGrantAdmin(uiState.grantingAdminUser!!.email) }
+        )
+    }
+
     // 4. Edit Listing Dialog
     if (uiState.isEditListingDialogOpen && uiState.editingListing != null) {
         AdminEditListingDialog(
@@ -394,7 +404,7 @@ private fun AdminRevenueTab(
                         ProMetricTile(
                             title = "Active MRR",
                             value = "$${String.format(Locale.US, "%.2f", uiState.activeMrr)}",
-                            subtitle = "Active 30d Subscriptions",
+                            subtitle = "Active Subscriptions",
                             icon = Icons.Default.AccountBalance,
                             iconTint = FreshGreen,
                             modifier = Modifier.weight(1f)
@@ -935,6 +945,16 @@ private fun AdminUsersDirectoryTab(
                             Text("Edit", style = MaterialTheme.typography.labelSmall)
                         }
 
+                        // Grant Admin Button
+                        if (user.role != UserRole.ADMIN) {
+                            IconButton(
+                                onClick = { adminViewModel.openGrantAdminDialog(user) },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(Icons.Default.AdminPanelSettings, contentDescription = "Grant Admin", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                            }
+                        }
+
                         // Delete Button
                         if (user.role != UserRole.ADMIN) {
                             IconButton(
@@ -974,7 +994,7 @@ private fun AdminListingsCatalogTab(
                     ) {
                         ProSectionHeader(
                             title = "Listings Catalog & Governance",
-                            subtitle = "Modify, verify, activate 30-day passes, or remove listings",
+                            subtitle = "Modify, verify, activate subscriptions, or remove listings",
                             icon = Icons.Default.Apartment
                         )
 
@@ -1042,7 +1062,7 @@ private fun AdminListingsCatalogTab(
                     // Status Filter
                     Text("Filter by Subscription / Verification:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf("ALL" to "All", "ACTIVE_30D" to "Active 30d", "EXPIRED" to "Expired", "VERIFIED" to "Verified").forEach { (key, label) ->
+                        listOf("ALL" to "All", "ACTIVE_30D" to "Active", "EXPIRED" to "Expired", "VERIFIED" to "Verified").forEach { (key, label) ->
                             FilterChip(
                                 selected = uiState.selectedListingStatusFilter == key,
                                 onClick = { adminViewModel.setListingStatusFilter(key) },
@@ -1142,7 +1162,9 @@ private fun AdminListingsCatalogTab(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Toggle 30d Active
+                        // Toggle subscription active status — a plain admin override, no
+                        // expiry date attached (setListingSubscriptionActive just flips the
+                        // boolean; it doesn't grant or fabricate any time period).
                         OutlinedButton(
                             onClick = { adminViewModel.toggleListingSubscription(space.id, space.isActiveSubscription) },
                             shape = RoundedCornerShape(8.dp),
@@ -1156,7 +1178,7 @@ private fun AdminListingsCatalogTab(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = if (space.isActiveSubscription) "Expire 30d" else "Activate 30d",
+                                text = if (space.isActiveSubscription) "Deactivate" else "Activate",
                                 style = MaterialTheme.typography.labelSmall
                             )
                         }
@@ -1256,7 +1278,7 @@ private fun AdminOwnersAndPaymentsTab(
                         ProMetricTile(
                             title = "Active Units",
                             value = "${uiState.allSpaces.count { it.isActiveSubscription }}",
-                            subtitle = "Active 30d Listings",
+                            subtitle = "Active Listings",
                             icon = Icons.Default.CheckCircle,
                             iconTint = FreshGreen,
                             modifier = Modifier.weight(1f)
@@ -1410,7 +1432,10 @@ private fun AdminOwnersAndPaymentsTab(
                     ) {
                         Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
-                                text = "MD5 Hash Signature: ${tx.signatureHash}",
+                                // Not MD5 (the signing function is SHA-256) and not something
+                                // this client — or an admin reading it — ever verifies; it's
+                                // just the server's own audit record of what it sent Whish.
+                                text = "Server signature (audit record): ${tx.signatureHash}",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 10.sp,
@@ -1755,7 +1780,7 @@ private fun AdminSecurityAuditTab(
 
                     Text(
                         text = "• Protocol: SHA-256 / MD5 Dual Security Layer\n" +
-                                "• Access Clearance: Super Admin geo.elnajjar@gmail.com\n" +
+                                "• Access Clearance: Super Admin ${currentUser?.email ?: "Unknown admin"}\n" +
                                 "• Total Registered Logs: ${uiState.auditLogs.size}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1953,10 +1978,7 @@ private fun AdminEditUserDialog(
     var specialty by remember { mutableStateOf(user.specialty) }
     var syndicateNumber by remember { mutableStateOf(user.syndicateNumber) }
     var affiliation by remember { mutableStateOf(user.affiliation) }
-    var selectedRole by remember { mutableStateOf(user.role) }
     var selectedGov by remember { mutableStateOf(user.governorate) }
-    var isVerified by remember { mutableStateOf(user.isVerified) }
-    var trustScoreText by remember { mutableStateOf(user.trustScore.toString()) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -1989,22 +2011,26 @@ private fun AdminEditUserDialog(
                 InputField(value = specialty, onValueChange = { specialty = it }, label = "Specialty / Profession", modifier = Modifier.fillMaxWidth(), singleLine = true)
                 InputField(value = syndicateNumber, onValueChange = { syndicateNumber = it }, label = "Syndicate / License #", modifier = Modifier.fillMaxWidth(), singleLine = true)
                 InputField(value = affiliation, onValueChange = { affiliation = it }, label = "Affiliation / Studio", modifier = Modifier.fillMaxWidth(), singleLine = true)
-                InputField(
-                    value = trustScoreText,
-                    onValueChange = { trustScoreText = it },
-                    label = "Trust Index (0-100)",
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
-                Text("Role Clearance:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    UserRole.entries.forEach { role ->
-                        FilterChip(
-                            selected = selectedRole == role,
-                            onClick = { selectedRole = role },
-                            label = { Text(role.name.replace("_", " "), fontSize = 11.sp) }
+                // Role, verification status, and trust index all now go exclusively through
+                // dedicated Cloud Functions (grantAdminRole, adminSetUserVerification /
+                // reviewCredentialDocument) — a direct write to any of them from this
+                // generic edit form is denied by Firestore rules. Shown read-only here;
+                // use the Grant Admin / Toggle Verification actions on the user row instead.
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            "Role: ${user.role.name.replace("_", " ")}  •  Trust Index: ${user.trustScore}  •  ${if (user.isVerified) "Verified" else "Not Verified"}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Change these from the user row's own actions, not here.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -2020,15 +2046,6 @@ private fun AdminEditUserDialog(
                     }
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Accredited / Verified Status:", style = MaterialTheme.typography.bodyMedium)
-                    Switch(checked = isVerified, onCheckedChange = { isVerified = it })
-                }
-
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
@@ -2040,7 +2057,6 @@ private fun AdminEditUserDialog(
                     }
                     Button(
                         onClick = {
-                            val parsedTrust = trustScoreText.toIntOrNull() ?: user.trustScore
                             val updated = user.copy(
                                 fullName = fullName.trim(),
                                 email = email.trim(),
@@ -2048,11 +2064,7 @@ private fun AdminEditUserDialog(
                                 specialty = specialty.trim(),
                                 syndicateNumber = syndicateNumber.trim(),
                                 affiliation = affiliation.trim(),
-                                role = selectedRole,
-                                governorate = selectedGov,
-                                isVerified = isVerified,
-                                verificationStatus = if (isVerified) MemberVerificationStatus.VERIFIED else user.verificationStatus,
-                                trustScore = parsedTrust.coerceIn(0, 100)
+                                governorate = selectedGov
                             )
                             onSave(updated)
                         },
@@ -2082,7 +2094,7 @@ private fun AdminDeleteUserDialog(
         icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError) },
         title = { Text("Delete User Record?") },
         text = {
-            Text("Are you sure you want to permanently remove '${user.fullName}' (${user.email}) from the platform? This will delete all associated session data.")
+            Text("Are you sure you want to permanently remove '${user.fullName}' (${user.email})'s profile from the platform? Their sign-in credentials are not revoked by this action.")
         },
         confirmButton = {
             Button(
@@ -2090,6 +2102,35 @@ private fun AdminDeleteUserDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = StatusError)
             ) {
                 Text("Confirm Delete")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+/**
+ * 3b. Grant Admin Confirmation Dialog
+ */
+@Composable
+private fun AdminGrantAdminDialog(
+    user: AppUser,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+        title = { Text("Grant Admin Role?") },
+        text = {
+            Text("Are you sure you want to grant full Admin privileges to '${user.fullName}' (${user.email})? This gives them unrestricted access to governance, pricing, and user management.")
+        },
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Text("Confirm Grant")
             }
         },
         dismissButton = {
@@ -2119,8 +2160,6 @@ private fun AdminEditListingDialog(
     var selectedSpaceType by remember { mutableStateOf(listing.spaceType) }
     var selectedGov by remember { mutableStateOf(listing.governorate) }
     var isShared by remember { mutableStateOf(listing.isShared) }
-    var isVerified by remember { mutableStateOf(listing.isVerified) }
-    var isActiveSub by remember { mutableStateOf(listing.isActiveSubscription) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -2189,14 +2228,21 @@ private fun AdminEditListingDialog(
                     Switch(checked = isShared, onCheckedChange = { isShared = it })
                 }
 
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Accredited / Verified:", style = MaterialTheme.typography.bodyMedium)
-                    Switch(checked = isVerified, onCheckedChange = { isVerified = it })
-                }
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Active 30-day Subscription Pass:", style = MaterialTheme.typography.bodyMedium)
-                    Switch(checked = isActiveSub, onCheckedChange = { isActiveSub = it })
+                // isVerified / isActiveSubscription now go exclusively through the dedicated
+                // toggle buttons on the listing row (setListingVerification /
+                // setListingSubscriptionActive Cloud Functions) — Firestore rules deny a
+                // direct write to either from this generic edit form.
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "${if (listing.isVerified) "Verified" else "Not Verified"}  •  Subscription: ${if (listing.isActiveSubscription) "Active" else "Inactive"}. Use the listing row's own toggle buttons to change these.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(10.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -2218,9 +2264,7 @@ private fun AdminEditListingDialog(
                                 ownerPhone = ownerPhone.trim(),
                                 spaceType = selectedSpaceType,
                                 governorate = selectedGov,
-                                isShared = isShared,
-                                isVerified = isVerified,
-                                isActiveSubscription = isActiveSub
+                                isShared = isShared
                             )
                             onSave(updated)
                         },

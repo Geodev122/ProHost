@@ -278,7 +278,7 @@ fun DiscoveryScreenContent(
                                         ProSpaceCedarBadge(text = "Lebanon Verified Network", isCompact = true)
                                     }
                                     Text(
-                                        text = "Professional Workspace Exchange",
+                                        text = "Specialist Workspace Exchange",
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = Color.White

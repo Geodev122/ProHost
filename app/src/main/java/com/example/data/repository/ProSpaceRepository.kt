@@ -1,10 +1,12 @@
 package com.example.data.repository
 
 import android.util.Log
+import com.example.data.auth.FirebaseFunctionsClient
 import com.example.data.crypto.WhishSecurity
 import com.example.data.firestore.FirestoreSchema
 import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +42,7 @@ class ProSpaceRepository {
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     private val firestoreService = FirestoreService.getInstance()
+    private val functionsClient = FirebaseFunctionsClient()
 
     private val _subscriptionFormulas = MutableStateFlow<List<SubscriptionFormula>>(
         firestoreService.getDefaultSubscriptionFormulas()
@@ -96,18 +99,43 @@ class ProSpaceRepository {
     private val _credentialDocuments = MutableStateFlow<List<CredentialDocument>>(emptyList())
     val credentialDocuments: StateFlow<List<CredentialDocument>> = _credentialDocuments.asStateFlow()
 
-    private val _avatarCampaigns = MutableStateFlow<List<AvatarCampaign>>(emptyList())
-    val avatarCampaigns: StateFlow<List<AvatarCampaign>> = _avatarCampaigns.asStateFlow()
-
     private val _bookingRequests = MutableStateFlow<List<RentalBookingRequest>>(emptyList())
     val bookingRequests: StateFlow<List<RentalBookingRequest>> = _bookingRequests.asStateFlow()
 
     private val _spaceArchitectureSchema = MutableStateFlow<SpaceArchitectureSchema>(createDefaultSchema())
     val spaceArchitectureSchema: StateFlow<SpaceArchitectureSchema> = _spaceArchitectureSchema.asStateFlow()
 
+    // Unlike the fixed set of listeners in startRealtimeSync(), this one's scope
+    // (which user, admin-or-not) changes with the signed-in user, so it's tracked
+    // separately and re-attached whenever currentUser changes below.
+    private var credentialDocumentsListener: ListenerRegistration? = null
+
     init {
         seedInitialData()
         startRealtimeSync()
+
+        // Credential documents were the one collection with no live listener at all —
+        // uploaded docs were safely written to Firestore but the local list reset to
+        // empty on every fresh app instance (seedInitialData(), above), so they'd
+        // vanish from the UI on restart even though nothing was actually lost server-
+        // side. Re-attach a correctly-scoped listener (see attachCredentialDocumentsListener)
+        // every time the signed-in user or their role changes.
+        coroutineScope.launch {
+            currentUser.collect { user ->
+                credentialDocumentsListener?.remove()
+                credentialDocumentsListener = null
+                if (user == null) {
+                    _credentialDocuments.value = emptyList()
+                } else {
+                    credentialDocumentsListener = firestoreService.attachCredentialDocumentsListener(
+                        userId = user.id,
+                        isAdmin = user.role == UserRole.ADMIN
+                    ) { docs ->
+                        _credentialDocuments.value = docs
+                    }
+                }
+            }
+        }
     }
 
     fun startRealtimeSync() {
@@ -150,18 +178,25 @@ class ProSpaceRepository {
                 onTransactionsUpdated = { updatedTransactions ->
                     _transactions.value = updatedTransactions
                     _isCloudConnected.value = true
+                },
+                onSchemaUpdated = { updatedSchema ->
+                    _spaceArchitectureSchema.value = updatedSchema
+                    _isCloudConnected.value = true
                 }
             )
 
-            // Pricing: if an admin has already configured pricing on this project, use it;
-            // otherwise seed the doc with local defaults so the initiateWhishPayment Cloud
-            // Function has something real to read from day one.
+            // Pricing: read-only from the client's side. If an admin has already
+            // configured pricing on this project, use it; otherwise keep the local
+            // AdminPricingState() defaults, which match the fallback defaults
+            // functions/src/lib/pricing.ts uses server-side when the doc doesn't
+            // exist yet — no client write needed to give initiateWhishPayment
+            // something real to read. Writing system_metadata/pricing at all is now
+            // exclusively the updatePricing Cloud Function's job (Phase 7 rules deny
+            // every client write to it, admin or not).
             coroutineScope.launch {
                 val remotePricing = firestoreService.getPricingState()
                 if (remotePricing != null) {
                     _pricingState.value = remotePricing
-                } else {
-                    firestoreService.savePricingState(_pricingState.value)
                 }
             }
         } catch (e: Exception) {
@@ -214,93 +249,20 @@ class ProSpaceRepository {
         )
     }
 
+    // Demo/placeholder listings below are seeded so the app has something to show before
+    // the real Firestore listeners attach — harmless, since they use fictional owner
+    // identities. Users/audit logs/credential documents used to be seeded with a fake
+    // "USR-ADMIN-ROOT" identity hardcoded to the real developer's email
+    // (geo.elnajjar@gmail.com), pre-marked VERIFIED/ADMIN/Tier-3, with fabricated audit
+    // log entries ("Root security & governance clearance granted to...") and fabricated
+    // "verified" ID/tax documents attached to it — the same hardcoded-real-identity
+    // pattern already fixed elsewhere this session, just in the seed data instead of a
+    // screen fallback. These all get overwritten moments later by the real Firestore
+    // listeners anyway, so there's no functional loss in starting them empty instead.
     private fun seedInitialData() {
-        val initialUsers = listOf(
-            AppUser(
-                id = "USR-ADMIN-ROOT",
-                email = "geo.elnajjar@gmail.com",
-                fullName = "Geo El-Najjar",
-                role = UserRole.ADMIN,
-                specialty = "Super Administrator & Security Governance",
-                phone = "+961 70 888 999",
-                affiliation = "ProSpace Executive HQ & Central Governance",
-                syndicateNumber = "SUPER-ADMIN-01",
-                governorate = Governorate.BEIRUT,
-                isVerified = true,
-                verificationStatus = MemberVerificationStatus.VERIFIED,
-                verificationTier = VerificationTier.TIER_3_COMMERCIAL_HOST,
-                trustScore = 100
-            )
-        )
-        _users.value = initialUsers
-
-        val initialAuditLogs = listOf(
-            AuditSecurityLog(
-                id = "LOG-1001",
-                timestamp = System.currentTimeMillis() - 1000 * 60 * 60 * 2,
-                actionType = "SUPER_ADMIN_AUTHORIZATION",
-                details = "Root security & governance clearance granted to geo.elnajjar@gmail.com",
-                actorEmail = "geo.elnajjar@gmail.com",
-                severity = "SECURE"
-            ),
-            AuditSecurityLog(
-                id = "LOG-1002",
-                timestamp = System.currentTimeMillis() - 1000 * 60 * 45,
-                actionType = "WHISH_CRYPTO_INITIALIZED",
-                details = "Channel ID 15462415 MD5 verification active for Lebanon settlement corridor",
-                actorEmail = "system@prospace.lb",
-                severity = "INFO"
-            ),
-            AuditSecurityLog(
-                id = "LOG-1003",
-                timestamp = System.currentTimeMillis() - 1000 * 60 * 20,
-                actionType = "PRICING_ENGINE_BASELINE",
-                details = "Dynamic monthly listing fee verified at $1.80 USD baseline",
-                actorEmail = "geo.elnajjar@gmail.com",
-                severity = "INFO"
-            ),
-            AuditSecurityLog(
-                id = "LOG-1004",
-                timestamp = System.currentTimeMillis() - 1000 * 60 * 5,
-                actionType = "ROLE_SECURITY_FIREWALL",
-                details = "Role-based access matrix enforced: Super Admin restricted exclusively to Governance & Security Console",
-                actorEmail = "geo.elnajjar@gmail.com",
-                severity = "SECURE"
-            )
-        )
-        _auditLogs.value = initialAuditLogs
-
-        val initialDocuments = listOf(
-            CredentialDocument(
-                id = "DOC-ADMIN-01",
-                userId = "USR-ADMIN-ROOT",
-                type = DocumentType.NATIONAL_ID,
-                fileName = "Biometric_Passport_Geo_ElNajjar.pdf",
-                fileSizeKb = 2600,
-                uploadedAt = System.currentTimeMillis() - 1000L * 60 * 60 * 24 * 30,
-                status = DocumentStatus.VERIFIED,
-                documentNumber = "PASS-RL8829104",
-                issuingAuthority = "General Directorate of General Security",
-                expiryDate = "2034-03-15",
-                verificationHash = "SHA256:ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
-                reviewerNotes = "Super Admin Identity Accreditation Complete"
-            ),
-            CredentialDocument(
-                id = "DOC-ADMIN-02",
-                userId = "USR-ADMIN-ROOT",
-                type = DocumentType.TAX_REGISTRATION,
-                fileName = "Ministry_Of_Finance_Raqam_Mali.pdf",
-                fileSizeKb = 1890,
-                uploadedAt = System.currentTimeMillis() - 1000L * 60 * 60 * 24 * 30,
-                status = DocumentStatus.VERIFIED,
-                documentNumber = "MOF-774921-601",
-                issuingAuthority = "Republic of Lebanon Ministry of Finance",
-                expiryDate = "2028-12-31",
-                verificationHash = "SHA256:2c624232cdd221771294dfbb310aca000a0df6ac9b66bb",
-                reviewerNotes = "Financial registration verified"
-            )
-        )
-        _credentialDocuments.value = initialDocuments
+        _users.value = emptyList()
+        _auditLogs.value = emptyList()
+        _credentialDocuments.value = emptyList()
 
         val initialSpaces = listOf(
             SpaceListing(
@@ -342,12 +304,33 @@ class ProSpaceRepository {
         _spaces.value = initialSpaces
 
         _transactions.value = emptyList()
-        _avatarCampaigns.value = emptyList()
         _bookingRequests.value = emptyList()
     }
 
     // --- Security & Audit Logging ---
+    // actorEmail is kept as a parameter only for the local optimistic display copy
+    // below — Firestore rules deny every direct client write to audit_security_logs,
+    // and the recordClientAuditLog Cloud Function this now calls always uses the
+    // caller's own verified token email server-side, ignoring whatever's passed
+    // here. That closes the exact gap the original audit flagged: actorEmail used to
+    // be a plain client-supplied (spoofable) value in the persisted record.
     fun addAuditLog(
+        actionType: String,
+        details: String,
+        severity: String = "INFO",
+        actorEmail: String = _currentUser.value?.email ?: "system@prohost.app"
+    ) {
+        addLocalAuditLogEntry(actionType, details, severity, actorEmail)
+        coroutineScope.launch { functionsClient.recordAuditLog(actionType, details, severity) }
+    }
+
+    /**
+     * Updates only the local, in-memory audit log list (no server write). Used by
+     * actions that already have their own dedicated Cloud Function writing the real
+     * audit entry (pricing, credential review, listing verification/subscription
+     * overrides) — calling [addAuditLog] there too would double-write.
+     */
+    private fun addLocalAuditLogEntry(
         actionType: String,
         details: String,
         severity: String = "INFO",
@@ -362,33 +345,35 @@ class ProSpaceRepository {
             severity = severity
         )
         _auditLogs.value = listOf(log) + _auditLogs.value
-        coroutineScope.launch { firestoreService.recordAuditLog(log) }
     }
 
     // --- Admin Governance & Revenue Pricing ---
-    // Persisted to Firestore (system_metadata/pricing) after every change — the
-    // initiateWhishPayment Cloud Function reads this same document server-side to
-    // compute real charge amounts, so an admin price change that never leaves the
-    // device would silently never take effect for actual payments.
-    private fun persistPricingState() {
-        coroutineScope.launch { firestoreService.savePricingState(_pricingState.value) }
+    // Firestore rules deny every client write to system_metadata (it's read
+    // server-side by initiateWhishPayment to compute real charge amounts), so this
+    // now goes through the updatePricing Cloud Function instead of a direct write —
+    // it also writes its own audit log entry, so this intentionally doesn't call
+    // addAuditLog itself.
+    /** Returns whether the server actually accepted the change. */
+    private suspend fun persistPricingState(fields: Map<String, Any>): Boolean {
+        return functionsClient.updatePricing(fields).isSuccess
     }
 
-    fun updateMonthlySubscriptionFee(newFeeUsd: Double) {
+    /** Returns whether the change actually succeeded, so the caller can show a real result. */
+    suspend fun updateMonthlySubscriptionFee(newFeeUsd: Double): Boolean {
         val oldFee = _pricingState.value.monthlySubscriptionFeeUsd
-        _pricingState.value = _pricingState.value.copy(
-            monthlySubscriptionFeeUsd = newFeeUsd
-        )
-        persistPricingState()
-        addAuditLog(
-            actionType = "PRICING_ADJUSTMENT",
-            details = "Monthly fee changed from $${String.format(Locale.US, "%.2f", oldFee)} to $${String.format(Locale.US, "%.2f", newFeeUsd)} USD",
-            severity = "WARN",
-            actorEmail = _currentUser.value?.email ?: "system@prohost.app"
-        )
+        val success = persistPricingState(mapOf("monthlySubscriptionFeeUsd" to newFeeUsd))
+        if (success) {
+            _pricingState.value = _pricingState.value.copy(monthlySubscriptionFeeUsd = newFeeUsd)
+            addLocalAuditLogEntry(
+                actionType = "PRICING_ADJUSTMENT",
+                details = "Monthly fee changed from $${String.format(Locale.US, "%.2f", oldFee)} to $${String.format(Locale.US, "%.2f", newFeeUsd)} USD",
+                severity = "WARN"
+            )
+        }
+        return success
     }
 
-    fun updatePaygFee(spaceType: SpaceType, fee: Double) {
+    suspend fun updatePaygFee(spaceType: SpaceType, fee: Double): Boolean {
         val current = _pricingState.value
         val updated = when (spaceType) {
             SpaceType.PRIVATE_OFFICE -> current.copy(paygPrivateOfficeUsd = fee)
@@ -396,49 +381,67 @@ class ProSpaceRepository {
             SpaceType.POLYCLINIC -> current.copy(paygPolyclinicUsd = fee)
             SpaceType.COWORKING_SPACE -> current.copy(paygCoworkingUsd = fee)
         }
-        _pricingState.value = updated
-        persistPricingState()
-        addAuditLog(
-            actionType = "PAYG_PRICING_UPDATED",
-            details = "PAYG fee for ${spaceType.displayName} updated to $${String.format(Locale.US, "%.2f", fee)} USD",
-            severity = "INFO"
-        )
+        val field = when (spaceType) {
+            SpaceType.PRIVATE_OFFICE -> "paygPrivateOfficeUsd"
+            SpaceType.CENTER -> "paygCenterUsd"
+            SpaceType.POLYCLINIC -> "paygPolyclinicUsd"
+            SpaceType.COWORKING_SPACE -> "paygCoworkingUsd"
+        }
+        val success = persistPricingState(mapOf(field to fee))
+        if (success) {
+            _pricingState.value = updated
+            addLocalAuditLogEntry(
+                actionType = "PAYG_PRICING_UPDATED",
+                details = "PAYG fee for ${spaceType.displayName} updated to $${String.format(Locale.US, "%.2f", fee)} USD",
+                severity = "INFO"
+            )
+        }
+        return success
     }
 
-    fun updatePackageFees(package2Fee: Double, package3Fee: Double) {
-        _pricingState.value = _pricingState.value.copy(
-            package2MonthlyFeeUsd = package2Fee,
-            package3MonthlyFeeUsd = package3Fee
+    suspend fun updatePackageFees(package2Fee: Double, package3Fee: Double): Boolean {
+        val success = persistPricingState(
+            mapOf("package2MonthlyFeeUsd" to package2Fee, "package3MonthlyFeeUsd" to package3Fee)
         )
-        persistPricingState()
-        addAuditLog(
-            actionType = "PACKAGE_FEES_UPDATED",
-            details = "Package 2 (3-limit) fee updated to $${String.format(Locale.US, "%.2f", package2Fee)}, Package 3 (Unlimited) fee updated to $${String.format(Locale.US, "%.2f", package3Fee)}",
-            severity = "INFO"
-        )
+        if (success) {
+            _pricingState.value = _pricingState.value.copy(
+                package2MonthlyFeeUsd = package2Fee,
+                package3MonthlyFeeUsd = package3Fee
+            )
+            addLocalAuditLogEntry(
+                actionType = "PACKAGE_FEES_UPDATED",
+                details = "Package 2 (3-limit) fee updated to $${String.format(Locale.US, "%.2f", package2Fee)}, Package 3 (Unlimited) fee updated to $${String.format(Locale.US, "%.2f", package3Fee)}",
+                severity = "INFO"
+            )
+        }
+        return success
     }
 
-    fun updateGovernanceTag(tag: String) {
-        _pricingState.value = _pricingState.value.copy(governanceTag = tag)
-        persistPricingState()
-        addAuditLog(
-            actionType = "ADMIN_GOVERNANCE_TAG_UPDATED",
-            details = "Admin governance control tag updated to: $tag",
-            severity = "WARN"
-        )
+    suspend fun updateGovernanceTag(tag: String): Boolean {
+        val success = persistPricingState(mapOf("governanceTag" to tag))
+        if (success) {
+            _pricingState.value = _pricingState.value.copy(governanceTag = tag)
+            addLocalAuditLogEntry(
+                actionType = "ADMIN_GOVERNANCE_TAG_UPDATED",
+                details = "Admin governance control tag updated to: $tag",
+                severity = "WARN"
+            )
+        }
+        return success
     }
 
-    fun resetMonthlySubscriptionFee() {
+    suspend fun resetMonthlySubscriptionFee(): Boolean {
         val baseline = _pricingState.value.baselineFeeUsd
-        _pricingState.value = _pricingState.value.copy(
-            monthlySubscriptionFeeUsd = baseline
-        )
-        persistPricingState()
-        addAuditLog(
-            actionType = "PRICING_RESET",
-            details = "Monthly fee reset to official baseline $${String.format(Locale.US, "%.2f", baseline)} USD",
-            severity = "INFO"
-        )
+        val success = persistPricingState(mapOf("monthlySubscriptionFeeUsd" to baseline))
+        if (success) {
+            _pricingState.value = _pricingState.value.copy(monthlySubscriptionFeeUsd = baseline)
+            addLocalAuditLogEntry(
+                actionType = "PRICING_RESET",
+                details = "Monthly fee reset to official baseline $${String.format(Locale.US, "%.2f", baseline)} USD",
+                severity = "INFO"
+            )
+        }
+        return success
     }
 
     fun calculateActiveMrr(): Double {
@@ -501,73 +504,157 @@ class ProSpaceRepository {
         )
     }
 
-    fun updateSpaceListing(updated: SpaceListing) {
-        _spaces.value = _spaces.value.map { if (it.id == updated.id) updated else it }
-        addAuditLog(
-            actionType = "LISTING_UPDATED",
-            details = "Admin updated workspace listing #${updated.id} (${updated.title})",
-            severity = "INFO"
-        )
-    }
-
-    fun deleteSpaceListing(spaceId: String) {
-        val target = _spaces.value.find { it.id == spaceId }
-        _spaces.value = _spaces.value.filterNot { it.id == spaceId }
-        addAuditLog(
-            actionType = "LISTING_DELETED",
-            details = "Admin permanently deleted workspace listing #${spaceId} (${target?.title ?: "Unknown"})",
-            severity = "WARN"
-        )
-    }
-
-    fun updateUser(updated: AppUser) {
-        _users.value = _users.value.map { if (it.id == updated.id) updated else it }
-        if (_currentUser.value?.id == updated.id) {
-            _currentUser.value = updated
-        }
-        coroutineScope.launch { firestoreService.saveUserProfile(updated) }
-        addAuditLog(
-            actionType = "USER_UPDATED",
-            details = "Admin updated user profile for ${updated.fullName} (${updated.email})",
-            severity = "INFO"
-        )
-    }
-
-    fun deleteUser(userId: String) {
-        val target = _users.value.find { it.id == userId }
-        _users.value = _users.value.filterNot { it.id == userId }
-        addAuditLog(
-            actionType = "USER_DELETED",
-            details = "Admin removed user profile #${userId} (${target?.fullName ?: "Unknown"})",
-            severity = "WARN"
-        )
-    }
-
-    fun toggleUserVerification(userId: String) {
-        val target = _users.value.find { it.id == userId } ?: return
-        val nextVerified = !target.isVerified
-        val nextStatus = if (nextVerified) MemberVerificationStatus.VERIFIED else MemberVerificationStatus.UNVERIFIED
-        val nextTier = if (nextVerified) {
-            if (target.role == UserRole.SPACE_OWNER) VerificationTier.TIER_3_COMMERCIAL_HOST else VerificationTier.TIER_2_PROFESSIONAL
+    /**
+     * Generic listing edit (title, address, base rate, etc.) from the Admin
+     * Console's Edit Listing dialog. Never actually reached Firestore before —
+     * local-only mutation, a real gap independent of Phase 7's rules. Now
+     * persists via firestoreService.saveWorkspace, but — same pattern as
+     * updateUser() — always preserves the current stored isVerified/
+     * isActiveSubscription/subscriptionExpiryMillis/ownerId regardless of what's
+     * passed in, since Firestore rules deny any client write that changes them.
+     * Use setListingVerification / setListingSubscriptionActive for those.
+     */
+    /** Returns whether the write actually succeeded, so the caller can show a real result. */
+    suspend fun updateSpaceListing(updated: SpaceListing): Boolean {
+        val current = _spaces.value.find { it.id == updated.id }
+        val safeUpdate = if (current != null) {
+            updated.copy(
+                ownerId = current.ownerId,
+                isVerified = current.isVerified,
+                isActiveSubscription = current.isActiveSubscription,
+                subscriptionExpiryMillis = current.subscriptionExpiryMillis
+            )
         } else {
-            VerificationTier.TIER_1_BASIC
+            updated
         }
-        val updated = target.copy(
-            isVerified = nextVerified,
-            verificationStatus = nextStatus,
-            verificationTier = nextTier,
-            trustScore = if (nextVerified) 98 else 30
-        )
-        updateUser(updated)
-        addAuditLog(
-            actionType = "USER_VERIFICATION_TOGGLE",
-            details = "Admin toggled verification for ${target.fullName} to $nextVerified ($nextStatus)",
-            severity = "SECURE"
-        )
+        val success = firestoreService.saveWorkspace(safeUpdate)
+        if (success) {
+            _spaces.value = _spaces.value.map { if (it.id == safeUpdate.id) safeUpdate else it }
+            addAuditLog(
+                actionType = "LISTING_UPDATED",
+                details = "Admin updated workspace listing #${safeUpdate.id} (${safeUpdate.title})",
+                severity = "INFO"
+            )
+        }
+        return success
+    }
+
+    /**
+     * This used to only mutate local state — the confirmation dialog claimed a
+     * "permanent" removal, but the Firestore document was never touched, so the
+     * listing simply reappeared the next time the live listener fired. Firestore
+     * rules already permit an admin (or the owning user) to delete this document
+     * directly (firestore.rules workspace_listings: allow delete), so no Cloud
+     * Function is needed here.
+     */
+    suspend fun deleteSpaceListing(spaceId: String): Boolean {
+        val target = _spaces.value.find { it.id == spaceId }
+        val success = firestoreService.deleteWorkspace(spaceId)
+        if (success) {
+            _spaces.value = _spaces.value.filterNot { it.id == spaceId }
+            addAuditLog(
+                actionType = "LISTING_DELETED",
+                details = "Admin permanently deleted workspace listing #${spaceId} (${target?.title ?: "Unknown"})",
+                severity = "WARN"
+            )
+        }
+        return success
+    }
+
+    /**
+     * Generic profile edit (name, phone, specialty, syndicate number, etc.) from the
+     * Admin Console's edit-user dialog. role/isVerified/verificationStatus/
+     * verificationTier/trustScore are always preserved from the current stored
+     * value here, regardless of what's passed in: Firestore rules deny any client
+     * write that changes those fields, so silently keeping them unchanged avoids a
+     * write that would otherwise be denied outright (and this method's caller
+     * showing a false "updated successfully" toast). Use grantAdminRole /
+     * reviewCredentialDocument / submitUserVerification for those instead.
+     */
+    /** Returns whether the write actually succeeded, so the caller can show a real result. */
+    suspend fun updateUser(updated: AppUser): Boolean {
+        val current = _users.value.find { it.id == updated.id }
+        val safeUpdate = if (current != null) {
+            updated.copy(
+                role = current.role,
+                isVerified = current.isVerified,
+                verificationStatus = current.verificationStatus,
+                verificationTier = current.verificationTier,
+                trustScore = current.trustScore
+            )
+        } else {
+            updated
+        }
+        val success = firestoreService.saveUserProfile(safeUpdate)
+        if (success) {
+            _users.value = _users.value.map { if (it.id == safeUpdate.id) safeUpdate else it }
+            if (_currentUser.value?.id == safeUpdate.id) {
+                _currentUser.value = safeUpdate
+            }
+            addAuditLog(
+                actionType = "USER_UPDATED",
+                details = "Admin updated user profile for ${safeUpdate.fullName} (${safeUpdate.email})",
+                severity = "INFO"
+            )
+        }
+        return success
+    }
+
+    /**
+     * This used to only mutate local state — the confirmation dialog claimed a
+     * "permanent" removal, but the Firestore document was never touched, so the
+     * profile simply reappeared the next time the live listener fired. Firestore
+     * rules already permit an admin to delete this document directly
+     * (firestore.rules user_profiles: allow delete: if isAdmin()). Note this does
+     * NOT revoke the user's Firebase Auth account or custom claim — only a Cloud
+     * Function with the Admin SDK could do that; this removes their platform
+     * profile record, which is what the confirmation dialog actually describes.
+     */
+    suspend fun deleteUser(userId: String): Boolean {
+        val target = _users.value.find { it.id == userId }
+        val success = firestoreService.deleteUserProfile(userId)
+        if (success) {
+            _users.value = _users.value.filterNot { it.id == userId }
+            addAuditLog(
+                actionType = "USER_DELETED",
+                details = "Admin removed user profile #${userId} (${target?.fullName ?: "Unknown"})",
+                severity = "WARN"
+            )
+        }
+        return success
+    }
+
+    /**
+     * Admin-only direct verification override (adminSetUserVerification Cloud
+     * Function) — Firestore rules deny any client write to verificationStatus/
+     * verificationTier/trustScore, including through updateUser(), which this
+     * used to compute the new state and call. Returns whether it actually
+     * succeeded, so the caller can show a real success/failure result instead
+     * of an unconditional one.
+     */
+    suspend fun toggleUserVerification(userId: String): Boolean {
+        val target = _users.value.find { it.id == userId } ?: return false
+        val nextVerified = !target.isVerified
+        val result = functionsClient.setUserVerification(userId, nextVerified)
+        if (result.isSuccess) {
+            refreshUserProfile(userId)
+            addLocalAuditLogEntry(
+                actionType = "USER_VERIFICATION_TOGGLE",
+                details = "Admin toggled verification for ${target.fullName} to $nextVerified",
+                severity = "SECURE"
+            )
+        }
+        return result.isSuccess
     }
 
     // --- Dynamic Space Architecture Schema Management ---
-    fun addSchemaItem(item: SchemaItem) {
+    // All four of these used to be 100% local — they never called Firestore at all,
+    // despite AdminConsoleScreen's copy claiming edits went to a "database registry"/
+    // "cloud" and the toasts implying a real save. Now they persist via
+    // firestoreService.saveSchema (schema_architecture/main, admin-write-gated —
+    // see firestore.rules), and only update local state once that write is confirmed.
+
+    suspend fun addSchemaItem(item: SchemaItem): Boolean {
         val current = _spaceArchitectureSchema.value
         val updated = when (item.category) {
             "SPACE_TYPE" -> current.copy(spaceTypes = current.spaceTypes + item)
@@ -578,15 +665,19 @@ class ProSpaceRepository {
             "RENTAL_STRATEGY" -> current.copy(rentalStrategies = current.rentalStrategies + item)
             else -> current
         }
-        _spaceArchitectureSchema.value = updated
-        addAuditLog(
-            actionType = "SCHEMA_ITEM_ADDED",
-            details = "Admin added schema node '${item.name}' under category '${item.category}'",
-            severity = "SECURE"
-        )
+        val success = firestoreService.saveSchema(updated)
+        if (success) {
+            _spaceArchitectureSchema.value = updated
+            addAuditLog(
+                actionType = "SCHEMA_ITEM_ADDED",
+                details = "Admin added schema node '${item.name}' under category '${item.category}'",
+                severity = "SECURE"
+            )
+        }
+        return success
     }
 
-    fun toggleSchemaItem(itemId: String) {
+    suspend fun toggleSchemaItem(itemId: String): Boolean {
         val current = _spaceArchitectureSchema.value
         val updated = current.copy(
             spaceTypes = current.spaceTypes.map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it },
@@ -596,15 +687,19 @@ class ProSpaceRepository {
             specialties = current.specialties.map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it },
             rentalStrategies = current.rentalStrategies.map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it }
         )
-        _spaceArchitectureSchema.value = updated
-        addAuditLog(
-            actionType = "SCHEMA_ITEM_TOGGLED",
-            details = "Admin toggled schema item #$itemId active status",
-            severity = "INFO"
-        )
+        val success = firestoreService.saveSchema(updated)
+        if (success) {
+            _spaceArchitectureSchema.value = updated
+            addAuditLog(
+                actionType = "SCHEMA_ITEM_TOGGLED",
+                details = "Admin toggled schema item #$itemId active status",
+                severity = "INFO"
+            )
+        }
+        return success
     }
 
-    fun deleteSchemaItem(itemId: String) {
+    suspend fun deleteSchemaItem(itemId: String): Boolean {
         val current = _spaceArchitectureSchema.value
         val updated = current.copy(
             spaceTypes = current.spaceTypes.filterNot { it.id == itemId },
@@ -614,21 +709,30 @@ class ProSpaceRepository {
             specialties = current.specialties.filterNot { it.id == itemId },
             rentalStrategies = current.rentalStrategies.filterNot { it.id == itemId }
         )
-        _spaceArchitectureSchema.value = updated
-        addAuditLog(
-            actionType = "SCHEMA_ITEM_DELETED",
-            details = "Admin removed custom schema item #$itemId",
-            severity = "WARN"
-        )
+        val success = firestoreService.saveSchema(updated)
+        if (success) {
+            _spaceArchitectureSchema.value = updated
+            addAuditLog(
+                actionType = "SCHEMA_ITEM_DELETED",
+                details = "Admin removed custom schema item #$itemId",
+                severity = "WARN"
+            )
+        }
+        return success
     }
 
-    fun resetSchemaToDefaults() {
-        _spaceArchitectureSchema.value = createDefaultSchema()
-        addAuditLog(
-            actionType = "SCHEMA_RESET_DEFAULTS",
-            details = "Admin restored factory baseline schema definitions for Lebanese workspaces",
-            severity = "SECURE"
-        )
+    suspend fun resetSchemaToDefaults(): Boolean {
+        val defaults = createDefaultSchema()
+        val success = firestoreService.saveSchema(defaults)
+        if (success) {
+            _spaceArchitectureSchema.value = defaults
+            addAuditLog(
+                actionType = "SCHEMA_RESET_DEFAULTS",
+                details = "Admin restored factory baseline schema definitions for Lebanese workspaces",
+                severity = "SECURE"
+            )
+        }
+        return success
     }
 
     private fun createDefaultSchema(): SpaceArchitectureSchema {
@@ -683,30 +787,47 @@ class ProSpaceRepository {
         )
     }
 
-    fun toggleListingVerification(spaceId: String) {
-        val target = _spaces.value.find { it.id == spaceId }
-        val nextStatus = !(target?.isVerified ?: false)
-        _spaces.value = _spaces.value.map {
-            if (it.id == spaceId) it.copy(isVerified = nextStatus) else it
+    /**
+     * Firestore rules deny every client write to workspace_listings.isVerified — only
+     * setListingVerification's Admin SDK write can change it. This used to only ever
+     * mutate local state (never actually reached Firestore, regardless of rules); now
+     * it awaits the real server change before updating local state, so the two can't
+     * drift if the call fails.
+     */
+    /** Returns whether the change actually succeeded, so the caller can show a real result. */
+    suspend fun toggleListingVerification(spaceId: String): Boolean {
+        val target = _spaces.value.find { it.id == spaceId } ?: return false
+        val nextStatus = !target.isVerified
+        val result = functionsClient.setListingVerification(spaceId, nextStatus)
+        if (result.isSuccess) {
+            _spaces.value = _spaces.value.map {
+                if (it.id == spaceId) it.copy(isVerified = nextStatus) else it
+            }
+            addLocalAuditLogEntry(
+                actionType = "VERIFICATION_OVERRIDE",
+                details = "Workspace #${spaceId} verified status changed to $nextStatus by Super Admin",
+                severity = "SECURE"
+            )
         }
-        addAuditLog(
-            actionType = "VERIFICATION_OVERRIDE",
-            details = "Workspace #${spaceId} verified status changed to $nextStatus by Super Admin",
-            severity = "SECURE"
-        )
+        return result.isSuccess
     }
 
-    fun toggleListingActive(spaceId: String) {
-        val target = _spaces.value.find { it.id == spaceId }
-        val nextStatus = !(target?.isActiveSubscription ?: false)
-        _spaces.value = _spaces.value.map {
-            if (it.id == spaceId) it.copy(isActiveSubscription = nextStatus) else it
+    /** Same pattern as [toggleListingVerification] — see its doc comment. */
+    suspend fun toggleListingActive(spaceId: String): Boolean {
+        val target = _spaces.value.find { it.id == spaceId } ?: return false
+        val nextStatus = !target.isActiveSubscription
+        val result = functionsClient.setListingSubscriptionActive(spaceId, nextStatus)
+        if (result.isSuccess) {
+            _spaces.value = _spaces.value.map {
+                if (it.id == spaceId) it.copy(isActiveSubscription = nextStatus) else it
+            }
+            addLocalAuditLogEntry(
+                actionType = "SUBSCRIPTION_STATUS_TOGGLE",
+                details = "Listing #${spaceId} subscription active status set to $nextStatus by Super Admin",
+                severity = "WARN"
+            )
         }
-        addAuditLog(
-            actionType = "SUBSCRIPTION_STATUS_TOGGLE",
-            details = "Listing #${spaceId} subscription active status set to $nextStatus by Super Admin",
-            severity = "WARN"
-        )
+        return result.isSuccess
     }
 
     // --- Smart Booking & In-App Rental Request Engine ---
@@ -782,6 +903,18 @@ class ProSpaceRepository {
         return request
     }
 
+    /**
+     * Owner accepting a booking locks in the schedule/terms — it never implies payment
+     * was settled. isExternalPaymentSettled used to be forced to true right here,
+     * unconditionally, regardless of whether the practitioner had paid anything —
+     * the same self-reported-settlement pattern the whole Whish remediation was
+     * about, just for bookings. It's now exclusively set by the payment webhook /
+     * checkWhishStatus reconciliation (functions/src/payments/reconcile.ts) once a
+     * real Whish payment for this booking actually succeeds — see
+     * ProSpaceViewModel.payBookingViaWhish, the practitioner's separate later step
+     * (MyBookingsScreen's "Pay Whish" button, not the orphaned RentalsViewModel, which
+     * was deleted — it duplicated this same flow but had no screen wired to it).
+     */
     fun acceptBookingRequest(requestId: String): Boolean {
         val request = _bookingRequests.value.find { it.id == requestId } ?: return false
         val now = System.currentTimeMillis()
@@ -790,8 +923,7 @@ class ProSpaceRepository {
             if (it.id == requestId) {
                 it.copy(
                     status = BookingRequestStatus.ACCEPTED,
-                    reviewedAt = now,
-                    isExternalPaymentSettled = true
+                    reviewedAt = now
                 )
             } else it
         }
@@ -852,69 +984,75 @@ class ProSpaceRepository {
     }
 
     // --- Schedule & Blackout Slots Management ---
-    fun addBlackoutSlot(spaceId: String, slot: BlackoutSlot) {
-        _spaces.value = _spaces.value.map { space ->
-            if (space.id == spaceId) {
-                val updatedSched = space.schedule.copy(
-                    blackoutSlots = space.schedule.blackoutSlots + slot
-                )
-                space.copy(schedule = updatedSched)
-            } else space
+    // All five of these used to only mutate the in-memory _spaces StateFlow — never
+    // calling Firestore at all. That's worse than just "no error handling": since
+    // attachLiveListeners' workspace_listings snapshot listener periodically overwrites
+    // _spaces wholesale, a schedule/formula change that never reached Firestore could
+    // be silently reverted on the SAME device the next time any unrelated write
+    // triggered a snapshot, on top of never syncing to any other device at all. Now
+    // persisted via the same firestoreService.saveWorkspace path updateSpaceListing
+    // already uses, only committing local state once the write is confirmed.
+
+    private suspend fun saveUpdatedSpace(updated: SpaceListing): Boolean {
+        val success = firestoreService.saveWorkspace(updated)
+        if (success) {
+            _spaces.value = _spaces.value.map { if (it.id == updated.id) updated else it }
         }
-        addAuditLog(
-            actionType = "SCHEDULE_BLACKOUT_ADDED",
-            details = "Owner added non-operating blackout slot (${slot.dayOfWeek} ${slot.startTime}-${slot.endTime}) to space $spaceId",
-            severity = "INFO"
-        )
+        return success
     }
 
-    fun removeBlackoutSlot(spaceId: String, slotId: String) {
-        _spaces.value = _spaces.value.map { space ->
-            if (space.id == spaceId) {
-                val updatedSched = space.schedule.copy(
-                    blackoutSlots = space.schedule.blackoutSlots.filter { it.id != slotId }
-                )
-                space.copy(schedule = updatedSched)
-            } else space
+    suspend fun addBlackoutSlot(spaceId: String, slot: BlackoutSlot): Boolean {
+        val space = _spaces.value.find { it.id == spaceId } ?: return false
+        val updated = space.copy(schedule = space.schedule.copy(blackoutSlots = space.schedule.blackoutSlots + slot))
+        val success = saveUpdatedSpace(updated)
+        if (success) {
+            addAuditLog(
+                actionType = "SCHEDULE_BLACKOUT_ADDED",
+                details = "Owner added non-operating blackout slot (${slot.dayOfWeek} ${slot.startTime}-${slot.endTime}) to space $spaceId",
+                severity = "INFO"
+            )
         }
+        return success
     }
 
-    fun updateSpaceSchedule(spaceId: String, schedule: SpaceOperatingSchedule) {
-        _spaces.value = _spaces.value.map { space ->
-            if (space.id == spaceId) space.copy(schedule = schedule) else space
-        }
-        addAuditLog(
-            actionType = "OPERATING_SCHEDULE_UPDATED",
-            details = "Operating hours updated for space $spaceId: ${schedule.openingHour} - ${schedule.closingHour} (${schedule.operatingDays.joinToString()})",
-            severity = "INFO"
-        )
+    suspend fun removeBlackoutSlot(spaceId: String, slotId: String): Boolean {
+        val space = _spaces.value.find { it.id == spaceId } ?: return false
+        val updated = space.copy(schedule = space.schedule.copy(blackoutSlots = space.schedule.blackoutSlots.filter { it.id != slotId }))
+        return saveUpdatedSpace(updated)
     }
 
-    fun addRentalFormula(spaceId: String, formula: RentalFormula) {
-        _spaces.value = _spaces.value.map { space ->
-            if (space.id == spaceId) space.copy(rentalFormulas = space.rentalFormulas + formula) else space
+    suspend fun updateSpaceSchedule(spaceId: String, schedule: SpaceOperatingSchedule): Boolean {
+        val space = _spaces.value.find { it.id == spaceId } ?: return false
+        val updated = space.copy(schedule = schedule)
+        val success = saveUpdatedSpace(updated)
+        if (success) {
+            addAuditLog(
+                actionType = "OPERATING_SCHEDULE_UPDATED",
+                details = "Operating hours updated for space $spaceId: ${schedule.openingHour} - ${schedule.closingHour} (${schedule.operatingDays.joinToString()})",
+                severity = "INFO"
+            )
         }
-        addAuditLog(
-            actionType = "RENTAL_FORMULA_ADDED",
-            details = "Added formula '${formula.type.displayName}' ($${formula.rateUsd}) to space $spaceId",
-            severity = "INFO"
-        )
+        return success
     }
 
-    fun updateRentalFormula(spaceId: String, updatedFormula: RentalFormula) {
-        _spaces.value = _spaces.value.map { space ->
-            if (space.id == spaceId) {
-                space.copy(rentalFormulas = space.rentalFormulas.map { if (it.id == updatedFormula.id) updatedFormula else it })
-            } else space
+    suspend fun addRentalFormula(spaceId: String, formula: RentalFormula): Boolean {
+        val space = _spaces.value.find { it.id == spaceId } ?: return false
+        val updated = space.copy(rentalFormulas = space.rentalFormulas + formula)
+        val success = saveUpdatedSpace(updated)
+        if (success) {
+            addAuditLog(
+                actionType = "RENTAL_FORMULA_ADDED",
+                details = "Added formula '${formula.type.displayName}' ($${formula.rateUsd}) to space $spaceId",
+                severity = "INFO"
+            )
         }
+        return success
     }
 
-    fun deleteRentalFormula(spaceId: String, formulaId: String) {
-        _spaces.value = _spaces.value.map { space ->
-            if (space.id == spaceId) {
-                space.copy(rentalFormulas = space.rentalFormulas.filter { it.id != formulaId })
-            } else space
-        }
+    suspend fun deleteRentalFormula(spaceId: String, formulaId: String): Boolean {
+        val space = _spaces.value.find { it.id == spaceId } ?: return false
+        val updated = space.copy(rentalFormulas = space.rentalFormulas.filter { it.id != formulaId })
+        return saveUpdatedSpace(updated)
     }
 
     // --- User Authentication & Member Registration ---
@@ -979,7 +1117,7 @@ class ProSpaceRepository {
             fullName = if (cleanEmail.contains("@")) cleanEmail.substringBefore("@").replace(".", " ").capitalize(Locale.US) else "Member",
             role = verifiedRole,
             specialty = when (verifiedRole) {
-                UserRole.PROFESSIONAL -> "Independent Professional"
+                UserRole.PROFESSIONAL -> "Independent Specialist"
                 UserRole.SPACE_OWNER -> "Workspace Host"
                 UserRole.ADMIN -> "Super Administrator & Security Governance"
             },
@@ -1021,26 +1159,32 @@ class ProSpaceRepository {
     // a Firebase Auth custom claim, or through the grantAdminRole/requestRoleUpgrade
     // Cloud Functions for an explicit role change request.
 
-    fun updateCurrentUserProfile(
+    suspend fun updateCurrentUserProfile(
         name: String,
         specialty: String,
         phone: String,
         affiliation: String,
         syndicateNumber: String,
         governorate: Governorate
-    ) {
-        _currentUser.value?.let { current ->
-            val updated = current.copy(
-                fullName = name,
-                specialty = specialty,
-                phone = phone,
-                affiliation = affiliation,
-                syndicateNumber = syndicateNumber,
-                governorate = governorate
-            )
+    ): Boolean {
+        val current = _currentUser.value ?: return false
+        val updated = current.copy(
+            fullName = name,
+            specialty = specialty,
+            phone = phone,
+            affiliation = affiliation,
+            syndicateNumber = syndicateNumber,
+            governorate = governorate
+        )
+        // This used to only mutate in-memory state — the "Profile Updated Successfully"
+        // toast fired unconditionally while the edit was never sent to Firestore at all,
+        // so it silently vanished on app restart or on another device.
+        val success = firestoreService.saveUserProfile(updated)
+        if (success) {
             _currentUser.value = updated
             _users.value = _users.value.map { if (it.id == updated.id) updated else it }
         }
+        return success
     }
 
     // --- Credential Documents & Professional Verification Management ---
@@ -1088,164 +1232,125 @@ class ProSpaceRepository {
             actorEmail = _currentUser.value?.email ?: "member@prospace.lb"
         )
 
-        recalculateUserVerification(userId)
+        // Recomputes verificationStatus/verificationTier/trustScore server-side — those
+        // fields are no longer client-writable (see submitUserVerification's comment).
+        coroutineScope.launch {
+            functionsClient.submitVerificationForReview()
+            refreshUserProfile(userId)
+        }
         return doc
     }
 
-    fun removeCredentialDocument(documentId: String) {
-        val doc = _credentialDocuments.value.find { it.id == documentId }
+    suspend fun removeCredentialDocument(documentId: String): Boolean {
+        val doc = _credentialDocuments.value.find { it.id == documentId } ?: return false
+        val deleted = firestoreService.deleteCredentialDocument(documentId)
+        if (!deleted) return false
+
+        // The realtime listener (see init{}) will also reflect this once Firestore's
+        // snapshot fires, but update local state immediately for a responsive UI.
         _credentialDocuments.value = _credentialDocuments.value.filterNot { it.id == documentId }
-        if (doc != null) {
-            addAuditLog(
-                actionType = "DOCUMENT_REMOVED",
-                details = "Credential document ${doc.type.title} (#${doc.documentNumber}) removed",
-                severity = "INFO",
-                actorEmail = _currentUser.value?.email ?: "member@prospace.lb"
-            )
-            recalculateUserVerification(doc.userId)
-        }
+        addAuditLog(
+            actionType = "DOCUMENT_REMOVED",
+            details = "Credential document ${doc.type.title} (#${doc.documentNumber}) removed",
+            severity = "INFO",
+            actorEmail = _currentUser.value?.email ?: "member@prospace.lb"
+        )
+        functionsClient.submitVerificationForReview()
+        refreshUserProfile(doc.userId)
+        return true
     }
 
-    fun submitUserVerification(userId: String) {
-        val user = _users.value.find { it.id == userId } ?: _currentUser.value ?: return
+    suspend fun submitUserVerification(userId: String): Boolean {
+        val user = _users.value.find { it.id == userId } ?: _currentUser.value ?: return false
         val userDocs = _credentialDocuments.value.filter { it.userId == userId }
         val requiredTypes = DocumentType.values().filter { it.requiredFor.contains(user.role) }
         val uploadedRequired = requiredTypes.filter { req -> userDocs.any { it.type == req && it.status != DocumentStatus.NOT_UPLOADED } }
 
-        val newStatus = if (uploadedRequired.size >= requiredTypes.size) {
-            MemberVerificationStatus.PENDING_REVIEW
-        } else {
-            MemberVerificationStatus.ACTION_REQUIRED
-        }
-
+        // verificationNotes is a free-text field the owner can write themselves (not
+        // one of the restricted fields), so this part still writes directly; the
+        // actual verificationStatus change happens server-side just below.
         val updated = user.copy(
-            verificationStatus = newStatus,
             verificationNotes = "Submitted on ${SimpleDateFormat("dd MMM yyyy", Locale.US).format(Date())}. Pending admin accreditation."
         )
+        val profileSaved = firestoreService.saveUserProfile(updated)
+        if (!profileSaved) return false
+
+        // Server-side: recomputes and writes verificationStatus/verificationTier/
+        // trustScore from the same credential documents, since Firestore rules deny
+        // every client write to those fields on user_profiles.
+        val submitted = functionsClient.submitVerificationForReview()
+        if (submitted.isFailure) return false
+
         if (_currentUser.value?.id == userId) {
             _currentUser.value = updated
         }
         _users.value = _users.value.map { if (it.id == userId) updated else it }
-        coroutineScope.launch { firestoreService.saveUserProfile(updated) }
-
-        addAuditLog(
+        addLocalAuditLogEntry(
             actionType = "VERIFICATION_SUBMITTED",
             details = "Member ${user.fullName} submitted ${uploadedRequired.size}/${requiredTypes.size} credential documents for compliance review",
             severity = "INFO",
             actorEmail = user.email
         )
+        refreshUserProfile(userId)
+        return true
     }
 
-    fun adminApproveDocument(documentId: String, reviewerNotes: String = "Validated against Lebanese Syndicate Registry") {
-        val doc = _credentialDocuments.value.find { it.id == documentId } ?: return
-        val updatedDoc = doc.copy(
-            status = DocumentStatus.VERIFIED,
-            reviewerNotes = reviewerNotes,
-            rejectionReason = null
-        )
+    /**
+     * Approving/rejecting a credential document and the resulting change to the
+     * member's verification status/tier/trust score are both server-authoritative
+     * now (Firestore rules deny every client write to those fields) — this and
+     * [adminRejectDocument] call reviewCredentialDocument instead of writing
+     * directly, then refresh local state from Firestore once the server is done.
+     */
+    /** Returns whether the review actually succeeded, so the caller can show a real result. */
+    suspend fun adminApproveDocument(documentId: String, reviewerNotes: String = "Validated against Lebanese Syndicate Registry"): Boolean {
+        val doc = _credentialDocuments.value.find { it.id == documentId } ?: return false
+        val result = functionsClient.reviewCredentialDocument(documentId, approve = true, reviewerNotes = reviewerNotes)
+        if (result.isSuccess) {
+            addLocalAuditLogEntry(
+                actionType = "DOCUMENT_ACCREDITED",
+                details = "Admin approved ${doc.type.title} (#${doc.documentNumber}) for member ${doc.userId}",
+                severity = "SECURE",
+                actorEmail = _currentUser.value?.email ?: "admin@prospace.lb"
+            )
+            refreshCredentialDocument(documentId)
+            refreshUserProfile(doc.userId)
+        }
+        return result.isSuccess
+    }
+
+    /** Returns whether the review actually succeeded, so the caller can show a real result. */
+    suspend fun adminRejectDocument(documentId: String, reason: String): Boolean {
+        val doc = _credentialDocuments.value.find { it.id == documentId } ?: return false
+        val result = functionsClient.reviewCredentialDocument(documentId, approve = false, rejectionReason = reason)
+        if (result.isSuccess) {
+            addLocalAuditLogEntry(
+                actionType = "DOCUMENT_REVISION_REQUESTED",
+                details = "Admin requested revision on ${doc.type.title} (#${doc.documentNumber}): $reason",
+                severity = "WARN",
+                actorEmail = _currentUser.value?.email ?: "admin@prospace.lb"
+            )
+            refreshCredentialDocument(documentId)
+            refreshUserProfile(doc.userId)
+        }
+        return result.isSuccess
+    }
+
+    /** Re-reads one credential document from Firestore into local state after a server-side change. */
+    private suspend fun refreshCredentialDocument(documentId: String) {
+        val data = firestoreService.getCredentialDocument(documentId) ?: return
+        val updatedDoc = CredentialDocument.fromFirestoreMap(documentId, data)
         _credentialDocuments.value = _credentialDocuments.value.map { if (it.id == documentId) updatedDoc else it }
-        coroutineScope.launch { firestoreService.saveCredentialDocument(updatedDoc) }
-
-        addAuditLog(
-            actionType = "DOCUMENT_ACCREDITED",
-            details = "Admin approved ${doc.type.title} (#${doc.documentNumber}) for member ${doc.userId}",
-            severity = "SECURE",
-            actorEmail = _currentUser.value?.email ?: "admin@prospace.lb"
-        )
-        recalculateUserVerification(doc.userId)
     }
 
-    fun adminRejectDocument(documentId: String, reason: String) {
-        val doc = _credentialDocuments.value.find { it.id == documentId } ?: return
-        val updatedDoc = doc.copy(
-            status = DocumentStatus.REJECTED,
-            rejectionReason = reason,
-            reviewerNotes = "Revision requested: $reason"
-        )
-        _credentialDocuments.value = _credentialDocuments.value.map { if (it.id == documentId) updatedDoc else it }
-        coroutineScope.launch { firestoreService.saveCredentialDocument(updatedDoc) }
-
-        addAuditLog(
-            actionType = "DOCUMENT_REVISION_REQUESTED",
-            details = "Admin requested revision on ${doc.type.title} (#${doc.documentNumber}): $reason",
-            severity = "WARN",
-            actorEmail = _currentUser.value?.email ?: "admin@prospace.lb"
-        )
-        recalculateUserVerification(doc.userId)
-    }
-
-    fun recalculateUserVerification(userId: String) {
-        val user = _users.value.find { it.id == userId } ?: _currentUser.value ?: return
-        val userDocs = _credentialDocuments.value.filter { it.userId == userId }
-        val requiredTypes = DocumentType.values().filter { it.requiredFor.contains(user.role) }
-
-        val verifiedCount = requiredTypes.count { req -> userDocs.any { it.type == req && it.status == DocumentStatus.VERIFIED } }
-        val hasRejected = userDocs.any { it.status == DocumentStatus.REJECTED }
-        val hasPending = userDocs.any { it.status == DocumentStatus.PENDING_REVIEW }
-
-        val newStatus = when {
-            verifiedCount == requiredTypes.size && requiredTypes.isNotEmpty() -> MemberVerificationStatus.VERIFIED
-            hasRejected -> MemberVerificationStatus.ACTION_REQUIRED
-            hasPending || verifiedCount > 0 -> MemberVerificationStatus.PENDING_REVIEW
-            else -> MemberVerificationStatus.UNVERIFIED
-        }
-
-        val isFullyVerified = newStatus == MemberVerificationStatus.VERIFIED
-        val tier = when (user.role) {
-            UserRole.SPACE_OWNER -> if (isFullyVerified) VerificationTier.TIER_3_COMMERCIAL_HOST else VerificationTier.TIER_1_BASIC
-            UserRole.PROFESSIONAL -> if (isFullyVerified) VerificationTier.TIER_2_PROFESSIONAL else VerificationTier.TIER_1_BASIC
-            UserRole.ADMIN -> VerificationTier.TIER_3_COMMERCIAL_HOST
-        }
-
-        val trustScore = when (newStatus) {
-            MemberVerificationStatus.VERIFIED -> 98
-            MemberVerificationStatus.PENDING_REVIEW -> 75
-            MemberVerificationStatus.ACTION_REQUIRED -> 45
-            MemberVerificationStatus.UNVERIFIED -> 30
-        }
-
-        val updated = user.copy(
-            isVerified = isFullyVerified,
-            verificationStatus = newStatus,
-            verificationTier = tier,
-            trustScore = trustScore
-        )
-
+    /** Re-reads one user profile from Firestore into local state after a server-side change. */
+    private suspend fun refreshUserProfile(userId: String) {
+        val data = firestoreService.getUserProfile(userId) ?: return
+        val updated = AppUser.fromFirestoreMap(userId, data)
         if (_currentUser.value?.id == userId) {
             _currentUser.value = updated
         }
         _users.value = _users.value.map { if (it.id == userId) updated else it }
-        coroutineScope.launch { firestoreService.saveUserProfile(updated) }
-    }
-
-    // --- AI Avatar Marketing Generator ---
-    fun generateAvatarCampaign(space: SpaceListing): AvatarCampaign {
-        val formulasText = space.rentalFormulas.joinToString(", ") { "${it.type.displayName} ($${it.rateUsd})" }
-        val facilitiesHighlight = space.essentialFacilities.take(3).joinToString(" • ")
-        val specialtiesText = space.complementarySpecialties.joinToString(", ")
-
-        val caption = "🏢 ${space.title} in ${space.district}, ${space.governorate.displayName}!\n" +
-                "✨ Facilities: $facilitiesHighlight\n" +
-                "💼 Ideal Synergy for: $specialtiesText\n" +
-                "📅 Rental Formula: $formulasText\n" +
-                "📲 Connect directly with ${space.ownerName} via WhatsApp or tap link in bio!\n" +
-                "#ProSpaceLebanon #OfficeShare #CoworkingLebanon #${space.governorate.name}Workspace"
-
-        val campaign = AvatarCampaign(
-            id = "CMP-" + UUID.randomUUID().toString().take(6).uppercase(),
-            spaceId = space.id,
-            spaceTitle = space.title,
-            instagramHandle = "@prospace.lebanon",
-            totalReelViews = 0,
-            linkClicks = 0,
-            inquiriesGenerated = 0,
-            generatedCaption = caption,
-            storyOverlayTag = "${space.district} • ${space.spaceType.displayName} • 24/7 Power",
-            lastNudgeText = "Live AI Social campaign configured. Broadcast ready."
-        )
-
-        _avatarCampaigns.value = listOf(campaign) + _avatarCampaigns.value.filter { it.spaceId != space.id }
-        return campaign
     }
 
     // --- Multi-Format Data Export Hub ---

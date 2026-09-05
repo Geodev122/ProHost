@@ -119,7 +119,7 @@ fun LoginAuthScreen(
         )
 
         Text(
-            text = "Professional Workspace & Office Rental Exchange",
+            text = "Specialist Workspace & Office Rental Exchange",
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -417,7 +417,7 @@ fun LoginAuthScreen(
                     FilterChip(
                         selected = regRole == UserRole.PROFESSIONAL,
                         onClick = { regRole = UserRole.PROFESSIONAL },
-                        label = { Text("Professional / Renter") },
+                        label = { Text("Specialist / Renter") },
                         leadingIcon = { Icon(Icons.Default.Work, contentDescription = null, modifier = Modifier.size(16.dp)) },
                         modifier = Modifier.weight(1f)
                     )
@@ -801,89 +801,9 @@ fun ForgotPasswordDialog(
     }
 }
 
-@Composable
-fun RoleSelectionCard(
-    roleTitle: String,
-    subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    badge: String,
-    isSelected: Boolean,
-    accentColor: Color,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .then(
-                if (isSelected) Modifier.border(2.dp, accentColor, RoundedCornerShape(14.dp))
-                else Modifier
-            ),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                color = if (isSelected) accentColor else MaterialTheme.colorScheme.surfaceVariant,
-                shape = CircleShape,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = roleTitle,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Surface(
-                        color = if (isSelected) accentColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(6.dp)
-                    ) {
-                        Text(
-                            text = badge,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isSelected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Text(
-                    text = subtitle,
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            RadioButton(
-                selected = isSelected,
-                onClick = onClick,
-                colors = RadioButtonDefaults.colors(selectedColor = accentColor)
-            )
-        }
-    }
-}
+// RoleSelectionCard used to live here: the 3-card "Select Access Clearance" picker on
+// the login screen, orphaned once that picker itself was removed (zero remaining
+// callers) — deleted rather than left as dead code.
 
 // GoogleChooserDialog / GoogleAccountRow used to live here: a fake "account chooser"
 // hardcoding the developer's own identity as an instant, password-free tap-to-become

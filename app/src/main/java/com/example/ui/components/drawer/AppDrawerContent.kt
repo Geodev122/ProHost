@@ -66,7 +66,7 @@ fun ProfessionalDrawerContent(
                     color = PureWhite
                 )
                 Text(
-                    text = currentUser?.specialty ?: "Licensed Professional",
+                    text = currentUser?.specialty ?: "Licensed Specialist",
                     style = MaterialTheme.typography.bodySmall,
                     color = LightGray,
                     fontWeight = FontWeight.SemiBold
@@ -126,7 +126,7 @@ fun ProfessionalDrawerContent(
         )
         Spacer(modifier = Modifier.height(4.dp))
         NavigationDrawerItem(
-            label = { Text("Professional Profile", fontWeight = FontWeight.Bold) },
+            label = { Text("Specialist Profile", fontWeight = FontWeight.Bold) },
             selected = activeTabId == "pro_profile",
             onClick = { onTabSelected("pro_profile") },
             icon = { Icon(Icons.Default.Person, contentDescription = null, tint = if (activeTabId == "pro_profile") CarnationOrange else OxfordBlue) },
@@ -135,6 +135,51 @@ fun ProfessionalDrawerContent(
                 selectedTextColor = OxfordBlue,
                 unselectedTextColor = CoolGray
             )
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
+
+        Text(
+            text = "PRACTICE & FINANCE",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = CarnationOrange,
+            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Pending Requests", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("pro_pending") },
+            icon = { Icon(Icons.Default.Inbox, contentDescription = null, tint = OxfordBlue) }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NavigationDrawerItem(
+            label = { Text("Payment Due Reminders", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("pro_dues") },
+            icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = OxfordBlue) }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NavigationDrawerItem(
+            label = { Text("Syndicate ID Verification", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("pro_syndicate") },
+            icon = { Icon(Icons.Default.Verified, contentDescription = null, tint = OxfordBlue) }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NavigationDrawerItem(
+            label = { Text("Lebanese Rent Laws", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("pro_laws") },
+            icon = { Icon(Icons.Default.MenuBook, contentDescription = null, tint = OxfordBlue) }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NavigationDrawerItem(
+            label = { Text("Accreditation & Practice Hub", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("pro_accreditation_hub") },
+            icon = { Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = OxfordBlue) }
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
@@ -259,9 +304,9 @@ fun OwnerDrawerContent(
         Spacer(modifier = Modifier.height(4.dp))
         NavigationDrawerItem(
             label = { Text("Renting Requests", fontWeight = FontWeight.Bold) },
-            selected = false,
-            onClick = { onDrawerAction("owner_requests_popup") },
-            icon = { Icon(Icons.Default.Inbox, contentDescription = null, tint = OxfordBlue) },
+            selected = activeTabId == "owner_requests",
+            onClick = { onTabSelected("owner_requests") },
+            icon = { Icon(Icons.Default.Inbox, contentDescription = null, tint = if (activeTabId == "owner_requests") FreshGreen else OxfordBlue) },
             colors = NavigationDrawerItemDefaults.colors(
                 selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
                 selectedTextColor = OxfordBlue,
@@ -315,6 +360,37 @@ fun OwnerDrawerContent(
                 selectedTextColor = OxfordBlue,
                 unselectedTextColor = CoolGray
             )
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
+
+        Text(
+            text = "FINANCE & RESOURCES",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = FreshGreen,
+            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Whish Money Transactions", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("owner_whish") },
+            icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = OxfordBlue) }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NavigationDrawerItem(
+            label = { Text("Owner Package Tiers & Governance", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("owner_package_tiers") },
+            icon = { Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = OxfordBlue) }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NavigationDrawerItem(
+            label = { Text("Practice Guidelines", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("owner_guidelines") },
+            icon = { Icon(Icons.Default.MenuBook, contentDescription = null, tint = OxfordBlue) }
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
@@ -377,7 +453,7 @@ fun AdminDrawerContent(
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = currentUser?.fullName ?: "Geo El-Najjar",
+                    text = currentUser?.fullName ?: "Admin",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
                     color = PureWhite
@@ -522,7 +598,7 @@ fun ProSpaceDrawerFooter() {
                     ProSpaceCedarBadge(text = "v2.5", isCompact = true)
                 }
                 Text(
-                    text = "Verified Professional Workspace Grid",
+                    text = "Verified Specialist Workspace Grid",
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 10.sp,
                     color = CoolGray

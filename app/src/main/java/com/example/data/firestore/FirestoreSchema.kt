@@ -27,6 +27,7 @@ object FirestoreSchema {
         const val WHISH_TRANSACTIONS = "whish_transactions"
         const val AUDIT_SECURITY_LOGS = "audit_security_logs"
         const val SYSTEM_METADATA = "system_metadata"
+        const val SCHEMA_ARCHITECTURE = "schema_architecture"
     }
 
     // Document Fields Contracts

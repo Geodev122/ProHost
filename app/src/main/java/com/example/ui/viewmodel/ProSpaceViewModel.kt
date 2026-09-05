@@ -37,7 +37,6 @@ class ProSpaceViewModel(
     val currentUser: StateFlow<AppUser?> = repository.currentUser
     val credentialDocuments: StateFlow<List<CredentialDocument>> = repository.credentialDocuments
     val auditLogs: StateFlow<List<AuditSecurityLog>> = repository.auditLogs
-    val avatarCampaigns: StateFlow<List<AvatarCampaign>> = repository.avatarCampaigns
     val bookingRequests: StateFlow<List<RentalBookingRequest>> = repository.bookingRequests
     val fcmAlerts: StateFlow<List<FCMAlert>> = repository.fcmAlerts
     val isOfflineMode: StateFlow<Boolean> = repository.isOfflineMode
@@ -171,22 +170,13 @@ class ProSpaceViewModel(
         _selectedSpace.value = space
     }
 
-    // --- Admin Pricing Governance ---
-    fun setSubscriptionFee(fee: Double) {
-        repository.updateMonthlySubscriptionFee(fee)
-    }
-
-    fun resetSubscriptionFeeBaseline() {
-        repository.resetMonthlySubscriptionFee()
-    }
-
-    fun toggleListingVerification(spaceId: String) {
-        repository.toggleListingVerification(spaceId)
-    }
-
-    fun toggleListingActive(spaceId: String) {
-        repository.toggleListingActive(spaceId)
-    }
+    // Admin pricing/listing governance (setSubscriptionFee, resetSubscriptionFeeBaseline,
+    // toggleListingVerification, toggleListingActive) used to be duplicated here — dead
+    // leftovers from before AdminViewModel existed, still called from the "admin_forecast"
+    // drawer dialog (a fully unreachable duplicate of AdminConsoleScreen's already-correct
+    // Dynamic Pricing Engine tab), silently discarding the Boolean result with no success/
+    // failure feedback of any kind. Both the dialog and these wrappers are removed; use
+    // AdminViewModel's checked equivalents instead.
 
     // --- Whish Pay Settlement ---
     // All four flows below used to build a "SUCCESS" WhishTransaction locally and grant
@@ -279,6 +269,20 @@ class ProSpaceViewModel(
 
         repository.addSpaceListing(listing)
         return true
+    }
+
+    // An owner had no in-app way to correct a mistake in, or take down, their own
+    // published listing — updateSpaceListing/deleteSpaceListing were only ever called
+    // from the Admin Console. Firestore rules already permit the owning user to update/
+    // delete their own workspace_listings document directly, so this just exposes the
+    // existing repository methods (which already safely preserve isVerified/
+    // isActiveSubscription/subscriptionExpiryMillis/ownerId regardless of caller).
+    suspend fun updateOwnerListing(updated: SpaceListing): Boolean {
+        return repository.updateSpaceListing(updated)
+    }
+
+    suspend fun deleteOwnerListing(spaceId: String): Boolean {
+        return repository.deleteSpaceListing(spaceId)
     }
 
     fun payOwnerPackageViaWhish(
@@ -487,15 +491,15 @@ class ProSpaceViewModel(
         repository.addAuditLog(actionType, details, severity)
     }
 
-    fun updateProfile(
+    suspend fun updateProfile(
         name: String,
         specialty: String,
         phone: String,
         affiliation: String,
         syndicateNumber: String,
         governorate: Governorate
-    ) {
-        repository.updateCurrentUserProfile(name, specialty, phone, affiliation, syndicateNumber, governorate)
+    ): Boolean {
+        return repository.updateCurrentUserProfile(name, specialty, phone, affiliation, syndicateNumber, governorate)
     }
 
     // --- Credential Document Operations ---
@@ -522,28 +526,28 @@ class ProSpaceViewModel(
         )
     }
 
-    fun removeCredentialDocument(documentId: String) {
-        repository.removeCredentialDocument(documentId)
+    suspend fun removeCredentialDocument(documentId: String): Boolean {
+        return repository.removeCredentialDocument(documentId)
     }
 
-    fun submitForVerification() {
-        val user = currentUser.value ?: return
-        repository.submitUserVerification(user.id)
+    suspend fun submitForVerification(): Boolean {
+        val user = currentUser.value ?: return false
+        return repository.submitUserVerification(user.id)
     }
 
-    fun adminApproveDocument(documentId: String, notes: String = "Validated against Lebanese Syndicate Registry") {
-        repository.adminApproveDocument(documentId, notes)
+    suspend fun adminApproveDocument(documentId: String, notes: String = "Validated against Lebanese Syndicate Registry"): Boolean {
+        return repository.adminApproveDocument(documentId, notes)
     }
 
-    fun adminRejectDocument(documentId: String, reason: String) {
-        repository.adminRejectDocument(documentId, reason)
+    suspend fun adminRejectDocument(documentId: String, reason: String): Boolean {
+        return repository.adminRejectDocument(documentId, reason)
     }
 
     // --- WhatsApp Direct Connection ---
     fun launchWhatsAppInquiry(context: Context, space: SpaceListing, selectedFormula: RentalFormula?, request: RentalBookingRequest? = null) {
         val user = currentUser.value
-        val professionalName = user?.fullName ?: "Professional Member"
-        val specialty = user?.specialty ?: "Independent Professional"
+        val professionalName = user?.fullName ?: "Specialist Member"
+        val specialty = user?.specialty ?: "Independent Specialist"
         val affiliation = user?.affiliation ?: "ProSpace Member Network"
         val syndicate = user?.syndicateNumber ?: "PRO-LB-VERIFIED"
 
@@ -561,7 +565,7 @@ class ProSpaceViewModel(
             "• Chosen Availability: $daysStr @ $timesStr$shiftStr\n" +
             "• Start Date: ${request.startDate} (${request.durationMonths} month${if (request.durationMonths > 1) "s" else ""})\n" +
             "• Total Agreement Value: $${request.totalAmountUsd.toInt()} USD\n" +
-            "• Professional Notes: ${request.clinicalNotes}\n" +
+            "• Specialist Notes: ${request.clinicalNotes}\n" +
             "• In-App Status: PENDING HOST APPROVAL"
         } else ""
 
@@ -699,13 +703,25 @@ class ProSpaceViewModel(
             endTime = endTime,
             reason = reason
         )
-        repository.addBlackoutSlot(spaceId, slot)
-        Toast.makeText(context, "Blackout hour added: $dayOfWeek ($startTime - $endTime)", Toast.LENGTH_SHORT).show()
+        viewModelScope.launch {
+            val success = repository.addBlackoutSlot(spaceId, slot)
+            Toast.makeText(
+                context,
+                if (success) "Blackout hour added: $dayOfWeek ($startTime - $endTime)" else "Failed to add blackout hour — please try again",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     fun removeBlackoutSlot(spaceId: String, slotId: String, context: Context) {
-        repository.removeBlackoutSlot(spaceId, slotId)
-        Toast.makeText(context, "Blackout slot removed", Toast.LENGTH_SHORT).show()
+        viewModelScope.launch {
+            val success = repository.removeBlackoutSlot(spaceId, slotId)
+            Toast.makeText(
+                context,
+                if (success) "Blackout slot removed" else "Failed to remove blackout slot — please try again",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     fun updateSpaceOperatingSchedule(
@@ -723,8 +739,14 @@ class ProSpaceViewModel(
             operatingDays = operatingDays,
             isSundayOperating = isSundayOperating
         )
-        repository.updateSpaceSchedule(spaceId, updatedSchedule)
-        Toast.makeText(context, "Operating schedule updated!", Toast.LENGTH_SHORT).show()
+        viewModelScope.launch {
+            val success = repository.updateSpaceSchedule(spaceId, updatedSchedule)
+            Toast.makeText(
+                context,
+                if (success) "Operating schedule updated!" else "Failed to update schedule — please try again",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     fun addCustomFormula(
@@ -754,13 +776,25 @@ class ProSpaceViewModel(
             minHours = minHours,
             shiftName = shiftName
         )
-        repository.addRentalFormula(spaceId, formula)
-        Toast.makeText(context, "New formula '${type.displayName}' added!", Toast.LENGTH_SHORT).show()
+        viewModelScope.launch {
+            val success = repository.addRentalFormula(spaceId, formula)
+            Toast.makeText(
+                context,
+                if (success) "New formula '${type.displayName}' added!" else "Failed to add formula — please try again",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     fun deleteFormula(spaceId: String, formulaId: String, context: Context) {
-        repository.deleteRentalFormula(spaceId, formulaId)
-        Toast.makeText(context, "Rental formula deleted", Toast.LENGTH_SHORT).show()
+        viewModelScope.launch {
+            val success = repository.deleteRentalFormula(spaceId, formulaId)
+            Toast.makeText(
+                context,
+                if (success) "Rental formula deleted" else "Failed to delete formula — please try again",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     // Availability Analytics per Space
@@ -770,11 +804,6 @@ class ProSpaceViewModel(
 
     fun getPendingBookingsForSpace(spaceId: String): List<RentalBookingRequest> {
         return bookingRequests.value.filter { it.spaceId == spaceId && it.status == BookingRequestStatus.PENDING }
-    }
-
-    // --- AI Avatar Marketing Campaign Generator ---
-    fun generateAvatarCampaignForSpace(space: SpaceListing): AvatarCampaign {
-        return repository.generateAvatarCampaign(space)
     }
 
     // --- Data Export Hub ---

@@ -1125,19 +1125,6 @@ data class AdminPricingState(
     }
 }
 
-data class AvatarCampaign(
-    val id: String,
-    val spaceId: String,
-    val spaceTitle: String,
-    val instagramHandle: String = "@prospace.lebanon",
-    val totalReelViews: Int = 1420,
-    val linkClicks: Int = 28,
-    val inquiriesGenerated: Int = 9,
-    val generatedCaption: String,
-    val storyOverlayTag: String,
-    val lastNudgeText: String = "Your collaborative workspace Reel reached 1,420 professionals in Mount Lebanon! 9 inquiries redirected to WhatsApp."
-)
-
 data class FCMAlert(
     val id: String = java.util.UUID.randomUUID().toString(),
     val title: String,
@@ -1160,7 +1147,29 @@ data class SchemaItem(
     val iconName: String = "Category",
     val isEnabled: Boolean = true,
     val isSystemDefault: Boolean = true
-)
+) {
+    fun toFirestoreMap(): Map<String, Any?> = mapOf(
+        "id" to id,
+        "name" to name,
+        "description" to description,
+        "category" to category,
+        "iconName" to iconName,
+        "isEnabled" to isEnabled,
+        "isSystemDefault" to isSystemDefault
+    )
+
+    companion object {
+        fun fromFirestoreMap(data: Map<String, Any?>): SchemaItem = SchemaItem(
+            id = data["id"] as? String ?: "",
+            name = data["name"] as? String ?: "",
+            description = data["description"] as? String ?: "",
+            category = data["category"] as? String ?: "",
+            iconName = data["iconName"] as? String ?: "Category",
+            isEnabled = data["isEnabled"] as? Boolean ?: true,
+            isSystemDefault = data["isSystemDefault"] as? Boolean ?: true
+        )
+    }
+}
 
 data class SpaceArchitectureSchema(
     val spaceTypes: List<SchemaItem> = emptyList(),
@@ -1183,6 +1192,31 @@ data class SpaceArchitectureSchema(
 
     val allItems: List<SchemaItem>
         get() = spaceTypes + subcategories + amenities + equipmentCategories + specialties + rentalStrategies
+
+    fun toFirestoreMap(): Map<String, Any?> = mapOf(
+        "spaceTypes" to spaceTypes.map { it.toFirestoreMap() },
+        "subcategories" to subcategories.map { it.toFirestoreMap() },
+        "amenities" to amenities.map { it.toFirestoreMap() },
+        "equipmentCategories" to equipmentCategories.map { it.toFirestoreMap() },
+        "specialties" to specialties.map { it.toFirestoreMap() },
+        "rentalStrategies" to rentalStrategies.map { it.toFirestoreMap() }
+    )
+
+    companion object {
+        @Suppress("UNCHECKED_CAST")
+        fun fromFirestoreMap(data: Map<String, Any?>): SpaceArchitectureSchema {
+            fun list(key: String): List<SchemaItem> =
+                (data[key] as? List<Map<String, Any?>>)?.map { SchemaItem.fromFirestoreMap(it) } ?: emptyList()
+            return SpaceArchitectureSchema(
+                spaceTypes = list("spaceTypes"),
+                subcategories = list("subcategories"),
+                amenities = list("amenities"),
+                equipmentCategories = list("equipmentCategories"),
+                specialties = list("specialties"),
+                rentalStrategies = list("rentalStrategies")
+            )
+        }
+    }
 }
 
 /**
