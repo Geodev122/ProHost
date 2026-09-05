@@ -1,5 +1,6 @@
 package com.example.data.api
 
+import com.example.data.crypto.WhishSecurity
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import okhttp3.Interceptor
@@ -83,13 +84,17 @@ interface WhishPayService {
 object WhishPayApi {
     private const val BASE_URL = "https://api.sandbox.whish.money/itel-service/api/"
 
+    // NOTE: this whole interceptor — and the app's direct calls to Whish's API at all —
+    // is slated for removal once payment initiation moves server-side (remediation plan
+    // Phase 5). It is kept functional for now, sourced from the single WhishSecurity
+    // config object instead of re-typed literals, so it isn't a second hardcoded copy.
     private val headerInterceptor = Interceptor { chain ->
         val original = chain.request()
         val request = original.newBuilder()
-            .header("channel", "15462415")
-            .header("httpchannel", "15462415")
-            .header("secret", "23cfc205ed0d4aba83df6b12b0bbd4a1")
-            .header("websiteUrl", "ceo@hopebearer-award.com")
+            .header("channel", WhishSecurity.CHANNEL_ID)
+            .header("httpchannel", WhishSecurity.CHANNEL_ID)
+            .header("secret", WhishSecurity.DEFAULT_SECRET_KEY)
+            .header("websiteUrl", WhishSecurity.SOURCE_EMAIL)
             .header("User-Agent", "Whish/1.0 (https://whish.money; support@whish.money)")
             .header("Content-Type", "application/json")
             .build()

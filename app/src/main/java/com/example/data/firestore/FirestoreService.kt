@@ -5,16 +5,22 @@ import com.example.data.model.*
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 /**
  * FirestoreService
  *
- * Direct Firebase Firestore client encapsulating all schema definitions, collection operations,
- * and Data Connect entity compliance validation for ProHost Lebanon.
+ * The single Firestore access layer for ProHost: collection/document CRUD, real-time
+ * listeners, and initial-data seeding, all against the canonical collection names in
+ * [FirestoreSchema]. This absorbs what used to be split across this class and the
+ * now-removed `FirestoreDataConnectBridge` (which duplicated most of this against the
+ * same collections via a parallel callback-style API).
  */
 class FirestoreService(
     private val firestore: FirebaseFirestore? = try {
@@ -37,6 +43,9 @@ class FirestoreService(
         }
     }
 
+    private val listenerScope = CoroutineScope(Dispatchers.IO)
+    private val activeListeners = mutableListOf<ListenerRegistration>()
+
     /**
      * Initializes the Firestore database schema with metadata and system verification markers.
      */
@@ -49,12 +58,14 @@ class FirestoreService(
                 "databaseId" to FirestoreSchema.DEFAULT_DATABASE_ID,
                 "initializedAt" to System.currentTimeMillis(),
                 "status" to "HEALTHY",
-                "features" to listOf(
-                    "WORKSPACES_V2",
-                    "USER_PROFILES_SYNDICATE",
-                    "BOOKINGS_WORKFLOW",
-                    "WHISH_MONEY_SETTLEMENT",
-                    "AUDIT_SECURITY_LOGS"
+                "collections" to listOf(
+                    FirestoreSchema.Collections.WORKSPACE_LISTINGS,
+                    FirestoreSchema.Collections.USER_PROFILES,
+                    FirestoreSchema.Collections.SUBSCRIPTION_FORMULAS,
+                    FirestoreSchema.Collections.BOOKING_REQUESTS,
+                    FirestoreSchema.Collections.USER_CREDENTIALS,
+                    FirestoreSchema.Collections.WHISH_TRANSACTIONS,
+                    FirestoreSchema.Collections.AUDIT_SECURITY_LOGS
                 )
             )
             db.collection(FirestoreSchema.Collections.SYSTEM_METADATA)
@@ -69,45 +80,145 @@ class FirestoreService(
         }
     }
 
+    /**
+     * Fire-and-forget seed of default/starter data (subscription formulas, and whatever
+     * initial spaces/users the caller already holds in memory) using merge writes, so this
+     * is safe to call repeatedly without clobbering documents that already exist server-side.
+     */
+    fun seedInitialData(
+        initialSpaces: List<SpaceListing>,
+        initialUsers: List<AppUser>,
+        initialFormulas: List<SubscriptionFormula> = getDefaultSubscriptionFormulas()
+    ) {
+        val db = firestore ?: return
+        listenerScope.launch {
+            try {
+                initializeSchema()
+                initialFormulas.forEach { formula ->
+                    db.collection(FirestoreSchema.Collections.SUBSCRIPTION_FORMULAS)
+                        .document(formula.id)
+                        .set(formula.toFirestoreMap(), SetOptions.merge())
+                        .await()
+                }
+                initialSpaces.forEach { space ->
+                    db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
+                        .document(space.id)
+                        .set(space.toFirestoreMap(), SetOptions.merge())
+                        .await()
+                }
+                initialUsers.forEach { user ->
+                    db.collection(FirestoreSchema.Collections.USER_PROFILES)
+                        .document(user.id)
+                        .set(user.toFirestoreMap(), SetOptions.merge())
+                        .await()
+                }
+                Log.d(TAG, "Initial data seed complete.")
+            } catch (e: Exception) {
+                Log.w(TAG, "Initial data seed fallback: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Attaches real-time snapshot listeners for the collections that need live cross-device
+     * sync (workspaces, users, subscription formulas, bookings). Returns nothing; call
+     * [clearListeners] to detach everything this has registered.
+     */
+    fun attachLiveListeners(
+        onWorkspacesUpdated: (List<SpaceListing>) -> Unit,
+        onUsersUpdated: (List<AppUser>) -> Unit,
+        onBookingsUpdated: (List<RentalBookingRequest>) -> Unit,
+        onFormulasUpdated: (List<SubscriptionFormula>) -> Unit
+    ) {
+        val db = firestore ?: return
+
+        try {
+            val spaceListener = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.w(TAG, "Workspaces sync note: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null && !snapshot.isEmpty) {
+                        val spaces = snapshot.documents.mapNotNull { doc ->
+                            doc.data?.let { data -> SpaceListing.fromFirestoreMap(doc.id, data) }
+                        }
+                        if (spaces.isNotEmpty()) onWorkspacesUpdated(spaces)
+                    }
+                }
+            activeListeners.add(spaceListener)
+
+            val userListener = db.collection(FirestoreSchema.Collections.USER_PROFILES)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.w(TAG, "Users sync note: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null && !snapshot.isEmpty) {
+                        val users = snapshot.documents.mapNotNull { doc ->
+                            doc.data?.let { data -> AppUser.fromFirestoreMap(doc.id, data) }
+                        }
+                        if (users.isNotEmpty()) onUsersUpdated(users)
+                    }
+                }
+            activeListeners.add(userListener)
+
+            val formulaListener = db.collection(FirestoreSchema.Collections.SUBSCRIPTION_FORMULAS)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.w(TAG, "Formulas sync note: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null && !snapshot.isEmpty) {
+                        val formulas = snapshot.documents.mapNotNull { doc ->
+                            doc.data?.let { data -> SubscriptionFormula.fromFirestoreMap(doc.id, data) }
+                        }
+                        if (formulas.isNotEmpty()) onFormulasUpdated(formulas)
+                    }
+                }
+            activeListeners.add(formulaListener)
+
+            // Booking requests listener — the single collection ("booking_requests") that both
+            // reads and writes must agree on. See ProSpaceRepository for the write side.
+            val bookingListener = db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.w(TAG, "Bookings sync note: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null && !snapshot.isEmpty) {
+                        val bookings = snapshot.documents.mapNotNull { doc ->
+                            doc.data?.let { data -> BookingRequest.fromFirestoreMap(doc.id, data) }
+                        }
+                        if (bookings.isNotEmpty()) onBookingsUpdated(bookings)
+                    }
+                }
+            activeListeners.add(bookingListener)
+        } catch (e: Exception) {
+            Log.w(TAG, "Live listeners attachment warning: ${e.message}")
+        }
+    }
+
+    fun clearListeners() {
+        activeListeners.forEach { runCatching { it.remove() } }
+        activeListeners.clear()
+    }
+
     // ==========================================
     // WORKSPACE LISTINGS (schema.gql SpaceListing)
     // ==========================================
 
+    /**
+     * Persists the FULL workspace document (equipment, rental formulas, rules, schedule,
+     * subdivisions included) — previously this wrote only a partial field subset, silently
+     * dropping nested data on every save.
+     */
     suspend fun saveWorkspace(space: SpaceListing): Boolean {
         return try {
             val db = firestore ?: return false
-            val data = mapOf(
-                FirestoreSchema.WorkspaceFields.ID to space.id,
-                FirestoreSchema.WorkspaceFields.TITLE to space.title,
-                FirestoreSchema.WorkspaceFields.SPACE_TYPE to space.spaceType.name,
-                FirestoreSchema.WorkspaceFields.GOVERNORATE to space.governorate.name,
-                FirestoreSchema.WorkspaceFields.DISTRICT to space.district,
-                FirestoreSchema.WorkspaceFields.STREET_ADDRESS to space.streetAddress,
-                FirestoreSchema.WorkspaceFields.FLOOR_INFO to space.floorInfo,
-                FirestoreSchema.WorkspaceFields.LAT to space.lat,
-                FirestoreSchema.WorkspaceFields.LNG to space.lng,
-                FirestoreSchema.WorkspaceFields.IS_SHARED to space.isShared,
-                FirestoreSchema.WorkspaceFields.COMPLEMENTARY_SPECIALTIES to space.complementarySpecialties,
-                FirestoreSchema.WorkspaceFields.RESIDENT_PRACTITIONERS to space.residentPractitioners,
-                FirestoreSchema.WorkspaceFields.ESSENTIAL_FACILITIES to space.essentialFacilities,
-                FirestoreSchema.WorkspaceFields.OWNER_ID to space.ownerId,
-                FirestoreSchema.WorkspaceFields.OWNER_NAME to space.ownerName,
-                FirestoreSchema.WorkspaceFields.OWNER_PHONE to space.ownerPhone,
-                FirestoreSchema.WorkspaceFields.OWNER_EMAIL to space.ownerEmail,
-                FirestoreSchema.WorkspaceFields.IS_VERIFIED to space.isVerified,
-                FirestoreSchema.WorkspaceFields.IS_ACTIVE_SUBSCRIPTION to space.isActiveSubscription,
-                FirestoreSchema.WorkspaceFields.SUBSCRIPTION_EXPIRY_MILLIS to space.subscriptionExpiryMillis,
-                FirestoreSchema.WorkspaceFields.IMAGE_URLS to space.imageUrls,
-                FirestoreSchema.WorkspaceFields.VIDEO_TOUR_DURATION_SEC to space.videoTourDurationSec,
-                FirestoreSchema.WorkspaceFields.BASE_MONTHLY_RATE_USD to space.baseMonthlyRateUsd,
-                FirestoreSchema.WorkspaceFields.AVATAR_ENGAGEMENT_VIEWS to space.avatarEngagementViews,
-                FirestoreSchema.WorkspaceFields.AVATAR_INQUIRY_CLICKS to space.avatarInquiryClicks,
-                FirestoreSchema.WorkspaceFields.UPDATED_AT to System.currentTimeMillis()
-            )
-
             db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
                 .document(space.id)
-                .set(data, SetOptions.merge())
+                .set(space.toFirestoreMap(), SetOptions.merge())
                 .await()
             true
         } catch (e: Exception) {
@@ -168,6 +279,143 @@ class FirestoreService(
         }
     }
 
+    suspend fun updateUserVerificationStatus(
+        userId: String,
+        status: MemberVerificationStatus,
+        tier: VerificationTier,
+        notes: String?
+    ): Boolean {
+        return try {
+            val db = firestore ?: return false
+            val updateMap = mutableMapOf<String, Any>(
+                "verificationStatus" to status.name,
+                "verificationTier" to tier.name,
+                "isVerified" to (status == MemberVerificationStatus.VERIFIED),
+                "updatedAt" to System.currentTimeMillis()
+            )
+            if (notes != null) updateMap["verificationNotes"] = notes
+
+            db.collection(FirestoreSchema.Collections.USER_PROFILES)
+                .document(userId)
+                .set(updateMap, SetOptions.merge())
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating verification status: ${e.message}", e)
+            false
+        }
+    }
+
+    // ==========================================
+    // SUBSCRIPTION FORMULAS
+    // ==========================================
+
+    suspend fun saveSubscriptionFormula(formula: SubscriptionFormula): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.SUBSCRIPTION_FORMULAS)
+                .document(formula.id)
+                .set(formula.toFirestoreMap(), SetOptions.merge())
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving subscription formula: ${e.message}", e)
+            false
+        }
+    }
+
+    /**
+     * Standard Lebanese workspace subscription packages, used to seed a fresh project.
+     */
+    fun getDefaultSubscriptionFormulas(): List<SubscriptionFormula> {
+        return listOf(
+            SubscriptionFormula(
+                id = "SUB-FRM-001",
+                title = "Flex Day-Pass (Hourly / Half-Day)",
+                type = RentalFormulaType.HOURLY,
+                billingInterval = SubscriptionBillingInterval.HOURLY,
+                priceUsd = 15.0,
+                description = "On-demand access for client consultations, depositions, and agile team huddles",
+                daysPerWeek = 1,
+                hoursPerDay = 4,
+                startHour = "08:00",
+                endHour = "20:00",
+                targetSpecialties = listOf("Consultants", "Attorneys", "Engineers", "Financial Advisors"),
+                includedPerks = listOf(
+                    "High-speed Fiber Wi-Fi",
+                    "Receptionist Greeting",
+                    "Coffee & Tea Bar",
+                    "24/7 Power Continuity"
+                ),
+                isFeatured = false
+            ),
+            SubscriptionFormula(
+                id = "SUB-FRM-002",
+                title = "Practitioner Shift Formula",
+                type = RentalFormulaType.SHIFT,
+                billingInterval = SubscriptionBillingInterval.SHIFT,
+                priceUsd = 180.0,
+                description = "Dedicated morning or afternoon shift access (Mon - Fri) tailored for active practice",
+                daysPerWeek = 5,
+                hoursPerDay = 6,
+                startHour = "08:00",
+                endHour = "14:00",
+                targetSpecialties = listOf("Healthcare Specialists", "Architects", "Designers", "Chartered Accountants"),
+                includedPerks = listOf(
+                    "Dedicated Desk or Clinic Room",
+                    "Client Lounge & Waiting Area",
+                    "Syndicate Verified Listing Badge",
+                    "10 Hours Conference Room Access",
+                    "Fiber Internet & Generator Backup"
+                ),
+                isFeatured = true
+            ),
+            SubscriptionFormula(
+                id = "SUB-FRM-003",
+                title = "Day-per-Week Retainer",
+                type = RentalFormulaType.DAY_PER_WEEK,
+                billingInterval = SubscriptionBillingInterval.DAY_PER_WEEK,
+                priceUsd = 120.0,
+                description = "Reserve a specific fixed day every week throughout the entire month (e.g., Every Wednesday)",
+                daysPerWeek = 1,
+                hoursPerDay = 10,
+                startHour = "08:00",
+                endHour = "18:00",
+                targetSpecialties = listOf("Visiting Doctors", "Legal Counsel", "Auditors", "Consulting Engineers"),
+                includedPerks = listOf(
+                    "Guaranteed Room Reservation",
+                    "Receptionist Patient/Client Check-in",
+                    "Private File Storage Locker",
+                    "Fast Wi-Fi & Generator Power"
+                ),
+                isFeatured = false
+            ),
+            SubscriptionFormula(
+                id = "SUB-FRM-004",
+                title = "Full Dedicated Executive Suite (Monthly)",
+                type = RentalFormulaType.FULL_MONTH,
+                billingInterval = SubscriptionBillingInterval.MONTHLY,
+                priceUsd = 450.0,
+                description = "24/7 exclusive private office with premier commercial address and full receptionist support",
+                daysPerWeek = 6,
+                hoursPerDay = 24,
+                startHour = "00:00",
+                endHour = "23:59",
+                targetSpecialties = listOf("Law Firms", "Engineering Consultancies", "Medical Centers", "Tech Startups"),
+                includedPerks = listOf(
+                    "24/7 Keycard & Smart Lock Access",
+                    "Commercial Business Address Registration",
+                    "Full Receptionist & Mail Handling",
+                    "Unlimited High-Speed Fiber Internet",
+                    "Solar + Generator Uninterrupted Power",
+                    "20 Hours Executive Boardroom Credits"
+                ),
+                discountPercent = 10.0,
+                isFeatured = true
+            )
+        )
+    }
+
     // ==========================================
     // BOOKING REQUESTS (schema.gql BookingRequest)
     // ==========================================
@@ -189,16 +437,16 @@ class FirestoreService(
     suspend fun updateBookingStatus(
         requestId: String,
         status: BookingRequestStatus,
-        reviewerNotes: String? = null
+        rejectionReason: String? = null
     ): Boolean {
         return try {
             val db = firestore ?: return false
             val updates = mutableMapOf<String, Any>(
                 "status" to status.name,
-                "updatedAt" to System.currentTimeMillis()
+                "reviewedAt" to System.currentTimeMillis()
             )
-            if (reviewerNotes != null) {
-                updates["reviewerNotes"] = reviewerNotes
+            if (rejectionReason != null) {
+                updates["rejectionReason"] = rejectionReason
             }
             if (status == BookingRequestStatus.ACCEPTED) {
                 updates["isExternalPaymentSettled"] = true
@@ -206,11 +454,29 @@ class FirestoreService(
 
             db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
                 .document(requestId)
-                .update(updates)
+                .set(updates, SetOptions.merge())
                 .await()
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error updating booking status: ${e.message}", e)
+            false
+        }
+    }
+
+    // ==========================================
+    // CREDENTIAL DOCUMENTS
+    // ==========================================
+
+    suspend fun saveCredentialDocument(doc: CredentialDocument): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.USER_CREDENTIALS)
+                .document(doc.id)
+                .set(doc.toFirestoreMap(), SetOptions.merge())
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving credential document: ${e.message}", e)
             false
         }
     }
@@ -250,6 +516,9 @@ class FirestoreService(
     // ==========================================
     // DATA CONNECT COMPLIANCE VALIDATOR
     // ==========================================
+    // NOTE: this "audit" is largely self-congratulatory today (several checks are
+    // hardcoded to pass regardless of real state). It's rewritten to reflect actual
+    // runtime state in the remediation plan's testing-hardening phase — not touched here.
 
     data class ComplianceCheck(
         val name: String,

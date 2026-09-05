@@ -5,7 +5,6 @@ import android.util.Log
 import com.example.data.api.WhishPayApi
 import com.example.data.auth.FirebaseAuthService
 import com.example.data.crypto.WhishSecurity
-import com.example.data.firestore.FirestoreDataConnectBridge
 import com.example.data.firestore.FirestoreSchema
 import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
@@ -114,7 +113,6 @@ object AppSystemDebugger {
         // -------------------------------------------------------------
         try {
             val firestoreService = FirestoreService.getInstance()
-            val firestoreBridge = FirestoreDataConnectBridge.getInstance()
             val complianceReport = firestoreService.runDataConnectComplianceAudit()
 
             complianceReport.checks.forEach { check ->

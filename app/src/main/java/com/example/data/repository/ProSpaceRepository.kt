@@ -2,12 +2,9 @@ package com.example.data.repository
 
 import android.util.Log
 import com.example.data.crypto.WhishSecurity
-import com.example.data.firestore.FirestoreDataConnectBridge
 import com.example.data.firestore.FirestoreSchema
+import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,11 +39,15 @@ class ProSpaceRepository {
     }
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
-    private val firestoreBridge = FirestoreDataConnectBridge.getInstance()
-    private var firestoreListener: ListenerRegistration? = null
+    private val firestoreService = FirestoreService.getInstance()
 
-    val subscriptionFormulas: StateFlow<List<SubscriptionFormula>> = firestoreBridge.subscriptionFormulas
-    val isCloudConnected: StateFlow<Boolean> = firestoreBridge.isCloudConnected
+    private val _subscriptionFormulas = MutableStateFlow<List<SubscriptionFormula>>(
+        firestoreService.getDefaultSubscriptionFormulas()
+    )
+    val subscriptionFormulas: StateFlow<List<SubscriptionFormula>> = _subscriptionFormulas.asStateFlow()
+
+    private val _isCloudConnected = MutableStateFlow(false)
+    val isCloudConnected: StateFlow<Boolean> = _isCloudConnected.asStateFlow()
 
     private val _isOfflineMode = MutableStateFlow(false)
     val isOfflineMode: StateFlow<Boolean> = _isOfflineMode.asStateFlow()
@@ -123,66 +124,42 @@ class ProSpaceRepository {
 
     fun startRealtimeSync() {
         try {
-            // Initialize Firestore collections schema & seed default structures
-            firestoreBridge.initializeSchema(
+            // Safe to call again (e.g. on manual retry) — detach any previous listeners first
+            // so they don't stack up and fire duplicate updates.
+            firestoreService.clearListeners()
+
+            // Seed default/starter structures (merge writes — safe to repeat).
+            firestoreService.seedInitialData(
                 initialSpaces = _spaces.value,
-                initialUsers = _users.value
+                initialUsers = _users.value,
+                initialFormulas = _subscriptionFormulas.value
             )
 
-            // Attach multi-collection real-time snapshot listeners
-            firestoreBridge.attachLiveListeners(
+            // Attach the single set of real-time listeners. Bookings are read from and
+            // written to the same collection (FirestoreSchema.Collections.BOOKING_REQUESTS) —
+            // there used to be a second, separate "prospace_bookings" collection that writes
+            // went to while this listener read from "booking_requests", so a booking from one
+            // device never reached another device's listener. That split is now gone.
+            firestoreService.attachLiveListeners(
                 onWorkspacesUpdated = { updatedSpaces ->
                     _spaces.value = updatedSpaces
+                    _isCloudConnected.value = true
+                    _isOfflineMode.value = false
+                    _syncStatusMessage.value = "Real-time Cloud Sync Active"
                 },
                 onUsersUpdated = { updatedUsers ->
                     _users.value = updatedUsers
+                    _isCloudConnected.value = true
                 },
                 onBookingsUpdated = { updatedBookings ->
                     _bookingRequests.value = updatedBookings
+                    _isCloudConnected.value = true
                 },
-                onFormulasUpdated = { _ ->
-                    // Handled internally in bridge
+                onFormulasUpdated = { updatedFormulas ->
+                    _subscriptionFormulas.value = updatedFormulas
+                    _isCloudConnected.value = true
                 }
             )
-
-            try {
-                val firestore = FirebaseFirestore.getInstance()
-                firestoreListener?.remove()
-                firestoreListener = firestore.collection("prospace_bookings")
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            Log.w(TAG, "Firestore sync listener note: ${error.message}. Operating in resilient offline mode.")
-                            _isOfflineMode.value = true
-                            _syncStatusMessage.value = "Offline Cache Active • Local Persistence Ready"
-                            return@addSnapshotListener
-                        }
-                        if (snapshot != null && !snapshot.isEmpty) {
-                            _isOfflineMode.value = false
-                            _syncStatusMessage.value = "Real-time Cloud Sync Active"
-                            snapshot.documents.forEach { doc ->
-                                val statusStr = doc.getString("status")
-                                val reqId = doc.id
-                                if (statusStr != null) {
-                                    val newStatus = runCatching { BookingRequestStatus.valueOf(statusStr) }.getOrNull()
-                                    if (newStatus != null) {
-                                        _bookingRequests.value = _bookingRequests.value.map { req ->
-                                            if (req.id == reqId && req.status != newStatus) {
-                                                req.copy(
-                                                    status = newStatus,
-                                                    reviewedAt = doc.getLong("reviewedAt") ?: System.currentTimeMillis()
-                                                )
-                                            } else req
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-            } catch (e: Exception) {
-                Log.w(TAG, "FirebaseFirestore unavailable in test/offline environment: ${e.message}")
-                _isOfflineMode.value = true
-                _syncStatusMessage.value = "Offline Cache Active • Local Persistence Ready"
-            }
         } catch (e: Exception) {
             Log.w(TAG, "Firebase Firestore init fallback: ${e.message}")
             _isOfflineMode.value = true
@@ -192,63 +169,26 @@ class ProSpaceRepository {
 
     fun syncBookingStatusToFirestore(requestId: String, status: BookingRequestStatus, note: String? = null) {
         coroutineScope.launch {
-            try {
-                val firestore = FirebaseFirestore.getInstance()
-                val updateMap = mutableMapOf<String, Any>(
-                    "status" to status.name,
-                    "reviewedAt" to System.currentTimeMillis()
-                )
-                if (note != null) {
-                    updateMap["rejectionReason"] = note
-                }
-                firestore.collection("prospace_bookings").document(requestId)
-                    .set(updateMap, SetOptions.merge())
-                    .addOnSuccessListener {
-                        _isOfflineMode.value = false
-                        _syncStatusMessage.value = "Live Cloud Sync: $requestId ➔ ${status.name}"
-                    }
-                    .addOnFailureListener {
-                        _isOfflineMode.value = true
-                        _syncStatusMessage.value = "Offline: Status change cached locally"
-                    }
-            } catch (e: Exception) {
-                Log.w(TAG, "Firestore sync push exception: ${e.message}")
+            val success = firestoreService.updateBookingStatus(requestId, status, note)
+            if (success) {
+                _isOfflineMode.value = false
+                _syncStatusMessage.value = "Live Cloud Sync: $requestId ➔ ${status.name}"
+            } else {
                 _isOfflineMode.value = true
-                _syncStatusMessage.value = "Offline: Status cached locally"
+                _syncStatusMessage.value = "Offline: Status change cached locally"
             }
         }
     }
 
     fun syncNewBookingToFirestore(request: RentalBookingRequest) {
         coroutineScope.launch {
-            try {
-                val firestore = FirebaseFirestore.getInstance()
-                val data = mapOf(
-                    "id" to request.id,
-                    "spaceId" to request.spaceId,
-                    "spaceTitle" to request.spaceTitle,
-                    "ownerId" to request.ownerId,
-                    "practitionerId" to request.practitionerId,
-                    "practitionerName" to request.practitionerName,
-                    "formulaType" to request.formula.type.name,
-                    "totalAmountUsd" to request.totalAmountUsd,
-                    "status" to request.status.name,
-                    "createdAt" to request.createdAt,
-                    "selectedDateTimeRange" to request.selectedDateTimeRange
-                )
-                firestore.collection("prospace_bookings").document(request.id)
-                    .set(data, SetOptions.merge())
-                    .addOnSuccessListener {
-                        _isOfflineMode.value = false
-                        _syncStatusMessage.value = "Booking Synced with Firebase Cloud"
-                    }
-                    .addOnFailureListener {
-                        _isOfflineMode.value = true
-                        _syncStatusMessage.value = "Offline: Booking Stored in Local Cache"
-                    }
-            } catch (e: Exception) {
-                Log.w(TAG, "Firestore booking push fallback: ${e.message}")
+            val success = firestoreService.saveBookingRequest(request)
+            if (success) {
+                _isOfflineMode.value = false
+                _syncStatusMessage.value = "Booking Synced with Firebase Cloud"
+            } else {
                 _isOfflineMode.value = true
+                _syncStatusMessage.value = "Offline: Booking Stored in Local Cache"
             }
         }
     }
@@ -407,7 +347,7 @@ class ProSpaceRepository {
         actionType: String,
         details: String,
         severity: String = "INFO",
-        actorEmail: String = _currentUser.value?.email ?: "geo.elnajjar@gmail.com"
+        actorEmail: String = _currentUser.value?.email ?: "system@prohost.app"
     ) {
         val log = AuditSecurityLog(
             id = "LOG-" + UUID.randomUUID().toString().take(6).uppercase(),
@@ -418,6 +358,7 @@ class ProSpaceRepository {
             severity = severity
         )
         _auditLogs.value = listOf(log) + _auditLogs.value
+        coroutineScope.launch { firestoreService.recordAuditLog(log) }
     }
 
     // --- Admin Governance & Revenue Pricing ---
@@ -430,7 +371,7 @@ class ProSpaceRepository {
             actionType = "PRICING_ADJUSTMENT",
             details = "Monthly fee changed from $${String.format(Locale.US, "%.2f", oldFee)} to $${String.format(Locale.US, "%.2f", newFeeUsd)} USD",
             severity = "WARN",
-            actorEmail = _currentUser.value?.email ?: "geo.elnajjar@gmail.com"
+            actorEmail = _currentUser.value?.email ?: "system@prohost.app"
         )
     }
 
@@ -538,6 +479,7 @@ class ProSpaceRepository {
 
         // Add to ledger
         _transactions.value = listOf(tx) + _transactions.value
+        coroutineScope.launch { firestoreService.recordTransaction(tx) }
 
         // Grant 30 days active entitlement
         _spaces.value = _spaces.value.map { space ->
@@ -595,6 +537,7 @@ class ProSpaceRepository {
         )
 
         _transactions.value = listOf(tx) + _transactions.value
+        coroutineScope.launch { firestoreService.recordTransaction(tx) }
 
         if (user != null) {
             val updatedUser = user.copy(
@@ -645,6 +588,7 @@ class ProSpaceRepository {
         )
 
         _transactions.value = listOf(tx) + _transactions.value
+        coroutineScope.launch { firestoreService.recordTransaction(tx) }
 
         if (user != null) {
             val updatedUser = user.copy(
@@ -720,6 +664,8 @@ class ProSpaceRepository {
         )
 
         _transactions.value = listOf(tx) + _transactions.value
+        coroutineScope.launch { firestoreService.recordTransaction(tx) }
+        syncBookingStatusToFirestore(bookingId, BookingRequestStatus.ACCEPTED)
 
         addAuditLog(
             actionType = "WHISH_BOOKING_SETTLEMENT_SUCCESS",
@@ -764,6 +710,7 @@ class ProSpaceRepository {
         if (_currentUser.value?.id == updated.id) {
             _currentUser.value = updated
         }
+        coroutineScope.launch { firestoreService.saveUserProfile(updated) }
         addAuditLog(
             actionType = "USER_UPDATED",
             details = "Admin updated user profile for ${updated.fullName} (${updated.email})",
@@ -1385,6 +1332,7 @@ class ProSpaceRepository {
             _credentialDocuments.value + doc
         }
         _credentialDocuments.value = updatedList
+        coroutineScope.launch { firestoreService.saveCredentialDocument(doc) }
 
         addAuditLog(
             actionType = "DOCUMENT_UPLOADED",
@@ -1431,6 +1379,7 @@ class ProSpaceRepository {
             _currentUser.value = updated
         }
         _users.value = _users.value.map { if (it.id == userId) updated else it }
+        coroutineScope.launch { firestoreService.saveUserProfile(updated) }
 
         addAuditLog(
             actionType = "VERIFICATION_SUBMITTED",
@@ -1448,6 +1397,7 @@ class ProSpaceRepository {
             rejectionReason = null
         )
         _credentialDocuments.value = _credentialDocuments.value.map { if (it.id == documentId) updatedDoc else it }
+        coroutineScope.launch { firestoreService.saveCredentialDocument(updatedDoc) }
 
         addAuditLog(
             actionType = "DOCUMENT_ACCREDITED",
@@ -1466,6 +1416,7 @@ class ProSpaceRepository {
             reviewerNotes = "Revision requested: $reason"
         )
         _credentialDocuments.value = _credentialDocuments.value.map { if (it.id == documentId) updatedDoc else it }
+        coroutineScope.launch { firestoreService.saveCredentialDocument(updatedDoc) }
 
         addAuditLog(
             actionType = "DOCUMENT_REVISION_REQUESTED",
@@ -1517,6 +1468,7 @@ class ProSpaceRepository {
             _currentUser.value = updated
         }
         _users.value = _users.value.map { if (it.id == userId) updated else it }
+        coroutineScope.launch { firestoreService.saveUserProfile(updated) }
     }
 
     // --- AI Avatar Marketing Generator ---
@@ -1814,23 +1766,25 @@ ${_spaces.value.joinToString("\n") { sp ->
     fun exportTransactionsCsv(): String = exportTransactionsToCsv()
 
     fun requestCashOut(ownerName: String, amountUsd: Double, whishPhone: String): Boolean {
+        val orderId = "ORD-CASHOUT-" + System.currentTimeMillis()
         val tx = WhishTransaction(
             id = "TX-CASHOUT-" + UUID.randomUUID().toString().take(6).uppercase(),
-            orderId = "ORD-CASHOUT-" + System.currentTimeMillis(),
+            orderId = orderId,
             amountUsd = amountUsd,
             currency = "USD",
             status = TransactionStatus.SUCCESS,
             timestamp = System.currentTimeMillis(),
             payerName = ownerName,
             payerPhone = whishPhone,
-            channelId = "15462415",
-            sourceEmail = "geo.elnajjar@gmail.com",
-            signatureHash = com.example.data.crypto.WhishSecurity.generateSignature("15462415", amountUsd, "USD", "ORD-CASHOUT"),
+            channelId = WhishSecurity.CHANNEL_ID,
+            sourceEmail = WhishSecurity.SOURCE_EMAIL,
+            signatureHash = WhishSecurity.generateSignature(amount = amountUsd, orderId = orderId),
             spaceId = "SPACE-CASHOUT",
             spaceTitle = "Owner Cash-Out Settlement",
             daysGranted = 0
         )
         _transactions.value = listOf(tx) + _transactions.value
+        coroutineScope.launch { firestoreService.recordTransaction(tx) }
         return true
     }
 }

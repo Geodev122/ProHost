@@ -1,10 +1,20 @@
 package com.example.data.crypto
 
+import com.example.data.config.MerchantConfig
 import java.security.MessageDigest
 
 object WhishSecurity {
-    const val CHANNEL_ID = "15462415"
-    const val SOURCE_EMAIL = "ceo@hopebearer-award.com"
+    const val CHANNEL_ID = MerchantConfig.WHISH_CHANNEL_ID
+    const val SOURCE_EMAIL = MerchantConfig.WHISH_MERCHANT_EMAIL
+
+    /**
+     * TEMPORARY: the real merchant signing secret is still shipped in the client.
+     * This must be removed once payment initiation/signing moves server-side into
+     * Cloud Functions (remediation plan Phase 5) — at that point the client should
+     * no longer be able to produce a valid Whish signature at all. Do not add new
+     * call sites relying on this default; it exists only to avoid breaking the
+     * live payment flow before the server-side replacement is deployed.
+     */
     const val DEFAULT_SECRET_KEY = "23cfc205ed0d4aba83df6b12b0bbd4a1"
 
     fun generateSignature(
