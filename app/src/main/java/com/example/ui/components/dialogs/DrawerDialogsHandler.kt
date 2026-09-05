@@ -97,7 +97,6 @@ fun DrawerDialogsHandler(
                         "owner_guidelines" -> "Practice Guidelines"
                         "admin_audit" -> "Central Security Audits"
                         "admin_gov" -> "Governorate Node Status"
-                        "admin_governance_clearance" -> "Governance Authority Clearance"
                         "admin_credentials_registry" -> "Credential Documents Registry"
                         "admin_app_updates" -> "App Version & In-App Updates"
                         "pro_credentials_registry" -> "Credential Documents Registry"
@@ -563,79 +562,17 @@ fun DrawerDialogsHandler(
                                                                     Text("Open Screen", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                                                 }
                                                             }
-
-                                                            Button(
-                                                                onClick = {
-                                                                    val cleanPhone = "9613987654"
-                                                                    val msg = java.net.URLEncoder.encode("Hello, following up on alert: ${alert.title}", "UTF-8")
-                                                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://wa.me/$cleanPhone?text=$msg"))
-                                                                    context.startActivity(intent)
-                                                                },
-                                                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                                                modifier = Modifier.height(28.dp)
-                                                            ) {
-                                                                Text("WhatsApp", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                                            }
+                                                            // A "WhatsApp" quick-reply button used to live here, but FCMAlert
+                                                            // carries no related contact/phone at all — it always messaged a
+                                                            // single hardcoded number regardless of which alert or user it
+                                                            // was for. Removed rather than left sending real messages to an
+                                                            // unrelated number; "Open Screen" above still routes to the real
+                                                            // screen the alert is about.
                                                         }
                                                     }
                                                 }
                                             }
                                         }
-                                    }
-                                }
-                            }
-                        }
-                        "admin_governance_clearance" -> {
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                    ) {
-                                        Surface(
-                                            color = MaterialTheme.colorScheme.error,
-                                            shape = CircleShape,
-                                            modifier = Modifier.size(36.dp)
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Icon(Icons.Default.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-                                            }
-                                        }
-                                        Column {
-                                            Text(
-                                                text = "Root Supervisory Clearance • 100% Accredited",
-                                                style = MaterialTheme.typography.titleSmall,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Text(
-                                                text = "Node Account: ${currentUser?.email ?: "admin@prospace.lb"}",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                    Text(
-                                        text = "As Super Administrator, your account operates as central platform governance and is exempt from standard user document requirements. You hold supervisory clearance over space taxonomies, member accreditations, and Whish Money transaction ledgers.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    HorizontalDivider()
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text("🛡️ Cryptographic Integrity: Active", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                        Text("Role: SUPER_ADMIN", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -667,23 +604,7 @@ fun DrawerDialogsHandler(
                             }
                         }
                         "admin_app_updates" -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Google Play Core Update Management & Release Integrity", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("Installed Version: 1.0.0 (Production Channel Lebanese Node)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("App Integrity: Verified via Google Play App Signing & SHA-256 Key Attestation.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Button(
-                                    onClick = {
-                                        android.widget.Toast.makeText(context, "System is running latest signed production version 1.0.0", android.widget.Toast.LENGTH_SHORT).show()
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Check Google Play Updates", style = MaterialTheme.typography.labelMedium)
-                                }
-                            }
+                            AppUpdatesInfo(profileTabId = "admin_profile", onNavigateToTab = onNavigateToTab, onDismiss = onDismiss)
                         }
                         "pro_credentials_registry" -> {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -708,14 +629,17 @@ fun DrawerDialogsHandler(
                                                 Text(docType.title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                                                 Text("Status: ${upDoc?.status?.name ?: "NOT_UPLOADED"}", style = MaterialTheme.typography.bodySmall, color = if (upDoc?.status == DocumentStatus.VERIFIED) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error)
                                             }
-                                            Button(
-                                                onClick = {
-                                                    android.widget.Toast.makeText(context, "Opening document upload portal for ${docType.title}", android.widget.Toast.LENGTH_SHORT).show()
-                                                },
-                                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                                modifier = Modifier.height(32.dp)
-                                            ) {
-                                                Text("Upload", fontSize = 11.sp)
+                                            if (onNavigateToTab != null) {
+                                                Button(
+                                                    onClick = {
+                                                        onNavigateToTab("pro_profile")
+                                                        onDismiss()
+                                                    },
+                                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                                    modifier = Modifier.height(32.dp)
+                                                ) {
+                                                    Text("Upload", fontSize = 11.sp)
+                                                }
                                             }
                                         }
                                     }
@@ -742,23 +666,7 @@ fun DrawerDialogsHandler(
                             }
                         }
                         "pro_app_updates" -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Google Play In-App Updates & Release Integrity", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("Current Version: 1.0.0 (ProSpace Lebanese Production Channel)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("Automatic background updates are enabled via Google Play Core library.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Button(
-                                    onClick = {
-                                        android.widget.Toast.makeText(context, "App is up to date with Google Play store distribution.", android.widget.Toast.LENGTH_SHORT).show()
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Check for Updates", style = MaterialTheme.typography.labelMedium)
-                                }
-                            }
+                            AppUpdatesInfo(profileTabId = "pro_profile", onNavigateToTab = onNavigateToTab, onDismiss = onDismiss)
                         }
                         "owner_package_tiers" -> {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -779,22 +687,7 @@ fun DrawerDialogsHandler(
                             }
                         }
                         "owner_app_updates" -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Google Play In-App Updates & Release Integrity", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("Current Version: 1.0.0 (ProSpace Lebanese Production Channel)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Button(
-                                    onClick = {
-                                        android.widget.Toast.makeText(context, "App is up to date with Google Play store distribution.", android.widget.Toast.LENGTH_SHORT).show()
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Check for Updates", style = MaterialTheme.typography.labelMedium)
-                                }
-                            }
+                            AppUpdatesInfo(profileTabId = "owner_profile", onNavigateToTab = onNavigateToTab, onDismiss = onDismiss)
                         }
                     }
                 }
@@ -837,5 +730,45 @@ fun DrawerDialogsHandler(
                 }
             }
         )
+    }
+}
+
+/**
+ * All three role-specific "App Version & Updates" drawer dialogs used to be an
+ * identical fake update checker: a hardcoded "1.0.0" version and a button that
+ * always Toasted "up to date," completely disconnected from the real
+ * InAppUpdateManager already wired into the app's persistent update banner and
+ * SpecialistProfileScreen's genuine update UI. Rather than duplicate that real
+ * check here too (this dialog has no InAppUpdateManager instance available),
+ * this honestly points to where the real status actually lives.
+ */
+@Composable
+private fun AppUpdatesInfo(
+    profileTabId: String,
+    onNavigateToTab: ((String) -> Unit)?,
+    onDismiss: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("App Updates", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+        Text(
+            "Update availability and version info are shown on your Profile tab, along with an in-app download banner whenever a new version is ready via Google Play.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (onNavigateToTab != null) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Button(
+                onClick = {
+                    onNavigateToTab(profileTabId)
+                    onDismiss()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Go to Profile", style = MaterialTheme.typography.labelMedium)
+            }
+        }
     }
 }

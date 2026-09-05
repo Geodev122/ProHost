@@ -453,7 +453,7 @@ fun AdminDrawerContent(
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = currentUser?.fullName ?: "Geo El-Najjar",
+                    text = currentUser?.fullName ?: "Admin",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
                     color = PureWhite

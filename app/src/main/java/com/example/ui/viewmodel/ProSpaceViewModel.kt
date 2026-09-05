@@ -703,13 +703,25 @@ class ProSpaceViewModel(
             endTime = endTime,
             reason = reason
         )
-        repository.addBlackoutSlot(spaceId, slot)
-        Toast.makeText(context, "Blackout hour added: $dayOfWeek ($startTime - $endTime)", Toast.LENGTH_SHORT).show()
+        viewModelScope.launch {
+            val success = repository.addBlackoutSlot(spaceId, slot)
+            Toast.makeText(
+                context,
+                if (success) "Blackout hour added: $dayOfWeek ($startTime - $endTime)" else "Failed to add blackout hour — please try again",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     fun removeBlackoutSlot(spaceId: String, slotId: String, context: Context) {
-        repository.removeBlackoutSlot(spaceId, slotId)
-        Toast.makeText(context, "Blackout slot removed", Toast.LENGTH_SHORT).show()
+        viewModelScope.launch {
+            val success = repository.removeBlackoutSlot(spaceId, slotId)
+            Toast.makeText(
+                context,
+                if (success) "Blackout slot removed" else "Failed to remove blackout slot — please try again",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     fun updateSpaceOperatingSchedule(
@@ -727,8 +739,14 @@ class ProSpaceViewModel(
             operatingDays = operatingDays,
             isSundayOperating = isSundayOperating
         )
-        repository.updateSpaceSchedule(spaceId, updatedSchedule)
-        Toast.makeText(context, "Operating schedule updated!", Toast.LENGTH_SHORT).show()
+        viewModelScope.launch {
+            val success = repository.updateSpaceSchedule(spaceId, updatedSchedule)
+            Toast.makeText(
+                context,
+                if (success) "Operating schedule updated!" else "Failed to update schedule — please try again",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     fun addCustomFormula(
@@ -758,13 +776,25 @@ class ProSpaceViewModel(
             minHours = minHours,
             shiftName = shiftName
         )
-        repository.addRentalFormula(spaceId, formula)
-        Toast.makeText(context, "New formula '${type.displayName}' added!", Toast.LENGTH_SHORT).show()
+        viewModelScope.launch {
+            val success = repository.addRentalFormula(spaceId, formula)
+            Toast.makeText(
+                context,
+                if (success) "New formula '${type.displayName}' added!" else "Failed to add formula — please try again",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     fun deleteFormula(spaceId: String, formulaId: String, context: Context) {
-        repository.deleteRentalFormula(spaceId, formulaId)
-        Toast.makeText(context, "Rental formula deleted", Toast.LENGTH_SHORT).show()
+        viewModelScope.launch {
+            val success = repository.deleteRentalFormula(spaceId, formulaId)
+            Toast.makeText(
+                context,
+                if (success) "Rental formula deleted" else "Failed to delete formula — please try again",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     // Availability Analytics per Space

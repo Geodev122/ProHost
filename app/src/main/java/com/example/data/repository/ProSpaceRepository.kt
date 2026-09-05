@@ -984,69 +984,75 @@ class ProSpaceRepository {
     }
 
     // --- Schedule & Blackout Slots Management ---
-    fun addBlackoutSlot(spaceId: String, slot: BlackoutSlot) {
-        _spaces.value = _spaces.value.map { space ->
-            if (space.id == spaceId) {
-                val updatedSched = space.schedule.copy(
-                    blackoutSlots = space.schedule.blackoutSlots + slot
-                )
-                space.copy(schedule = updatedSched)
-            } else space
+    // All five of these used to only mutate the in-memory _spaces StateFlow — never
+    // calling Firestore at all. That's worse than just "no error handling": since
+    // attachLiveListeners' workspace_listings snapshot listener periodically overwrites
+    // _spaces wholesale, a schedule/formula change that never reached Firestore could
+    // be silently reverted on the SAME device the next time any unrelated write
+    // triggered a snapshot, on top of never syncing to any other device at all. Now
+    // persisted via the same firestoreService.saveWorkspace path updateSpaceListing
+    // already uses, only committing local state once the write is confirmed.
+
+    private suspend fun saveUpdatedSpace(updated: SpaceListing): Boolean {
+        val success = firestoreService.saveWorkspace(updated)
+        if (success) {
+            _spaces.value = _spaces.value.map { if (it.id == updated.id) updated else it }
         }
-        addAuditLog(
-            actionType = "SCHEDULE_BLACKOUT_ADDED",
-            details = "Owner added non-operating blackout slot (${slot.dayOfWeek} ${slot.startTime}-${slot.endTime}) to space $spaceId",
-            severity = "INFO"
-        )
+        return success
     }
 
-    fun removeBlackoutSlot(spaceId: String, slotId: String) {
-        _spaces.value = _spaces.value.map { space ->
-            if (space.id == spaceId) {
-                val updatedSched = space.schedule.copy(
-                    blackoutSlots = space.schedule.blackoutSlots.filter { it.id != slotId }
-                )
-                space.copy(schedule = updatedSched)
-            } else space
+    suspend fun addBlackoutSlot(spaceId: String, slot: BlackoutSlot): Boolean {
+        val space = _spaces.value.find { it.id == spaceId } ?: return false
+        val updated = space.copy(schedule = space.schedule.copy(blackoutSlots = space.schedule.blackoutSlots + slot))
+        val success = saveUpdatedSpace(updated)
+        if (success) {
+            addAuditLog(
+                actionType = "SCHEDULE_BLACKOUT_ADDED",
+                details = "Owner added non-operating blackout slot (${slot.dayOfWeek} ${slot.startTime}-${slot.endTime}) to space $spaceId",
+                severity = "INFO"
+            )
         }
+        return success
     }
 
-    fun updateSpaceSchedule(spaceId: String, schedule: SpaceOperatingSchedule) {
-        _spaces.value = _spaces.value.map { space ->
-            if (space.id == spaceId) space.copy(schedule = schedule) else space
-        }
-        addAuditLog(
-            actionType = "OPERATING_SCHEDULE_UPDATED",
-            details = "Operating hours updated for space $spaceId: ${schedule.openingHour} - ${schedule.closingHour} (${schedule.operatingDays.joinToString()})",
-            severity = "INFO"
-        )
+    suspend fun removeBlackoutSlot(spaceId: String, slotId: String): Boolean {
+        val space = _spaces.value.find { it.id == spaceId } ?: return false
+        val updated = space.copy(schedule = space.schedule.copy(blackoutSlots = space.schedule.blackoutSlots.filter { it.id != slotId }))
+        return saveUpdatedSpace(updated)
     }
 
-    fun addRentalFormula(spaceId: String, formula: RentalFormula) {
-        _spaces.value = _spaces.value.map { space ->
-            if (space.id == spaceId) space.copy(rentalFormulas = space.rentalFormulas + formula) else space
+    suspend fun updateSpaceSchedule(spaceId: String, schedule: SpaceOperatingSchedule): Boolean {
+        val space = _spaces.value.find { it.id == spaceId } ?: return false
+        val updated = space.copy(schedule = schedule)
+        val success = saveUpdatedSpace(updated)
+        if (success) {
+            addAuditLog(
+                actionType = "OPERATING_SCHEDULE_UPDATED",
+                details = "Operating hours updated for space $spaceId: ${schedule.openingHour} - ${schedule.closingHour} (${schedule.operatingDays.joinToString()})",
+                severity = "INFO"
+            )
         }
-        addAuditLog(
-            actionType = "RENTAL_FORMULA_ADDED",
-            details = "Added formula '${formula.type.displayName}' ($${formula.rateUsd}) to space $spaceId",
-            severity = "INFO"
-        )
+        return success
     }
 
-    fun updateRentalFormula(spaceId: String, updatedFormula: RentalFormula) {
-        _spaces.value = _spaces.value.map { space ->
-            if (space.id == spaceId) {
-                space.copy(rentalFormulas = space.rentalFormulas.map { if (it.id == updatedFormula.id) updatedFormula else it })
-            } else space
+    suspend fun addRentalFormula(spaceId: String, formula: RentalFormula): Boolean {
+        val space = _spaces.value.find { it.id == spaceId } ?: return false
+        val updated = space.copy(rentalFormulas = space.rentalFormulas + formula)
+        val success = saveUpdatedSpace(updated)
+        if (success) {
+            addAuditLog(
+                actionType = "RENTAL_FORMULA_ADDED",
+                details = "Added formula '${formula.type.displayName}' ($${formula.rateUsd}) to space $spaceId",
+                severity = "INFO"
+            )
         }
+        return success
     }
 
-    fun deleteRentalFormula(spaceId: String, formulaId: String) {
-        _spaces.value = _spaces.value.map { space ->
-            if (space.id == spaceId) {
-                space.copy(rentalFormulas = space.rentalFormulas.filter { it.id != formulaId })
-            } else space
-        }
+    suspend fun deleteRentalFormula(spaceId: String, formulaId: String): Boolean {
+        val space = _spaces.value.find { it.id == spaceId } ?: return false
+        val updated = space.copy(rentalFormulas = space.rentalFormulas.filter { it.id != formulaId })
+        return saveUpdatedSpace(updated)
     }
 
     // --- User Authentication & Member Registration ---

@@ -40,7 +40,7 @@ fun OwnerSubscriptionsScreen(
     var selectedSpaceTypeForPayg by remember { mutableStateOf(SpaceType.PRIVATE_OFFICE) }
 
     var payerName by remember { mutableStateOf(currentUser?.fullName ?: "") }
-    var payerPhone by remember { mutableStateOf(currentUser?.phone ?: "+961 3 994821") }
+    var payerPhone by remember { mutableStateOf(currentUser?.phone ?: "+961 70 888 999") }
 
     val activeTier = currentUser?.ownerPackageTier ?: OwnerPackageTier.PAY_AS_YOU_GO
     val expiryMillis = currentUser?.ownerPackageExpiryMillis
