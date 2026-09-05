@@ -1512,26 +1512,11 @@ ${_spaces.value.joinToString("\n") { sp ->
 
     fun exportTransactionsCsv(): String = exportTransactionsToCsv()
 
-    fun requestCashOut(ownerName: String, amountUsd: Double, whishPhone: String): Boolean {
-        val orderId = "ORD-CASHOUT-" + System.currentTimeMillis()
-        val tx = WhishTransaction(
-            id = "TX-CASHOUT-" + UUID.randomUUID().toString().take(6).uppercase(),
-            orderId = orderId,
-            amountUsd = amountUsd,
-            currency = "USD",
-            status = TransactionStatus.SUCCESS,
-            timestamp = System.currentTimeMillis(),
-            payerName = ownerName,
-            payerPhone = whishPhone,
-            channelId = WhishSecurity.CHANNEL_ID,
-            sourceEmail = WhishSecurity.SOURCE_EMAIL,
-            signatureHash = WhishSecurity.generateSignature(amount = amountUsd, orderId = orderId),
-            spaceId = "SPACE-CASHOUT",
-            spaceTitle = "Owner Cash-Out Settlement",
-            daysGranted = 0
-        )
-        _transactions.value = listOf(tx) + _transactions.value
-        coroutineScope.launch { firestoreService.recordTransaction(tx) }
-        return true
-    }
+    // Owner cash-out was never a real feature: it wasn't wired into any screen, and
+    // the "request" it used to build self-reported an instant SUCCESS with no actual
+    // Whish disbursement call — the same trust-the-client pattern removed from the
+    // real payment flows in Phase 5. Removed rather than fixed in place, since a
+    // real payout flow (does Whish's API even support merchant-to-user transfers?
+    // is this a manual settlement admins confirm, like most local integrations?) is
+    // a product decision, not a security patch.
 }

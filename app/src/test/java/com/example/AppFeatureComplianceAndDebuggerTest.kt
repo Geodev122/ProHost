@@ -82,11 +82,16 @@ class AppFeatureComplianceAndDebuggerTest {
 
     @Test
     fun `test whish money security and api integrity`() {
+        // This only exercises the SHA-256 hashing utility with an explicit test key —
+        // WhishSecurity has no default secret to fall back on (removed along with
+        // requestCashOut, its last real client-side caller), so there is no way to
+        // produce a signature Whish would actually accept from the client anymore.
         val signature = WhishSecurity.generateSignature(
             channel = WhishSecurity.CHANNEL_ID,
             amount = 150.0,
             currency = "USD",
-            orderId = "TEST-ORDER-777"
+            orderId = "TEST-ORDER-777",
+            secretKey = "unit-test-key"
         )
         assertNotNull(signature)
         assertEquals(64, signature.length)

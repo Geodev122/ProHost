@@ -124,8 +124,8 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
         externalId,
         successCallbackUrl: callbackUrl,
         failureCallbackUrl: callbackUrl,
-        successRedirectUrl: request.data.successRedirectUrl ?? "https://prohost-f766f.web.app/payment/success",
-        failureRedirectUrl: request.data.failureRedirectUrl ?? "https://prohost-f766f.web.app/payment/failure",
+        successRedirectUrl: request.data.successRedirectUrl ?? "https://hopebearer-award.com/payment/success",
+        failureRedirectUrl: request.data.failureRedirectUrl ?? "https://hopebearer-award.com/payment/failure",
       },
       secret
     );
