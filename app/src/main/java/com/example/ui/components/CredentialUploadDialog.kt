@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import android.net.Uri
+import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,8 +29,9 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.CredentialDocument
 import com.example.data.model.DocumentType
 import com.example.data.model.UserRole
+import com.example.data.storage.FirebaseStorageService
 import com.example.ui.theme.*
-import kotlinx.coroutines.delay
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 /**
@@ -46,6 +48,7 @@ fun CredentialUploadDialog(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val storageService = remember { FirebaseStorageService.getInstance() }
 
     var selectedType by remember { mutableStateOf(initialType ?: DocumentType.SYNDICATE_CARD) }
     var selectedFileName by remember { mutableStateOf<String?>(null) }
@@ -74,9 +77,19 @@ fun CredentialUploadDialog(
     ) { uri: Uri? ->
         if (uri != null) {
             selectedFileUri = uri
-            val name = uri.lastPathSegment?.substringAfterLast('/') ?: "Credential_Document_Scan.pdf"
+            var resolvedName: String? = null
+            var resolvedSizeBytes = 0L
+            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                if (cursor.moveToFirst()) {
+                    if (nameIndex >= 0) resolvedName = cursor.getString(nameIndex)
+                    if (sizeIndex >= 0) resolvedSizeBytes = cursor.getLong(sizeIndex)
+                }
+            }
+            val name = resolvedName ?: (uri.lastPathSegment?.substringAfterLast('/') ?: "Credential_Document_Scan.pdf")
             selectedFileName = if (name.endsWith(".pdf") || name.endsWith(".jpg") || name.endsWith(".png")) name else "$name.pdf"
-            selectedFileSizeKb = (1200..3800).random()
+            selectedFileSizeKb = if (resolvedSizeBytes > 0) (resolvedSizeBytes / 1024).toInt().coerceAtLeast(1) else 0
         }
     }
 
@@ -251,30 +264,6 @@ fun CredentialUploadDialog(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-
-                            // Quick sample picker buttons for fast testing
-                            Row(
-                                modifier = Modifier.padding(top = 4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                SuggestionChip(
-                                    onClick = {
-                                        selectedFileName = "${selectedType.name.lowercase()}_scan_2026.pdf"
-                                        selectedFileSizeKb = 2140
-                                        if (documentNumber.isBlank()) {
-                                            documentNumber = when (selectedType) {
-                                                DocumentType.SYNDICATE_CARD -> "OEA-LB-9921"
-                                                DocumentType.NATIONAL_ID -> "002847192-BEI"
-                                                DocumentType.PRACTICE_LICENSE -> "LIC-MOPH-2025"
-                                                DocumentType.COMMERCIAL_REGISTER -> "CR-BEI-99410"
-                                                DocumentType.TITLE_DEED_OR_LEASE -> "TABOU-ACH-881"
-                                                DocumentType.TAX_REGISTRATION -> "MOF-994821"
-                                            }
-                                        }
-                                    },
-                                    label = { Text("⚡ Use Sample PDF", style = MaterialTheme.typography.labelSmall) }
-                                )
-                            }
                         } else {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -382,24 +371,39 @@ fun CredentialUploadDialog(
 
                     Button(
                         onClick = {
-                            if (selectedFileName == null) {
-                                Toast.makeText(context, "Please choose a file or use sample scan", Toast.LENGTH_SHORT).show()
+                            val fileUri = selectedFileUri
+                            if (fileUri == null || selectedFileName == null) {
+                                Toast.makeText(context, "Please choose a file to upload", Toast.LENGTH_SHORT).show()
                                 return@Button
                             }
                             if (documentNumber.isBlank()) {
                                 Toast.makeText(context, "Please enter the document / license number", Toast.LENGTH_SHORT).show()
                                 return@Button
                             }
+                            val uid = FirebaseAuth.getInstance().currentUser?.uid
+                            if (uid == null) {
+                                Toast.makeText(context, "You must be signed in to upload documents", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
 
                             coroutineScope.launch {
                                 isUploading = true
-                                uploadProgress = 0.2f
-                                delay(250)
-                                uploadProgress = 0.65f
-                                delay(250)
-                                uploadProgress = 1.0f
-                                delay(150)
+                                uploadProgress = 0f
+                                val extension = selectedFileName?.substringAfterLast('.', "pdf") ?: "pdf"
+                                val docId = "${selectedType.name}-${System.currentTimeMillis()}"
+                                val downloadUrl = storageService.uploadCredentialDocument(
+                                    uid = uid,
+                                    docId = docId,
+                                    fileUri = fileUri,
+                                    fileExtension = extension,
+                                    onProgress = { uploadProgress = it }
+                                )
                                 isUploading = false
+
+                                if (downloadUrl == null) {
+                                    Toast.makeText(context, "Upload failed. Check your connection and try again.", Toast.LENGTH_SHORT).show()
+                                    return@launch
+                                }
 
                                 onDocumentUploaded(
                                     selectedType,
@@ -408,7 +412,7 @@ fun CredentialUploadDialog(
                                     documentNumber,
                                     issuingAuthority,
                                     expiryDate,
-                                    selectedFileUri?.toString()
+                                    downloadUrl
                                 )
                                 Toast.makeText(context, "Document uploaded for compliance review!", Toast.LENGTH_SHORT).show()
                                 onDismiss()

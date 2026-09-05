@@ -1,0 +1,60 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function role() {
+      return request.auth.token.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && role() == "ADMIN";
+    }
+
+    function withinSizeLimit() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // Professional credential documents (syndicate cards, IDs, licenses, etc).
+    // Only the owning user can read/write their own folder; Admins can read for
+    // compliance review, never write (approval/rejection is a Firestore field
+    // change on the credential doc, not a file mutation).
+    match /credentials/{uid}/{fileName} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if isSignedIn() && request.auth.uid == uid &&
+        withinSizeLimit() &&
+        (request.resource.contentType == 'application/pdf' ||
+         request.resource.contentType.matches('image/.*'));
+      allow delete: if false;
+    }
+
+    // Listing cover photos. Publicly readable (the discovery feed and listing
+    // details are browsable), writable by the listing's actual owner once the
+    // Firestore doc exists — or by any SPACE_OWNER while it doesn't yet, since
+    // photos are picked and uploaded before "Publish Listing" is tapped and the
+    // Firestore document is created.
+    match /listings/{spaceId}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn() &&
+        (isAdmin() ||
+         (role() == "SPACE_OWNER" &&
+          (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
+           firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid))) &&
+        withinSizeLimit() &&
+        request.resource.contentType.matches('image/.*');
+      allow delete: if isSignedIn() &&
+        (isAdmin() ||
+         (firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) &&
+          firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid));
+    }
+
+    // Default deny for everything else.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
