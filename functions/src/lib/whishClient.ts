@@ -7,7 +7,12 @@ import { createHash } from "crypto";
 // firebase functions:secrets:set WHISH_SECRET_KEY) before redeploying.
 const WHISH_BASE_URL = "https://api.whish.money/itel-service/api/";
 export const WHISH_CHANNEL_ID = "15462415";
-const WHISH_MERCHANT_EMAIL = "ceo@hopebearer-award.com";
+// The merchant's actual registered website — the `websiteUrl` header below used to be
+// set to the merchant's email address instead of a URL (an old bug carried over from
+// the original client code, which also pointed its callback URLs at a malformed
+// "https://ceo@hopebearer-award.com/success" address). hopebearer-award.com is the
+// real, working site tied to this Whish merchant account.
+const WHISH_WEBSITE_URL = "https://hopebearer-award.com";
 
 interface WhishHeaders {
   channel: string;
@@ -23,7 +28,7 @@ function headers(secret: string): WhishHeaders {
     channel: WHISH_CHANNEL_ID,
     httpchannel: WHISH_CHANNEL_ID,
     secret,
-    websiteUrl: WHISH_MERCHANT_EMAIL,
+    websiteUrl: WHISH_WEBSITE_URL,
     "User-Agent": "Whish/1.0 (https://whish.money; support@whish.money)",
     "Content-Type": "application/json",
   };
