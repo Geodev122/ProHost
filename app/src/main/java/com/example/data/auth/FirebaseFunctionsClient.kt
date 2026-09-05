@@ -74,6 +74,69 @@ class FirebaseFunctionsClient {
         }
     }
 
+    data class WhishPaymentInit(val collectUrl: String, val txId: String, val orderId: String)
+
+    /**
+     * Starts a Whish payment (functions/src/payments/initiateWhishPayment.ts). The
+     * server looks up the real amount itself from [purpose]/[targetId] — this call
+     * never sends an amount, and the client can't influence what gets charged.
+     *
+     * @param purpose one of SUBSCRIPTION, OWNER_PACKAGE, PAYG_LISTING, BOOKING
+     * @param targetId spaceId / OwnerPackageTier name / SpaceType name / bookingId, matching [purpose]
+     */
+    suspend fun initiateWhishPayment(
+        purpose: String,
+        targetId: String,
+        payerName: String,
+        payerPhone: String
+    ): Result<WhishPaymentInit> {
+        return try {
+            val result = functions.getHttpsCallable("initiateWhishPayment")
+                .call(
+                    mapOf(
+                        "purpose" to purpose,
+                        "targetId" to targetId,
+                        "payerName" to payerName,
+                        "payerPhone" to payerPhone
+                    )
+                )
+                .await()
+            @Suppress("UNCHECKED_CAST")
+            val data = result.data as? Map<String, Any?>
+            val collectUrl = data?.get("collectUrl") as? String
+            val txId = data?.get("txId") as? String
+            val orderId = data?.get("orderId") as? String
+            if (collectUrl == null || txId == null || orderId == null) {
+                return Result.failure(IllegalStateException("initiateWhishPayment returned an incomplete response."))
+            }
+            Result.success(WhishPaymentInit(collectUrl, txId, orderId))
+        } catch (e: Exception) {
+            Log.e(tag, "initiateWhishPayment failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Asks the server to independently re-check payment status with Whish
+     * (functions/src/payments/checkWhishStatus.ts) and grant the entitlement if it
+     * just succeeded. Returns "PENDING", "SUCCESS", or "FAILED".
+     */
+    suspend fun checkWhishStatus(txId: String): Result<String> {
+        return try {
+            val result = functions.getHttpsCallable("checkWhishStatus")
+                .call(mapOf("txId" to txId))
+                .await()
+            @Suppress("UNCHECKED_CAST")
+            val data = result.data as? Map<String, Any?>
+            val status = data?.get("status") as? String
+                ?: return Result.failure(IllegalStateException("checkWhishStatus returned no status."))
+            Result.success(status)
+        } catch (e: Exception) {
+            Log.e(tag, "checkWhishStatus failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     companion object {
         /**
          * Reads the role custom claim from the given user's current ID token,

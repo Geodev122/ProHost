@@ -8,21 +8,20 @@ object WhishSecurity {
     const val SOURCE_EMAIL = MerchantConfig.WHISH_MERCHANT_EMAIL
 
     /**
-     * TEMPORARY: the real merchant signing secret is still shipped in the client.
-     * This must be removed once payment initiation/signing moves server-side into
-     * Cloud Functions (remediation plan Phase 5) — at that point the client should
-     * no longer be able to produce a valid Whish signature at all. Do not add new
-     * call sites relying on this default; it exists only to avoid breaking the
-     * live payment flow before the server-side replacement is deployed.
+     * The client never holds the real merchant signing secret — it moved server-side
+     * into Cloud Functions in remediation plan Phase 5 (see
+     * functions/src/lib/whishClient.ts's own generateSignature). There is no default
+     * secret here on purpose: any caller of the two functions below must supply its
+     * own (e.g. a test fixture value), which makes it structurally impossible for
+     * this object to produce a signature Whish would actually accept.
      */
-    const val DEFAULT_SECRET_KEY = "23cfc205ed0d4aba83df6b12b0bbd4a1"
 
     fun generateSignature(
         channel: String = CHANNEL_ID,
         amount: Double,
         currency: String = "USD",
         orderId: String,
-        secretKey: String = DEFAULT_SECRET_KEY
+        secretKey: String
     ): String {
         val formattedAmount = String.format(java.util.Locale.US, "%.2f", amount)
         val raw = "$channel|$formattedAmount|$currency|$orderId|$secretKey"
@@ -34,7 +33,7 @@ object WhishSecurity {
         amount: Double,
         currency: String = "USD",
         orderId: String,
-        secretKey: String = DEFAULT_SECRET_KEY
+        secretKey: String
     ): String {
         val formattedAmount = String.format(java.util.Locale.US, "%.2f", amount)
         val raw = "$channel|$formattedAmount|$currency|$orderId|$secretKey"

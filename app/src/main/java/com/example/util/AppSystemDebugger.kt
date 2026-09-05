@@ -2,7 +2,6 @@ package com.example.util
 
 import android.content.Context
 import android.util.Log
-import com.example.data.api.WhishPayApi
 import com.example.data.auth.FirebaseAuthService
 import com.example.data.crypto.WhishSecurity
 import com.example.data.firestore.FirestoreSchema
@@ -309,47 +308,56 @@ object AppSystemDebugger {
         // 6. WHISH MONEY FINANCIAL SETTLEMENT & SECURITY
         // -------------------------------------------------------------
         try {
-            // Test SHA-256 HMAC Signature generator
+            // Test the SHA-256 hashing utility itself (not a real merchant signature —
+            // WhishSecurity no longer has a default secret to sign with; see below).
             val signature = WhishSecurity.generateSignature(
                 channel = WhishSecurity.CHANNEL_ID,
                 amount = 250.0,
                 currency = "USD",
-                orderId = "TEST-ORDER-1001"
+                orderId = "TEST-ORDER-1001",
+                secretKey = "diagnostics-only-test-key"
             )
 
             val sigValid = signature.length == 64 // SHA-256 Hex is 64 chars
             results.add(
                 DiagnosticItem(
                     category = "Payment & Security",
-                    featureName = "Whish Money SHA-256 Security Layer",
+                    featureName = "Whish Money SHA-256 Hashing Utility",
                     status = if (sigValid) DiagnosticStatus.PASSED else DiagnosticStatus.FAILED,
-                    details = "Generated HMAC-SHA256 signature (64-char digest) using merchant channel ${WhishSecurity.CHANNEL_ID}."
+                    details = "Generated a 64-char SHA-256 digest from a diagnostics-only test key — this is a hashing utility check, not a real merchant signature (the client holds no merchant secret)."
                 )
             )
 
-            // Test Whish Pay API Service construction
-            val whishApiReady = WhishPayApi.service != null
+            // The client used to hold its own Retrofit client calling Whish's API
+            // directly (WhishPayApi), signing requests with a secret shipped in the
+            // APK. That's gone — initiateWhishPayment/whishWebhook/checkWhishStatus
+            // Cloud Functions are the only thing that talks to Whish now, and this
+            // diagnostics tool has no business making a real payment-initiation call
+            // just to "test" that it can, so this is a static architectural note, not
+            // a live check.
             results.add(
                 DiagnosticItem(
                     category = "Payment & Security",
-                    featureName = "Whish Money REST API Endpoint Client",
-                    status = if (whishApiReady) DiagnosticStatus.PASSED else DiagnosticStatus.FAILED,
-                    details = "Retrofit client configured with Moshi JSON adapters, headers, and sandbox gateway."
+                    featureName = "Whish Money API Access",
+                    status = DiagnosticStatus.PASSED,
+                    details = "Client no longer calls Whish's API directly or holds a merchant secret — see initiateWhishPayment/whishWebhook/checkWhishStatus Cloud Functions."
                 )
             )
 
-            // Test Cash-Out Request Pipeline
-            val cashoutSuccess = repository.requestCashOut(
-                ownerName = "Achrafieh Commercial Properties",
-                amountUsd = 100.0,
-                whishPhone = "+961 70 123456"
-            )
+            // Owner cash-out used to be "tested" here by actually calling
+            // repository.requestCashOut(), which fabricated and persisted a fake
+            // SUCCESS transaction as a side effect of running diagnostics — the same
+            // mutate-live-data-during-a-read-only-check bug already fixed for the RBAC
+            // and booking-lifecycle checks elsewhere in this file. That method has
+            // been removed: it wasn't wired into any real screen, and a real payout
+            // flow needs its own design, not a client-side secret. Nothing to check
+            // here until that flow exists.
             results.add(
                 DiagnosticItem(
                     category = "Payment & Security",
-                    featureName = "Owner Instant Cash-Out & Revenue Settlement",
-                    status = if (cashoutSuccess) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
-                    details = "Dispatched cashout order with dual currency USD/LBP conversion."
+                    featureName = "Owner Cash-Out",
+                    status = DiagnosticStatus.WARNING,
+                    details = "Not yet implemented server-side — the previous client-only flow self-reported success with no real disbursement and has been removed."
                 )
             )
         } catch (e: Exception) {

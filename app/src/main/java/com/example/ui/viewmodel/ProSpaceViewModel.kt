@@ -189,26 +189,77 @@ class ProSpaceViewModel(
     }
 
     // --- Whish Pay Settlement ---
-    fun paySubscriptionViaWhish(spaceId: String, payerName: String, payerPhone: String, context: Context) {
-        val tx = repository.processWhishPaySubscription(spaceId, payerName, payerPhone)
-        Toast.makeText(
-            context,
-            "Whish Pay Confirmed! Order #${tx.orderId} • 30-Day Listing Entitlement Active",
-            Toast.LENGTH_LONG
-        ).show()
+    // All four flows below used to build a "SUCCESS" WhishTransaction locally and grant
+    // the entitlement immediately — the client both set the price and self-reported
+    // success, with no actual payment required. They now call initiateWhishPayment
+    // (Cloud Function), which computes the real amount server-side and returns a
+    // collectUrl to open; nothing is granted until whishWebhook/checkWhishStatus
+    // independently confirms success with Whish itself. See
+    // functions/src/payments/initiateWhishPayment.ts.
+
+    private fun launchWhishCheckout(
+        purpose: String,
+        targetId: String,
+        payerName: String,
+        payerPhone: String,
+        context: Context
+    ) {
+        viewModelScope.launch {
+            val result = functionsClient.initiateWhishPayment(purpose, targetId, payerName, payerPhone)
+            result.onSuccess { init ->
+                try {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(init.collectUrl)))
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Could not open the payment page.", Toast.LENGTH_LONG).show()
+                }
+                Toast.makeText(
+                    context,
+                    "Complete your payment in the browser. We'll confirm automatically once Whish settles it.",
+                    Toast.LENGTH_LONG
+                ).show()
+                pollWhishPaymentStatus(init.txId, context)
+            }.onFailure { e ->
+                Toast.makeText(context, "Could not start payment: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
-    fun payBookingViaWhish(bookingId: String, payerName: String, payerPhone: String, txId: String, signature: String, context: Context) {
-        val success = repository.processWhishPayBooking(bookingId, payerName, payerPhone, txId, signature)
-        if (success) {
-            Toast.makeText(
-                context,
-                "Whish Pay Settled! Booking #${bookingId} is now ACCEPTED and fully reserved.",
-                Toast.LENGTH_LONG
-            ).show()
-        } else {
-            Toast.makeText(context, "Payment processing failed.", Toast.LENGTH_SHORT).show()
+    /** Bounded polling fallback in case the server-to-server webhook is slow/missed. */
+    private fun pollWhishPaymentStatus(txId: String, context: Context) {
+        viewModelScope.launch {
+            repeat(24) {
+                kotlinx.coroutines.delay(5000)
+                val status = functionsClient.checkWhishStatus(txId).getOrNull()
+                if (status == "SUCCESS") {
+                    Toast.makeText(context, "Payment confirmed! Your entitlement is now active.", Toast.LENGTH_LONG).show()
+                    return@launch
+                } else if (status == "FAILED") {
+                    Toast.makeText(context, "Whish reported this payment did not complete.", Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+            }
         }
+    }
+
+    /** Manually triggered re-check, e.g. from a "Verify Payment" button in the UI. */
+    fun checkWhishPaymentStatus(txId: String, context: Context) {
+        viewModelScope.launch {
+            val status = functionsClient.checkWhishStatus(txId).getOrNull()
+            val message = when (status) {
+                "SUCCESS" -> "Payment confirmed! Your entitlement is now active."
+                "FAILED" -> "Whish reported this payment did not complete."
+                else -> "Still waiting for Whish to confirm this payment."
+            }
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    fun paySubscriptionViaWhish(spaceId: String, payerName: String, payerPhone: String, context: Context) {
+        launchWhishCheckout("SUBSCRIPTION", spaceId, payerName, payerPhone, context)
+    }
+
+    fun payBookingViaWhish(bookingId: String, payerName: String, payerPhone: String, context: Context) {
+        launchWhishCheckout("BOOKING", bookingId, payerName, payerPhone, context)
     }
 
     // --- Space Owner Listing Creation ---
@@ -237,12 +288,12 @@ class ProSpaceViewModel(
         spaceTypeForPayg: SpaceType?,
         context: Context
     ) {
-        val tx = repository.processOwnerPackagePayment(tier, payerName, payerPhone, spaceTypeForPayg)
-        Toast.makeText(
-            context,
-            "Whish Pay Settled! Package ${tier.title} activated successfully. Order: ${tx.orderId}",
-            Toast.LENGTH_LONG
-        ).show()
+        if (tier == OwnerPackageTier.PAY_AS_YOU_GO) {
+            val type = spaceTypeForPayg ?: SpaceType.PRIVATE_OFFICE
+            launchWhishCheckout("PAYG_LISTING", type.name, payerName, payerPhone, context)
+        } else {
+            launchWhishCheckout("OWNER_PACKAGE", tier.name, payerName, payerPhone, context)
+        }
     }
 
     fun payPaygListingViaWhish(
@@ -251,12 +302,7 @@ class ProSpaceViewModel(
         payerPhone: String,
         context: Context
     ) {
-        val tx = repository.processPaygListingPayment(spaceType, payerName, payerPhone)
-        Toast.makeText(
-            context,
-            "Whish Pay Settled! PAYG listing slot for ${spaceType.displayName} purchased. Order: ${tx.orderId}",
-            Toast.LENGTH_LONG
-        ).show()
+        launchWhishCheckout("PAYG_LISTING", spaceType.name, payerName, payerPhone, context)
     }
 
     fun exportRevenueCsv(startDateMillis: Long?, endDateMillis: Long?): String {

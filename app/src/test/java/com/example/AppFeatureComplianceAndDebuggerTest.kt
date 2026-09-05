@@ -2,7 +2,6 @@ package com.example
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import com.example.data.api.WhishPayApi
 import com.example.data.auth.FirebaseAuthService
 import com.example.data.crypto.WhishSecurity
 import com.example.data.firestore.FirestoreSchema
@@ -83,17 +82,24 @@ class AppFeatureComplianceAndDebuggerTest {
 
     @Test
     fun `test whish money security and api integrity`() {
+        // This only exercises the SHA-256 hashing utility with an explicit test key —
+        // WhishSecurity has no default secret to fall back on (removed along with
+        // requestCashOut, its last real client-side caller), so there is no way to
+        // produce a signature Whish would actually accept from the client anymore.
         val signature = WhishSecurity.generateSignature(
             channel = WhishSecurity.CHANNEL_ID,
             amount = 150.0,
             currency = "USD",
-            orderId = "TEST-ORDER-777"
+            orderId = "TEST-ORDER-777",
+            secretKey = "unit-test-key"
         )
         assertNotNull(signature)
         assertEquals(64, signature.length)
 
-        // Verify API client initialization
-        assertNotNull(WhishPayApi.service)
+        // The client no longer has a Whish API client of its own — WhishPayApi was
+        // deleted in Phase 5. Payments now go exclusively through the
+        // initiateWhishPayment/whishWebhook/checkWhishStatus Cloud Functions
+        // (functions/src/payments/), which hold the merchant secret server-side.
     }
 
     @Test

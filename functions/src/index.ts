@@ -16,3 +16,7 @@ export { assignInitialRole } from "./roles/assignInitialRole";
 export { requestRoleUpgrade } from "./roles/requestRoleUpgrade";
 export { grantAdminRole } from "./roles/grantAdminRole";
 export { bootstrapSuperAdmin } from "./roles/bootstrapSuperAdmin";
+
+export { initiateWhishPayment } from "./payments/initiateWhishPayment";
+export { whishWebhook } from "./payments/whishWebhook";
+export { checkWhishStatus } from "./payments/checkWhishStatus";

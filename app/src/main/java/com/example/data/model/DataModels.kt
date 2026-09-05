@@ -1066,6 +1066,63 @@ data class AdminPricingState(
             OwnerPackageTier.UNLIMITED_TIER -> package3MonthlyFeeUsd
         }
     }
+
+    /**
+     * The initiateWhishPayment Cloud Function reads pricing from this same document
+     * (functions/src/lib/pricing.ts) to compute the real amount server-side — never
+     * trusting a client-supplied amount. Admin pricing changes must persist here or
+     * the server keeps charging its hardcoded fallback defaults forever.
+     */
+    fun toFirestoreMap(): Map<String, Any?> {
+        return mapOf(
+            "monthlySubscriptionFeeUsd" to monthlySubscriptionFeeUsd,
+            "baselineFeeUsd" to baselineFeeUsd,
+            "presetOptions" to presetOptions,
+            "isPackagingGovernanceActive" to isPackagingGovernanceActive,
+            "governanceTag" to governanceTag,
+            "paygPrivateOfficeUsd" to paygPrivateOfficeUsd,
+            "paygCenterUsd" to paygCenterUsd,
+            "paygPolyclinicUsd" to paygPolyclinicUsd,
+            "paygCoworkingUsd" to paygCoworkingUsd,
+            "paygExecutiveBoardroomUsd" to paygExecutiveBoardroomUsd,
+            "paygConsultationSuiteUsd" to paygConsultationSuiteUsd,
+            "package2Limit" to package2Limit,
+            "package2MonthlyFeeUsd" to package2MonthlyFeeUsd,
+            "package3MonthlyFeeUsd" to package3MonthlyFeeUsd,
+            "merchantChannelId" to merchantChannelId,
+            "merchantSource" to merchantSource,
+            "merchantSecretKeyMasked" to merchantSecretKeyMasked,
+            "updatedAt" to System.currentTimeMillis()
+        )
+    }
+
+    companion object {
+        const val COLLECTION_PATH = "system_metadata"
+        const val DOCUMENT_ID = "pricing"
+
+        fun fromFirestoreMap(data: Map<String, Any?>): AdminPricingState {
+            val defaults = AdminPricingState()
+            return AdminPricingState(
+                monthlySubscriptionFeeUsd = (data["monthlySubscriptionFeeUsd"] as? Number)?.toDouble() ?: defaults.monthlySubscriptionFeeUsd,
+                baselineFeeUsd = (data["baselineFeeUsd"] as? Number)?.toDouble() ?: defaults.baselineFeeUsd,
+                presetOptions = (data["presetOptions"] as? List<*>)?.mapNotNull { (it as? Number)?.toDouble() } ?: defaults.presetOptions,
+                isPackagingGovernanceActive = data["isPackagingGovernanceActive"] as? Boolean ?: defaults.isPackagingGovernanceActive,
+                governanceTag = data["governanceTag"] as? String ?: defaults.governanceTag,
+                paygPrivateOfficeUsd = (data["paygPrivateOfficeUsd"] as? Number)?.toDouble() ?: defaults.paygPrivateOfficeUsd,
+                paygCenterUsd = (data["paygCenterUsd"] as? Number)?.toDouble() ?: defaults.paygCenterUsd,
+                paygPolyclinicUsd = (data["paygPolyclinicUsd"] as? Number)?.toDouble() ?: defaults.paygPolyclinicUsd,
+                paygCoworkingUsd = (data["paygCoworkingUsd"] as? Number)?.toDouble() ?: defaults.paygCoworkingUsd,
+                paygExecutiveBoardroomUsd = (data["paygExecutiveBoardroomUsd"] as? Number)?.toDouble() ?: defaults.paygExecutiveBoardroomUsd,
+                paygConsultationSuiteUsd = (data["paygConsultationSuiteUsd"] as? Number)?.toDouble() ?: defaults.paygConsultationSuiteUsd,
+                package2Limit = (data["package2Limit"] as? Number)?.toInt() ?: defaults.package2Limit,
+                package2MonthlyFeeUsd = (data["package2MonthlyFeeUsd"] as? Number)?.toDouble() ?: defaults.package2MonthlyFeeUsd,
+                package3MonthlyFeeUsd = (data["package3MonthlyFeeUsd"] as? Number)?.toDouble() ?: defaults.package3MonthlyFeeUsd,
+                merchantChannelId = data["merchantChannelId"] as? String ?: defaults.merchantChannelId,
+                merchantSource = data["merchantSource"] as? String ?: defaults.merchantSource,
+                merchantSecretKeyMasked = data["merchantSecretKeyMasked"] as? String ?: defaults.merchantSecretKeyMasked
+            )
+        }
+    }
 }
 
 data class AvatarCampaign(
