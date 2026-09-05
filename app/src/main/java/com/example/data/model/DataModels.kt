@@ -1121,4 +1121,16 @@ data class SpaceArchitectureSchema(
         get() = spaceTypes + subcategories + amenities + equipmentCategories + specialties + rentalStrategies
 }
 
+/**
+ * Database Architecture: Orders Table
+ * Tracks overall shopping cart or service purchase.
+ */
+data class Order(
+    val id: String = "ORD-" + java.util.UUID.randomUUID().toString().take(8).uppercase(),
+    val userId: String,
+    val totalAmount: Double,
+    val currency: String = "USD", // USD or LBP
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 

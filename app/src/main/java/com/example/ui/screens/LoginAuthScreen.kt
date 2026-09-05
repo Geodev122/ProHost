@@ -551,87 +551,91 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                InputField(
-                    value = regSpecialty,
-                    onValueChange = {
-                        regSpecialty = it
-                        localErrorMessage = null
-                    },
-                    label = "Profession / Medical / Architectural Specialty",
-                    placeholder = "e.g. Clinical Dermatologist, Senior Architect",
-                    leadingIcon = Icons.Default.Badge,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+                if (regRole == UserRole.SPACE_OWNER) {
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                Spacer(modifier = Modifier.height(10.dp))
+                    InputField(
+                        value = regSpecialty,
+                        onValueChange = {
+                            regSpecialty = it
+                            localErrorMessage = null
+                        },
+                        label = "Profession / Medical / Architectural Specialty",
+                        placeholder = "e.g. Clinical Dermatologist, Senior Architect",
+                        leadingIcon = Icons.Default.Badge,
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
 
-                InputField(
-                    value = regSyndicateNumber,
-                    onValueChange = {
-                        regSyndicateNumber = it
-                        localErrorMessage = null
-                    },
-                    label = "Syndicate / License / Commercial ID",
-                    placeholder = "e.g. LOP-8492, OEA-7731, CR-9921",
-                    leadingIcon = Icons.Default.VerifiedUser,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                Spacer(modifier = Modifier.height(10.dp))
+                    InputField(
+                        value = regSyndicateNumber,
+                        onValueChange = {
+                            regSyndicateNumber = it
+                            localErrorMessage = null
+                        },
+                        label = "Syndicate / License / Commercial ID",
+                        placeholder = "e.g. LOP-8492, OEA-7731, CR-9921",
+                        leadingIcon = Icons.Default.VerifiedUser,
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
 
-                InputField(
-                    value = regAffiliation,
-                    onValueChange = {
-                        regAffiliation = it
-                        localErrorMessage = null
-                    },
-                    label = "Firm / Studio / Medical Center Name",
-                    placeholder = "e.g. Beirut Creative Hub, Horizon Clinic",
-                    leadingIcon = Icons.Default.Business,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                Spacer(modifier = Modifier.height(10.dp))
+                    InputField(
+                        value = regAffiliation,
+                        onValueChange = {
+                            regAffiliation = it
+                            localErrorMessage = null
+                        },
+                        label = "Firm / Studio / Medical Center Name",
+                        placeholder = "e.g. Beirut Creative Hub, Horizon Clinic",
+                        leadingIcon = Icons.Default.Business,
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
 
-                // Governorate Selector
-                OutlinedCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showGovDropdown = true },
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Governorate Selector
+                    OutlinedCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showGovDropdown = true },
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = OxfordBlue, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Text("Primary Operating Governorate", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(regGovernorate.displayName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.LocationOn, contentDescription = null, tint = OxfordBlue, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text("Primary Operating Governorate", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(regGovernorate.displayName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                }
                             }
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
                         }
-                        Icon(Icons.Default.ArrowDropDown, contentDescription = null)
                     }
-                }
 
-                DropdownMenu(
-                    expanded = showGovDropdown,
-                    onDismissRequest = { showGovDropdown = false }
-                ) {
-                    Governorate.values().forEach { gov ->
-                        DropdownMenuItem(
-                            text = { Text(gov.displayName) },
-                            onClick = {
-                                regGovernorate = gov
-                                showGovDropdown = false
-                            }
-                        )
+                    DropdownMenu(
+                        expanded = showGovDropdown,
+                        onDismissRequest = { showGovDropdown = false }
+                    ) {
+                        Governorate.values().forEach { gov ->
+                            DropdownMenuItem(
+                                text = { Text(gov.displayName) },
+                                onClick = {
+                                    regGovernorate = gov
+                                    showGovDropdown = false
+                                }
+                            )
+                        }
                     }
                 }
 

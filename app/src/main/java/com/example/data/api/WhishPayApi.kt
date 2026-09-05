@@ -87,6 +87,7 @@ object WhishPayApi {
         val original = chain.request()
         val request = original.newBuilder()
             .header("channel", "15462415")
+            .header("httpchannel", "15462415")
             .header("secret", "23cfc205ed0d4aba83df6b12b0bbd4a1")
             .header("websiteUrl", "ceo@hopebearer-award.com")
             .header("User-Agent", "Whish/1.0 (https://whish.money; support@whish.money)")

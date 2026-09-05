@@ -2,8 +2,12 @@ package com.example.ui.components
 
 import android.content.Intent
 import android.net.Uri
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -24,6 +28,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import com.example.data.crypto.WhishSecurity
 import com.example.data.api.WhishPayApi
@@ -409,7 +414,7 @@ fun WhishPayModal(
                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalAlignment = Arrangement.SpaceBetween,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Text(
@@ -480,27 +485,80 @@ fun WhishPayModal(
 
                             if (collectUrl != null) {
                                 Text(
-                                    text = "Please complete your payment at the link below. The checkout system will confirm live once completed.",
-                                    fontSize = 12.sp,
+                                    text = "Whish Secure Hosted Checkout (Enter mobile phone & OTP in portal below):",
+                                    fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
 
-                                Button(
-                                    onClick = {
-                                        try {
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(collectUrl))
-                                            context.startActivity(intent)
-                                        } catch (e: Exception) {
-                                            Toast.makeText(context, "Could not open browser", Toast.LENGTH_SHORT).show()
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                AndroidView(
+                                    factory = { ctx ->
+                                        WebView(ctx).apply {
+                                            settings.javaScriptEnabled = true
+                                            settings.domStorageEnabled = true
+                                            webViewClient = object : WebViewClient() {
+                                                override fun shouldOverrideUrlLoading(
+                                                    view: WebView?,
+                                                    request: WebResourceRequest?
+                                                ): Boolean {
+                                                    val url = request?.url?.toString() ?: ""
+                                                    if (url.contains("success") || url.contains("thank-you") || url.contains("successCallbackUrl")) {
+                                                        isWaitingForPayer = false
+                                                        isSuccess = true
+                                                        externalIdByApi?.let { verifyPaymentStatus(it) }
+                                                        return true
+                                                    } else if (url.contains("failure") || url.contains("error") || url.contains("failureCallbackUrl")) {
+                                                        errorMessage = "Payment failed or cancelled on Whish checkout portal."
+                                                        isWaitingForPayer = false
+                                                        return true
+                                                    }
+                                                    return false
+                                                }
+                                            }
+                                            loadUrl(collectUrl!!)
                                         }
                                     },
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-                                    shape = RoundedCornerShape(8.dp)
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(280.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .border(1.dp, Color(0xFFE2001A), RoundedCornerShape(12.dp))
+                                )
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Open Whish Payment Portal", style = MaterialTheme.typography.labelMedium)
+                                    Button(
+                                        onClick = {
+                                            try {
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(collectUrl))
+                                                context.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                Toast.makeText(context, "Could not open browser", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Open in Browser", style = MaterialTheme.typography.labelSmall)
+                                    }
+
+                                    Button(
+                                        onClick = { externalIdByApi?.let { verifyPaymentStatus(it) } },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE2001A)),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("Verify Status", style = MaterialTheme.typography.labelSmall)
+                                    }
                                 }
                             } else {
                                 Text(

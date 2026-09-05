@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -703,7 +704,7 @@ fun DrawerDialogsHandler(
                         "admin_credentials_registry" -> {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Text("Super Admin Supervisory Registry & Document Inspection", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                val allDocs = viewModel.userDocuments.collectAsState().value
+                                val allDocs = viewModel.credentialDocuments.collectAsState().value
                                 if (allDocs.isEmpty()) {
                                     Text("No pending member documents in the verification queue.", style = MaterialTheme.typography.bodySmall)
                                 } else {
@@ -833,7 +834,7 @@ fun DrawerDialogsHandler(
                                         ) {
                                             Column(modifier = Modifier.weight(1f)) {
                                                 Text(space.title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                                                Text("${space.city} • $${space.pricePerMonthUsd}/mo", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                Text("${space.district} • $${space.baseMonthlyRateUsd}/mo", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                             }
                                             Surface(
                                                 color = Color(0xFF4CAF50).copy(alpha = 0.2f),
