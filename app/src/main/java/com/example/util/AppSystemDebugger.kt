@@ -2,7 +2,6 @@ package com.example.util
 
 import android.content.Context
 import android.util.Log
-import com.example.data.api.WhishPayApi
 import com.example.data.auth.FirebaseAuthService
 import com.example.data.crypto.WhishSecurity
 import com.example.data.firestore.FirestoreSchema
@@ -327,14 +326,19 @@ object AppSystemDebugger {
                 )
             )
 
-            // Test Whish Pay API Service construction
-            val whishApiReady = WhishPayApi.service != null
+            // The client used to hold its own Retrofit client calling Whish's API
+            // directly (WhishPayApi), signing requests with a secret shipped in the
+            // APK. That's gone — initiateWhishPayment/whishWebhook/checkWhishStatus
+            // Cloud Functions are the only thing that talks to Whish now, and this
+            // diagnostics tool has no business making a real payment-initiation call
+            // just to "test" that it can, so this is a static architectural note, not
+            // a live check.
             results.add(
                 DiagnosticItem(
                     category = "Payment & Security",
-                    featureName = "Whish Money REST API Endpoint Client",
-                    status = if (whishApiReady) DiagnosticStatus.PASSED else DiagnosticStatus.FAILED,
-                    details = "Retrofit client configured with Moshi JSON adapters, headers, and sandbox gateway."
+                    featureName = "Whish Money API Access",
+                    status = DiagnosticStatus.PASSED,
+                    details = "Client no longer calls Whish's API directly or holds a merchant secret — see initiateWhishPayment/whishWebhook/checkWhishStatus Cloud Functions."
                 )
             )
 

@@ -2,7 +2,6 @@ package com.example
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import com.example.data.api.WhishPayApi
 import com.example.data.auth.FirebaseAuthService
 import com.example.data.crypto.WhishSecurity
 import com.example.data.firestore.FirestoreSchema
@@ -92,8 +91,10 @@ class AppFeatureComplianceAndDebuggerTest {
         assertNotNull(signature)
         assertEquals(64, signature.length)
 
-        // Verify API client initialization
-        assertNotNull(WhishPayApi.service)
+        // The client no longer has a Whish API client of its own — WhishPayApi was
+        // deleted in Phase 5. Payments now go exclusively through the
+        // initiateWhishPayment/whishWebhook/checkWhishStatus Cloud Functions
+        // (functions/src/payments/), which hold the merchant secret server-side.
     }
 
     @Test

@@ -1,12 +1,16 @@
 package com.example.ui.viewmodel
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.auth.FirebaseFunctionsClient
 import com.example.data.model.*
 import com.example.data.repository.ProSpaceRepository
 import com.example.ui.state.RentalsUiEvent
 import com.example.ui.state.RentalsUiState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -16,6 +20,8 @@ import kotlinx.coroutines.launch
 class RentalsViewModel(
     private val repository: ProSpaceRepository = ProSpaceRepository.getInstance()
 ) : ViewModel() {
+
+    private val functionsClient = FirebaseFunctionsClient()
 
     private val _selectedBookingForPayment = MutableStateFlow<RentalBookingRequest?>(null)
     private val _isWhishPayModalOpen = MutableStateFlow(false)
@@ -70,6 +76,16 @@ class RentalsViewModel(
         _isWhishPayModalOpen.value = booking != null
     }
 
+    /**
+     * Initiates a real Whish payment for [booking] via the initiateWhishPayment Cloud
+     * Function (amount is looked up server-side from the booking's own totalAmountUsd,
+     * never trusted from the client), opens the returned checkout URL, then polls
+     * checkWhishStatus for a bounded time. [onSuccess] fires only once the server has
+     * independently confirmed the payment with Whish and granted the entitlement —
+     * this used to construct a "SUCCESS" WhishTransaction locally and call
+     * repository.processWhishPayBooking(), which self-reported success with no real
+     * payment involved at all.
+     */
     fun settleBookingPayment(
         booking: RentalBookingRequest,
         payerName: String,
@@ -79,40 +95,49 @@ class RentalsViewModel(
     ) {
         viewModelScope.launch {
             _isProcessingPayment.value = true
-            val txId = "TX-WSH-" + System.currentTimeMillis()
-            val orderId = "ORD-BKG-" + booking.id
-            val signature = com.example.data.crypto.WhishSecurity.generateSignature(
-                amount = booking.totalAmountUsd,
-                orderId = orderId
-            )
+            val initResult = functionsClient.initiateWhishPayment("BOOKING", booking.id, payerName, payerPhone)
+            val init = initResult.getOrNull()
+            if (init == null) {
+                _isProcessingPayment.value = false
+                _events.emit(RentalsUiEvent.PaymentCompleted(booking.id))
+                return@launch
+            }
 
-            val success = repository.processWhishPayBooking(
-                bookingId = booking.id,
-                payerName = payerName,
-                payerPhone = payerPhone,
-                txId = txId,
-                signature = signature
-            )
+            try {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(init.collectUrl)))
+            } catch (e: Exception) {
+                // Caller UI is expected to surface this via events/uiState; nothing more
+                // to do here if the browser can't be launched.
+            }
 
-            val tx = WhishTransaction(
-                id = txId,
-                orderId = orderId,
-                amountUsd = booking.totalAmountUsd,
-                status = if (success) TransactionStatus.SUCCESS else TransactionStatus.FAILED,
-                timestamp = System.currentTimeMillis(),
-                payerName = payerName,
-                payerPhone = payerPhone,
-                signatureHash = signature,
-                spaceId = booking.spaceId,
-                spaceTitle = booking.spaceTitle
-            )
+            var settledStatus = "PENDING"
+            for (attempt in 1..24) {
+                delay(5000)
+                val status = functionsClient.checkWhishStatus(init.txId).getOrNull()
+                if (status == "SUCCESS" || status == "FAILED") {
+                    settledStatus = status
+                    break
+                }
+            }
 
-            _lastSettledTransaction.value = tx
             _isProcessingPayment.value = false
             _isWhishPayModalOpen.value = false
 
-            if (success) {
-                // Notify user & trigger FCM
+            if (settledStatus == "SUCCESS") {
+                val tx = WhishTransaction(
+                    id = init.txId,
+                    orderId = init.orderId,
+                    amountUsd = booking.totalAmountUsd,
+                    status = TransactionStatus.SUCCESS,
+                    timestamp = System.currentTimeMillis(),
+                    payerName = payerName,
+                    payerPhone = payerPhone,
+                    signatureHash = "",
+                    spaceId = booking.spaceId,
+                    spaceTitle = booking.spaceTitle
+                )
+                _lastSettledTransaction.value = tx
+
                 val alert = FCMAlert(
                     title = "Whish Pay Settled ($${booking.totalAmountUsd.toInt()} USD)",
                     body = "Rental for ${booking.spaceTitle} is confirmed. TX #${tx.id.takeLast(6)}.",
@@ -127,6 +152,8 @@ class RentalsViewModel(
 
                 _events.emit(RentalsUiEvent.PaymentCompleted(booking.id))
                 onSuccess(tx)
+            } else {
+                _events.emit(RentalsUiEvent.PaymentCompleted(booking.id))
             }
         }
     }

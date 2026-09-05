@@ -146,8 +146,24 @@ class ProSpaceRepository {
                 onFormulasUpdated = { updatedFormulas ->
                     _subscriptionFormulas.value = updatedFormulas
                     _isCloudConnected.value = true
+                },
+                onTransactionsUpdated = { updatedTransactions ->
+                    _transactions.value = updatedTransactions
+                    _isCloudConnected.value = true
                 }
             )
+
+            // Pricing: if an admin has already configured pricing on this project, use it;
+            // otherwise seed the doc with local defaults so the initiateWhishPayment Cloud
+            // Function has something real to read from day one.
+            coroutineScope.launch {
+                val remotePricing = firestoreService.getPricingState()
+                if (remotePricing != null) {
+                    _pricingState.value = remotePricing
+                } else {
+                    firestoreService.savePricingState(_pricingState.value)
+                }
+            }
         } catch (e: Exception) {
             Log.w(TAG, "Firebase Firestore init fallback: ${e.message}")
             _isOfflineMode.value = true
@@ -350,11 +366,20 @@ class ProSpaceRepository {
     }
 
     // --- Admin Governance & Revenue Pricing ---
+    // Persisted to Firestore (system_metadata/pricing) after every change — the
+    // initiateWhishPayment Cloud Function reads this same document server-side to
+    // compute real charge amounts, so an admin price change that never leaves the
+    // device would silently never take effect for actual payments.
+    private fun persistPricingState() {
+        coroutineScope.launch { firestoreService.savePricingState(_pricingState.value) }
+    }
+
     fun updateMonthlySubscriptionFee(newFeeUsd: Double) {
         val oldFee = _pricingState.value.monthlySubscriptionFeeUsd
         _pricingState.value = _pricingState.value.copy(
             monthlySubscriptionFeeUsd = newFeeUsd
         )
+        persistPricingState()
         addAuditLog(
             actionType = "PRICING_ADJUSTMENT",
             details = "Monthly fee changed from $${String.format(Locale.US, "%.2f", oldFee)} to $${String.format(Locale.US, "%.2f", newFeeUsd)} USD",
@@ -372,6 +397,7 @@ class ProSpaceRepository {
             SpaceType.COWORKING_SPACE -> current.copy(paygCoworkingUsd = fee)
         }
         _pricingState.value = updated
+        persistPricingState()
         addAuditLog(
             actionType = "PAYG_PRICING_UPDATED",
             details = "PAYG fee for ${spaceType.displayName} updated to $${String.format(Locale.US, "%.2f", fee)} USD",
@@ -384,6 +410,7 @@ class ProSpaceRepository {
             package2MonthlyFeeUsd = package2Fee,
             package3MonthlyFeeUsd = package3Fee
         )
+        persistPricingState()
         addAuditLog(
             actionType = "PACKAGE_FEES_UPDATED",
             details = "Package 2 (3-limit) fee updated to $${String.format(Locale.US, "%.2f", package2Fee)}, Package 3 (Unlimited) fee updated to $${String.format(Locale.US, "%.2f", package3Fee)}",
@@ -393,6 +420,7 @@ class ProSpaceRepository {
 
     fun updateGovernanceTag(tag: String) {
         _pricingState.value = _pricingState.value.copy(governanceTag = tag)
+        persistPricingState()
         addAuditLog(
             actionType = "ADMIN_GOVERNANCE_TAG_UPDATED",
             details = "Admin governance control tag updated to: $tag",
@@ -405,6 +433,7 @@ class ProSpaceRepository {
         _pricingState.value = _pricingState.value.copy(
             monthlySubscriptionFeeUsd = baseline
         )
+        persistPricingState()
         addAuditLog(
             actionType = "PRICING_RESET",
             details = "Monthly fee reset to official baseline $${String.format(Locale.US, "%.2f", baseline)} USD",
@@ -433,168 +462,16 @@ class ProSpaceRepository {
     }
 
     // --- Whish Pay Settlement Ledger ---
-    fun processWhishPaySubscription(
-        spaceId: String,
-        payerName: String,
-        payerPhone: String
-    ): WhishTransaction {
-        val currentFee = _pricingState.value.monthlySubscriptionFeeUsd
-        val orderId = "ORD-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
-        val signature = WhishSecurity.generateSignature(
-            amount = currentFee,
-            orderId = orderId
-        )
-
-        val targetSpace = _spaces.value.find { it.id == spaceId }
-        val spaceTitle = targetSpace?.title ?: "ProHost Subscription"
-
-        val tx = WhishTransaction(
-            id = "TX-WSH-" + UUID.randomUUID().toString().take(8).uppercase(),
-            orderId = orderId,
-            amountUsd = currentFee,
-            currency = "USD",
-            status = TransactionStatus.SUCCESS,
-            timestamp = System.currentTimeMillis(),
-            payerName = payerName,
-            payerPhone = payerPhone,
-            channelId = WhishSecurity.CHANNEL_ID,
-            sourceEmail = WhishSecurity.SOURCE_EMAIL,
-            signatureHash = signature,
-            spaceId = spaceId,
-            spaceTitle = spaceTitle,
-            daysGranted = 30
-        )
-
-        // Add to ledger
-        _transactions.value = listOf(tx) + _transactions.value
-        coroutineScope.launch { firestoreService.recordTransaction(tx) }
-
-        // Grant 30 days active entitlement
-        _spaces.value = _spaces.value.map { space ->
-            if (space.id == spaceId) {
-                space.copy(
-                    isActiveSubscription = true,
-                    subscriptionExpiryMillis = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000)
-                )
-            } else space
-        }
-
-        addAuditLog(
-            actionType = "WHISH_PAYMENT_SUCCESS",
-            details = "Order ${tx.orderId} ($${String.format(Locale.US, "%.2f", currentFee)}) settled. Signature: ${signature.take(12)}... Entitlement granted for ${spaceTitle}",
-            severity = "SECURE",
-            actorEmail = payerName
-        )
-
-        return tx
-    }
-
-    fun processOwnerPackagePayment(
-        tier: OwnerPackageTier,
-        payerName: String,
-        payerPhone: String,
-        spaceTypeForPayg: SpaceType? = null
-    ): WhishTransaction {
-        val pricing = _pricingState.value
-        val amount = when (tier) {
-            OwnerPackageTier.PAY_AS_YOU_GO -> spaceTypeForPayg?.let { pricing.getPaygFeeForType(it) } ?: pricing.monthlySubscriptionFeeUsd
-            OwnerPackageTier.LIMITED_3_TIER -> pricing.package2MonthlyFeeUsd
-            OwnerPackageTier.UNLIMITED_TIER -> pricing.package3MonthlyFeeUsd
-        }
-
-        val orderId = "ORD-PKG-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
-        val signature = WhishSecurity.generateSignature(amount = amount, orderId = orderId)
-
-        val user = _currentUser.value
-        val tx = WhishTransaction(
-            id = "TX-WSH-PKG-" + UUID.randomUUID().toString().take(8).uppercase(),
-            orderId = orderId,
-            amountUsd = amount,
-            currency = "USD",
-            status = TransactionStatus.SUCCESS,
-            timestamp = System.currentTimeMillis(),
-            payerName = payerName,
-            payerPhone = payerPhone,
-            channelId = WhishSecurity.CHANNEL_ID,
-            sourceEmail = WhishSecurity.SOURCE_EMAIL,
-            signatureHash = signature,
-            spaceId = "OWNER-PKG-${tier.name}",
-            spaceTitle = "Owner Package Subscription: ${tier.title}",
-            daysGranted = 30,
-            userId = user?.id ?: ""
-        )
-
-        _transactions.value = listOf(tx) + _transactions.value
-        coroutineScope.launch { firestoreService.recordTransaction(tx) }
-
-        if (user != null) {
-            val updatedUser = user.copy(
-                ownerPackageTier = tier,
-                ownerPackageExpiryMillis = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000)
-            )
-            _currentUser.value = updatedUser
-            updateUser(updatedUser)
-        }
-
-        addAuditLog(
-            actionType = "OWNER_PACKAGE_PAYMENT_SUCCESS",
-            details = "Owner package subscription ${tier.title} ($${String.format(Locale.US, "%.2f", amount)}) settled via Whish Pay. Order: $orderId",
-            severity = "SECURE",
-            actorEmail = payerName
-        )
-
-        return tx
-    }
-
-    fun processPaygListingPayment(
-        spaceType: SpaceType,
-        payerName: String,
-        payerPhone: String
-    ): WhishTransaction {
-        val pricing = _pricingState.value
-        val amount = pricing.getPaygFeeForType(spaceType)
-        val orderId = "ORD-PAYG-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
-        val signature = WhishSecurity.generateSignature(amount = amount, orderId = orderId)
-        val user = _currentUser.value
-
-        val tx = WhishTransaction(
-            id = "TX-WSH-PAYG-" + UUID.randomUUID().toString().take(8).uppercase(),
-            orderId = orderId,
-            amountUsd = amount,
-            currency = "USD",
-            status = TransactionStatus.SUCCESS,
-            timestamp = System.currentTimeMillis(),
-            payerName = payerName,
-            payerPhone = payerPhone,
-            channelId = WhishSecurity.CHANNEL_ID,
-            sourceEmail = WhishSecurity.SOURCE_EMAIL,
-            signatureHash = signature,
-            spaceId = "PAYG-SLOT-${spaceType.name}",
-            spaceTitle = "PAYG Listing Slot (${spaceType.displayName})",
-            daysGranted = 30,
-            userId = user?.id ?: ""
-        )
-
-        _transactions.value = listOf(tx) + _transactions.value
-        coroutineScope.launch { firestoreService.recordTransaction(tx) }
-
-        if (user != null) {
-            val updatedUser = user.copy(
-                paygListingsBoughtCount = user.paygListingsBoughtCount + 1
-            )
-            _currentUser.value = updatedUser
-            updateUser(updatedUser)
-        }
-
-        addAuditLog(
-            actionType = "PAYG_LISTING_PURCHASE_SUCCESS",
-            details = "PAYG listing slot for ${spaceType.displayName} ($${String.format(Locale.US, "%.2f", amount)}) purchased via Whish Pay.",
-            severity = "SECURE",
-            actorEmail = payerName
-        )
-
-        return tx
-    }
+    // processWhishPaySubscription/processOwnerPackagePayment/processPaygListingPayment/
+    // processWhishPayBooking used to live here: each one locally fabricated a "SUCCESS"
+    // WhishTransaction and granted the entitlement immediately, with no payment having
+    // actually happened — the client both decided the price AND self-reported success.
+    // Payment now goes through the initiateWhishPayment/whishWebhook/checkWhishStatus
+    // Cloud Functions (functions/src/payments/), which compute the real amount
+    // server-side and only grant entitlements after independently confirming success
+    // with Whish's own status API. Transactions arrive here via the whish_transactions
+    // Firestore listener (see startRealtimeSync) — the repository is a read-only
+    // observer of payment state now, not the thing deciding it.
 
     fun exportTransactionsToCsv(startDateMillis: Long? = null, endDateMillis: Long? = null): String {
         val txs = _transactions.value.filter { tx ->
@@ -612,56 +489,6 @@ class ProSpaceRepository {
             sb.appendLine("${tx.spaceId},${tx.userId.ifBlank { "N/A" }},${String.format(Locale.US, "%.2f", tx.amountUsd)},$dateBought,$expiryDate,${tx.id},${tx.payerPhone}")
         }
         return sb.toString()
-    }
-
-    fun processWhishPayBooking(
-        bookingId: String,
-        payerName: String,
-        payerPhone: String,
-        txId: String,
-        signature: String
-    ): Boolean {
-        val request = _bookingRequests.value.find { it.id == bookingId } ?: return false
-        
-        // Update request status to ACCEPTED and set isExternalPaymentSettled to true
-        _bookingRequests.value = _bookingRequests.value.map {
-            if (it.id == bookingId) {
-                it.copy(
-                    status = BookingRequestStatus.ACCEPTED,
-                    isExternalPaymentSettled = true
-                )
-            } else it
-        }
-
-        // Create transaction entry
-        val tx = WhishTransaction(
-            id = txId,
-            orderId = "ORD-BKG-" + bookingId,
-            amountUsd = request.totalAmountUsd,
-            currency = "USD",
-            status = TransactionStatus.SUCCESS,
-            timestamp = System.currentTimeMillis(),
-            payerName = payerName,
-            payerPhone = payerPhone,
-            channelId = WhishSecurity.CHANNEL_ID,
-            sourceEmail = WhishSecurity.SOURCE_EMAIL,
-            signatureHash = signature,
-            spaceId = request.spaceId,
-            spaceTitle = request.spaceTitle,
-            daysGranted = request.durationMonths * 30
-        )
-
-        _transactions.value = listOf(tx) + _transactions.value
-        coroutineScope.launch { firestoreService.recordTransaction(tx) }
-        syncBookingStatusToFirestore(bookingId, BookingRequestStatus.ACCEPTED)
-
-        addAuditLog(
-            actionType = "WHISH_BOOKING_SETTLEMENT_SUCCESS",
-            details = "Booking request #${bookingId} for space ${request.spaceTitle} settled via Whish Pay by ${payerName}. Amount: $${request.totalAmountUsd}",
-            severity = "SECURE",
-            actorEmail = request.practitionerEmail
-        )
-        return true
     }
 
     // --- Space Listing Management ---

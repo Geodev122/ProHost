@@ -128,7 +128,8 @@ class FirestoreService(
         onWorkspacesUpdated: (List<SpaceListing>) -> Unit,
         onUsersUpdated: (List<AppUser>) -> Unit,
         onBookingsUpdated: (List<RentalBookingRequest>) -> Unit,
-        onFormulasUpdated: (List<SubscriptionFormula>) -> Unit
+        onFormulasUpdated: (List<SubscriptionFormula>) -> Unit,
+        onTransactionsUpdated: (List<WhishTransaction>) -> Unit
     ) {
         val db = firestore ?: return
 
@@ -194,6 +195,24 @@ class FirestoreService(
                     }
                 }
             activeListeners.add(bookingListener)
+
+            // Transactions are now created/settled server-side by the Whish payment Cloud
+            // Functions (initiateWhishPayment/whishWebhook/checkWhishStatus) via Admin SDK —
+            // this listener is how the client ever finds out about them at all.
+            val transactionListener = db.collection(FirestoreSchema.Collections.WHISH_TRANSACTIONS)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.w(TAG, "Transactions sync note: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null && !snapshot.isEmpty) {
+                        val transactions = snapshot.documents.mapNotNull { doc ->
+                            doc.data?.let { data -> WhishTransaction.fromFirestoreMap(doc.id, data) }
+                        }
+                        if (transactions.isNotEmpty()) onTransactionsUpdated(transactions)
+                    }
+                }
+            activeListeners.add(transactionListener)
         } catch (e: Exception) {
             Log.w(TAG, "Live listeners attachment warning: ${e.message}")
         }
@@ -303,6 +322,40 @@ class FirestoreService(
         } catch (e: Exception) {
             Log.e(TAG, "Error updating verification status: ${e.message}", e)
             false
+        }
+    }
+
+    // ==========================================
+    // ADMIN PRICING STATE
+    // ==========================================
+    // The initiateWhishPayment Cloud Function reads this same document server-side to
+    // compute real charge amounts — see AdminPricingState.toFirestoreMap().
+
+    suspend fun savePricingState(pricing: AdminPricingState): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(AdminPricingState.COLLECTION_PATH)
+                .document(AdminPricingState.DOCUMENT_ID)
+                .set(pricing.toFirestoreMap(), SetOptions.merge())
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving pricing state: ${e.message}", e)
+            false
+        }
+    }
+
+    suspend fun getPricingState(): AdminPricingState? {
+        return try {
+            val db = firestore ?: return null
+            val doc = db.collection(AdminPricingState.COLLECTION_PATH)
+                .document(AdminPricingState.DOCUMENT_ID)
+                .get()
+                .await()
+            doc.data?.let { AdminPricingState.fromFirestoreMap(it) }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching pricing state: ${e.message}", e)
+            null
         }
     }
 
