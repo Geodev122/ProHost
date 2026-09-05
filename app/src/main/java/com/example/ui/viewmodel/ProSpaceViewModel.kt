@@ -486,15 +486,15 @@ class ProSpaceViewModel(
         repository.addAuditLog(actionType, details, severity)
     }
 
-    fun updateProfile(
+    suspend fun updateProfile(
         name: String,
         specialty: String,
         phone: String,
         affiliation: String,
         syndicateNumber: String,
         governorate: Governorate
-    ) {
-        repository.updateCurrentUserProfile(name, specialty, phone, affiliation, syndicateNumber, governorate)
+    ): Boolean {
+        return repository.updateCurrentUserProfile(name, specialty, phone, affiliation, syndicateNumber, governorate)
     }
 
     // --- Credential Document Operations ---
@@ -521,13 +521,13 @@ class ProSpaceViewModel(
         )
     }
 
-    fun removeCredentialDocument(documentId: String) {
-        repository.removeCredentialDocument(documentId)
+    suspend fun removeCredentialDocument(documentId: String): Boolean {
+        return repository.removeCredentialDocument(documentId)
     }
 
-    fun submitForVerification() {
-        val user = currentUser.value ?: return
-        repository.submitUserVerification(user.id)
+    suspend fun submitForVerification(): Boolean {
+        val user = currentUser.value ?: return false
+        return repository.submitUserVerification(user.id)
     }
 
     suspend fun adminApproveDocument(documentId: String, notes: String = "Validated against Lebanese Syndicate Registry"): Boolean {

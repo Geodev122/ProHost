@@ -493,6 +493,50 @@ class FirestoreService(
         }
     }
 
+    suspend fun deleteCredentialDocument(documentId: String): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.USER_CREDENTIALS).document(documentId).delete().await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting credential document: ${e.message}", e)
+            false
+        }
+    }
+
+    /**
+     * Real-time listener for credential documents, scoped per firestore.rules:
+     * a non-admin can only ever read documents where userId == their own uid, so an
+     * unfiltered collection listener would be denied outright the moment any other
+     * user's document exists — admins alone can listen to the whole collection.
+     * Returns the registration so the caller can detach it on logout/user change
+     * (unlike [attachLiveListeners]'s listeners, this one's scope changes per user).
+     */
+    fun attachCredentialDocumentsListener(
+        userId: String,
+        isAdmin: Boolean,
+        onUpdated: (List<CredentialDocument>) -> Unit
+    ): ListenerRegistration? {
+        val db = firestore ?: return null
+        val query = if (isAdmin) {
+            db.collection(FirestoreSchema.Collections.USER_CREDENTIALS)
+        } else {
+            db.collection(FirestoreSchema.Collections.USER_CREDENTIALS).whereEqualTo("userId", userId)
+        }
+        return query.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Log.w(TAG, "Credential documents sync note: ${error.message}")
+                return@addSnapshotListener
+            }
+            if (snapshot != null) {
+                val docs = snapshot.documents.mapNotNull { doc ->
+                    doc.data?.let { data -> CredentialDocument.fromFirestoreMap(doc.id, data) }
+                }
+                onUpdated(docs)
+            }
+        }
+    }
+
     // ==========================================
     // FINANCIAL TRANSACTIONS & AUDIT LOGS
     // ==========================================

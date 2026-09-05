@@ -309,7 +309,8 @@ fun ProSpaceAppRoot(
                                         onSignOut = {
                                             viewModel.logout()
                                             activeTabId = "auth"
-                                        }
+                                        },
+                                        onNavigateToTab = { tabId -> activeTabId = tabId }
                                     )
                                     else -> DiscoveryScreen(
                                         viewModel = viewModel,

@@ -47,7 +47,8 @@ import kotlinx.coroutines.launch
 fun SpecialistProfileScreen(
     viewModel: ProSpaceViewModel,
     inAppUpdateManager: InAppUpdateManager? = null,
-    onSignOut: () -> Unit = {}
+    onSignOut: () -> Unit = {},
+    onNavigateToTab: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -655,9 +656,7 @@ fun SpecialistProfileScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Button(
-                                        onClick = {
-                                            Toast.makeText(context, "Explore available clinics & offices in Explore tab", Toast.LENGTH_SHORT).show()
-                                        },
+                                        onClick = { onNavigateToTab("search_map") },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(10.dp)
                                     ) {
@@ -667,9 +666,7 @@ fun SpecialistProfileScreen(
                                     }
 
                                     OutlinedButton(
-                                        onClick = {
-                                            Toast.makeText(context, "Active leases and formula calculations are synchronized", Toast.LENGTH_SHORT).show()
-                                        },
+                                        onClick = { onNavigateToTab("pro_rentals") },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(10.dp)
                                     ) {
@@ -682,8 +679,15 @@ fun SpecialistProfileScreen(
                         }
                     }
                 }
-            } else {
-                // 4-PILLAR ACCREDITATION HUB FOR PRACTITIONERS & HOSTS
+            }
+
+            // 4-PILLAR ACCREDITATION HUB FOR PRACTITIONERS & HOSTS — runs for every
+            // role (the doc list itself is separately gated to exclude ADMIN below).
+            // This used to be the `else` of the PROFESSIONAL check above, which meant
+            // Specialists could never see this section or upload any verification
+            // document at all — the only place that ever did anything with document
+            // uploads was unreachable for the one role that most needs it.
+            run {
                 val isBasicInfoComplete = user.fullName.isNotBlank() && user.phone.isNotBlank()
                 val isSyndicateComplete = user.specialty.isNotBlank() && user.syndicateNumber.isNotBlank()
                 val isGovComplete = user.governorate.displayName.isNotBlank()
@@ -895,8 +899,14 @@ fun SpecialistProfileScreen(
                                             previewingDocument = doc
                                         },
                                         onRemoveClick = { docId ->
-                                            viewModel.removeCredentialDocument(docId)
-                                            Toast.makeText(context, "Document removed", Toast.LENGTH_SHORT).show()
+                                            coroutineScope.launch {
+                                                val success = viewModel.removeCredentialDocument(docId)
+                                                Toast.makeText(
+                                                    context,
+                                                    if (success) "Document removed" else "Failed to remove document — please try again",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
                                         }
                                     )
                                 }
@@ -927,8 +937,14 @@ fun SpecialistProfileScreen(
                                                 previewingDocument = doc
                                             },
                                             onRemoveClick = { docId ->
-                                                viewModel.removeCredentialDocument(docId)
-                                                Toast.makeText(context, "Document removed", Toast.LENGTH_SHORT).show()
+                                                coroutineScope.launch {
+                                                    val success = viewModel.removeCredentialDocument(docId)
+                                                    Toast.makeText(
+                                                        context,
+                                                        if (success) "Document removed" else "Failed to remove document — please try again",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
                                             }
                                         )
                                     }
@@ -953,8 +969,14 @@ fun SpecialistProfileScreen(
                             if (user.verificationStatus != MemberVerificationStatus.VERIFIED) {
                                 Button(
                                     onClick = {
-                                        viewModel.submitForVerification()
-                                        Toast.makeText(context, "Verification package submitted for administrative compliance check!", Toast.LENGTH_LONG).show()
+                                        coroutineScope.launch {
+                                            val success = viewModel.submitForVerification()
+                                            Toast.makeText(
+                                                context,
+                                                if (success) "Verification package submitted for administrative compliance check!" else "Failed to submit verification package — please try again",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        }
                                     },
                                     shape = RoundedCornerShape(12.dp),
                                     modifier = Modifier.fillMaxWidth(),
@@ -1226,8 +1248,14 @@ fun SpecialistProfileScreen(
                     CustomButton(
                         text = "Save Profile Changes",
                         onClick = {
-                            viewModel.updateProfile(name, specialty, phone, affiliation, syndicateNumber, selectedGov)
-                            Toast.makeText(context, "Profile Updated Successfully!", Toast.LENGTH_SHORT).show()
+                            coroutineScope.launch {
+                                val success = viewModel.updateProfile(name, specialty, phone, affiliation, syndicateNumber, selectedGov)
+                                Toast.makeText(
+                                    context,
+                                    if (success) "Profile Updated Successfully!" else "Failed to update profile — please try again",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         },
                         icon = Icons.Default.Save,
                         modifier = Modifier.fillMaxWidth()
@@ -1371,7 +1399,14 @@ fun SpecialistProfileScreen(
             isAdmin = user.role == UserRole.ADMIN,
             onDismiss = { previewingDocument = null },
             onRemoveDocument = { docId ->
-                viewModel.removeCredentialDocument(docId)
+                coroutineScope.launch {
+                    val success = viewModel.removeCredentialDocument(docId)
+                    Toast.makeText(
+                        context,
+                        if (success) "Document removed" else "Failed to remove document — please try again",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
                 previewingDocument = null
             },
             onApproveDocument = { docId ->

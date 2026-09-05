@@ -6,6 +6,7 @@ import com.example.data.crypto.WhishSecurity
 import com.example.data.firestore.FirestoreSchema
 import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -104,9 +105,37 @@ class ProSpaceRepository {
     private val _spaceArchitectureSchema = MutableStateFlow<SpaceArchitectureSchema>(createDefaultSchema())
     val spaceArchitectureSchema: StateFlow<SpaceArchitectureSchema> = _spaceArchitectureSchema.asStateFlow()
 
+    // Unlike the fixed set of listeners in startRealtimeSync(), this one's scope
+    // (which user, admin-or-not) changes with the signed-in user, so it's tracked
+    // separately and re-attached whenever currentUser changes below.
+    private var credentialDocumentsListener: ListenerRegistration? = null
+
     init {
         seedInitialData()
         startRealtimeSync()
+
+        // Credential documents were the one collection with no live listener at all —
+        // uploaded docs were safely written to Firestore but the local list reset to
+        // empty on every fresh app instance (seedInitialData(), above), so they'd
+        // vanish from the UI on restart even though nothing was actually lost server-
+        // side. Re-attach a correctly-scoped listener (see attachCredentialDocumentsListener)
+        // every time the signed-in user or their role changes.
+        coroutineScope.launch {
+            currentUser.collect { user ->
+                credentialDocumentsListener?.remove()
+                credentialDocumentsListener = null
+                if (user == null) {
+                    _credentialDocuments.value = emptyList()
+                } else {
+                    credentialDocumentsListener = firestoreService.attachCredentialDocumentsListener(
+                        userId = user.id,
+                        isAdmin = user.role == UserRole.ADMIN
+                    ) { docs ->
+                        _credentialDocuments.value = docs
+                    }
+                }
+            }
+        }
     }
 
     fun startRealtimeSync() {
@@ -1071,26 +1100,32 @@ class ProSpaceRepository {
     // a Firebase Auth custom claim, or through the grantAdminRole/requestRoleUpgrade
     // Cloud Functions for an explicit role change request.
 
-    fun updateCurrentUserProfile(
+    suspend fun updateCurrentUserProfile(
         name: String,
         specialty: String,
         phone: String,
         affiliation: String,
         syndicateNumber: String,
         governorate: Governorate
-    ) {
-        _currentUser.value?.let { current ->
-            val updated = current.copy(
-                fullName = name,
-                specialty = specialty,
-                phone = phone,
-                affiliation = affiliation,
-                syndicateNumber = syndicateNumber,
-                governorate = governorate
-            )
+    ): Boolean {
+        val current = _currentUser.value ?: return false
+        val updated = current.copy(
+            fullName = name,
+            specialty = specialty,
+            phone = phone,
+            affiliation = affiliation,
+            syndicateNumber = syndicateNumber,
+            governorate = governorate
+        )
+        // This used to only mutate in-memory state — the "Profile Updated Successfully"
+        // toast fired unconditionally while the edit was never sent to Firestore at all,
+        // so it silently vanished on app restart or on another device.
+        val success = firestoreService.saveUserProfile(updated)
+        if (success) {
             _currentUser.value = updated
             _users.value = _users.value.map { if (it.id == updated.id) updated else it }
         }
+        return success
     }
 
     // --- Credential Documents & Professional Verification Management ---
@@ -1147,34 +1182,30 @@ class ProSpaceRepository {
         return doc
     }
 
-    fun removeCredentialDocument(documentId: String) {
-        val doc = _credentialDocuments.value.find { it.id == documentId }
+    suspend fun removeCredentialDocument(documentId: String): Boolean {
+        val doc = _credentialDocuments.value.find { it.id == documentId } ?: return false
+        val deleted = firestoreService.deleteCredentialDocument(documentId)
+        if (!deleted) return false
+
+        // The realtime listener (see init{}) will also reflect this once Firestore's
+        // snapshot fires, but update local state immediately for a responsive UI.
         _credentialDocuments.value = _credentialDocuments.value.filterNot { it.id == documentId }
-        if (doc != null) {
-            addAuditLog(
-                actionType = "DOCUMENT_REMOVED",
-                details = "Credential document ${doc.type.title} (#${doc.documentNumber}) removed",
-                severity = "INFO",
-                actorEmail = _currentUser.value?.email ?: "member@prospace.lb"
-            )
-            coroutineScope.launch {
-                functionsClient.submitVerificationForReview()
-                refreshUserProfile(doc.userId)
-            }
-        }
+        addAuditLog(
+            actionType = "DOCUMENT_REMOVED",
+            details = "Credential document ${doc.type.title} (#${doc.documentNumber}) removed",
+            severity = "INFO",
+            actorEmail = _currentUser.value?.email ?: "member@prospace.lb"
+        )
+        functionsClient.submitVerificationForReview()
+        refreshUserProfile(doc.userId)
+        return true
     }
 
-    fun submitUserVerification(userId: String) {
-        val user = _users.value.find { it.id == userId } ?: _currentUser.value ?: return
+    suspend fun submitUserVerification(userId: String): Boolean {
+        val user = _users.value.find { it.id == userId } ?: _currentUser.value ?: return false
         val userDocs = _credentialDocuments.value.filter { it.userId == userId }
         val requiredTypes = DocumentType.values().filter { it.requiredFor.contains(user.role) }
         val uploadedRequired = requiredTypes.filter { req -> userDocs.any { it.type == req && it.status != DocumentStatus.NOT_UPLOADED } }
-
-        val newStatus = if (uploadedRequired.size >= requiredTypes.size) {
-            MemberVerificationStatus.PENDING_REVIEW
-        } else {
-            MemberVerificationStatus.ACTION_REQUIRED
-        }
 
         // verificationNotes is a free-text field the owner can write themselves (not
         // one of the restricted fields), so this part still writes directly; the
@@ -1182,24 +1213,27 @@ class ProSpaceRepository {
         val updated = user.copy(
             verificationNotes = "Submitted on ${SimpleDateFormat("dd MMM yyyy", Locale.US).format(Date())}. Pending admin accreditation."
         )
+        val profileSaved = firestoreService.saveUserProfile(updated)
+        if (!profileSaved) return false
+
+        // Server-side: recomputes and writes verificationStatus/verificationTier/
+        // trustScore from the same credential documents, since Firestore rules deny
+        // every client write to those fields on user_profiles.
+        val submitted = functionsClient.submitVerificationForReview()
+        if (submitted.isFailure) return false
+
         if (_currentUser.value?.id == userId) {
             _currentUser.value = updated
         }
         _users.value = _users.value.map { if (it.id == userId) updated else it }
-        coroutineScope.launch {
-            firestoreService.saveUserProfile(updated)
-            // Server-side: recomputes and writes verificationStatus/verificationTier/
-            // trustScore from the same credential documents, since Firestore rules deny
-            // every client write to those fields on user_profiles.
-            functionsClient.submitVerificationForReview()
-            addLocalAuditLogEntry(
-                actionType = "VERIFICATION_SUBMITTED",
-                details = "Member ${user.fullName} submitted ${uploadedRequired.size}/${requiredTypes.size} credential documents for compliance review",
-                severity = "INFO",
-                actorEmail = user.email
-            )
-            refreshUserProfile(userId)
-        }
+        addLocalAuditLogEntry(
+            actionType = "VERIFICATION_SUBMITTED",
+            details = "Member ${user.fullName} submitted ${uploadedRequired.size}/${requiredTypes.size} credential documents for compliance review",
+            severity = "INFO",
+            actorEmail = user.email
+        )
+        refreshUserProfile(userId)
+        return true
     }
 
     /**

@@ -1,6 +1,8 @@
 package com.example.ui.components.dialogs
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,11 +26,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.*
+import com.example.ui.components.DocumentPreviewDialog
 import com.example.ui.components.drawer.LawBulletinCard
 import com.example.ui.theme.LebaneseCedarGreen
 import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.viewmodel.ProSpaceViewModel
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -51,12 +55,19 @@ fun DrawerDialogsHandler(
     }
 
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val currentUser by viewModel.currentUser.collectAsState()
     val allSpaces by viewModel.spaces.collectAsState()
     val bookingRequests by viewModel.bookingRequests.collectAsState()
     val auditLogs by viewModel.auditLogs.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
     val fcmAlerts by viewModel.fcmAlerts.collectAsState()
+
+    // The admin credential-document registry (below) is the only place an admin can
+    // ever actually approve/reject a document — SpecialistProfileScreen's own preview
+    // dialog is reachable only from a user's OWN document list, which explicitly
+    // excludes ADMIN, so `isAdmin` could never be true at that call site.
+    var previewingAdminDocument by remember { mutableStateOf<CredentialDocument?>(null) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -673,13 +684,19 @@ fun DrawerDialogsHandler(
                         "admin_credentials_registry" -> {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Text("Super Admin Supervisory Registry & Document Inspection", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Tap a document to approve or request a revision.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                                 val allDocs = viewModel.credentialDocuments.collectAsState().value
                                 if (allDocs.isEmpty()) {
                                     Text("No pending member documents in the verification queue.", style = MaterialTheme.typography.bodySmall)
                                 } else {
                                     LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.heightIn(max = 300.dp)) {
                                         items(allDocs) { doc ->
-                                            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))) {
+                                            Card(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable { previewingAdminDocument = doc },
+                                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                            ) {
                                                 Column(modifier = Modifier.padding(10.dp)) {
                                                     Text("User ID: ${doc.userId} • Type: ${doc.type.title}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                                                     Text("Document No: ${doc.documentNumber} • Status: ${doc.status}", style = MaterialTheme.typography.bodySmall)
@@ -833,5 +850,33 @@ fun DrawerDialogsHandler(
                 }
             }
         }
+    }
+
+    previewingAdminDocument?.let { doc ->
+        DocumentPreviewDialog(
+            document = doc,
+            isAdmin = true,
+            onDismiss = { previewingAdminDocument = null },
+            onApproveDocument = { docId ->
+                coroutineScope.launch {
+                    val success = viewModel.adminApproveDocument(docId)
+                    Toast.makeText(
+                        context,
+                        if (success) "Document approved and accredited!" else "Failed to approve document — please try again",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            },
+            onRejectDocument = { docId, reason ->
+                coroutineScope.launch {
+                    val success = viewModel.adminRejectDocument(docId, reason)
+                    Toast.makeText(
+                        context,
+                        if (success) "Revision requested from member" else "Failed to request revision — please try again",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        )
     }
 }
