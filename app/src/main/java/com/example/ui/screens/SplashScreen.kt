@@ -113,7 +113,7 @@ fun SplashScreen(
 
             // Professional Subtitle
             Text(
-                text = "Professional Workspace & Studio Exchange",
+                text = "Specialist Workspace & Studio Exchange",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = subtitleAlpha),

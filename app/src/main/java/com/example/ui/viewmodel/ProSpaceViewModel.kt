@@ -546,8 +546,8 @@ class ProSpaceViewModel(
     // --- WhatsApp Direct Connection ---
     fun launchWhatsAppInquiry(context: Context, space: SpaceListing, selectedFormula: RentalFormula?, request: RentalBookingRequest? = null) {
         val user = currentUser.value
-        val professionalName = user?.fullName ?: "Professional Member"
-        val specialty = user?.specialty ?: "Independent Professional"
+        val professionalName = user?.fullName ?: "Specialist Member"
+        val specialty = user?.specialty ?: "Independent Specialist"
         val affiliation = user?.affiliation ?: "ProSpace Member Network"
         val syndicate = user?.syndicateNumber ?: "PRO-LB-VERIFIED"
 
@@ -565,7 +565,7 @@ class ProSpaceViewModel(
             "• Chosen Availability: $daysStr @ $timesStr$shiftStr\n" +
             "• Start Date: ${request.startDate} (${request.durationMonths} month${if (request.durationMonths > 1) "s" else ""})\n" +
             "• Total Agreement Value: $${request.totalAmountUsd.toInt()} USD\n" +
-            "• Professional Notes: ${request.clinicalNotes}\n" +
+            "• Specialist Notes: ${request.clinicalNotes}\n" +
             "• In-App Status: PENDING HOST APPROVAL"
         } else ""
 

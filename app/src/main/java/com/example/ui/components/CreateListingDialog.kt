@@ -762,7 +762,7 @@ fun CreateListingDialog(
                                 Text("Operating Hours, Blackouts & Contact", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
                                 Text("Define operating days, shift hours, and host contact details for bookings.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-                                Text("Complementary Professional Disciplines", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Complementary Specialist Disciplines", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     items(commonSpecialties) { spec ->
                                         val isSel = selectedSpecialties.contains(spec)

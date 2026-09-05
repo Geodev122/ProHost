@@ -295,7 +295,7 @@ fun DrawerDialogsHandler(
                                 )
                                 LawBulletinCard(
                                     number = "Decree 159/92",
-                                    title = "Professional Practice Spaces",
+                                    title = "Specialist Practice Spaces",
                                     content = "Guarantees professionals the right to rent dedicated shared offices without creating standard full-lease tenant property titles, facilitating flexible multi-day shifts."
                                 )
                                 LawBulletinCard(
@@ -648,7 +648,7 @@ fun DrawerDialogsHandler(
                         }
                         "pro_accreditation_hub" -> {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("4-Pillar Professional Syndicate Accreditation", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text("4-Pillar Specialist Syndicate Accreditation", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                                 Text("Complete contact verification, syndicate license, governorate selection, and required legal document uploads to achieve 100% verified status.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Surface(

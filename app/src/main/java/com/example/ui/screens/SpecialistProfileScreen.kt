@@ -711,7 +711,7 @@ fun SpecialistProfileScreen(
                                     .padding(end = 8.dp)
                             ) {
                                 Text(
-                                    text = if (user.role == UserRole.SPACE_OWNER) "Commercial Host Accreditation" else "Professional Syndicate Accreditation",
+                                    text = if (user.role == UserRole.SPACE_OWNER) "Commercial Host Accreditation" else "Specialist Syndicate Accreditation",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -1214,7 +1214,7 @@ fun SpecialistProfileScreen(
                         value = syndicateNumber,
                         onValueChange = { syndicateNumber = it },
                         label = when (user.role) {
-                            UserRole.PROFESSIONAL -> "Order / Syndicate / Professional License ID (e.g. LOP / OEA)"
+                            UserRole.PROFESSIONAL -> "Order / Syndicate / Specialist License ID (e.g. LOP / OEA)"
                             UserRole.SPACE_OWNER -> "Commercial Register / Property Sijil Tejari ID"
                             UserRole.ADMIN -> "Central Administrative Security Node ID"
                         },

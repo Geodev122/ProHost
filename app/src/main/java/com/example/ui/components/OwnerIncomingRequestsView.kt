@@ -511,7 +511,7 @@ fun OwnerBookingRequestCard(
                         Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Message Professional on WhatsApp",
+                            text = "Message Specialist on WhatsApp",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White

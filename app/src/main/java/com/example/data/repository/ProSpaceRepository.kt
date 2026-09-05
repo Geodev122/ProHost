@@ -1117,7 +1117,7 @@ class ProSpaceRepository {
             fullName = if (cleanEmail.contains("@")) cleanEmail.substringBefore("@").replace(".", " ").capitalize(Locale.US) else "Member",
             role = verifiedRole,
             specialty = when (verifiedRole) {
-                UserRole.PROFESSIONAL -> "Independent Professional"
+                UserRole.PROFESSIONAL -> "Independent Specialist"
                 UserRole.SPACE_OWNER -> "Workspace Host"
                 UserRole.ADMIN -> "Super Administrator & Security Governance"
             },

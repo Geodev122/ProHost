@@ -119,7 +119,7 @@ fun LoginAuthScreen(
         )
 
         Text(
-            text = "Professional Workspace & Office Rental Exchange",
+            text = "Specialist Workspace & Office Rental Exchange",
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -417,7 +417,7 @@ fun LoginAuthScreen(
                     FilterChip(
                         selected = regRole == UserRole.PROFESSIONAL,
                         onClick = { regRole = UserRole.PROFESSIONAL },
-                        label = { Text("Professional / Renter") },
+                        label = { Text("Specialist / Renter") },
                         leadingIcon = { Icon(Icons.Default.Work, contentDescription = null, modifier = Modifier.size(16.dp)) },
                         modifier = Modifier.weight(1f)
                     )

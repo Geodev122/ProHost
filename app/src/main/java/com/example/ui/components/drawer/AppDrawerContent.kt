@@ -66,7 +66,7 @@ fun ProfessionalDrawerContent(
                     color = PureWhite
                 )
                 Text(
-                    text = currentUser?.specialty ?: "Licensed Professional",
+                    text = currentUser?.specialty ?: "Licensed Specialist",
                     style = MaterialTheme.typography.bodySmall,
                     color = LightGray,
                     fontWeight = FontWeight.SemiBold
@@ -598,7 +598,7 @@ fun ProSpaceDrawerFooter() {
                     ProSpaceCedarBadge(text = "v2.5", isCompact = true)
                 }
                 Text(
-                    text = "Verified Professional Workspace Grid",
+                    text = "Verified Specialist Workspace Grid",
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 10.sp,
                     color = CoolGray

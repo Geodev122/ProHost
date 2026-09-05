@@ -156,7 +156,7 @@ fun CredentialUploadDialog(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Lebanese Professional Identity Accreditation",
+                                text = "Lebanese Specialist Identity Accreditation",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
