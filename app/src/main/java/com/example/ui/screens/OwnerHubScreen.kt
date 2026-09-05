@@ -30,6 +30,7 @@ import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProSpaceViewModel
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 @Composable
@@ -57,6 +58,9 @@ fun OwnerHubScreen(
     var selectedSpaceForSchedule by remember { mutableStateOf<SpaceListing?>(null) }
     var showCreateListingDialog by remember { mutableStateOf(false) }
     var showPackageSelectionDialog by remember { mutableStateOf(false) }
+    var editingSpace by remember { mutableStateOf<SpaceListing?>(null) }
+    var deletingSpace by remember { mutableStateOf<SpaceListing?>(null) }
+    val coroutineScope = rememberCoroutineScope()
 
     OwnerHubScreenContent(
         ownerSpaces = ownerSpaces,
@@ -73,7 +77,9 @@ fun OwnerHubScreen(
             } else {
                 showPackageSelectionDialog = true
             }
-        }
+        },
+        onEditSpace = { space -> editingSpace = space },
+        onDeleteSpace = { space -> deletingSpace = space }
     )
 
     // Package Selection Dialog
@@ -221,6 +227,145 @@ fun OwnerHubScreen(
             }
         )
     }
+
+    // Edit Listing Dialog — an owner previously had no way to correct a mistake in
+    // their own published listing; updateSpaceListing was only ever called from the
+    // Admin Console, even though Firestore rules already let the owning user update
+    // their own workspace_listings document directly.
+    editingSpace?.let { space ->
+        OwnerEditListingDialog(
+            listing = space,
+            onDismiss = { editingSpace = null },
+            onSave = { updated ->
+                coroutineScope.launch {
+                    val success = viewModel.updateOwnerListing(updated)
+                    editingSpace = null
+                    android.widget.Toast.makeText(
+                        context,
+                        if (success) "Listing updated successfully!" else "Failed to update listing — please try again",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        )
+    }
+
+    // Delete Listing Confirmation Dialog
+    deletingSpace?.let { space ->
+        OwnerDeleteListingDialog(
+            listing = space,
+            onDismiss = { deletingSpace = null },
+            onConfirm = {
+                coroutineScope.launch {
+                    val success = viewModel.deleteOwnerListing(space.id)
+                    deletingSpace = null
+                    android.widget.Toast.makeText(
+                        context,
+                        if (success) "Listing removed" else "Failed to remove listing — please try again",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun OwnerEditListingDialog(
+    listing: SpaceListing,
+    onDismiss: () -> Unit,
+    onSave: (SpaceListing) -> Unit
+) {
+    var title by remember { mutableStateOf(listing.title) }
+    var district by remember { mutableStateOf(listing.district) }
+    var streetAddress by remember { mutableStateOf(listing.streetAddress) }
+    var floorInfo by remember { mutableStateOf(listing.floorInfo) }
+    var priceText by remember { mutableStateOf(listing.baseMonthlyRateUsd.toInt().toString()) }
+    var ownerPhone by remember { mutableStateOf(listing.ownerPhone) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("Edit Workspace Listing", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+
+                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = district, onValueChange = { district = it }, label = { Text("District") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = streetAddress, onValueChange = { streetAddress = it }, label = { Text("Street Address") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = floorInfo, onValueChange = { floorInfo = it }, label = { Text("Floor Info") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = priceText,
+                    onValueChange = { priceText = it.filter { c -> c.isDigit() } },
+                    label = { Text("Monthly Rate (USD)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(value = ownerPhone, onValueChange = { ownerPhone = it }, label = { Text("Contact Phone") }, modifier = Modifier.fillMaxWidth())
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = {
+                            onSave(
+                                listing.copy(
+                                    title = title,
+                                    district = district,
+                                    streetAddress = streetAddress,
+                                    floorInfo = floorInfo,
+                                    baseMonthlyRateUsd = priceText.toDoubleOrNull() ?: listing.baseMonthlyRateUsd,
+                                    ownerPhone = ownerPhone
+                                )
+                            )
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Save Changes")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OwnerDeleteListingDialog(
+    listing: SpaceListing,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+        title = { Text("Delete Listing?") },
+        text = {
+            Text("Are you sure you want to permanently remove '${listing.title}' from the platform? This cannot be undone.")
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text("Delete")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
@@ -234,6 +379,8 @@ fun OwnerHubScreenContent(
     onOpenScheduleEditor: (SpaceListing) -> Unit,
     onOpenCreateListing: () -> Unit,
     onOpenPackageSelection: () -> Unit,
+    onEditSpace: (SpaceListing) -> Unit = {},
+    onDeleteSpace: (SpaceListing) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -559,6 +706,21 @@ fun OwnerHubScreenContent(
                                 Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("Availability", style = MaterialTheme.typography.labelMedium)
+                            }
+
+                            // Edit Listing Button
+                            OutlinedButton(
+                                onClick = { onEditSpace(space) },
+                                modifier = Modifier.weight(0.9f),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                            ) {
+                                Icon(Icons.Default.Edit, contentDescription = "Edit Listing", modifier = Modifier.size(14.dp))
+                            }
+
+                            // Delete Listing Button
+                            IconButton(onClick = { onDeleteSpace(space) }) {
+                                Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Listing", tint = MaterialTheme.colorScheme.error)
                             }
                         }
                     }

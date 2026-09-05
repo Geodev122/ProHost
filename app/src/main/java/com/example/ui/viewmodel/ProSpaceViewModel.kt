@@ -271,6 +271,20 @@ class ProSpaceViewModel(
         return true
     }
 
+    // An owner had no in-app way to correct a mistake in, or take down, their own
+    // published listing — updateSpaceListing/deleteSpaceListing were only ever called
+    // from the Admin Console. Firestore rules already permit the owning user to update/
+    // delete their own workspace_listings document directly, so this just exposes the
+    // existing repository methods (which already safely preserve isVerified/
+    // isActiveSubscription/subscriptionExpiryMillis/ownerId regardless of caller).
+    suspend fun updateOwnerListing(updated: SpaceListing): Boolean {
+        return repository.updateSpaceListing(updated)
+    }
+
+    suspend fun deleteOwnerListing(spaceId: String): Boolean {
+        return repository.deleteSpaceListing(spaceId)
+    }
+
     fun payOwnerPackageViaWhish(
         tier: OwnerPackageTier,
         payerName: String,
