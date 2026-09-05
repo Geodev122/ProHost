@@ -8,7 +8,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -350,13 +349,16 @@ fun SpecialistProfileScreen(
             }
 
             // =========================================================================
-            // 2. ACTIVE PROFILE SELECTOR / ROLE TOGGLE BAR
+            // 2. ACTIVE ROLE INDICATOR (informational only — a role change now only ever
+            // happens server-side, via Firebase Auth + the requestRoleUpgrade/
+            // grantAdminRole Cloud Functions. This used to be a tap-to-switch control
+            // that let any signed-in user instantly become Admin with no server check.)
             // =========================================================================
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     ProSectionHeader(
-                        title = "Active Role Context",
-                        subtitle = "Switch perspectives across Practitioner, Host, and System Admin",
+                        title = "Account Role",
+                        subtitle = "Your verified role on ProHost",
                         icon = Icons.Default.SwapHoriz
                     )
 
@@ -375,8 +377,7 @@ fun SpecialistProfileScreen(
                             Surface(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable { viewModel.switchUserRole(role) },
+                                    .clip(RoundedCornerShape(12.dp)),
                                 color = if (isSelected) roleColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                                 shape = RoundedCornerShape(12.dp),
                                 border = if (isSelected) BorderStroke(1.5.dp, roleColor) else null

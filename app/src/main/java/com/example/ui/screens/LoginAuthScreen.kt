@@ -51,10 +51,9 @@ fun LoginAuthScreen(
     var isSignUpMode by remember { mutableStateOf(false) }
 
     // Sign In form fields
-    var loginEmail by remember { mutableStateOf("geo.elnajjar@gmail.com") }
+    var loginEmail by remember { mutableStateOf("") }
     var loginPassword by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
-    var selectedLoginRole by remember { mutableStateOf(UserRole.ADMIN) }
 
     // Sign Up / Member Registration fields
     var regFullName by remember { mutableStateOf("") }
@@ -75,7 +74,6 @@ fun LoginAuthScreen(
     val authSuccessMessage by viewModel.authSuccessMessage.collectAsState()
 
     var localErrorMessage by remember { mutableStateOf<String?>(null) }
-    var showGoogleChooser by remember { mutableStateOf(false) }
     var showForgotPasswordDialog by remember { mutableStateOf(false) }
     var forgotPasswordEmail by remember { mutableStateOf("") }
 
@@ -220,64 +218,11 @@ fun LoginAuthScreen(
 
         if (!isSignUpMode) {
             // ==================== SIGN IN FLOW ====================
-            Text(
-                text = "SELECT ACCESS CLEARANCE",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.Start)
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // 1. Super Admin Card (geo.elnajjar@gmail.com)
-            RoleSelectionCard(
-                roleTitle = "Super Admin (Security & Governance)",
-                subtitle = "geo.elnajjar@gmail.com • Central Node Governance",
-                icon = Icons.Default.AdminPanelSettings,
-                badge = "SUPER ADMIN",
-                isSelected = selectedLoginRole == UserRole.ADMIN,
-                accentColor = SandstoneDark,
-                onClick = {
-                    selectedLoginRole = UserRole.ADMIN
-                    loginEmail = "geo.elnajjar@gmail.com"
-                    viewModel.clearAuthMessages()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // 2. Space Owner Card
-            RoleSelectionCard(
-                roleTitle = "Workspace Host / Space Owner",
-                subtitle = "Manage listings, view telemetry stats, accept/reject requests",
-                icon = Icons.Default.HomeWork,
-                badge = "OWNER",
-                isSelected = selectedLoginRole == UserRole.SPACE_OWNER,
-                accentColor = CarnationOrange,
-                onClick = {
-                    selectedLoginRole = UserRole.SPACE_OWNER
-                    viewModel.clearAuthMessages()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // 3. Professional Card
-            RoleSelectionCard(
-                roleTitle = "Professional / Renter",
-                subtitle = "Explore spaces, active rentals & history, WhatsApp connect",
-                icon = Icons.Default.Work,
-                badge = "PROFESSIONAL",
-                isSelected = selectedLoginRole == UserRole.PROFESSIONAL,
-                accentColor = OxfordBlue,
-                onClick = {
-                    selectedLoginRole = UserRole.PROFESSIONAL
-                    viewModel.clearAuthMessages()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
+            // There used to be a role picker here ("Select Access Clearance") that let
+            // anyone tap a "Super Admin" card, pre-fill the admin's email, and sign in
+            // with that clearance — with no password or server check tying role to
+            // identity. Role is now resolved entirely server-side (Firebase Auth +
+            // custom claims), so there is nothing to pick here at all.
 
             // Sign In Credentials Form
             ModernCard(
@@ -299,7 +244,7 @@ fun LoginAuthScreen(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Clearance: ${selectedLoginRole.name} • End-to-end encrypted",
+                            text = "End-to-end encrypted",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -376,7 +321,7 @@ fun LoginAuthScreen(
 
                 // Primary Firebase Login Button
                 CustomButton(
-                    text = if (isAuthenticating) "Authenticating..." else if (selectedLoginRole == UserRole.ADMIN) "Sign In as Super Admin" else "Sign In with Firebase Auth",
+                    text = if (isAuthenticating) "Authenticating..." else "Sign In with Firebase Auth",
                     onClick = {
                         if (loginEmail.isBlank()) {
                             localErrorMessage = "Please enter an email address"
@@ -390,13 +335,12 @@ fun LoginAuthScreen(
                             context = context,
                             email = loginEmail,
                             password = loginPassword,
-                            desiredRole = selectedLoginRole,
                             onSuccess = onLoginSuccess
                         )
                     },
                     enabled = !isAuthenticating,
                     variant = CustomButtonVariant.PRIMARY,
-                    icon = if (selectedLoginRole == UserRole.ADMIN) Icons.Default.Shield else Icons.AutoMirrored.Filled.Login,
+                    icon = Icons.AutoMirrored.Filled.Login,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("submit_login_button")
@@ -420,26 +364,10 @@ fun LoginAuthScreen(
                         .fillMaxWidth()
                         .testTag("google_sign_in_button")
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Quick Identity Selector Fallback
-                OutlinedButton(
-                    onClick = { showGoogleChooser = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(
-                        Icons.Default.SwitchAccount,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Quick Verified Profile Selector",
-                        fontSize = 12.sp
-                    )
-                }
+                // The "Quick Verified Profile Selector" shortcut that used to live here
+                // let anyone become any role — including Admin — with a single tap and
+                // zero credentials. Removed; there is no unauthenticated path to signing
+                // in as any account anymore.
             }
         } else {
             // ==================== MEMBER REGISTRATION FLOW ====================
@@ -696,7 +624,7 @@ fun LoginAuthScreen(
                             email = regEmail,
                             password = regPassword,
                             phone = regPhone,
-                            role = regRole,
+                            requestedRole = regRole,
                             specialty = regSpecialty,
                             syndicateNumber = if (regSyndicateNumber.isBlank()) "LB-REG-" + (1000..9999).random() else regSyndicateNumber,
                             affiliation = if (regAffiliation.isBlank()) "Independent Practitioner" else regAffiliation,
@@ -758,20 +686,6 @@ fun LoginAuthScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-
-        // Dialog for Google account selection (quick testing / fallback)
-        if (showGoogleChooser) {
-            GoogleChooserDialog(
-                onAccountSelected = { email, role ->
-                    showGoogleChooser = false
-                    viewModel.login(email = email, desiredRole = role)
-                    onLoginSuccess()
-                },
-                onDismiss = {
-                    showGoogleChooser = false
-                }
-            )
-        }
 
         // Dialog for Password Reset
         if (showForgotPasswordDialog) {
@@ -971,172 +885,8 @@ fun RoleSelectionCard(
     }
 }
 
-@Composable
-fun GoogleChooserDialog(
-    onAccountSelected: (String, UserRole) -> Unit,
-    onDismiss: () -> Unit
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(24.dp)
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = "Google SSO",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(36.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Google Identity",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                Text(
-                    text = "Choose an account",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "to continue to ProHost",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 20.dp),
-                    textAlign = TextAlign.Center
-                )
-
-                // Primary Verified Google Account
-                GoogleAccountRow(
-                    name = "George El Najjar",
-                    email = "geo.elnajjar@gmail.com",
-                    roleText = "Super Admin Node",
-                    role = UserRole.ADMIN,
-                    avatarLetter = "G",
-                    onClick = { onAccountSelected("geo.elnajjar@gmail.com", UserRole.ADMIN) }
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                GoogleAccountRow(
-                    name = "George El Najjar",
-                    email = "geo.elnajjar@gmail.com",
-                    roleText = "Space Host Account",
-                    role = UserRole.SPACE_OWNER,
-                    avatarLetter = "G",
-                    onClick = { onAccountSelected("geo.elnajjar@gmail.com", UserRole.SPACE_OWNER) }
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                GoogleAccountRow(
-                    name = "George El Najjar",
-                    email = "geo.elnajjar@gmail.com",
-                    roleText = "Licensed Practitioner Account",
-                    role = UserRole.PROFESSIONAL,
-                    avatarLetter = "G",
-                    onClick = { onAccountSelected("geo.elnajjar@gmail.com", UserRole.PROFESSIONAL) }
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                TextButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    Text("Cancel", fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun GoogleAccountRow(
-    name: String,
-    email: String,
-    roleText: String,
-    role: UserRole,
-    avatarLetter: String,
-    onClick: () -> Unit
-) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(12.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                color = when(role) {
-                    UserRole.ADMIN -> AmberWarning
-                    UserRole.SPACE_OWNER -> CarnationOrange
-                    UserRole.PROFESSIONAL -> OxfordBlue
-                },
-                shape = CircleShape,
-                modifier = Modifier.size(36.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = avatarLetter,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        fontSize = 14.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = email,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "Role: $roleText",
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = when(role) {
-                        UserRole.ADMIN -> AmberWarning
-                        UserRole.SPACE_OWNER -> CarnationOrange
-                        UserRole.PROFESSIONAL -> OxfordBlue
-                    }
-                )
-            }
-        }
-    }
-}
+// GoogleChooserDialog / GoogleAccountRow used to live here: a fake "account chooser"
+// hardcoding the developer's own identity as an instant, password-free tap-to-become
+// Admin/Owner/Professional shortcut, entirely disconnected from real Google/Firebase
+// auth. Removed for the same reason as the "Quick Verified Profile Selector" button
+// that opened it.

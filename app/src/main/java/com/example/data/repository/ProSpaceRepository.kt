@@ -86,23 +86,11 @@ class ProSpaceRepository {
     private val _auditLogs = MutableStateFlow<List<AuditSecurityLog>>(emptyList())
     val auditLogs: StateFlow<List<AuditSecurityLog>> = _auditLogs.asStateFlow()
 
-    private val _currentUser = MutableStateFlow<AppUser?>(
-        AppUser(
-            id = "USR-ADMIN-ROOT",
-            email = "geo.elnajjar@gmail.com",
-            fullName = "Geo El-Najjar",
-            role = UserRole.ADMIN,
-            specialty = "Super Administrator & Security Governance",
-            phone = "+961 70 888 999",
-            affiliation = "ProSpace Executive HQ & Central Governance",
-            syndicateNumber = "SUPER-ADMIN-01",
-            governorate = Governorate.BEIRUT,
-            isVerified = true,
-            verificationStatus = MemberVerificationStatus.VERIFIED,
-            verificationTier = VerificationTier.TIER_3_COMMERCIAL_HOST,
-            trustScore = 100
-        )
-    )
+    // Starts signed out. This previously defaulted to a fully-populated Super Admin
+    // AppUser, meaning every fresh install of the app opened directly into the Admin
+    // console with zero authentication — no login screen ever shown, no credential
+    // ever checked. That was, by a wide margin, the most severe bug in the app.
+    private val _currentUser = MutableStateFlow<AppUser?>(null)
     val currentUser: StateFlow<AppUser?> = _currentUser.asStateFlow()
 
     private val _credentialDocuments = MutableStateFlow<List<CredentialDocument>>(emptyList())
@@ -1103,23 +1091,29 @@ class ProSpaceRepository {
     }
 
     // --- User Authentication & Member Registration ---
+    /**
+     * Registers a new member. [uid] must be the real Firebase Auth UID (so this user's
+     * `id` lines up with the `user_profiles/{uid}` document the role-claim Cloud Functions
+     * write to) and [verifiedRole] must already have been confirmed server-side — see
+     * [com.example.data.auth.completeVerifiedRegistration].
+     */
     fun registerMember(
+        uid: String,
         fullName: String,
         email: String,
         phone: String,
-        role: UserRole,
+        verifiedRole: UserRole,
         specialty: String,
         syndicateNumber: String,
         affiliation: String,
         governorate: Governorate
     ): AppUser {
         val cleanEmail = email.trim().lowercase()
-        val userId = "USR-LB-" + UUID.randomUUID().toString().take(6).uppercase()
         val newUser = AppUser(
-            id = userId,
+            id = uid,
             email = cleanEmail,
             fullName = fullName.trim(),
-            role = role,
+            role = verifiedRole,
             specialty = specialty.trim(),
             phone = phone.trim(),
             affiliation = affiliation.trim(),
@@ -1128,8 +1122,9 @@ class ProSpaceRepository {
             isVerified = true
         )
 
-        _users.value = _users.value.filter { !it.email.equals(cleanEmail, ignoreCase = true) } + newUser
+        _users.value = _users.value.filterNot { it.id == uid } + newUser
         _currentUser.value = newUser
+        coroutineScope.launch { firestoreService.saveUserProfile(newUser) }
 
         addAuditLog(
             actionType = "MEMBER_REGISTRATION",
@@ -1140,45 +1135,38 @@ class ProSpaceRepository {
         return newUser
     }
 
-    fun login(email: String, desiredRole: UserRole? = null): AppUser {
+    /**
+     * Signs a user in locally once their identity AND role have already been verified
+     * server-side (real Firebase Auth sign-in, then the role read from their ID token's
+     * custom claim — see [com.example.data.auth.completeVerifiedLogin]). [uid] must be
+     * the Firebase Auth UID; [verifiedRole] must come from the token claim, never from
+     * UI state. There is no code path here that grants a role from caller-supplied input.
+     */
+    fun login(uid: String, email: String, verifiedRole: UserRole): AppUser {
         val cleanEmail = email.trim().lowercase()
-        val existing = _users.value.find { it.email.equals(cleanEmail, ignoreCase = true) }
+        val existing = _users.value.find { it.id == uid }
 
-        val user = if (cleanEmail == "geo.elnajjar@gmail.com" || desiredRole == UserRole.ADMIN) {
-            existing ?: AppUser(
-                id = "USR-ADMIN-ROOT",
-                email = "geo.elnajjar@gmail.com",
-                fullName = "Geo El-Najjar",
-                role = UserRole.ADMIN,
-                specialty = "Super Administrator & Security Governance",
-                phone = "+961 70 888 999",
-                affiliation = "ProSpace Executive HQ & Central Governance",
-                syndicateNumber = "SUPER-ADMIN-01",
-                governorate = Governorate.BEIRUT,
-                isVerified = true
-            )
-        } else if (existing != null) {
-            existing
-        } else {
-            // New user registration flow
-            val role = desiredRole ?: UserRole.MEDICAL_PRACTITIONER
-            AppUser(
-                id = "USR-" + UUID.randomUUID().toString().take(6).uppercase(),
-                email = cleanEmail,
-                fullName = if (cleanEmail.contains("@")) cleanEmail.substringBefore("@").replace(".", " ").capitalize(Locale.US) else "Professional Member",
-                role = role,
-                specialty = if (role == UserRole.PROFESSIONAL) "Independent Professional" else "Workspace Host",
-                phone = "+961 70 000 000",
-                affiliation = "ProSpace Member Network",
-                syndicateNumber = "PRO-LB-" + (1000..9999).random(),
-                governorate = Governorate.BEIRUT,
-                isVerified = true
-            ).also {
-                _users.value = _users.value + it
-            }
-        }
+        val user = existing?.copy(role = verifiedRole, email = cleanEmail) ?: AppUser(
+            id = uid,
+            email = cleanEmail,
+            fullName = if (cleanEmail.contains("@")) cleanEmail.substringBefore("@").replace(".", " ").capitalize(Locale.US) else "Member",
+            role = verifiedRole,
+            specialty = when (verifiedRole) {
+                UserRole.PROFESSIONAL -> "Independent Professional"
+                UserRole.SPACE_OWNER -> "Workspace Host"
+                UserRole.ADMIN -> "Super Administrator & Security Governance"
+            },
+            phone = "",
+            affiliation = "ProSpace Member Network",
+            syndicateNumber = "PRO-LB-" + (1000..9999).random(),
+            governorate = Governorate.BEIRUT,
+            isVerified = true
+        )
 
+        _users.value = _users.value.filterNot { it.id == uid } + user
         _currentUser.value = user
+        coroutineScope.launch { firestoreService.saveUserProfile(user) }
+
         addAuditLog(
             actionType = "USER_LOGIN_SUCCESS",
             details = "Role: ${user.role.name} • Name: ${user.fullName} (${user.email})",
@@ -1199,80 +1187,12 @@ class ProSpaceRepository {
         )
     }
 
-    fun setCurrentUser(user: AppUser?) {
-        _currentUser.value = user
-    }
-
-    fun switchRole(role: UserRole) {
-        val current = _currentUser.value
-        val baseName = current?.fullName ?: "Geo El-Najjar"
-        val baseEmail = current?.email ?: "geo.elnajjar@gmail.com"
-        val basePhone = current?.phone ?: "+961 70 888 999"
-
-        val user = when (role) {
-            UserRole.ADMIN -> _users.value.find { it.role == UserRole.ADMIN } ?: AppUser(
-                id = current?.id ?: "USR-ADMIN-ROOT",
-                email = baseEmail,
-                fullName = baseName,
-                role = UserRole.ADMIN,
-                specialty = "Super Administrator & Security Governance",
-                phone = basePhone,
-                affiliation = "ProSpace Executive HQ & Central Governance",
-                syndicateNumber = "SUPER-ADMIN-01",
-                governorate = current?.governorate ?: Governorate.BEIRUT,
-                isVerified = true,
-                verificationStatus = MemberVerificationStatus.VERIFIED,
-                verificationTier = VerificationTier.TIER_3_COMMERCIAL_HOST,
-                trustScore = 100
-            )
-            UserRole.PROFESSIONAL -> current?.copy(
-                role = UserRole.PROFESSIONAL,
-                specialty = if (current.specialty.contains("Admin") || current.specialty.contains("Host")) "Licensed Practitioner & Consultant" else current.specialty,
-                verificationTier = VerificationTier.TIER_2_PROFESSIONAL
-            ) ?: AppUser(
-                id = "USR-PRO-01",
-                email = baseEmail,
-                fullName = baseName,
-                role = UserRole.PROFESSIONAL,
-                specialty = "Licensed Practitioner & Consultant",
-                phone = basePhone,
-                affiliation = "Syndicate of Engineers & Physicians Network",
-                syndicateNumber = "PRO-LB-8842",
-                governorate = Governorate.BEIRUT,
-                isVerified = true,
-                verificationStatus = MemberVerificationStatus.VERIFIED,
-                verificationTier = VerificationTier.TIER_2_PROFESSIONAL,
-                trustScore = 98
-            )
-            UserRole.SPACE_OWNER -> current?.copy(
-                role = UserRole.SPACE_OWNER,
-                specialty = if (current.specialty.contains("Admin") || current.specialty.contains("Practitioner")) "Commercial Workspace Host" else current.specialty,
-                verificationTier = VerificationTier.TIER_3_COMMERCIAL_HOST
-            ) ?: AppUser(
-                id = "USR-HOST-01",
-                email = baseEmail,
-                fullName = baseName,
-                role = UserRole.SPACE_OWNER,
-                specialty = "Commercial Workspace Host",
-                phone = basePhone,
-                affiliation = "Lebanon Commercial Spaces Network",
-                syndicateNumber = "HOST-LB-4321",
-                governorate = Governorate.BEIRUT,
-                isVerified = true,
-                verificationStatus = MemberVerificationStatus.VERIFIED,
-                verificationTier = VerificationTier.TIER_3_COMMERCIAL_HOST,
-                trustScore = 98,
-                subscriptionExpiryMillis = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000)
-            )
-        }
-        _currentUser.value = user
-        addAuditLog(
-            actionType = "ROLE_QUICK_SWITCH",
-            details = "Active identity switched to ${user.fullName} (${user.role.name})",
-            severity = "INFO",
-            actorEmail = user.email
-        )
-    }
+    // setCurrentUser() and switchRole() were removed here — both let any caller (or,
+    // for switchRole specifically, any already-logged-in user) instantly become ADMIN
+    // with no server check at all. A role change now only ever happens through the
+    // login()/registerMember() paths above, which require a role already verified via
+    // a Firebase Auth custom claim, or through the grantAdminRole/requestRoleUpgrade
+    // Cloud Functions for an explicit role change request.
 
     fun updateCurrentUserProfile(
         name: String,

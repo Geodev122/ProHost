@@ -104,7 +104,7 @@ class AppFeatureComplianceAndDebuggerTest {
         val space = spaces.first()
         val formula = space.rentalFormulas.first()
 
-        val practitioner = repository.login("dr.sami@prospace.lb", UserRole.PROFESSIONAL)
+        val practitioner = repository.login(uid = "uid-dr-sami", email = "dr.sami@prospace.lb", verifiedRole = UserRole.PROFESSIONAL)
         val booking = repository.createBookingRequest(
             space = space,
             formula = formula,
