@@ -87,9 +87,13 @@ fun MyBookingsScreen(
     // Dialog state for Re-booking with interactive calendar
     var rebookTargetSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var rebookSourceBooking by remember { mutableStateOf<BookingRequest?>(null) }
+    // Editing an already-accepted booking is a separate flow from Re-book/Extend:
+    // the submitted request references the booking it would replace (replacesBookingId)
+    // and, if the host accepts it, actually replaces it (see ProSpaceRepository.acceptBookingRequest)
+    // instead of coexisting alongside it as an independent new lease.
+    var editTargetSpace by remember { mutableStateOf<SpaceListing?>(null) }
+    var editSourceBooking by remember { mutableStateOf<BookingRequest?>(null) }
     var showDigitalPassBooking by remember { mutableStateOf<BookingRequest?>(null) }
-    var showAgreementSummaryBooking by remember { mutableStateOf<BookingRequest?>(null) }
-    var showWhishPaymentBooking by remember { mutableStateOf<BookingRequest?>(null) }
 
     // Filter current list
     val currentTabBookings = if (selectedMainTab == 0) upcomingAndActiveBookings else pastBookings
@@ -409,11 +413,12 @@ fun MyBookingsScreen(
                             rebookTargetSpace = space ?: allSpaces.firstOrNull()
                             rebookSourceBooking = booking
                         },
+                        onEditBooking = {
+                            editTargetSpace = space ?: allSpaces.firstOrNull()
+                            editSourceBooking = booking
+                        },
                         onViewDigitalPass = {
                             showDigitalPassBooking = booking
-                        },
-                        onViewAgreement = {
-                            showAgreementSummaryBooking = booking
                         },
                         onContactWhatsApp = {
                             if (space != null) {
@@ -422,9 +427,6 @@ fun MyBookingsScreen(
                         },
                         onCancelRequest = {
                             viewModel.cancelBookingRequest(booking.id, context)
-                        },
-                        onPayWithWhish = {
-                            showWhishPaymentBooking = booking
                         }
                     )
                 }
@@ -537,7 +539,121 @@ fun MyBookingsScreen(
         }
     }
 
-    // Digital Access Pass Dialog
+    // Edit Active Booking Dialog with Interactive Calendar — pre-seeded with the
+    // current accepted formula, submitted as a new PENDING request referencing the
+    // booking it would replace. If the host accepts it, ProSpaceRepository.acceptBookingRequest
+    // releases the old booking and this one takes its place; availability is always
+    // computed live from ACCEPTED bookings, so nothing else needs recalculating by hand.
+    if (editTargetSpace != null) {
+        val targetSpace = editTargetSpace!!
+        val sourceBooking = editSourceBooking
+        val spaceAcceptedBookings = allBookingRequests.filter {
+            it.spaceId == targetSpace.id && it.status == BookingRequestStatus.ACCEPTED && it.id != sourceBooking?.id
+        }
+
+        Dialog(
+            onDismissRequest = {
+                editTargetSpace = null
+                editSourceBooking = null
+            },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth(0.95f)
+                    .fillMaxHeight(0.92f)
+                    .clip(RoundedCornerShape(24.dp)),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.EditCalendar, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Edit Active Booking",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            Text(
+                                text = "Editing: ${targetSpace.title} • ${targetSpace.district} — submitted for host approval, replaces your current booking once accepted",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                editTargetSpace = null
+                                editSourceBooking = null
+                            }
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = "Close")
+                        }
+                    }
+
+                    WorkspaceInteractiveBookingCalendar(
+                        space = targetSpace,
+                        acceptedBookings = spaceAcceptedBookings,
+                        initialFormula = sourceBooking?.formula,
+                        onScheduleSelected = { startDate, endDate, durationMonths, selectedDays, startHour, endHour, selectedShift, totalUsd, isInstantAvailable ->
+                            val formula = sourceBooking?.formula ?: targetSpace.rentalFormulas.firstOrNull() ?: RentalFormula(
+                                type = RentalFormulaType.FULL_MONTH,
+                                rateUsd = totalUsd / durationMonths.coerceAtLeast(1),
+                                scheduleDescription = "Edited $selectedShift ($startHour - $endHour)",
+                                daysOfWeek = selectedDays,
+                                startHour = startHour,
+                                endHour = endHour,
+                                totalWeeklyHours = 40
+                            )
+
+                            val created = viewModel.submitBookingRequest(
+                                space = targetSpace,
+                                formula = formula,
+                                startDate = startDate,
+                                durationMonths = durationMonths,
+                                notes = "Edit request for accepted booking #${sourceBooking?.id ?: "N/A"} — replaces it if approved.",
+                                context = context,
+                                alsoOpenWhatsApp = false,
+                                selectedDays = selectedDays,
+                                selectedStartHour = startHour,
+                                selectedEndHour = endHour,
+                                selectedShift = selectedShift,
+                                calculatedTotalUsd = totalUsd,
+                                replacesBookingId = sourceBooking?.id
+                            )
+
+                            if (created != null) {
+                                editTargetSpace = null
+                                editSourceBooking = null
+                                Toast.makeText(context, "Edit Request #${created.id} submitted — awaiting host approval.", Toast.LENGTH_LONG).show()
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+
+    // Digital Access Pass Dialog — the QR-style card is now what it visually
+    // claimed to be all along: a link to the real signed leasing agreement the
+    // host uploaded when accepting (BookingRequest.agreementUrl), not a
+    // decorative code nothing ever checks. "View Agreement" as a separate action
+    // is gone — this is the one place to reach it now.
     if (showDigitalPassBooking != null) {
         val bkg = showDigitalPassBooking!!
         Dialog(onDismissRequest = { showDigitalPassBooking = null }) {
@@ -555,7 +671,7 @@ fun MyBookingsScreen(
                     Icon(Icons.Default.QrCode2, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(54.dp))
                     Text("Digital Workspace Key Pass", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text("Booking Reference: #${bkg.id}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
-                    
+
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(12.dp),
@@ -570,80 +686,51 @@ fun MyBookingsScreen(
                         }
                     }
 
-                    Button(
+                    if (bkg.agreementUrl != null) {
+                        Text(
+                            text = "This pass links to the signed leasing agreement your host uploaded when accepting.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Button(
+                            onClick = {
+                                try {
+                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(bkg.agreementUrl))
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Could not open the agreement.", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("View Signed Agreement")
+                        }
+                    } else {
+                        Surface(
+                            color = StatusWarningContainer,
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "No signed agreement on file for this booking yet — contact your host on WhatsApp.",
+                                fontSize = 11.sp,
+                                color = StatusOnWarningContainer,
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
+                    }
+
+                    TextButton(
                         onClick = { showDigitalPassBooking = null },
-                        shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Done")
                     }
                 }
             }
-        }
-    }
-
-    // Agreement Summary Dialog
-    if (showAgreementSummaryBooking != null) {
-        val bkg = showAgreementSummaryBooking!!
-        Dialog(onDismissRequest = { showAgreementSummaryBooking = null }) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 6.dp,
-                modifier = Modifier.fillMaxWidth().padding(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Gavel, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Rental Agreement Summary", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    }
-                    Text("Lebanese Civil Code & Syndicate Compliant Lease Summary", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                    HorizontalDivider()
-
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("• Workspace: ${bkg.spaceTitle} (${bkg.spaceDistrict}, ${bkg.governorate.displayName})", fontSize = 12.sp)
-                        Text("• Host: ${bkg.ownerName} (${bkg.ownerPhone})", fontSize = 12.sp)
-                        Text("• Practitioner: ${bkg.practitionerName} (${bkg.practitionerSpecialty})", fontSize = 12.sp)
-                        Text("• Duration: ${bkg.durationMonths} Month(s) starting ${bkg.startDate}", fontSize = 12.sp)
-                        Text("• Agreed Rate: $${String.format(Locale.US, "%.0f", bkg.totalAmountUsd)} USD", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        Text("• Utilities: Guaranteed Generator 24/7 & Fiber Internet included", fontSize = 12.sp)
-                    }
-
-                    Button(
-                        onClick = { showAgreementSummaryBooking = null },
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Close Summary")
-                    }
-                }
-            }
-        }
-    }
-
-    // Whish Money Payment Dialog
-    if (showWhishPaymentBooking != null) {
-        val bkg = showWhishPaymentBooking!!
-        val space = allSpaces.find { it.id == bkg.spaceId }
-        if (space != null) {
-            WhishPayModal(
-                space = space,
-                currentFeeUsd = if (bkg.totalAmountUsd > 0) bkg.totalAmountUsd else bkg.formula.rateUsd,
-                booking = bkg,
-                viewModel = viewModel,
-                onDismiss = { showWhishPaymentBooking = null },
-                onConfirmPayment = { _, _ ->
-                    // Settlement isn't confirmed yet here — the app is only just opening
-                    // Whish's checkout page. The Firestore listener reflects the real
-                    // outcome once Whish confirms it; no success toast belongs here.
-                    showWhishPaymentBooking = null
-                }
-            )
         }
     }
 }
@@ -654,11 +741,10 @@ fun BookingReservationCard(
     space: SpaceListing?,
     onSelectSpace: () -> Unit,
     onRebook: () -> Unit,
+    onEditBooking: () -> Unit,
     onViewDigitalPass: () -> Unit,
-    onViewAgreement: () -> Unit,
     onContactWhatsApp: () -> Unit,
     onCancelRequest: () -> Unit,
-    onPayWithWhish: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -801,7 +887,9 @@ fun BookingReservationCard(
                 }
             }
 
-            // Price & Payment Row
+            // Total Commitment Row — payment itself is handled entirely outside the
+            // app now (see the host's uploaded agreement, not an in-app payment flag,
+            // for the record that a real deal was reached).
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -817,22 +905,9 @@ fun BookingReservationCard(
                     )
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (booking.isExternalPaymentSettled) {
-                        Surface(color = StatusSuccessContainer, shape = RoundedCornerShape(6.dp)) {
-                            Text("Whish Settled", color = StatusOnSuccessContainer, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                        }
-                    } else if (booking.status == BookingRequestStatus.ACCEPTED) {
-                        OutlinedButton(
-                            onClick = onPayWithWhish,
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.height(32.dp)
-                        ) {
-                            Icon(Icons.Default.Payment, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Pay Whish", fontSize = 11.sp)
-                        }
+                if (booking.status == BookingRequestStatus.ACCEPTED && booking.agreementUrl != null) {
+                    Surface(color = StatusSuccessContainer, shape = RoundedCornerShape(6.dp)) {
+                        Text("Agreement On File", color = StatusOnSuccessContainer, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                     }
                 }
             }
@@ -874,7 +949,7 @@ fun BookingReservationCard(
                     Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "WhatsApp Host", tint = WhatsAppDarkGreen, modifier = Modifier.size(18.dp))
                 }
 
-                // Digital Key Pass (if accepted)
+                // Digital Key Pass (if accepted) — links to the signed agreement
                 if (booking.status == BookingRequestStatus.ACCEPTED) {
                     IconButton(
                         onClick = onViewDigitalPass,
@@ -884,16 +959,19 @@ fun BookingReservationCard(
                     ) {
                         Icon(Icons.Default.VpnKey, contentDescription = "Digital Pass", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                     }
-                }
 
-                // Agreement Summary
-                IconButton(
-                    onClick = onViewAgreement,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp))
-                ) {
-                    Icon(Icons.Default.Description, contentDescription = "View Terms", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                    // Edit Booking (accepted only) — submits a change for host approval;
+                    // replaces this booking if/when accepted, distinct from Re-book/Extend
+                    // (which creates an independent new lease alongside this one).
+                    IconButton(
+                        onClick = onEditBooking,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp))
+                            .testTag("edit_booking_button_${booking.id}")
+                    ) {
+                        Icon(Icons.Default.EditCalendar, contentDescription = "Edit Booking", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                    }
                 }
 
                 // Cancel Request (if pending)

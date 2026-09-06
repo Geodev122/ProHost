@@ -2,7 +2,7 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { recordAuditLog } from "./auditLog";
 
-export type WhishPurpose = "SUBSCRIPTION" | "OWNER_PACKAGE" | "PAYG_LISTING" | "BOOKING";
+export type WhishPurpose = "SUBSCRIPTION" | "OWNER_PACKAGE" | "PAYG_LISTING";
 
 export interface WhishTransactionDoc {
   id: string;
@@ -90,13 +90,6 @@ export async function grantEntitlement(tx: WhishTransactionDoc): Promise<void> {
         { merge: true }
       );
       await grantProHostRoleIfNeeded(tx.userId);
-      break;
-    }
-    case "BOOKING": {
-      await db.collection("booking_requests").doc(tx.targetId).set(
-        { status: "ACCEPTED", isExternalPaymentSettled: true, reviewedAt: now },
-        { merge: true }
-      );
       break;
     }
   }

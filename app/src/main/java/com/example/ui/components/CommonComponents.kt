@@ -1165,25 +1165,14 @@ fun WorkspaceCard(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        // Header: Category Tag & Price
+        // Header: Price (the specialty tag that used to sit here was removed — a
+        // workspace listing isn't tied to one specialty, and the tag read as a
+        // filter/category label that didn't match how Explore actually works)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(
-                    text = specialization,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
-            }
-
             ProCurrencyTag(usdAmount = rateUsd)
         }
 

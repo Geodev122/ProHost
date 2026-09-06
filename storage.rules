@@ -66,6 +66,31 @@ service firebase.storage {
       allow delete: if false;
     }
 
+    // Signed leasing agreement a Pro Host uploads when finalizing acceptance of a
+    // booking request (see BookingRequest.agreementUrl's doc comment) — the record
+    // that host and specialist reached a real agreement; payment itself happens
+    // outside the app entirely, and nobody at ProHost reviews this document. The
+    // booking_requests doc always exists by the time a host can accept it (created
+    // when the practitioner submitted the request), so no bootstrapping case is
+    // needed here unlike listing photos/ownership docs. Readable by either party
+    // to the booking (the specialist's Digital Key Pass links here) or an Admin;
+    // writable only by the host who owns the space being booked.
+    match /booking_agreements/{bookingId}/{fileName} {
+      allow read: if isSignedIn() &&
+        (isAdmin() ||
+         (firestore.exists(/databases/(default)/documents/booking_requests/$(bookingId)) &&
+          (firestore.get(/databases/(default)/documents/booking_requests/$(bookingId)).data.ownerId == request.auth.uid ||
+           firestore.get(/databases/(default)/documents/booking_requests/$(bookingId)).data.practitionerId == request.auth.uid)));
+      allow write: if isSignedIn() &&
+        (isAdmin() ||
+         (firestore.exists(/databases/(default)/documents/booking_requests/$(bookingId)) &&
+          firestore.get(/databases/(default)/documents/booking_requests/$(bookingId)).data.ownerId == request.auth.uid)) &&
+        withinSizeLimit() &&
+        (request.resource.contentType == 'application/pdf' ||
+         request.resource.contentType.matches('image/.*'));
+      allow delete: if false;
+    }
+
     // Listing cover photos. Publicly readable (the discovery feed and listing
     // details are browsable), writable by the listing's actual owner once the
     // Firestore doc exists — or by any PRO_HOST while it doesn't yet, since

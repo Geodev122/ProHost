@@ -103,7 +103,7 @@ class AppFeatureComplianceAndDebuggerTest {
     }
 
     @Test
-    fun `test multi-tier rental formulas and booking lifecycle`() {
+    fun `test multi-tier rental formulas and booking lifecycle`() = kotlinx.coroutines.runBlocking {
         val spaces = repository.spaces.value
         assertTrue("Repository must load seed workspaces", spaces.isNotEmpty())
 
@@ -128,8 +128,9 @@ class AppFeatureComplianceAndDebuggerTest {
         assertNotNull(booking)
         assertEquals(BookingRequestStatus.PENDING, booking.status)
 
-        // Accept booking
-        val accepted = repository.acceptBookingRequest(booking.id)
+        // Accept booking — requires the host's uploaded signed agreement, not an
+        // in-app payment (booking rent settlement is no longer tracked in-app).
+        val accepted = repository.acceptBookingRequest(booking.id, "https://storage.example.com/agreement.pdf")
         assertTrue(accepted)
 
         val updated = repository.bookingRequests.value.find { it.id == booking.id }

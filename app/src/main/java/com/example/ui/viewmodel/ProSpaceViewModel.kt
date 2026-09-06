@@ -11,6 +11,7 @@ import com.example.data.model.*
 import com.example.data.repository.ProSpaceRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.net.URLEncoder
 
 data class SearchFilterState(
@@ -266,9 +267,10 @@ class ProSpaceViewModel(
         launchWhishCheckout("SUBSCRIPTION", spaceId, payerName, payerPhone, context)
     }
 
-    fun payBookingViaWhish(bookingId: String, payerName: String, payerPhone: String, context: Context) {
-        launchWhishCheckout("BOOKING", bookingId, payerName, payerPhone, context)
-    }
+    // payBookingViaWhish (booking rent settlement inside the app) is gone —
+    // Specialist and Pro Host settle rent entirely outside the app now. Host
+    // acceptance (see acceptBookingRequest below) records the deal instead: a
+    // signed leasing agreement uploaded to Storage, not a payment flag.
 
     // --- Space Owner Listing Creation ---
     fun createNewSpaceListing(listing: SpaceListing): Boolean {
@@ -376,12 +378,28 @@ class ProSpaceViewModel(
     private var pendingVerificationId: String? = null
     private var pendingIsLinkingGoogleAccount = false
 
-    private fun guessFileExtension(activity: Activity, uri: Uri, fallback: String): String {
-        val mime = activity.contentResolver.getType(uri)
+    private fun guessFileExtension(context: Context, uri: Uri, fallback: String): String {
+        val mime = context.contentResolver.getType(uri)
         val fromMime = mime?.let { android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
         if (!fromMime.isNullOrBlank()) return fromMime
         val path = uri.lastPathSegment ?: return fallback
         return path.substringAfterLast('.', fallback)
+    }
+
+    /**
+     * Backfills this device's current FCM token onto [uid]'s profile right after a
+     * successful sign-in/registration — [ProSpaceMessagingService.onNewToken] only
+     * fires on a genuine token refresh, which could be long after this device first
+     * got a token (e.g. it was assigned before this account ever signed in). Best
+     * effort: a failure here shouldn't block sign-in.
+     */
+    private fun registerFcmTokenForCurrentUser(uid: String) {
+        viewModelScope.launch {
+            runCatching {
+                val token = com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
+                repository.registerFcmToken(uid, token)
+            }
+        }
     }
 
     /**
@@ -469,6 +487,7 @@ class ProSpaceViewModel(
                     // This exact phone number already had an account — sign the caller
                     // straight into it, no registration form, nothing to overwrite.
                     val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
+                    registerFcmTokenForCurrentUser(user.id)
                     _authSuccessMessage.value = "Welcome back, ${user.fullName}!"
                     onVerified(false)
                 } else {
@@ -530,6 +549,7 @@ class ProSpaceViewModel(
             )
             pendingIsLinkingGoogleAccount = false
             _isAuthenticating.value = false
+            registerFcmTokenForCurrentUser(user.id)
             _authSuccessMessage.value = "Account created successfully for ${user.fullName}!"
             onSuccess()
         }
@@ -560,6 +580,7 @@ class ProSpaceViewModel(
                         return@launch
                     }
                     val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
+                    registerFcmTokenForCurrentUser(user.id)
                     _isAuthenticating.value = false
                     if (firebaseUser.phoneNumber.isNullOrBlank()) {
                         _authSuccessMessage.value = "Signed in as ${user.fullName} with Google — just need to verify your phone number."
@@ -695,7 +716,8 @@ class ProSpaceViewModel(
         calculatedTotalUsd: Double = 0.0,
         subdivisionId: String? = null,
         subdivisionName: String? = null,
-        selectedStrategy: String? = null
+        selectedStrategy: String? = null,
+        replacesBookingId: String? = null
     ): RentalBookingRequest? {
         val user = currentUser.value
         if (user == null) {
@@ -717,12 +739,17 @@ class ProSpaceViewModel(
             calculatedTotalUsd = calculatedTotalUsd,
             subdivisionId = subdivisionId,
             subdivisionName = subdivisionName,
-            selectedStrategy = selectedStrategy
+            selectedStrategy = selectedStrategy,
+            replacesBookingId = replacesBookingId
         )
 
         Toast.makeText(
             context,
-            "Rental Request #${request.id} Sent! Space hours remain open until owner approval.",
+            if (replacesBookingId != null) {
+                "Edit Request #${request.id} Sent! Your current booking stays active until the host approves this change."
+            } else {
+                "Rental Request #${request.id} Sent! Space hours remain open until owner approval."
+            },
             Toast.LENGTH_LONG
         ).show()
 
@@ -733,18 +760,29 @@ class ProSpaceViewModel(
         return request
     }
 
-    fun acceptBookingRequest(requestId: String, context: Context) {
-        val request = bookingRequests.value.find { it.id == requestId }
-        val success = repository.acceptBookingRequest(requestId)
-        if (success) {
-            Toast.makeText(context, "Booking Request #${requestId} ACCEPTED! Space schedule is now updated.", Toast.LENGTH_LONG).show()
-            if (request != null) {
-                postNotificationAlert(
-                    title = "Booking Approved! 🎉",
-                    body = "Your request for '${request.spaceTitle}' was accepted by host ${request.ownerName}.",
-                    category = "BOOKING_ACCEPTANCE",
-                    context = context
-                )
+    /**
+     * Finalizes host acceptance: uploads the signed agreement the host just picked
+     * ([agreementUri]) to Storage, then accepts the request with that URL attached
+     * (see ProSpaceRepository.acceptBookingRequest — this is also what releases a
+     * previously accepted booking this request replaces, if any). The practitioner
+     * hears about it via a real server-sent push (see
+     * functions/src/notifications/bookingNotifications.ts), not a local alert on
+     * this device, so nothing needs to be posted here.
+     */
+    fun acceptBookingRequest(context: Context, requestId: String, agreementUri: Uri) {
+        viewModelScope.launch {
+            val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
+            val ext = guessFileExtension(context, agreementUri, "pdf")
+            val agreementUrl = storageService.uploadBookingAgreement(requestId, agreementUri, ext)
+            if (agreementUrl == null) {
+                Toast.makeText(context, "Could not upload the agreement. Please try again.", Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            val success = repository.acceptBookingRequest(requestId, agreementUrl)
+            if (success) {
+                Toast.makeText(context, "Booking Request #$requestId ACCEPTED! Agreement saved.", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(context, "Could not finalize acceptance. Please try again.", Toast.LENGTH_LONG).show()
             }
         }
     }

@@ -98,18 +98,21 @@ service cloud.firestore {
          resource.data.ownerId == request.auth.uid);
 
       allow create: if isSignedIn() &&
-        request.resource.data.practitionerId == request.auth.uid &&
-        request.resource.data.isExternalPaymentSettled == false;
+        request.resource.data.practitionerId == request.auth.uid;
 
-      // isExternalPaymentSettled can only be flipped by the payment
-      // webhook / checkWhishStatus reconciliation (Admin SDK) once a real
-      // Whish payment actually succeeds — never by the owner accepting, the
-      // practitioner, or an admin's own client.
+      // agreementUrl (the signed lease the host uploads when finalizing
+      // acceptance — see BookingRequest.agreementUrl's doc comment) can only
+      // ever be set by the space's owner — never the practitioner, and never
+      // as an incidental side effect of an admin editing some other field.
+      // There is no in-app payment settlement to protect anymore (both sides
+      // handle payment outside the app entirely — the old isExternalPaymentSettled
+      // field, and the Pay Whish flow that set it, are gone).
       allow update: if isSignedIn() &&
         (isAdmin() ||
          resource.data.practitionerId == request.auth.uid ||
          resource.data.ownerId == request.auth.uid) &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(["isExternalPaymentSettled"]);
+        (request.auth.uid == resource.data.ownerId || isAdmin() ||
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(["agreementUrl"]));
 
       allow delete: if isAdmin();
     }

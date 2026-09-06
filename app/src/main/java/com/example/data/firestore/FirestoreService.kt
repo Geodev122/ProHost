@@ -292,6 +292,27 @@ class FirestoreService(
         }
     }
 
+    /**
+     * Persists this device's current FCM registration token onto the signed-in user's
+     * own profile doc — the only way a server-side Cloud Function can ever reach this
+     * device with a real push (see functions/src/notifications/*.ts). A merge write, so
+     * it never touches any other field; not a protected field in firestore.rules since
+     * only the owning user ever writes their own token.
+     */
+    suspend fun saveFcmToken(uid: String, token: String): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.USER_PROFILES)
+                .document(uid)
+                .set(mapOf("fcmToken" to token, "updatedAt" to System.currentTimeMillis()), SetOptions.merge())
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving FCM token: ${e.message}", e)
+            false
+        }
+    }
+
     suspend fun deleteUserProfile(userId: String): Boolean {
         return try {
             val db = firestore ?: return false
@@ -479,20 +500,19 @@ class FirestoreService(
     suspend fun updateBookingStatus(
         requestId: String,
         status: BookingRequestStatus,
-        rejectionReason: String? = null
+        rejectionReason: String? = null,
+        extraFields: Map<String, Any?> = emptyMap()
     ): Boolean {
         return try {
             val db = firestore ?: return false
-            val updates = mutableMapOf<String, Any>(
+            val updates = mutableMapOf<String, Any?>(
                 "status" to status.name,
                 "reviewedAt" to System.currentTimeMillis()
             )
             if (rejectionReason != null) {
                 updates["rejectionReason"] = rejectionReason
             }
-            if (status == BookingRequestStatus.ACCEPTED) {
-                updates["isExternalPaymentSettled"] = true
-            }
+            updates.putAll(extraFields)
 
             db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
                 .document(requestId)

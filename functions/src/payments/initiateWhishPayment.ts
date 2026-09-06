@@ -40,7 +40,7 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
     if (!purpose || !targetId || !payerName || !payerPhone) {
       throw new HttpsError("invalid-argument", "purpose, targetId, payerName, and payerPhone are required.");
     }
-    if (!["SUBSCRIPTION", "OWNER_PACKAGE", "PAYG_LISTING", "BOOKING"].includes(purpose)) {
+    if (!["SUBSCRIPTION", "OWNER_PACKAGE", "PAYG_LISTING"].includes(purpose)) {
       throw new HttpsError("invalid-argument", `Unknown purpose: ${purpose}`);
     }
 
@@ -85,25 +85,6 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
         invoiceLabel = `PAYG listing slot: ${targetId}`;
         spaceIdForRecord = `PAYG-SLOT-${targetId}`;
         spaceTitleForRecord = `PAYG Listing Slot (${targetId})`;
-        break;
-      }
-      case "BOOKING": {
-        const bookingSnap = await db.collection("booking_requests").doc(targetId).get();
-        if (!bookingSnap.exists) {
-          throw new HttpsError("not-found", "Booking request not found.");
-        }
-        const booking = bookingSnap.data()!;
-        if (booking.practitionerId !== auth.uid && auth.token.role !== "ADMIN") {
-          throw new HttpsError("permission-denied", "You can only pay for your own booking.");
-        }
-        amountUsd = Number(booking.totalAmountUsd) || 0;
-        if (amountUsd <= 0) {
-          throw new HttpsError("failed-precondition", "Booking has no positive amount due.");
-        }
-        invoiceLabel = `Booking Agreement #${targetId}`;
-        spaceIdForRecord = String(booking.spaceId ?? "");
-        spaceTitleForRecord = String(booking.spaceTitle ?? "");
-        daysGranted = (Number(booking.durationMonths) || 1) * 30;
         break;
       }
     }

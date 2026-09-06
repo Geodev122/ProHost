@@ -785,7 +785,8 @@ class ProSpaceRepository {
         calculatedTotalUsd: Double = 0.0,
         subdivisionId: String? = null,
         subdivisionName: String? = null,
-        selectedStrategy: String? = null
+        selectedStrategy: String? = null,
+        replacesBookingId: String? = null
     ): RentalBookingRequest {
         val requestId = "REQ-LB-" + (1000..9999).random()
         val totalUsd = if (calculatedTotalUsd > 0) calculatedTotalUsd else (formula.rateUsd * durationMonths)
@@ -823,18 +824,22 @@ class ProSpaceRepository {
             clinicalNotes = notes,
             status = BookingRequestStatus.PENDING,
             createdAt = System.currentTimeMillis(),
-            isExternalPaymentSettled = false,
             subdivisionId = subdivisionId,
             subdivisionName = subdivisionName,
-            selectedStrategy = selectedStrategy
+            selectedStrategy = selectedStrategy,
+            replacesBookingId = replacesBookingId
         )
 
         _bookingRequests.value = listOf(request) + _bookingRequests.value
         syncNewBookingToFirestore(request)
 
         addAuditLog(
-            actionType = "RENTAL_REQUEST_SUBMITTED",
-            details = "Request $requestId sent by ${practitioner.fullName} for '${space.title}' (${formula.type.displayName}, $${totalUsd.toInt()} USD). Selected Slot: $rangeString. Awaiting owner WhatsApp/In-app approval.",
+            actionType = if (replacesBookingId != null) "RENTAL_REQUEST_EDIT_SUBMITTED" else "RENTAL_REQUEST_SUBMITTED",
+            details = if (replacesBookingId != null) {
+                "Edit request $requestId sent by ${practitioner.fullName} for '${space.title}', proposing to replace accepted booking #$replacesBookingId. New slot: $rangeString. Awaiting owner approval."
+            } else {
+                "Request $requestId sent by ${practitioner.fullName} for '${space.title}' (${formula.type.displayName}, $${totalUsd.toInt()} USD). Selected Slot: $rangeString. Awaiting owner WhatsApp/In-app approval."
+            },
             severity = "INFO",
             actorEmail = practitioner.email
         )
@@ -843,31 +848,37 @@ class ProSpaceRepository {
     }
 
     /**
-     * Owner accepting a booking locks in the schedule/terms — it never implies payment
-     * was settled. isExternalPaymentSettled used to be forced to true right here,
-     * unconditionally, regardless of whether the practitioner had paid anything —
-     * the same self-reported-settlement pattern the whole Whish remediation was
-     * about, just for bookings. It's now exclusively set by the payment webhook /
-     * checkWhishStatus reconciliation (functions/src/payments/reconcile.ts) once a
-     * real Whish payment for this booking actually succeeds — see
-     * ProSpaceViewModel.payBookingViaWhish, the practitioner's separate later step
-     * (MyBookingsScreen's "Pay Whish" button, not the orphaned RentalsViewModel, which
-     * was deleted — it duplicated this same flow but had no screen wired to it).
+     * Owner accepting a booking means they've reached and evidenced a real agreement
+     * with the specialist — [agreementUrl] is the signed lease they just uploaded to
+     * Storage (see OwnerRentalRequestsScreen's Accept flow), kept on file as the
+     * record of that, exactly like [SpaceListing.ownershipProofUrl]: self-attested,
+     * never reviewed. There is no in-app payment settlement to track anymore — both
+     * sides handle payment outside the app entirely (the old isExternalPaymentSettled
+     * flag, and the "Pay Whish" flow that set it, are gone).
+     *
+     * If [request.replacesBookingId] is set, this acceptance is really an edit
+     * superseding a previously accepted booking (see MyBookingsScreen's "Edit
+     * Booking" action) — the superseded booking is released (marked CANCELLED) in
+     * the same operation, so exactly one of the two is ever ACCEPTED and
+     * availability — always derived live from ACCEPTED bookings + the space's
+     * schedule, never a separately stored count — recalculates immediately.
      */
-    fun acceptBookingRequest(requestId: String): Boolean {
+    suspend fun acceptBookingRequest(requestId: String, agreementUrl: String): Boolean {
         val request = _bookingRequests.value.find { it.id == requestId } ?: return false
         val now = System.currentTimeMillis()
 
+        val success = firestoreService.updateBookingStatus(
+            requestId,
+            BookingRequestStatus.ACCEPTED,
+            extraFields = mapOf("agreementUrl" to agreementUrl)
+        )
+        if (!success) return false
+
         _bookingRequests.value = _bookingRequests.value.map {
             if (it.id == requestId) {
-                it.copy(
-                    status = BookingRequestStatus.ACCEPTED,
-                    reviewedAt = now
-                )
+                it.copy(status = BookingRequestStatus.ACCEPTED, reviewedAt = now, agreementUrl = agreementUrl)
             } else it
         }
-
-        syncBookingStatusToFirestore(requestId, BookingRequestStatus.ACCEPTED)
 
         // Add member to resident list if not present
         val memberString = "${request.practitionerName} (${request.practitionerSpecialty})"
@@ -877,9 +888,22 @@ class ProSpaceRepository {
             } else space
         }
 
+        // Release the booking this edit replaces, if any — see the doc comment above.
+        request.replacesBookingId?.let { oldId ->
+            val oldRequest = _bookingRequests.value.find { it.id == oldId }
+            if (oldRequest != null && oldRequest.status == BookingRequestStatus.ACCEPTED) {
+                val supersededReason = "Superseded by an accepted edit (Ref #$requestId)"
+                firestoreService.updateBookingStatus(oldId, BookingRequestStatus.CANCELLED, rejectionReason = supersededReason)
+                _bookingRequests.value = _bookingRequests.value.map {
+                    if (it.id == oldId) it.copy(status = BookingRequestStatus.CANCELLED, rejectionReason = supersededReason) else it
+                }
+            }
+        }
+
         addAuditLog(
             actionType = "RENTAL_REQUEST_ACCEPTED",
-            details = "Owner ${request.ownerName} accepted $requestId by ${request.practitionerName}. Formula '${request.formula.scheduleDescription}' (${request.selectedDateTimeRange}) is now locked and marked unavailable for public display.",
+            details = "Owner ${request.ownerName} accepted $requestId by ${request.practitionerName}. Formula '${request.formula.scheduleDescription}' (${request.selectedDateTimeRange}) is now locked and marked unavailable for public display." +
+                (request.replacesBookingId?.let { " Replaces booking #$it, now released." } ?: ""),
             severity = "SECURE",
             actorEmail = request.ownerName
         )
@@ -1139,6 +1163,9 @@ class ProSpaceRepository {
         }
         return success
     }
+
+    /** Registers this device's FCM token against [uid]'s profile — see FirestoreService.saveFcmToken. */
+    suspend fun registerFcmToken(uid: String, token: String): Boolean = firestoreService.saveFcmToken(uid, token)
 
     // --- Multi-Format Data Export Hub ---
     fun exportToCsv(): String {

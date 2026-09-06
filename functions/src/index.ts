@@ -24,3 +24,5 @@ export { updatePricing } from "./admin/pricing";
 export { setListingVerification, setListingSubscriptionActive } from "./admin/listings";
 
 export { recordClientAuditLog } from "./audit/recordClientAuditLog";
+
+export { onBookingRequestCreated, onBookingRequestStatusChanged } from "./notifications/bookingNotifications";

@@ -90,6 +90,26 @@ class FirebaseStorageService(
     )
 
     /**
+     * Uploads the signed leasing agreement a Pro Host attaches when finalizing
+     * acceptance of a booking request, to `booking_agreements/{bookingId}/agreement.{ext}`
+     * — see BookingRequest.agreementUrl's doc comment: this is the record that host
+     * and specialist reached a real agreement (payment itself happens outside the
+     * app entirely), kept on file with no admin review. Readable by either party to
+     * the booking or an Admin, writable only by the host who owns the space — see
+     * storage.rules.
+     */
+    suspend fun uploadBookingAgreement(
+        bookingId: String,
+        fileUri: Uri,
+        fileExtension: String,
+        onProgress: (Float) -> Unit = {}
+    ): String? = uploadAndGetUrl(
+        ref = storage?.reference?.child("booking_agreements/$bookingId/agreement.$fileExtension"),
+        fileUri = fileUri,
+        onProgress = onProgress
+    )
+
+    /**
      * Uploads a listing photo to `listings/{spaceId}/{imageId}.{ext}`. Publicly readable
      * (listings are shown to unauthenticated browsers of the discovery feed) but writable
      * only by the listing's owner or an Admin — see storage.rules. Returns the download

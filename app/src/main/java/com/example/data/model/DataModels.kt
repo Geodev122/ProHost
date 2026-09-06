@@ -142,10 +142,22 @@ data class BookingRequest(
     val createdAt: Long = System.currentTimeMillis(),
     val reviewedAt: Long? = null,
     val rejectionReason: String? = null,
-    val isExternalPaymentSettled: Boolean = false,
     val subdivisionId: String? = null,
     val subdivisionName: String? = null,
-    val selectedStrategy: String? = null
+    val selectedStrategy: String? = null,
+    // Set by the practitioner when submitting an edit to an already-ACCEPTED
+    // booking (see MyBookingsScreen's "Edit Booking" action) — this new request
+    // goes through the normal PENDING -> host-review cycle like any other, but if
+    // the host accepts it, ProSpaceRepository.acceptBookingRequest releases the
+    // booking named here (marks it CANCELLED) in the same operation, so exactly
+    // one of the two is ever ACCEPTED at a time.
+    val replacesBookingId: String? = null,
+    // The signed lease the Pro Host uploads (Firebase Storage) when finalizing
+    // acceptance — see OwnerRentalRequestsScreen's Accept flow. This, not any
+    // in-app payment flag, is now the record that host and specialist reached and
+    // evidenced a real agreement; nobody at ProHost reviews it, it's kept on file.
+    // The Specialist's Digital Key Pass (MyBookingsScreen) links here.
+    val agreementUrl: String? = null
 ) {
     val isPending: Boolean get() = status == BookingRequestStatus.PENDING
     val isAccepted: Boolean get() = status == BookingRequestStatus.ACCEPTED
@@ -196,10 +208,11 @@ data class BookingRequest(
             "createdAt" to createdAt,
             "reviewedAt" to reviewedAt,
             "rejectionReason" to rejectionReason,
-            "isExternalPaymentSettled" to isExternalPaymentSettled,
             "subdivisionId" to subdivisionId,
             "subdivisionName" to subdivisionName,
-            "selectedStrategy" to selectedStrategy
+            "selectedStrategy" to selectedStrategy,
+            "replacesBookingId" to replacesBookingId,
+            "agreementUrl" to agreementUrl
         )
     }
 
@@ -262,10 +275,11 @@ data class BookingRequest(
                 createdAt = (data["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
                 reviewedAt = (data["reviewedAt"] as? Number)?.toLong(),
                 rejectionReason = data["rejectionReason"] as? String,
-                isExternalPaymentSettled = data["isExternalPaymentSettled"] as? Boolean ?: false,
                 subdivisionId = data["subdivisionId"] as? String,
                 subdivisionName = data["subdivisionName"] as? String,
-                selectedStrategy = data["selectedStrategy"] as? String
+                selectedStrategy = data["selectedStrategy"] as? String,
+                replacesBookingId = data["replacesBookingId"] as? String,
+                agreementUrl = data["agreementUrl"] as? String
             )
         }
     }
