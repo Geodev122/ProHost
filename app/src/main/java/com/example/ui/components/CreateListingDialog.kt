@@ -46,9 +46,9 @@ fun CreateListingDialog(
         role = UserRole.PRO_HOST,
         specialty = "Commercial Workspace Host",
         phone = "+961 70 888 999",
-        affiliation = "ProSpace Executive Network",
-        syndicateNumber = "HOST-LB-01",
-        governorate = Governorate.BEIRUT,
+        country = "Lebanon",
+        governorate = "Beirut",
+        city = "Beirut",
         isVerified = true
     )
 
@@ -61,6 +61,13 @@ fun CreateListingDialog(
     val listingId = remember { "SPC-LB-" + UUID.randomUUID().toString().take(6).uppercase() }
     var uploadedPhotoUrls by remember { mutableStateOf<List<String>>(emptyList()) }
     var isUploadingPhoto by remember { mutableStateOf(false) }
+
+    // Proof of ownership / right to rent — required per listing (no admin review, just
+    // kept on file; see SpaceListing.ownershipProofUrl's doc comment). Uploaded
+    // immediately on pick, same pattern as cover photos above.
+    var ownershipProofDoc by remember { mutableStateOf(DocumentPickerState()) }
+    var ownershipProofUrl by remember { mutableStateOf<String?>(null) }
+    var isUploadingOwnershipProof by remember { mutableStateOf(false) }
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris: List<Uri> ->
@@ -783,6 +790,39 @@ fun CreateListingDialog(
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true
                                 )
+
+                                HorizontalDivider()
+
+                                Text("Proof of Ownership / Right to Rent", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text(
+                                    "Required to publish — a title deed, lease contract, or other document showing you're entitled to rent this specific space out. Kept on file, no review needed.",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                DocumentPickerField(
+                                    label = "Ownership / Right-to-Rent Document",
+                                    helperText = "PDF, JPG, or PNG",
+                                    state = ownershipProofDoc,
+                                    onStateChanged = { newState ->
+                                        ownershipProofDoc = newState
+                                        val uri = newState.uri
+                                        if (uri != null) {
+                                            coroutineScope.launch {
+                                                isUploadingOwnershipProof = true
+                                                val ext = newState.fileName?.substringAfterLast('.', "pdf") ?: "pdf"
+                                                ownershipProofUrl = storageService.uploadOwnershipProofDocument(listingId, uri, ext)
+                                                isUploadingOwnershipProof = false
+                                            }
+                                        } else {
+                                            ownershipProofUrl = null
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    required = true
+                                )
+                                if (isUploadingOwnershipProof) {
+                                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                                }
                             }
                         }
                     }
@@ -901,6 +941,7 @@ fun CreateListingDialog(
                                     ownerName = activeUser.fullName,
                                     ownerPhone = ownerPhone,
                                     ownerEmail = activeUser.email,
+                                    ownershipProofUrl = ownershipProofUrl,
                                     isVerified = true,
                                     isActiveSubscription = true,
                                     baseMonthlyRateUsd = monthly,
@@ -913,7 +954,11 @@ fun CreateListingDialog(
                         },
                         variant = CustomButtonVariant.PRIMARY,
                         modifier = Modifier.weight(1.5f),
-                        enabled = currentStep != 0 || title.isNotBlank() || district.isNotBlank()
+                        enabled = if (currentStep < totalSteps - 1) {
+                            currentStep != 0 || title.isNotBlank() || district.isNotBlank()
+                        } else {
+                            ownershipProofUrl != null && !isUploadingOwnershipProof
+                        }
                     )
                 }
             }

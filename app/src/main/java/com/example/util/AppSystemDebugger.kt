@@ -104,21 +104,21 @@ object AppSystemDebugger {
                 )
             )
 
-            // Syndicate Verification & Accreditations — a real check against loaded
-            // profiles (used to be hardcoded PASSED regardless of actual data).
+            // ID Document On File — a real check against loaded profiles (there is no
+            // admin-reviewed accreditation system anymore; every account is required
+            // to upload an ID document at registration, so this just confirms none
+            // slipped through without one).
             val userProfiles = repository.users.value
-            val professionalsMissingSyndicateNumber = userProfiles.filter {
-                it.role == UserRole.SPECIALIST && it.syndicateNumber.isBlank()
-            }
+            val profilesMissingIdDocument = userProfiles.filter { it.idDocumentUrl == null }
             results.add(
                 DiagnosticItem(
                     category = "Authentication & Identity",
-                    featureName = "Lebanese Syndicate Accreditation & KYC",
-                    status = if (professionalsMissingSyndicateNumber.isEmpty()) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
-                    details = if (professionalsMissingSyndicateNumber.isEmpty())
-                        "All ${userProfiles.count { it.role == UserRole.SPECIALIST }} professional profiles have a syndicate/license number on file."
+                    featureName = "Registrant ID Documents On File",
+                    status = if (profilesMissingIdDocument.isEmpty()) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
+                    details = if (profilesMissingIdDocument.isEmpty())
+                        "All ${userProfiles.size} profiles have an ID document on file."
                     else
-                        "${professionalsMissingSyndicateNumber.size} professional profile(s) missing a syndicate/license number."
+                        "${profilesMissingIdDocument.size} profile(s) missing an ID document."
                 )
             )
         } catch (e: Exception) {

@@ -127,7 +127,6 @@ data class BookingRequest(
     val practitionerEmail: String = "",
     val practitionerPhone: String = "",
     val practitionerSpecialty: String = "Professional Practice",
-    val practitionerSyndicateNumber: String = "",
     val formula: RentalFormula,
     val startDate: String, // e.g. "2026-09-01"
     val endDate: String = "", // e.g. "2026-10-01"
@@ -170,7 +169,6 @@ data class BookingRequest(
             "practitionerEmail" to practitionerEmail,
             "practitionerPhone" to practitionerPhone,
             "practitionerSpecialty" to practitionerSpecialty,
-            "practitionerSyndicateNumber" to practitionerSyndicateNumber,
             "formula" to mapOf(
                 "id" to formula.id,
                 "type" to formula.type.name,
@@ -249,7 +247,6 @@ data class BookingRequest(
                 practitionerEmail = data["practitionerEmail"] as? String ?: "",
                 practitionerPhone = data["practitionerPhone"] as? String ?: "",
                 practitionerSpecialty = data["practitionerSpecialty"] as? String ?: "Specialist",
-                practitionerSyndicateNumber = data["practitionerSyndicateNumber"] as? String ?: "",
                 formula = formula,
                 startDate = data["startDate"] as? String ?: "",
                 endDate = data["endDate"] as? String ?: "",
@@ -307,6 +304,10 @@ data class SpaceListing(
     val ownerName: String,
     val ownerPhone: String,
     val ownerEmail: String,
+    // Proof of ownership / right to rent this specific space out, uploaded by the
+    // Pro Host at listing-creation time. Kept on file — nobody reviews/approves it,
+    // there is no admin accreditation workflow anymore (see AppUser's doc comment).
+    val ownershipProofUrl: String? = null,
     val isVerified: Boolean = true,
     val isActiveSubscription: Boolean = true,
     val subscriptionExpiryMillis: Long = System.currentTimeMillis() + (28L * 24 * 60 * 60 * 1000),
@@ -400,6 +401,7 @@ data class SpaceListing(
             "ownerName" to ownerName,
             "ownerPhone" to ownerPhone,
             "ownerEmail" to ownerEmail,
+            "ownershipProofUrl" to ownershipProofUrl,
             "isVerified" to isVerified,
             "isActiveSubscription" to isActiveSubscription,
             "subscriptionExpiryMillis" to subscriptionExpiryMillis,
@@ -543,6 +545,7 @@ data class SpaceListing(
                 ownerName = data["ownerName"] as? String ?: "Workspace Host",
                 ownerPhone = data["ownerPhone"] as? String ?: "",
                 ownerEmail = data["ownerEmail"] as? String ?: "",
+                ownershipProofUrl = data["ownershipProofUrl"] as? String,
                 isVerified = data["isVerified"] as? Boolean ?: true,
                 isActiveSubscription = data["isActiveSubscription"] as? Boolean ?: true,
                 subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong() ?: (System.currentTimeMillis() + 30L * 24 * 3600 * 1000),
@@ -767,6 +770,15 @@ data class SubscriptionFormula(
     }
 }
 
+/**
+ * A registered account. There is no admin-reviewed "accreditation" concept anymore —
+ * [isVerified] means only "this account's phone number was confirmed via Firebase
+ * Phone Auth SMS OTP at registration" (set server-side, see assignInitialRole.ts,
+ * from the ID token's phone_number claim — never a manually-toggled admin flag).
+ * [idDocumentUrl] (ID/passport, required at registration) is kept on file with no
+ * review workflow; a PRO_HOST's proof of ownership / right-to-rent is uploaded per
+ * listing instead (see [SpaceListing.ownershipProofUrl]), not on the user profile.
+ */
 data class AppUser(
     val id: String,
     val email: String,
@@ -774,14 +786,12 @@ data class AppUser(
     val role: UserRole,
     val specialty: String,
     val phone: String,
-    val affiliation: String,
-    val syndicateNumber: String,
-    val governorate: Governorate = Governorate.BEIRUT,
-    val isVerified: Boolean = true,
-    val verificationStatus: MemberVerificationStatus = MemberVerificationStatus.VERIFIED,
-    val verificationTier: VerificationTier = VerificationTier.TIER_2_PROFESSIONAL,
-    val verificationNotes: String? = null,
-    val trustScore: Int = 98,
+    val profilePictureUrl: String? = null,
+    val idDocumentUrl: String? = null,
+    val country: String = "Lebanon",
+    val governorate: String = "",
+    val city: String = "",
+    val isVerified: Boolean = false,
     val subscriptionExpiryMillis: Long? = null,
     val ownerPackageTier: OwnerPackageTier = OwnerPackageTier.PAY_AS_YOU_GO,
     val ownerPackageExpiryMillis: Long? = null,
@@ -795,14 +805,12 @@ data class AppUser(
             "role" to role.name,
             "specialty" to specialty,
             "phone" to phone,
-            "affiliation" to affiliation,
-            "syndicateNumber" to syndicateNumber,
-            "governorate" to governorate.name,
+            "profilePictureUrl" to profilePictureUrl,
+            "idDocumentUrl" to idDocumentUrl,
+            "country" to country,
+            "governorate" to governorate,
+            "city" to city,
             "isVerified" to isVerified,
-            "verificationStatus" to verificationStatus.name,
-            "verificationTier" to verificationTier.name,
-            "verificationNotes" to verificationNotes,
-            "trustScore" to trustScore,
             "subscriptionExpiryMillis" to subscriptionExpiryMillis,
             "ownerPackageTier" to ownerPackageTier.name,
             "ownerPackageExpiryMillis" to ownerPackageExpiryMillis,
@@ -818,15 +826,6 @@ data class AppUser(
             val roleStr = data["role"] as? String ?: UserRole.SPECIALIST.name
             val role = runCatching { UserRole.valueOf(roleStr) }.getOrDefault(UserRole.SPECIALIST)
 
-            val govStr = data["governorate"] as? String ?: Governorate.BEIRUT.name
-            val gov = runCatching { Governorate.valueOf(govStr) }.getOrDefault(Governorate.BEIRUT)
-
-            val vStatusStr = data["verificationStatus"] as? String ?: MemberVerificationStatus.VERIFIED.name
-            val vStatus = runCatching { MemberVerificationStatus.valueOf(vStatusStr) }.getOrDefault(MemberVerificationStatus.VERIFIED)
-
-            val vTierStr = data["verificationTier"] as? String ?: VerificationTier.TIER_2_PROFESSIONAL.name
-            val vTier = runCatching { VerificationTier.valueOf(vTierStr) }.getOrDefault(VerificationTier.TIER_2_PROFESSIONAL)
-
             val pkgTierStr = data["ownerPackageTier"] as? String ?: OwnerPackageTier.PAY_AS_YOU_GO.name
             val pkgTier = runCatching { OwnerPackageTier.valueOf(pkgTierStr) }.getOrDefault(OwnerPackageTier.PAY_AS_YOU_GO)
 
@@ -835,16 +834,14 @@ data class AppUser(
                 email = data["email"] as? String ?: "",
                 fullName = data["fullName"] as? String ?: "Member",
                 role = role,
-                specialty = data["specialty"] as? String ?: "Professional",
+                specialty = data["specialty"] as? String ?: "",
                 phone = data["phone"] as? String ?: "",
-                affiliation = data["affiliation"] as? String ?: "Syndicate Member",
-                syndicateNumber = data["syndicateNumber"] as? String ?: "",
-                governorate = gov,
-                isVerified = data["isVerified"] as? Boolean ?: true,
-                verificationStatus = vStatus,
-                verificationTier = vTier,
-                verificationNotes = data["verificationNotes"] as? String,
-                trustScore = (data["trustScore"] as? Number)?.toInt() ?: 95,
+                profilePictureUrl = data["profilePictureUrl"] as? String,
+                idDocumentUrl = data["idDocumentUrl"] as? String,
+                country = data["country"] as? String ?: "Lebanon",
+                governorate = data["governorate"] as? String ?: "",
+                city = data["city"] as? String ?: "",
+                isVerified = data["isVerified"] as? Boolean ?: false,
                 subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong(),
                 ownerPackageTier = pkgTier,
                 ownerPackageExpiryMillis = (data["ownerPackageExpiryMillis"] as? Number)?.toLong(),
@@ -882,149 +879,6 @@ enum class OwnerPackageTier(
         maxListings = Int.MAX_VALUE,
         badgeName = "All-In Unlimited"
     )
-}
-
-enum class MemberVerificationStatus(val displayName: String, val description: String) {
-    UNVERIFIED("Unverified", "Upload required identity credentials to activate full workspace access"),
-    PENDING_REVIEW("Under Review", "Credential documents submitted and pending compliance review"),
-    VERIFIED("Verified & Accredited", "Identity, professional syndicate license, and credentials validated"),
-    ACTION_REQUIRED("Action Required", "One or more documents require updated scans or re-submission")
-}
-
-enum class VerificationTier(val displayName: String, val levelNumber: Int, val badgeTitle: String) {
-    TIER_1_BASIC("Basic Identity", 1, "Level 1: ID Verified"),
-    TIER_2_PROFESSIONAL("Syndicate & License Accredited", 2, "Level 2: Licensed Member"),
-    TIER_3_COMMERCIAL_HOST("Commercial & Premises Certified", 3, "Level 3: Verified Commercial Host")
-}
-
-enum class DocumentType(
-    val title: String,
-    val officialLebaneseLabel: String,
-    val description: String,
-    val requiredFor: List<UserRole>,
-    val placeholderDocNumber: String,
-    val iconName: String = "Badge"
-) {
-    SYNDICATE_CARD(
-        title = "Syndicate / Order Membership Card",
-        officialLebaneseLabel = "بطاقة انتساب النقابة (OEA / LOP / BBA)",
-        description = "Official active membership card from your professional syndicate (Order of Engineers, Order of Physicians, Bar Association, etc.)",
-        requiredFor = listOf(UserRole.SPECIALIST),
-        placeholderDocNumber = "e.g. OEA-8842, LOP-7193, BBA-4421"
-    ),
-    NATIONAL_ID(
-        title = "National Identity Card / Passport",
-        officialLebaneseLabel = "الهوية اللبنانية / جواز السفر / بيان قيد إفرادي",
-        description = "Government-issued biometric ID card, valid Lebanese passport, or individual civil registry extract (Bayan Qayd)",
-        requiredFor = listOf(UserRole.SPECIALIST, UserRole.PRO_HOST),
-        placeholderDocNumber = "e.g. ID-00192847 or PASS-RL88291"
-    ),
-    PRACTICE_LICENSE(
-        title = "Professional Practice Permit / License",
-        officialLebaneseLabel = "إذن مزاولة المهنة / ترخيص وزارة الصحة أو الأشغال",
-        description = "Official decree or permit authorizing independent professional practice in the Republic of Lebanon",
-        requiredFor = listOf(UserRole.SPECIALIST),
-        placeholderDocNumber = "e.g. LIC-MOPH-2024-918"
-    ),
-    COMMERCIAL_REGISTER(
-        title = "Commercial Register Extract (Sijil Tejari)",
-        officialLebaneseLabel = "إذاعة تجارية / سجل تجاري حديث",
-        description = "Official Ministry of Justice commercial registration certificate dated within the last 6 months",
-        requiredFor = listOf(UserRole.PRO_HOST),
-        placeholderDocNumber = "e.g. CR-BEI-84920"
-    ),
-    TITLE_DEED_OR_LEASE(
-        title = "Premises Title Deed (Tabou) or Lease Contract",
-        officialLebaneseLabel = "سند ملكية (طابو) أو عقد إيجار تجاري مصدق",
-        description = "Certified property ownership title (Sanad Melkiyeh) or commercial lease authorizing subleasing/coworking",
-        requiredFor = listOf(UserRole.PRO_HOST),
-        placeholderDocNumber = "e.g. TABOU-ACH-402/2021"
-    ),
-    TAX_REGISTRATION(
-        title = "Tax ID Registration (Raqam Mali)",
-        officialLebaneseLabel = "شهادة التسجيل المالي (الرقم المالي)",
-        description = "Ministry of Finance official tax registration certificate / financial registration number",
-        requiredFor = listOf(UserRole.SPECIALIST, UserRole.PRO_HOST),
-        placeholderDocNumber = "e.g. MOF-774921-601"
-    )
-}
-
-enum class DocumentStatus(val displayName: String) {
-    NOT_UPLOADED("Not Uploaded"),
-    PENDING_REVIEW("Pending Review"),
-    VERIFIED("Verified & Approved"),
-    REJECTED("Revision Needed")
-}
-
-data class CredentialDocument(
-    val id: String = "DOC-" + java.util.UUID.randomUUID().toString().take(8).uppercase(),
-    val userId: String,
-    val type: DocumentType,
-    val fileName: String? = null,
-    val fileSizeKb: Int = 0,
-    val uploadedAt: Long? = null,
-    val status: DocumentStatus = DocumentStatus.NOT_UPLOADED,
-    val documentNumber: String = "",
-    val issuingAuthority: String = "",
-    val expiryDate: String = "",
-    val rejectionReason: String? = null,
-    val fileUri: String? = null,
-    val verificationHash: String? = null,
-    val reviewerNotes: String? = null
-) {
-    val isUploaded: Boolean get() = status != DocumentStatus.NOT_UPLOADED
-    val isVerified: Boolean get() = status == DocumentStatus.VERIFIED
-    val isPending: Boolean get() = status == DocumentStatus.PENDING_REVIEW
-    val isRejected: Boolean get() = status == DocumentStatus.REJECTED
-
-    fun toFirestoreMap(): Map<String, Any?> {
-        return mapOf(
-            "id" to id,
-            "userId" to userId,
-            "type" to type.name,
-            "fileName" to fileName,
-            "fileSizeKb" to fileSizeKb,
-            "uploadedAt" to uploadedAt,
-            "status" to status.name,
-            "documentNumber" to documentNumber,
-            "issuingAuthority" to issuingAuthority,
-            "expiryDate" to expiryDate,
-            "rejectionReason" to rejectionReason,
-            "fileUri" to fileUri,
-            "verificationHash" to verificationHash,
-            "reviewerNotes" to reviewerNotes,
-            "updatedAt" to System.currentTimeMillis()
-        )
-    }
-
-    companion object {
-        const val COLLECTION_PATH = "user_credentials"
-
-        fun fromFirestoreMap(docId: String, data: Map<String, Any?>): CredentialDocument {
-            val typeStr = data["type"] as? String ?: DocumentType.NATIONAL_ID.name
-            val type = runCatching { DocumentType.valueOf(typeStr) }.getOrDefault(DocumentType.NATIONAL_ID)
-
-            val statusStr = data["status"] as? String ?: DocumentStatus.NOT_UPLOADED.name
-            val stat = runCatching { DocumentStatus.valueOf(statusStr) }.getOrDefault(DocumentStatus.NOT_UPLOADED)
-
-            return CredentialDocument(
-                id = docId,
-                userId = data["userId"] as? String ?: "",
-                type = type,
-                fileName = data["fileName"] as? String,
-                fileSizeKb = (data["fileSizeKb"] as? Number)?.toInt() ?: 0,
-                uploadedAt = (data["uploadedAt"] as? Number)?.toLong(),
-                status = stat,
-                documentNumber = data["documentNumber"] as? String ?: "",
-                issuingAuthority = data["issuingAuthority"] as? String ?: "",
-                expiryDate = data["expiryDate"] as? String ?: "",
-                rejectionReason = data["rejectionReason"] as? String,
-                fileUri = data["fileUri"] as? String,
-                verificationHash = data["verificationHash"] as? String,
-                reviewerNotes = data["reviewerNotes"] as? String
-            )
-        }
-    }
 }
 
 data class AdminPricingState(

@@ -1,7 +1,6 @@
 package com.example.data.auth
 
 import com.example.data.model.AppUser
-import com.example.data.model.Governorate
 import com.example.data.model.UserRole
 import com.example.data.repository.ProSpaceRepository
 import com.google.firebase.auth.FirebaseUser
@@ -31,30 +30,42 @@ suspend fun completeVerifiedLogin(
  * (that role is granted exclusively, server-side, once a real package/PAYG Whish
  * payment settles; see FirebaseFunctionsClient's note on grantEntitlement()), and
  * requesting ADMIN is never honored by any reachable code path.
+ *
+ * [firebaseUser] here has already been phone-verified (see LoginAuthScreen's OTP flow)
+ * — that's what [firebaseUser.uid] and [firebaseUser.phoneNumber] represent. [email]
+ * comes from the registration form, not [firebaseUser.email] (a phone-auth FirebaseUser
+ * has no email of its own). There is no admin accreditation review anymore: profile
+ * picture and ID document are simply kept on file (their Storage URLs, already
+ * uploaded by the caller once [firebaseUser.uid] existed to key the upload path on).
  */
 suspend fun completeVerifiedRegistration(
     repository: ProSpaceRepository,
     functionsClient: FirebaseFunctionsClient,
     firebaseUser: FirebaseUser,
     fullName: String,
+    email: String,
     phone: String,
     specialty: String,
-    syndicateNumber: String,
-    affiliation: String,
-    governorate: Governorate
+    profilePictureUrl: String?,
+    idDocumentUrl: String?,
+    country: String,
+    governorate: String,
+    city: String
 ): AppUser {
     functionsClient.ensureInitialRole().getOrThrow()
     val role = resolveVerifiedRole(functionsClient, firebaseUser)
     return repository.registerMember(
         uid = firebaseUser.uid,
         fullName = fullName,
-        email = firebaseUser.email ?: "",
+        email = email,
         phone = phone,
         verifiedRole = role,
         specialty = specialty,
-        syndicateNumber = syndicateNumber,
-        affiliation = affiliation,
-        governorate = governorate
+        profilePictureUrl = profilePictureUrl,
+        idDocumentUrl = idDocumentUrl,
+        country = country,
+        governorate = governorate,
+        city = city
     )
 }
 

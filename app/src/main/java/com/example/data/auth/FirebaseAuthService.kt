@@ -1,5 +1,6 @@
 package com.example.data.auth
 
+import android.app.Activity
 import android.content.Context
 import android.util.Log
 import androidx.credentials.CredentialManager
@@ -13,12 +14,16 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseException
 import com.google.firebase.auth.AuthResult as FirebaseAuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.UserProfileChangeRequest
+import com.google.firebase.auth.PhoneAuthCredential
+import com.google.firebase.auth.PhoneAuthOptions
+import com.google.firebase.auth.PhoneAuthProvider
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -27,7 +32,13 @@ sealed class AuthResult {
         val firebaseUser: FirebaseUser?,
         val email: String,
         val displayName: String?,
-        val photoUrl: String? = null
+        val photoUrl: String? = null,
+        // True only when this credential just created a brand-new Firebase Auth account
+        // (Firebase's own signal, from AuthResult.additionalUserInfo — never guessed
+        // client-side). The registration UI uses this to decide whether a phone number
+        // that just verified belongs to a first-time registrant (show the "complete your
+        // profile" form) or a returning member (go straight to sign-in).
+        val isNewUser: Boolean = false
     ) : AuthResult()
 
     data class Error(val message: String, val throwable: Throwable? = null) : AuthResult()
@@ -83,97 +94,125 @@ class FirebaseAuthService(private val context: Context) {
     }
 
     /**
-     * Sign in with Email and Password using Firebase Auth.
+     * Kicks off Firebase Phone Auth SMS verification for [e164PhoneNumber] (must already
+     * be in full E.164 form, e.g. "+96170123456" — building that from a country-code
+     * selector + local number is the caller's job). Exactly one of [onCodeSent] /
+     * [onAutoVerified] / [onError] fires. Auto-verification (Google Play services
+     * silently confirming the SMS matches this device, no manual code entry needed) is
+     * a real possibility on many devices — callers must handle both outcomes, not just
+     * treat this as "always shows an OTP entry screen."
      */
-    suspend fun signInWithEmail(email: String, password: String): AuthResult {
-        val trimmedEmail = email.trim().lowercase()
-        if (trimmedEmail.isEmpty()) {
-            return AuthResult.Error("Please enter a valid email address.")
-        }
-        if (password.isEmpty()) {
-            return AuthResult.Error("Please enter your password.")
-        }
-
+    fun sendPhoneVerificationCode(
+        activity: Activity,
+        e164PhoneNumber: String,
+        onCodeSent: (verificationId: String) -> Unit,
+        onAutoVerified: (PhoneAuthCredential) -> Unit,
+        onError: (String) -> Unit
+    ) {
         val auth = firebaseAuth
         if (auth == null) {
-            // Firebase Auth isn't available (misconfigured/unreachable) — this must fail
-            // closed, never silently accept arbitrary credentials as a "success".
-            return AuthResult.Error("Authentication service unavailable. Please check your connection and try again.")
+            onError("Authentication service unavailable. Please check your connection and try again.")
+            return
         }
+        val options = PhoneAuthOptions.newBuilder(auth)
+            .setPhoneNumber(e164PhoneNumber)
+            .setTimeout(60L, TimeUnit.SECONDS)
+            .setActivity(activity)
+            .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+                override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                    onAutoVerified(credential)
+                }
 
+                override fun onVerificationFailed(e: FirebaseException) {
+                    Log.e(tag, "Phone verification failed: ${e.message}", e)
+                    val friendlyMessage = when {
+                        e.message?.contains("invalid", ignoreCase = true) == true &&
+                            e.message?.contains("phone", ignoreCase = true) == true ->
+                            "That phone number doesn't look valid — check the country code and number."
+                        e.message?.contains("quota", ignoreCase = true) == true ->
+                            "Too many verification attempts right now. Please try again later."
+                        e.message?.contains("network", ignoreCase = true) == true ->
+                            "Network connection error. Check your internet access."
+                        else -> e.localizedMessage ?: "Phone verification failed. Please try again."
+                    }
+                    onError(friendlyMessage)
+                }
+
+                override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
+                    onCodeSent(verificationId)
+                }
+            })
+            .build()
+        PhoneAuthProvider.verifyPhoneNumber(options)
+    }
+
+    /** Builds the credential from a verification id (from [sendPhoneVerificationCode]'s onCodeSent) and the SMS code the user typed in. */
+    fun buildPhoneAuthCredential(verificationId: String, smsCode: String): PhoneAuthCredential =
+        PhoneAuthProvider.getCredential(verificationId, smsCode)
+
+    /**
+     * Signs in (or, for a brand-new phone number, creates the Firebase Auth account for)
+     * the phone number behind [credential]. This is the ONLY way a phone number becomes
+     * a signed-in identity in this app — the SMS OTP itself is what Firebase verifies,
+     * never anything client-supplied.
+     */
+    suspend fun signInWithPhoneCredential(credential: PhoneAuthCredential): AuthResult {
+        val auth = firebaseAuth
+            ?: return AuthResult.Error("Authentication service unavailable. Please check your connection and try again.")
         return try {
-            val result = auth.signInWithEmailAndPassword(trimmedEmail, password).awaitTask()
+            val result = auth.signInWithCredential(credential).awaitTask()
             val user = result.user
+                ?: return AuthResult.Error("Phone sign-in did not return a Firebase user.")
             AuthResult.Success(
                 firebaseUser = user,
-                email = user?.email ?: trimmedEmail,
-                displayName = user?.displayName ?: trimmedEmail.substringBefore("@").replace(".", " ").capitalizeWords(),
-                photoUrl = user?.photoUrl?.toString()
+                email = user.email ?: "",
+                displayName = user.displayName,
+                photoUrl = user.photoUrl?.toString(),
+                isNewUser = result.additionalUserInfo?.isNewUser ?: false
             )
         } catch (e: Exception) {
-            Log.e(tag, "Firebase signInWithEmail error: ${e.message}", e)
-            val friendlyMessage = when {
-                e.message?.contains("user-not-found", ignoreCase = true) == true -> "No account found with this email."
-                e.message?.contains("wrong-password", ignoreCase = true) == true ||
-                e.message?.contains("invalid-credential", ignoreCase = true) == true -> "Incorrect password. Please verify your credentials."
-                e.message?.contains("invalid-email", ignoreCase = true) == true -> "Invalid email address format."
-                e.message?.contains("network", ignoreCase = true) == true -> "Network connection error. Check your internet access."
-                else -> e.localizedMessage ?: "Authentication failed. Please try again."
+            Log.e(tag, "signInWithPhoneCredential error: ${e.message}", e)
+            AuthResult.Error(phoneCredentialErrorMessage(e), e)
+        }
+    }
+
+    /**
+     * Links [credential] to the currently signed-in Firebase user — used to attach a
+     * verified phone number to an account that signed up via Google Sign-In (which
+     * doesn't itself verify a phone number), completing the "every account gets
+     * phone-verified" requirement without creating a second, separate account.
+     */
+    suspend fun linkPhoneCredential(credential: PhoneAuthCredential): AuthResult {
+        val auth = firebaseAuth
+            ?: return AuthResult.Error("Authentication service unavailable. Please check your connection and try again.")
+        val user = auth.currentUser
+            ?: return AuthResult.Error("You need to be signed in before linking a phone number.")
+        return try {
+            val result = user.linkWithCredential(credential).awaitTask()
+            val linkedUser = result.user ?: user
+            AuthResult.Success(
+                firebaseUser = linkedUser,
+                email = linkedUser.email ?: "",
+                displayName = linkedUser.displayName,
+                photoUrl = linkedUser.photoUrl?.toString()
+            )
+        } catch (e: Exception) {
+            Log.e(tag, "linkPhoneCredential error: ${e.message}", e)
+            val friendlyMessage = if (e.message?.contains("credential-already-in-use", ignoreCase = true) == true) {
+                "This phone number is already registered to a different account."
+            } else {
+                phoneCredentialErrorMessage(e)
             }
             AuthResult.Error(friendlyMessage, e)
         }
     }
 
-    /**
-     * Register a new user with Email and Password in Firebase Auth.
-     */
-    suspend fun registerWithEmail(
-        email: String,
-        password: String,
-        displayName: String
-    ): AuthResult {
-        val trimmedEmail = email.trim().lowercase()
-        if (trimmedEmail.isEmpty() || !trimmedEmail.contains("@")) {
-            return AuthResult.Error("Please enter a valid email address.")
-        }
-        if (password.length < 6) {
-            return AuthResult.Error("Password must be at least 6 characters long.")
-        }
-
-        val auth = firebaseAuth
-        if (auth == null) {
-            return AuthResult.Error("Authentication service unavailable. Please check your connection and try again.")
-        }
-
-        return try {
-            val result = auth.createUserWithEmailAndPassword(trimmedEmail, password).awaitTask()
-            val user = result.user
-            if (user != null && displayName.isNotBlank()) {
-                try {
-                    val profileUpdates = UserProfileChangeRequest.Builder()
-                        .setDisplayName(displayName)
-                        .build()
-                    user.updateProfile(profileUpdates).awaitTask()
-                } catch (pe: Exception) {
-                    Log.w(tag, "Failed to update Firebase user profile: ${pe.message}")
-                }
-            }
-            AuthResult.Success(
-                firebaseUser = user,
-                email = user?.email ?: trimmedEmail,
-                displayName = user?.displayName ?: displayName,
-                photoUrl = user?.photoUrl?.toString()
-            )
-        } catch (e: Exception) {
-            Log.e(tag, "Firebase registerWithEmail error: ${e.message}", e)
-            val friendlyMessage = when {
-                e.message?.contains("email-already-in-use", ignoreCase = true) == true -> "An account with this email already exists."
-                e.message?.contains("weak-password", ignoreCase = true) == true -> "Password is too weak. Use at least 6 characters."
-                e.message?.contains("invalid-email", ignoreCase = true) == true -> "Invalid email format."
-                else -> e.localizedMessage ?: "Account registration failed."
-            }
-            AuthResult.Error(friendlyMessage, e)
-        }
+    private fun phoneCredentialErrorMessage(e: Exception): String = when {
+        e.message?.contains("invalid-verification-code", ignoreCase = true) == true -> "That code doesn't match. Please check and try again."
+        e.message?.contains("session-expired", ignoreCase = true) == true ||
+            e.message?.contains("code-expired", ignoreCase = true) == true -> "This code has expired — request a new one."
+        e.message?.contains("network", ignoreCase = true) == true -> "Network connection error. Check your internet access."
+        else -> e.localizedMessage ?: "Phone verification failed. Please try again."
     }
 
     /**
@@ -256,22 +295,6 @@ class FirebaseAuthService(private val context: Context) {
     }
 
     /**
-     * Send password reset email via Firebase Auth.
-     */
-    suspend fun sendPasswordResetEmail(email: String): Result<Unit> {
-        val trimmed = email.trim().lowercase()
-        val auth = firebaseAuth
-            ?: return Result.failure(IllegalStateException("Authentication service unavailable."))
-        return try {
-            auth.sendPasswordResetEmail(trimmed).awaitTask()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(tag, "Failed to send reset email: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    /**
      * Sign out from Firebase Auth.
      */
     fun signOut() {
@@ -279,12 +302,6 @@ class FirebaseAuthService(private val context: Context) {
             firebaseAuth?.signOut()
         } catch (e: Exception) {
             Log.w(tag, "Error during signOut: ${e.message}")
-        }
-    }
-
-    private fun String.capitalizeWords(): String {
-        return split(" ").joinToString(" ") { word ->
-            word.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
         }
     }
 }

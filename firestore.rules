@@ -64,13 +64,15 @@ service cloud.firestore {
       // field. This field is a display/query mirror of that claim.
       allow create: if isOwner(userId);
 
-      // Once the profile exists, role/isVerified/verificationStatus/
-      // verificationTier/trustScore can never change via a direct client
-      // write, self or Admin — only grantAdminRole, reviewCredentialDocument,
-      // and submitVerificationForReview (Cloud Functions, Admin SDK) can.
+      // Once the profile exists, role/isVerified can never change via a
+      // direct client write, self or Admin — only grantAdminRole (role) and
+      // assignInitialRole (isVerified, synced from the ID token's own
+      // phone_number claim — see its doc comment) can, both Admin SDK. There
+      // is no admin-reviewed accreditation system anymore, so no separate
+      // verificationStatus/verificationTier/trustScore fields to protect.
       allow update: if (isOwner(userId) || isAdmin()) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-          ["role", "isVerified", "verificationStatus", "verificationTier", "trustScore"]
+          ["role", "isVerified"]
         );
 
       allow delete: if isAdmin();
@@ -110,27 +112,13 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // ---------------------------------------------------------------
-    // user_credentials — professional/owner credential documents
-    // ---------------------------------------------------------------
-    match /user_credentials/{documentId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-
-      allow create: if isSignedIn() &&
-        request.resource.data.userId == request.auth.uid &&
-        request.resource.data.status in ["NOT_UPLOADED", "PENDING_REVIEW"];
-
-      // status/reviewerNotes/rejectionReason only change via
-      // reviewCredentialDocument (Admin SDK) — a user can still edit their
-      // own document's other fields (document number, expiry date, etc.)
-      // before it's reviewed.
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-          ["status", "reviewerNotes", "rejectionReason", "userId"]
-        );
-
-      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
-    }
+    // user_credentials (the old admin-reviewed accreditation document
+    // collection) is gone — there is no admin review workflow anymore. An
+    // ID document is a single URL field on user_profiles (idDocumentUrl,
+    // client-writable, no review); a Pro Host's proof of ownership is a
+    // single URL field on workspace_listings (ownershipProofUrl), also
+    // client-writable at listing-creation time — no dedicated collection or
+    // rule needed for either.
 
     // ---------------------------------------------------------------
     // whish_transactions — server-only, ground truth for real payments

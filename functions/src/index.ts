@@ -21,7 +21,6 @@ export { whishWebhook } from "./payments/whishWebhook";
 export { checkWhishStatus } from "./payments/checkWhishStatus";
 
 export { updatePricing } from "./admin/pricing";
-export { submitVerificationForReview, reviewCredentialDocument, adminSetUserVerification } from "./admin/verification";
 export { setListingVerification, setListingSubscriptionActive } from "./admin/listings";
 
 export { recordClientAuditLog } from "./audit/recordClientAuditLog";

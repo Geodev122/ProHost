@@ -22,7 +22,6 @@ data class AdminUiState(
     // Filter and search states
     val userSearchQuery: String = "",
     val selectedUserRoleFilter: UserRole? = null,
-    val selectedUserStatusFilter: MemberVerificationStatus? = null,
 
     val listingSearchQuery: String = "",
     val selectedListingTypeFilter: SpaceType? = null,
@@ -63,14 +62,13 @@ data class AdminUiState(
                     user.fullName.contains(userSearchQuery, ignoreCase = true) ||
                     user.email.contains(userSearchQuery, ignoreCase = true) ||
                     user.specialty.contains(userSearchQuery, ignoreCase = true) ||
-                    user.syndicateNumber.contains(userSearchQuery, ignoreCase = true) ||
-                    user.affiliation.contains(userSearchQuery, ignoreCase = true) ||
                     user.phone.contains(userSearchQuery, ignoreCase = true) ||
-                    user.governorate.displayName.contains(userSearchQuery, ignoreCase = true)
+                    user.city.contains(userSearchQuery, ignoreCase = true) ||
+                    user.governorate.contains(userSearchQuery, ignoreCase = true) ||
+                    user.country.contains(userSearchQuery, ignoreCase = true)
 
             val matchesRole = selectedUserRoleFilter == null || user.role == selectedUserRoleFilter
-            val matchesStatus = selectedUserStatusFilter == null || user.verificationStatus == selectedUserStatusFilter
-            matchesQuery && matchesRole && matchesStatus
+            matchesQuery && matchesRole
         }
 
     val filteredSpaces: List<SpaceListing>

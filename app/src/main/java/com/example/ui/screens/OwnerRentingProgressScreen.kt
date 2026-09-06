@@ -245,7 +245,7 @@ fun OwnerRentingProgressScreenContent(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "${booking.practitionerSpecialty} • Syndicate: ${booking.practitionerSyndicateNumber}",
+                                    text = booking.practitionerSpecialty,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.SemiBold

@@ -26,13 +26,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.*
-import com.example.ui.components.DocumentPreviewDialog
 import com.example.ui.components.drawer.LawBulletinCard
 import com.example.ui.theme.LebaneseCedarGreen
 import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.viewmodel.ProSpaceViewModel
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -55,19 +53,12 @@ fun DrawerDialogsHandler(
     }
 
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     val currentUser by viewModel.currentUser.collectAsState()
     val allSpaces by viewModel.spaces.collectAsState()
     val bookingRequests by viewModel.bookingRequests.collectAsState()
     val auditLogs by viewModel.auditLogs.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
     val fcmAlerts by viewModel.fcmAlerts.collectAsState()
-
-    // The admin credential-document registry (below) is the only place an admin can
-    // ever actually approve/reject a document — SpecialistProfileScreen's own preview
-    // dialog is reachable only from a user's OWN document list, which explicitly
-    // excludes ADMIN, so `isAdmin` could never be true at that call site.
-    var previewingAdminDocument by remember { mutableStateOf<CredentialDocument?>(null) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -91,16 +82,12 @@ fun DrawerDialogsHandler(
                 ) {
                     val title = when (dialogId) {
                         "pro_dues" -> "Payment Due Reminders"
-                        "pro_syndicate" -> "Syndicate ID Verification"
                         "pro_laws" -> "Lebanese Rent Laws"
                         "owner_whish" -> "Whish Money Transactions"
                         "owner_guidelines" -> "Practice Guidelines"
                         "admin_audit" -> "Central Security Audits"
                         "admin_gov" -> "Governorate Node Status"
-                        "admin_credentials_registry" -> "Credential Documents Registry"
                         "admin_app_updates" -> "App Version & In-App Updates"
-                        "pro_credentials_registry" -> "Credential Documents Registry"
-                        "pro_accreditation_hub" -> "Accreditation & Practice Hub"
                         "pro_app_updates" -> "App Version & In-App Updates"
                         "owner_package_tiers" -> "Owner Package Tiers & Governance"
                         "fcm_alerts" -> "Real-time Alerts Terminal"
@@ -228,54 +215,6 @@ fun DrawerDialogsHandler(
                                                 }
                                             }
                                         }
-                                    }
-                                }
-                            }
-                        }
-                        "pro_syndicate" -> {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(Icons.Default.Verified, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(64.dp))
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Text(
-                                        text = currentUser?.fullName ?: "Practitioner",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = currentUser?.specialty ?: "Independent Practice",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    HorizontalDivider()
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text("Syndicate Registry:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                        Text(currentUser?.syndicateNumber ?: "OEA-LB-8842", style = MaterialTheme.typography.bodySmall)
-                                    }
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text("Affiliation Node:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                        Text(currentUser?.affiliation ?: "Beirut Syndicate", style = MaterialTheme.typography.bodySmall)
-                                    }
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text("Registration Status:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                        Text("ACTIVE VERIFIED", color = StatusSuccess, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                                     }
                                 }
                             }
@@ -576,93 +515,8 @@ fun DrawerDialogsHandler(
                                 }
                             }
                         }
-                        "admin_credentials_registry" -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Super Admin Supervisory Registry & Document Inspection", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("Tap a document to approve or request a revision.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                                val allDocs = viewModel.credentialDocuments.collectAsState().value
-                                if (allDocs.isEmpty()) {
-                                    Text("No pending member documents in the verification queue.", style = MaterialTheme.typography.bodySmall)
-                                } else {
-                                    LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.heightIn(max = 300.dp)) {
-                                        items(allDocs) { doc ->
-                                            Card(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clickable { previewingAdminDocument = doc },
-                                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                                            ) {
-                                                Column(modifier = Modifier.padding(10.dp)) {
-                                                    Text("User ID: ${doc.userId} • Type: ${doc.type.title}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                                                    Text("Document No: ${doc.documentNumber} • Status: ${doc.status}", style = MaterialTheme.typography.bodySmall)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
                         "admin_app_updates" -> {
                             AppUpdatesInfo(profileTabId = "admin_profile", onNavigateToTab = onNavigateToTab, onDismiss = onDismiss)
-                        }
-                        "pro_credentials_registry" -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Practitioner Syndicate & Legal Credentials Registry", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("Manage your Syndicate membership card, Practice Decree, and National ID for Lebanese clinic rentals.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                val userDocs = viewModel.currentUserDocuments.collectAsState().value
-                                val requiredTypes = DocumentType.entries.filter { currentUser?.role?.let { role -> it.requiredFor.contains(role) } == true }
-                                requiredTypes.forEach { docType ->
-                                    val upDoc = userDocs.find { it.type == docType }
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(10.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(docType.title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                                                Text("Status: ${upDoc?.status?.name ?: "NOT_UPLOADED"}", style = MaterialTheme.typography.bodySmall, color = if (upDoc?.status == DocumentStatus.VERIFIED) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error)
-                                            }
-                                            if (onNavigateToTab != null) {
-                                                Button(
-                                                    onClick = {
-                                                        onNavigateToTab("pro_profile")
-                                                        onDismiss()
-                                                    },
-                                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                                    modifier = Modifier.height(32.dp)
-                                                ) {
-                                                    Text("Upload", fontSize = 11.sp)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        "pro_accreditation_hub" -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("4-Pillar Specialist Syndicate Accreditation", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("Complete contact verification, syndicate license, governorate selection, and required legal document uploads to achieve 100% verified status.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("• Pillar 1: Contact & Identity Info (${if (currentUser?.fullName?.isNotBlank() == true) "Complete" else "Pending"})", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                        Text("• Pillar 2: Syndicate & Specialty Registration (${if (currentUser?.syndicateNumber?.isNotBlank() == true) "Verified" else "Pending"})", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                        Text("• Pillar 3: Lebanese Governorate Node (${currentUser?.governorate?.displayName ?: "Beirut"})", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                        Text("• Pillar 4: Mandatory Compliance Documents", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                    }
-                                }
-                            }
                         }
                         "pro_app_updates" -> {
                             AppUpdatesInfo(profileTabId = "pro_profile", onNavigateToTab = onNavigateToTab, onDismiss = onDismiss)
@@ -700,33 +554,6 @@ fun DrawerDialogsHandler(
         }
     }
 
-    previewingAdminDocument?.let { doc ->
-        DocumentPreviewDialog(
-            document = doc,
-            isAdmin = true,
-            onDismiss = { previewingAdminDocument = null },
-            onApproveDocument = { docId ->
-                coroutineScope.launch {
-                    val success = viewModel.adminApproveDocument(docId)
-                    Toast.makeText(
-                        context,
-                        if (success) "Document approved and accredited!" else "Failed to approve document — please try again",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            },
-            onRejectDocument = { docId, reason ->
-                coroutineScope.launch {
-                    val success = viewModel.adminRejectDocument(docId, reason)
-                    Toast.makeText(
-                        context,
-                        if (success) "Revision requested from member" else "Failed to request revision — please try again",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-        )
-    }
 }
 
 /**

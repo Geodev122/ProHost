@@ -36,19 +36,55 @@ class FirebaseStorageService(
     }
 
     /**
-     * Uploads a professional credential document to `credentials/{uid}/{docId}.{ext}`.
-     * Only the owning user (or an Admin, for review) can read this path — see
-     * storage.rules. Returns the download URL, or null if Storage is unavailable or the
-     * upload fails.
+     * Uploads a registrant's ID document (national ID / passport) to
+     * `id_documents/{uid}.{ext}` — kept on file with no admin review workflow, required
+     * once at registration for every account. Only the owning user or an Admin can read
+     * this path — see storage.rules. Returns the download URL, or null if Storage is
+     * unavailable or the upload fails.
      */
-    suspend fun uploadCredentialDocument(
+    suspend fun uploadIdDocument(
         uid: String,
-        docId: String,
         fileUri: Uri,
         fileExtension: String,
         onProgress: (Float) -> Unit = {}
     ): String? = uploadAndGetUrl(
-        ref = storage?.reference?.child("credentials/$uid/$docId.$fileExtension"),
+        ref = storage?.reference?.child("id_documents/$uid/document.$fileExtension"),
+        fileUri = fileUri,
+        onProgress = onProgress
+    )
+
+    /**
+     * Uploads a registrant's profile picture to `profile_pictures/{uid}.{ext}`. Publicly
+     * readable (shown wherever a member's identity is displayed to others, e.g. a
+     * booking request) but writable only by the account owner or an Admin.
+     */
+    suspend fun uploadProfilePicture(
+        uid: String,
+        fileUri: Uri,
+        fileExtension: String,
+        onProgress: (Float) -> Unit = {}
+    ): String? = uploadAndGetUrl(
+        ref = storage?.reference?.child("profile_pictures/$uid/photo.$fileExtension"),
+        fileUri = fileUri,
+        onProgress = onProgress
+    )
+
+    /**
+     * Uploads a Pro Host's proof of ownership / right to rent a specific space to
+     * `listing_ownership_docs/{spaceId}/ownership_proof.{ext}` — required per listing
+     * at creation time, kept on file with no admin review workflow (see
+     * SpaceListing.ownershipProofUrl). A separate path from listing photos
+     * (`listings/{spaceId}/...`) since this can be a PDF, not just an image — see
+     * storage.rules. Uses the same "listing owner, Firestore doc may not exist yet"
+     * bootstrapping rule as listing photos.
+     */
+    suspend fun uploadOwnershipProofDocument(
+        spaceId: String,
+        fileUri: Uri,
+        fileExtension: String,
+        onProgress: (Float) -> Unit = {}
+    ): String? = uploadAndGetUrl(
+        ref = storage?.reference?.child("listing_ownership_docs/$spaceId/ownership_proof.$fileExtension"),
         fileUri = fileUri,
         onProgress = onProgress
     )

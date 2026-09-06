@@ -608,7 +608,7 @@ fun MyBookingsScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("• Workspace: ${bkg.spaceTitle} (${bkg.spaceDistrict}, ${bkg.governorate.displayName})", fontSize = 12.sp)
                         Text("• Host: ${bkg.ownerName} (${bkg.ownerPhone})", fontSize = 12.sp)
-                        Text("• Practitioner: ${bkg.practitionerName} (Syndicate ID #${bkg.practitionerSyndicateNumber.ifEmpty { "VERIFIED" }})", fontSize = 12.sp)
+                        Text("• Practitioner: ${bkg.practitionerName} (${bkg.practitionerSpecialty})", fontSize = 12.sp)
                         Text("• Duration: ${bkg.durationMonths} Month(s) starting ${bkg.startDate}", fontSize = 12.sp)
                         Text("• Agreed Rate: $${String.format(Locale.US, "%.0f", bkg.totalAmountUsd)} USD", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         Text("• Utilities: Guaranteed Generator 24/7 & Fiber Internet included", fontSize = 12.sp)

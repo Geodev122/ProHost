@@ -17,10 +17,10 @@ const ALLOWED_SEVERITIES = ["INFO", "WARN", "SECURE"];
  * client-side ProSpaceRepository.addAuditLog, actorEmail is NOT accepted from
  * the caller — it's always the caller's own verified token email, closing the
  * exact gap the original audit flagged (AuditSecurityLog.actorEmail being a
- * client-supplied, spoofable value). Money- and verification-status-changing
- * actions have their own dedicated functions (admin/pricing.ts,
- * admin/verification.ts, admin/listings.ts, payments/*) which write their own
- * audit entries directly and don't go through this generic path.
+ * client-supplied, spoofable value). Money- and role-changing actions have
+ * their own dedicated functions (admin/pricing.ts, admin/listings.ts,
+ * roles/*, payments/*) which write their own audit entries directly and
+ * don't go through this generic path.
  */
 export const recordClientAuditLog = onCall<RecordClientAuditLogData>(async (request) => {
   const auth = request.auth;

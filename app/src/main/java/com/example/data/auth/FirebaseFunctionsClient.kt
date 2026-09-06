@@ -157,51 +157,12 @@ class FirebaseFunctionsClient {
         }
     }
 
-    /** Self-service: ask for the caller's own uploaded credential documents to be reviewed. */
-    suspend fun submitVerificationForReview(): Result<Unit> {
-        return try {
-            functions.getHttpsCallable("submitVerificationForReview").call().await()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(tag, "submitVerificationForReview failed: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    /** Admin-only: approve or reject a credential document (functions/src/admin/verification.ts). */
-    suspend fun reviewCredentialDocument(
-        documentId: String,
-        approve: Boolean,
-        reviewerNotes: String? = null,
-        rejectionReason: String? = null
-    ): Result<Unit> {
-        return try {
-            val payload = mutableMapOf<String, Any>(
-                "documentId" to documentId,
-                "decision" to if (approve) "APPROVE" else "REJECT"
-            )
-            reviewerNotes?.let { payload["reviewerNotes"] = it }
-            rejectionReason?.let { payload["rejectionReason"] = it }
-            functions.getHttpsCallable("reviewCredentialDocument").call(payload).await()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(tag, "reviewCredentialDocument failed: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    /** Admin-only: directly override a user's verification status (functions/src/admin/verification.ts). */
-    suspend fun setUserVerification(userId: String, verified: Boolean): Result<Unit> {
-        return try {
-            functions.getHttpsCallable("adminSetUserVerification")
-                .call(mapOf("userId" to userId, "verified" to verified))
-                .await()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(tag, "setUserVerification failed: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
+    // submitVerificationForReview()/reviewCredentialDocument()/setUserVerification()
+    // used to live here — the whole admin-reviewed accreditation system they backed
+    // (functions/src/admin/verification.ts) is gone. isVerified now means only "this
+    // account's phone number passed Firebase Phone Auth SMS verification," synced
+    // automatically by assignInitialRole.ts from the ID token's own phone_number
+    // claim — there is nothing left for a human to submit, approve, or override.
 
     /** Admin-only: override a listing's verified badge (functions/src/admin/listings.ts). */
     suspend fun setListingVerification(spaceId: String, verified: Boolean): Result<Unit> {

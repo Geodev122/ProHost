@@ -152,14 +152,6 @@ class AdminViewModel(
         setSelectedUserRoleFilter(role)
     }
 
-    fun setSelectedUserStatusFilter(status: MemberVerificationStatus?) {
-        _uiState.update { it.copy(selectedUserStatusFilter = status) }
-    }
-
-    fun setUserStatusFilter(status: MemberVerificationStatus?) {
-        setSelectedUserStatusFilter(status)
-    }
-
     fun openEditUserDialog(user: AppUser) {
         _uiState.update { it.copy(editingUser = user, isEditUserDialogOpen = true) }
     }
@@ -175,17 +167,6 @@ class AdminViewModel(
             _events.emit(
                 AdminUiEvent.ShowToast(
                     if (success) "User profile updated successfully" else "Failed to update user profile"
-                )
-            )
-        }
-    }
-
-    fun toggleUserVerification(userId: String) {
-        viewModelScope.launch {
-            val success = repository.toggleUserVerification(userId)
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "User verification status updated" else "Failed to update verification status"
                 )
             )
         }

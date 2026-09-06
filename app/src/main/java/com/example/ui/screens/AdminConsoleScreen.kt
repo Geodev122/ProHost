@@ -779,25 +779,6 @@ private fun AdminUsersDirectoryTab(
                             )
                         }
                     }
-
-                    // Status Filter Chips
-                    Text("Filter by Verification:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        item {
-                            FilterChip(
-                                selected = uiState.selectedUserStatusFilter == null,
-                                onClick = { adminViewModel.setUserStatusFilter(null) },
-                                label = { Text("All Statuses") }
-                            )
-                        }
-                        items(MemberVerificationStatus.entries) { status ->
-                            FilterChip(
-                                selected = uiState.selectedUserStatusFilter == status,
-                                onClick = { adminViewModel.setUserStatusFilter(status) },
-                                label = { Text(status.displayName) }
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -883,16 +864,21 @@ private fun AdminUsersDirectoryTab(
                     // User Details Grid
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
-                            Text("Syndicate / ID:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(user.syndicateNumber.ifBlank { "N/A" }, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                            Text("Location:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(user.city.ifBlank { user.governorate.ifBlank { user.country } }, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                         }
                         Column {
-                            Text("Territory:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(user.governorate.displayName.split(" ").first(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                            Text("Phone Status:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                if (user.isVerified) "Verified" else "Unverified",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (user.isVerified) FreshGreen else StatusError
+                            )
                         }
                         Column {
-                            Text("Trust Score:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("${user.trustScore}%", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = FreshGreen)
+                            Text("ID Document:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(if (user.idDocumentUrl != null) "On File" else "Missing", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                         }
                     }
 
@@ -900,10 +886,6 @@ private fun AdminUsersDirectoryTab(
                         Column {
                             Text("Phone / WhatsApp:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(user.phone.ifBlank { "N/A" }, style = MaterialTheme.typography.bodySmall)
-                        }
-                        Column {
-                            Text("Affiliation:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(user.affiliation.ifBlank { "Independent" }, style = MaterialTheme.typography.bodySmall)
                         }
                     }
 
@@ -913,26 +895,6 @@ private fun AdminUsersDirectoryTab(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Toggle Verification Button
-                        OutlinedButton(
-                            onClick = { adminViewModel.toggleUserVerification(user.id) },
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1.2f),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Icon(
-                                if (user.isVerified) Icons.Default.Close else Icons.Default.Check,
-                                contentDescription = null,
-                                tint = if (user.isVerified) StatusError else StatusSuccess,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = if (user.isVerified) "Revoke Verify" else "Accredit User",
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-
                         // Edit Button
                         OutlinedButton(
                             onClick = { adminViewModel.openEditUserDialog(user) },
@@ -1976,9 +1938,9 @@ private fun AdminEditUserDialog(
     var email by remember { mutableStateOf(user.email) }
     var phone by remember { mutableStateOf(user.phone) }
     var specialty by remember { mutableStateOf(user.specialty) }
-    var syndicateNumber by remember { mutableStateOf(user.syndicateNumber) }
-    var affiliation by remember { mutableStateOf(user.affiliation) }
-    var selectedGov by remember { mutableStateOf(user.governorate) }
+    var country by remember { mutableStateOf(user.country) }
+    var governorateArea by remember { mutableStateOf(user.governorate) }
+    var city by remember { mutableStateOf(user.city) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -2009,13 +1971,13 @@ private fun AdminEditUserDialog(
                 InputField(value = email, onValueChange = { email = it }, label = "Email", modifier = Modifier.fillMaxWidth(), singleLine = true)
                 InputField(value = phone, onValueChange = { phone = it }, label = "Phone (WhatsApp)", modifier = Modifier.fillMaxWidth(), singleLine = true)
                 InputField(value = specialty, onValueChange = { specialty = it }, label = "Specialty / Profession", modifier = Modifier.fillMaxWidth(), singleLine = true)
-                InputField(value = syndicateNumber, onValueChange = { syndicateNumber = it }, label = "Syndicate / License #", modifier = Modifier.fillMaxWidth(), singleLine = true)
-                InputField(value = affiliation, onValueChange = { affiliation = it }, label = "Affiliation / Studio", modifier = Modifier.fillMaxWidth(), singleLine = true)
-                // Role, verification status, and trust index all now go exclusively through
-                // dedicated Cloud Functions (grantAdminRole, adminSetUserVerification /
-                // reviewCredentialDocument) — a direct write to any of them from this
-                // generic edit form is denied by Firestore rules. Shown read-only here;
-                // use the Grant Admin / Toggle Verification actions on the user row instead.
+                InputField(value = country, onValueChange = { country = it }, label = "Country", modifier = Modifier.fillMaxWidth(), singleLine = true)
+                InputField(value = governorateArea, onValueChange = { governorateArea = it }, label = "Governorate / Area", modifier = Modifier.fillMaxWidth(), singleLine = true)
+                InputField(value = city, onValueChange = { city = it }, label = "City", modifier = Modifier.fillMaxWidth(), singleLine = true)
+                // Role and phone-verified status both go exclusively through dedicated
+                // Cloud Functions (grantAdminRole / assignInitialRole) — a direct write to
+                // either from this generic edit form is denied by Firestore rules. Shown
+                // read-only here; use the Grant Admin action on the user row instead.
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                     shape = RoundedCornerShape(8.dp),
@@ -2023,7 +1985,7 @@ private fun AdminEditUserDialog(
                 ) {
                     Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            "Role: ${user.role.name.replace("_", " ")}  •  Trust Index: ${user.trustScore}  •  ${if (user.isVerified) "Verified" else "Not Verified"}",
+                            "Role: ${user.role.name.replace("_", " ")}  •  ${if (user.isVerified) "Phone Verified" else "Phone Unverified"}",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -2031,17 +1993,6 @@ private fun AdminEditUserDialog(
                             "Change these from the user row's own actions, not here.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                Text("Territory Governorate:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(Governorate.entries) { gov ->
-                        FilterChip(
-                            selected = selectedGov == gov,
-                            onClick = { selectedGov = gov },
-                            label = { Text(gov.displayName.split(" ").first(), fontSize = 11.sp) }
                         )
                     }
                 }
@@ -2062,9 +2013,9 @@ private fun AdminEditUserDialog(
                                 email = email.trim(),
                                 phone = phone.trim(),
                                 specialty = specialty.trim(),
-                                syndicateNumber = syndicateNumber.trim(),
-                                affiliation = affiliation.trim(),
-                                governorate = selectedGov
+                                country = country.trim(),
+                                governorate = governorateArea.trim(),
+                                city = city.trim()
                             )
                             onSave(updated)
                         },

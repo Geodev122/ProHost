@@ -231,7 +231,7 @@ fun OwnerBookingRequestCard(
             ) {
                 ProMemberAvatar(
                     name = request.practitionerName,
-                    specialty = "${request.practitionerSpecialty} • ${request.practitionerSyndicateNumber}",
+                    specialty = request.practitionerSpecialty,
                     isVerified = true,
                     size = 36.dp,
                     modifier = Modifier.weight(1f)

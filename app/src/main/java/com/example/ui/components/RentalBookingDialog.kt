@@ -148,7 +148,7 @@ fun RentalBookingDialog(
 
     var clinicalNotes by remember {
         mutableStateOf(
-            "Specialist workspace rental (${currentUser?.specialty ?: "Specialist"}). License / ID #${currentUser?.syndicateNumber ?: "PRO-LB-VERIFIED"}."
+            "Specialist workspace rental (${currentUser?.specialty?.ifBlank { "Specialist" } ?: "Specialist"})."
         )
     }
 

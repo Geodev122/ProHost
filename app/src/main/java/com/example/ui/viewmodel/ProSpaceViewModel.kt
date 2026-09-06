@@ -1,5 +1,6 @@
 package com.example.ui.viewmodel
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -35,18 +36,12 @@ class ProSpaceViewModel(
     val transactions: StateFlow<List<WhishTransaction>> = repository.transactions
     val users: StateFlow<List<AppUser>> = repository.users
     val currentUser: StateFlow<AppUser?> = repository.currentUser
-    val credentialDocuments: StateFlow<List<CredentialDocument>> = repository.credentialDocuments
     val auditLogs: StateFlow<List<AuditSecurityLog>> = repository.auditLogs
     val bookingRequests: StateFlow<List<RentalBookingRequest>> = repository.bookingRequests
     val fcmAlerts: StateFlow<List<FCMAlert>> = repository.fcmAlerts
     val isOfflineMode: StateFlow<Boolean> = repository.isOfflineMode
     val syncStatusMessage: StateFlow<String?> = repository.syncStatusMessage
     val pendingOfflineTransactions: StateFlow<List<WhishTransaction>> = repository.pendingOfflineTransactions
-
-    val currentUserDocuments: StateFlow<List<CredentialDocument>> = combine(credentialDocuments, currentUser) { docs, user ->
-        if (user == null) emptyList()
-        else docs.filter { it.userId == user.id }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun retryOfflineSync() {
         repository.retryOfflineTransactions()
@@ -359,93 +354,253 @@ class ProSpaceViewModel(
     // com.example.data.auth.completeVerifiedLogin / completeVerifiedRegistration.
     private val functionsClient = com.example.data.auth.FirebaseFunctionsClient()
 
-    fun signInWithEmailAndPassword(
-        context: Context,
-        email: String,
-        password: String,
+    /**
+     * Everything the registration form collects, held here between "send the OTP" and
+     * "the user typed the code in" — nothing is written to Firebase Auth or Firestore,
+     * and no file is uploaded, until the phone number is actually verified. See
+     * [startPhoneRegistration]/[submitPhoneRegistrationCode].
+     */
+    data class PendingPhoneRegistration(
+        val fullName: String,
+        val email: String,
+        val phoneE164: String,
+        val specialty: String,
+        val country: String,
+        val governorate: String,
+        val city: String,
+        val profilePictureUri: Uri?,
+        val idDocumentUri: Uri?
+    )
+
+    private var pendingRegistrationInfo: PendingPhoneRegistration? = null
+    private var pendingVerificationId: String? = null
+    private var pendingIsLinkingGoogleAccount = false
+
+    private fun guessFileExtension(activity: Activity, uri: Uri, fallback: String): String {
+        val mime = activity.contentResolver.getType(uri)
+        val fromMime = mime?.let { android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
+        if (!fromMime.isNullOrBlank()) return fromMime
+        val path = uri.lastPathSegment ?: return fallback
+        return path.substringAfterLast('.', fallback)
+    }
+
+    /**
+     * Kicks off SMS verification for a brand-new registration — this app has no
+     * separate "create account" step; a verified phone number IS the account. Every
+     * form field is captured in [registration] before this is even called, so nothing
+     * is written anywhere (Firebase Auth included) until the OTP actually checks out.
+     * Pass [isLinkingExistingAccount] = true only when completing a Google Sign-In
+     * account that has no phone number yet (see [signInWithGoogleCredentialManager]) —
+     * that links the phone to the already-signed-in Google identity instead of
+     * resolving/creating a separate phone-identified account.
+     */
+    fun startPhoneRegistration(
+        activity: Activity,
+        registration: PendingPhoneRegistration,
+        isLinkingExistingAccount: Boolean = false,
+        onCodeSent: () -> Unit,
+        onAutoVerified: () -> Unit
+    ) {
+        pendingRegistrationInfo = registration
+        pendingIsLinkingGoogleAccount = isLinkingExistingAccount
+        _isAuthenticating.value = true
+        _authErrorMessage.value = null
+        val authService = com.example.data.auth.FirebaseAuthService(activity)
+        authService.sendPhoneVerificationCode(
+            activity = activity,
+            e164PhoneNumber = registration.phoneE164,
+            onCodeSent = { verificationId ->
+                pendingVerificationId = verificationId
+                _isAuthenticating.value = false
+                onCodeSent()
+            },
+            onAutoVerified = { credential ->
+                viewModelScope.launch { finishPhoneRegistration(activity, authService, credential, onAutoVerified) }
+            },
+            onError = { message ->
+                _isAuthenticating.value = false
+                _authErrorMessage.value = message
+                pendingRegistrationInfo = null
+            }
+        )
+    }
+
+    /** Verifies the SMS code the user typed in and, once confirmed, finishes registration. */
+    fun submitPhoneRegistrationCode(activity: Activity, smsCode: String, onSuccess: () -> Unit) {
+        val verificationId = pendingVerificationId
+        if (verificationId == null) {
+            _authErrorMessage.value = "Please request a verification code first."
+            return
+        }
+        _isAuthenticating.value = true
+        _authErrorMessage.value = null
+        val authService = com.example.data.auth.FirebaseAuthService(activity)
+        val credential = authService.buildPhoneAuthCredential(verificationId, smsCode)
+        viewModelScope.launch { finishPhoneRegistration(activity, authService, credential, onSuccess) }
+    }
+
+    private suspend fun finishPhoneRegistration(
+        activity: Activity,
+        authService: com.example.data.auth.FirebaseAuthService,
+        credential: com.google.firebase.auth.PhoneAuthCredential,
         onSuccess: () -> Unit
     ) {
-        viewModelScope.launch {
-            _isAuthenticating.value = true
-            _authErrorMessage.value = null
-            val authService = com.example.data.auth.FirebaseAuthService(context)
-            when (val result = authService.signInWithEmail(email, password)) {
-                is com.example.data.auth.AuthResult.Success -> {
-                    val firebaseUser = result.firebaseUser
-                    if (firebaseUser == null) {
-                        _isAuthenticating.value = false
-                        _authErrorMessage.value = "Sign-in did not return a valid session. Please try again."
-                        return@launch
-                    }
+        val info = pendingRegistrationInfo
+        if (info == null) {
+            _isAuthenticating.value = false
+            _authErrorMessage.value = "Your registration details were lost — please start again."
+            return
+        }
+        val result = if (pendingIsLinkingGoogleAccount) {
+            authService.linkPhoneCredential(credential)
+        } else {
+            authService.signInWithPhoneCredential(credential)
+        }
+        when (result) {
+            is com.example.data.auth.AuthResult.Success -> {
+                val firebaseUser = result.firebaseUser
+                if (firebaseUser == null) {
+                    _isAuthenticating.value = false
+                    _authErrorMessage.value = "Phone verification did not return a valid session. Please try again."
+                    return
+                }
+                // This exact phone number already had an account (Firebase resolved
+                // signInWithCredential to it instead of creating a new one) — sign the
+                // caller into it as-is rather than overwriting their real profile with
+                // whatever this registration form happened to be filled in with.
+                if (!pendingIsLinkingGoogleAccount && !result.isNewUser) {
                     val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
+                    pendingRegistrationInfo = null
+                    pendingVerificationId = null
                     _isAuthenticating.value = false
-                    _authSuccessMessage.value = "Signed in successfully as ${user.fullName}"
+                    _authSuccessMessage.value = "Welcome back, ${user.fullName} — you already had an account with this number."
                     onSuccess()
+                    return
                 }
-                is com.example.data.auth.AuthResult.Error -> {
-                    _isAuthenticating.value = false
-                    _authErrorMessage.value = result.message
+                val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
+                val profilePictureUrl = info.profilePictureUri?.let { uri ->
+                    storageService.uploadProfilePicture(firebaseUser.uid, uri, guessFileExtension(activity, uri, "jpg"))
                 }
-                com.example.data.auth.AuthResult.Cancelled -> {
-                    _isAuthenticating.value = false
+                val idDocumentUrl = info.idDocumentUri?.let { uri ->
+                    storageService.uploadIdDocument(firebaseUser.uid, uri, guessFileExtension(activity, uri, "pdf"))
                 }
+                val user = com.example.data.auth.completeVerifiedRegistration(
+                    repository = repository,
+                    functionsClient = functionsClient,
+                    firebaseUser = firebaseUser,
+                    fullName = info.fullName,
+                    email = info.email,
+                    phone = info.phoneE164,
+                    specialty = info.specialty,
+                    profilePictureUrl = profilePictureUrl,
+                    idDocumentUrl = idDocumentUrl,
+                    country = info.country,
+                    governorate = info.governorate,
+                    city = info.city
+                )
+                pendingRegistrationInfo = null
+                pendingVerificationId = null
+                pendingIsLinkingGoogleAccount = false
+                _isAuthenticating.value = false
+                _authSuccessMessage.value = "Account created successfully for ${user.fullName}!"
+                onSuccess()
+            }
+            is com.example.data.auth.AuthResult.Error -> {
+                _isAuthenticating.value = false
+                _authErrorMessage.value = result.message
+            }
+            com.example.data.auth.AuthResult.Cancelled -> {
+                _isAuthenticating.value = false
             }
         }
     }
 
-    fun registerMemberWithFirebase(
-        context: Context,
-        fullName: String,
-        email: String,
-        password: String,
-        phone: String,
-        specialty: String,
-        syndicateNumber: String,
-        affiliation: String,
-        governorate: Governorate,
+    /** Sign-in for a returning member — phone number is the identity, there's nothing else to look up. */
+    fun startPhoneSignIn(
+        activity: Activity,
+        e164Phone: String,
+        onCodeSent: () -> Unit,
+        onAutoVerified: () -> Unit
+    ) {
+        _isAuthenticating.value = true
+        _authErrorMessage.value = null
+        val authService = com.example.data.auth.FirebaseAuthService(activity)
+        authService.sendPhoneVerificationCode(
+            activity = activity,
+            e164PhoneNumber = e164Phone,
+            onCodeSent = { verificationId ->
+                pendingVerificationId = verificationId
+                _isAuthenticating.value = false
+                onCodeSent()
+            },
+            onAutoVerified = { credential ->
+                viewModelScope.launch { finishPhoneSignIn(activity, credential, onAutoVerified) }
+            },
+            onError = { message ->
+                _isAuthenticating.value = false
+                _authErrorMessage.value = message
+            }
+        )
+    }
+
+    fun submitPhoneSignInCode(activity: Activity, smsCode: String, onSuccess: () -> Unit) {
+        val verificationId = pendingVerificationId
+        if (verificationId == null) {
+            _authErrorMessage.value = "Please request a verification code first."
+            return
+        }
+        _isAuthenticating.value = true
+        _authErrorMessage.value = null
+        val authService = com.example.data.auth.FirebaseAuthService(activity)
+        val credential = authService.buildPhoneAuthCredential(verificationId, smsCode)
+        viewModelScope.launch { finishPhoneSignIn(activity, credential, onSuccess) }
+    }
+
+    private suspend fun finishPhoneSignIn(
+        activity: Activity,
+        credential: com.google.firebase.auth.PhoneAuthCredential,
         onSuccess: () -> Unit
     ) {
-        viewModelScope.launch {
-            _isAuthenticating.value = true
-            _authErrorMessage.value = null
-            val authService = com.example.data.auth.FirebaseAuthService(context)
-            when (val result = authService.registerWithEmail(email, password, fullName)) {
-                is com.example.data.auth.AuthResult.Success -> {
-                    val firebaseUser = result.firebaseUser
-                    if (firebaseUser == null) {
-                        _isAuthenticating.value = false
-                        _authErrorMessage.value = "Registration did not return a valid session. Please try again."
-                        return@launch
-                    }
-                    val user = com.example.data.auth.completeVerifiedRegistration(
-                        repository = repository,
-                        functionsClient = functionsClient,
-                        firebaseUser = firebaseUser,
-                        fullName = fullName,
-                        phone = phone,
-                        specialty = specialty,
-                        syndicateNumber = syndicateNumber,
-                        affiliation = affiliation,
-                        governorate = governorate
-                    )
+        val authService = com.example.data.auth.FirebaseAuthService(activity)
+        when (val result = authService.signInWithPhoneCredential(credential)) {
+            is com.example.data.auth.AuthResult.Success -> {
+                val firebaseUser = result.firebaseUser
+                if (firebaseUser == null) {
                     _isAuthenticating.value = false
-                    _authSuccessMessage.value = "Account created successfully for ${user.fullName}!"
-                    onSuccess()
+                    _authErrorMessage.value = "Sign-in did not return a valid session. Please try again."
+                    return
                 }
-                is com.example.data.auth.AuthResult.Error -> {
-                    _isAuthenticating.value = false
-                    _authErrorMessage.value = result.message
+                val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
+                pendingVerificationId = null
+                _isAuthenticating.value = false
+                _authSuccessMessage.value = if (result.isNewUser) {
+                    "Welcome! Please complete your profile from the Profile tab."
+                } else {
+                    "Signed in successfully as ${user.fullName}"
                 }
-                com.example.data.auth.AuthResult.Cancelled -> {
-                    _isAuthenticating.value = false
-                }
+                onSuccess()
+            }
+            is com.example.data.auth.AuthResult.Error -> {
+                _isAuthenticating.value = false
+                _authErrorMessage.value = result.message
+            }
+            com.example.data.auth.AuthResult.Cancelled -> {
+                _isAuthenticating.value = false
             }
         }
     }
 
+    /**
+     * Google Sign-In — a convenience alt path, never a substitute for phone
+     * verification. [onNeedsPhoneVerification] fires instead of [onSuccess] when this
+     * Google identity has no verified phone number yet (every account needs one — see
+     * [startPhoneRegistration] with `isLinkingExistingAccount = true` for how the
+     * caller should complete that).
+     */
     fun signInWithGoogleCredentialManager(
         activityContext: Context,
-        onSuccess: () -> Unit
+        onSuccess: () -> Unit,
+        onNeedsPhoneVerification: (fullName: String, email: String) -> Unit
     ) {
         viewModelScope.launch {
             _isAuthenticating.value = true
@@ -461,8 +616,13 @@ class ProSpaceViewModel(
                     }
                     val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
                     _isAuthenticating.value = false
-                    _authSuccessMessage.value = "Google identity verified: ${user.fullName}"
-                    onSuccess()
+                    if (firebaseUser.phoneNumber.isNullOrBlank()) {
+                        _authSuccessMessage.value = "Signed in as ${user.fullName} with Google — just need to verify your phone number."
+                        onNeedsPhoneVerification(result.displayName ?: user.fullName, result.email)
+                    } else {
+                        _authSuccessMessage.value = "Google identity verified: ${user.fullName}"
+                        onSuccess()
+                    }
                 }
                 is com.example.data.auth.AuthResult.Error -> {
                     _isAuthenticating.value = false
@@ -475,29 +635,11 @@ class ProSpaceViewModel(
         }
     }
 
-    fun sendPasswordReset(context: Context, email: String) {
-        viewModelScope.launch {
-            val trimmed = email.trim()
-            if (trimmed.isEmpty() || !trimmed.contains("@")) {
-                _authErrorMessage.value = "Please provide a valid email address to reset password."
-                return@launch
-            }
-            val authService = com.example.data.auth.FirebaseAuthService(context)
-            val result = authService.sendPasswordResetEmail(trimmed)
-            if (result.isSuccess) {
-                _authSuccessMessage.value = "Password reset instructions sent to $trimmed"
-                Toast.makeText(context, "Password reset email sent to $trimmed", Toast.LENGTH_LONG).show()
-            } else {
-                _authErrorMessage.value = "Failed to send reset email: ${result.exceptionOrNull()?.localizedMessage}"
-            }
-        }
-    }
-
     // registerMember(...)/login(...) synchronous wrappers were removed here — both let a
     // caller hand in an arbitrary role with zero server verification (the exact bug this
     // whole auth rewrite exists to close). Registration/sign-in now only ever happens
-    // through signInWithEmailAndPassword/registerMemberWithFirebase/
-    // signInWithGoogleCredentialManager above, which resolve role via Firebase Auth +
+    // through the phone-verification flow above (or Google Sign-In, itself gated on
+    // completing that same phone verification), which resolve role via Firebase Auth +
     // Cloud Functions custom claims.
     //
     // switchUserRole(...) was also removed — it let any already-logged-in user instantly
@@ -519,61 +661,19 @@ class ProSpaceViewModel(
         name: String,
         specialty: String,
         phone: String,
-        affiliation: String,
-        syndicateNumber: String,
-        governorate: Governorate
+        country: String,
+        governorate: String,
+        city: String,
+        profilePictureUrl: String? = null
     ): Boolean {
-        return repository.updateCurrentUserProfile(name, specialty, phone, affiliation, syndicateNumber, governorate)
-    }
-
-    // --- Credential Document Operations ---
-
-    fun uploadCredentialDocument(
-        type: DocumentType,
-        fileName: String,
-        fileSizeKb: Int,
-        documentNumber: String,
-        issuingAuthority: String,
-        expiryDate: String,
-        fileUri: String? = null
-    ): CredentialDocument? {
-        val user = currentUser.value ?: return null
-        return repository.uploadCredentialDocument(
-            userId = user.id,
-            type = type,
-            fileName = fileName,
-            fileSizeKb = fileSizeKb,
-            documentNumber = documentNumber,
-            issuingAuthority = issuingAuthority,
-            expiryDate = expiryDate,
-            fileUri = fileUri
-        )
-    }
-
-    suspend fun removeCredentialDocument(documentId: String): Boolean {
-        return repository.removeCredentialDocument(documentId)
-    }
-
-    suspend fun submitForVerification(): Boolean {
-        val user = currentUser.value ?: return false
-        return repository.submitUserVerification(user.id)
-    }
-
-    suspend fun adminApproveDocument(documentId: String, notes: String = "Validated against Lebanese Syndicate Registry"): Boolean {
-        return repository.adminApproveDocument(documentId, notes)
-    }
-
-    suspend fun adminRejectDocument(documentId: String, reason: String): Boolean {
-        return repository.adminRejectDocument(documentId, reason)
+        return repository.updateCurrentUserProfile(name, specialty, phone, country, governorate, city, profilePictureUrl)
     }
 
     // --- WhatsApp Direct Connection ---
     fun launchWhatsAppInquiry(context: Context, space: SpaceListing, selectedFormula: RentalFormula?, request: RentalBookingRequest? = null) {
         val user = currentUser.value
         val professionalName = user?.fullName ?: "Specialist Member"
-        val specialty = user?.specialty ?: "Independent Specialist"
-        val affiliation = user?.affiliation ?: "ProSpace Member Network"
-        val syndicate = user?.syndicateNumber ?: "PRO-LB-VERIFIED"
+        val specialty = user?.specialty?.ifBlank { "Independent Specialist" } ?: "Independent Specialist"
 
         val formulaText = selectedFormula?.let { "${it.type.displayName} (${it.scheduleDescription} @ $${it.rateUsd}/mo)" }
             ?: "Full Practice Month ($${space.baseMonthlyRateUsd})"
@@ -594,7 +694,7 @@ class ProSpaceViewModel(
         } else ""
 
         val rawMessage = "Hello ${space.ownerName},\n\n" +
-                "I am ${professionalName} (${specialty}, affiliated with ${affiliation}, ID #${syndicate}).\n\n" +
+                "I am ${professionalName} (${specialty}).\n\n" +
                 "I am contacting you regarding your space \"${space.title}\" located in ${space.district}, ${space.governorate.displayName} on ProHost.\n" +
                 "Selected Formula: ${formulaText}$requestSnippet\n\n" +
                 "I would like to finalize payment and walk-through details.\n" +

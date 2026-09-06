@@ -105,7 +105,7 @@ fun SpecialistDrawerContent(
                         } else {
                             Icon(Icons.Default.Shield, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(13.dp))
                             Text(
-                                text = "Syndicate: ${currentUser?.syndicateNumber ?: "OEA-LB-VERIFIED"}",
+                                text = if (currentUser?.isVerified == true) "Phone Verified" else "Phone Unverified",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = PureWhite
@@ -268,24 +268,10 @@ fun SpecialistDrawerContent(
         )
         Spacer(modifier = Modifier.height(4.dp))
         NavigationDrawerItem(
-            label = { Text("Syndicate ID Verification", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("pro_syndicate") },
-            icon = { Icon(Icons.Default.Verified, contentDescription = null, tint = OxfordBlue) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
             label = { Text("Lebanese Rent Laws", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { onDrawerAction("pro_laws") },
             icon = { Icon(Icons.Default.MenuBook, contentDescription = null, tint = OxfordBlue) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Accreditation & Practice Hub", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("pro_accreditation_hub") },
-            icon = { Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = OxfordBlue) }
         )
 
         if (isProHost) {
@@ -331,13 +317,6 @@ fun SpecialistDrawerContent(
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
 
-        NavigationDrawerItem(
-            label = { Text("Credential Documents Registry", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("pro_credentials_registry") },
-            icon = { Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = OxfordBlue) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
         NavigationDrawerItem(
             label = { Text("App Version & Updates", fontWeight = FontWeight.SemiBold) },
             selected = false,

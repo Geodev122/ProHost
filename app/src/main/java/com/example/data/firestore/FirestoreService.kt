@@ -523,78 +523,13 @@ class FirestoreService(
         }
     }
 
-    // ==========================================
-    // CREDENTIAL DOCUMENTS
-    // ==========================================
-
-    suspend fun saveCredentialDocument(doc: CredentialDocument): Boolean {
-        return try {
-            val db = firestore ?: return false
-            db.collection(FirestoreSchema.Collections.USER_CREDENTIALS)
-                .document(doc.id)
-                .set(doc.toFirestoreMap(), SetOptions.merge())
-                .await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error saving credential document: ${e.message}", e)
-            false
-        }
-    }
-
-    suspend fun getCredentialDocument(documentId: String): Map<String, Any>? {
-        return try {
-            val db = firestore ?: return null
-            val doc = db.collection(FirestoreSchema.Collections.USER_CREDENTIALS).document(documentId).get().await()
-            doc.data
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching credential document: ${e.message}", e)
-            null
-        }
-    }
-
-    suspend fun deleteCredentialDocument(documentId: String): Boolean {
-        return try {
-            val db = firestore ?: return false
-            db.collection(FirestoreSchema.Collections.USER_CREDENTIALS).document(documentId).delete().await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error deleting credential document: ${e.message}", e)
-            false
-        }
-    }
-
-    /**
-     * Real-time listener for credential documents, scoped per firestore.rules:
-     * a non-admin can only ever read documents where userId == their own uid, so an
-     * unfiltered collection listener would be denied outright the moment any other
-     * user's document exists — admins alone can listen to the whole collection.
-     * Returns the registration so the caller can detach it on logout/user change
-     * (unlike [attachLiveListeners]'s listeners, this one's scope changes per user).
-     */
-    fun attachCredentialDocumentsListener(
-        userId: String,
-        isAdmin: Boolean,
-        onUpdated: (List<CredentialDocument>) -> Unit
-    ): ListenerRegistration? {
-        val db = firestore ?: return null
-        val query = if (isAdmin) {
-            db.collection(FirestoreSchema.Collections.USER_CREDENTIALS)
-        } else {
-            db.collection(FirestoreSchema.Collections.USER_CREDENTIALS).whereEqualTo("userId", userId)
-        }
-        return query.addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                Log.w(TAG, "Credential documents sync note: ${error.message}")
-                return@addSnapshotListener
-            }
-            if (snapshot != null) {
-                val docs = snapshot.documents.mapNotNull { doc ->
-                    doc.data?.let { data -> CredentialDocument.fromFirestoreMap(doc.id, data) }
-                }
-                onUpdated(docs)
-            }
-        }
-    }
+    // CREDENTIAL DOCUMENTS (saveCredentialDocument/getCredentialDocument/
+    // deleteCredentialDocument/attachCredentialDocumentsListener) used to live here,
+    // backing the user_credentials collection and its admin-reviewed accreditation
+    // workflow — both are gone (see AppUser.idDocumentUrl / SpaceListing.
+    // ownershipProofUrl doc comments). An ID document and a listing's ownership
+    // proof are now just plain Storage-URL fields on the owning document, saved via
+    // the existing saveUserProfile / listing-save paths, no dedicated collection.
 
     // ==========================================
     // FINANCIAL TRANSACTIONS & AUDIT LOGS
@@ -665,14 +600,13 @@ class FirestoreService(
             FirestoreSchema.Collections.USER_PROFILES,
             FirestoreSchema.Collections.SUBSCRIPTION_FORMULAS,
             FirestoreSchema.Collections.BOOKING_REQUESTS,
-            FirestoreSchema.Collections.USER_CREDENTIALS,
             FirestoreSchema.Collections.WHISH_TRANSACTIONS,
             FirestoreSchema.Collections.AUDIT_SECURITY_LOGS
         )
         checks.add(
             ComplianceCheck(
                 name = "Data Connect GraphQL Collections Mapping",
-                isCompliant = requiredCollections.size == 7,
+                isCompliant = requiredCollections.size == 6,
                 details = "Mapped collections: ${requiredCollections.joinToString(", ")}"
             )
         )
