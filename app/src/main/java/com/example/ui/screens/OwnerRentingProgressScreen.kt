@@ -58,6 +58,20 @@ fun OwnerRentingProgressScreen(
     val syncStatus by viewModel.syncStatusMessage.collectAsState()
     val pendingOfflineTx by viewModel.pendingOfflineTransactions.collectAsState()
 
+    var cancelTargetBooking by remember { mutableStateOf<BookingRequest?>(null) }
+    if (cancelTargetBooking != null) {
+        val bkg = cancelTargetBooking!!
+        com.example.ui.components.CancelAcceptedBookingDialog(
+            spaceTitle = bkg.spaceTitle,
+            partyLabel = bkg.practitionerName,
+            onDismiss = { cancelTargetBooking = null },
+            onConfirm = { reasonCode, note ->
+                viewModel.cancelAcceptedBooking(bkg.id, reasonCode, note, context)
+                cancelTargetBooking = null
+            }
+        )
+    }
+
     OwnerRentingProgressScreenContent(
         ownerSpaces = ownerSpaces,
         activeBookings = activeBookings,
@@ -70,15 +84,13 @@ fun OwnerRentingProgressScreen(
             viewModel.launchWhatsAppToPractitioner(context, booking)
         },
         onSendPaymentReminder = { booking ->
-            viewModel.postNotificationAlert(
-                title = "Payment Due Reminder 💳",
-                body = "Friendly reminder to settle payment for your approved booking of '${booking.spaceTitle}' (Amount: $${booking.totalAmountUsd.toInt()} USD).",
-                category = "PAYMENT_REMINDER",
-                context = context,
-                targetTab = "owner_progress",
-                whatsAppPhone = booking.practitionerPhone,
-                whatsAppMessage = "Hello ${booking.practitionerName}, sending a reminder regarding rent settlement for ${booking.spaceTitle}."
-            )
+            // Real cross-device FCM push (sendPaymentReminder Cloud Function) — the same
+            // path Renting Requests' "Send Payment Reminder" already uses, consolidating
+            // what used to be a second, same-device-only local alert here.
+            viewModel.sendPaymentReminder(booking.id, booking.practitionerName, context)
+        },
+        onCancelAcceptedBooking = { booking ->
+            cancelTargetBooking = booking
         }
     )
 }
@@ -94,6 +106,7 @@ fun OwnerRentingProgressScreenContent(
     onRetrySync: () -> Unit = {},
     onWhatsAppPractitioner: (BookingRequest) -> Unit,
     onSendPaymentReminder: (BookingRequest) -> Unit,
+    onCancelAcceptedBooking: (BookingRequest) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // Generate Dynamic Reminders & Alerts
@@ -345,6 +358,17 @@ fun OwnerRentingProgressScreenContent(
                                 Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("Remind Dues", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            }
+
+                            // Early termination — previously the only way to end an
+                            // active lease was outside the app entirely.
+                            IconButton(
+                                onClick = { onCancelAcceptedBooking(booking) },
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                            ) {
+                                Icon(Icons.Default.EventBusy, contentDescription = "Cancel Booking", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                             }
                         }
                     }

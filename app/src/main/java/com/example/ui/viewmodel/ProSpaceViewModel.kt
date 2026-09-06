@@ -1,6 +1,5 @@
 package com.example.ui.viewmodel
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -9,26 +8,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.model.*
 import com.example.data.repository.ProSpaceRepository
+import com.example.util.guessFileExtension
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.net.URLEncoder
 
-data class SearchFilterState(
-    val query: String = "",
-    val selectedGovernorate: Governorate? = null,
-    val selectedSpaceType: SpaceType? = null,
-    val selectedFormulaType: RentalFormulaType? = null,
-    val selectedFacility: String? = null,
-    val selectedEquipmentCategory: EquipmentCategory? = null,
-    val maxPriceUsd: Double = 1500.0,
-    val onlyVerified: Boolean = false,
-    val onlyActiveSubscribed: Boolean = true
-)
-
 class ProSpaceViewModel(
     val repository: ProSpaceRepository = ProSpaceRepository.getInstance()
 ) : ViewModel() {
+
+    // Used by the Whish payment functions and sendPaymentReminder below — kept here
+    // (not moved to AuthViewModel with the rest of the FirebaseFunctionsClient calls)
+    // since those are cross-cutting, multi-screen actions, unlike the auth flow.
+    private val functionsClient = com.example.data.auth.FirebaseFunctionsClient()
 
     val pricingState: StateFlow<AdminPricingState> = repository.pricingState
     val spaces: StateFlow<List<SpaceListing>> = repository.spaces
@@ -53,35 +46,6 @@ class ProSpaceViewModel(
         repository.markAlertAsRead(alertId)
     }
 
-    fun postNotificationAlert(
-        title: String,
-        body: String,
-        category: String,
-        context: android.content.Context,
-        targetTab: String? = null,
-        bookingId: String? = null,
-        whatsAppPhone: String? = null,
-        whatsAppMessage: String? = null
-    ) {
-        val alert = FCMAlert(title = title, body = body, category = category)
-        repository.addFCMAlert(alert)
-        com.example.service.ProSpaceMessagingService.showPhysicalNotification(
-            context = context,
-            title = title,
-            body = body,
-            targetTab = targetTab,
-            bookingId = bookingId,
-            whatsAppPhone = whatsAppPhone,
-            whatsAppMessage = whatsAppMessage
-        )
-    }
-
-    private val _searchFilter = MutableStateFlow(SearchFilterState())
-    val searchFilter: StateFlow<SearchFilterState> = _searchFilter.asStateFlow()
-
-    private val _selectedSpace = MutableStateFlow<SpaceListing?>(null)
-    val selectedSpace: StateFlow<SpaceListing?> = _selectedSpace.asStateFlow()
-
     // Owner spaces
     val ownerSpaces: StateFlow<List<SpaceListing>> = combine(spaces, currentUser) { list, user ->
         if (user == null) emptyList()
@@ -104,67 +68,18 @@ class ProSpaceViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Filtered spaces flow
-    val filteredSpaces: StateFlow<List<SpaceListing>> = combine(spaces, searchFilter) { list, filter ->
-        list.filter { space ->
-            val matchesQuery = filter.query.isBlank() ||
-                    space.title.contains(filter.query, ignoreCase = true) ||
-                    space.district.contains(filter.query, ignoreCase = true) ||
-                    space.complementarySpecialties.any { it.contains(filter.query, ignoreCase = true) } ||
-                    space.equipment.any { it.name.contains(filter.query, ignoreCase = true) } ||
-                    space.spaceType.displayName.contains(filter.query, ignoreCase = true)
-
-            val matchesGov = filter.selectedGovernorate == null || space.governorate == filter.selectedGovernorate
-            val matchesType = filter.selectedSpaceType == null || space.spaceType == filter.selectedSpaceType
-            val matchesFormula = filter.selectedFormulaType == null || space.rentalFormulas.any { it.type == filter.selectedFormulaType }
-            val matchesFacility = filter.selectedFacility == null || space.essentialFacilities.contains(filter.selectedFacility)
-            val matchesEquip = filter.selectedEquipmentCategory == null || space.equipment.any { it.category == filter.selectedEquipmentCategory }
-            val matchesPrice = space.baseMonthlyRateUsd <= filter.maxPriceUsd
-            val matchesVerified = !filter.onlyVerified || space.isVerified
-            val matchesSub = !filter.onlyActiveSubscribed || space.isActiveSubscription
-
-            matchesQuery && matchesGov && matchesType && matchesFormula && matchesFacility && matchesEquip && matchesPrice && matchesVerified && matchesSub
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
     // Financial Metrics
     val activeMrr: Double get() = repository.calculateActiveMrr()
     val potentialMrr: Double get() = repository.calculatePotentialCapacityMrr()
     val projectedArr: Double get() = repository.calculateProjectedArr()
     val totalSettlementVolume: Double get() = repository.calculateTotalSettlementVolume()
 
-    // --- Search & Filter Actions ---
-    fun updateSearchQuery(query: String) {
-        _searchFilter.value = _searchFilter.value.copy(query = query)
-    }
-
-    fun setGovernorateFilter(gov: Governorate?) {
-        _searchFilter.value = _searchFilter.value.copy(selectedGovernorate = gov)
-    }
-
-    fun setSpaceTypeFilter(type: SpaceType?) {
-        _searchFilter.value = _searchFilter.value.copy(selectedSpaceType = type)
-    }
-
-    fun setFormulaFilter(formula: RentalFormulaType?) {
-        _searchFilter.value = _searchFilter.value.copy(selectedFormulaType = formula)
-    }
-
-    fun setFacilityFilter(facility: String?) {
-        _searchFilter.value = _searchFilter.value.copy(selectedFacility = facility)
-    }
-
-    fun setMaxPrice(price: Double) {
-        _searchFilter.value = _searchFilter.value.copy(maxPriceUsd = price)
-    }
-
-    fun resetFilters() {
-        _searchFilter.value = SearchFilterState()
-    }
-
-    fun selectSpace(space: SpaceListing?) {
-        _selectedSpace.value = space
-    }
+    // Search/filter state (query, governorate, space type, formula, price, etc.) and
+    // the resulting filtered-spaces list used to be duplicated here — an independently
+    // maintained copy of exactly what DiscoveryViewModel already did, since
+    // DiscoveryScreen (this block's only real caller) was never actually wired onto
+    // DiscoveryViewModel. It now is (see DiscoveryScreen.kt) — this whole block is
+    // gone, not just left dead, per the ViewModel-split effort.
 
     // Admin pricing/listing governance (setSubscriptionFee, resetSubscriptionFeeBaseline,
     // toggleListingVerification, toggleListingActive) used to be duplicated here — dead
@@ -329,295 +244,9 @@ class ProSpaceViewModel(
         launchWhishCheckout("PAYG_LISTING", spaceType.name, payerName, payerPhone, context)
     }
 
-    fun exportRevenueCsv(startDateMillis: Long?, endDateMillis: Long?): String {
-        return repository.exportTransactionsToCsv(startDateMillis, endDateMillis)
-    }
-
-    // --- Firebase Auth & Google Credential Manager States ---
-    private val _isAuthenticating = MutableStateFlow(false)
-    val isAuthenticating: StateFlow<Boolean> = _isAuthenticating.asStateFlow()
-
-    private val _authErrorMessage = MutableStateFlow<String?>(null)
-    val authErrorMessage: StateFlow<String?> = _authErrorMessage.asStateFlow()
-
-    private val _authSuccessMessage = MutableStateFlow<String?>(null)
-    val authSuccessMessage: StateFlow<String?> = _authSuccessMessage.asStateFlow()
-
-    fun clearAuthMessages() {
-        _authErrorMessage.value = null
-        _authSuccessMessage.value = null
-    }
-
-    // --- Authentication & Member Registration ---
-    // Role is NEVER taken from the client here. Sign-in resolves the caller's role from
-    // their Firebase Auth ID token's custom claim (assigned server-side by the
-    // assignInitialRole/grantAdminRole Cloud Functions, or by grantEntitlement() the
-    // moment a package/listing payment settles) — see
-    // com.example.data.auth.completeVerifiedLogin / completeVerifiedRegistration.
-    private val functionsClient = com.example.data.auth.FirebaseFunctionsClient()
-
-    /**
-     * Everything the registration form collects, submitted only AFTER the phone number
-     * is already verified (see [startPhoneVerification]/[submitPhoneVerificationCode] —
-     * this app has exactly one entry point, phone-first: verify, then — only for a
-     * brand-new number — fill in the rest of the profile). Passed to
-     * [completePendingRegistration].
-     */
-    data class PendingPhoneRegistration(
-        val fullName: String,
-        val email: String,
-        val phoneE164: String,
-        val specialty: String,
-        val country: String,
-        val governorate: String,
-        val city: String,
-        val profilePictureUri: Uri?,
-        val idDocumentUri: Uri?
-    )
-
-    private var pendingVerificationId: String? = null
-    private var pendingIsLinkingGoogleAccount = false
-
-    private fun guessFileExtension(context: Context, uri: Uri, fallback: String): String {
-        val mime = context.contentResolver.getType(uri)
-        val fromMime = mime?.let { android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
-        if (!fromMime.isNullOrBlank()) return fromMime
-        val path = uri.lastPathSegment ?: return fallback
-        return path.substringAfterLast('.', fallback)
-    }
-
-    /**
-     * Backfills this device's current FCM token onto [uid]'s profile right after a
-     * successful sign-in/registration — [ProSpaceMessagingService.onNewToken] only
-     * fires on a genuine token refresh, which could be long after this device first
-     * got a token (e.g. it was assigned before this account ever signed in). Best
-     * effort: a failure here shouldn't block sign-in.
-     */
-    private fun registerFcmTokenForCurrentUser(uid: String) {
-        viewModelScope.launch {
-            runCatching {
-                val token = com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
-                repository.registerFcmToken(uid, token)
-            }
-        }
-    }
-
-    /**
-     * Step 1 of the ONE sign-in/registration entry point this app has: send an SMS OTP
-     * to [e164Phone]. There is no separate "Sign In" vs "Register" form anymore — every
-     * account, new or returning, starts here with nothing but a phone number. What
-     * happens after the code is verified — sign the caller straight into an existing
-     * account, or ask them to fill in the rest of a brand-new profile — is decided in
-     * [submitPhoneVerificationCode] purely from Firebase's own `isNewUser` signal, never
-     * guessed or asked up front. Pass [isLinkingExistingAccount] = true only when
-     * completing a Google Sign-In account that has no phone number yet (see
-     * [signInWithGoogleCredentialManager]) — that links the phone to the already-signed-in
-     * Google identity instead of resolving/creating a separate phone-identified account.
-     */
-    fun startPhoneVerification(
-        activity: Activity,
-        e164Phone: String,
-        isLinkingExistingAccount: Boolean = false,
-        onCodeSent: () -> Unit,
-        onVerified: (needsRegistration: Boolean) -> Unit
-    ) {
-        pendingIsLinkingGoogleAccount = isLinkingExistingAccount
-        _isAuthenticating.value = true
-        _authErrorMessage.value = null
-        val authService = com.example.data.auth.FirebaseAuthService(activity)
-        authService.sendPhoneVerificationCode(
-            activity = activity,
-            e164PhoneNumber = e164Phone,
-            onCodeSent = { verificationId ->
-                pendingVerificationId = verificationId
-                _isAuthenticating.value = false
-                onCodeSent()
-            },
-            onAutoVerified = { credential ->
-                viewModelScope.launch { finishPhoneVerification(activity, credential, onVerified) }
-            },
-            onError = { message ->
-                _isAuthenticating.value = false
-                _authErrorMessage.value = message
-            }
-        )
-    }
-
-    /** Step 2: verifies the SMS code the user typed in, then routes per [finishPhoneVerification]. */
-    fun submitPhoneVerificationCode(activity: Activity, smsCode: String, onVerified: (needsRegistration: Boolean) -> Unit) {
-        val verificationId = pendingVerificationId
-        if (verificationId == null) {
-            _authErrorMessage.value = "Please request a verification code first."
-            return
-        }
-        _isAuthenticating.value = true
-        _authErrorMessage.value = null
-        val authService = com.example.data.auth.FirebaseAuthService(activity)
-        val credential = authService.buildPhoneAuthCredential(verificationId, smsCode)
-        viewModelScope.launch { finishPhoneVerification(activity, credential, onVerified) }
-    }
-
-    /**
-     * Resolves the verified phone credential and decides what the caller sees next:
-     * an existing account (or a Google account being linked) is never routed back
-     * through a registration form — only a genuinely brand-new phone number is.
-     */
-    private suspend fun finishPhoneVerification(
-        activity: Activity,
-        credential: com.google.firebase.auth.PhoneAuthCredential,
-        onVerified: (needsRegistration: Boolean) -> Unit
-    ) {
-        val authService = com.example.data.auth.FirebaseAuthService(activity)
-        val result = if (pendingIsLinkingGoogleAccount) {
-            authService.linkPhoneCredential(credential)
-        } else {
-            authService.signInWithPhoneCredential(credential)
-        }
-        when (result) {
-            is com.example.data.auth.AuthResult.Success -> {
-                val firebaseUser = result.firebaseUser
-                if (firebaseUser == null) {
-                    _isAuthenticating.value = false
-                    _authErrorMessage.value = "Phone verification did not return a valid session. Please try again."
-                    return
-                }
-                pendingVerificationId = null
-                _isAuthenticating.value = false
-                if (!pendingIsLinkingGoogleAccount && !result.isNewUser) {
-                    // This exact phone number already had an account — sign the caller
-                    // straight into it, no registration form, nothing to overwrite.
-                    try {
-                        val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
-                        registerFcmTokenForCurrentUser(user.id)
-                        _authSuccessMessage.value = "Welcome back, ${user.fullName}!"
-                        onVerified(false)
-                    } catch (e: com.example.data.auth.AccountSuspendedException) {
-                        authService.signOut()
-                        _authErrorMessage.value = e.message
-                    }
-                } else {
-                    // Brand-new phone number (or a Google account still missing one) —
-                    // Firebase Auth already has a signed-in session for it; the caller
-                    // just needs to fill in the rest of their profile now.
-                    onVerified(true)
-                }
-            }
-            is com.example.data.auth.AuthResult.Error -> {
-                _isAuthenticating.value = false
-                _authErrorMessage.value = result.message
-            }
-            com.example.data.auth.AuthResult.Cancelled -> {
-                _isAuthenticating.value = false
-            }
-        }
-    }
-
-    /**
-     * Step 3 (brand-new accounts only): the phone number is already verified and
-     * Firebase Auth already has a signed-in session for it (from
-     * [finishPhoneVerification]) — this just uploads the picked files and writes the
-     * rest of the profile. No further OTP step; verification already happened.
-     */
-    fun completePendingRegistration(
-        activity: Activity,
-        registration: PendingPhoneRegistration,
-        onSuccess: () -> Unit
-    ) {
-        val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
-        if (firebaseUser == null) {
-            _authErrorMessage.value = "Your verified session expired — please verify your phone number again."
-            return
-        }
-        _isAuthenticating.value = true
-        _authErrorMessage.value = null
-        viewModelScope.launch {
-            try {
-                val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
-                val profilePictureUrl = registration.profilePictureUri?.let { uri ->
-                    storageService.uploadProfilePicture(firebaseUser.uid, uri, guessFileExtension(activity, uri, "jpg"))
-                }
-                val idDocumentUrl = registration.idDocumentUri?.let { uri ->
-                    storageService.uploadIdDocument(firebaseUser.uid, uri, guessFileExtension(activity, uri, "pdf"))
-                }
-                val user = com.example.data.auth.completeVerifiedRegistration(
-                    repository = repository,
-                    functionsClient = functionsClient,
-                    firebaseUser = firebaseUser,
-                    fullName = registration.fullName,
-                    email = registration.email,
-                    phone = registration.phoneE164,
-                    specialty = registration.specialty,
-                    profilePictureUrl = profilePictureUrl,
-                    idDocumentUrl = idDocumentUrl,
-                    country = registration.country,
-                    governorate = registration.governorate,
-                    city = registration.city
-                )
-                pendingIsLinkingGoogleAccount = false
-                _isAuthenticating.value = false
-                registerFcmTokenForCurrentUser(user.id)
-                _authSuccessMessage.value = "Account created successfully for ${user.fullName}!"
-                onSuccess()
-            } catch (e: com.example.data.auth.AccountSuspendedException) {
-                com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-                pendingIsLinkingGoogleAccount = false
-                _isAuthenticating.value = false
-                _authErrorMessage.value = e.message
-            }
-        }
-    }
-
-    /**
-     * Google Sign-In — a convenience alt path, never a substitute for phone
-     * verification. [onNeedsPhoneVerification] fires instead of [onSuccess] when this
-     * Google identity has no verified phone number yet (every account needs one — see
-     * [startPhoneVerification] with `isLinkingExistingAccount = true` for how the
-     * caller should complete that).
-     */
-    fun signInWithGoogleCredentialManager(
-        activityContext: Context,
-        onSuccess: () -> Unit,
-        onNeedsPhoneVerification: (fullName: String, email: String) -> Unit
-    ) {
-        viewModelScope.launch {
-            _isAuthenticating.value = true
-            _authErrorMessage.value = null
-            val authService = com.example.data.auth.FirebaseAuthService(activityContext)
-            when (val result = authService.signInWithGoogleCredentialManager(activityContext)) {
-                is com.example.data.auth.AuthResult.Success -> {
-                    val firebaseUser = result.firebaseUser
-                    if (firebaseUser == null) {
-                        _isAuthenticating.value = false
-                        _authErrorMessage.value = "Google sign-in did not return a valid session. Please try again."
-                        return@launch
-                    }
-                    try {
-                        val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
-                        registerFcmTokenForCurrentUser(user.id)
-                        _isAuthenticating.value = false
-                        if (firebaseUser.phoneNumber.isNullOrBlank()) {
-                            _authSuccessMessage.value = "Signed in as ${user.fullName} with Google — just need to verify your phone number."
-                            onNeedsPhoneVerification(result.displayName ?: user.fullName, result.email)
-                        } else {
-                            _authSuccessMessage.value = "Google identity verified: ${user.fullName}"
-                            onSuccess()
-                        }
-                    } catch (e: com.example.data.auth.AccountSuspendedException) {
-                        authService.signOut()
-                        _isAuthenticating.value = false
-                        _authErrorMessage.value = e.message
-                    }
-                }
-                is com.example.data.auth.AuthResult.Error -> {
-                    _isAuthenticating.value = false
-                    _authErrorMessage.value = result.message
-                }
-                com.example.data.auth.AuthResult.Cancelled -> {
-                    _isAuthenticating.value = false
-                }
-            }
-        }
-    }
+    // Sign-in/registration (phone OTP + Google Sign-In) moved to AuthViewModel —
+    // see its doc comment. Every method/state field there had exactly one caller
+    // (LoginAuthScreen) before this move.
 
     // registerMember(...)/login(...) synchronous wrappers were removed here — both let a
     // caller hand in an arbitrary role with zero server verification (the exact bug this
@@ -843,6 +472,35 @@ class ProSpaceViewModel(
         val success = repository.cancelBookingRequest(requestId)
         if (success) {
             Toast.makeText(context, "Booking Request #${requestId} Cancelled", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * Early termination of an already-ACCEPTED booking — see
+     * ProSpaceRepository.cancelAcceptedBooking's doc comment. Callable from either
+     * side (My Bookings for the practitioner, Renting Progress for the host); the
+     * caller only needs to be signed in as one of the booking's two parties, or Admin.
+     */
+    fun cancelAcceptedBooking(
+        requestId: String,
+        reasonCode: CancellationReasonCode,
+        note: String?,
+        context: Context
+    ) {
+        val user = currentUser.value ?: return
+        viewModelScope.launch {
+            val success = repository.cancelAcceptedBooking(
+                requestId = requestId,
+                reasonCode = reasonCode,
+                note = note,
+                cancelledByUid = user.id,
+                cancelledByRole = user.role.name
+            )
+            Toast.makeText(
+                context,
+                if (success) "Booking cancelled. The other party has been notified." else "Could not cancel this booking — please try again.",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 

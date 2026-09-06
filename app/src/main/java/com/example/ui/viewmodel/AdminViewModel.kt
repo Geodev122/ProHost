@@ -247,6 +247,32 @@ class AdminViewModel(
         }
     }
 
+    // --- Revoke Pro Host Role ---
+    // The downgrade path PRO_HOST never had — see revokeProHostRole.ts's doc comment.
+    // Only offered for accounts that currently hold PRO_HOST (the Cloud Function itself
+    // also enforces this, but there's no reason to show the action otherwise).
+    fun openRevokeProHostDialog(user: AppUser) {
+        _uiState.update { it.copy(revokingProHostUser = user, isRevokeProHostDialogOpen = true) }
+    }
+
+    fun closeRevokeProHostDialog() {
+        _uiState.update { it.copy(revokingProHostUser = null, isRevokeProHostDialogOpen = false) }
+    }
+
+    fun confirmRevokeProHost() {
+        val user = _uiState.value.revokingProHostUser ?: return
+        viewModelScope.launch {
+            val result = functionsClient.revokeProHostRole(user.id)
+            closeRevokeProHostDialog()
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (result.isSuccess) "${user.fullName} downgraded to Specialist; their listings were deactivated"
+                    else "Could not revoke Pro Host role for ${user.fullName}"
+                )
+            )
+        }
+    }
+
     // --- Listings Filtering & Governance ---
     fun setListingSearchQuery(query: String) {
         _uiState.update { it.copy(listingSearchQuery = query) }
@@ -513,5 +539,12 @@ class AdminViewModel(
     fun exportOwnerRegistrations() {
         val content = repository.exportOwnerRegistrationsToCsv()
         openExportDialog("Workspace Hosts & Property Ownership Audit (CSV)", content, "CSV")
+    }
+
+    /** Used by AdminRevenueScreen's own clipboard-copy export button (relocated from
+     * ProSpaceViewModel — Admin-only functionality, no reason it lived on the shared
+     * god object). */
+    fun exportRevenueCsv(startDateMillis: Long?, endDateMillis: Long?): String {
+        return repository.exportTransactionsToCsv(startDateMillis, endDateMillis)
     }
 }

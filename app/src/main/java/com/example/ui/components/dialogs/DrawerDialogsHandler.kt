@@ -53,10 +53,14 @@ fun DrawerDialogsHandler(
         return
     }
 
+    if (dialogId == "legal_documents") {
+        com.example.ui.components.LegalDocumentsMenu(onDismiss = onDismiss)
+        return
+    }
+
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
     val allSpaces by viewModel.spaces.collectAsState()
-    val bookingRequests by viewModel.bookingRequests.collectAsState()
     val auditLogs by viewModel.auditLogs.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
     val fcmAlerts by viewModel.fcmAlerts.collectAsState()
@@ -88,7 +92,6 @@ fun DrawerDialogsHandler(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val title = when (dialogId) {
-                        "pro_dues" -> "Payment Due Reminders"
                         "pro_laws" -> "Lebanese Rent Laws"
                         "owner_whish" -> "Whish Money Transactions"
                         "owner_guidelines" -> "Practice Guidelines"
@@ -96,7 +99,6 @@ fun DrawerDialogsHandler(
                         "admin_gov" -> "Governorate Node Status"
                         "admin_app_updates" -> "App Version & In-App Updates"
                         "pro_app_updates" -> "App Version & In-App Updates"
-                        "owner_package_tiers" -> "Owner Package Tiers & Governance"
                         "fcm_alerts" -> "Real-time Alerts Terminal"
                         else -> "Information Sheet"
                     }
@@ -120,112 +122,14 @@ fun DrawerDialogsHandler(
                         .heightIn(max = 480.dp)
                 ) {
                     when (dialogId) {
-                        // "Renting Requests" now routes to the real OwnerRentalRequestsScreen
-                        // (via onTabSelected("owner_requests")) instead of this dialog — the
-                        // screen has real filtering, a real reject-reason prompt, and a real
-                        // payment-reminder notification, none of which this cramped duplicate
-                        // ever had (its "Send Payment Reminder" button was Toast-only fakery).
-                        "pro_pending" -> {
-                            val userPending = bookingRequests.filter {
-                                it.status == BookingRequestStatus.PENDING &&
-                                (it.practitionerId == currentUser?.id || it.practitionerEmail.equals(currentUser?.email, ignoreCase = true))
-                            }
-                            if (userPending.isEmpty()) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(Icons.Default.Inbox, contentDescription = null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(48.dp))
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text("No Pending Requests", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
-                                }
-                            } else {
-                                LazyColumn(
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    items(userPending) { request ->
-                                        Card(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                        ) {
-                                            Column(modifier = Modifier.padding(12.dp)) {
-                                                Text(request.spaceTitle, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                                Text("Formula: ${request.formula.type.displayName}", style = MaterialTheme.typography.bodySmall)
-                                                Text("Monthly rate: $${request.formula.rateUsd.toInt()} USD", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
-                                                Spacer(modifier = Modifier.height(8.dp))
-                                                Button(
-                                                    onClick = {
-                                                        viewModel.cancelBookingRequest(request.id, context)
-                                                    },
-                                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    contentPadding = PaddingValues(vertical = 4.dp),
-                                                    shape = RoundedCornerShape(8.dp)
-                                                ) {
-                                                    Text("Cancel Rent Request", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        "pro_dues" -> {
-                            val activeRentals = bookingRequests.filter {
-                                it.status == BookingRequestStatus.ACCEPTED &&
-                                (it.practitionerId == currentUser?.id || it.practitionerEmail.equals(currentUser?.email, ignoreCase = true))
-                            }
-                            if (activeRentals.isEmpty()) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = StatusSuccess, modifier = Modifier.size(48.dp))
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text("All Dues Settled!", fontWeight = FontWeight.Bold, color = StatusSuccess)
-                                }
-                            } else {
-                                LazyColumn(
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    items(activeRentals) { rental ->
-                                        Card(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f))
-                                        ) {
-                                            Column(modifier = Modifier.padding(12.dp)) {
-                                                Text(rental.spaceTitle, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                                Text("Rate: $${rental.formula.rateUsd.toInt()} USD / month", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.error)
-                                                Text("Agreement duration: ${rental.durationMonths} Months (Started: ${rental.startDate})", style = MaterialTheme.typography.labelSmall)
-                                                Spacer(modifier = Modifier.height(8.dp))
-                                                Button(
-                                                    onClick = {
-                                                        val matchingSpace = allSpaces.find { it.id == rental.spaceId }
-                                                        if (matchingSpace != null) {
-                                                            viewModel.launchWhatsAppInquiry(context, matchingSpace, rental.formula, rental)
-                                                        }
-                                                    },
-                                                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    contentPadding = PaddingValues(vertical = 4.dp),
-                                                    shape = RoundedCornerShape(8.dp)
-                                                ) {
-                                                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text("Pay Host via WhatsApp", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        // "Renting Requests"/"Renting Progress" (Pro Host side) and
+                        // "Pending Requests"/"Payment Due Reminders" (this section, both
+                        // roles) all used to open their own cramped read-only dialogs —
+                        // duplicates of content already on the real My Bookings / Renting
+                        // Requests / Renting Progress screens, with weaker actions (a
+                        // "Send Payment Reminder" that was Toast-only fakery, a WhatsApp
+                        // button with no cancellation option, etc.). All four now route
+                        // straight to the real screen instead (see AppDrawerContent.kt).
                         "pro_laws" -> {
                             Column(
                                 modifier = Modifier
@@ -617,24 +521,6 @@ fun DrawerDialogsHandler(
                         }
                         "pro_app_updates" -> {
                             AppUpdatesInfo(profileTabId = "pro_profile", onNavigateToTab = onNavigateToTab, onDismiss = onDismiss)
-                        }
-                        "owner_package_tiers" -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Owner Package Tiers & Governance", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("Current Tier: ${currentUser?.ownerPackageTier?.title ?: "Pay As You Go"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("• Pay As You Go: Flexible per-booking commissions", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                        Text("• Limited 3-Listing Tier: $49/mo priority placement", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                        Text("• Unlimited Enterprise Tier: $120/mo full syndication", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                    }
-                                }
-                            }
                         }
                     }
                 }

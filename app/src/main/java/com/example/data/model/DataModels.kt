@@ -109,6 +109,22 @@ enum class BookingRequestStatus(val displayName: String) {
 }
 
 /**
+ * Reason codes for cancelling an already-ACCEPTED booking (early termination) —
+ * distinct from a PENDING request simply being withdrawn before host review,
+ * which needs no reason. Deliberately simple (a fixed code + optional free-text
+ * note), per the current terms-of-use cancellation workflow: no in-app refund or
+ * penalty logic, since no rent settlement happens in-app either.
+ */
+enum class CancellationReasonCode(val displayName: String) {
+    SCHEDULE_CONFLICT("Schedule / Availability Conflict"),
+    FOUND_ALTERNATIVE_SPACE("Found an Alternative Space"),
+    PRACTICE_RELOCATION_OR_CLOSURE("Practice Relocation or Closure"),
+    PROPERTY_CONDITION_ISSUE("Property Condition Issue"),
+    MUTUAL_AGREEMENT("Mutual Agreement Between Parties"),
+    OTHER("Other")
+}
+
+/**
  * Firestore Data Model: BookingRequest
  * Collection: "booking_requests"
  * Stores rental formula, selected date/time range, and booking lifecycle status.
@@ -157,7 +173,13 @@ data class BookingRequest(
     // in-app payment flag, is now the record that host and specialist reached and
     // evidenced a real agreement; nobody at ProHost reviews it, it's kept on file.
     // The Specialist's Digital Key Pass (MyBookingsScreen) links here.
-    val agreementUrl: String? = null
+    val agreementUrl: String? = null,
+    // Early-termination record — set only when an already-ACCEPTED booking is
+    // cancelled (as opposed to a PENDING request simply withdrawn/declined, which
+    // needs neither). See ProSpaceRepository.cancelAcceptedBooking's doc comment.
+    val cancellationReasonCode: String? = null,
+    val cancellationNote: String? = null,
+    val cancelledByRole: String? = null
 ) {
     val isPending: Boolean get() = status == BookingRequestStatus.PENDING
     val isAccepted: Boolean get() = status == BookingRequestStatus.ACCEPTED
@@ -212,7 +234,10 @@ data class BookingRequest(
             "subdivisionName" to subdivisionName,
             "selectedStrategy" to selectedStrategy,
             "replacesBookingId" to replacesBookingId,
-            "agreementUrl" to agreementUrl
+            "agreementUrl" to agreementUrl,
+            "cancellationReasonCode" to cancellationReasonCode,
+            "cancellationNote" to cancellationNote,
+            "cancelledByRole" to cancelledByRole
         )
     }
 
@@ -279,7 +304,10 @@ data class BookingRequest(
                 subdivisionName = data["subdivisionName"] as? String,
                 selectedStrategy = data["selectedStrategy"] as? String,
                 replacesBookingId = data["replacesBookingId"] as? String,
-                agreementUrl = data["agreementUrl"] as? String
+                agreementUrl = data["agreementUrl"] as? String,
+                cancellationReasonCode = data["cancellationReasonCode"] as? String,
+                cancellationNote = data["cancellationNote"] as? String,
+                cancelledByRole = data["cancelledByRole"] as? String
             )
         }
     }
@@ -324,6 +352,11 @@ data class SpaceListing(
     val ownershipProofUrl: String? = null,
     val isVerified: Boolean = true,
     val isActiveSubscription: Boolean = true,
+    // Mirrored by setAccountSuspended.ts (Admin SDK) onto every listing this owner
+    // has when their account is suspended/reactivated — server-only, never in
+    // toFirestoreMap(). Hides the listing from public Discovery (firestore.rules)
+    // while still letting the owner and Admin see it (with an explanatory badge).
+    val isOwnerSuspended: Boolean = false,
     val subscriptionExpiryMillis: Long = System.currentTimeMillis() + (28L * 24 * 60 * 60 * 1000),
     val imageUrls: List<String> = emptyList(),
     val videoTourDurationSec: Int = 10,
@@ -562,6 +595,7 @@ data class SpaceListing(
                 ownershipProofUrl = data["ownershipProofUrl"] as? String,
                 isVerified = data["isVerified"] as? Boolean ?: true,
                 isActiveSubscription = data["isActiveSubscription"] as? Boolean ?: true,
+                isOwnerSuspended = data["isOwnerSuspended"] as? Boolean ?: false,
                 subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong() ?: (System.currentTimeMillis() + 30L * 24 * 3600 * 1000),
                 imageUrls = (data["imageUrls"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                 videoTourDurationSec = (data["videoTourDurationSec"] as? Number)?.toInt() ?: 10,

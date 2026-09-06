@@ -37,26 +37,53 @@ service cloud.firestore {
         get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.get('isSuspended', false) == true;
     }
 
+    // Package-tier listing-limit enforcement (previously client-side only —
+    // ProSpaceViewModel.createNewSpaceListing checked this, but nothing
+    // stopped a direct Firestore write from skipping it). `activeListingCount`
+    // is a denormalized counter maintained by listingCountTracker.ts's
+    // Firestore triggers, since rules can't COUNT a query directly.
+    // `package2Limit` is Admin-configurable (updatePricing) rather than a
+    // hardcoded "3", so a tier change takes effect without a rules redeploy.
+    function withinListingLimit(uid) {
+      let profile = get(/databases/$(database)/documents/user_profiles/$(uid)).data;
+      let tier = profile.get('ownerPackageTier', 'PAY_AS_YOU_GO');
+      let count = profile.get('activeListingCount', 0);
+      let limit = get(/databases/$(database)/documents/system_metadata/pricing).data.get('package2Limit', 3);
+      return tier != 'LIMITED_3_TIER' || count < limit;
+    }
+
     // ---------------------------------------------------------------
     // workspace_listings — public discovery, owner-managed
     // ---------------------------------------------------------------
     match /workspace_listings/{spaceId} {
-      allow read: if true;
+      // A suspended host's listings stay on file (the owner and Admin can
+      // still see them — a suspended host should see their own listings are
+      // hidden, not have them vanish) but drop out of public Discovery, since
+      // otherwise a suspended account could keep generating traffic and
+      // inbound booking requests indefinitely. isOwnerSuspended is mirrored
+      // onto each listing by setAccountSuspended.ts (Admin SDK) — see its
+      // doc comment.
+      allow read: if resource.data.get('isOwnerSuspended', false) == false ||
+        isAdmin() ||
+        (isSignedIn() && resource.data.ownerId == request.auth.uid);
 
       allow create: if isSignedIn() &&
         (role() == "PRO_HOST" || isAdmin()) &&
         request.resource.data.ownerId == request.auth.uid &&
-        !isSuspended();
+        !isSuspended() &&
+        (isAdmin() || withinListingLimit(request.auth.uid));
 
       // isVerified / isActiveSubscription / subscriptionExpiryMillis are
       // money- and verification-status fields — only setListingVerification /
       // setListingSubscriptionActive / the Whish entitlement grant (all via
       // the Admin SDK, which bypasses rules) can change them. ownerId can
-      // never be reassigned by a client write.
+      // never be reassigned by a client write. isOwnerSuspended is likewise
+      // Admin-SDK-only (setAccountSuspended.ts) — an owner could otherwise
+      // just un-hide their own suspended listings by writing it back to false.
       allow update: if isSignedIn() &&
         (isAdmin() || (role() == "PRO_HOST" && resource.data.ownerId == request.auth.uid)) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-          ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId"]
+          ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended"]
         );
 
       allow delete: if isSignedIn() &&
@@ -73,8 +100,13 @@ service cloud.firestore {
       // (see AuthFlow.kt) — the actual authority for "role" is the custom
       // claim (assignInitialRole/grantAdminRole Cloud Functions), which every
       // other collection's rules check via request.auth.token.role, not this
-      // field. This field is a display/query mirror of that claim.
-      allow create: if isOwner(userId);
+      // field. This field is a display/query mirror of that claim. Entitlement
+      // fields can't start inflated either — a brand-new profile must begin
+      // at the free tier with a zero listing counter, same reasoning as the
+      // update rule below.
+      allow create: if isOwner(userId) &&
+        request.resource.data.get('ownerPackageTier', 'PAY_AS_YOU_GO') == 'PAY_AS_YOU_GO' &&
+        request.resource.data.get('activeListingCount', 0) == 0;
 
       // Once the profile exists, role/isVerified/createdAtMillis/lastSignInAtMillis/
       // isSuspended can never change via a direct client write, self or Admin —
@@ -84,9 +116,17 @@ service cloud.firestore {
       // setAccountSuspended (isSuspended) can, all Admin SDK. There is no
       // admin-reviewed accreditation system anymore, so no separate
       // verificationStatus/verificationTier/trustScore fields to protect.
+      // ownerPackageTier/ownerPackageExpiryMillis are entitlement fields set
+      // exclusively by grantEntitlement() (the Whish webhook) or
+      // revokeProHostRole (Admin SDK) — a client write could otherwise
+      // self-grant an unlimited listing package for free. activeListingCount
+      // is maintained only by listingCountTracker.ts's triggers, for the same
+      // reason (see withinListingLimit() above — a client-writable counter
+      // would make that check trivially bypassable).
       allow update: if (isOwner(userId) || isAdmin()) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-          ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended"]
+          ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
+           "ownerPackageTier", "ownerPackageExpiryMillis", "activeListingCount"]
         );
 
       allow delete: if isAdmin();

@@ -60,7 +60,13 @@ suspend fun completeVerifiedRegistration(
     governorate: String,
     city: String
 ): AppUser {
-    functionsClient.ensureInitialRole().getOrThrow()
+    functionsClient.ensureInitialRole(
+        registrationDraft = mapOf(
+            "fullName" to fullName,
+            "email" to email,
+            "idDocumentUrl" to idDocumentUrl
+        )
+    ).getOrThrow()
     val role = resolveVerifiedRole(functionsClient, firebaseUser)
     return repository.registerMember(
         uid = firebaseUser.uid,

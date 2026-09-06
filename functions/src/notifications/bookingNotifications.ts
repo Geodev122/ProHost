@@ -61,6 +61,29 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
           bookingId: event.params.bookingId,
         }
       );
+    } else if (after.status === "CANCELLED" && before.status === "ACCEPTED") {
+      // Early termination (ProSpaceRepository.cancelAcceptedBooking) — notify
+      // whichever side didn't initiate it. cancelledByRole is stamped by that
+      // call, distinguishing this from a superseded-by-edit cancellation
+      // (acceptBookingRequest's own CANCELLED write for the replaced booking,
+      // which never sets cancelledByRole and isn't a real termination event
+      // worth pushing about — the practitioner already knows, they just got
+      // their edit accepted).
+      if (!after.cancelledByRole) return;
+      const cancelledByHost = after.cancelledByRole === "PRO_HOST" || after.cancelledByRole === "ADMIN";
+      const recipientId = cancelledByHost ? after.practitionerId : after.ownerId;
+      const initiatorLabel = cancelledByHost ? (after.ownerName ?? "The host") : (after.practitionerName ?? "The specialist");
+      const targetTab = cancelledByHost ? "pro_rentals" : "owner_progress";
+      await sendPushToUser(
+        recipientId,
+        "Booking Cancelled",
+        `${initiatorLabel} ended the accepted booking for "${after.spaceTitle ?? "the workspace"}" early${after.cancellationReasonCode ? ` (${String(after.cancellationReasonCode).replace(/_/g, " ").toLowerCase()})` : ""}.`,
+        {
+          category: "BOOKING_ACCEPTANCE",
+          targetTab,
+          bookingId: event.params.bookingId,
+        }
+      );
     }
   }
 );

@@ -37,11 +37,53 @@ import "../lib/admin";
  * suspension's custom claim (this reads the live user_profiles document, not
  * just the token, for exactly that reason — same approach as
  * firestore.rules' isSuspended() helper).
+ *
+ * Registration format validation: `completeVerifiedRegistration` (client)
+ * calls this with an optional `registration` payload BEFORE it writes the
+ * actual profile document — there is no admin review left to catch a
+ * malformed submission after the fact, so this is the one real gate. Only
+ * cheap format checks (never uniqueness/business rules, which would need a
+ * read this function has no reason to do on every plain sign-in call too).
  */
+interface RegistrationDraft {
+  fullName?: unknown;
+  email?: unknown;
+  idDocumentUrl?: unknown;
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateRegistrationDraft(draft: RegistrationDraft): void {
+  const fullName = typeof draft.fullName === "string" ? draft.fullName.trim() : "";
+  if (fullName.length < 2 || fullName.length > 100) {
+    throw new HttpsError("invalid-argument", "Full name must be between 2 and 100 characters.");
+  }
+
+  const email = typeof draft.email === "string" ? draft.email.trim() : "";
+  if (!EMAIL_RE.test(email) || email.length > 200) {
+    throw new HttpsError("invalid-argument", "A valid email address is required.");
+  }
+
+  // idDocumentUrl is optional at the type level but required by the registration
+  // form's own UI gating — if present, it must actually be a Firebase Storage
+  // download URL, not an arbitrary client-supplied string.
+  if (draft.idDocumentUrl !== undefined && draft.idDocumentUrl !== null) {
+    const idDocumentUrl = typeof draft.idDocumentUrl === "string" ? draft.idDocumentUrl : "";
+    if (!/^https:\/\/firebasestorage\.googleapis\.com\//.test(idDocumentUrl)) {
+      throw new HttpsError("invalid-argument", "ID document must be a real uploaded file.");
+    }
+  }
+}
+
 export const assignInitialRole = onCall(async (request) => {
   const auth = request.auth;
   if (!auth) {
     throw new HttpsError("unauthenticated", "Sign in required.");
+  }
+
+  const registration = (request.data as { registration?: RegistrationDraft } | undefined)?.registration;
+  if (registration) {
+    validateRegistrationDraft(registration);
   }
 
   const db = getFirestore();

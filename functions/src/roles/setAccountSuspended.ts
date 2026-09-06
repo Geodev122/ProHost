@@ -58,6 +58,25 @@ export const setAccountSuspended = onCall<SetAccountSuspendedData>(async (reques
     { merge: true }
   );
 
+  // Suspending a host used to only block *new* actions (creating a listing or
+  // booking request) — every listing they'd already published stayed fully
+  // visible and bookable in Discovery, so a suspended host could keep
+  // generating traffic and inbound requests indefinitely. Mirror the
+  // suspension onto each of their listings (a denormalized flag, same
+  // reasoning as activeListingCount in listingCountTracker.ts — Firestore
+  // rules can't join across collections at read time) so
+  // firestore.rules can hide them from public discovery while the owner and
+  // Admin can still see them (a suspended host should be able to see their
+  // own listings are hidden, not have them vanish from their own view).
+  const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", targetUid).get();
+  if (!ownedListings.empty) {
+    const batch = db.batch();
+    ownedListings.docs.forEach((doc) => {
+      batch.set(doc.ref, { isOwnerSuspended: suspended }, { merge: true });
+    });
+    await batch.commit();
+  }
+
   await recordAuditLog({
     actionType: suspended ? "ACCOUNT_SUSPENDED" : "ACCOUNT_REACTIVATED",
     details: `Account ${targetUid} (${targetUser.email ?? "no email"}) ${suspended ? "suspended" : "reactivated"} by admin ${auth.token.email ?? auth.uid}.`,

@@ -253,17 +253,21 @@ fun SpecialistDrawerContent(
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
 
+        // These two used to open their own cramped read-only dialogs — duplicates of
+        // content already on the real My Bookings screen (filtered to Pending /
+        // Accepted respectively), just with weaker actions. Now they route straight
+        // there, same consolidation already done for Renting Requests/Progress above.
         NavigationDrawerItem(
             label = { Text("Pending Requests", fontWeight = FontWeight.SemiBold) },
             selected = false,
-            onClick = { onDrawerAction("pro_pending") },
+            onClick = { onTabSelected("pro_rentals") },
             icon = { Icon(Icons.Default.Inbox, contentDescription = null, tint = OxfordBlue) }
         )
         Spacer(modifier = Modifier.height(4.dp))
         NavigationDrawerItem(
             label = { Text("Payment Due Reminders", fontWeight = FontWeight.SemiBold) },
             selected = false,
-            onClick = { onDrawerAction("pro_dues") },
+            onClick = { onTabSelected("pro_rentals") },
             icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = OxfordBlue) }
         )
         Spacer(modifier = Modifier.height(4.dp))
@@ -291,13 +295,11 @@ fun SpecialistDrawerContent(
                 onClick = { onDrawerAction("owner_whish") },
                 icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = OxfordBlue) }
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            NavigationDrawerItem(
-                label = { Text("Owner Package Tiers & Governance", fontWeight = FontWeight.SemiBold) },
-                selected = false,
-                onClick = { onDrawerAction("owner_package_tiers") },
-                icon = { Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = OxfordBlue) }
-            )
+            // "Owner Package Tiers & Governance" used to duplicate this same section's
+            // own "Subscription & Packages" item above (same onTabSelected("owner_subscriptions")
+            // destination) with a second, stale copy of the tier pricing — hardcoded
+            // "$49/mo"/"$120/mo" figures that didn't even track the real admin-configurable
+            // pricing the actual Subscription & Packages screen shows. Removed outright.
             Spacer(modifier = Modifier.height(4.dp))
             NavigationDrawerItem(
                 label = { Text("Practice Guidelines", fontWeight = FontWeight.SemiBold) },
@@ -322,6 +324,13 @@ fun SpecialistDrawerContent(
             selected = false,
             onClick = { onDrawerAction("pro_app_updates") },
             icon = { Icon(Icons.Default.SystemUpdate, contentDescription = null, tint = VibrantBlue) }
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Legal (Privacy, Terms & Policies)", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("legal_documents") },
+            icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = OxfordBlue) }
         )
 
         ProSpaceDrawerFooter()
@@ -473,6 +482,13 @@ fun AdminDrawerContent(
             selected = false,
             onClick = { onDrawerAction("system_debugger") },
             icon = { Icon(Icons.Default.BugReport, contentDescription = null, tint = AmberWarning) }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NavigationDrawerItem(
+            label = { Text("Legal (Privacy, Terms & Policies)", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("legal_documents") },
+            icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = OxfordBlue) }
         )
 
         ProSpaceDrawerFooter()

@@ -572,9 +572,18 @@ class ProSpaceRepository {
     suspend fun updateUser(updated: AppUser): Boolean {
         val current = _users.value.find { it.id == updated.id }
         val safeUpdate = if (current != null) {
+            // Every field here is Cloud-Function/Admin-SDK-only per firestore.rules'
+            // user_profiles protected-fields list — always echo back the current
+            // server-known value regardless of what the edit dialog's local AppUser
+            // copy happens to hold, so this generic profile-edit write can never
+            // accidentally touch one (which would reject the entire write, not just
+            // that field, since the rule checks affectedKeys() on the whole diff).
             updated.copy(
                 role = current.role,
-                isVerified = current.isVerified
+                isVerified = current.isVerified,
+                isSuspended = current.isSuspended,
+                ownerPackageTier = current.ownerPackageTier,
+                ownerPackageExpiryMillis = current.ownerPackageExpiryMillis
             )
         } else {
             updated
@@ -980,6 +989,61 @@ class ProSpaceRepository {
             details = "Request $requestId for '${request.spaceTitle}' cancelled by practitioner ${request.practitionerName} before host review.",
             severity = "INFO",
             actorEmail = request.practitionerEmail
+        )
+
+        return true
+    }
+
+    /**
+     * Early termination of an already-ACCEPTED booking — the gap flagged as a genuine
+     * open item: previously the only cancellation path was for a not-yet-accepted
+     * PENDING request (cancelBookingRequest above). Deliberately simple per the
+     * current terms-of-use cancellation workflow: a reason code plus an optional
+     * note, no refund/penalty logic (there's nothing to refund — rent settlement
+     * never happens in-app). [cancelledByUid]/[cancelledByRole] identify who ended
+     * it (only the booking's own practitioner, its owner, or an Admin may call this
+     * — enforced by the caller checking against the loaded [BookingRequest] before
+     * invoking it, same pattern as reject/accept). A real cross-device push notifies
+     * whichever side didn't initiate the cancellation (onBookingRequestStatusChanged,
+     * functions/src/notifications/bookingNotifications.ts).
+     */
+    suspend fun cancelAcceptedBooking(
+        requestId: String,
+        reasonCode: CancellationReasonCode,
+        note: String?,
+        cancelledByUid: String,
+        cancelledByRole: String
+    ): Boolean {
+        val request = _bookingRequests.value.find { it.id == requestId } ?: return false
+        if (request.status != BookingRequestStatus.ACCEPTED) return false
+
+        val success = firestoreService.updateBookingStatus(
+            requestId,
+            BookingRequestStatus.CANCELLED,
+            extraFields = mapOf(
+                "cancellationReasonCode" to reasonCode.name,
+                "cancellationNote" to note,
+                "cancelledByRole" to cancelledByRole
+            )
+        )
+        if (!success) return false
+
+        _bookingRequests.value = _bookingRequests.value.map {
+            if (it.id == requestId) {
+                it.copy(
+                    status = BookingRequestStatus.CANCELLED,
+                    cancellationReasonCode = reasonCode.name,
+                    cancellationNote = note,
+                    cancelledByRole = cancelledByRole
+                )
+            } else it
+        }
+
+        addAuditLog(
+            actionType = "ACCEPTED_BOOKING_CANCELLED",
+            details = "Accepted booking $requestId for '${request.spaceTitle}' (${request.practitionerName} / ${request.ownerName}) terminated early by $cancelledByRole. Reason: ${reasonCode.displayName}${if (!note.isNullOrBlank()) " — \"$note\"" else ""}.",
+            severity = "WARN",
+            actorEmail = if (cancelledByUid == request.practitionerId) request.practitionerEmail else request.ownerName
         )
 
         return true

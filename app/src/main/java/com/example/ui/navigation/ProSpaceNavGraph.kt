@@ -136,7 +136,6 @@ fun ProSpaceAppRoot(
         )
     } else if (currentUser == null) {
         LoginAuthScreen(
-            viewModel = viewModel,
             onLoginSuccess = {
                 // Handled via LaunchedEffect
             }
@@ -332,9 +331,7 @@ fun ProSpaceAppRoot(
                                     AppNavTab.AdminConsole.id -> AdminConsoleScreen(
                                         viewModel = viewModel
                                     )
-                                    AppNavTab.AdminRevenue.id -> AdminRevenueScreen(
-                                        viewModel = viewModel
-                                    )
+                                    AppNavTab.AdminRevenue.id -> AdminRevenueScreen()
                                     AppNavTab.ProfessionalProfile.id,
                                     AppNavTab.AdminProfile.id -> SpecialistProfileScreen(
                                         viewModel = viewModel,

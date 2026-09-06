@@ -56,6 +56,9 @@ data class AdminUiState(
     val isSuspendUserDialogOpen: Boolean = false,
     val suspendingUser: AppUser? = null,
 
+    val isRevokeProHostDialogOpen: Boolean = false,
+    val revokingProHostUser: AppUser? = null,
+
     val isAddSchemaItemDialogOpen: Boolean = false,
     val isResetSchemaDialogOpen: Boolean = false
 ) {
@@ -112,11 +115,13 @@ data class AdminUiState(
             matchesQuery && matchesStatus
         }
 
+    // "Owner"/"Host" here means the account holds the PRO_HOST role (i.e. has listed
+    // at least one workspace) — every PRO_HOST account is still also fundamentally a
+    // Specialist underneath (can book workspaces exactly like a SPECIALIST account;
+    // see AdminConsoleScreen's "Workspace Hosts & Property Ownership" section, which
+    // this backs), not a separate, mutually-exclusive user category.
     val ownerUsers: List<AppUser>
         get() = allUsers.filter { it.role == UserRole.PRO_HOST }
-
-    val specialistUsers: List<AppUser>
-        get() = allUsers.filter { it.role == UserRole.SPECIALIST }
 }
 
 /**

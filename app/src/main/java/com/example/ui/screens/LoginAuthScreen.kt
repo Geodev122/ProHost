@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -27,10 +28,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.findCountryByName
 import com.example.ui.components.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.AuthViewModel
 
 /**
  * Every ProHost account — new or returning — goes through the exact same three steps,
@@ -51,8 +53,8 @@ private enum class AuthStep { PHONE_ENTRY, OTP_ENTRY, REGISTRATION_FORM }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginAuthScreen(
-    viewModel: ProSpaceViewModel,
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
+    authViewModel: AuthViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -81,17 +83,18 @@ fun LoginAuthScreen(
     var regGovernorateArea by remember { mutableStateOf("") }
     var regCity by remember { mutableStateOf("") }
 
-    val isAuthenticating by viewModel.isAuthenticating.collectAsState()
-    val authErrorMessage by viewModel.authErrorMessage.collectAsState()
-    val authSuccessMessage by viewModel.authSuccessMessage.collectAsState()
+    val isAuthenticating by authViewModel.isAuthenticating.collectAsState()
+    val authErrorMessage by authViewModel.authErrorMessage.collectAsState()
+    val authSuccessMessage by authViewModel.authSuccessMessage.collectAsState()
 
     var localErrorMessage by remember { mutableStateOf<String?>(null) }
+    var showLegalDocument by remember { mutableStateOf<com.example.legal.LegalDocument?>(null) }
 
     val verifiedPhoneE164 = phoneCountry.dialCode + phoneNumber.filter { it.isDigit() }
 
     fun goToRegistrationForm() {
         localErrorMessage = null
-        viewModel.clearAuthMessages()
+        authViewModel.clearAuthMessages()
         step = AuthStep.REGISTRATION_FORM
     }
 
@@ -263,7 +266,7 @@ fun LoginAuthScreen(
                             localErrorMessage = "Please enter a valid phone number"
                             return@CustomButton
                         }
-                        viewModel.startPhoneVerification(
+                        authViewModel.startPhoneVerification(
                             activity = currentActivity,
                             e164Phone = verifiedPhoneE164,
                             isLinkingExistingAccount = isLinkingGoogleAccount,
@@ -294,7 +297,7 @@ fun LoginAuthScreen(
                         text = "Continue with Google",
                         onClick = {
                             val activityCtx = activity ?: context
-                            viewModel.signInWithGoogleCredentialManager(
+                            authViewModel.signInWithGoogleCredentialManager(
                                 activityContext = activityCtx,
                                 onSuccess = onLoginSuccess,
                                 onNeedsPhoneVerification = { fullName, email ->
@@ -354,7 +357,7 @@ fun LoginAuthScreen(
                             localErrorMessage = "Please enter the 6-digit code"
                             return@CustomButton
                         }
-                        viewModel.submitPhoneVerificationCode(currentActivity, otpCode) { needsRegistration ->
+                        authViewModel.submitPhoneVerificationCode(currentActivity, otpCode) { needsRegistration ->
                             if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
                         }
                     },
@@ -370,7 +373,7 @@ fun LoginAuthScreen(
                     step = AuthStep.PHONE_ENTRY
                     otpCode = ""
                     localErrorMessage = null
-                    viewModel.clearAuthMessages()
+                    authViewModel.clearAuthMessages()
                 }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
@@ -526,7 +529,40 @@ fun LoginAuthScreen(
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "By continuing you agree to our",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Terms of Use",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.termsOfUse }
+                    )
+                    Text(text = " and ", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = "Privacy Policy",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.privacyPolicy }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
 
                 CustomButton(
                     text = if (isAuthenticating) "Creating Account..." else "Create Account",
@@ -556,9 +592,9 @@ fun LoginAuthScreen(
                             localErrorMessage = "Please enter your city"
                             return@CustomButton
                         }
-                        viewModel.completePendingRegistration(
+                        authViewModel.completePendingRegistration(
                             activity = currentActivity,
-                            registration = ProSpaceViewModel.PendingPhoneRegistration(
+                            registration = AuthViewModel.PendingPhoneRegistration(
                                 fullName = regFullName,
                                 email = regEmail,
                                 phoneE164 = verifiedPhoneE164,
@@ -610,6 +646,10 @@ fun LoginAuthScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+    }
+
+    showLegalDocument?.let { doc ->
+        com.example.ui.components.LegalDocumentDialog(document = doc, onDismiss = { showLegalDocument = null })
     }
 }
 

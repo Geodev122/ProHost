@@ -94,6 +94,7 @@ fun MyBookingsScreen(
     var editTargetSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var editSourceBooking by remember { mutableStateOf<BookingRequest?>(null) }
     var showDigitalPassBooking by remember { mutableStateOf<BookingRequest?>(null) }
+    var cancelTargetBooking by remember { mutableStateOf<BookingRequest?>(null) }
 
     // Filter current list
     val currentTabBookings = if (selectedMainTab == 0) upcomingAndActiveBookings else pastBookings
@@ -427,6 +428,9 @@ fun MyBookingsScreen(
                         },
                         onCancelRequest = {
                             viewModel.cancelBookingRequest(booking.id, context)
+                        },
+                        onCancelAcceptedBooking = {
+                            cancelTargetBooking = booking
                         }
                     )
                 }
@@ -649,6 +653,21 @@ fun MyBookingsScreen(
         }
     }
 
+    // Cancel Accepted Booking Dialog — early termination, previously not possible
+    // at all (only a not-yet-accepted PENDING request could be cancelled).
+    if (cancelTargetBooking != null) {
+        val bkg = cancelTargetBooking!!
+        CancelAcceptedBookingDialog(
+            spaceTitle = bkg.spaceTitle,
+            partyLabel = bkg.ownerName,
+            onDismiss = { cancelTargetBooking = null },
+            onConfirm = { reasonCode, note ->
+                viewModel.cancelAcceptedBooking(bkg.id, reasonCode, note, context)
+                cancelTargetBooking = null
+            }
+        )
+    }
+
     // Digital Access Pass Dialog — the QR-style card is now what it visually
     // claimed to be all along: a link to the real signed leasing agreement the
     // host uploaded when accepting (BookingRequest.agreementUrl), not a
@@ -745,6 +764,7 @@ fun BookingReservationCard(
     onViewDigitalPass: () -> Unit,
     onContactWhatsApp: () -> Unit,
     onCancelRequest: () -> Unit,
+    onCancelAcceptedBooking: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -983,6 +1003,19 @@ fun BookingReservationCard(
                             .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
                     ) {
                         Icon(Icons.Default.Close, contentDescription = "Cancel Request", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                    }
+                }
+
+                // Cancel Accepted Booking (early termination) — the gap this session
+                // closed: previously there was no in-app way to end an active lease.
+                if (booking.status == BookingRequestStatus.ACCEPTED) {
+                    IconButton(
+                        onClick = onCancelAcceptedBooking,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                    ) {
+                        Icon(Icons.Default.EventBusy, contentDescription = "Cancel Booking", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                     }
                 }
             }

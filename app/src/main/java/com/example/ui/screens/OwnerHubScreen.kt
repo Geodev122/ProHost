@@ -627,6 +627,22 @@ fun OwnerHubScreenContent(
                             )
                         }
 
+                        if (space.isOwnerSuspended) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.errorContainer,
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "Account suspended — this listing is hidden from Discovery until reactivated.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+
                         // Smart Availability summary badges
                         Surface(
                             color = MaterialTheme.colorScheme.surfaceVariant,

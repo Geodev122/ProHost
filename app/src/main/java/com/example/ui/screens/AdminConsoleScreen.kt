@@ -345,6 +345,14 @@ fun AdminConsoleScreen(
         )
     }
 
+    if (uiState.isRevokeProHostDialogOpen && uiState.revokingProHostUser != null) {
+        AdminRevokeProHostDialog(
+            user = uiState.revokingProHostUser!!,
+            onDismiss = { adminViewModel.closeRevokeProHostDialog() },
+            onConfirm = { adminViewModel.confirmRevokeProHost() }
+        )
+    }
+
     // 4. Edit Listing Dialog
     if (uiState.isEditListingDialogOpen && uiState.editingListing != null) {
         AdminEditListingDialog(
@@ -970,6 +978,23 @@ private fun AdminUsersDirectoryTab(
                             }
                         }
 
+                        // Revoke Pro Host Button — the downgrade path back to Specialist
+                        // that never existed before; only meaningful for an account that
+                        // currently holds the role.
+                        if (user.role == UserRole.PRO_HOST) {
+                            IconButton(
+                                onClick = { adminViewModel.openRevokeProHostDialog(user) },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.RemoveModerator,
+                                    contentDescription = "Revoke Pro Host Role",
+                                    tint = StatusError,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
                         // Delete Button
                         if (user.role != UserRole.ADMIN) {
                             IconButton(
@@ -1263,7 +1288,7 @@ private fun AdminOwnersAndPaymentsTab(
                     ) {
                         ProSectionHeader(
                             title = "Workspace Hosts & Property Ownership",
-                            subtitle = "Monitor registered space owners, owned units, and subscription standing",
+                            subtitle = "Accounts with the Pro Host role — every one can also book workspaces as a Specialist",
                             icon = Icons.Default.HomeWork
                         )
 
@@ -2177,6 +2202,37 @@ private fun AdminSuspendUserDialog(
                 colors = if (suspending) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors()
             ) {
                 Text(if (suspending) "Confirm Suspend" else "Confirm Reactivate")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+private fun AdminRevokeProHostDialog(
+    user: AppUser,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.RemoveModerator, contentDescription = null, tint = StatusError) },
+        title = { Text("Revoke Pro Host Role?") },
+        text = {
+            Text(
+                "'${user.fullName}' (${user.email}) will be downgraded back to Specialist immediately. Every listing they've published will be marked inactive/expired (still visible in Discovery unless the specialist filters for active-subscription only, but shown as expired — not deleted). This does not affect their ability to book workspaces as a Specialist."
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text("Confirm Revoke")
             }
         },
         dismissButton = {

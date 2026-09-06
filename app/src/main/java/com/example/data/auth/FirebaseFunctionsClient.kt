@@ -25,10 +25,17 @@ class FirebaseFunctionsClient {
      * Ensures the signed-in user has a role claim, assigning the default
      * (SPECIALIST) server-side on first call. Safe/idempotent to call on
      * every sign-in.
+     *
+     * [registrationDraft], when non-null, is validated server-side (format only —
+     * non-blank/reasonable-length name, a real-looking email, a genuine uploaded
+     * Storage URL for the ID document if one is present) before this call
+     * succeeds — see assignInitialRole.ts. Pass it only when completing a
+     * brand-new registration; a plain sign-in never has one.
      */
-    suspend fun ensureInitialRole(): Result<String> {
+    suspend fun ensureInitialRole(registrationDraft: Map<String, Any?>? = null): Result<String> {
         return try {
-            val result = functions.getHttpsCallable("assignInitialRole").call().await()
+            val payload: Map<String, Any?>? = registrationDraft?.let { mapOf("registration" to it) }
+            val result = functions.getHttpsCallable("assignInitialRole").call(payload).await()
             @Suppress("UNCHECKED_CAST")
             val data = result.data as? Map<String, Any?>
             val role = data?.get("role") as? String
@@ -84,6 +91,19 @@ class FirebaseFunctionsClient {
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(tag, "setAccountSuspended failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /** functions/src/roles/revokeProHostRole.ts — Admin-only downgrade to SPECIALIST. */
+    suspend fun revokeProHostRole(targetUid: String): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("revokeProHostRole")
+                .call(mapOf("targetUid" to targetUid))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "revokeProHostRole failed: ${e.message}", e)
             Result.failure(e)
         }
     }
