@@ -747,7 +747,7 @@ private fun AdminUsersDirectoryTab(
                     InputField(
                         value = uiState.userSearchQuery,
                         onValueChange = { adminViewModel.setUserSearchQuery(it) },
-                        label = "Search by Name, Email, Syndicate, Specialty, Phone...",
+                        label = "Search by Name, Email, Specialty, Phone, City...",
                         leadingIcon = Icons.Default.Search,
                         trailingIcon = {
                             if (uiState.userSearchQuery.isNotBlank()) {
@@ -886,6 +886,20 @@ private fun AdminUsersDirectoryTab(
                         Column {
                             Text("Phone / WhatsApp:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(user.phone.ifBlank { "N/A" }, style = MaterialTheme.typography.bodySmall)
+                        }
+                        Column {
+                            Text("Member Since:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                user.createdAtMillis?.let { SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date(it)) } ?: "—",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        Column {
+                            Text("Last Sign-In:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                user.lastSignInAtMillis?.let { SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date(it)) } ?: "—",
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
                     }
 

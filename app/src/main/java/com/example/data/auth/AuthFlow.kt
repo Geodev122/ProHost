@@ -73,12 +73,17 @@ private suspend fun resolveVerifiedRole(
     functionsClient: FirebaseFunctionsClient,
     firebaseUser: FirebaseUser
 ): UserRole {
-    val claim = FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true)
-        ?: run {
-            // Brand-new account with no claim yet — ask the server to assign the default,
-            // then re-read the (now force-refreshed) token.
-            functionsClient.ensureInitialRole().getOrThrow()
-            FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true)
-        }
+    val existingClaim = FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true)
+    // Always call assignInitialRole, not just when there's no claim yet — it's the only
+    // place lastSignInAtMillis (and isVerified) get refreshed, and that needs to happen
+    // on every sign-in, not just account creation. Idempotent server-side; a failure here
+    // shouldn't block sign-in for a returning user who already has a valid claim.
+    if (existingClaim == null) {
+        functionsClient.ensureInitialRole().getOrThrow()
+    } else {
+        functionsClient.ensureInitialRole()
+    }
+    val claim = existingClaim
+        ?: FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true)
     return claim?.let { runCatching { UserRole.valueOf(it) }.getOrNull() } ?: UserRole.SPECIALIST
 }

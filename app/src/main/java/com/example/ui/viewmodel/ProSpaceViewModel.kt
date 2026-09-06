@@ -355,10 +355,11 @@ class ProSpaceViewModel(
     private val functionsClient = com.example.data.auth.FirebaseFunctionsClient()
 
     /**
-     * Everything the registration form collects, held here between "send the OTP" and
-     * "the user typed the code in" — nothing is written to Firebase Auth or Firestore,
-     * and no file is uploaded, until the phone number is actually verified. See
-     * [startPhoneRegistration]/[submitPhoneRegistrationCode].
+     * Everything the registration form collects, submitted only AFTER the phone number
+     * is already verified (see [startPhoneVerification]/[submitPhoneVerificationCode] —
+     * this app has exactly one entry point, phone-first: verify, then — only for a
+     * brand-new number — fill in the rest of the profile). Passed to
+     * [completePendingRegistration].
      */
     data class PendingPhoneRegistration(
         val fullName: String,
@@ -372,7 +373,6 @@ class ProSpaceViewModel(
         val idDocumentUri: Uri?
     )
 
-    private var pendingRegistrationInfo: PendingPhoneRegistration? = null
     private var pendingVerificationId: String? = null
     private var pendingIsLinkingGoogleAccount = false
 
@@ -385,48 +385,48 @@ class ProSpaceViewModel(
     }
 
     /**
-     * Kicks off SMS verification for a brand-new registration — this app has no
-     * separate "create account" step; a verified phone number IS the account. Every
-     * form field is captured in [registration] before this is even called, so nothing
-     * is written anywhere (Firebase Auth included) until the OTP actually checks out.
-     * Pass [isLinkingExistingAccount] = true only when completing a Google Sign-In
-     * account that has no phone number yet (see [signInWithGoogleCredentialManager]) —
-     * that links the phone to the already-signed-in Google identity instead of
-     * resolving/creating a separate phone-identified account.
+     * Step 1 of the ONE sign-in/registration entry point this app has: send an SMS OTP
+     * to [e164Phone]. There is no separate "Sign In" vs "Register" form anymore — every
+     * account, new or returning, starts here with nothing but a phone number. What
+     * happens after the code is verified — sign the caller straight into an existing
+     * account, or ask them to fill in the rest of a brand-new profile — is decided in
+     * [submitPhoneVerificationCode] purely from Firebase's own `isNewUser` signal, never
+     * guessed or asked up front. Pass [isLinkingExistingAccount] = true only when
+     * completing a Google Sign-In account that has no phone number yet (see
+     * [signInWithGoogleCredentialManager]) — that links the phone to the already-signed-in
+     * Google identity instead of resolving/creating a separate phone-identified account.
      */
-    fun startPhoneRegistration(
+    fun startPhoneVerification(
         activity: Activity,
-        registration: PendingPhoneRegistration,
+        e164Phone: String,
         isLinkingExistingAccount: Boolean = false,
         onCodeSent: () -> Unit,
-        onAutoVerified: () -> Unit
+        onVerified: (needsRegistration: Boolean) -> Unit
     ) {
-        pendingRegistrationInfo = registration
         pendingIsLinkingGoogleAccount = isLinkingExistingAccount
         _isAuthenticating.value = true
         _authErrorMessage.value = null
         val authService = com.example.data.auth.FirebaseAuthService(activity)
         authService.sendPhoneVerificationCode(
             activity = activity,
-            e164PhoneNumber = registration.phoneE164,
+            e164PhoneNumber = e164Phone,
             onCodeSent = { verificationId ->
                 pendingVerificationId = verificationId
                 _isAuthenticating.value = false
                 onCodeSent()
             },
             onAutoVerified = { credential ->
-                viewModelScope.launch { finishPhoneRegistration(activity, authService, credential, onAutoVerified) }
+                viewModelScope.launch { finishPhoneVerification(activity, credential, onVerified) }
             },
             onError = { message ->
                 _isAuthenticating.value = false
                 _authErrorMessage.value = message
-                pendingRegistrationInfo = null
             }
         )
     }
 
-    /** Verifies the SMS code the user typed in and, once confirmed, finishes registration. */
-    fun submitPhoneRegistrationCode(activity: Activity, smsCode: String, onSuccess: () -> Unit) {
+    /** Step 2: verifies the SMS code the user typed in, then routes per [finishPhoneVerification]. */
+    fun submitPhoneVerificationCode(activity: Activity, smsCode: String, onVerified: (needsRegistration: Boolean) -> Unit) {
         val verificationId = pendingVerificationId
         if (verificationId == null) {
             _authErrorMessage.value = "Please request a verification code first."
@@ -436,21 +436,20 @@ class ProSpaceViewModel(
         _authErrorMessage.value = null
         val authService = com.example.data.auth.FirebaseAuthService(activity)
         val credential = authService.buildPhoneAuthCredential(verificationId, smsCode)
-        viewModelScope.launch { finishPhoneRegistration(activity, authService, credential, onSuccess) }
+        viewModelScope.launch { finishPhoneVerification(activity, credential, onVerified) }
     }
 
-    private suspend fun finishPhoneRegistration(
+    /**
+     * Resolves the verified phone credential and decides what the caller sees next:
+     * an existing account (or a Google account being linked) is never routed back
+     * through a registration form — only a genuinely brand-new phone number is.
+     */
+    private suspend fun finishPhoneVerification(
         activity: Activity,
-        authService: com.example.data.auth.FirebaseAuthService,
         credential: com.google.firebase.auth.PhoneAuthCredential,
-        onSuccess: () -> Unit
+        onVerified: (needsRegistration: Boolean) -> Unit
     ) {
-        val info = pendingRegistrationInfo
-        if (info == null) {
-            _isAuthenticating.value = false
-            _authErrorMessage.value = "Your registration details were lost — please start again."
-            return
-        }
+        val authService = com.example.data.auth.FirebaseAuthService(activity)
         val result = if (pendingIsLinkingGoogleAccount) {
             authService.linkPhoneCredential(credential)
         } else {
@@ -464,121 +463,20 @@ class ProSpaceViewModel(
                     _authErrorMessage.value = "Phone verification did not return a valid session. Please try again."
                     return
                 }
-                // This exact phone number already had an account (Firebase resolved
-                // signInWithCredential to it instead of creating a new one) — sign the
-                // caller into it as-is rather than overwriting their real profile with
-                // whatever this registration form happened to be filled in with.
+                pendingVerificationId = null
+                _isAuthenticating.value = false
                 if (!pendingIsLinkingGoogleAccount && !result.isNewUser) {
+                    // This exact phone number already had an account — sign the caller
+                    // straight into it, no registration form, nothing to overwrite.
                     val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
-                    pendingRegistrationInfo = null
-                    pendingVerificationId = null
-                    _isAuthenticating.value = false
-                    _authSuccessMessage.value = "Welcome back, ${user.fullName} — you already had an account with this number."
-                    onSuccess()
-                    return
-                }
-                val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
-                val profilePictureUrl = info.profilePictureUri?.let { uri ->
-                    storageService.uploadProfilePicture(firebaseUser.uid, uri, guessFileExtension(activity, uri, "jpg"))
-                }
-                val idDocumentUrl = info.idDocumentUri?.let { uri ->
-                    storageService.uploadIdDocument(firebaseUser.uid, uri, guessFileExtension(activity, uri, "pdf"))
-                }
-                val user = com.example.data.auth.completeVerifiedRegistration(
-                    repository = repository,
-                    functionsClient = functionsClient,
-                    firebaseUser = firebaseUser,
-                    fullName = info.fullName,
-                    email = info.email,
-                    phone = info.phoneE164,
-                    specialty = info.specialty,
-                    profilePictureUrl = profilePictureUrl,
-                    idDocumentUrl = idDocumentUrl,
-                    country = info.country,
-                    governorate = info.governorate,
-                    city = info.city
-                )
-                pendingRegistrationInfo = null
-                pendingVerificationId = null
-                pendingIsLinkingGoogleAccount = false
-                _isAuthenticating.value = false
-                _authSuccessMessage.value = "Account created successfully for ${user.fullName}!"
-                onSuccess()
-            }
-            is com.example.data.auth.AuthResult.Error -> {
-                _isAuthenticating.value = false
-                _authErrorMessage.value = result.message
-            }
-            com.example.data.auth.AuthResult.Cancelled -> {
-                _isAuthenticating.value = false
-            }
-        }
-    }
-
-    /** Sign-in for a returning member — phone number is the identity, there's nothing else to look up. */
-    fun startPhoneSignIn(
-        activity: Activity,
-        e164Phone: String,
-        onCodeSent: () -> Unit,
-        onAutoVerified: () -> Unit
-    ) {
-        _isAuthenticating.value = true
-        _authErrorMessage.value = null
-        val authService = com.example.data.auth.FirebaseAuthService(activity)
-        authService.sendPhoneVerificationCode(
-            activity = activity,
-            e164PhoneNumber = e164Phone,
-            onCodeSent = { verificationId ->
-                pendingVerificationId = verificationId
-                _isAuthenticating.value = false
-                onCodeSent()
-            },
-            onAutoVerified = { credential ->
-                viewModelScope.launch { finishPhoneSignIn(activity, credential, onAutoVerified) }
-            },
-            onError = { message ->
-                _isAuthenticating.value = false
-                _authErrorMessage.value = message
-            }
-        )
-    }
-
-    fun submitPhoneSignInCode(activity: Activity, smsCode: String, onSuccess: () -> Unit) {
-        val verificationId = pendingVerificationId
-        if (verificationId == null) {
-            _authErrorMessage.value = "Please request a verification code first."
-            return
-        }
-        _isAuthenticating.value = true
-        _authErrorMessage.value = null
-        val authService = com.example.data.auth.FirebaseAuthService(activity)
-        val credential = authService.buildPhoneAuthCredential(verificationId, smsCode)
-        viewModelScope.launch { finishPhoneSignIn(activity, credential, onSuccess) }
-    }
-
-    private suspend fun finishPhoneSignIn(
-        activity: Activity,
-        credential: com.google.firebase.auth.PhoneAuthCredential,
-        onSuccess: () -> Unit
-    ) {
-        val authService = com.example.data.auth.FirebaseAuthService(activity)
-        when (val result = authService.signInWithPhoneCredential(credential)) {
-            is com.example.data.auth.AuthResult.Success -> {
-                val firebaseUser = result.firebaseUser
-                if (firebaseUser == null) {
-                    _isAuthenticating.value = false
-                    _authErrorMessage.value = "Sign-in did not return a valid session. Please try again."
-                    return
-                }
-                val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
-                pendingVerificationId = null
-                _isAuthenticating.value = false
-                _authSuccessMessage.value = if (result.isNewUser) {
-                    "Welcome! Please complete your profile from the Profile tab."
+                    _authSuccessMessage.value = "Welcome back, ${user.fullName}!"
+                    onVerified(false)
                 } else {
-                    "Signed in successfully as ${user.fullName}"
+                    // Brand-new phone number (or a Google account still missing one) —
+                    // Firebase Auth already has a signed-in session for it; the caller
+                    // just needs to fill in the rest of their profile now.
+                    onVerified(true)
                 }
-                onSuccess()
             }
             is com.example.data.auth.AuthResult.Error -> {
                 _isAuthenticating.value = false
@@ -591,10 +489,57 @@ class ProSpaceViewModel(
     }
 
     /**
+     * Step 3 (brand-new accounts only): the phone number is already verified and
+     * Firebase Auth already has a signed-in session for it (from
+     * [finishPhoneVerification]) — this just uploads the picked files and writes the
+     * rest of the profile. No further OTP step; verification already happened.
+     */
+    fun completePendingRegistration(
+        activity: Activity,
+        registration: PendingPhoneRegistration,
+        onSuccess: () -> Unit
+    ) {
+        val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+        if (firebaseUser == null) {
+            _authErrorMessage.value = "Your verified session expired — please verify your phone number again."
+            return
+        }
+        _isAuthenticating.value = true
+        _authErrorMessage.value = null
+        viewModelScope.launch {
+            val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
+            val profilePictureUrl = registration.profilePictureUri?.let { uri ->
+                storageService.uploadProfilePicture(firebaseUser.uid, uri, guessFileExtension(activity, uri, "jpg"))
+            }
+            val idDocumentUrl = registration.idDocumentUri?.let { uri ->
+                storageService.uploadIdDocument(firebaseUser.uid, uri, guessFileExtension(activity, uri, "pdf"))
+            }
+            val user = com.example.data.auth.completeVerifiedRegistration(
+                repository = repository,
+                functionsClient = functionsClient,
+                firebaseUser = firebaseUser,
+                fullName = registration.fullName,
+                email = registration.email,
+                phone = registration.phoneE164,
+                specialty = registration.specialty,
+                profilePictureUrl = profilePictureUrl,
+                idDocumentUrl = idDocumentUrl,
+                country = registration.country,
+                governorate = registration.governorate,
+                city = registration.city
+            )
+            pendingIsLinkingGoogleAccount = false
+            _isAuthenticating.value = false
+            _authSuccessMessage.value = "Account created successfully for ${user.fullName}!"
+            onSuccess()
+        }
+    }
+
+    /**
      * Google Sign-In — a convenience alt path, never a substitute for phone
      * verification. [onNeedsPhoneVerification] fires instead of [onSuccess] when this
      * Google identity has no verified phone number yet (every account needs one — see
-     * [startPhoneRegistration] with `isLinkingExistingAccount = true` for how the
+     * [startPhoneVerification] with `isLinkingExistingAccount = true` for how the
      * caller should complete that).
      */
     fun signInWithGoogleCredentialManager(

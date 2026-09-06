@@ -1267,16 +1267,33 @@ ${_spaces.value.joinToString("\n") { sp ->
         """.trimIndent()
     }
 
+    /** Millis -> "yyyy-MM-dd HH:mm:ss", or "—" when the server hasn't stamped this account yet. */
+    private fun formatAuditTimestamp(sdf: SimpleDateFormat, millis: Long?): String =
+        millis?.let { sdf.format(Date(it)) } ?: "—"
+
+    /**
+     * The full audit-trail export Admin's Users Directory offers: every field a real
+     * platform operator needs to see per account, including the server-stamped
+     * creation/last-sign-in timestamps (assignInitialRole.ts — never client-set, see
+     * AppUser's doc comment) and direct links to the on-file profile picture and ID
+     * document. Nothing here is reviewed/approved — these are exactly the fields kept
+     * on file, exported as-is.
+     */
     fun exportUsersToCsv(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         val sb = StringBuilder()
-        sb.appendLine("=== PROSPACE USERS DIRECTORY EXPORT (CSV) ===")
+        sb.appendLine("=== PROHOST USERS DIRECTORY EXPORT (CSV) ===")
         sb.appendLine("Export Date,${sdf.format(Date())}")
         sb.appendLine("Total Users,${_users.value.size}")
         sb.appendLine()
-        sb.appendLine("ID,Full Name,Email,Role,Specialty,Phone,Country,Governorate,City,Is Verified")
+        sb.appendLine("User ID,Full Name,Email,Role,Specialty,Phone,Country,Governorate,City,Is Verified,Account Created,Last Sign-In,Profile Picture URL,ID Document URL")
         _users.value.forEach { u ->
-            sb.appendLine("\"${u.id}\",\"${u.fullName.replace("\"", "\"\"")}\",\"${u.email}\",\"${u.role.name}\",\"${u.specialty.replace("\"", "\"\"")}\",\"${u.phone}\",\"${u.country}\",\"${u.governorate}\",\"${u.city}\",${u.isVerified}")
+            sb.appendLine(
+                "\"${u.id}\",\"${u.fullName.replace("\"", "\"\"")}\",\"${u.email}\",\"${u.role.name}\"," +
+                    "\"${u.specialty.replace("\"", "\"\"")}\",\"${u.phone}\",\"${u.country}\",\"${u.governorate}\",\"${u.city}\"," +
+                    "${u.isVerified},\"${formatAuditTimestamp(sdf, u.createdAtMillis)}\",\"${formatAuditTimestamp(sdf, u.lastSignInAtMillis)}\"," +
+                    "\"${u.profilePictureUrl ?: ""}\",\"${u.idDocumentUrl ?: ""}\""
+            )
         }
         return sb.toString()
     }
@@ -1301,7 +1318,11 @@ ${_spaces.value.joinToString("\n") { sp ->
             sb.appendLine("      \"country\": \"${u.country}\",")
             sb.appendLine("      \"governorate\": \"${u.governorate}\",")
             sb.appendLine("      \"city\": \"${u.city}\",")
-            sb.appendLine("      \"isVerified\": ${u.isVerified}")
+            sb.appendLine("      \"isVerified\": ${u.isVerified},")
+            sb.appendLine("      \"createdAtMillis\": ${u.createdAtMillis ?: "null"},")
+            sb.appendLine("      \"lastSignInAtMillis\": ${u.lastSignInAtMillis ?: "null"},")
+            sb.appendLine("      \"profilePictureUrl\": ${u.profilePictureUrl?.let { "\"$it\"" } ?: "null"},")
+            sb.appendLine("      \"idDocumentUrl\": ${u.idDocumentUrl?.let { "\"$it\"" } ?: "null"}")
             sb.appendLine("    }$comma")
         }
         sb.appendLine("  ]")

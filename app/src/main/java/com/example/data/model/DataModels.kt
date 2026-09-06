@@ -778,6 +778,9 @@ data class SubscriptionFormula(
  * [idDocumentUrl] (ID/passport, required at registration) is kept on file with no
  * review workflow; a PRO_HOST's proof of ownership / right-to-rent is uploaded per
  * listing instead (see [SpaceListing.ownershipProofUrl]), not on the user profile.
+ * [createdAtMillis]/[lastSignInAtMillis] are written only by assignInitialRole.ts —
+ * the account-creation and last-sign-in audit trail Admin's Users Directory export
+ * relies on (see ProSpaceRepository.exportUsersToCsv/exportUsersToJson).
  */
 data class AppUser(
     val id: String,
@@ -795,7 +798,13 @@ data class AppUser(
     val subscriptionExpiryMillis: Long? = null,
     val ownerPackageTier: OwnerPackageTier = OwnerPackageTier.PAY_AS_YOU_GO,
     val ownerPackageExpiryMillis: Long? = null,
-    val paygListingsBoughtCount: Int = 0
+    val paygListingsBoughtCount: Int = 0,
+    // Server-only, written exclusively by assignInitialRole.ts — createdAtMillis is set
+    // once, the first time this uid ever gets a role claim; lastSignInAtMillis is
+    // refreshed on every subsequent call (every sign-in). Never included in
+    // [toFirestoreMap] so a client write can never touch either field, even by accident.
+    val createdAtMillis: Long? = null,
+    val lastSignInAtMillis: Long? = null
 ) {
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
@@ -845,7 +854,9 @@ data class AppUser(
                 subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong(),
                 ownerPackageTier = pkgTier,
                 ownerPackageExpiryMillis = (data["ownerPackageExpiryMillis"] as? Number)?.toLong(),
-                paygListingsBoughtCount = (data["paygListingsBoughtCount"] as? Number)?.toInt() ?: 0
+                paygListingsBoughtCount = (data["paygListingsBoughtCount"] as? Number)?.toInt() ?: 0,
+                createdAtMillis = (data["createdAtMillis"] as? Number)?.toLong(),
+                lastSignInAtMillis = (data["lastSignInAtMillis"] as? Number)?.toLong()
             )
         }
     }

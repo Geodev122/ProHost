@@ -64,15 +64,17 @@ service cloud.firestore {
       // field. This field is a display/query mirror of that claim.
       allow create: if isOwner(userId);
 
-      // Once the profile exists, role/isVerified can never change via a
-      // direct client write, self or Admin — only grantAdminRole (role) and
-      // assignInitialRole (isVerified, synced from the ID token's own
-      // phone_number claim — see its doc comment) can, both Admin SDK. There
-      // is no admin-reviewed accreditation system anymore, so no separate
-      // verificationStatus/verificationTier/trustScore fields to protect.
+      // Once the profile exists, role/isVerified/createdAtMillis/lastSignInAtMillis
+      // can never change via a direct client write, self or Admin — only
+      // grantAdminRole (role) and assignInitialRole (isVerified, synced from
+      // the ID token's own phone_number claim; createdAtMillis/lastSignInAtMillis,
+      // the account-creation/last-sign-in audit trail — see its doc comment)
+      // can, both Admin SDK. There is no admin-reviewed accreditation system
+      // anymore, so no separate verificationStatus/verificationTier/trustScore
+      // fields to protect.
       allow update: if (isOwner(userId) || isAdmin()) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-          ["role", "isVerified"]
+          ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis"]
         );
 
       allow delete: if isAdmin();
