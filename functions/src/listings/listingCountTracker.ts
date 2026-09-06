@@ -29,9 +29,18 @@ export const onWorkspaceListingDeleted = onDocumentDeleted(
     const listing = event.data?.data();
     const ownerId = listing?.ownerId;
     if (!ownerId) return;
-    await getFirestore().collection("user_profiles").doc(ownerId).set(
-      { activeListingCount: FieldValue.increment(-1) },
-      { merge: true }
-    );
+    // Plain FieldValue.increment(-1) would let this go negative for any
+    // listing that existed before this tracker was deployed (never counted by
+    // onWorkspaceListingCreated in the first place) — and a negative count
+    // paradoxically satisfies withinListingLimit()'s `count < limit` check,
+    // granting a LIMITED_3_TIER host *unlimited* headroom instead of none.
+    // Clamp at 0 in a transaction instead of a raw increment.
+    const db = getFirestore();
+    const profileRef = db.collection("user_profiles").doc(ownerId);
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(profileRef);
+      const current = (snap.data()?.activeListingCount as number | undefined) ?? 0;
+      tx.set(profileRef, { activeListingCount: Math.max(0, current - 1) }, { merge: true });
+    });
   }
 );

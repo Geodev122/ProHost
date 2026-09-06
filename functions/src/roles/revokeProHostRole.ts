@@ -26,6 +26,13 @@ interface RevokeProHostRoleData {
  * confirmation copy for the exact wording shown to the admin. Does NOT
  * delete the listings — same "kept on file, not erased" reasoning as account
  * suspension.
+ *
+ * A currently-signed-in revoked host's cached ID token still carries the old
+ * PRO_HOST claim until it next refreshes (up to ~1 hour) — revokeRefreshTokens
+ * below forces that to happen sooner. In the meantime, firestore.rules'
+ * workspace_listings create rule checks the live user_profiles.role
+ * (liveRole()), not the stale claim, so a new-listing attempt is rejected
+ * immediately regardless of token staleness — same reasoning as isSuspended().
  */
 export const revokeProHostRole = onCall<RevokeProHostRoleData>(async (request) => {
   const auth = request.auth;
@@ -48,6 +55,10 @@ export const revokeProHostRole = onCall<RevokeProHostRoleData>(async (request) =
   }
 
   await adminAuth.setCustomUserClaims(targetUid, { ...targetUser.customClaims, role: "SPECIALIST" });
+  // Forces this account's existing sessions to re-authenticate and pick up the
+  // fresh SPECIALIST claim sooner than the token's natural expiry — same
+  // mechanism setAccountSuspended.ts uses.
+  await adminAuth.revokeRefreshTokens(targetUid);
 
   const db = getFirestore();
   await db.collection("user_profiles").doc(targetUid).set(
@@ -60,13 +71,15 @@ export const revokeProHostRole = onCall<RevokeProHostRoleData>(async (request) =
     { merge: true }
   );
 
+  // bulkWriter, not a plain batch() — see setAccountSuspended.ts's identical
+  // comment (a single WriteBatch is capped at 500 operations).
   const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", targetUid).get();
   if (!ownedListings.empty) {
-    const batch = db.batch();
+    const bulkWriter = db.bulkWriter();
     ownedListings.docs.forEach((doc) => {
-      batch.set(doc.ref, { isActiveSubscription: false }, { merge: true });
+      bulkWriter.set(doc.ref, { isActiveSubscription: false }, { merge: true });
     });
-    await batch.commit();
+    await bulkWriter.close();
   }
 
   await recordAuditLog({

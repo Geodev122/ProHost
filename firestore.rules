@@ -37,6 +37,18 @@ service cloud.firestore {
         get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.get('isSuspended', false) == true;
     }
 
+    // Same reasoning as isSuspended() above, for the same reason: a role
+    // *downgrade* (revokeProHostRole.ts) needs to take effect on the caller's
+    // very next write attempt too, not only once their ID token happens to
+    // refresh (which can be up to ~1 hour later) — otherwise a just-revoked
+    // Pro Host could still create new listings on a stale token for the rest
+    // of that window. Trusting role() (the token claim) for an *upgrade*
+    // check would be the dangerous direction; for this downgrade check, the
+    // live document is authoritative the same way isSuspended() already is.
+    function liveRole(uid) {
+      return get(/databases/$(database)/documents/user_profiles/$(uid)).data.get('role', 'SPECIALIST');
+    }
+
     // Package-tier listing-limit enforcement (previously client-side only —
     // ProSpaceViewModel.createNewSpaceListing checked this, but nothing
     // stopped a direct Firestore write from skipping it). `activeListingCount`
@@ -68,7 +80,7 @@ service cloud.firestore {
         (isSignedIn() && resource.data.ownerId == request.auth.uid);
 
       allow create: if isSignedIn() &&
-        (role() == "PRO_HOST" || isAdmin()) &&
+        (liveRole(request.auth.uid) == "PRO_HOST" || isAdmin()) &&
         request.resource.data.ownerId == request.auth.uid &&
         !isSuspended() &&
         (isAdmin() || withinListingLimit(request.auth.uid));

@@ -68,13 +68,18 @@ export const setAccountSuspended = onCall<SetAccountSuspendedData>(async (reques
   // firestore.rules can hide them from public discovery while the owner and
   // Admin can still see them (a suspended host should be able to see their
   // own listings are hidden, not have them vanish from their own view).
+  // bulkWriter (not a plain batch()) since a single WriteBatch is capped at 500
+  // operations — a host with more listings than that would otherwise throw on
+  // commit(), leaving the account-level suspension applied but the per-listing
+  // mirror only partially done. bulkWriter chunks/paces automatically with no
+  // such cap and retries transient failures on its own.
   const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", targetUid).get();
   if (!ownedListings.empty) {
-    const batch = db.batch();
+    const bulkWriter = db.bulkWriter();
     ownedListings.docs.forEach((doc) => {
-      batch.set(doc.ref, { isOwnerSuspended: suspended }, { merge: true });
+      bulkWriter.set(doc.ref, { isOwnerSuspended: suspended }, { merge: true });
     });
-    await batch.commit();
+    await bulkWriter.close();
   }
 
   await recordAuditLog({

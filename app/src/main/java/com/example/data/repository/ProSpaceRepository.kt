@@ -133,6 +133,20 @@ class ProSpaceRepository {
                 },
                 onUsersUpdated = { updatedUsers ->
                     _users.value = updatedUsers
+                    // Keep the signed-in user's own session in sync with server-side role/
+                    // tier/suspension changes in real time — an Admin action on ANOTHER
+                    // device (grantAdminRole, revokeProHostRole, setAccountSuspended, a
+                    // verification toggle) used to only ever reach _users, never
+                    // _currentUser, so the affected user's own UI kept showing their old
+                    // role/status until their next full sign-in. All of these fields are
+                    // server-authoritative (Cloud-Function-only writes), so overwriting the
+                    // local currentUser with the fresh synced copy is always safe.
+                    val signedInId = _currentUser.value?.id
+                    if (signedInId != null) {
+                        updatedUsers.find { it.id == signedInId }?.let { fresh ->
+                            _currentUser.value = fresh
+                        }
+                    }
                     _isCloudConnected.value = true
                 },
                 onBookingsUpdated = { updatedBookings ->
