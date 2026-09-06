@@ -103,14 +103,14 @@ fun SpecialistProfileScreen(
     // Role-specific theme accents
     val primaryAccent = when (user.role) {
         UserRole.ADMIN -> AmberWarning
-        UserRole.SPACE_OWNER -> CarnationOrange
-        UserRole.PROFESSIONAL -> OxfordBlue
+        UserRole.PRO_HOST -> CarnationOrange
+        UserRole.SPECIALIST -> OxfordBlue
     }
 
     val heroGradient = when (user.role) {
         UserRole.ADMIN -> Brush.linearGradient(listOf(OxfordBlueDark, OxfordBlue, CoolGrayDark))
-        UserRole.SPACE_OWNER -> Brush.linearGradient(listOf(OxfordBlue, CarnationOrangeDark.copy(alpha = 0.85f), OxfordBlueDark))
-        UserRole.PROFESSIONAL -> Brush.linearGradient(listOf(OxfordBlueDark, OxfordBlue, VibrantBlue.copy(alpha = 0.7f)))
+        UserRole.PRO_HOST -> Brush.linearGradient(listOf(OxfordBlue, CarnationOrangeDark.copy(alpha = 0.85f), OxfordBlueDark))
+        UserRole.SPECIALIST -> Brush.linearGradient(listOf(OxfordBlueDark, OxfordBlue, VibrantBlue.copy(alpha = 0.7f)))
     }
 
     Box(
@@ -154,8 +154,8 @@ fun SpecialistProfileScreen(
                             Surface(
                                 color = when (user.role) {
                                     UserRole.ADMIN -> AmberWarning.copy(alpha = 0.25f)
-                                    UserRole.SPACE_OWNER -> CarnationOrange.copy(alpha = 0.25f)
-                                    UserRole.PROFESSIONAL -> VibrantBlue.copy(alpha = 0.25f)
+                                    UserRole.PRO_HOST -> CarnationOrange.copy(alpha = 0.25f)
+                                    UserRole.SPECIALIST -> VibrantBlue.copy(alpha = 0.25f)
                                 },
                                 shape = RoundedCornerShape(10.dp),
                                 border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.6f))
@@ -168,22 +168,22 @@ fun SpecialistProfileScreen(
                                     Icon(
                                         imageVector = when (user.role) {
                                             UserRole.ADMIN -> Icons.Default.Shield
-                                            UserRole.SPACE_OWNER -> Icons.Default.HomeWork
-                                            UserRole.PROFESSIONAL -> Icons.Default.VerifiedUser
+                                            UserRole.PRO_HOST -> Icons.Default.HomeWork
+                                            UserRole.SPECIALIST -> Icons.Default.VerifiedUser
                                         },
                                         contentDescription = null,
                                         tint = when (user.role) {
                                             UserRole.ADMIN -> AmberWarning
-                                            UserRole.SPACE_OWNER -> CarnationOrangeLight
-                                            UserRole.PROFESSIONAL -> Color.White
+                                            UserRole.PRO_HOST -> CarnationOrangeLight
+                                            UserRole.SPECIALIST -> Color.White
                                         },
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Text(
                                         text = when (user.role) {
                                             UserRole.ADMIN -> "Super Administrator Node"
-                                            UserRole.SPACE_OWNER -> "Verified Space Host"
-                                            UserRole.PROFESSIONAL -> "Practitioner / Specialist"
+                                            UserRole.PRO_HOST -> "Verified Space Host"
+                                            UserRole.SPECIALIST -> "Practitioner / Specialist"
                                         },
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
@@ -351,9 +351,10 @@ fun SpecialistProfileScreen(
 
             // =========================================================================
             // 2. ACTIVE ROLE INDICATOR (informational only — a role change now only ever
-            // happens server-side, via Firebase Auth + the requestRoleUpgrade/
-            // grantAdminRole Cloud Functions. This used to be a tap-to-switch control
-            // that let any signed-in user instantly become Admin with no server check.)
+            // happens server-side: grantAdminRole for Admin grants, or grantEntitlement()
+            // promoting SPECIALIST to PRO_HOST the moment a package/listing payment settles.
+            // This used to be a tap-to-switch control that let any signed-in user instantly
+            // become Admin with no server check.)
             // =========================================================================
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -370,8 +371,8 @@ fun SpecialistProfileScreen(
                         UserRole.entries.forEach { role ->
                             val isSelected = user.role == role
                             val roleColor = when (role) {
-                                UserRole.PROFESSIONAL -> OxfordBlue
-                                UserRole.SPACE_OWNER -> CarnationOrange
+                                UserRole.SPECIALIST -> OxfordBlue
+                                UserRole.PRO_HOST -> CarnationOrange
                                 UserRole.ADMIN -> AmberWarning
                             }
 
@@ -390,8 +391,8 @@ fun SpecialistProfileScreen(
                                 ) {
                                     Icon(
                                         imageVector = when (role) {
-                                            UserRole.PROFESSIONAL -> Icons.Default.Work
-                                            UserRole.SPACE_OWNER -> Icons.Default.HomeWork
+                                            UserRole.SPECIALIST -> Icons.Default.Work
+                                            UserRole.PRO_HOST -> Icons.Default.HomeWork
                                             UserRole.ADMIN -> Icons.Default.AdminPanelSettings
                                         },
                                         contentDescription = null,
@@ -401,8 +402,8 @@ fun SpecialistProfileScreen(
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         text = when (role) {
-                                            UserRole.PROFESSIONAL -> "Practitioner"
-                                            UserRole.SPACE_OWNER -> "Host / Owner"
+                                            UserRole.SPECIALIST -> "Practitioner"
+                                            UserRole.PRO_HOST -> "Host / Owner"
                                             UserRole.ADMIN -> "Super Admin"
                                         },
                                         style = MaterialTheme.typography.labelSmall,
@@ -434,13 +435,13 @@ fun SpecialistProfileScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ProSectionHeader(
                         title = when (user.role) {
-                            UserRole.PROFESSIONAL -> "Practitioner Rental Activity"
-                            UserRole.SPACE_OWNER -> "Host Performance & Yield"
+                            UserRole.SPECIALIST -> "Practitioner Rental Activity"
+                            UserRole.PRO_HOST -> "Host Performance & Yield"
                             UserRole.ADMIN -> "Central Platform Governance"
                         },
                         subtitle = when (user.role) {
-                            UserRole.PROFESSIONAL -> "Active leases, pending bookings, and Syndicate standing"
-                            UserRole.SPACE_OWNER -> "Managed spaces, incoming tenant inquiries, and MRR yield"
+                            UserRole.SPECIALIST -> "Active leases, pending bookings, and Syndicate standing"
+                            UserRole.PRO_HOST -> "Managed spaces, incoming tenant inquiries, and MRR yield"
                             UserRole.ADMIN -> "System spaces, cloud sync status, and transaction integrity"
                         },
                         icon = Icons.Default.Analytics,
@@ -453,7 +454,7 @@ fun SpecialistProfileScreen(
                     )
 
                     when (user.role) {
-                        UserRole.PROFESSIONAL -> {
+                        UserRole.SPECIALIST -> {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -498,7 +499,7 @@ fun SpecialistProfileScreen(
                             }
                         }
 
-                        UserRole.SPACE_OWNER -> {
+                        UserRole.PRO_HOST -> {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -595,7 +596,7 @@ fun SpecialistProfileScreen(
             // 4. ROLE-TAILORED HUBS & ACCREDITATION SECTIONS
             // =========================================================================
 
-            if (user.role == UserRole.PROFESSIONAL) {
+            if (user.role == UserRole.SPECIALIST) {
                 // SPECIALIST PRACTITIONER FRIENDLY WORKSPACE HUB
                 ProSurfaceCard {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -711,7 +712,7 @@ fun SpecialistProfileScreen(
                                     .padding(end = 8.dp)
                             ) {
                                 Text(
-                                    text = if (user.role == UserRole.SPACE_OWNER) "Commercial Host Accreditation" else "Specialist Syndicate Accreditation",
+                                    text = if (user.role == UserRole.PRO_HOST) "Commercial Host Accreditation" else "Specialist Syndicate Accreditation",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -793,7 +794,7 @@ fun SpecialistProfileScreen(
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Text(
-                                        if (user.role == UserRole.SPACE_OWNER) "2. Register" else "2. Syndicate",
+                                        if (user.role == UserRole.PRO_HOST) "2. Register" else "2. Syndicate",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         textAlign = TextAlign.Center
@@ -858,8 +859,8 @@ fun SpecialistProfileScreen(
                     ProSurfaceCard {
                         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                             ProSectionHeader(
-                                title = if (user.role == UserRole.SPACE_OWNER) "Property & Commercial Permits" else "Syndicate & Legal Credentials",
-                                subtitle = if (user.role == UserRole.SPACE_OWNER)
+                                title = if (user.role == UserRole.PRO_HOST) "Property & Commercial Permits" else "Syndicate & Legal Credentials",
+                                subtitle = if (user.role == UserRole.PRO_HOST)
                                     "Commercial Register (Sijil Tejari), Title Deed (Sanad Melkiyeh), and National ID"
                                 else
                                     "Syndicate Membership Card, Practice Decree, and National ID",
@@ -1013,7 +1014,7 @@ fun SpecialistProfileScreen(
                                             color = SandstoneDark
                                         )
                                         Text(
-                                            text = if (user.role == UserRole.SPACE_OWNER)
+                                            text = if (user.role == UserRole.PRO_HOST)
                                                 "Commercial property hosts must verify Sanad Melkiyeh (Title Deed) or official lease contract to ensure legal occupancy, valid subleasing, and generator power supply compliance."
                                             else
                                                 "Under Lebanese syndicate regulations (OEA, LOP, BBA), practitioners renting professional clinic or studio suites must be accredited members in good standing for liability protection.",
@@ -1032,7 +1033,7 @@ fun SpecialistProfileScreen(
             // =========================================================================
             // 5. ROLE-SPECIFIC ACTIVITY CARDS (BOOKINGS / LEASES)
             // =========================================================================
-            if (user.role == UserRole.PROFESSIONAL) {
+            if (user.role == UserRole.SPECIALIST) {
                 val practitionerBookings by viewModel.practitionerBookings.collectAsState()
                 val spaces by viewModel.spaces.collectAsState()
 
@@ -1167,8 +1168,8 @@ fun SpecialistProfileScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     ProSectionHeader(
                         title = when (user.role) {
-                            UserRole.PROFESSIONAL -> "Practitioner & Syndicate Details"
-                            UserRole.SPACE_OWNER -> "Host Business & Property Information"
+                            UserRole.SPECIALIST -> "Practitioner & Syndicate Details"
+                            UserRole.PRO_HOST -> "Host Business & Property Information"
                             UserRole.ADMIN -> "Super Administrator Identity"
                         },
                         subtitle = "Ensure your WhatsApp booking contact and credentials are up to date",
@@ -1188,8 +1189,8 @@ fun SpecialistProfileScreen(
                         value = specialty,
                         onValueChange = { specialty = it },
                         label = when (user.role) {
-                            UserRole.PROFESSIONAL -> "Profession / Specialization / Syndicate Title"
-                            UserRole.SPACE_OWNER -> "Host Category (Commercial Real Estate, Coworking, Clinic)"
+                            UserRole.SPECIALIST -> "Profession / Specialization / Syndicate Title"
+                            UserRole.PRO_HOST -> "Host Category (Commercial Real Estate, Coworking, Clinic)"
                             UserRole.ADMIN -> "Super Administrator Role & Clearance"
                         },
                         leadingIcon = Icons.Default.Work,
@@ -1201,8 +1202,8 @@ fun SpecialistProfileScreen(
                         value = affiliation,
                         onValueChange = { affiliation = it },
                         label = when (user.role) {
-                            UserRole.PROFESSIONAL -> "Order / Hospital / Firm Affiliation"
-                            UserRole.SPACE_OWNER -> "Building Name / Real Estate Enterprise / Network"
+                            UserRole.SPECIALIST -> "Order / Hospital / Firm Affiliation"
+                            UserRole.PRO_HOST -> "Building Name / Real Estate Enterprise / Network"
                             UserRole.ADMIN -> "Central Governance Organization"
                         },
                         leadingIcon = Icons.Default.Apartment,
@@ -1214,8 +1215,8 @@ fun SpecialistProfileScreen(
                         value = syndicateNumber,
                         onValueChange = { syndicateNumber = it },
                         label = when (user.role) {
-                            UserRole.PROFESSIONAL -> "Order / Syndicate / Specialist License ID (e.g. LOP / OEA)"
-                            UserRole.SPACE_OWNER -> "Commercial Register / Property Sijil Tejari ID"
+                            UserRole.SPECIALIST -> "Order / Syndicate / Specialist License ID (e.g. LOP / OEA)"
+                            UserRole.PRO_HOST -> "Commercial Register / Property Sijil Tejari ID"
                             UserRole.ADMIN -> "Central Administrative Security Node ID"
                         },
                         leadingIcon = Icons.Default.Badge,

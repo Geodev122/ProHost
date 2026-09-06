@@ -4,14 +4,16 @@
  * explicit union rather than importing from the Android module (Cloud
  * Functions and the Android app are separate build systems / languages) —
  * if UserRole ever changes on the client, this must be updated to match.
+ *
+ * Every account starts SPECIALIST. PRO_HOST is never self-service or free —
+ * it's granted exclusively by grantEntitlement() (see entitlements.ts) the
+ * moment a real OWNER_PACKAGE or PAYG_LISTING Whish payment settles. There is
+ * no standalone "request role upgrade" function anymore.
  */
-export type AppRole = "PROFESSIONAL" | "SPACE_OWNER" | "ADMIN";
+export type AppRole = "SPECIALIST" | "PRO_HOST" | "ADMIN";
 
-export const DEFAULT_ROLE: AppRole = "PROFESSIONAL";
-
-/** Roles a signed-in user may request for themselves via requestRoleUpgrade. */
-export const SELF_SERVICE_UPGRADABLE_ROLES: readonly AppRole[] = ["SPACE_OWNER"];
+export const DEFAULT_ROLE: AppRole = "SPECIALIST";
 
 export function isAppRole(value: unknown): value is AppRole {
-  return value === "PROFESSIONAL" || value === "SPACE_OWNER" || value === "ADMIN";
+  return value === "SPECIALIST" || value === "PRO_HOST" || value === "ADMIN";
 }

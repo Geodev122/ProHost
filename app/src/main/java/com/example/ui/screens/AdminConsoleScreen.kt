@@ -859,8 +859,8 @@ private fun AdminUsersDirectoryTab(
                         Surface(
                             color = when (user.role) {
                                 UserRole.ADMIN -> StatusWarningContainer
-                                UserRole.SPACE_OWNER -> CarnationOrangeContainer
-                                UserRole.PROFESSIONAL -> OxfordBlueContainer
+                                UserRole.PRO_HOST -> CarnationOrangeContainer
+                                UserRole.SPECIALIST -> OxfordBlueContainer
                             },
                             shape = RoundedCornerShape(6.dp)
                         ) {
@@ -870,8 +870,8 @@ private fun AdminUsersDirectoryTab(
                                 fontWeight = FontWeight.Bold,
                                 color = when (user.role) {
                                     UserRole.ADMIN -> AmberWarning
-                                    UserRole.SPACE_OWNER -> CarnationOrange
-                                    UserRole.PROFESSIONAL -> OxfordBlue
+                                    UserRole.PRO_HOST -> CarnationOrange
+                                    UserRole.SPECIALIST -> OxfordBlue
                                 },
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                             )

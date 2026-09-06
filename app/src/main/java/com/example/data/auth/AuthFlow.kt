@@ -26,16 +26,16 @@ suspend fun completeVerifiedLogin(
 }
 
 /**
- * Same as [completeVerifiedLogin], but for brand-new member registration. [requestedRole]
- * is only ever honored when it's SPACE_OWNER (the one self-service upgrade the
- * requestRoleUpgrade Cloud Function allows) — anything else (including any attempt to
- * request ADMIN) is ignored server-side and the account gets the default PROFESSIONAL role.
+ * Same as [completeVerifiedLogin], but for brand-new member registration. Every new
+ * account is a SPECIALIST — there is no registration-time way to become a PRO_HOST
+ * (that role is granted exclusively, server-side, once a real package/PAYG Whish
+ * payment settles; see FirebaseFunctionsClient's note on grantEntitlement()), and
+ * requesting ADMIN is never honored by any reachable code path.
  */
 suspend fun completeVerifiedRegistration(
     repository: ProSpaceRepository,
     functionsClient: FirebaseFunctionsClient,
     firebaseUser: FirebaseUser,
-    requestedRole: UserRole,
     fullName: String,
     phone: String,
     specialty: String,
@@ -44,9 +44,6 @@ suspend fun completeVerifiedRegistration(
     governorate: Governorate
 ): AppUser {
     functionsClient.ensureInitialRole().getOrThrow()
-    if (requestedRole == UserRole.SPACE_OWNER) {
-        functionsClient.requestSpaceOwnerUpgrade().getOrThrow()
-    }
     val role = resolveVerifiedRole(functionsClient, firebaseUser)
     return repository.registerMember(
         uid = firebaseUser.uid,
@@ -72,5 +69,5 @@ private suspend fun resolveVerifiedRole(
             functionsClient.ensureInitialRole().getOrThrow()
             FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true)
         }
-    return claim?.let { runCatching { UserRole.valueOf(it) }.getOrNull() } ?: UserRole.PROFESSIONAL
+    return claim?.let { runCatching { UserRole.valueOf(it) }.getOrNull() } ?: UserRole.SPECIALIST
 }

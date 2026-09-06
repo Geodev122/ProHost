@@ -207,20 +207,40 @@ class ProSpaceViewModel(
                     "Complete your payment in the browser. We'll confirm automatically once Whish settles it.",
                     Toast.LENGTH_LONG
                 ).show()
-                pollWhishPaymentStatus(init.txId, context)
+                pollWhishPaymentStatus(init.txId, purpose, context)
             }.onFailure { e ->
                 Toast.makeText(context, "Could not start payment: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
 
+    /**
+     * Re-reads the signed-in user's role from a force-refreshed Firebase Auth ID
+     * token and reflects it into currentUser — the client-side counterpart of
+     * grantEntitlement()'s grantProHostRoleIfNeeded() (see entitlements.ts). Called
+     * once a package/PAYG_LISTING payment is confirmed settled, so a SPECIALIST who
+     * just got promoted to PRO_HOST sees Pro Host navigation immediately, without
+     * needing to sign out and back in. Mirrors how AuthFlow.resolveVerifiedRole()
+     * already resolves role at sign-in — role always comes from the custom claim,
+     * never trusted from Firestore's user_profiles.role mirror field alone.
+     */
+    private suspend fun refreshCurrentUserRoleAfterEntitlement() {
+        val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser ?: return
+        val claim = com.example.data.auth.FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true) ?: return
+        val role = runCatching { UserRole.valueOf(claim) }.getOrNull() ?: return
+        repository.login(uid = firebaseUser.uid, email = firebaseUser.email ?: "", verifiedRole = role)
+    }
+
     /** Bounded polling fallback in case the server-to-server webhook is slow/missed. */
-    private fun pollWhishPaymentStatus(txId: String, context: Context) {
+    private fun pollWhishPaymentStatus(txId: String, purpose: String, context: Context) {
         viewModelScope.launch {
             repeat(24) {
                 kotlinx.coroutines.delay(5000)
                 val status = functionsClient.checkWhishStatus(txId).getOrNull()
                 if (status == "SUCCESS") {
+                    if (purpose == "OWNER_PACKAGE" || purpose == "PAYG_LISTING") {
+                        refreshCurrentUserRoleAfterEntitlement()
+                    }
                     Toast.makeText(context, "Payment confirmed! Your entitlement is now active.", Toast.LENGTH_LONG).show()
                     return@launch
                 } else if (status == "FAILED") {
@@ -232,9 +252,12 @@ class ProSpaceViewModel(
     }
 
     /** Manually triggered re-check, e.g. from a "Verify Payment" button in the UI. */
-    fun checkWhishPaymentStatus(txId: String, context: Context) {
+    fun checkWhishPaymentStatus(txId: String, purpose: String, context: Context) {
         viewModelScope.launch {
             val status = functionsClient.checkWhishStatus(txId).getOrNull()
+            if (status == "SUCCESS" && (purpose == "OWNER_PACKAGE" || purpose == "PAYG_LISTING")) {
+                refreshCurrentUserRoleAfterEntitlement()
+            }
             val message = when (status) {
                 "SUCCESS" -> "Payment confirmed! Your entitlement is now active."
                 "FAILED" -> "Whish reported this payment did not complete."
@@ -331,7 +354,8 @@ class ProSpaceViewModel(
     // --- Authentication & Member Registration ---
     // Role is NEVER taken from the client here. Sign-in resolves the caller's role from
     // their Firebase Auth ID token's custom claim (assigned server-side by the
-    // assignInitialRole/requestRoleUpgrade/grantAdminRole Cloud Functions) — see
+    // assignInitialRole/grantAdminRole Cloud Functions, or by grantEntitlement() the
+    // moment a package/listing payment settles) — see
     // com.example.data.auth.completeVerifiedLogin / completeVerifiedRegistration.
     private val functionsClient = com.example.data.auth.FirebaseFunctionsClient()
 
@@ -375,7 +399,6 @@ class ProSpaceViewModel(
         email: String,
         password: String,
         phone: String,
-        requestedRole: UserRole,
         specialty: String,
         syndicateNumber: String,
         affiliation: String,
@@ -398,7 +421,6 @@ class ProSpaceViewModel(
                         repository = repository,
                         functionsClient = functionsClient,
                         firebaseUser = firebaseUser,
-                        requestedRole = requestedRole,
                         fullName = fullName,
                         phone = phone,
                         specialty = specialty,
@@ -480,7 +502,9 @@ class ProSpaceViewModel(
     //
     // switchUserRole(...) was also removed — it let any already-logged-in user instantly
     // become ADMIN locally with no server check. A real role change now only happens via
-    // FirebaseFunctionsClient.requestSpaceOwnerUpgrade()/grantAdminRole().
+    // grantAdminRole() (Admin-to-Admin grants) or grantEntitlement() promoting a SPECIALIST
+    // to PRO_HOST the moment their package/listing Whish payment settles — never a free,
+    // client-invocable "upgrade" call.
 
     fun logout() {
         com.google.firebase.auth.FirebaseAuth.getInstance().signOut()

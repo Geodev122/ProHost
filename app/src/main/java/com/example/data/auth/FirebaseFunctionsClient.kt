@@ -3,7 +3,6 @@ package com.example.data.auth
 import android.util.Log
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.functions.FirebaseFunctions
-import com.google.firebase.functions.FirebaseFunctionsException
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -24,7 +23,7 @@ class FirebaseFunctionsClient {
 
     /**
      * Ensures the signed-in user has a role claim, assigning the default
-     * (PROFESSIONAL) server-side on first call. Safe/idempotent to call on
+     * (SPECIALIST) server-side on first call. Safe/idempotent to call on
      * every sign-in.
      */
     suspend fun ensureInitialRole(): Result<String> {
@@ -41,25 +40,13 @@ class FirebaseFunctionsClient {
         }
     }
 
-    /** The only self-service role change available — SPACE_OWNER only, never ADMIN. */
-    suspend fun requestSpaceOwnerUpgrade(): Result<String> {
-        return try {
-            val result = functions.getHttpsCallable("requestRoleUpgrade")
-                .call(mapOf("targetRole" to "SPACE_OWNER"))
-                .await()
-            @Suppress("UNCHECKED_CAST")
-            val data = result.data as? Map<String, Any?>
-            val role = data?.get("role") as? String
-                ?: return Result.failure(IllegalStateException("requestRoleUpgrade returned no role."))
-            Result.success(role)
-        } catch (e: FirebaseFunctionsException) {
-            Log.e(tag, "requestSpaceOwnerUpgrade denied: ${e.code} ${e.message}", e)
-            Result.failure(e)
-        } catch (e: Exception) {
-            Log.e(tag, "requestSpaceOwnerUpgrade failed: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
+    // The free self-service requestSpaceOwnerUpgrade() path (backed by the
+    // requestRoleUpgrade Cloud Function) is gone: PRO_HOST is no longer a role
+    // anyone can just ask for. It's granted exclusively, server-side, by
+    // functions/src/lib/entitlements.ts's grantEntitlement() the moment a
+    // SPECIALIST's OWNER_PACKAGE or PAYG_LISTING Whish payment actually settles
+    // — see ProSpaceRepository.refreshCurrentUserAfterEntitlement(), called
+    // once client-side polling observes that success.
 
     /** Only succeeds when the CALLER already has the Admin role server-side. */
     suspend fun grantAdminRole(targetEmail: String): Result<Unit> {

@@ -112,10 +112,10 @@ data class AdminUiState(
         }
 
     val ownerUsers: List<AppUser>
-        get() = allUsers.filter { it.role == UserRole.SPACE_OWNER }
+        get() = allUsers.filter { it.role == UserRole.PRO_HOST }
 
     val specialistUsers: List<AppUser>
-        get() = allUsers.filter { it.role == UserRole.PROFESSIONAL || it.role == UserRole.MEDICAL_PRACTITIONER }
+        get() = allUsers.filter { it.role == UserRole.SPECIALIST }
 }
 
 /**

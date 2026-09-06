@@ -61,7 +61,6 @@ fun LoginAuthScreen(
     var regPhone by remember { mutableStateOf("+961 ") }
     var regPassword by remember { mutableStateOf("") }
     var showRegPassword by remember { mutableStateOf(false) }
-    var regRole by remember { mutableStateOf(UserRole.PROFESSIONAL) }
     var regSpecialty by remember { mutableStateOf("") }
     var regSyndicateNumber by remember { mutableStateOf("") }
     var regAffiliation by remember { mutableStateOf("") }
@@ -402,36 +401,6 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Membership Type Selection
-                Text(
-                    text = "MEMBERSHIP TYPE",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(
-                        selected = regRole == UserRole.PROFESSIONAL,
-                        onClick = { regRole = UserRole.PROFESSIONAL },
-                        label = { Text("Specialist / Renter") },
-                        leadingIcon = { Icon(Icons.Default.Work, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
-                        selected = regRole == UserRole.SPACE_OWNER,
-                        onClick = { regRole = UserRole.SPACE_OWNER },
-                        label = { Text("Workspace Host") },
-                        leadingIcon = { Icon(Icons.Default.HomeWork, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
                 InputField(
                     value = regFullName,
                     onValueChange = {
@@ -479,8 +448,17 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                if (regRole == UserRole.SPACE_OWNER) {
+                run {
                     Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "OPTIONAL — ADDS CREDIBILITY TO YOUR PROFILE",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     InputField(
                         value = regSpecialty,
@@ -488,7 +466,7 @@ fun LoginAuthScreen(
                             regSpecialty = it
                             localErrorMessage = null
                         },
-                        label = "Profession / Medical / Architectural Specialty",
+                        label = "Profession / Specialty (Optional)",
                         placeholder = "e.g. Clinical Dermatologist, Senior Architect",
                         leadingIcon = Icons.Default.Badge,
                         modifier = Modifier.fillMaxWidth(),
@@ -613,18 +591,12 @@ fun LoginAuthScreen(
                             localErrorMessage = "Please enter a valid Lebanese contact phone"
                             return@CustomButton
                         }
-                        if (regSpecialty.isBlank()) {
-                            localErrorMessage = "Please enter your specialty or profession"
-                            return@CustomButton
-                        }
-
                         viewModel.registerMemberWithFirebase(
                             context = context,
                             fullName = regFullName,
                             email = regEmail,
                             password = regPassword,
                             phone = regPhone,
-                            requestedRole = regRole,
                             specialty = regSpecialty,
                             syndicateNumber = if (regSyndicateNumber.isBlank()) "LB-REG-" + (1000..9999).random() else regSyndicateNumber,
                             affiliation = if (regAffiliation.isBlank()) "Independent Practitioner" else regAffiliation,

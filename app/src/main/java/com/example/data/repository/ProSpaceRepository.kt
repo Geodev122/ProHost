@@ -1117,8 +1117,8 @@ class ProSpaceRepository {
             fullName = if (cleanEmail.contains("@")) cleanEmail.substringBefore("@").replace(".", " ").capitalize(Locale.US) else "Member",
             role = verifiedRole,
             specialty = when (verifiedRole) {
-                UserRole.PROFESSIONAL -> "Independent Specialist"
-                UserRole.SPACE_OWNER -> "Workspace Host"
+                UserRole.SPECIALIST -> "Independent Specialist"
+                UserRole.PRO_HOST -> "Workspace Host"
                 UserRole.ADMIN -> "Super Administrator & Security Governance"
             },
             phone = "",
@@ -1156,8 +1156,9 @@ class ProSpaceRepository {
     // for switchRole specifically, any already-logged-in user) instantly become ADMIN
     // with no server check at all. A role change now only ever happens through the
     // login()/registerMember() paths above, which require a role already verified via
-    // a Firebase Auth custom claim, or through the grantAdminRole/requestRoleUpgrade
-    // Cloud Functions for an explicit role change request.
+    // a Firebase Auth custom claim, through the grantAdminRole Cloud Function for an
+    // explicit Admin grant, or through grantEntitlement() promoting a SPECIALIST to
+    // PRO_HOST the moment their package/listing Whish payment settles.
 
     suspend fun updateCurrentUserProfile(
         name: String,
@@ -1567,7 +1568,7 @@ ${_spaces.value.joinToString("\n") { sp ->
 
     fun exportOwnerRegistrationsToCsv(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
-        val owners = _users.value.filter { it.role == UserRole.SPACE_OWNER }
+        val owners = _users.value.filter { it.role == UserRole.PRO_HOST }
         val sb = StringBuilder()
         sb.appendLine("=== PROSPACE OWNER REGISTRATIONS & WORKSPACES AUDIT ===")
         sb.appendLine("Export Date,${sdf.format(Date())}")

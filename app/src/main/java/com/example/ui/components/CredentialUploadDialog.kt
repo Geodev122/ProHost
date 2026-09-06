@@ -42,7 +42,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun CredentialUploadDialog(
     initialType: DocumentType? = null,
-    userRole: UserRole = UserRole.PROFESSIONAL,
+    userRole: UserRole = UserRole.SPECIALIST,
     onDismiss: () -> Unit,
     onDocumentUploaded: (type: DocumentType, fileName: String, fileSizeKb: Int, docNumber: String, issuingAuth: String, expiryDate: String, fileUri: String?) -> Unit
 ) {

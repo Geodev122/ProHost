@@ -7,7 +7,7 @@ import "../lib/admin";
 
 /**
  * Called once, right after a user's first successful Firebase Auth sign-in.
- * Assigns the default PROFESSIONAL role via a custom claim if the caller
+ * Assigns the default SPECIALIST role via a custom claim if the caller
  * doesn't already have a role claim. Idempotent — safe to call on every
  * sign-in; it's a no-op once a role is already set.
  *

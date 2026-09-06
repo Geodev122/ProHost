@@ -16,9 +16,9 @@ type VerificationStatus = "UNVERIFIED" | "PENDING_REVIEW" | "VERIFIED" | "ACTION
 /**
  * Mirrors DocumentType.requiredFor in DataModels.kt.
  */
-const REQUIRED_TYPES: Record<"PROFESSIONAL" | "SPACE_OWNER", DocumentType[]> = {
-  PROFESSIONAL: ["SYNDICATE_CARD", "NATIONAL_ID", "PRACTICE_LICENSE", "TAX_REGISTRATION"],
-  SPACE_OWNER: ["NATIONAL_ID", "COMMERCIAL_REGISTER", "TITLE_DEED_OR_LEASE", "TAX_REGISTRATION"],
+const REQUIRED_TYPES: Record<"SPECIALIST" | "PRO_HOST", DocumentType[]> = {
+  SPECIALIST: ["SYNDICATE_CARD", "NATIONAL_ID", "PRACTICE_LICENSE", "TAX_REGISTRATION"],
+  PRO_HOST: ["NATIONAL_ID", "COMMERCIAL_REGISTER", "TITLE_DEED_OR_LEASE", "TAX_REGISTRATION"],
 };
 
 /**
@@ -33,7 +33,7 @@ async function recalculateUserVerification(userId: string): Promise<void> {
   const userSnap = await db.collection("user_profiles").doc(userId).get();
   if (!userSnap.exists) return;
   const user = userSnap.data()!;
-  const role = user.role as "PROFESSIONAL" | "SPACE_OWNER" | "ADMIN";
+  const role = user.role as "SPECIALIST" | "PRO_HOST" | "ADMIN";
 
   if (role === "ADMIN") {
     await userSnap.ref.set(
@@ -66,7 +66,7 @@ async function recalculateUserVerification(userId: string): Promise<void> {
 
   const isFullyVerified = newStatus === "VERIFIED";
   const tier =
-    role === "SPACE_OWNER"
+    role === "PRO_HOST"
       ? isFullyVerified
         ? "TIER_3_COMMERCIAL_HOST"
         : "TIER_1_BASIC"
@@ -220,11 +220,11 @@ export const adminSetUserVerification = onCall<AdminSetUserVerificationData>(asy
   if (!userSnap.exists) {
     throw new HttpsError("not-found", "User profile not found.");
   }
-  const targetRole = userSnap.data()!.role as "PROFESSIONAL" | "SPACE_OWNER" | "ADMIN";
+  const targetRole = userSnap.data()!.role as "SPECIALIST" | "PRO_HOST" | "ADMIN";
 
   const newStatus: VerificationStatus = verified ? "VERIFIED" : "UNVERIFIED";
   const tier = verified
-    ? targetRole === "SPACE_OWNER"
+    ? targetRole === "PRO_HOST"
       ? "TIER_3_COMMERCIAL_HOST"
       : "TIER_2_PROFESSIONAL"
     : "TIER_1_BASIC";

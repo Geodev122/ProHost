@@ -103,7 +103,6 @@ fun DrawerDialogsHandler(
                         "pro_accreditation_hub" -> "Accreditation & Practice Hub"
                         "pro_app_updates" -> "App Version & In-App Updates"
                         "owner_package_tiers" -> "Owner Package Tiers & Governance"
-                        "owner_app_updates" -> "App Version & In-App Updates"
                         "fcm_alerts" -> "Real-time Alerts Terminal"
                         else -> "Information Sheet"
                     }
@@ -548,7 +547,7 @@ fun DrawerDialogsHandler(
                                                                     onClick = {
                                                                         viewModel.markAlertAsRead(alert.id)
                                                                         val targetTab = if (alert.category == "BOOKING_ACCEPTANCE") {
-                                                                            if (currentUser?.role == UserRole.PROFESSIONAL) "pro_rentals" else "owner_requests"
+                                                                            if (currentUser?.role == UserRole.SPECIALIST) "pro_rentals" else "owner_requests"
                                                                         } else {
                                                                             "owner_progress"
                                                                         }
@@ -685,9 +684,6 @@ fun DrawerDialogsHandler(
                                     }
                                 }
                             }
-                        }
-                        "owner_app_updates" -> {
-                            AppUpdatesInfo(profileTabId = "owner_profile", onNavigateToTab = onNavigateToTab, onDismiss = onDismiss)
                         }
                     }
                 }

@@ -33,7 +33,7 @@ service cloud.firestore {
       allow read: if true;
 
       allow create: if isSignedIn() &&
-        (role() == "SPACE_OWNER" || isAdmin()) &&
+        (role() == "PRO_HOST" || isAdmin()) &&
         request.resource.data.ownerId == request.auth.uid;
 
       // isVerified / isActiveSubscription / subscriptionExpiryMillis are
@@ -42,7 +42,7 @@ service cloud.firestore {
       // the Admin SDK, which bypasses rules) can change them. ownerId can
       // never be reassigned by a client write.
       allow update: if isSignedIn() &&
-        (isAdmin() || (role() == "SPACE_OWNER" && resource.data.ownerId == request.auth.uid)) &&
+        (isAdmin() || (role() == "PRO_HOST" && resource.data.ownerId == request.auth.uid)) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
           ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId"]
         );

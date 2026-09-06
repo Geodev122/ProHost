@@ -43,7 +43,7 @@ fun CreateListingDialog(
         id = "USR-ADMIN-ROOT",
         email = "geo.elnajjar@gmail.com",
         fullName = "Geo El-Najjar",
-        role = UserRole.SPACE_OWNER,
+        role = UserRole.PRO_HOST,
         specialty = "Commercial Workspace Host",
         phone = "+961 70 888 999",
         affiliation = "ProSpace Executive Network",

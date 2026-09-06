@@ -628,13 +628,9 @@ data class WhishTransaction(
 }
 
 enum class UserRole(val displayName: String) {
-    PROFESSIONAL("Practitioner / Specialist"),
-    SPACE_OWNER("Space Owner / Host"),
-    ADMIN("Super Administrator");
-
-    companion object {
-        val MEDICAL_PRACTITIONER = PROFESSIONAL
-    }
+    SPECIALIST("Specialist"),
+    PRO_HOST("Pro Host"),
+    ADMIN("Super Administrator")
 }
 
 data class AuditSecurityLog(
@@ -819,8 +815,8 @@ data class AppUser(
         const val COLLECTION_PATH = "user_profiles"
 
         fun fromFirestoreMap(docId: String, data: Map<String, Any?>): AppUser {
-            val roleStr = data["role"] as? String ?: UserRole.PROFESSIONAL.name
-            val role = runCatching { UserRole.valueOf(roleStr) }.getOrDefault(UserRole.PROFESSIONAL)
+            val roleStr = data["role"] as? String ?: UserRole.SPECIALIST.name
+            val role = runCatching { UserRole.valueOf(roleStr) }.getOrDefault(UserRole.SPECIALIST)
 
             val govStr = data["governorate"] as? String ?: Governorate.BEIRUT.name
             val gov = runCatching { Governorate.valueOf(govStr) }.getOrDefault(Governorate.BEIRUT)
@@ -913,42 +909,42 @@ enum class DocumentType(
         title = "Syndicate / Order Membership Card",
         officialLebaneseLabel = "بطاقة انتساب النقابة (OEA / LOP / BBA)",
         description = "Official active membership card from your professional syndicate (Order of Engineers, Order of Physicians, Bar Association, etc.)",
-        requiredFor = listOf(UserRole.PROFESSIONAL),
+        requiredFor = listOf(UserRole.SPECIALIST),
         placeholderDocNumber = "e.g. OEA-8842, LOP-7193, BBA-4421"
     ),
     NATIONAL_ID(
         title = "National Identity Card / Passport",
         officialLebaneseLabel = "الهوية اللبنانية / جواز السفر / بيان قيد إفرادي",
         description = "Government-issued biometric ID card, valid Lebanese passport, or individual civil registry extract (Bayan Qayd)",
-        requiredFor = listOf(UserRole.PROFESSIONAL, UserRole.SPACE_OWNER),
+        requiredFor = listOf(UserRole.SPECIALIST, UserRole.PRO_HOST),
         placeholderDocNumber = "e.g. ID-00192847 or PASS-RL88291"
     ),
     PRACTICE_LICENSE(
         title = "Professional Practice Permit / License",
         officialLebaneseLabel = "إذن مزاولة المهنة / ترخيص وزارة الصحة أو الأشغال",
         description = "Official decree or permit authorizing independent professional practice in the Republic of Lebanon",
-        requiredFor = listOf(UserRole.PROFESSIONAL),
+        requiredFor = listOf(UserRole.SPECIALIST),
         placeholderDocNumber = "e.g. LIC-MOPH-2024-918"
     ),
     COMMERCIAL_REGISTER(
         title = "Commercial Register Extract (Sijil Tejari)",
         officialLebaneseLabel = "إذاعة تجارية / سجل تجاري حديث",
         description = "Official Ministry of Justice commercial registration certificate dated within the last 6 months",
-        requiredFor = listOf(UserRole.SPACE_OWNER),
+        requiredFor = listOf(UserRole.PRO_HOST),
         placeholderDocNumber = "e.g. CR-BEI-84920"
     ),
     TITLE_DEED_OR_LEASE(
         title = "Premises Title Deed (Tabou) or Lease Contract",
         officialLebaneseLabel = "سند ملكية (طابو) أو عقد إيجار تجاري مصدق",
         description = "Certified property ownership title (Sanad Melkiyeh) or commercial lease authorizing subleasing/coworking",
-        requiredFor = listOf(UserRole.SPACE_OWNER),
+        requiredFor = listOf(UserRole.PRO_HOST),
         placeholderDocNumber = "e.g. TABOU-ACH-402/2021"
     ),
     TAX_REGISTRATION(
         title = "Tax ID Registration (Raqam Mali)",
         officialLebaneseLabel = "شهادة التسجيل المالي (الرقم المالي)",
         description = "Ministry of Finance official tax registration certificate / financial registration number",
-        requiredFor = listOf(UserRole.PROFESSIONAL, UserRole.SPACE_OWNER),
+        requiredFor = listOf(UserRole.SPECIALIST, UserRole.PRO_HOST),
         placeholderDocNumber = "e.g. MOF-774921-601"
     )
 }

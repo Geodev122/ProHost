@@ -108,7 +108,7 @@ object AppSystemDebugger {
             // profiles (used to be hardcoded PASSED regardless of actual data).
             val userProfiles = repository.users.value
             val professionalsMissingSyndicateNumber = userProfiles.filter {
-                it.role == UserRole.PROFESSIONAL && it.syndicateNumber.isBlank()
+                it.role == UserRole.SPECIALIST && it.syndicateNumber.isBlank()
             }
             results.add(
                 DiagnosticItem(
@@ -116,7 +116,7 @@ object AppSystemDebugger {
                     featureName = "Lebanese Syndicate Accreditation & KYC",
                     status = if (professionalsMissingSyndicateNumber.isEmpty()) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
                     details = if (professionalsMissingSyndicateNumber.isEmpty())
-                        "All ${userProfiles.count { it.role == UserRole.PROFESSIONAL }} professional profiles have a syndicate/license number on file."
+                        "All ${userProfiles.count { it.role == UserRole.SPECIALIST }} professional profiles have a syndicate/license number on file."
                     else
                         "${professionalsMissingSyndicateNumber.size} professional profile(s) missing a syndicate/license number."
                 )

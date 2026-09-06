@@ -34,14 +34,14 @@ service firebase.storage {
 
     // Listing cover photos. Publicly readable (the discovery feed and listing
     // details are browsable), writable by the listing's actual owner once the
-    // Firestore doc exists — or by any SPACE_OWNER while it doesn't yet, since
+    // Firestore doc exists — or by any PRO_HOST while it doesn't yet, since
     // photos are picked and uploaded before "Publish Listing" is tapped and the
     // Firestore document is created.
     match /listings/{spaceId}/{fileName} {
       allow read: if true;
       allow write: if isSignedIn() &&
         (isAdmin() ||
-         (role() == "SPACE_OWNER" &&
+         (role() == "PRO_HOST" &&
           (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
            firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid))) &&
         withinSizeLimit() &&

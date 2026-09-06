@@ -35,9 +35,9 @@ class ProSpaceEndToEndLifecycleTest {
     @Test
     fun `test complete booking lifecycle - discovery to owner approval to whish renewal`() {
         // 1. Practitioner logs in
-        val practitioner = repository.login(uid = "uid-dr-sami", email = "dr.sami@prospace.lb", verifiedRole = UserRole.PROFESSIONAL)
+        val practitioner = repository.login(uid = "uid-dr-sami", email = "dr.sami@prospace.lb", verifiedRole = UserRole.SPECIALIST)
         assertNotNull(practitioner)
-        assertEquals(UserRole.PROFESSIONAL, practitioner.role)
+        assertEquals(UserRole.SPECIALIST, practitioner.role)
 
         // 2. Discover available space
         val spaces = repository.spaces.value
@@ -106,7 +106,7 @@ class ProSpaceEndToEndLifecycleTest {
 
     @Test
     fun `test space owner rejection workflow and audit logging`() {
-        val practitioner = repository.login(uid = "uid-dr-maya", email = "dr.maya@prospace.lb", verifiedRole = UserRole.PROFESSIONAL)
+        val practitioner = repository.login(uid = "uid-dr-maya", email = "dr.maya@prospace.lb", verifiedRole = UserRole.SPECIALIST)
         val space = repository.spaces.value.first()
         val formula = space.rentalFormulas.first()
 
@@ -209,11 +209,11 @@ class ProSpaceEndToEndLifecycleTest {
         val user = repository.login(
             uid = "uid-arbitrary",
             email = "geo.elnajjar@gmail.com",
-            verifiedRole = UserRole.PROFESSIONAL
+            verifiedRole = UserRole.SPECIALIST
         )
         assertEquals(
             "The role actually assigned must be exactly the verifiedRole argument, regardless of which email was used",
-            UserRole.PROFESSIONAL,
+            UserRole.SPECIALIST,
             user.role
         )
     }

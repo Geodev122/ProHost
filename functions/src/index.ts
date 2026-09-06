@@ -13,7 +13,6 @@ export const ping = onCall(() => {
 });
 
 export { assignInitialRole } from "./roles/assignInitialRole";
-export { requestRoleUpgrade } from "./roles/requestRoleUpgrade";
 export { grantAdminRole } from "./roles/grantAdminRole";
 export { bootstrapSuperAdmin } from "./roles/bootstrapSuperAdmin";
 
