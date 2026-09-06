@@ -53,6 +53,9 @@ data class AdminUiState(
     val isGrantAdminDialogOpen: Boolean = false,
     val grantingAdminUser: AppUser? = null,
 
+    val isSuspendUserDialogOpen: Boolean = false,
+    val suspendingUser: AppUser? = null,
+
     val isAddSchemaItemDialogOpen: Boolean = false,
     val isResetSchemaDialogOpen: Boolean = false
 ) {

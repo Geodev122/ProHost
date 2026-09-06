@@ -329,6 +329,14 @@ fun AdminConsoleScreen(
     }
 
     // 3b. Grant Admin Confirmation Dialog
+    if (uiState.isSuspendUserDialogOpen && uiState.suspendingUser != null) {
+        AdminSuspendUserDialog(
+            user = uiState.suspendingUser!!,
+            onDismiss = { adminViewModel.closeSuspendUserDialog() },
+            onConfirm = { adminViewModel.confirmToggleSuspend() }
+        )
+    }
+
     if (uiState.isGrantAdminDialogOpen && uiState.grantingAdminUser != null) {
         AdminGrantAdminDialog(
             user = uiState.grantingAdminUser!!,
@@ -836,26 +844,39 @@ private fun AdminUsersDirectoryTab(
                             }
                         }
 
-                        // Role Badge
-                        Surface(
-                            color = when (user.role) {
-                                UserRole.ADMIN -> StatusWarningContainer
-                                UserRole.PRO_HOST -> CarnationOrangeContainer
-                                UserRole.SPECIALIST -> OxfordBlueContainer
-                            },
-                            shape = RoundedCornerShape(6.dp)
-                        ) {
-                            Text(
-                                text = user.role.name.replace("_", " "),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            if (user.isSuspended) {
+                                Surface(color = StatusErrorContainer, shape = RoundedCornerShape(6.dp)) {
+                                    Text(
+                                        text = "SUSPENDED",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = StatusOnErrorContainer,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                    )
+                                }
+                            }
+                            // Role Badge
+                            Surface(
                                 color = when (user.role) {
-                                    UserRole.ADMIN -> AmberWarning
-                                    UserRole.PRO_HOST -> CarnationOrange
-                                    UserRole.SPECIALIST -> OxfordBlue
+                                    UserRole.ADMIN -> StatusWarningContainer
+                                    UserRole.PRO_HOST -> CarnationOrangeContainer
+                                    UserRole.SPECIALIST -> OxfordBlueContainer
                                 },
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                            )
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    text = user.role.name.replace("_", " "),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = when (user.role) {
+                                        UserRole.ADMIN -> AmberWarning
+                                        UserRole.PRO_HOST -> CarnationOrange
+                                        UserRole.SPECIALIST -> OxfordBlue
+                                    },
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                )
+                            }
                         }
                     }
 
@@ -928,6 +949,24 @@ private fun AdminUsersDirectoryTab(
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Icon(Icons.Default.AdminPanelSettings, contentDescription = "Grant Admin", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                            }
+                        }
+
+                        // Suspend / Reactivate Button — the state between "exists" and
+                        // "deleted"; never offered for an Admin account (the server
+                        // rejects that anyway, but hiding it here avoids a confusing
+                        // failed attempt).
+                        if (user.role != UserRole.ADMIN) {
+                            IconButton(
+                                onClick = { adminViewModel.openSuspendUserDialog(user) },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    if (user.isSuspended) Icons.Default.LockOpen else Icons.Default.Block,
+                                    contentDescription = if (user.isSuspended) "Reactivate Account" else "Suspend Account",
+                                    tint = if (user.isSuspended) FreshGreen else StatusError,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         }
 
@@ -2096,6 +2135,48 @@ private fun AdminGrantAdminDialog(
         confirmButton = {
             Button(onClick = onConfirm) {
                 Text("Confirm Grant")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+private fun AdminSuspendUserDialog(
+    user: AppUser,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val suspending = !user.isSuspended
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                if (suspending) Icons.Default.Block else Icons.Default.LockOpen,
+                contentDescription = null,
+                tint = if (suspending) StatusError else FreshGreen
+            )
+        },
+        title = { Text(if (suspending) "Suspend Account?" else "Reactivate Account?") },
+        text = {
+            Text(
+                if (suspending) {
+                    "'${user.fullName}' (${user.email}) will be signed out and unable to sign back in, create listings, or submit booking requests until reactivated. Their data and history are kept — this is not a deletion."
+                } else {
+                    "'${user.fullName}' (${user.email}) will regain full access immediately."
+                }
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = if (suspending) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors()
+            ) {
+                Text(if (suspending) "Confirm Suspend" else "Confirm Reactivate")
             }
         },
         dismissButton = {

@@ -105,7 +105,8 @@ class FirestoreService(
         onBookingsUpdated: (List<RentalBookingRequest>) -> Unit,
         onFormulasUpdated: (List<SubscriptionFormula>) -> Unit,
         onTransactionsUpdated: (List<WhishTransaction>) -> Unit,
-        onSchemaUpdated: (SpaceArchitectureSchema) -> Unit = {}
+        onSchemaUpdated: (SpaceArchitectureSchema) -> Unit = {},
+        onAuditLogsUpdated: (List<AuditSecurityLog>) -> Unit = {}
     ) {
         val db = firestore ?: return
 
@@ -207,6 +208,30 @@ class FirestoreService(
                     }
                 }
             activeListeners.add(schemaListener)
+
+            // Admin-only read (firestore.rules) — every non-admin session simply gets a
+            // permission-denied here and never populates audit logs, which is fine, they
+            // don't need to see it. Before this listener existed, Admin's "System Audit
+            // Logs" panel only ever showed entries added locally on the SAME device via
+            // addLocalAuditLogEntry — real server-written entries (other admins' actions,
+            // Cloud-Function-only events like role grants or account suspensions) never
+            // reached it at all. This is what makes that panel actually show everything.
+            val auditLogListener = db.collection(FirestoreSchema.Collections.AUDIT_SECURITY_LOGS)
+                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .limit(500)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.w(TAG, "Audit logs sync note: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val logs = snapshot.documents.mapNotNull { doc ->
+                            doc.data?.let { data -> AuditSecurityLog.fromFirestoreMap(doc.id, data) }
+                        }
+                        onAuditLogsUpdated(logs)
+                    }
+                }
+            activeListeners.add(auditLogListener)
         } catch (e: Exception) {
             Log.w(TAG, "Live listeners attachment warning: ${e.message}")
         }

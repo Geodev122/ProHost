@@ -29,6 +29,7 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
+import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -39,18 +40,23 @@ fun CreateListingDialog(
     onDismiss: () -> Unit,
     onListingCreated: (SpaceListing) -> Unit
 ) {
-    val activeUser = currentUser ?: AppUser(
-        id = "USR-ADMIN-ROOT",
-        email = "geo.elnajjar@gmail.com",
-        fullName = "Geo El-Najjar",
-        role = UserRole.PRO_HOST,
-        specialty = "Commercial Workspace Host",
-        phone = "+961 70 888 999",
-        country = "Lebanon",
-        governorate = "Beirut",
-        city = "Beirut",
-        isVerified = true
-    )
+    if (currentUser == null) {
+        Dialog(onDismissRequest = onDismiss) {
+            Card(shape = RoundedCornerShape(16.dp)) {
+                Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Sign In Required", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(
+                        "Your account couldn't be loaded. Please sign in again before creating a listing.",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Button(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text("Close") }
+                }
+            }
+        }
+        return
+    }
+    val activeUser = currentUser
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -95,6 +101,13 @@ fun CreateListingDialog(
     var selectedGovernorate by remember { mutableStateOf(Governorate.BEIRUT) }
     var district by remember { mutableStateOf("") }
     var streetAddress by remember { mutableStateOf("") }
+
+    // Real geolocation from the map picker below — required to publish. Distinct from
+    // [district]/[streetAddress] above, which the host types freely; a picked address
+    // can be applied into those fields with one tap, but never overwrites them silently.
+    var pickedLatLng by remember { mutableStateOf<LatLng?>(null) }
+    var pickedAddressLine by remember { mutableStateOf<String?>(null) }
+    var pickedDistrict by remember { mutableStateOf<String?>(null) }
     var floorInfo by remember { mutableStateOf("Floor 3 (Elevator accessible)") }
     var isShared by remember { mutableStateOf(true) }
     var baseMonthlyRate by remember { mutableStateOf("500") }
@@ -259,6 +272,35 @@ fun CreateListingDialog(
                                             onClick = { selectedGovernorate = gov },
                                             label = { Text(gov.displayName, fontSize = 12.sp) }
                                         )
+                                    }
+                                }
+
+                                Text("Pin the Exact Location", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text(
+                                    "Tap the map to record the real GPS coordinates specialists will see when searching nearby — required to publish.",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                ListingLocationMapPicker(
+                                    initialCenter = LatLng(selectedGovernorate.centerLat, selectedGovernorate.centerLng),
+                                    pickedLatLng = pickedLatLng,
+                                    onLocationPicked = { picked ->
+                                        pickedLatLng = LatLng(picked.lat, picked.lng)
+                                        pickedAddressLine = picked.addressLine
+                                        pickedDistrict = picked.district
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                if ((pickedAddressLine != null || pickedDistrict != null) &&
+                                    (streetAddress.isBlank() || district.isBlank())
+                                ) {
+                                    TextButton(onClick = {
+                                        if (streetAddress.isBlank()) pickedAddressLine?.let { streetAddress = it }
+                                        if (district.isBlank()) pickedDistrict?.let { district = it }
+                                    }) {
+                                        Icon(Icons.Default.AutoFixHigh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Apply detected address to fields below", fontSize = 12.sp)
                                     }
                                 }
 
@@ -905,19 +947,29 @@ fun CreateListingDialog(
                                     }
                                 }
 
-                                // Geocode address using Android's Geocoder
-                                val fullAddress = "${streetAddress}, ${district}, ${selectedGovernorate.displayName}, Lebanon"
+                                // Prefer the real pin dropped on the map (recorded via
+                                // ListingLocationMapPicker above); only fall back to
+                                // string-geocoding the typed address if the host somehow
+                                // reached submit without one (shouldn't happen — gated by
+                                // the Publish button below).
                                 var geocodedLat = selectedGovernorate.centerLat + ((-20..20).random() / 1000.0)
                                 var geocodedLng = selectedGovernorate.centerLng + ((-20..20).random() / 1000.0)
-                                try {
-                                    val geocoder = android.location.Geocoder(context, java.util.Locale.getDefault())
-                                    val addresses = geocoder.getFromLocationName(fullAddress, 1)
-                                    if (!addresses.isNullOrEmpty()) {
-                                        geocodedLat = addresses[0].latitude
-                                        geocodedLng = addresses[0].longitude
+                                val pinned = pickedLatLng
+                                if (pinned != null) {
+                                    geocodedLat = pinned.latitude
+                                    geocodedLng = pinned.longitude
+                                } else {
+                                    try {
+                                        val fullAddress = "${streetAddress}, ${district}, ${selectedGovernorate.displayName}, Lebanon"
+                                        val geocoder = android.location.Geocoder(context, java.util.Locale.getDefault())
+                                        val addresses = geocoder.getFromLocationName(fullAddress, 1)
+                                        if (!addresses.isNullOrEmpty()) {
+                                            geocodedLat = addresses[0].latitude
+                                            geocodedLng = addresses[0].longitude
+                                        }
+                                    } catch (e: Exception) {
+                                        // fallback to the jittered governorate center above
                                     }
-                                } catch (e: Exception) {
-                                    // fallback
                                 }
 
                                 val newListing = SpaceListing(
@@ -957,7 +1009,7 @@ fun CreateListingDialog(
                         enabled = if (currentStep < totalSteps - 1) {
                             currentStep != 0 || title.isNotBlank() || district.isNotBlank()
                         } else {
-                            ownershipProofUrl != null && !isUploadingOwnershipProof
+                            pickedLatLng != null && ownershipProofUrl != null && !isUploadingOwnershipProof
                         }
                     )
                 }

@@ -149,13 +149,18 @@ class ProSpaceMessagingService : FirebaseMessagingService() {
                 )
             }
 
-            // Action 2: Instant One-Tap WhatsApp Action
+            // Action 2: Instant One-Tap WhatsApp Action — routed through MainActivity
+            // (rather than launching the wa.me ACTION_VIEW intent directly from the
+            // notification tray) so the tap is audit-logged the same way every other
+            // in-app WhatsApp handoff is, instead of silently bypassing the trail.
             if (!whatsAppPhone.isNullOrBlank()) {
                 val cleanPhone = whatsAppPhone.replace("+", "").replace(" ", "").replace("-", "")
                 val textPayload = whatsAppMessage ?: "Hello, replying regarding the ProSpace booking alert: $title"
                 val encoded = java.net.URLEncoder.encode(textPayload, "UTF-8")
-                val waIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://wa.me/$cleanPhone?text=$encoded")).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                val waIntent = Intent(context, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra("whatsapp_uri", "https://wa.me/$cleanPhone?text=$encoded")
+                    putExtra("whatsapp_audit_detail", "WhatsApp reply opened from a notification action: \"$title\"")
                 }
                 val waPendingIntent = PendingIntent.getActivity(
                     context,

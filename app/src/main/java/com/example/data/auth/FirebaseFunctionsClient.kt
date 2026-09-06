@@ -36,7 +36,17 @@ class FirebaseFunctionsClient {
             Result.success(role)
         } catch (e: Exception) {
             Log.e(tag, "ensureInitialRole failed: ${e.message}", e)
-            Result.failure(e)
+            // assignInitialRole.ts throws exactly this permission-denied shape for one
+            // reason only — the account is suspended (setAccountSuspended.ts) — so this
+            // is distinguished from any other failure and wrapped for callers to catch
+            // specifically (see AuthFlow.resolveVerifiedRole).
+            val isSuspension = e is com.google.firebase.functions.FirebaseFunctionsException &&
+                e.code == com.google.firebase.functions.FirebaseFunctionsException.Code.PERMISSION_DENIED &&
+                e.message?.contains("suspended", ignoreCase = true) == true
+            Result.failure(
+                if (isSuspension) com.example.data.auth.AccountSuspendedException(e.message ?: "This account has been suspended.")
+                else e
+            )
         }
     }
 
@@ -57,6 +67,23 @@ class FirebaseFunctionsClient {
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(tag, "grantAdminRole failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Admin-only: suspends or reactivates an account (functions/src/roles/setAccountSuspended.ts)
+     * — the state between "exists" and "deleted." An Admin account can never be
+     * suspended through this path (the server rejects it).
+     */
+    suspend fun setAccountSuspended(targetUid: String, suspended: Boolean): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("setAccountSuspended")
+                .call(mapOf("targetUid" to targetUid, "suspended" to suspended))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "setAccountSuspended failed: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -163,6 +190,23 @@ class FirebaseFunctionsClient {
     // account's phone number passed Firebase Phone Auth SMS verification," synced
     // automatically by assignInitialRole.ts from the ID token's own phone_number
     // claim — there is nothing left for a human to submit, approve, or override.
+
+    /**
+     * Sends a real cross-device push reminding the specialist to settle payment for
+     * an accepted booking (functions/src/notifications/sendPaymentReminder.ts) — the
+     * server verifies the caller actually owns the booking's space before sending.
+     */
+    suspend fun sendPaymentReminder(bookingId: String): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("sendPaymentReminder")
+                .call(mapOf("bookingId" to bookingId))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "sendPaymentReminder failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
 
     /** Admin-only: override a listing's verified badge (functions/src/admin/listings.ts). */
     suspend fun setListingVerification(spaceId: String, verified: Boolean): Result<Unit> {

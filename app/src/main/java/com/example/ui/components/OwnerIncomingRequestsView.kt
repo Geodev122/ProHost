@@ -132,13 +132,7 @@ fun OwnerIncomingRequestsView(
                                 viewModel.launchWhatsAppToPractitioner(context, request)
                             },
                             onSendPaymentReminder = {
-                                viewModel.postNotificationAlert(
-                                    title = "Payment Reminder 💳",
-                                    body = "Friendly reminder to settle payment for your approved booking of '${request.spaceTitle}' with host ${request.ownerName}.",
-                                    category = "PAYMENT_REMINDER",
-                                    context = context
-                                )
-                                Toast.makeText(context, "Payment Reminder Sent to ${request.practitionerName}!", Toast.LENGTH_LONG).show()
+                                viewModel.sendPaymentReminder(request.id, request.practitionerName, context)
                             }
                         )
                     }

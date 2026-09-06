@@ -35,6 +35,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrawerDialogsHandler(
     dialogId: String?,
@@ -59,6 +60,12 @@ fun DrawerDialogsHandler(
     val auditLogs by viewModel.auditLogs.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
     val fcmAlerts by viewModel.fcmAlerts.collectAsState()
+
+    // Audit Logs date-range filter (System Audit Logs dialog) — millis, inclusive.
+    var auditFromMillis by remember { mutableStateOf<Long?>(null) }
+    var auditToMillis by remember { mutableStateOf<Long?>(null) }
+    var showAuditFromPicker by remember { mutableStateOf(false) }
+    var showAuditToPicker by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -298,27 +305,117 @@ fun DrawerDialogsHandler(
                             }
                         }
                         "admin_audit" -> {
-                            LazyColumn(
-                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                items(auditLogs) { log ->
-                                    Card(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(containerColor = Color.Black)
-                                    ) {
-                                        Column(modifier = Modifier.padding(8.dp)) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Text(log.actionType, color = Color(0xFF00FF00), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
-                                                Text(log.severity, color = if (log.severity == "SECURE") Color.Red else Color.Yellow, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
-                                            }
-                                            Text(log.details, color = Color.White, style = MaterialTheme.typography.labelSmall)
-                                            Text("Actor: ${log.actorEmail} • IP: ${log.ipAddress}", color = Color.Gray, fontSize = 9.sp)
+                            val sdfShort = remember { SimpleDateFormat("MMM d, yyyy", Locale.US) }
+                            val filteredAuditLogs = remember(auditLogs, auditFromMillis, auditToMillis) {
+                                auditLogs.filter { log ->
+                                    (auditFromMillis == null || log.timestamp >= auditFromMillis!!) &&
+                                        (auditToMillis == null || log.timestamp <= auditToMillis!!)
+                                }
+                            }
+
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                // Date-range filter bar
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    AssistChip(
+                                        onClick = { showAuditFromPicker = true },
+                                        label = { Text(auditFromMillis?.let { "From: ${sdfShort.format(Date(it))}" } ?: "From: Any", fontSize = 11.sp) },
+                                        leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                    )
+                                    AssistChip(
+                                        onClick = { showAuditToPicker = true },
+                                        label = { Text(auditToMillis?.let { "To: ${sdfShort.format(Date(it))}" } ?: "To: Any", fontSize = 11.sp) },
+                                        leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                    )
+                                    if (auditFromMillis != null || auditToMillis != null) {
+                                        IconButton(onClick = { auditFromMillis = null; auditToMillis = null }, modifier = Modifier.size(28.dp)) {
+                                            Icon(Icons.Default.Close, contentDescription = "Clear date filter", modifier = Modifier.size(16.dp))
                                         }
                                     }
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("${filteredAuditLogs.size} of ${auditLogs.size} entries", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Button(
+                                        onClick = {
+                                            val csv = viewModel.repository.exportAuditLogsToCsv(auditFromMillis, auditToMillis)
+                                            viewModel.shareExportData(context, "Audit Logs", csv)
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Export CSV", fontSize = 11.sp)
+                                    }
+                                }
+
+                                LazyColumn(
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                                ) {
+                                    items(filteredAuditLogs) { log ->
+                                        Card(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = CardDefaults.cardColors(containerColor = Color.Black)
+                                        ) {
+                                            Column(modifier = Modifier.padding(8.dp)) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(log.actionType, color = Color(0xFF00FF00), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                                    Text(log.severity, color = if (log.severity == "SECURE") Color.Red else Color.Yellow, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                                }
+                                                Text(log.details, color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                                Text(
+                                                    "Actor: ${log.actorEmail} • ${SimpleDateFormat("MMM d, yyyy HH:mm", Locale.US).format(Date(log.timestamp))}",
+                                                    color = Color.Gray,
+                                                    fontSize = 9.sp
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (showAuditFromPicker) {
+                                val pickerState = rememberDatePickerState(initialSelectedDateMillis = auditFromMillis)
+                                DatePickerDialog(
+                                    onDismissRequest = { showAuditFromPicker = false },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            auditFromMillis = pickerState.selectedDateMillis
+                                            showAuditFromPicker = false
+                                        }) { Text("OK") }
+                                    },
+                                    dismissButton = { TextButton(onClick = { showAuditFromPicker = false }) { Text("Cancel") } }
+                                ) {
+                                    DatePicker(state = pickerState)
+                                }
+                            }
+
+                            if (showAuditToPicker) {
+                                val pickerState = rememberDatePickerState(initialSelectedDateMillis = auditToMillis)
+                                DatePickerDialog(
+                                    onDismissRequest = { showAuditToPicker = false },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            // Inclusive end-of-day so "To: today" also includes today's entries.
+                                            auditToMillis = pickerState.selectedDateMillis?.plus(24L * 60 * 60 * 1000 - 1)
+                                            showAuditToPicker = false
+                                        }) { Text("OK") }
+                                    },
+                                    dismissButton = { TextButton(onClick = { showAuditToPicker = false }) { Text("Cancel") } }
+                                ) {
+                                    DatePicker(state = pickerState)
                                 }
                             }
                         }

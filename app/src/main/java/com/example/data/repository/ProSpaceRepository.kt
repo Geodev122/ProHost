@@ -150,6 +150,9 @@ class ProSpaceRepository {
                 onSchemaUpdated = { updatedSchema ->
                     _spaceArchitectureSchema.value = updatedSchema
                     _isCloudConnected.value = true
+                },
+                onAuditLogsUpdated = { updatedLogs ->
+                    _auditLogs.value = updatedLogs
                 }
             )
 
@@ -442,6 +445,34 @@ class ProSpaceRepository {
     // with Whish's own status API. Transactions arrive here via the whish_transactions
     // Firestore listener (see startRealtimeSync) — the repository is a read-only
     // observer of payment state now, not the thing deciding it.
+
+    /**
+     * Exports the System Audit Logs panel's content (optionally date-range filtered) —
+     * this is the same real, server-populated list the panel now shows live (see
+     * FirestoreService.attachLiveListeners' audit-log listener), not just whatever this
+     * device happened to add locally.
+     */
+    fun exportAuditLogsToCsv(startDateMillis: Long? = null, endDateMillis: Long? = null): String {
+        val logs = _auditLogs.value.filter { log ->
+            val matchesStart = startDateMillis == null || log.timestamp >= startDateMillis
+            val matchesEnd = endDateMillis == null || log.timestamp <= endDateMillis
+            matchesStart && matchesEnd
+        }
+
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+        val sb = StringBuilder()
+        sb.appendLine("=== PROHOST SYSTEM AUDIT LOGS EXPORT (CSV) ===")
+        sb.appendLine("Export Date,${sdf.format(Date())}")
+        sb.appendLine("Range,${startDateMillis?.let { sdf.format(Date(it)) } ?: "Beginning"} to ${endDateMillis?.let { sdf.format(Date(it)) } ?: "Now"}")
+        sb.appendLine("Total Entries,${logs.size}")
+        sb.appendLine()
+        sb.appendLine("Timestamp,Action Type,Severity,Actor Email,Details")
+        logs.forEach { log ->
+            val detailsEscaped = log.details.replace("\"", "\"\"")
+            sb.appendLine("\"${sdf.format(Date(log.timestamp))}\",\"${log.actionType}\",\"${log.severity}\",\"${log.actorEmail}\",\"$detailsEscaped\"")
+        }
+        return sb.toString()
+    }
 
     fun exportTransactionsToCsv(startDateMillis: Long? = null, endDateMillis: Long? = null): String {
         val txs = _transactions.value.filter { tx ->
@@ -943,6 +974,14 @@ class ProSpaceRepository {
             if (it.id == requestId) it.copy(status = BookingRequestStatus.CANCELLED) else it
         }
         syncBookingStatusToFirestore(requestId, BookingRequestStatus.CANCELLED)
+
+        addAuditLog(
+            actionType = "RENTAL_REQUEST_CANCELLED",
+            details = "Request $requestId for '${request.spaceTitle}' cancelled by practitioner ${request.practitionerName} before host review.",
+            severity = "INFO",
+            actorEmail = request.practitionerEmail
+        )
+
         return true
     }
 

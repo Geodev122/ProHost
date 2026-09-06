@@ -486,10 +486,15 @@ class ProSpaceViewModel(
                 if (!pendingIsLinkingGoogleAccount && !result.isNewUser) {
                     // This exact phone number already had an account — sign the caller
                     // straight into it, no registration form, nothing to overwrite.
-                    val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
-                    registerFcmTokenForCurrentUser(user.id)
-                    _authSuccessMessage.value = "Welcome back, ${user.fullName}!"
-                    onVerified(false)
+                    try {
+                        val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
+                        registerFcmTokenForCurrentUser(user.id)
+                        _authSuccessMessage.value = "Welcome back, ${user.fullName}!"
+                        onVerified(false)
+                    } catch (e: com.example.data.auth.AccountSuspendedException) {
+                        authService.signOut()
+                        _authErrorMessage.value = e.message
+                    }
                 } else {
                     // Brand-new phone number (or a Google account still missing one) —
                     // Firebase Auth already has a signed-in session for it; the caller
@@ -526,32 +531,39 @@ class ProSpaceViewModel(
         _isAuthenticating.value = true
         _authErrorMessage.value = null
         viewModelScope.launch {
-            val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
-            val profilePictureUrl = registration.profilePictureUri?.let { uri ->
-                storageService.uploadProfilePicture(firebaseUser.uid, uri, guessFileExtension(activity, uri, "jpg"))
+            try {
+                val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
+                val profilePictureUrl = registration.profilePictureUri?.let { uri ->
+                    storageService.uploadProfilePicture(firebaseUser.uid, uri, guessFileExtension(activity, uri, "jpg"))
+                }
+                val idDocumentUrl = registration.idDocumentUri?.let { uri ->
+                    storageService.uploadIdDocument(firebaseUser.uid, uri, guessFileExtension(activity, uri, "pdf"))
+                }
+                val user = com.example.data.auth.completeVerifiedRegistration(
+                    repository = repository,
+                    functionsClient = functionsClient,
+                    firebaseUser = firebaseUser,
+                    fullName = registration.fullName,
+                    email = registration.email,
+                    phone = registration.phoneE164,
+                    specialty = registration.specialty,
+                    profilePictureUrl = profilePictureUrl,
+                    idDocumentUrl = idDocumentUrl,
+                    country = registration.country,
+                    governorate = registration.governorate,
+                    city = registration.city
+                )
+                pendingIsLinkingGoogleAccount = false
+                _isAuthenticating.value = false
+                registerFcmTokenForCurrentUser(user.id)
+                _authSuccessMessage.value = "Account created successfully for ${user.fullName}!"
+                onSuccess()
+            } catch (e: com.example.data.auth.AccountSuspendedException) {
+                com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                pendingIsLinkingGoogleAccount = false
+                _isAuthenticating.value = false
+                _authErrorMessage.value = e.message
             }
-            val idDocumentUrl = registration.idDocumentUri?.let { uri ->
-                storageService.uploadIdDocument(firebaseUser.uid, uri, guessFileExtension(activity, uri, "pdf"))
-            }
-            val user = com.example.data.auth.completeVerifiedRegistration(
-                repository = repository,
-                functionsClient = functionsClient,
-                firebaseUser = firebaseUser,
-                fullName = registration.fullName,
-                email = registration.email,
-                phone = registration.phoneE164,
-                specialty = registration.specialty,
-                profilePictureUrl = profilePictureUrl,
-                idDocumentUrl = idDocumentUrl,
-                country = registration.country,
-                governorate = registration.governorate,
-                city = registration.city
-            )
-            pendingIsLinkingGoogleAccount = false
-            _isAuthenticating.value = false
-            registerFcmTokenForCurrentUser(user.id)
-            _authSuccessMessage.value = "Account created successfully for ${user.fullName}!"
-            onSuccess()
         }
     }
 
@@ -579,15 +591,21 @@ class ProSpaceViewModel(
                         _authErrorMessage.value = "Google sign-in did not return a valid session. Please try again."
                         return@launch
                     }
-                    val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
-                    registerFcmTokenForCurrentUser(user.id)
-                    _isAuthenticating.value = false
-                    if (firebaseUser.phoneNumber.isNullOrBlank()) {
-                        _authSuccessMessage.value = "Signed in as ${user.fullName} with Google — just need to verify your phone number."
-                        onNeedsPhoneVerification(result.displayName ?: user.fullName, result.email)
-                    } else {
-                        _authSuccessMessage.value = "Google identity verified: ${user.fullName}"
-                        onSuccess()
+                    try {
+                        val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
+                        registerFcmTokenForCurrentUser(user.id)
+                        _isAuthenticating.value = false
+                        if (firebaseUser.phoneNumber.isNullOrBlank()) {
+                            _authSuccessMessage.value = "Signed in as ${user.fullName} with Google — just need to verify your phone number."
+                            onNeedsPhoneVerification(result.displayName ?: user.fullName, result.email)
+                        } else {
+                            _authSuccessMessage.value = "Google identity verified: ${user.fullName}"
+                            onSuccess()
+                        }
+                    } catch (e: com.example.data.auth.AccountSuspendedException) {
+                        authService.signOut()
+                        _isAuthenticating.value = false
+                        _authErrorMessage.value = e.message
                     }
                 }
                 is com.example.data.auth.AuthResult.Error -> {
@@ -672,6 +690,12 @@ class ProSpaceViewModel(
             val url = "https://wa.me/$cleanPhone?text=$encoded"
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             context.startActivity(intent)
+            repository.addAuditLog(
+                actionType = "WHATSAPP_INQUIRY_SPECIALIST_TO_HOST",
+                details = "${professionalName} contacted host ${space.ownerName} via WhatsApp about listing '${space.title}' (${space.id})" +
+                    (request?.let { " regarding booking #${it.id}" } ?: ""),
+                severity = "INFO"
+            )
         } catch (e: Exception) {
             Toast.makeText(context, "Could not launch WhatsApp. Showing copied message.", Toast.LENGTH_SHORT).show()
         }
@@ -695,6 +719,11 @@ class ProSpaceViewModel(
             val url = "https://wa.me/$cleanPhone?text=$encoded"
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             context.startActivity(intent)
+            repository.addAuditLog(
+                actionType = "WHATSAPP_INQUIRY_HOST_TO_SPECIALIST",
+                details = "$ownerName contacted specialist ${request.practitionerName} via WhatsApp about booking #${request.id} ('${request.spaceTitle}')",
+                severity = "INFO"
+            )
         } catch (e: Exception) {
             Toast.makeText(context, "Could not launch WhatsApp.", Toast.LENGTH_SHORT).show()
         }
@@ -783,6 +812,22 @@ class ProSpaceViewModel(
                 Toast.makeText(context, "Booking Request #$requestId ACCEPTED! Agreement saved.", Toast.LENGTH_LONG).show()
             } else {
                 Toast.makeText(context, "Could not finalize acceptance. Please try again.", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    /**
+     * Real cross-device push reminder (functions/src/notifications/sendPaymentReminder.ts)
+     * — this used to just call [postNotificationAlert], which only ever updated the
+     * host's own device's alert tray and never reached the specialist at all.
+     */
+    fun sendPaymentReminder(bookingId: String, practitionerName: String, context: Context) {
+        viewModelScope.launch {
+            val result = functionsClient.sendPaymentReminder(bookingId)
+            if (result.isSuccess) {
+                Toast.makeText(context, "Payment Reminder Sent to $practitionerName!", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(context, "Could not send the reminder. Please try again.", Toast.LENGTH_LONG).show()
             }
         }
     }

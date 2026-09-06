@@ -29,6 +29,14 @@ import "../lib/admin";
  * no client-supplied value is ever trusted for either (see the matching
  * protected-fields list in firestore.rules' user_profiles update rule). This
  * is the audit trail behind Admin Console's Users Directory export.
+ *
+ * Also the sign-in-time enforcement point for account suspension
+ * (setAccountSuspended.ts): a suspended account is rejected here before any
+ * role/isVerified/timestamp bookkeeping runs, so a suspended user never
+ * completes sign-in even if their presented ID token predates the
+ * suspension's custom claim (this reads the live user_profiles document, not
+ * just the token, for exactly that reason — same approach as
+ * firestore.rules' isSuspended() helper).
  */
 export const assignInitialRole = onCall(async (request) => {
   const auth = request.auth;
@@ -36,8 +44,13 @@ export const assignInitialRole = onCall(async (request) => {
     throw new HttpsError("unauthenticated", "Sign in required.");
   }
 
-  const isVerified = Boolean(auth.token.phone_number);
   const db = getFirestore();
+  const profileSnap = await db.collection("user_profiles").doc(auth.uid).get();
+  if (auth.token.suspended === true || profileSnap.data()?.isSuspended === true) {
+    throw new HttpsError("permission-denied", "This account has been suspended. Contact support for help.");
+  }
+
+  const isVerified = Boolean(auth.token.phone_number);
   const now = Date.now();
 
   const existingRole = auth.token.role;

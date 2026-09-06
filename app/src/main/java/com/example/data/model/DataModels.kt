@@ -818,7 +818,13 @@ data class AppUser(
     // refreshed on every subsequent call (every sign-in). Never included in
     // [toFirestoreMap] so a client write can never touch either field, even by accident.
     val createdAtMillis: Long? = null,
-    val lastSignInAtMillis: Long? = null
+    val lastSignInAtMillis: Long? = null,
+    // Server-only, written exclusively by setAccountSuspended.ts — the state between
+    // "exists" and "deleted" Admin never had before. Enforced both at sign-in
+    // (assignInitialRole.ts rejects it) and at write time (firestore.rules' isSuspended()
+    // re-reads this field live, so a suspension takes effect on the very next attempt
+    // rather than waiting for the caller's ID token to refresh).
+    val isSuspended: Boolean = false
 ) {
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
@@ -870,7 +876,8 @@ data class AppUser(
                 ownerPackageExpiryMillis = (data["ownerPackageExpiryMillis"] as? Number)?.toLong(),
                 paygListingsBoughtCount = (data["paygListingsBoughtCount"] as? Number)?.toInt() ?: 0,
                 createdAtMillis = (data["createdAtMillis"] as? Number)?.toLong(),
-                lastSignInAtMillis = (data["lastSignInAtMillis"] as? Number)?.toLong()
+                lastSignInAtMillis = (data["lastSignInAtMillis"] as? Number)?.toLong(),
+                isSuspended = data["isSuspended"] as? Boolean ?: false
             )
         }
     }

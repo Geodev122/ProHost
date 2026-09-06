@@ -21,7 +21,12 @@ android {
     versionCode = 1
     versionName = "1.0.0"
 
-    manifestPlaceholders["MAPS_API_KEY"] = "AIzaSyProSpaceMapsKey"
+    // MAPS_API_KEY is supplied automatically by the Secrets Gradle Plugin (see the
+    // `secrets { ... }` block below) from a git-ignored .env file, falling back to
+    // .env.example's placeholder when .env doesn't exist — that's the whole point of
+    // that plugin, and AndroidManifest.xml already references it as ${MAPS_API_KEY}.
+    // A literal value used to be hardcoded here, which silently shadowed the plugin's
+    // real key with a fake one regardless of what was in .env.
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
@@ -128,6 +133,7 @@ dependencies {
   implementation(libs.play.app.update.ktx)
   implementation(libs.play.services.location)
   implementation(libs.play.services.maps)
+  implementation(libs.maps.compose)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)

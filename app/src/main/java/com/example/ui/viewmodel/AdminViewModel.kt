@@ -217,6 +217,36 @@ class AdminViewModel(
         }
     }
 
+    // --- Suspend / Reactivate Account ---
+    // The gap between "exists" and "deleted" Admin never had before — suspending
+    // blocks sign-in (assignInitialRole.ts) and new listings/booking requests
+    // (firestore.rules' isSuspended()) without erasing the account's data.
+    fun openSuspendUserDialog(user: AppUser) {
+        _uiState.update { it.copy(suspendingUser = user, isSuspendUserDialogOpen = true) }
+    }
+
+    fun closeSuspendUserDialog() {
+        _uiState.update { it.copy(suspendingUser = null, isSuspendUserDialogOpen = false) }
+    }
+
+    fun confirmToggleSuspend() {
+        val user = _uiState.value.suspendingUser ?: return
+        val newSuspended = !user.isSuspended
+        viewModelScope.launch {
+            val result = functionsClient.setAccountSuspended(user.id, newSuspended)
+            closeSuspendUserDialog()
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (result.isSuccess) {
+                        if (newSuspended) "${user.fullName} suspended" else "${user.fullName} reactivated"
+                    } else {
+                        "Could not ${if (newSuspended) "suspend" else "reactivate"} ${user.fullName}"
+                    }
+                )
+            )
+        }
+    }
+
     // --- Listings Filtering & Governance ---
     fun setListingSearchQuery(query: String) {
         _uiState.update { it.copy(listingSearchQuery = query) }

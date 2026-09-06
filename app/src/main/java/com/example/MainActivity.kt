@@ -59,6 +59,25 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIncomingIntent(intent: Intent?) {
         if (intent == null) return
+
+        // One-tap "WhatsApp Reply" notification action (ProSpaceMessagingService) is
+        // routed through here instead of launching wa.me directly from the tray, so the
+        // handoff gets a real audit-log entry like every other in-app WhatsApp action.
+        val whatsappUri = intent.getStringExtra("whatsapp_uri")
+        if (!whatsappUri.isNullOrBlank()) {
+            com.example.data.repository.ProSpaceRepository.getInstance().addAuditLog(
+                actionType = "WHATSAPP_CONTACT_INITIATED",
+                details = intent.getStringExtra("whatsapp_audit_detail") ?: "WhatsApp reply opened from a notification action.",
+                severity = "INFO"
+            )
+            startActivity(
+                Intent(Intent.ACTION_VIEW, android.net.Uri.parse(whatsappUri)).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+            )
+            return
+        }
+
         val tab = intent.getStringExtra("target_tab")
         val bookingId = intent.getStringExtra("booking_id")
         if (!tab.isNullOrBlank()) {

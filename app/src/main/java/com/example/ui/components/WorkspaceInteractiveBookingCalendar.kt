@@ -51,7 +51,48 @@ data class CalendarDayItem(
     val isFullyBooked: Boolean,
     val isPartiallyBooked: Boolean,
     val formattedDateStr: String
-)
+) {
+    /** A day the caller can never select as a start/end date — closed, blacked out, or already leased. */
+    val isBlockedForSelection: Boolean get() = isBlackoutDay || isFullyBooked
+}
+
+/**
+ * Whether [booking] is actually active on [date] — not just whether its
+ * recurrence pattern matches this day-of-week, which is all the calendar used
+ * to check. That meant a booking from any month blocked the same weekday in
+ * every OTHER month shown too, forever, since its real date range was never
+ * consulted. [booking.endDate] is often blank (most bookings only ever store
+ * startDate + durationMonths), so the effective end is computed the same way
+ * ProSpaceRepository.createBookingRequest describes a booking's term.
+ */
+private fun isBookingActiveOnDate(booking: RentalBookingRequest, date: Date, dateFormatter: SimpleDateFormat): Boolean {
+    val start = try { dateFormatter.parse(booking.startDate) } catch (e: Exception) { null } ?: return false
+    val end = if (booking.endDate.isNotBlank()) {
+        try { dateFormatter.parse(booking.endDate) } catch (e: Exception) { null }
+    } else null
+    val effectiveEnd = end ?: Calendar.getInstance(Locale.US).apply {
+        time = start
+        add(Calendar.MONTH, booking.durationMonths.coerceAtLeast(1))
+    }.time
+    return !date.before(start) && !date.after(effectiveEnd)
+}
+
+/** "08:00" -> 480. Malformed input falls back to 0 rather than crashing the calendar. */
+private fun timeToMinutes(hhmm: String): Int {
+    val parts = hhmm.split(":")
+    val h = parts.getOrNull(0)?.toIntOrNull() ?: 0
+    val m = parts.getOrNull(1)?.toIntOrNull() ?: 0
+    return h * 60 + m
+}
+
+/** Real hour-range overlap — "08:00"-"14:00" style strings. */
+private fun hourRangesOverlap(startA: String, endA: String, startB: String, endB: String): Boolean {
+    val aStart = timeToMinutes(startA)
+    val aEnd = timeToMinutes(endA)
+    val bStart = timeToMinutes(startB)
+    val bEnd = timeToMinutes(endB)
+    return aStart < bEnd && bStart < aEnd
+}
 
 data class AvailabilityCheckResult(
     val isAvailable: Boolean,
@@ -208,13 +249,29 @@ fun WorkspaceInteractiveBookingCalendar(
             // Check blackouts
             val isBlackout = schedule.blackoutSlots.any { it.dayOfWeek.equals(dayOfWeekShort, ignoreCase = true) }
 
-            // Check bookings on this day
+            // Check bookings on this day — must actually be active on THIS calendar
+            // date, not just share a day-of-week (see isBookingActiveOnDate's doc).
             val dayBookings = acceptedBookings.filter { bkg ->
                 bkg.spaceId == space.id &&
                 bkg.status == BookingRequestStatus.ACCEPTED &&
-                (bkg.selectedDays.isEmpty() || bkg.selectedDays.contains(dayOfWeekShort))
+                (bkg.selectedDays.isEmpty() || bkg.selectedDays.contains(dayOfWeekShort)) &&
+                isBookingActiveOnDate(bkg, curDate, dateFormatter)
             }
-            val isFullyBooked = dayBookings.any { it.formula.type == RentalFormulaType.FULL_MONTH }
+            // A day is fully leased (unselectable) if a full-month exclusive booking
+            // covers it, or if some combination of accepted shifts already spans the
+            // entire operating window for that day.
+            val isFullyBooked = dayBookings.any { it.formula.type == RentalFormulaType.FULL_MONTH } ||
+                (dayBookings.isNotEmpty() && run {
+                    val openMin = timeToMinutes(schedule.openingHour.ifBlank { "08:00" })
+                    val closeMin = timeToMinutes(schedule.closingHour.ifBlank { "20:00" })
+                    val covered = BooleanArray(closeMin.coerceAtLeast(openMin) - openMin)
+                    dayBookings.forEach { bkg ->
+                        val bStart = (timeToMinutes(bkg.selectedStartHour.ifBlank { bkg.formula.startHour }) - openMin).coerceIn(0, covered.size)
+                        val bEnd = (timeToMinutes(bkg.selectedEndHour.ifBlank { bkg.formula.endHour }) - openMin).coerceIn(0, covered.size)
+                        for (i in bStart until bEnd) covered[i] = true
+                    }
+                    covered.isNotEmpty() && covered.all { it }
+                })
             val isPartiallyBooked = dayBookings.isNotEmpty() && !isFullyBooked
 
             list.add(
@@ -297,13 +354,20 @@ fun WorkspaceInteractiveBookingCalendar(
                     blackoutConflictsCount++
                 }
 
-                // Check collisions with accepted reservations
+                // Check collisions with accepted reservations actually active on this
+                // calendar date — day-of-week alone isn't enough (see isBookingActiveOnDate).
                 val collision = acceptedBookings.any { bkg ->
                     bkg.spaceId == space.id &&
                     bkg.status == BookingRequestStatus.ACCEPTED &&
                     (bkg.selectedDays.isEmpty() || bkg.selectedDays.contains(dayOfWeekStr)) &&
+                    isBookingActiveOnDate(bkg, tempCal.time, dateFormatter) &&
                     (bkg.formula.type == RentalFormulaType.FULL_MONTH ||
-                     bkg.selectedShift.equals(selectedShiftName, ignoreCase = true))
+                     hourRangesOverlap(
+                         bkg.selectedStartHour.ifBlank { bkg.formula.startHour },
+                         bkg.selectedEndHour.ifBlank { bkg.formula.endHour },
+                         customStartHour,
+                         customEndHour
+                     ))
                 }
                 if (collision) {
                     existingBookingConflicts++
@@ -380,6 +444,14 @@ fun WorkspaceInteractiveBookingCalendar(
             // Monthly calculation
             (baseMonthly * shiftMultiplier * daysFraction) * durationMonthsCount
         }
+    }
+
+    // True when every operating day this month is already blocked (blackout or fully
+    // leased) — worth calling out explicitly rather than making the host/specialist
+    // discover it one greyed-out day at a time.
+    val isEntireMonthBooked = remember(daysInMonth) {
+        val operatingDays = daysInMonth.filter { it.isCurrentMonth && it.isOperatingDay && !it.isPast }
+        operatingDays.isNotEmpty() && operatingDays.all { it.isBlockedForSelection }
     }
 
     // Header Month String
@@ -478,6 +550,25 @@ fun WorkspaceInteractiveBookingCalendar(
                 }
             }
 
+            if (isEntireMonthBooked) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.EventBusy, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "$monthTitle is fully booked — try a different month or shift.",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+
             // Quick Duration Preset Chips
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
@@ -551,7 +642,7 @@ fun WorkspaceInteractiveBookingCalendar(
                             val isStart = dateFormatter.format(dayItem.date) == dateFormatter.format(selectedStartDate)
                             val isEnd = dateFormatter.format(dayItem.date) == dateFormatter.format(selectedEndDate)
                             val inRange = dayItem.date.after(selectedStartDate) && dayItem.date.before(selectedEndDate)
-                            val isSelectable = dayItem.isCurrentMonth && !dayItem.isPast
+                            val isSelectable = dayItem.isCurrentMonth && !dayItem.isPast && !dayItem.isBlockedForSelection
 
                             Box(
                                 modifier = Modifier
@@ -569,6 +660,7 @@ fun WorkspaceInteractiveBookingCalendar(
                                         when {
                                             isStart || isEnd -> MaterialTheme.colorScheme.primary
                                             inRange -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                                            dayItem.isCurrentMonth && dayItem.isBlockedForSelection -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.55f)
                                             dayItem.isToday -> MaterialTheme.colorScheme.surfaceVariant
                                             else -> Color.Transparent
                                         }
@@ -590,19 +682,32 @@ fun WorkspaceInteractiveBookingCalendar(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.Center
                                 ) {
-                                    Text(
-                                        text = dayItem.dayNumber.toString(),
-                                        fontSize = 12.sp,
-                                        fontWeight = if (isStart || isEnd || dayItem.isToday) FontWeight.Bold else FontWeight.Normal,
-                                        color = when {
-                                            !dayItem.isCurrentMonth -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-                                            dayItem.isPast -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-                                            isStart || isEnd -> Color.White
-                                            inRange -> MaterialTheme.colorScheme.onPrimaryContainer
-                                            !dayItem.isOperatingDay -> MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
-                                            else -> MaterialTheme.colorScheme.onSurface
-                                        }
-                                    )
+                                    if (dayItem.isCurrentMonth && !dayItem.isPast && dayItem.isBlockedForSelection && !isStart && !isEnd) {
+                                        // Blocked days show a lock instead of the day number — this
+                                        // used to just tint a status dot amber/red while leaving the
+                                        // day fully tappable, so a host's accepted booking or blackout
+                                        // slot never actually stopped a conflicting selection.
+                                        Icon(
+                                            Icons.Default.Lock,
+                                            contentDescription = "Unavailable",
+                                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                    } else {
+                                        Text(
+                                            text = dayItem.dayNumber.toString(),
+                                            fontSize = 12.sp,
+                                            fontWeight = if (isStart || isEnd || dayItem.isToday) FontWeight.Bold else FontWeight.Normal,
+                                            color = when {
+                                                !dayItem.isCurrentMonth -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                                                dayItem.isPast -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                                                isStart || isEnd -> Color.White
+                                                inRange -> MaterialTheme.colorScheme.onPrimaryContainer
+                                                !dayItem.isOperatingDay -> MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
+                                                else -> MaterialTheme.colorScheme.onSurface
+                                            }
+                                        )
+                                    }
 
                                     // Status Dot Indicator
                                     if (dayItem.isCurrentMonth && !dayItem.isPast) {
@@ -613,8 +718,8 @@ fun WorkspaceInteractiveBookingCalendar(
                                                 .background(
                                                     when {
                                                         isStart || isEnd -> Color.White
-                                                        !dayItem.isOperatingDay || dayItem.isFullyBooked -> MaterialTheme.colorScheme.error
-                                                        dayItem.isPartiallyBooked || dayItem.isBlackoutDay -> Color(0xFFF59E0B) // Amber
+                                                        !dayItem.isOperatingDay || dayItem.isBlockedForSelection -> MaterialTheme.colorScheme.error
+                                                        dayItem.isPartiallyBooked -> Color(0xFFF59E0B) // Amber
                                                         else -> Color(0xFF10B981) // Green Available
                                                     }
                                                 )
@@ -658,32 +763,73 @@ fun WorkspaceInteractiveBookingCalendar(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                // Shift Selector
+                // Shift Selector — a shift is blocked (greyed out, unselectable) when its
+                // hours genuinely overlap an accepted booking active somewhere in the
+                // currently selected date range, on one of the currently selected days.
+                val conflictingShiftNames = remember(selectedStartDate, selectedEndDate, selectedDaysOfWeek, space, acceptedBookings) {
+                    val startCal = Calendar.getInstance(Locale.US).apply { time = selectedStartDate }
+                    val endCal = Calendar.getInstance(Locale.US).apply { time = selectedEndDate }
+                    val activeBookingsInRange = mutableListOf<RentalBookingRequest>()
+                    val tempCal = startCal.clone() as Calendar
+                    while (!tempCal.after(endCal)) {
+                        val dow = SimpleDateFormat("EEE", Locale.US).format(tempCal.time)
+                        if (selectedDaysOfWeek.contains(dow)) {
+                            acceptedBookings.filter { bkg ->
+                                bkg.spaceId == space.id && bkg.status == BookingRequestStatus.ACCEPTED &&
+                                    (bkg.selectedDays.isEmpty() || bkg.selectedDays.contains(dow)) &&
+                                    isBookingActiveOnDate(bkg, tempCal.time, dateFormatter)
+                            }.forEach { if (it !in activeBookingsInRange) activeBookingsInRange.add(it) }
+                        }
+                        tempCal.add(Calendar.DAY_OF_YEAR, 1)
+                    }
+                    shiftOptions.filter { (_, times) ->
+                        activeBookingsInRange.any { bkg ->
+                            bkg.formula.type == RentalFormulaType.FULL_MONTH ||
+                                hourRangesOverlap(
+                                    bkg.selectedStartHour.ifBlank { bkg.formula.startHour },
+                                    bkg.selectedEndHour.ifBlank { bkg.formula.endHour },
+                                    times.first,
+                                    times.second
+                                )
+                        }
+                    }.map { it.first }.toSet()
+                }
+
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     items(shiftOptions) { (shiftName, times) ->
                         val isSelected = selectedShiftName == shiftName
+                        val isConflicting = shiftName in conflictingShiftNames
                         Surface(
                             shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            color = when {
+                                isConflicting -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+                                isSelected -> MaterialTheme.colorScheme.primaryContainer
+                                else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            },
                             border = if (isSelected) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null,
-                            modifier = Modifier.clickable {
+                            modifier = Modifier.clickable(enabled = !isConflicting) {
                                 selectedShiftName = shiftName
                                 customStartHour = times.first
                                 customEndHour = times.second
                             }
                         ) {
                             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(
+                                        text = shiftName,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isConflicting) MaterialTheme.colorScheme.error.copy(alpha = 0.7f) else if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                    )
+                                    if (isConflicting) {
+                                        Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f), modifier = Modifier.size(11.dp))
+                                    }
+                                }
                                 Text(
-                                    text = shiftName,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "${times.first} - ${times.second}",
+                                    text = if (isConflicting) "${times.first} - ${times.second} • Booked" else "${times.first} - ${times.second}",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontSize = 10.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -877,14 +1023,27 @@ fun WorkspaceInteractiveBookingCalendar(
                         .height(48.dp)
                         .testTag("confirm_calendar_schedule_button"),
                     shape = RoundedCornerShape(12.dp),
+                    // A hard UNAVAILABLE result (blackout or a genuinely overlapping accepted
+                    // booking) now actually blocks submission — this used to stay tappable
+                    // regardless, so the "Unavailable" banner above was purely informational
+                    // and a conflicting request could be submitted anyway.
+                    enabled = availabilityCheck.statusLevel != AvailabilityLevel.UNAVAILABLE,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (availabilityCheck.isAvailable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
                     )
                 ) {
-                    Icon(Icons.Default.BookOnline, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(
+                        if (availabilityCheck.statusLevel == AvailabilityLevel.UNAVAILABLE) Icons.Default.Lock else Icons.Default.BookOnline,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (availabilityCheck.isAvailable) "Book Selected Dates (${String.format(Locale.US, "%.0f", totalCalculatedUsd)} USD)" else "Proceed with Custom Schedule",
+                        text = when (availabilityCheck.statusLevel) {
+                            AvailabilityLevel.AVAILABLE -> "Book Selected Dates (${String.format(Locale.US, "%.0f", totalCalculatedUsd)} USD)"
+                            AvailabilityLevel.PARTIAL -> "Proceed with Custom Schedule"
+                            AvailabilityLevel.UNAVAILABLE -> "Unavailable — Choose Different Dates"
+                        },
                         fontWeight = FontWeight.Bold
                     )
                 }

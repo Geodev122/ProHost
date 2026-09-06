@@ -26,6 +26,17 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    // Re-reads the caller's own live profile document rather than trusting the
+    // custom claim baked into their current ID token — a suspension needs to
+    // take effect immediately (the next write attempt), not only once the
+    // client happens to refresh its token. Set/cleared exclusively by
+    // setAccountSuspended.ts (Admin SDK); see user_profiles' protected-fields
+    // list below.
+    function isSuspended() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.get('isSuspended', false) == true;
+    }
+
     // ---------------------------------------------------------------
     // workspace_listings — public discovery, owner-managed
     // ---------------------------------------------------------------
@@ -34,7 +45,8 @@ service cloud.firestore {
 
       allow create: if isSignedIn() &&
         (role() == "PRO_HOST" || isAdmin()) &&
-        request.resource.data.ownerId == request.auth.uid;
+        request.resource.data.ownerId == request.auth.uid &&
+        !isSuspended();
 
       // isVerified / isActiveSubscription / subscriptionExpiryMillis are
       // money- and verification-status fields — only setListingVerification /
@@ -64,17 +76,17 @@ service cloud.firestore {
       // field. This field is a display/query mirror of that claim.
       allow create: if isOwner(userId);
 
-      // Once the profile exists, role/isVerified/createdAtMillis/lastSignInAtMillis
-      // can never change via a direct client write, self or Admin — only
-      // grantAdminRole (role) and assignInitialRole (isVerified, synced from
+      // Once the profile exists, role/isVerified/createdAtMillis/lastSignInAtMillis/
+      // isSuspended can never change via a direct client write, self or Admin —
+      // only grantAdminRole (role), assignInitialRole (isVerified, synced from
       // the ID token's own phone_number claim; createdAtMillis/lastSignInAtMillis,
-      // the account-creation/last-sign-in audit trail — see its doc comment)
-      // can, both Admin SDK. There is no admin-reviewed accreditation system
-      // anymore, so no separate verificationStatus/verificationTier/trustScore
-      // fields to protect.
+      // the account-creation/last-sign-in audit trail — see its doc comment), and
+      // setAccountSuspended (isSuspended) can, all Admin SDK. There is no
+      // admin-reviewed accreditation system anymore, so no separate
+      // verificationStatus/verificationTier/trustScore fields to protect.
       allow update: if (isOwner(userId) || isAdmin()) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-          ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis"]
+          ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended"]
         );
 
       allow delete: if isAdmin();
@@ -98,7 +110,8 @@ service cloud.firestore {
          resource.data.ownerId == request.auth.uid);
 
       allow create: if isSignedIn() &&
-        request.resource.data.practitionerId == request.auth.uid;
+        request.resource.data.practitionerId == request.auth.uid &&
+        !isSuspended();
 
       // agreementUrl (the signed lease the host uploads when finalizing
       // acceptance — see BookingRequest.agreementUrl's doc comment) can only

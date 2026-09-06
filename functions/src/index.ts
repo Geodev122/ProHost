@@ -14,6 +14,7 @@ export const ping = onCall(() => {
 
 export { assignInitialRole } from "./roles/assignInitialRole";
 export { grantAdminRole } from "./roles/grantAdminRole";
+export { setAccountSuspended } from "./roles/setAccountSuspended";
 export { bootstrapSuperAdmin } from "./roles/bootstrapSuperAdmin";
 
 export { initiateWhishPayment } from "./payments/initiateWhishPayment";
@@ -26,3 +27,4 @@ export { setListingVerification, setListingSubscriptionActive } from "./admin/li
 export { recordClientAuditLog } from "./audit/recordClientAuditLog";
 
 export { onBookingRequestCreated, onBookingRequestStatusChanged } from "./notifications/bookingNotifications";
+export { sendPaymentReminder } from "./notifications/sendPaymentReminder";
