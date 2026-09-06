@@ -26,25 +26,76 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    // Re-reads the caller's own live profile document rather than trusting the
+    // custom claim baked into their current ID token — a suspension needs to
+    // take effect immediately (the next write attempt), not only once the
+    // client happens to refresh its token. Set/cleared exclusively by
+    // setAccountSuspended.ts (Admin SDK); see user_profiles' protected-fields
+    // list below.
+    function isSuspended() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.get('isSuspended', false) == true;
+    }
+
+    // Same reasoning as isSuspended() above, for the same reason: a role
+    // *downgrade* (revokeProHostRole.ts) needs to take effect on the caller's
+    // very next write attempt too, not only once their ID token happens to
+    // refresh (which can be up to ~1 hour later) — otherwise a just-revoked
+    // Pro Host could still create new listings on a stale token for the rest
+    // of that window. Trusting role() (the token claim) for an *upgrade*
+    // check would be the dangerous direction; for this downgrade check, the
+    // live document is authoritative the same way isSuspended() already is.
+    function liveRole(uid) {
+      return get(/databases/$(database)/documents/user_profiles/$(uid)).data.get('role', 'SPECIALIST');
+    }
+
+    // Package-tier listing-limit enforcement (previously client-side only —
+    // ProSpaceViewModel.createNewSpaceListing checked this, but nothing
+    // stopped a direct Firestore write from skipping it). `activeListingCount`
+    // is a denormalized counter maintained by listingCountTracker.ts's
+    // Firestore triggers, since rules can't COUNT a query directly.
+    // `package2Limit` is Admin-configurable (updatePricing) rather than a
+    // hardcoded "3", so a tier change takes effect without a rules redeploy.
+    function withinListingLimit(uid) {
+      let profile = get(/databases/$(database)/documents/user_profiles/$(uid)).data;
+      let tier = profile.get('ownerPackageTier', 'PAY_AS_YOU_GO');
+      let count = profile.get('activeListingCount', 0);
+      let limit = get(/databases/$(database)/documents/system_metadata/pricing).data.get('package2Limit', 3);
+      return tier != 'LIMITED_3_TIER' || count < limit;
+    }
+
     // ---------------------------------------------------------------
     // workspace_listings — public discovery, owner-managed
     // ---------------------------------------------------------------
     match /workspace_listings/{spaceId} {
-      allow read: if true;
+      // A suspended host's listings stay on file (the owner and Admin can
+      // still see them — a suspended host should see their own listings are
+      // hidden, not have them vanish) but drop out of public Discovery, since
+      // otherwise a suspended account could keep generating traffic and
+      // inbound booking requests indefinitely. isOwnerSuspended is mirrored
+      // onto each listing by setAccountSuspended.ts (Admin SDK) — see its
+      // doc comment.
+      allow read: if resource.data.get('isOwnerSuspended', false) == false ||
+        isAdmin() ||
+        (isSignedIn() && resource.data.ownerId == request.auth.uid);
 
       allow create: if isSignedIn() &&
-        (role() == "SPACE_OWNER" || isAdmin()) &&
-        request.resource.data.ownerId == request.auth.uid;
+        (liveRole(request.auth.uid) == "PRO_HOST" || isAdmin()) &&
+        request.resource.data.ownerId == request.auth.uid &&
+        !isSuspended() &&
+        (isAdmin() || withinListingLimit(request.auth.uid));
 
       // isVerified / isActiveSubscription / subscriptionExpiryMillis are
       // money- and verification-status fields — only setListingVerification /
       // setListingSubscriptionActive / the Whish entitlement grant (all via
       // the Admin SDK, which bypasses rules) can change them. ownerId can
-      // never be reassigned by a client write.
+      // never be reassigned by a client write. isOwnerSuspended is likewise
+      // Admin-SDK-only (setAccountSuspended.ts) — an owner could otherwise
+      // just un-hide their own suspended listings by writing it back to false.
       allow update: if isSignedIn() &&
-        (isAdmin() || (role() == "SPACE_OWNER" && resource.data.ownerId == request.auth.uid)) &&
+        (isAdmin() || (role() == "PRO_HOST" && resource.data.ownerId == request.auth.uid)) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-          ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId"]
+          ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended"]
         );
 
       allow delete: if isSignedIn() &&
@@ -61,16 +112,33 @@ service cloud.firestore {
       // (see AuthFlow.kt) — the actual authority for "role" is the custom
       // claim (assignInitialRole/grantAdminRole Cloud Functions), which every
       // other collection's rules check via request.auth.token.role, not this
-      // field. This field is a display/query mirror of that claim.
-      allow create: if isOwner(userId);
+      // field. This field is a display/query mirror of that claim. Entitlement
+      // fields can't start inflated either — a brand-new profile must begin
+      // at the free tier with a zero listing counter, same reasoning as the
+      // update rule below.
+      allow create: if isOwner(userId) &&
+        request.resource.data.get('ownerPackageTier', 'PAY_AS_YOU_GO') == 'PAY_AS_YOU_GO' &&
+        request.resource.data.get('activeListingCount', 0) == 0;
 
-      // Once the profile exists, role/isVerified/verificationStatus/
-      // verificationTier/trustScore can never change via a direct client
-      // write, self or Admin — only grantAdminRole, reviewCredentialDocument,
-      // and submitVerificationForReview (Cloud Functions, Admin SDK) can.
+      // Once the profile exists, role/isVerified/createdAtMillis/lastSignInAtMillis/
+      // isSuspended can never change via a direct client write, self or Admin —
+      // only grantAdminRole (role), assignInitialRole (isVerified, synced from
+      // the ID token's own phone_number claim; createdAtMillis/lastSignInAtMillis,
+      // the account-creation/last-sign-in audit trail — see its doc comment), and
+      // setAccountSuspended (isSuspended) can, all Admin SDK. There is no
+      // admin-reviewed accreditation system anymore, so no separate
+      // verificationStatus/verificationTier/trustScore fields to protect.
+      // ownerPackageTier/ownerPackageExpiryMillis are entitlement fields set
+      // exclusively by grantEntitlement() (the Whish webhook) or
+      // revokeProHostRole (Admin SDK) — a client write could otherwise
+      // self-grant an unlimited listing package for free. activeListingCount
+      // is maintained only by listingCountTracker.ts's triggers, for the same
+      // reason (see withinListingLimit() above — a client-writable counter
+      // would make that check trivially bypassable).
       allow update: if (isOwner(userId) || isAdmin()) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-          ["role", "isVerified", "verificationStatus", "verificationTier", "trustScore"]
+          ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
+           "ownerPackageTier", "ownerPackageExpiryMillis", "activeListingCount"]
         );
 
       allow delete: if isAdmin();
@@ -95,42 +163,32 @@ service cloud.firestore {
 
       allow create: if isSignedIn() &&
         request.resource.data.practitionerId == request.auth.uid &&
-        request.resource.data.isExternalPaymentSettled == false;
+        !isSuspended();
 
-      // isExternalPaymentSettled can only be flipped by the payment
-      // webhook / checkWhishStatus reconciliation (Admin SDK) once a real
-      // Whish payment actually succeeds — never by the owner accepting, the
-      // practitioner, or an admin's own client.
+      // agreementUrl (the signed lease the host uploads when finalizing
+      // acceptance — see BookingRequest.agreementUrl's doc comment) can only
+      // ever be set by the space's owner — never the practitioner, and never
+      // as an incidental side effect of an admin editing some other field.
+      // There is no in-app payment settlement to protect anymore (both sides
+      // handle payment outside the app entirely — the old isExternalPaymentSettled
+      // field, and the Pay Whish flow that set it, are gone).
       allow update: if isSignedIn() &&
         (isAdmin() ||
          resource.data.practitionerId == request.auth.uid ||
          resource.data.ownerId == request.auth.uid) &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(["isExternalPaymentSettled"]);
+        (request.auth.uid == resource.data.ownerId || isAdmin() ||
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(["agreementUrl"]));
 
       allow delete: if isAdmin();
     }
 
-    // ---------------------------------------------------------------
-    // user_credentials — professional/owner credential documents
-    // ---------------------------------------------------------------
-    match /user_credentials/{documentId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-
-      allow create: if isSignedIn() &&
-        request.resource.data.userId == request.auth.uid &&
-        request.resource.data.status in ["NOT_UPLOADED", "PENDING_REVIEW"];
-
-      // status/reviewerNotes/rejectionReason only change via
-      // reviewCredentialDocument (Admin SDK) — a user can still edit their
-      // own document's other fields (document number, expiry date, etc.)
-      // before it's reviewed.
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-          ["status", "reviewerNotes", "rejectionReason", "userId"]
-        );
-
-      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
-    }
+    // user_credentials (the old admin-reviewed accreditation document
+    // collection) is gone — there is no admin review workflow anymore. An
+    // ID document is a single URL field on user_profiles (idDocumentUrl,
+    // client-writable, no review); a Pro Host's proof of ownership is a
+    // single URL field on workspace_listings (ownershipProofUrl), also
+    // client-writable at listing-creation time — no dedicated collection or
+    // rule needed for either.
 
     // ---------------------------------------------------------------
     // whish_transactions — server-only, ground truth for real payments

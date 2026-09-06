@@ -17,24 +17,37 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AppUser
+import com.example.data.model.UserRole
 import com.example.ui.components.ProSpaceBrandLogo
 import com.example.ui.components.ProSpaceCedarBadge
 import com.example.ui.theme.*
 
+/**
+ * The unified drawer for both SPECIALIST and PRO_HOST — every account keeps the
+ * same "PRIMARY CORES" (the bottom-nav tabs) regardless of role; only the
+ * "PRO HOST" section differs: a single "Become a Pro Host" CTA for a SPECIALIST
+ * (opens package purchasing full-screen), or the real Pro Host destination list
+ * for a PRO_HOST (each also opens full-screen — see PRO_HOST_FULLSCREEN_TABS in
+ * ProSpaceNavGraph.kt). Host-only resource links (Whish transactions, package
+ * tiers, guidelines) only show once actually promoted to PRO_HOST.
+ */
 @Composable
-fun ProfessionalDrawerContent(
+fun SpecialistDrawerContent(
     currentUser: AppUser?,
+    currentRole: UserRole,
     activeTabId: String,
+    activeProHostTabId: String?,
     onTabSelected: (String) -> Unit,
     onDrawerAction: (String) -> Unit
 ) {
+    val isProHost = currentRole == UserRole.PRO_HOST
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        // Practitioner Header
+        // Header — adapts to whichever role is currently active
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -45,13 +58,13 @@ fun ProfessionalDrawerContent(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Surface(
-                    color = CarnationOrange,
+                    color = if (isProHost) FreshGreen else CarnationOrange,
                     shape = CircleShape,
                     modifier = Modifier.size(52.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
-                            text = currentUser?.fullName?.take(1) ?: "P",
+                            text = currentUser?.fullName?.take(1) ?: if (isProHost) "H" else "P",
                             color = PureWhite,
                             fontWeight = FontWeight.ExtraBold,
                             style = MaterialTheme.typography.titleMedium
@@ -60,13 +73,13 @@ fun ProfessionalDrawerContent(
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = currentUser?.fullName ?: "Practitioner Member",
+                    text = currentUser?.fullName ?: if (isProHost) "Workspace Host" else "Practitioner Member",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
                     color = PureWhite
                 )
                 Text(
-                    text = currentUser?.specialty ?: "Licensed Specialist",
+                    text = currentUser?.specialty ?: if (isProHost) "Commercial Host Node" else "Licensed Specialist",
                     style = MaterialTheme.typography.bodySmall,
                     color = LightGray,
                     fontWeight = FontWeight.SemiBold
@@ -81,13 +94,23 @@ fun ProfessionalDrawerContent(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(Icons.Default.Shield, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(13.dp))
-                        Text(
-                            text = "Syndicate: ${currentUser?.syndicateNumber ?: "OEA-LB-VERIFIED"}",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = PureWhite
-                        )
+                        if (isProHost) {
+                            Icon(Icons.Default.Star, contentDescription = null, tint = BrightOrange, modifier = Modifier.size(13.dp))
+                            Text(
+                                text = "Premium Host Node",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = PureWhite
+                            )
+                        } else {
+                            Icon(Icons.Default.Shield, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(13.dp))
+                            Text(
+                                text = if (currentUser?.isVerified == true) "Phone Verified" else "Phone Unverified",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = PureWhite
+                            )
+                        }
                     }
                 }
             }
@@ -126,7 +149,7 @@ fun ProfessionalDrawerContent(
         )
         Spacer(modifier = Modifier.height(4.dp))
         NavigationDrawerItem(
-            label = { Text("Specialist Profile", fontWeight = FontWeight.Bold) },
+            label = { Text("Profile", fontWeight = FontWeight.Bold) },
             selected = activeTabId == "pro_profile",
             onClick = { onTabSelected("pro_profile") },
             icon = { Icon(Icons.Default.Person, contentDescription = null, tint = if (activeTabId == "pro_profile") CarnationOrange else OxfordBlue) },
@@ -140,6 +163,89 @@ fun ProfessionalDrawerContent(
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
 
         Text(
+            text = "PRO HOST",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = FreshGreen,
+            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+        )
+
+        if (isProHost) {
+            NavigationDrawerItem(
+                label = { Text("My Workspace Listings", fontWeight = FontWeight.Bold) },
+                selected = activeProHostTabId == "manage_listings",
+                onClick = { onTabSelected("manage_listings") },
+                icon = { Icon(Icons.Default.HomeWork, contentDescription = null, tint = if (activeProHostTabId == "manage_listings") FreshGreen else OxfordBlue) },
+                colors = NavigationDrawerItemDefaults.colors(
+                    selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
+                    selectedTextColor = OxfordBlue,
+                    unselectedTextColor = CoolGray
+                )
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            NavigationDrawerItem(
+                label = { Text("Renting Requests", fontWeight = FontWeight.Bold) },
+                selected = activeProHostTabId == "owner_requests",
+                onClick = { onTabSelected("owner_requests") },
+                icon = { Icon(Icons.Default.Inbox, contentDescription = null, tint = if (activeProHostTabId == "owner_requests") FreshGreen else OxfordBlue) },
+                colors = NavigationDrawerItemDefaults.colors(
+                    selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
+                    selectedTextColor = OxfordBlue,
+                    unselectedTextColor = CoolGray
+                )
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            NavigationDrawerItem(
+                label = { Text("Renting Progress", fontWeight = FontWeight.Bold) },
+                selected = activeProHostTabId == "owner_progress",
+                onClick = { onTabSelected("owner_progress") },
+                icon = { Icon(Icons.Default.Schedule, contentDescription = null, tint = if (activeProHostTabId == "owner_progress") FreshGreen else OxfordBlue) },
+                colors = NavigationDrawerItemDefaults.colors(
+                    selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
+                    selectedTextColor = OxfordBlue,
+                    unselectedTextColor = CoolGray
+                )
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            NavigationDrawerItem(
+                label = { Text("Financial Stats & Yields", fontWeight = FontWeight.Bold) },
+                selected = activeProHostTabId == "stats",
+                onClick = { onTabSelected("stats") },
+                icon = { Icon(Icons.Default.Analytics, contentDescription = null, tint = if (activeProHostTabId == "stats") FreshGreen else OxfordBlue) },
+                colors = NavigationDrawerItemDefaults.colors(
+                    selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
+                    selectedTextColor = OxfordBlue,
+                    unselectedTextColor = CoolGray
+                )
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            NavigationDrawerItem(
+                label = { Text("Subscription & Packages", fontWeight = FontWeight.Bold) },
+                selected = activeProHostTabId == "owner_subscriptions",
+                onClick = { onTabSelected("owner_subscriptions") },
+                icon = { Icon(Icons.Default.Layers, contentDescription = null, tint = if (activeProHostTabId == "owner_subscriptions") FreshGreen else OxfordBlue) },
+                colors = NavigationDrawerItemDefaults.colors(
+                    selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
+                    selectedTextColor = OxfordBlue,
+                    unselectedTextColor = CoolGray
+                )
+            )
+        } else {
+            NavigationDrawerItem(
+                label = { Text("Become a Pro Host", fontWeight = FontWeight.Bold) },
+                selected = false,
+                onClick = { onTabSelected("owner_subscriptions") },
+                icon = { Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = FreshGreen) },
+                colors = NavigationDrawerItemDefaults.colors(
+                    unselectedContainerColor = FreshGreen.copy(alpha = 0.10f),
+                    unselectedTextColor = OxfordBlue
+                )
+            )
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
+
+        Text(
             text = "PRACTICE & FINANCE",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
@@ -147,25 +253,22 @@ fun ProfessionalDrawerContent(
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
 
+        // These two used to open their own cramped read-only dialogs — duplicates of
+        // content already on the real My Bookings screen (filtered to Pending /
+        // Accepted respectively), just with weaker actions. Now they route straight
+        // there, same consolidation already done for Renting Requests/Progress above.
         NavigationDrawerItem(
             label = { Text("Pending Requests", fontWeight = FontWeight.SemiBold) },
             selected = false,
-            onClick = { onDrawerAction("pro_pending") },
+            onClick = { onTabSelected("pro_rentals") },
             icon = { Icon(Icons.Default.Inbox, contentDescription = null, tint = OxfordBlue) }
         )
         Spacer(modifier = Modifier.height(4.dp))
         NavigationDrawerItem(
             label = { Text("Payment Due Reminders", fontWeight = FontWeight.SemiBold) },
             selected = false,
-            onClick = { onDrawerAction("pro_dues") },
+            onClick = { onTabSelected("pro_rentals") },
             icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = OxfordBlue) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Syndicate ID Verification", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("pro_syndicate") },
-            icon = { Icon(Icons.Default.Verified, contentDescription = null, tint = OxfordBlue) }
         )
         Spacer(modifier = Modifier.height(4.dp))
         NavigationDrawerItem(
@@ -174,13 +277,37 @@ fun ProfessionalDrawerContent(
             onClick = { onDrawerAction("pro_laws") },
             icon = { Icon(Icons.Default.MenuBook, contentDescription = null, tint = OxfordBlue) }
         )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Accreditation & Practice Hub", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("pro_accreditation_hub") },
-            icon = { Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = OxfordBlue) }
-        )
+
+        if (isProHost) {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
+
+            Text(
+                text = "HOST FINANCE & RESOURCES",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = FreshGreen,
+                modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+            )
+
+            NavigationDrawerItem(
+                label = { Text("Whish Money Transactions", fontWeight = FontWeight.SemiBold) },
+                selected = false,
+                onClick = { onDrawerAction("owner_whish") },
+                icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = OxfordBlue) }
+            )
+            // "Owner Package Tiers & Governance" used to duplicate this same section's
+            // own "Subscription & Packages" item above (same onTabSelected("owner_subscriptions")
+            // destination) with a second, stale copy of the tier pricing — hardcoded
+            // "$49/mo"/"$120/mo" figures that didn't even track the real admin-configurable
+            // pricing the actual Subscription & Packages screen shows. Removed outright.
+            Spacer(modifier = Modifier.height(4.dp))
+            NavigationDrawerItem(
+                label = { Text("Practice Guidelines", fontWeight = FontWeight.SemiBold) },
+                selected = false,
+                onClick = { onDrawerAction("owner_guidelines") },
+                icon = { Icon(Icons.Default.MenuBook, contentDescription = null, tint = OxfordBlue) }
+            )
+        }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
 
@@ -193,221 +320,17 @@ fun ProfessionalDrawerContent(
         )
 
         NavigationDrawerItem(
-            label = { Text("Credential Documents Registry", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("pro_credentials_registry") },
-            icon = { Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = OxfordBlue) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
             label = { Text("App Version & Updates", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { onDrawerAction("pro_app_updates") },
             icon = { Icon(Icons.Default.SystemUpdate, contentDescription = null, tint = VibrantBlue) }
         )
 
-        ProSpaceDrawerFooter()
-    }
-}
-
-@Composable
-fun OwnerDrawerContent(
-    currentUser: AppUser?,
-    activeTabId: String,
-    onTabSelected: (String) -> Unit,
-    onDrawerAction: (String) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-        // Host Header
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            shape = RoundedCornerShape(16.dp),
-            color = OxfordBlue,
-            shadowElevation = 4.dp
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Surface(
-                    color = FreshGreen,
-                    shape = CircleShape,
-                    modifier = Modifier.size(52.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = currentUser?.fullName?.take(1) ?: "H",
-                            color = PureWhite,
-                            fontWeight = FontWeight.ExtraBold,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = currentUser?.fullName ?: "Workspace Host",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Black,
-                    color = PureWhite
-                )
-                Text(
-                    text = currentUser?.specialty ?: "Commercial Host Node",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = LightGray,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Surface(
-                    color = CoolGray.copy(alpha = 0.6f),
-                    shape = RoundedCornerShape(6.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(Icons.Default.Star, contentDescription = null, tint = BrightOrange, modifier = Modifier.size(13.dp))
-                        Text(
-                            text = "Premium Host Node",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = PureWhite
-                        )
-                    }
-                }
-            }
-        }
-
-        Text(
-            text = "HOST CONTROLS",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = CoolGray,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-        )
-
         NavigationDrawerItem(
-            label = { Text("My Workspace Listings", fontWeight = FontWeight.Bold) },
-            selected = activeTabId == "manage_listings",
-            onClick = { onTabSelected("manage_listings") },
-            icon = { Icon(Icons.Default.HomeWork, contentDescription = null, tint = if (activeTabId == "manage_listings") FreshGreen else OxfordBlue) },
-            colors = NavigationDrawerItemDefaults.colors(
-                selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                selectedTextColor = OxfordBlue,
-                unselectedTextColor = CoolGray
-            )
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Renting Requests", fontWeight = FontWeight.Bold) },
-            selected = activeTabId == "owner_requests",
-            onClick = { onTabSelected("owner_requests") },
-            icon = { Icon(Icons.Default.Inbox, contentDescription = null, tint = if (activeTabId == "owner_requests") FreshGreen else OxfordBlue) },
-            colors = NavigationDrawerItemDefaults.colors(
-                selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                selectedTextColor = OxfordBlue,
-                unselectedTextColor = CoolGray
-            )
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Renting Progress", fontWeight = FontWeight.Bold) },
-            selected = activeTabId == "owner_progress",
-            onClick = { onTabSelected("owner_progress") },
-            icon = { Icon(Icons.Default.Schedule, contentDescription = null, tint = if (activeTabId == "owner_progress") FreshGreen else OxfordBlue) },
-            colors = NavigationDrawerItemDefaults.colors(
-                selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                selectedTextColor = OxfordBlue,
-                unselectedTextColor = CoolGray
-            )
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Financial Stats & Yields", fontWeight = FontWeight.Bold) },
-            selected = activeTabId == "stats",
-            onClick = { onTabSelected("stats") },
-            icon = { Icon(Icons.Default.Analytics, contentDescription = null, tint = if (activeTabId == "stats") FreshGreen else OxfordBlue) },
-            colors = NavigationDrawerItemDefaults.colors(
-                selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                selectedTextColor = OxfordBlue,
-                unselectedTextColor = CoolGray
-            )
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Host Profile Settings", fontWeight = FontWeight.Bold) },
-            selected = activeTabId == "owner_profile",
-            onClick = { onTabSelected("owner_profile") },
-            icon = { Icon(Icons.Default.Person, contentDescription = null, tint = if (activeTabId == "owner_profile") FreshGreen else OxfordBlue) },
-            colors = NavigationDrawerItemDefaults.colors(
-                selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                selectedTextColor = OxfordBlue,
-                unselectedTextColor = CoolGray
-            )
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Subscription & Packages", fontWeight = FontWeight.Bold) },
-            selected = activeTabId == "owner_subscriptions",
-            onClick = { onTabSelected("owner_subscriptions") },
-            icon = { Icon(Icons.Default.Layers, contentDescription = null, tint = if (activeTabId == "owner_subscriptions") FreshGreen else OxfordBlue) },
-            colors = NavigationDrawerItemDefaults.colors(
-                selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                selectedTextColor = OxfordBlue,
-                unselectedTextColor = CoolGray
-            )
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
-
-        Text(
-            text = "FINANCE & RESOURCES",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = FreshGreen,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-        )
-
-        NavigationDrawerItem(
-            label = { Text("Whish Money Transactions", fontWeight = FontWeight.SemiBold) },
+            label = { Text("Legal (Privacy, Terms & Policies)", fontWeight = FontWeight.SemiBold) },
             selected = false,
-            onClick = { onDrawerAction("owner_whish") },
-            icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = OxfordBlue) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Owner Package Tiers & Governance", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("owner_package_tiers") },
-            icon = { Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = OxfordBlue) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Practice Guidelines", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("owner_guidelines") },
-            icon = { Icon(Icons.Default.MenuBook, contentDescription = null, tint = OxfordBlue) }
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
-
-        Text(
-            text = "HOST CONFIGURATION",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = FreshGreen,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-        )
-
-        NavigationDrawerItem(
-            label = { Text("App Version & Updates", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("owner_app_updates") },
-            icon = { Icon(Icons.Default.SystemUpdate, contentDescription = null, tint = VibrantBlue) }
+            onClick = { onDrawerAction("legal_documents") },
+            icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = OxfordBlue) }
         )
 
         ProSpaceDrawerFooter()
@@ -559,6 +482,13 @@ fun AdminDrawerContent(
             selected = false,
             onClick = { onDrawerAction("system_debugger") },
             icon = { Icon(Icons.Default.BugReport, contentDescription = null, tint = AmberWarning) }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NavigationDrawerItem(
+            label = { Text("Legal (Privacy, Terms & Policies)", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { onDrawerAction("legal_documents") },
+            icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = OxfordBlue) }
         )
 
         ProSpaceDrawerFooter()

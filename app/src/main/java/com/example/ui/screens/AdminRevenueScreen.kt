@@ -17,19 +17,28 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.WhishTransaction
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.AdminViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Admin-only screen — now reads from [AdminViewModel] instead of the shared
+ * ProSpaceViewModel god object (ViewModel-split effort). This was the only screen
+ * still reaching into ProSpaceViewModel for Admin-specific data (transactions +
+ * revenue CSV export) despite AdminConsoleScreen already having its own dedicated
+ * ViewModel for everything else Admin does.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminRevenueScreen(
-    viewModel: ProSpaceViewModel
+    adminViewModel: AdminViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val transactions by viewModel.transactions.collectAsState()
+    val uiState by adminViewModel.uiState.collectAsState()
+    val transactions = uiState.allTransactions
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilterStatus by remember { mutableStateOf("ALL") }
@@ -118,7 +127,7 @@ fun AdminRevenueScreen(
         // Export to Excel / CSV button
         Button(
             onClick = {
-                val csvContent = viewModel.exportRevenueCsv(null, null)
+                val csvContent = adminViewModel.exportRevenueCsv(null, null)
                 val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 val clip = android.content.ClipData.newPlainText("ProHost Revenue CSV", csvContent)
                 clipboard.setPrimaryClip(clip)

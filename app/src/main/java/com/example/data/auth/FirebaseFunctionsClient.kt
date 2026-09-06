@@ -3,7 +3,6 @@ package com.example.data.auth
 import android.util.Log
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.functions.FirebaseFunctions
-import com.google.firebase.functions.FirebaseFunctionsException
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -24,12 +23,19 @@ class FirebaseFunctionsClient {
 
     /**
      * Ensures the signed-in user has a role claim, assigning the default
-     * (PROFESSIONAL) server-side on first call. Safe/idempotent to call on
+     * (SPECIALIST) server-side on first call. Safe/idempotent to call on
      * every sign-in.
+     *
+     * [registrationDraft], when non-null, is validated server-side (format only —
+     * non-blank/reasonable-length name, a real-looking email, a genuine uploaded
+     * Storage URL for the ID document if one is present) before this call
+     * succeeds — see assignInitialRole.ts. Pass it only when completing a
+     * brand-new registration; a plain sign-in never has one.
      */
-    suspend fun ensureInitialRole(): Result<String> {
+    suspend fun ensureInitialRole(registrationDraft: Map<String, Any?>? = null): Result<String> {
         return try {
-            val result = functions.getHttpsCallable("assignInitialRole").call().await()
+            val payload: Map<String, Any?>? = registrationDraft?.let { mapOf("registration" to it) }
+            val result = functions.getHttpsCallable("assignInitialRole").call(payload).await()
             @Suppress("UNCHECKED_CAST")
             val data = result.data as? Map<String, Any?>
             val role = data?.get("role") as? String
@@ -37,29 +43,27 @@ class FirebaseFunctionsClient {
             Result.success(role)
         } catch (e: Exception) {
             Log.e(tag, "ensureInitialRole failed: ${e.message}", e)
-            Result.failure(e)
+            // assignInitialRole.ts throws exactly this permission-denied shape for one
+            // reason only — the account is suspended (setAccountSuspended.ts) — so this
+            // is distinguished from any other failure and wrapped for callers to catch
+            // specifically (see AuthFlow.resolveVerifiedRole).
+            val isSuspension = e is com.google.firebase.functions.FirebaseFunctionsException &&
+                e.code == com.google.firebase.functions.FirebaseFunctionsException.Code.PERMISSION_DENIED &&
+                e.message?.contains("suspended", ignoreCase = true) == true
+            Result.failure(
+                if (isSuspension) com.example.data.auth.AccountSuspendedException(e.message ?: "This account has been suspended.")
+                else e
+            )
         }
     }
 
-    /** The only self-service role change available — SPACE_OWNER only, never ADMIN. */
-    suspend fun requestSpaceOwnerUpgrade(): Result<String> {
-        return try {
-            val result = functions.getHttpsCallable("requestRoleUpgrade")
-                .call(mapOf("targetRole" to "SPACE_OWNER"))
-                .await()
-            @Suppress("UNCHECKED_CAST")
-            val data = result.data as? Map<String, Any?>
-            val role = data?.get("role") as? String
-                ?: return Result.failure(IllegalStateException("requestRoleUpgrade returned no role."))
-            Result.success(role)
-        } catch (e: FirebaseFunctionsException) {
-            Log.e(tag, "requestSpaceOwnerUpgrade denied: ${e.code} ${e.message}", e)
-            Result.failure(e)
-        } catch (e: Exception) {
-            Log.e(tag, "requestSpaceOwnerUpgrade failed: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
+    // The free self-service requestSpaceOwnerUpgrade() path (backed by the
+    // requestRoleUpgrade Cloud Function) is gone: PRO_HOST is no longer a role
+    // anyone can just ask for. It's granted exclusively, server-side, by
+    // functions/src/lib/entitlements.ts's grantEntitlement() the moment a
+    // SPECIALIST's OWNER_PACKAGE or PAYG_LISTING Whish payment actually settles
+    // — see ProSpaceRepository.refreshCurrentUserAfterEntitlement(), called
+    // once client-side polling observes that success.
 
     /** Only succeeds when the CALLER already has the Admin role server-side. */
     suspend fun grantAdminRole(targetEmail: String): Result<Unit> {
@@ -70,6 +74,36 @@ class FirebaseFunctionsClient {
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(tag, "grantAdminRole failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Admin-only: suspends or reactivates an account (functions/src/roles/setAccountSuspended.ts)
+     * — the state between "exists" and "deleted." An Admin account can never be
+     * suspended through this path (the server rejects it).
+     */
+    suspend fun setAccountSuspended(targetUid: String, suspended: Boolean): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("setAccountSuspended")
+                .call(mapOf("targetUid" to targetUid, "suspended" to suspended))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "setAccountSuspended failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /** functions/src/roles/revokeProHostRole.ts — Admin-only downgrade to SPECIALIST. */
+    suspend fun revokeProHostRole(targetUid: String): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("revokeProHostRole")
+                .call(mapOf("targetUid" to targetUid))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "revokeProHostRole failed: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -170,48 +204,26 @@ class FirebaseFunctionsClient {
         }
     }
 
-    /** Self-service: ask for the caller's own uploaded credential documents to be reviewed. */
-    suspend fun submitVerificationForReview(): Result<Unit> {
-        return try {
-            functions.getHttpsCallable("submitVerificationForReview").call().await()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(tag, "submitVerificationForReview failed: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
+    // submitVerificationForReview()/reviewCredentialDocument()/setUserVerification()
+    // used to live here — the whole admin-reviewed accreditation system they backed
+    // (functions/src/admin/verification.ts) is gone. isVerified now means only "this
+    // account's phone number passed Firebase Phone Auth SMS verification," synced
+    // automatically by assignInitialRole.ts from the ID token's own phone_number
+    // claim — there is nothing left for a human to submit, approve, or override.
 
-    /** Admin-only: approve or reject a credential document (functions/src/admin/verification.ts). */
-    suspend fun reviewCredentialDocument(
-        documentId: String,
-        approve: Boolean,
-        reviewerNotes: String? = null,
-        rejectionReason: String? = null
-    ): Result<Unit> {
+    /**
+     * Sends a real cross-device push reminding the specialist to settle payment for
+     * an accepted booking (functions/src/notifications/sendPaymentReminder.ts) — the
+     * server verifies the caller actually owns the booking's space before sending.
+     */
+    suspend fun sendPaymentReminder(bookingId: String): Result<Unit> {
         return try {
-            val payload = mutableMapOf<String, Any>(
-                "documentId" to documentId,
-                "decision" to if (approve) "APPROVE" else "REJECT"
-            )
-            reviewerNotes?.let { payload["reviewerNotes"] = it }
-            rejectionReason?.let { payload["rejectionReason"] = it }
-            functions.getHttpsCallable("reviewCredentialDocument").call(payload).await()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(tag, "reviewCredentialDocument failed: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    /** Admin-only: directly override a user's verification status (functions/src/admin/verification.ts). */
-    suspend fun setUserVerification(userId: String, verified: Boolean): Result<Unit> {
-        return try {
-            functions.getHttpsCallable("adminSetUserVerification")
-                .call(mapOf("userId" to userId, "verified" to verified))
+            functions.getHttpsCallable("sendPaymentReminder")
+                .call(mapOf("bookingId" to bookingId))
                 .await()
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(tag, "setUserVerification failed: ${e.message}", e)
+            Log.e(tag, "sendPaymentReminder failed: ${e.message}", e)
             Result.failure(e)
         }
     }

@@ -23,7 +23,6 @@ object FirestoreSchema {
         const val USER_PROFILES = "user_profiles"
         const val SUBSCRIPTION_FORMULAS = "subscription_formulas"
         const val BOOKING_REQUESTS = "booking_requests"
-        const val USER_CREDENTIALS = "user_credentials"
         const val WHISH_TRANSACTIONS = "whish_transactions"
         const val AUDIT_SECURITY_LOGS = "audit_security_logs"
         const val SYSTEM_METADATA = "system_metadata"

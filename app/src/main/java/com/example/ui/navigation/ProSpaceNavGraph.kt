@@ -18,8 +18,7 @@ import com.example.data.model.UserRole
 import com.example.ui.components.*
 import com.example.ui.components.dialogs.DrawerDialogsHandler
 import com.example.ui.components.drawer.AdminDrawerContent
-import com.example.ui.components.drawer.OwnerDrawerContent
-import com.example.ui.components.drawer.ProfessionalDrawerContent
+import com.example.ui.components.drawer.SpecialistDrawerContent
 import com.example.ui.screens.*
 import com.example.ui.viewmodel.ProSpaceViewModel
 import com.example.util.InAppUpdateManager
@@ -27,25 +26,40 @@ import com.example.util.UpdateState
 import kotlinx.coroutines.launch
 
 /**
+ * The bottom-nav tabs, identical for SPECIALIST and PRO_HOST — every account
+ * keeps full Specialist capability (Explore/My Bookings/Profile) regardless of
+ * whether it's also been promoted to Pro Host.
+ */
+private val SPECIALIST_BOTTOM_TABS = listOf(
+    AppNavTab.SearchMap,
+    AppNavTab.ProfessionalRentals,
+    AppNavTab.ProfessionalProfile
+)
+
+/**
+ * Pro Host destinations — reachable only via the drawer's "Pro Host" section,
+ * rendered full-screen (see fullScreenProHostTab below) with no bottom nav.
+ * Only a PRO_HOST account can reach all of these; a SPECIALIST can reach only
+ * OwnerSubscriptions, as the "Become a Pro Host" package-purchase entry point.
+ */
+private val PRO_HOST_FULLSCREEN_TABS = listOf(
+    AppNavTab.ManageListings,
+    AppNavTab.OwnerRentalRequests,
+    AppNavTab.OwnerRentingProgress,
+    AppNavTab.Stats,
+    AppNavTab.OwnerSubscriptions
+)
+
+private val PRO_HOST_FULLSCREEN_TAB_IDS: Set<String> = PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet()
+
+/**
  * The complete set of tab ids a given role may ever land on — bottom-nav tabs
- * plus drawer-only destinations (e.g. Owner's "stats"/"owner_requests" aren't
- * in the bottom nav but are still legitimately reachable). This is the single
- * source of truth for validating externally-supplied tab ids (see below).
+ * plus drawer-only destinations. This is the single source of truth for
+ * validating externally-supplied tab ids (see below).
  */
 private fun allowedTabIdsForRole(role: UserRole): Set<String> = when (role) {
-    UserRole.PROFESSIONAL -> setOf(
-        AppNavTab.SearchMap.id,
-        AppNavTab.ProfessionalRentals.id,
-        AppNavTab.ProfessionalProfile.id
-    )
-    UserRole.SPACE_OWNER -> setOf(
-        AppNavTab.ManageListings.id,
-        AppNavTab.OwnerRentalRequests.id,
-        AppNavTab.OwnerRentingProgress.id,
-        AppNavTab.Stats.id,
-        AppNavTab.OwnerSubscriptions.id,
-        AppNavTab.OwnerProfile.id
-    )
+    UserRole.SPECIALIST -> SPECIALIST_BOTTOM_TABS.map { it.id }.toSet() + AppNavTab.OwnerSubscriptions.id
+    UserRole.PRO_HOST -> SPECIALIST_BOTTOM_TABS.map { it.id }.toSet() + PRO_HOST_FULLSCREEN_TAB_IDS
     UserRole.ADMIN -> setOf(
         AppNavTab.AdminConsole.id,
         AppNavTab.AdminRevenue.id,
@@ -65,6 +79,23 @@ fun ProSpaceAppRoot(
     var detailedSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var activeTabId by remember { mutableStateOf("search_map") }
     var activeDrawerTabDialog by remember { mutableStateOf<String?>(null) }
+    // Non-null while a Pro Host drawer destination is open. These render full-screen
+    // (no bottom nav, just a top bar with the screen's title + menu icon) since they
+    // live outside the unified Specialist/Pro Host bottom nav — see PRO_HOST_FULLSCREEN_TABS.
+    var fullScreenProHostTab by remember { mutableStateOf<String?>(null) }
+
+    // Routes to any tab id, transparently choosing full-screen Pro Host presentation
+    // vs. the regular bottom-nav tab switch — the single place that decides how a
+    // given destination id gets shown, used by the drawer, FCM alert taps, the
+    // payment-return deep link, and initial role-based routing alike.
+    fun navigateTo(targetTabId: String) {
+        if (targetTabId in PRO_HOST_FULLSCREEN_TAB_IDS) {
+            fullScreenProHostTab = targetTabId
+        } else {
+            fullScreenProHostTab = null
+            activeTabId = targetTabId
+        }
+    }
 
     // Synchronize initial tab based on user role or incoming deep link
     LaunchedEffect(currentUser?.role, deepLinkTab) {
@@ -75,7 +106,7 @@ fun ProSpaceAppRoot(
             // settles Whish payments, mirroring the alert-tap routing in
             // DrawerDialogsHandler. The actual result comes from checkWhishStatus
             // polling already running in that screen, not from this navigation event.
-            activeTabId = if (role == UserRole.PROFESSIONAL) "pro_rentals" else "owner_progress"
+            navigateTo(if (role == UserRole.SPECIALIST) "pro_rentals" else "owner_progress")
         } else if (!deepLinkTab.isNullOrBlank() && role != null && deepLinkTab in allowedTabIdsForRole(role)) {
             // MainActivity is an exported activity (required for the launcher intent
             // and the Whish payment App Link) and reads "target_tab" straight from an
@@ -84,12 +115,12 @@ fun ProSpaceAppRoot(
             // target_tab=admin_console and force a signed-in non-admin user into the
             // Admin Console UI — only ever accept a deep-linked tab id that's actually
             // valid for this user's current role.
-            activeTabId = deepLinkTab
+            navigateTo(deepLinkTab)
         } else {
             when (currentUser?.role) {
-                UserRole.ADMIN -> activeTabId = "admin_console"
-                UserRole.SPACE_OWNER -> activeTabId = "manage_listings"
-                UserRole.PROFESSIONAL -> activeTabId = "search_map"
+                UserRole.ADMIN -> navigateTo("admin_console")
+                UserRole.PRO_HOST -> navigateTo("search_map")
+                UserRole.SPECIALIST -> navigateTo("search_map")
                 null -> activeTabId = "auth"
             }
         }
@@ -105,30 +136,21 @@ fun ProSpaceAppRoot(
         )
     } else if (currentUser == null) {
         LoginAuthScreen(
-            viewModel = viewModel,
             onLoginSuccess = {
                 // Handled via LaunchedEffect
             }
         )
     } else {
-        val currentRole = currentUser?.role ?: UserRole.PROFESSIONAL
+        val currentRole = currentUser?.role ?: UserRole.SPECIALIST
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         val scope = rememberCoroutineScope()
 
-        // Determine visible tabs strictly according to role
+        // Determine visible bottom-nav tabs strictly according to role — identical
+        // for SPECIALIST and PRO_HOST (point 4 of the role-model spec: a unified
+        // bottom nav for both). Pro Host destinations live in PRO_HOST_FULLSCREEN_TABS
+        // instead, reachable only via the drawer's "Pro Host" section.
         val roleTabs: List<AppNavTab> = when (currentRole) {
-            UserRole.PROFESSIONAL -> listOf(
-                AppNavTab.SearchMap,
-                AppNavTab.ProfessionalRentals,
-                AppNavTab.ProfessionalProfile
-            )
-            UserRole.SPACE_OWNER -> listOf(
-                AppNavTab.ManageListings,
-                AppNavTab.OwnerRentalRequests,
-                AppNavTab.OwnerRentingProgress,
-                AppNavTab.OwnerSubscriptions,
-                AppNavTab.OwnerProfile
-            )
+            UserRole.SPECIALIST, UserRole.PRO_HOST -> SPECIALIST_BOTTOM_TABS
             UserRole.ADMIN -> listOf(
                 AppNavTab.AdminConsole,
                 AppNavTab.AdminRevenue,
@@ -146,26 +168,14 @@ fun ProSpaceAppRoot(
                     drawerTonalElevation = 4.dp
                 ) {
                     when (currentRole) {
-                        UserRole.PROFESSIONAL -> {
-                            ProfessionalDrawerContent(
+                        UserRole.SPECIALIST, UserRole.PRO_HOST -> {
+                            SpecialistDrawerContent(
                                 currentUser = currentUser,
-                                activeTabId = activeTabId,
+                                currentRole = currentRole,
+                                activeTabId = if (fullScreenProHostTab == null) activeTabId else "",
+                                activeProHostTabId = fullScreenProHostTab,
                                 onTabSelected = { tabId ->
-                                    activeTabId = tabId
-                                    scope.launch { drawerState.close() }
-                                },
-                                onDrawerAction = { actionId ->
-                                    activeDrawerTabDialog = actionId
-                                    scope.launch { drawerState.close() }
-                                }
-                            )
-                        }
-                        UserRole.SPACE_OWNER -> {
-                            OwnerDrawerContent(
-                                currentUser = currentUser,
-                                activeTabId = activeTabId,
-                                onTabSelected = { tabId ->
-                                    activeTabId = tabId
+                                    navigateTo(tabId)
                                     scope.launch { drawerState.close() }
                                 },
                                 onDrawerAction = { actionId ->
@@ -192,23 +202,43 @@ fun ProSpaceAppRoot(
                 }
             }
         ) {
+            // Defense in depth: never render a full-screen Pro Host destination
+            // outside the current role's allowed set — same rule that already
+            // gates activeTabId below, applied to fullScreenProHostTab too, since
+            // this is the actual authorization boundary for what renders (the
+            // drawer only controls what's offered, not what can render).
+            val safeFullScreenProHostTab = fullScreenProHostTab?.takeIf {
+                it in allowedTabIdsForRole(currentRole)
+            }
+
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 topBar = {
                     if (detailedSpace == null) {
-                        val alertsList = viewModel.fcmAlerts.collectAsState().value
-                        val unreadCount = alertsList.count { !it.isRead }
+                        if (safeFullScreenProHostTab != null) {
+                            val title = PRO_HOST_FULLSCREEN_TABS.firstOrNull { it.id == safeFullScreenProHostTab }?.title
+                                ?: "Pro Host"
+                            ProHostFullScreenTopAppBar(
+                                title = title,
+                                onMenuClick = { scope.launch { drawerState.open() } }
+                            )
+                        } else {
+                            val alertsList = viewModel.fcmAlerts.collectAsState().value
+                            val unreadCount = alertsList.count { !it.isRead }
 
-                        ProSpaceTopAppBar(
-                            currentRole = currentRole,
-                            unreadAlertCount = unreadCount,
-                            onMenuClick = { scope.launch { drawerState.open() } },
-                            onAlertsClick = { activeDrawerTabDialog = "fcm_alerts" }
-                        )
+                            ProSpaceTopAppBar(
+                                currentRole = currentRole,
+                                unreadAlertCount = unreadCount,
+                                onMenuClick = { scope.launch { drawerState.open() } },
+                                onAlertsClick = { activeDrawerTabDialog = "fcm_alerts" }
+                            )
+                        }
                     }
                 },
                 bottomBar = {
-                    if (detailedSpace == null) {
+                    // No bottom nav while a Pro Host destination is open full-screen —
+                    // only the top bar's menu icon (reopen the drawer) is offered.
+                    if (detailedSpace == null && safeFullScreenProHostTab == null) {
                         NavigationBar(
                             tonalElevation = 6.dp,
                             modifier = Modifier.testTag("bottom_navigation_bar")
@@ -255,6 +285,26 @@ fun ProSpaceAppRoot(
                                     viewModel = viewModel,
                                     onBack = { detailedSpace = null }
                                 )
+                            } else if (safeFullScreenProHostTab != null) {
+                                when (safeFullScreenProHostTab) {
+                                    AppNavTab.ManageListings.id -> OwnerHubScreen(
+                                        viewModel = viewModel,
+                                        onSelectSpace = { detailedSpace = it },
+                                        onOpenSubscriptions = { navigateTo(AppNavTab.OwnerSubscriptions.id) }
+                                    )
+                                    AppNavTab.OwnerRentalRequests.id -> OwnerRentalRequestsScreen(
+                                        viewModel = viewModel
+                                    )
+                                    AppNavTab.OwnerRentingProgress.id -> OwnerRentingProgressScreen(
+                                        viewModel = viewModel
+                                    )
+                                    AppNavTab.Stats.id -> OwnerAnalyticsScreen(
+                                        viewModel = viewModel
+                                    )
+                                    AppNavTab.OwnerSubscriptions.id -> OwnerSubscriptionsScreen(
+                                        viewModel = viewModel
+                                    )
+                                }
                             } else {
                                 // Defense in depth: even though activeTabId's only
                                 // externally-influenced source (the deep-link branch
@@ -278,31 +328,11 @@ fun ProSpaceAppRoot(
                                         onNavigateToDiscovery = { activeTabId = AppNavTab.SearchMap.id },
                                         onSelectSpace = { detailedSpace = it }
                                     )
-                                     AppNavTab.ManageListings.id -> OwnerHubScreen(
-                                        viewModel = viewModel,
-                                        onSelectSpace = { detailedSpace = it },
-                                        onOpenSubscriptions = { activeTabId = AppNavTab.OwnerSubscriptions.id }
-                                    )
-                                    AppNavTab.OwnerRentalRequests.id -> OwnerRentalRequestsScreen(
-                                        viewModel = viewModel
-                                    )
-                                    AppNavTab.OwnerRentingProgress.id -> OwnerRentingProgressScreen(
-                                        viewModel = viewModel
-                                    )
-                                    AppNavTab.Stats.id -> OwnerAnalyticsScreen(
-                                        viewModel = viewModel
-                                    )
-                                    AppNavTab.OwnerSubscriptions.id -> OwnerSubscriptionsScreen(
-                                        viewModel = viewModel
-                                    )
                                     AppNavTab.AdminConsole.id -> AdminConsoleScreen(
                                         viewModel = viewModel
                                     )
-                                    AppNavTab.AdminRevenue.id -> AdminRevenueScreen(
-                                        viewModel = viewModel
-                                    )
+                                    AppNavTab.AdminRevenue.id -> AdminRevenueScreen()
                                     AppNavTab.ProfessionalProfile.id,
-                                    AppNavTab.OwnerProfile.id,
                                     AppNavTab.AdminProfile.id -> SpecialistProfileScreen(
                                         viewModel = viewModel,
                                         inAppUpdateManager = inAppUpdateManager,
@@ -310,7 +340,7 @@ fun ProSpaceAppRoot(
                                             viewModel.logout()
                                             activeTabId = "auth"
                                         },
-                                        onNavigateToTab = { tabId -> activeTabId = tabId }
+                                        onNavigateToTab = { tabId -> navigateTo(tabId) }
                                     )
                                     else -> DiscoveryScreen(
                                         viewModel = viewModel,
@@ -329,7 +359,7 @@ fun ProSpaceAppRoot(
             dialogId = activeDrawerTabDialog,
             viewModel = viewModel,
             onNavigateToTab = { targetTab ->
-                activeTabId = targetTab
+                navigateTo(targetTab)
                 activeDrawerTabDialog = null
             },
             onDismiss = { activeDrawerTabDialog = null }

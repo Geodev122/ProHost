@@ -329,11 +329,27 @@ fun AdminConsoleScreen(
     }
 
     // 3b. Grant Admin Confirmation Dialog
+    if (uiState.isSuspendUserDialogOpen && uiState.suspendingUser != null) {
+        AdminSuspendUserDialog(
+            user = uiState.suspendingUser!!,
+            onDismiss = { adminViewModel.closeSuspendUserDialog() },
+            onConfirm = { adminViewModel.confirmToggleSuspend() }
+        )
+    }
+
     if (uiState.isGrantAdminDialogOpen && uiState.grantingAdminUser != null) {
         AdminGrantAdminDialog(
             user = uiState.grantingAdminUser!!,
             onDismiss = { adminViewModel.closeGrantAdminDialog() },
             onConfirm = { adminViewModel.confirmGrantAdmin(uiState.grantingAdminUser!!.email) }
+        )
+    }
+
+    if (uiState.isRevokeProHostDialogOpen && uiState.revokingProHostUser != null) {
+        AdminRevokeProHostDialog(
+            user = uiState.revokingProHostUser!!,
+            onDismiss = { adminViewModel.closeRevokeProHostDialog() },
+            onConfirm = { adminViewModel.confirmRevokeProHost() }
         )
     }
 
@@ -747,7 +763,7 @@ private fun AdminUsersDirectoryTab(
                     InputField(
                         value = uiState.userSearchQuery,
                         onValueChange = { adminViewModel.setUserSearchQuery(it) },
-                        label = "Search by Name, Email, Syndicate, Specialty, Phone...",
+                        label = "Search by Name, Email, Specialty, Phone, City...",
                         leadingIcon = Icons.Default.Search,
                         trailingIcon = {
                             if (uiState.userSearchQuery.isNotBlank()) {
@@ -776,25 +792,6 @@ private fun AdminUsersDirectoryTab(
                                 selected = uiState.selectedUserRoleFilter == role,
                                 onClick = { adminViewModel.setUserRoleFilter(role) },
                                 label = { Text("${role.name.replace("_", " ")} ($count)") }
-                            )
-                        }
-                    }
-
-                    // Status Filter Chips
-                    Text("Filter by Verification:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        item {
-                            FilterChip(
-                                selected = uiState.selectedUserStatusFilter == null,
-                                onClick = { adminViewModel.setUserStatusFilter(null) },
-                                label = { Text("All Statuses") }
-                            )
-                        }
-                        items(MemberVerificationStatus.entries) { status ->
-                            FilterChip(
-                                selected = uiState.selectedUserStatusFilter == status,
-                                onClick = { adminViewModel.setUserStatusFilter(status) },
-                                label = { Text(status.displayName) }
                             )
                         }
                     }
@@ -855,26 +852,39 @@ private fun AdminUsersDirectoryTab(
                             }
                         }
 
-                        // Role Badge
-                        Surface(
-                            color = when (user.role) {
-                                UserRole.ADMIN -> StatusWarningContainer
-                                UserRole.SPACE_OWNER -> CarnationOrangeContainer
-                                UserRole.PROFESSIONAL -> OxfordBlueContainer
-                            },
-                            shape = RoundedCornerShape(6.dp)
-                        ) {
-                            Text(
-                                text = user.role.name.replace("_", " "),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            if (user.isSuspended) {
+                                Surface(color = StatusErrorContainer, shape = RoundedCornerShape(6.dp)) {
+                                    Text(
+                                        text = "SUSPENDED",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = StatusOnErrorContainer,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                    )
+                                }
+                            }
+                            // Role Badge
+                            Surface(
                                 color = when (user.role) {
-                                    UserRole.ADMIN -> AmberWarning
-                                    UserRole.SPACE_OWNER -> CarnationOrange
-                                    UserRole.PROFESSIONAL -> OxfordBlue
+                                    UserRole.ADMIN -> StatusWarningContainer
+                                    UserRole.PRO_HOST -> CarnationOrangeContainer
+                                    UserRole.SPECIALIST -> OxfordBlueContainer
                                 },
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                            )
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    text = user.role.name.replace("_", " "),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = when (user.role) {
+                                        UserRole.ADMIN -> AmberWarning
+                                        UserRole.PRO_HOST -> CarnationOrange
+                                        UserRole.SPECIALIST -> OxfordBlue
+                                    },
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                )
+                            }
                         }
                     }
 
@@ -883,16 +893,21 @@ private fun AdminUsersDirectoryTab(
                     // User Details Grid
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
-                            Text("Syndicate / ID:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(user.syndicateNumber.ifBlank { "N/A" }, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                            Text("Location:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(user.city.ifBlank { user.governorate.ifBlank { user.country } }, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                         }
                         Column {
-                            Text("Territory:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(user.governorate.displayName.split(" ").first(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                            Text("Phone Status:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                if (user.isVerified) "Verified" else "Unverified",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (user.isVerified) FreshGreen else StatusError
+                            )
                         }
                         Column {
-                            Text("Trust Score:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("${user.trustScore}%", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = FreshGreen)
+                            Text("ID Document:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(if (user.idDocumentUrl != null) "On File" else "Missing", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                         }
                     }
 
@@ -902,8 +917,18 @@ private fun AdminUsersDirectoryTab(
                             Text(user.phone.ifBlank { "N/A" }, style = MaterialTheme.typography.bodySmall)
                         }
                         Column {
-                            Text("Affiliation:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(user.affiliation.ifBlank { "Independent" }, style = MaterialTheme.typography.bodySmall)
+                            Text("Member Since:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                user.createdAtMillis?.let { SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date(it)) } ?: "—",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        Column {
+                            Text("Last Sign-In:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                user.lastSignInAtMillis?.let { SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date(it)) } ?: "—",
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
                     }
 
@@ -913,26 +938,6 @@ private fun AdminUsersDirectoryTab(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Toggle Verification Button
-                        OutlinedButton(
-                            onClick = { adminViewModel.toggleUserVerification(user.id) },
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1.2f),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Icon(
-                                if (user.isVerified) Icons.Default.Close else Icons.Default.Check,
-                                contentDescription = null,
-                                tint = if (user.isVerified) StatusError else StatusSuccess,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = if (user.isVerified) "Revoke Verify" else "Accredit User",
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-
                         // Edit Button
                         OutlinedButton(
                             onClick = { adminViewModel.openEditUserDialog(user) },
@@ -952,6 +957,41 @@ private fun AdminUsersDirectoryTab(
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Icon(Icons.Default.AdminPanelSettings, contentDescription = "Grant Admin", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                            }
+                        }
+
+                        // Suspend / Reactivate Button — the state between "exists" and
+                        // "deleted"; never offered for an Admin account (the server
+                        // rejects that anyway, but hiding it here avoids a confusing
+                        // failed attempt).
+                        if (user.role != UserRole.ADMIN) {
+                            IconButton(
+                                onClick = { adminViewModel.openSuspendUserDialog(user) },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    if (user.isSuspended) Icons.Default.LockOpen else Icons.Default.Block,
+                                    contentDescription = if (user.isSuspended) "Reactivate Account" else "Suspend Account",
+                                    tint = if (user.isSuspended) FreshGreen else StatusError,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
+                        // Revoke Pro Host Button — the downgrade path back to Specialist
+                        // that never existed before; only meaningful for an account that
+                        // currently holds the role.
+                        if (user.role == UserRole.PRO_HOST) {
+                            IconButton(
+                                onClick = { adminViewModel.openRevokeProHostDialog(user) },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.RemoveModerator,
+                                    contentDescription = "Revoke Pro Host Role",
+                                    tint = StatusError,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         }
 
@@ -1248,7 +1288,7 @@ private fun AdminOwnersAndPaymentsTab(
                     ) {
                         ProSectionHeader(
                             title = "Workspace Hosts & Property Ownership",
-                            subtitle = "Monitor registered space owners, owned units, and subscription standing",
+                            subtitle = "Accounts with the Pro Host role — every one can also book workspaces as a Specialist",
                             icon = Icons.Default.HomeWork
                         )
 
@@ -1976,9 +2016,9 @@ private fun AdminEditUserDialog(
     var email by remember { mutableStateOf(user.email) }
     var phone by remember { mutableStateOf(user.phone) }
     var specialty by remember { mutableStateOf(user.specialty) }
-    var syndicateNumber by remember { mutableStateOf(user.syndicateNumber) }
-    var affiliation by remember { mutableStateOf(user.affiliation) }
-    var selectedGov by remember { mutableStateOf(user.governorate) }
+    var country by remember { mutableStateOf(user.country) }
+    var governorateArea by remember { mutableStateOf(user.governorate) }
+    var city by remember { mutableStateOf(user.city) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -2009,13 +2049,13 @@ private fun AdminEditUserDialog(
                 InputField(value = email, onValueChange = { email = it }, label = "Email", modifier = Modifier.fillMaxWidth(), singleLine = true)
                 InputField(value = phone, onValueChange = { phone = it }, label = "Phone (WhatsApp)", modifier = Modifier.fillMaxWidth(), singleLine = true)
                 InputField(value = specialty, onValueChange = { specialty = it }, label = "Specialty / Profession", modifier = Modifier.fillMaxWidth(), singleLine = true)
-                InputField(value = syndicateNumber, onValueChange = { syndicateNumber = it }, label = "Syndicate / License #", modifier = Modifier.fillMaxWidth(), singleLine = true)
-                InputField(value = affiliation, onValueChange = { affiliation = it }, label = "Affiliation / Studio", modifier = Modifier.fillMaxWidth(), singleLine = true)
-                // Role, verification status, and trust index all now go exclusively through
-                // dedicated Cloud Functions (grantAdminRole, adminSetUserVerification /
-                // reviewCredentialDocument) — a direct write to any of them from this
-                // generic edit form is denied by Firestore rules. Shown read-only here;
-                // use the Grant Admin / Toggle Verification actions on the user row instead.
+                InputField(value = country, onValueChange = { country = it }, label = "Country", modifier = Modifier.fillMaxWidth(), singleLine = true)
+                InputField(value = governorateArea, onValueChange = { governorateArea = it }, label = "Governorate / Area", modifier = Modifier.fillMaxWidth(), singleLine = true)
+                InputField(value = city, onValueChange = { city = it }, label = "City", modifier = Modifier.fillMaxWidth(), singleLine = true)
+                // Role and phone-verified status both go exclusively through dedicated
+                // Cloud Functions (grantAdminRole / assignInitialRole) — a direct write to
+                // either from this generic edit form is denied by Firestore rules. Shown
+                // read-only here; use the Grant Admin action on the user row instead.
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                     shape = RoundedCornerShape(8.dp),
@@ -2023,7 +2063,7 @@ private fun AdminEditUserDialog(
                 ) {
                     Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            "Role: ${user.role.name.replace("_", " ")}  •  Trust Index: ${user.trustScore}  •  ${if (user.isVerified) "Verified" else "Not Verified"}",
+                            "Role: ${user.role.name.replace("_", " ")}  •  ${if (user.isVerified) "Phone Verified" else "Phone Unverified"}",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -2031,17 +2071,6 @@ private fun AdminEditUserDialog(
                             "Change these from the user row's own actions, not here.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                Text("Territory Governorate:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(Governorate.entries) { gov ->
-                        FilterChip(
-                            selected = selectedGov == gov,
-                            onClick = { selectedGov = gov },
-                            label = { Text(gov.displayName.split(" ").first(), fontSize = 11.sp) }
                         )
                     }
                 }
@@ -2062,9 +2091,9 @@ private fun AdminEditUserDialog(
                                 email = email.trim(),
                                 phone = phone.trim(),
                                 specialty = specialty.trim(),
-                                syndicateNumber = syndicateNumber.trim(),
-                                affiliation = affiliation.trim(),
-                                governorate = selectedGov
+                                country = country.trim(),
+                                governorate = governorateArea.trim(),
+                                city = city.trim()
                             )
                             onSave(updated)
                         },
@@ -2131,6 +2160,79 @@ private fun AdminGrantAdminDialog(
         confirmButton = {
             Button(onClick = onConfirm) {
                 Text("Confirm Grant")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+private fun AdminSuspendUserDialog(
+    user: AppUser,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val suspending = !user.isSuspended
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                if (suspending) Icons.Default.Block else Icons.Default.LockOpen,
+                contentDescription = null,
+                tint = if (suspending) StatusError else FreshGreen
+            )
+        },
+        title = { Text(if (suspending) "Suspend Account?" else "Reactivate Account?") },
+        text = {
+            Text(
+                if (suspending) {
+                    "'${user.fullName}' (${user.email}) will be signed out and unable to sign back in, create listings, or submit booking requests until reactivated. Their data and history are kept — this is not a deletion."
+                } else {
+                    "'${user.fullName}' (${user.email}) will regain full access immediately."
+                }
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = if (suspending) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors()
+            ) {
+                Text(if (suspending) "Confirm Suspend" else "Confirm Reactivate")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+private fun AdminRevokeProHostDialog(
+    user: AppUser,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.RemoveModerator, contentDescription = null, tint = StatusError) },
+        title = { Text("Revoke Pro Host Role?") },
+        text = {
+            Text(
+                "'${user.fullName}' (${user.email}) will be downgraded back to Specialist immediately. Every listing they've published will be marked inactive/expired (still visible in Discovery unless the specialist filters for active-subscription only, but shown as expired — not deleted). This does not affect their ability to book workspaces as a Specialist."
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text("Confirm Revoke")
             }
         },
         dismissButton = {

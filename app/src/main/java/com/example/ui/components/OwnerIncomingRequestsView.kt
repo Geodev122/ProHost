@@ -44,6 +44,8 @@ fun OwnerIncomingRequestsView(
     var selectedFilter by remember { mutableStateOf("ALL") } // ALL, PENDING, ACCEPTED, REJECTED
     var rejectingRequestId by remember { mutableStateOf<String?>(null) }
     var rejectionReasonInput by remember { mutableStateOf("") }
+    var acceptingRequestId by remember { mutableStateOf<String?>(null) }
+    var agreementDocState by remember { mutableStateOf(DocumentPickerState()) }
 
     val pendingCount = requests.count { it.status == BookingRequestStatus.PENDING }
     val acceptedCount = requests.count { it.status == BookingRequestStatus.ACCEPTED }
@@ -119,7 +121,8 @@ fun OwnerIncomingRequestsView(
                             request = request,
                             spaces = spaces,
                             onAccept = {
-                                viewModel.acceptBookingRequest(request.id, context)
+                                acceptingRequestId = request.id
+                                agreementDocState = DocumentPickerState()
                             },
                             onReject = {
                                 rejectingRequestId = request.id
@@ -129,13 +132,7 @@ fun OwnerIncomingRequestsView(
                                 viewModel.launchWhatsAppToPractitioner(context, request)
                             },
                             onSendPaymentReminder = {
-                                viewModel.postNotificationAlert(
-                                    title = "Payment Reminder 💳",
-                                    body = "Friendly reminder to settle payment for your approved booking of '${request.spaceTitle}' with host ${request.ownerName}.",
-                                    category = "PAYMENT_REMINDER",
-                                    context = context
-                                )
-                                Toast.makeText(context, "Payment Reminder Sent to ${request.practitionerName}!", Toast.LENGTH_LONG).show()
+                                viewModel.sendPaymentReminder(request.id, request.practitionerName, context)
                             }
                         )
                     }
@@ -188,6 +185,56 @@ fun OwnerIncomingRequestsView(
             }
         )
     }
+
+    // Accept & Upload Agreement Dialog — accepting a request now means the host has
+    // reached a real agreement with the specialist outside the app and is uploading
+    // the signed lease as the record of that; there's no in-app payment step anymore.
+    if (acceptingRequestId != null) {
+        val reqId = acceptingRequestId!!
+        AlertDialog(
+            onDismissRequest = { acceptingRequestId = null },
+            icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("Accept & Upload Agreement", style = MaterialTheme.typography.titleMedium) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Accepting means you and the specialist have reached and signed a leasing agreement outside the app. Upload the signed document to finalize — this saves it as the official record and locks in the schedule.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    DocumentPickerField(
+                        label = "Signed Leasing Agreement",
+                        helperText = "PDF, JPG, or PNG — kept on file, links to the specialist's Digital Key Pass",
+                        state = agreementDocState,
+                        onStateChanged = { agreementDocState = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        required = true
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val uri = agreementDocState.uri
+                        if (uri != null) {
+                            viewModel.acceptBookingRequest(context, reqId, uri)
+                            acceptingRequestId = null
+                        } else {
+                            Toast.makeText(context, "Please upload the signed agreement first.", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    enabled = agreementDocState.isSelected
+                ) {
+                    Text("Finalize")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { acceptingRequestId = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -231,7 +278,7 @@ fun OwnerBookingRequestCard(
             ) {
                 ProMemberAvatar(
                     name = request.practitionerName,
-                    specialty = "${request.practitionerSpecialty} • ${request.practitionerSyndicateNumber}",
+                    specialty = request.practitionerSpecialty,
                     isVerified = true,
                     size = 36.dp,
                     modifier = Modifier.weight(1f)

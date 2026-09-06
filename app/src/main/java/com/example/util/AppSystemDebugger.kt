@@ -104,21 +104,21 @@ object AppSystemDebugger {
                 )
             )
 
-            // Syndicate Verification & Accreditations — a real check against loaded
-            // profiles (used to be hardcoded PASSED regardless of actual data).
+            // ID Document On File — a real check against loaded profiles (there is no
+            // admin-reviewed accreditation system anymore; every account is required
+            // to upload an ID document at registration, so this just confirms none
+            // slipped through without one).
             val userProfiles = repository.users.value
-            val professionalsMissingSyndicateNumber = userProfiles.filter {
-                it.role == UserRole.PROFESSIONAL && it.syndicateNumber.isBlank()
-            }
+            val profilesMissingIdDocument = userProfiles.filter { it.idDocumentUrl == null }
             results.add(
                 DiagnosticItem(
                     category = "Authentication & Identity",
-                    featureName = "Lebanese Syndicate Accreditation & KYC",
-                    status = if (professionalsMissingSyndicateNumber.isEmpty()) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
-                    details = if (professionalsMissingSyndicateNumber.isEmpty())
-                        "All ${userProfiles.count { it.role == UserRole.PROFESSIONAL }} professional profiles have a syndicate/license number on file."
+                    featureName = "Registrant ID Documents On File",
+                    status = if (profilesMissingIdDocument.isEmpty()) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
+                    details = if (profilesMissingIdDocument.isEmpty())
+                        "All ${userProfiles.size} profiles have an ID document on file."
                     else
-                        "${professionalsMissingSyndicateNumber.size} professional profile(s) missing a syndicate/license number."
+                        "${profilesMissingIdDocument.size} profile(s) missing an ID document."
                 )
             )
         } catch (e: Exception) {
@@ -165,15 +165,30 @@ object AppSystemDebugger {
                 )
             )
 
-            // Live Data Flow verification
+            // Live Data Flow verification — real check against the repository's actual
+            // connectivity flags (set by attachLiveListeners' snapshot callbacks), not an
+            // unconditional PASSED regardless of whether Firestore is actually reachable.
             val currentSpaces = repository.spaces.value
             val currentBookings = repository.bookingRequests.value
+            val cloudConnected = repository.isCloudConnected.value
+            val offlineMode = repository.isOfflineMode.value
             results.add(
                 DiagnosticItem(
                     category = "Firebase & Data Connect",
                     featureName = "Real-Time Snapshot StateFlow Synchronization",
-                    status = DiagnosticStatus.PASSED,
-                    details = "Live StateFlows active: ${currentSpaces.size} workspaces, ${currentBookings.size} bookings."
+                    status = when {
+                        cloudConnected && !offlineMode -> DiagnosticStatus.PASSED
+                        offlineMode -> DiagnosticStatus.WARNING
+                        else -> DiagnosticStatus.FAILED
+                    },
+                    details = when {
+                        cloudConnected && !offlineMode ->
+                            "Live Firestore StateFlows active and connected: ${currentSpaces.size} workspaces, ${currentBookings.size} bookings."
+                        offlineMode ->
+                            "Running in offline mode — using the local cache/queue, not a live Firestore connection."
+                        else ->
+                            "Not connected to Firestore's real-time listeners (isCloudConnected=false)."
+                    }
                 )
             )
         } catch (e: Exception) {
@@ -203,12 +218,28 @@ object AppSystemDebugger {
                 )
             )
 
+            // Real check: is a real Google Maps API key actually configured, or still the
+            // placeholder from .env.example? Read directly from the manifest meta-data at
+            // runtime (the same value the Maps SDK itself reads), rather than assuming the
+            // Secrets Gradle Plugin's codegen — a blank/placeholder key renders a blank grey
+            // map on a real device with no crash, so this is the only way to catch it.
+            val configuredMapsKey = runCatching {
+                context.packageManager
+                    .getApplicationInfo(context.packageName, android.content.pm.PackageManager.GET_META_DATA)
+                    .metaData
+                    ?.getString("com.google.android.geo.API_KEY")
+            }.getOrNull()
+            val mapsKeyConfigured = !configuredMapsKey.isNullOrBlank() &&
+                configuredMapsKey != "YOUR_GOOGLE_MAPS_API_KEY"
             results.add(
                 DiagnosticItem(
                     category = "Discovery & Geo-Spatial",
                     featureName = "Interactive Vector Map & GPS Pins",
-                    status = DiagnosticStatus.PASSED,
-                    details = "LebanonMapCanvas with real coordinate plotting (${spaces.size} active listings)."
+                    status = if (mapsKeyConfigured) DiagnosticStatus.PASSED else DiagnosticStatus.FAILED,
+                    details = if (mapsKeyConfigured)
+                        "Real Google Maps API key configured; LebanonMapCanvas plotting ${spaces.size} active listings."
+                    else
+                        "No real Google Maps API key configured (still the .env.example placeholder) — the map will render blank on a real device. Set MAPS_API_KEY in a git-ignored .env file."
                 )
             )
 
@@ -403,21 +434,35 @@ object AppSystemDebugger {
                 )
             )
 
+            // This used to describe an admin approve/reject review queue that no longer
+            // exists — the 4-Pillar Accreditation Hub and its review pipeline were removed
+            // in an earlier revision. Reporting that stale description as PASSED would be
+            // exactly the kind of false-positive this file exists to eliminate. Reflects
+            // what's actually true today: ID/ownership documents are plain client-writable
+            // URL fields, self-attested, never reviewed or gated by any admin action.
             results.add(
                 DiagnosticItem(
                     category = "Admin Governance",
-                    featureName = "KYC Document Verification & Review Action",
-                    status = DiagnosticStatus.PASSED,
-                    details = "Credential verification workflow with approved/rejected state transitions."
+                    featureName = "Identity & Ownership Documents On File",
+                    status = DiagnosticStatus.WARNING,
+                    details = "No admin review queue exists — ID documents and listing ownership-proof documents are self-attested, plain client-writable URL fields nobody on the server inspects or gates. This is a deliberate product decision, not a bug, but worth surfacing here since it means the app has no verification-of-authenticity step for either document type."
                 )
             )
 
+            // Real check: is the audit-log listener actually wired and returning data, not
+            // just assumed to be. Ties to the fix (this revision) for a real bug where the
+            // System Audit Logs dialog had no Firestore listener at all and silently only
+            // showed whatever had been written from the current device's own session.
+            val auditLogCount = repository.auditLogs.value.size
             results.add(
                 DiagnosticItem(
                     category = "Admin Governance",
                     featureName = "Immutable Audit & Security Trail",
-                    status = DiagnosticStatus.PASSED,
-                    details = "Audit logging engine recording action hashes, actor identities, and network stamps."
+                    status = if (auditLogCount > 0) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
+                    details = if (auditLogCount > 0)
+                        "Audit log real-time listener active: $auditLogCount entries currently loaded (server-written only, includes actor identity and severity)."
+                    else
+                        "Audit log listener reachable but returned zero entries — expected on a brand-new project with no recorded activity yet, otherwise worth checking the listener is actually attached."
                 )
             )
         } catch (e: Exception) {

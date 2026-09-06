@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.SpaceListing
-import com.example.data.model.BookingRequest
 import com.example.ui.viewmodel.ProSpaceViewModel
 import java.util.Locale
 
@@ -36,9 +35,13 @@ enum class WhishPaymentMethod(
 }
 
 /**
- * Collects payer details and hands off to ProSpaceViewModel.paySubscriptionViaWhish /
- * payBookingViaWhish, which call the initiateWhishPayment Cloud Function, open the real
- * Whish checkout in the browser, and poll for server-confirmed settlement.
+ * Collects payer details and hands off to ProSpaceViewModel.paySubscriptionViaWhish,
+ * which calls the initiateWhishPayment Cloud Function, opens the real Whish checkout
+ * in the browser, and polls for server-confirmed settlement. This is the Pro Host
+ * package/PAYG subscription flow only now — booking rent settlement (Specialist <->
+ * Pro Host) happens entirely outside the app; a host records the deal by uploading
+ * the signed leasing agreement when accepting a request instead (see
+ * ProSpaceRepository.acceptBookingRequest).
  *
  * This used to also own the whole checkout lifecycle itself: it called Whish's API
  * directly with a client-side HMAC signature computed from a secret shipped in the
@@ -53,7 +56,6 @@ enum class WhishPaymentMethod(
 fun WhishPayModal(
     space: SpaceListing,
     currentFeeUsd: Double,
-    booking: BookingRequest? = null,
     viewModel: ProSpaceViewModel? = null,
     onDismiss: () -> Unit,
     onConfirmPayment: (payerName: String, payerPhone: String) -> Unit
@@ -61,8 +63,8 @@ fun WhishPayModal(
     val context = LocalContext.current
 
     var selectedPaymentMethod by remember { mutableStateOf(WhishPaymentMethod.WHISH_USD_WALLET) }
-    var payerName by remember { mutableStateOf(booking?.practitionerName ?: space.ownerName) }
-    var payerPhone by remember { mutableStateOf(booking?.practitionerPhone ?: space.ownerPhone) }
+    var payerName by remember { mutableStateOf(space.ownerName) }
+    var payerPhone by remember { mutableStateOf(space.ownerPhone) }
     var isLaunching by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = { if (!isLaunching) onDismiss() }) {
@@ -97,7 +99,7 @@ fun WhishPayModal(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (booking != null) "Secure Workspace Settlement" else "Whish Pay Subscription",
+                            text = "Whish Pay Subscription",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
@@ -108,7 +110,7 @@ fun WhishPayModal(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = if (booking != null) "Confirm Booking & Settle" else "30-Day Listing Entitlement",
+                    text = "30-Day Listing Entitlement",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -132,7 +134,7 @@ fun WhishPayModal(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = if (booking != null) "Total Workspace Settlement (${booking.durationMonths} Months)" else "Monthly Subscription Fee",
+                            text = "Monthly Subscription Fee",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                             fontWeight = FontWeight.SemiBold
@@ -293,11 +295,7 @@ fun WhishPayModal(
                         text = "Authorize Settlement",
                         onClick = {
                             isLaunching = true
-                            if (booking != null && viewModel != null) {
-                                viewModel.payBookingViaWhish(booking.id, payerName, payerPhone, context)
-                            } else if (viewModel != null) {
-                                viewModel.paySubscriptionViaWhish(space.id, payerName, payerPhone, context)
-                            }
+                            viewModel?.paySubscriptionViaWhish(space.id, payerName, payerPhone, context)
                             onConfirmPayment(payerName, payerPhone)
                             onDismiss()
                         },

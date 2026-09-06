@@ -6,7 +6,6 @@ import com.example.data.crypto.WhishSecurity
 import com.example.data.firestore.FirestoreSchema
 import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
-import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -96,46 +95,15 @@ class ProSpaceRepository {
     private val _currentUser = MutableStateFlow<AppUser?>(null)
     val currentUser: StateFlow<AppUser?> = _currentUser.asStateFlow()
 
-    private val _credentialDocuments = MutableStateFlow<List<CredentialDocument>>(emptyList())
-    val credentialDocuments: StateFlow<List<CredentialDocument>> = _credentialDocuments.asStateFlow()
-
     private val _bookingRequests = MutableStateFlow<List<RentalBookingRequest>>(emptyList())
     val bookingRequests: StateFlow<List<RentalBookingRequest>> = _bookingRequests.asStateFlow()
 
     private val _spaceArchitectureSchema = MutableStateFlow<SpaceArchitectureSchema>(createDefaultSchema())
     val spaceArchitectureSchema: StateFlow<SpaceArchitectureSchema> = _spaceArchitectureSchema.asStateFlow()
 
-    // Unlike the fixed set of listeners in startRealtimeSync(), this one's scope
-    // (which user, admin-or-not) changes with the signed-in user, so it's tracked
-    // separately and re-attached whenever currentUser changes below.
-    private var credentialDocumentsListener: ListenerRegistration? = null
-
     init {
         seedInitialData()
         startRealtimeSync()
-
-        // Credential documents were the one collection with no live listener at all —
-        // uploaded docs were safely written to Firestore but the local list reset to
-        // empty on every fresh app instance (seedInitialData(), above), so they'd
-        // vanish from the UI on restart even though nothing was actually lost server-
-        // side. Re-attach a correctly-scoped listener (see attachCredentialDocumentsListener)
-        // every time the signed-in user or their role changes.
-        coroutineScope.launch {
-            currentUser.collect { user ->
-                credentialDocumentsListener?.remove()
-                credentialDocumentsListener = null
-                if (user == null) {
-                    _credentialDocuments.value = emptyList()
-                } else {
-                    credentialDocumentsListener = firestoreService.attachCredentialDocumentsListener(
-                        userId = user.id,
-                        isAdmin = user.role == UserRole.ADMIN
-                    ) { docs ->
-                        _credentialDocuments.value = docs
-                    }
-                }
-            }
-        }
     }
 
     fun startRealtimeSync() {
@@ -165,6 +133,20 @@ class ProSpaceRepository {
                 },
                 onUsersUpdated = { updatedUsers ->
                     _users.value = updatedUsers
+                    // Keep the signed-in user's own session in sync with server-side role/
+                    // tier/suspension changes in real time — an Admin action on ANOTHER
+                    // device (grantAdminRole, revokeProHostRole, setAccountSuspended, a
+                    // verification toggle) used to only ever reach _users, never
+                    // _currentUser, so the affected user's own UI kept showing their old
+                    // role/status until their next full sign-in. All of these fields are
+                    // server-authoritative (Cloud-Function-only writes), so overwriting the
+                    // local currentUser with the fresh synced copy is always safe.
+                    val signedInId = _currentUser.value?.id
+                    if (signedInId != null) {
+                        updatedUsers.find { it.id == signedInId }?.let { fresh ->
+                            _currentUser.value = fresh
+                        }
+                    }
                     _isCloudConnected.value = true
                 },
                 onBookingsUpdated = { updatedBookings ->
@@ -182,6 +164,9 @@ class ProSpaceRepository {
                 onSchemaUpdated = { updatedSchema ->
                     _spaceArchitectureSchema.value = updatedSchema
                     _isCloudConnected.value = true
+                },
+                onAuditLogsUpdated = { updatedLogs ->
+                    _auditLogs.value = updatedLogs
                 }
             )
 
@@ -262,7 +247,6 @@ class ProSpaceRepository {
     private fun seedInitialData() {
         _users.value = emptyList()
         _auditLogs.value = emptyList()
-        _credentialDocuments.value = emptyList()
 
         val initialSpaces = listOf(
             SpaceListing(
@@ -476,6 +460,34 @@ class ProSpaceRepository {
     // Firestore listener (see startRealtimeSync) — the repository is a read-only
     // observer of payment state now, not the thing deciding it.
 
+    /**
+     * Exports the System Audit Logs panel's content (optionally date-range filtered) —
+     * this is the same real, server-populated list the panel now shows live (see
+     * FirestoreService.attachLiveListeners' audit-log listener), not just whatever this
+     * device happened to add locally.
+     */
+    fun exportAuditLogsToCsv(startDateMillis: Long? = null, endDateMillis: Long? = null): String {
+        val logs = _auditLogs.value.filter { log ->
+            val matchesStart = startDateMillis == null || log.timestamp >= startDateMillis
+            val matchesEnd = endDateMillis == null || log.timestamp <= endDateMillis
+            matchesStart && matchesEnd
+        }
+
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+        val sb = StringBuilder()
+        sb.appendLine("=== PROHOST SYSTEM AUDIT LOGS EXPORT (CSV) ===")
+        sb.appendLine("Export Date,${sdf.format(Date())}")
+        sb.appendLine("Range,${startDateMillis?.let { sdf.format(Date(it)) } ?: "Beginning"} to ${endDateMillis?.let { sdf.format(Date(it)) } ?: "Now"}")
+        sb.appendLine("Total Entries,${logs.size}")
+        sb.appendLine()
+        sb.appendLine("Timestamp,Action Type,Severity,Actor Email,Details")
+        logs.forEach { log ->
+            val detailsEscaped = log.details.replace("\"", "\"\"")
+            sb.appendLine("\"${sdf.format(Date(log.timestamp))}\",\"${log.actionType}\",\"${log.severity}\",\"${log.actorEmail}\",\"$detailsEscaped\"")
+        }
+        return sb.toString()
+    }
+
     fun exportTransactionsToCsv(startDateMillis: Long? = null, endDateMillis: Long? = null): String {
         val txs = _transactions.value.filter { tx ->
             val matchesStart = startDateMillis == null || tx.timestamp >= startDateMillis
@@ -562,25 +574,30 @@ class ProSpaceRepository {
     }
 
     /**
-     * Generic profile edit (name, phone, specialty, syndicate number, etc.) from the
-     * Admin Console's edit-user dialog. role/isVerified/verificationStatus/
-     * verificationTier/trustScore are always preserved from the current stored
-     * value here, regardless of what's passed in: Firestore rules deny any client
-     * write that changes those fields, so silently keeping them unchanged avoids a
-     * write that would otherwise be denied outright (and this method's caller
-     * showing a false "updated successfully" toast). Use grantAdminRole /
-     * reviewCredentialDocument / submitUserVerification for those instead.
+     * Generic profile edit (name, phone, specialty, country/governorate/city, etc.)
+     * from the Admin Console's edit-user dialog. role/isVerified are always preserved
+     * from the current stored value here, regardless of what's passed in: Firestore
+     * rules deny any client write that changes those fields, so silently keeping them
+     * unchanged avoids a write that would otherwise be denied outright (and this
+     * method's caller showing a false "updated successfully" toast). Use
+     * grantAdminRole for a role change instead.
      */
     /** Returns whether the write actually succeeded, so the caller can show a real result. */
     suspend fun updateUser(updated: AppUser): Boolean {
         val current = _users.value.find { it.id == updated.id }
         val safeUpdate = if (current != null) {
+            // Every field here is Cloud-Function/Admin-SDK-only per firestore.rules'
+            // user_profiles protected-fields list — always echo back the current
+            // server-known value regardless of what the edit dialog's local AppUser
+            // copy happens to hold, so this generic profile-edit write can never
+            // accidentally touch one (which would reject the entire write, not just
+            // that field, since the rule checks affectedKeys() on the whole diff).
             updated.copy(
                 role = current.role,
                 isVerified = current.isVerified,
-                verificationStatus = current.verificationStatus,
-                verificationTier = current.verificationTier,
-                trustScore = current.trustScore
+                isSuspended = current.isSuspended,
+                ownerPackageTier = current.ownerPackageTier,
+                ownerPackageExpiryMillis = current.ownerPackageExpiryMillis
             )
         } else {
             updated
@@ -622,29 +639,6 @@ class ProSpaceRepository {
             )
         }
         return success
-    }
-
-    /**
-     * Admin-only direct verification override (adminSetUserVerification Cloud
-     * Function) — Firestore rules deny any client write to verificationStatus/
-     * verificationTier/trustScore, including through updateUser(), which this
-     * used to compute the new state and call. Returns whether it actually
-     * succeeded, so the caller can show a real success/failure result instead
-     * of an unconditional one.
-     */
-    suspend fun toggleUserVerification(userId: String): Boolean {
-        val target = _users.value.find { it.id == userId } ?: return false
-        val nextVerified = !target.isVerified
-        val result = functionsClient.setUserVerification(userId, nextVerified)
-        if (result.isSuccess) {
-            refreshUserProfile(userId)
-            addLocalAuditLogEntry(
-                actionType = "USER_VERIFICATION_TOGGLE",
-                details = "Admin toggled verification for ${target.fullName} to $nextVerified",
-                severity = "SECURE"
-            )
-        }
-        return result.isSuccess
     }
 
     // --- Dynamic Space Architecture Schema Management ---
@@ -845,7 +839,8 @@ class ProSpaceRepository {
         calculatedTotalUsd: Double = 0.0,
         subdivisionId: String? = null,
         subdivisionName: String? = null,
-        selectedStrategy: String? = null
+        selectedStrategy: String? = null,
+        replacesBookingId: String? = null
     ): RentalBookingRequest {
         val requestId = "REQ-LB-" + (1000..9999).random()
         val totalUsd = if (calculatedTotalUsd > 0) calculatedTotalUsd else (formula.rateUsd * durationMonths)
@@ -871,7 +866,6 @@ class ProSpaceRepository {
             practitionerEmail = practitioner.email,
             practitionerPhone = practitioner.phone,
             practitionerSpecialty = practitioner.specialty,
-            practitionerSyndicateNumber = practitioner.syndicateNumber,
             formula = formula,
             startDate = startDate,
             selectedDays = daysChosen,
@@ -884,18 +878,22 @@ class ProSpaceRepository {
             clinicalNotes = notes,
             status = BookingRequestStatus.PENDING,
             createdAt = System.currentTimeMillis(),
-            isExternalPaymentSettled = false,
             subdivisionId = subdivisionId,
             subdivisionName = subdivisionName,
-            selectedStrategy = selectedStrategy
+            selectedStrategy = selectedStrategy,
+            replacesBookingId = replacesBookingId
         )
 
         _bookingRequests.value = listOf(request) + _bookingRequests.value
         syncNewBookingToFirestore(request)
 
         addAuditLog(
-            actionType = "RENTAL_REQUEST_SUBMITTED",
-            details = "Request $requestId sent by ${practitioner.fullName} for '${space.title}' (${formula.type.displayName}, $${totalUsd.toInt()} USD). Selected Slot: $rangeString. Awaiting owner WhatsApp/In-app approval.",
+            actionType = if (replacesBookingId != null) "RENTAL_REQUEST_EDIT_SUBMITTED" else "RENTAL_REQUEST_SUBMITTED",
+            details = if (replacesBookingId != null) {
+                "Edit request $requestId sent by ${practitioner.fullName} for '${space.title}', proposing to replace accepted booking #$replacesBookingId. New slot: $rangeString. Awaiting owner approval."
+            } else {
+                "Request $requestId sent by ${practitioner.fullName} for '${space.title}' (${formula.type.displayName}, $${totalUsd.toInt()} USD). Selected Slot: $rangeString. Awaiting owner WhatsApp/In-app approval."
+            },
             severity = "INFO",
             actorEmail = practitioner.email
         )
@@ -904,31 +902,37 @@ class ProSpaceRepository {
     }
 
     /**
-     * Owner accepting a booking locks in the schedule/terms — it never implies payment
-     * was settled. isExternalPaymentSettled used to be forced to true right here,
-     * unconditionally, regardless of whether the practitioner had paid anything —
-     * the same self-reported-settlement pattern the whole Whish remediation was
-     * about, just for bookings. It's now exclusively set by the payment webhook /
-     * checkWhishStatus reconciliation (functions/src/payments/reconcile.ts) once a
-     * real Whish payment for this booking actually succeeds — see
-     * ProSpaceViewModel.payBookingViaWhish, the practitioner's separate later step
-     * (MyBookingsScreen's "Pay Whish" button, not the orphaned RentalsViewModel, which
-     * was deleted — it duplicated this same flow but had no screen wired to it).
+     * Owner accepting a booking means they've reached and evidenced a real agreement
+     * with the specialist — [agreementUrl] is the signed lease they just uploaded to
+     * Storage (see OwnerRentalRequestsScreen's Accept flow), kept on file as the
+     * record of that, exactly like [SpaceListing.ownershipProofUrl]: self-attested,
+     * never reviewed. There is no in-app payment settlement to track anymore — both
+     * sides handle payment outside the app entirely (the old isExternalPaymentSettled
+     * flag, and the "Pay Whish" flow that set it, are gone).
+     *
+     * If [request.replacesBookingId] is set, this acceptance is really an edit
+     * superseding a previously accepted booking (see MyBookingsScreen's "Edit
+     * Booking" action) — the superseded booking is released (marked CANCELLED) in
+     * the same operation, so exactly one of the two is ever ACCEPTED and
+     * availability — always derived live from ACCEPTED bookings + the space's
+     * schedule, never a separately stored count — recalculates immediately.
      */
-    fun acceptBookingRequest(requestId: String): Boolean {
+    suspend fun acceptBookingRequest(requestId: String, agreementUrl: String): Boolean {
         val request = _bookingRequests.value.find { it.id == requestId } ?: return false
         val now = System.currentTimeMillis()
 
+        val success = firestoreService.updateBookingStatus(
+            requestId,
+            BookingRequestStatus.ACCEPTED,
+            extraFields = mapOf("agreementUrl" to agreementUrl)
+        )
+        if (!success) return false
+
         _bookingRequests.value = _bookingRequests.value.map {
             if (it.id == requestId) {
-                it.copy(
-                    status = BookingRequestStatus.ACCEPTED,
-                    reviewedAt = now
-                )
+                it.copy(status = BookingRequestStatus.ACCEPTED, reviewedAt = now, agreementUrl = agreementUrl)
             } else it
         }
-
-        syncBookingStatusToFirestore(requestId, BookingRequestStatus.ACCEPTED)
 
         // Add member to resident list if not present
         val memberString = "${request.practitionerName} (${request.practitionerSpecialty})"
@@ -938,9 +942,22 @@ class ProSpaceRepository {
             } else space
         }
 
+        // Release the booking this edit replaces, if any — see the doc comment above.
+        request.replacesBookingId?.let { oldId ->
+            val oldRequest = _bookingRequests.value.find { it.id == oldId }
+            if (oldRequest != null && oldRequest.status == BookingRequestStatus.ACCEPTED) {
+                val supersededReason = "Superseded by an accepted edit (Ref #$requestId)"
+                firestoreService.updateBookingStatus(oldId, BookingRequestStatus.CANCELLED, rejectionReason = supersededReason)
+                _bookingRequests.value = _bookingRequests.value.map {
+                    if (it.id == oldId) it.copy(status = BookingRequestStatus.CANCELLED, rejectionReason = supersededReason) else it
+                }
+            }
+        }
+
         addAuditLog(
             actionType = "RENTAL_REQUEST_ACCEPTED",
-            details = "Owner ${request.ownerName} accepted $requestId by ${request.practitionerName}. Formula '${request.formula.scheduleDescription}' (${request.selectedDateTimeRange}) is now locked and marked unavailable for public display.",
+            details = "Owner ${request.ownerName} accepted $requestId by ${request.practitionerName}. Formula '${request.formula.scheduleDescription}' (${request.selectedDateTimeRange}) is now locked and marked unavailable for public display." +
+                (request.replacesBookingId?.let { " Replaces booking #$it, now released." } ?: ""),
             severity = "SECURE",
             actorEmail = request.ownerName
         )
@@ -980,6 +997,69 @@ class ProSpaceRepository {
             if (it.id == requestId) it.copy(status = BookingRequestStatus.CANCELLED) else it
         }
         syncBookingStatusToFirestore(requestId, BookingRequestStatus.CANCELLED)
+
+        addAuditLog(
+            actionType = "RENTAL_REQUEST_CANCELLED",
+            details = "Request $requestId for '${request.spaceTitle}' cancelled by practitioner ${request.practitionerName} before host review.",
+            severity = "INFO",
+            actorEmail = request.practitionerEmail
+        )
+
+        return true
+    }
+
+    /**
+     * Early termination of an already-ACCEPTED booking — the gap flagged as a genuine
+     * open item: previously the only cancellation path was for a not-yet-accepted
+     * PENDING request (cancelBookingRequest above). Deliberately simple per the
+     * current terms-of-use cancellation workflow: a reason code plus an optional
+     * note, no refund/penalty logic (there's nothing to refund — rent settlement
+     * never happens in-app). [cancelledByUid]/[cancelledByRole] identify who ended
+     * it (only the booking's own practitioner, its owner, or an Admin may call this
+     * — enforced by the caller checking against the loaded [BookingRequest] before
+     * invoking it, same pattern as reject/accept). A real cross-device push notifies
+     * whichever side didn't initiate the cancellation (onBookingRequestStatusChanged,
+     * functions/src/notifications/bookingNotifications.ts).
+     */
+    suspend fun cancelAcceptedBooking(
+        requestId: String,
+        reasonCode: CancellationReasonCode,
+        note: String?,
+        cancelledByUid: String,
+        cancelledByRole: String
+    ): Boolean {
+        val request = _bookingRequests.value.find { it.id == requestId } ?: return false
+        if (request.status != BookingRequestStatus.ACCEPTED) return false
+
+        val success = firestoreService.updateBookingStatus(
+            requestId,
+            BookingRequestStatus.CANCELLED,
+            extraFields = mapOf(
+                "cancellationReasonCode" to reasonCode.name,
+                "cancellationNote" to note,
+                "cancelledByRole" to cancelledByRole
+            )
+        )
+        if (!success) return false
+
+        _bookingRequests.value = _bookingRequests.value.map {
+            if (it.id == requestId) {
+                it.copy(
+                    status = BookingRequestStatus.CANCELLED,
+                    cancellationReasonCode = reasonCode.name,
+                    cancellationNote = note,
+                    cancelledByRole = cancelledByRole
+                )
+            } else it
+        }
+
+        addAuditLog(
+            actionType = "ACCEPTED_BOOKING_CANCELLED",
+            details = "Accepted booking $requestId for '${request.spaceTitle}' (${request.practitionerName} / ${request.ownerName}) terminated early by $cancelledByRole. Reason: ${reasonCode.displayName}${if (!note.isNullOrBlank()) " — \"$note\"" else ""}.",
+            severity = "WARN",
+            actorEmail = if (cancelledByUid == request.practitionerId) request.practitionerEmail else request.ownerName
+        )
+
         return true
     }
 
@@ -1062,6 +1142,15 @@ class ProSpaceRepository {
      * write to) and [verifiedRole] must already have been confirmed server-side — see
      * [com.example.data.auth.completeVerifiedRegistration].
      */
+    /**
+     * Registers a new member. [uid] must be the real Firebase Auth UID (so this user's
+     * `id` lines up with the `user_profiles/{uid}` document the role-claim Cloud Functions
+     * write to) and [verifiedRole] must already have been confirmed server-side — see
+     * [com.example.data.auth.completeVerifiedRegistration]. [isVerified] reflects that
+     * [uid]'s Firebase Auth account already completed phone-number SMS verification
+     * before this is ever called (see LoginAuthScreen's OTP flow) — there is no admin
+     * accreditation step anymore; [idDocumentUrl] is kept on file, not reviewed.
+     */
     fun registerMember(
         uid: String,
         fullName: String,
@@ -1069,9 +1158,11 @@ class ProSpaceRepository {
         phone: String,
         verifiedRole: UserRole,
         specialty: String,
-        syndicateNumber: String,
-        affiliation: String,
-        governorate: Governorate
+        profilePictureUrl: String?,
+        idDocumentUrl: String?,
+        country: String,
+        governorate: String,
+        city: String
     ): AppUser {
         val cleanEmail = email.trim().lowercase()
         val newUser = AppUser(
@@ -1081,9 +1172,11 @@ class ProSpaceRepository {
             role = verifiedRole,
             specialty = specialty.trim(),
             phone = phone.trim(),
-            affiliation = affiliation.trim(),
-            syndicateNumber = syndicateNumber.trim(),
-            governorate = governorate,
+            profilePictureUrl = profilePictureUrl,
+            idDocumentUrl = idDocumentUrl,
+            country = country.trim(),
+            governorate = governorate.trim(),
+            city = city.trim(),
             isVerified = true
         )
 
@@ -1093,7 +1186,7 @@ class ProSpaceRepository {
 
         addAuditLog(
             actionType = "MEMBER_REGISTRATION",
-            details = "New member registered: ${newUser.fullName} (${newUser.role.name}) • ${newUser.specialty} • ${newUser.governorate.displayName}",
+            details = "New member registered: ${newUser.fullName} (${newUser.role.name}) • ${newUser.specialty} • ${newUser.city}, ${newUser.governorate}, ${newUser.country}",
             severity = "SECURE",
             actorEmail = newUser.email
         )
@@ -1106,25 +1199,23 @@ class ProSpaceRepository {
      * custom claim — see [com.example.data.auth.completeVerifiedLogin]). [uid] must be
      * the Firebase Auth UID; [verifiedRole] must come from the token claim, never from
      * UI state. There is no code path here that grants a role from caller-supplied input.
+     * [email] may be blank (a phone-auth FirebaseUser has no email of its own) — a blank
+     * value never overwrites a previously-stored real email.
      */
     fun login(uid: String, email: String, verifiedRole: UserRole): AppUser {
         val cleanEmail = email.trim().lowercase()
         val existing = _users.value.find { it.id == uid }
 
-        val user = existing?.copy(role = verifiedRole, email = cleanEmail) ?: AppUser(
+        val user = existing?.copy(role = verifiedRole, email = cleanEmail.ifBlank { existing.email }) ?: AppUser(
             id = uid,
             email = cleanEmail,
             fullName = if (cleanEmail.contains("@")) cleanEmail.substringBefore("@").replace(".", " ").capitalize(Locale.US) else "Member",
             role = verifiedRole,
-            specialty = when (verifiedRole) {
-                UserRole.PROFESSIONAL -> "Independent Specialist"
-                UserRole.SPACE_OWNER -> "Workspace Host"
-                UserRole.ADMIN -> "Super Administrator & Security Governance"
-            },
+            specialty = "",
             phone = "",
-            affiliation = "ProSpace Member Network",
-            syndicateNumber = "PRO-LB-" + (1000..9999).random(),
-            governorate = Governorate.BEIRUT,
+            country = "Lebanon",
+            governorate = "",
+            city = "",
             isVerified = true
         )
 
@@ -1156,25 +1247,28 @@ class ProSpaceRepository {
     // for switchRole specifically, any already-logged-in user) instantly become ADMIN
     // with no server check at all. A role change now only ever happens through the
     // login()/registerMember() paths above, which require a role already verified via
-    // a Firebase Auth custom claim, or through the grantAdminRole/requestRoleUpgrade
-    // Cloud Functions for an explicit role change request.
+    // a Firebase Auth custom claim, through the grantAdminRole Cloud Function for an
+    // explicit Admin grant, or through grantEntitlement() promoting a SPECIALIST to
+    // PRO_HOST the moment their package/listing Whish payment settles.
 
     suspend fun updateCurrentUserProfile(
         name: String,
         specialty: String,
         phone: String,
-        affiliation: String,
-        syndicateNumber: String,
-        governorate: Governorate
+        country: String,
+        governorate: String,
+        city: String,
+        profilePictureUrl: String? = null
     ): Boolean {
         val current = _currentUser.value ?: return false
         val updated = current.copy(
             fullName = name,
             specialty = specialty,
             phone = phone,
-            affiliation = affiliation,
-            syndicateNumber = syndicateNumber,
-            governorate = governorate
+            country = country,
+            governorate = governorate,
+            city = city,
+            profilePictureUrl = profilePictureUrl ?: current.profilePictureUrl
         )
         // This used to only mutate in-memory state — the "Profile Updated Successfully"
         // toast fired unconditionally while the edit was never sent to Firestore at all,
@@ -1187,171 +1281,8 @@ class ProSpaceRepository {
         return success
     }
 
-    // --- Credential Documents & Professional Verification Management ---
-
-    fun uploadCredentialDocument(
-        userId: String,
-        type: DocumentType,
-        fileName: String,
-        fileSizeKb: Int,
-        documentNumber: String,
-        issuingAuthority: String,
-        expiryDate: String,
-        fileUri: String? = null
-    ): CredentialDocument {
-        val hash = "SHA256:" + java.util.UUID.randomUUID().toString().replace("-", "").take(32)
-        val existingIndex = _credentialDocuments.value.indexOfFirst { it.userId == userId && it.type == type }
-        val doc = CredentialDocument(
-            id = "DOC-" + UUID.randomUUID().toString().take(8).uppercase(),
-            userId = userId,
-            type = type,
-            fileName = fileName,
-            fileSizeKb = fileSizeKb,
-            uploadedAt = System.currentTimeMillis(),
-            status = DocumentStatus.PENDING_REVIEW,
-            documentNumber = documentNumber,
-            issuingAuthority = issuingAuthority,
-            expiryDate = expiryDate,
-            fileUri = fileUri,
-            verificationHash = hash,
-            reviewerNotes = null
-        )
-
-        val updatedList = if (existingIndex >= 0) {
-            _credentialDocuments.value.toMutableList().apply { set(existingIndex, doc) }
-        } else {
-            _credentialDocuments.value + doc
-        }
-        _credentialDocuments.value = updatedList
-        coroutineScope.launch { firestoreService.saveCredentialDocument(doc) }
-
-        addAuditLog(
-            actionType = "DOCUMENT_UPLOADED",
-            details = "Credential document ${type.title} ($fileName, #$documentNumber) uploaded for member verification",
-            severity = "INFO",
-            actorEmail = _currentUser.value?.email ?: "member@prospace.lb"
-        )
-
-        // Recomputes verificationStatus/verificationTier/trustScore server-side — those
-        // fields are no longer client-writable (see submitUserVerification's comment).
-        coroutineScope.launch {
-            functionsClient.submitVerificationForReview()
-            refreshUserProfile(userId)
-        }
-        return doc
-    }
-
-    suspend fun removeCredentialDocument(documentId: String): Boolean {
-        val doc = _credentialDocuments.value.find { it.id == documentId } ?: return false
-        val deleted = firestoreService.deleteCredentialDocument(documentId)
-        if (!deleted) return false
-
-        // The realtime listener (see init{}) will also reflect this once Firestore's
-        // snapshot fires, but update local state immediately for a responsive UI.
-        _credentialDocuments.value = _credentialDocuments.value.filterNot { it.id == documentId }
-        addAuditLog(
-            actionType = "DOCUMENT_REMOVED",
-            details = "Credential document ${doc.type.title} (#${doc.documentNumber}) removed",
-            severity = "INFO",
-            actorEmail = _currentUser.value?.email ?: "member@prospace.lb"
-        )
-        functionsClient.submitVerificationForReview()
-        refreshUserProfile(doc.userId)
-        return true
-    }
-
-    suspend fun submitUserVerification(userId: String): Boolean {
-        val user = _users.value.find { it.id == userId } ?: _currentUser.value ?: return false
-        val userDocs = _credentialDocuments.value.filter { it.userId == userId }
-        val requiredTypes = DocumentType.values().filter { it.requiredFor.contains(user.role) }
-        val uploadedRequired = requiredTypes.filter { req -> userDocs.any { it.type == req && it.status != DocumentStatus.NOT_UPLOADED } }
-
-        // verificationNotes is a free-text field the owner can write themselves (not
-        // one of the restricted fields), so this part still writes directly; the
-        // actual verificationStatus change happens server-side just below.
-        val updated = user.copy(
-            verificationNotes = "Submitted on ${SimpleDateFormat("dd MMM yyyy", Locale.US).format(Date())}. Pending admin accreditation."
-        )
-        val profileSaved = firestoreService.saveUserProfile(updated)
-        if (!profileSaved) return false
-
-        // Server-side: recomputes and writes verificationStatus/verificationTier/
-        // trustScore from the same credential documents, since Firestore rules deny
-        // every client write to those fields on user_profiles.
-        val submitted = functionsClient.submitVerificationForReview()
-        if (submitted.isFailure) return false
-
-        if (_currentUser.value?.id == userId) {
-            _currentUser.value = updated
-        }
-        _users.value = _users.value.map { if (it.id == userId) updated else it }
-        addLocalAuditLogEntry(
-            actionType = "VERIFICATION_SUBMITTED",
-            details = "Member ${user.fullName} submitted ${uploadedRequired.size}/${requiredTypes.size} credential documents for compliance review",
-            severity = "INFO",
-            actorEmail = user.email
-        )
-        refreshUserProfile(userId)
-        return true
-    }
-
-    /**
-     * Approving/rejecting a credential document and the resulting change to the
-     * member's verification status/tier/trust score are both server-authoritative
-     * now (Firestore rules deny every client write to those fields) — this and
-     * [adminRejectDocument] call reviewCredentialDocument instead of writing
-     * directly, then refresh local state from Firestore once the server is done.
-     */
-    /** Returns whether the review actually succeeded, so the caller can show a real result. */
-    suspend fun adminApproveDocument(documentId: String, reviewerNotes: String = "Validated against Lebanese Syndicate Registry"): Boolean {
-        val doc = _credentialDocuments.value.find { it.id == documentId } ?: return false
-        val result = functionsClient.reviewCredentialDocument(documentId, approve = true, reviewerNotes = reviewerNotes)
-        if (result.isSuccess) {
-            addLocalAuditLogEntry(
-                actionType = "DOCUMENT_ACCREDITED",
-                details = "Admin approved ${doc.type.title} (#${doc.documentNumber}) for member ${doc.userId}",
-                severity = "SECURE",
-                actorEmail = _currentUser.value?.email ?: "admin@prospace.lb"
-            )
-            refreshCredentialDocument(documentId)
-            refreshUserProfile(doc.userId)
-        }
-        return result.isSuccess
-    }
-
-    /** Returns whether the review actually succeeded, so the caller can show a real result. */
-    suspend fun adminRejectDocument(documentId: String, reason: String): Boolean {
-        val doc = _credentialDocuments.value.find { it.id == documentId } ?: return false
-        val result = functionsClient.reviewCredentialDocument(documentId, approve = false, rejectionReason = reason)
-        if (result.isSuccess) {
-            addLocalAuditLogEntry(
-                actionType = "DOCUMENT_REVISION_REQUESTED",
-                details = "Admin requested revision on ${doc.type.title} (#${doc.documentNumber}): $reason",
-                severity = "WARN",
-                actorEmail = _currentUser.value?.email ?: "admin@prospace.lb"
-            )
-            refreshCredentialDocument(documentId)
-            refreshUserProfile(doc.userId)
-        }
-        return result.isSuccess
-    }
-
-    /** Re-reads one credential document from Firestore into local state after a server-side change. */
-    private suspend fun refreshCredentialDocument(documentId: String) {
-        val data = firestoreService.getCredentialDocument(documentId) ?: return
-        val updatedDoc = CredentialDocument.fromFirestoreMap(documentId, data)
-        _credentialDocuments.value = _credentialDocuments.value.map { if (it.id == documentId) updatedDoc else it }
-    }
-
-    /** Re-reads one user profile from Firestore into local state after a server-side change. */
-    private suspend fun refreshUserProfile(userId: String) {
-        val data = firestoreService.getUserProfile(userId) ?: return
-        val updated = AppUser.fromFirestoreMap(userId, data)
-        if (_currentUser.value?.id == userId) {
-            _currentUser.value = updated
-        }
-        _users.value = _users.value.map { if (it.id == userId) updated else it }
-    }
+    /** Registers this device's FCM token against [uid]'s profile — see FirestoreService.saveFcmToken. */
+    suspend fun registerFcmToken(uid: String, token: String): Boolean = firestoreService.saveFcmToken(uid, token)
 
     // --- Multi-Format Data Export Hub ---
     fun exportToCsv(): String {
@@ -1379,9 +1310,9 @@ class ProSpaceRepository {
         }
         sb.appendLine()
         sb.appendLine("--- REGISTERED USERS & PROFESSIONALS ---")
-        sb.appendLine("UserID,FullName,Email,Role,Specialty,Phone,Affiliation,LicenseID,IsVerified")
+        sb.appendLine("UserID,FullName,Email,Role,Specialty,Phone,Country,Governorate,City,IsVerified")
         _users.value.forEach { u ->
-            sb.appendLine("\"${u.id}\",\"${u.fullName}\",\"${u.email}\",\"${u.role.name}\",\"${u.specialty}\",\"${u.phone}\",\"${u.affiliation}\",\"${u.syndicateNumber}\",${u.isVerified}")
+            sb.appendLine("\"${u.id}\",\"${u.fullName}\",\"${u.email}\",\"${u.role.name}\",\"${u.specialty}\",\"${u.phone}\",\"${u.country}\",\"${u.governorate}\",\"${u.city}\",${u.isVerified}")
         }
         sb.appendLine()
         sb.appendLine("--- SECURITY & AUDIT EVENT LOGS ---")
@@ -1480,16 +1411,33 @@ ${_spaces.value.joinToString("\n") { sp ->
         """.trimIndent()
     }
 
+    /** Millis -> "yyyy-MM-dd HH:mm:ss", or "—" when the server hasn't stamped this account yet. */
+    private fun formatAuditTimestamp(sdf: SimpleDateFormat, millis: Long?): String =
+        millis?.let { sdf.format(Date(it)) } ?: "—"
+
+    /**
+     * The full audit-trail export Admin's Users Directory offers: every field a real
+     * platform operator needs to see per account, including the server-stamped
+     * creation/last-sign-in timestamps (assignInitialRole.ts — never client-set, see
+     * AppUser's doc comment) and direct links to the on-file profile picture and ID
+     * document. Nothing here is reviewed/approved — these are exactly the fields kept
+     * on file, exported as-is.
+     */
     fun exportUsersToCsv(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         val sb = StringBuilder()
-        sb.appendLine("=== PROSPACE USERS DIRECTORY EXPORT (CSV) ===")
+        sb.appendLine("=== PROHOST USERS DIRECTORY EXPORT (CSV) ===")
         sb.appendLine("Export Date,${sdf.format(Date())}")
         sb.appendLine("Total Users,${_users.value.size}")
         sb.appendLine()
-        sb.appendLine("ID,Full Name,Email,Role,Specialty,Syndicate Number,Affiliation,Phone,Governorate,Is Verified,Verification Status,Trust Score,Tier")
+        sb.appendLine("User ID,Full Name,Email,Role,Specialty,Phone,Country,Governorate,City,Is Verified,Account Created,Last Sign-In,Profile Picture URL,ID Document URL")
         _users.value.forEach { u ->
-            sb.appendLine("\"${u.id}\",\"${u.fullName.replace("\"", "\"\"")}\",\"${u.email}\",\"${u.role.name}\",\"${u.specialty.replace("\"", "\"\"")}\",\"${u.syndicateNumber}\",\"${u.affiliation.replace("\"", "\"\"")}\",\"${u.phone}\",\"${u.governorate.displayName}\",${u.isVerified},\"${u.verificationStatus.name}\",${u.trustScore},\"${u.verificationTier.name}\"")
+            sb.appendLine(
+                "\"${u.id}\",\"${u.fullName.replace("\"", "\"\"")}\",\"${u.email}\",\"${u.role.name}\"," +
+                    "\"${u.specialty.replace("\"", "\"\"")}\",\"${u.phone}\",\"${u.country}\",\"${u.governorate}\",\"${u.city}\"," +
+                    "${u.isVerified},\"${formatAuditTimestamp(sdf, u.createdAtMillis)}\",\"${formatAuditTimestamp(sdf, u.lastSignInAtMillis)}\"," +
+                    "\"${u.profilePictureUrl ?: ""}\",\"${u.idDocumentUrl ?: ""}\""
+            )
         }
         return sb.toString()
     }
@@ -1510,11 +1458,15 @@ ${_spaces.value.joinToString("\n") { sp ->
             sb.appendLine("      \"email\": \"${u.email}\",")
             sb.appendLine("      \"role\": \"${u.role.name}\",")
             sb.appendLine("      \"specialty\": \"${u.specialty.replace("\"", "\\\"")}\",")
-            sb.appendLine("      \"syndicateNumber\": \"${u.syndicateNumber}\",")
             sb.appendLine("      \"phone\": \"${u.phone}\",")
-            sb.appendLine("      \"governorate\": \"${u.governorate.displayName}\",")
+            sb.appendLine("      \"country\": \"${u.country}\",")
+            sb.appendLine("      \"governorate\": \"${u.governorate}\",")
+            sb.appendLine("      \"city\": \"${u.city}\",")
             sb.appendLine("      \"isVerified\": ${u.isVerified},")
-            sb.appendLine("      \"trustScore\": ${u.trustScore}")
+            sb.appendLine("      \"createdAtMillis\": ${u.createdAtMillis ?: "null"},")
+            sb.appendLine("      \"lastSignInAtMillis\": ${u.lastSignInAtMillis ?: "null"},")
+            sb.appendLine("      \"profilePictureUrl\": ${u.profilePictureUrl?.let { "\"$it\"" } ?: "null"},")
+            sb.appendLine("      \"idDocumentUrl\": ${u.idDocumentUrl?.let { "\"$it\"" } ?: "null"}")
             sb.appendLine("    }$comma")
         }
         sb.appendLine("  ]")
@@ -1567,17 +1519,17 @@ ${_spaces.value.joinToString("\n") { sp ->
 
     fun exportOwnerRegistrationsToCsv(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
-        val owners = _users.value.filter { it.role == UserRole.SPACE_OWNER }
+        val owners = _users.value.filter { it.role == UserRole.PRO_HOST }
         val sb = StringBuilder()
         sb.appendLine("=== PROSPACE OWNER REGISTRATIONS & WORKSPACES AUDIT ===")
         sb.appendLine("Export Date,${sdf.format(Date())}")
         sb.appendLine("Total Registered Hosts,${owners.size}")
         sb.appendLine()
-        sb.appendLine("User ID,Full Name,Email,Phone,Affiliation,Governorate,Properties Count,Active Subscribed Count,Syndicate/Permit #,Verification Status,Trust Score")
+        sb.appendLine("User ID,Full Name,Email,Phone,Country,Governorate,City,Properties Count,Active Subscribed Count,Is Verified")
         owners.forEach { o ->
             val ownedSpaces = _spaces.value.filter { it.ownerName.contains(o.fullName, ignoreCase = true) || it.ownerPhone == o.phone }
             val activeSpaces = ownedSpaces.count { it.isActiveSubscription }
-            sb.appendLine("\"${o.id}\",\"${o.fullName.replace("\"", "\"\"")}\",\"${o.email}\",\"${o.phone}\",\"${o.affiliation.replace("\"", "\"\"")}\",\"${o.governorate.displayName}\",${ownedSpaces.size},$activeSpaces,\"${o.syndicateNumber}\",\"${o.verificationStatus.name}\",${o.trustScore}")
+            sb.appendLine("\"${o.id}\",\"${o.fullName.replace("\"", "\"\"")}\",\"${o.email}\",\"${o.phone}\",\"${o.country}\",\"${o.governorate}\",\"${o.city}\",${ownedSpaces.size},$activeSpaces,${o.isVerified}")
         }
         return sb.toString()
     }

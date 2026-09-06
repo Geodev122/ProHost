@@ -8,25 +8,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.model.*
 import com.example.data.repository.ProSpaceRepository
+import com.example.util.guessFileExtension
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.net.URLEncoder
-
-data class SearchFilterState(
-    val query: String = "",
-    val selectedGovernorate: Governorate? = null,
-    val selectedSpaceType: SpaceType? = null,
-    val selectedFormulaType: RentalFormulaType? = null,
-    val selectedFacility: String? = null,
-    val selectedEquipmentCategory: EquipmentCategory? = null,
-    val maxPriceUsd: Double = 1500.0,
-    val onlyVerified: Boolean = false,
-    val onlyActiveSubscribed: Boolean = true
-)
 
 class ProSpaceViewModel(
     val repository: ProSpaceRepository = ProSpaceRepository.getInstance()
 ) : ViewModel() {
+
+    // Used by the Whish payment functions and sendPaymentReminder below — kept here
+    // (not moved to AuthViewModel with the rest of the FirebaseFunctionsClient calls)
+    // since those are cross-cutting, multi-screen actions, unlike the auth flow.
+    private val functionsClient = com.example.data.auth.FirebaseFunctionsClient()
 
     val pricingState: StateFlow<AdminPricingState> = repository.pricingState
     val spaces: StateFlow<List<SpaceListing>> = repository.spaces
@@ -35,18 +30,12 @@ class ProSpaceViewModel(
     val transactions: StateFlow<List<WhishTransaction>> = repository.transactions
     val users: StateFlow<List<AppUser>> = repository.users
     val currentUser: StateFlow<AppUser?> = repository.currentUser
-    val credentialDocuments: StateFlow<List<CredentialDocument>> = repository.credentialDocuments
     val auditLogs: StateFlow<List<AuditSecurityLog>> = repository.auditLogs
     val bookingRequests: StateFlow<List<RentalBookingRequest>> = repository.bookingRequests
     val fcmAlerts: StateFlow<List<FCMAlert>> = repository.fcmAlerts
     val isOfflineMode: StateFlow<Boolean> = repository.isOfflineMode
     val syncStatusMessage: StateFlow<String?> = repository.syncStatusMessage
     val pendingOfflineTransactions: StateFlow<List<WhishTransaction>> = repository.pendingOfflineTransactions
-
-    val currentUserDocuments: StateFlow<List<CredentialDocument>> = combine(credentialDocuments, currentUser) { docs, user ->
-        if (user == null) emptyList()
-        else docs.filter { it.userId == user.id }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun retryOfflineSync() {
         repository.retryOfflineTransactions()
@@ -56,35 +45,6 @@ class ProSpaceViewModel(
     fun markAlertAsRead(alertId: String) {
         repository.markAlertAsRead(alertId)
     }
-
-    fun postNotificationAlert(
-        title: String,
-        body: String,
-        category: String,
-        context: android.content.Context,
-        targetTab: String? = null,
-        bookingId: String? = null,
-        whatsAppPhone: String? = null,
-        whatsAppMessage: String? = null
-    ) {
-        val alert = FCMAlert(title = title, body = body, category = category)
-        repository.addFCMAlert(alert)
-        com.example.service.ProSpaceMessagingService.showPhysicalNotification(
-            context = context,
-            title = title,
-            body = body,
-            targetTab = targetTab,
-            bookingId = bookingId,
-            whatsAppPhone = whatsAppPhone,
-            whatsAppMessage = whatsAppMessage
-        )
-    }
-
-    private val _searchFilter = MutableStateFlow(SearchFilterState())
-    val searchFilter: StateFlow<SearchFilterState> = _searchFilter.asStateFlow()
-
-    private val _selectedSpace = MutableStateFlow<SpaceListing?>(null)
-    val selectedSpace: StateFlow<SpaceListing?> = _selectedSpace.asStateFlow()
 
     // Owner spaces
     val ownerSpaces: StateFlow<List<SpaceListing>> = combine(spaces, currentUser) { list, user ->
@@ -108,67 +68,18 @@ class ProSpaceViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Filtered spaces flow
-    val filteredSpaces: StateFlow<List<SpaceListing>> = combine(spaces, searchFilter) { list, filter ->
-        list.filter { space ->
-            val matchesQuery = filter.query.isBlank() ||
-                    space.title.contains(filter.query, ignoreCase = true) ||
-                    space.district.contains(filter.query, ignoreCase = true) ||
-                    space.complementarySpecialties.any { it.contains(filter.query, ignoreCase = true) } ||
-                    space.equipment.any { it.name.contains(filter.query, ignoreCase = true) } ||
-                    space.spaceType.displayName.contains(filter.query, ignoreCase = true)
-
-            val matchesGov = filter.selectedGovernorate == null || space.governorate == filter.selectedGovernorate
-            val matchesType = filter.selectedSpaceType == null || space.spaceType == filter.selectedSpaceType
-            val matchesFormula = filter.selectedFormulaType == null || space.rentalFormulas.any { it.type == filter.selectedFormulaType }
-            val matchesFacility = filter.selectedFacility == null || space.essentialFacilities.contains(filter.selectedFacility)
-            val matchesEquip = filter.selectedEquipmentCategory == null || space.equipment.any { it.category == filter.selectedEquipmentCategory }
-            val matchesPrice = space.baseMonthlyRateUsd <= filter.maxPriceUsd
-            val matchesVerified = !filter.onlyVerified || space.isVerified
-            val matchesSub = !filter.onlyActiveSubscribed || space.isActiveSubscription
-
-            matchesQuery && matchesGov && matchesType && matchesFormula && matchesFacility && matchesEquip && matchesPrice && matchesVerified && matchesSub
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
     // Financial Metrics
     val activeMrr: Double get() = repository.calculateActiveMrr()
     val potentialMrr: Double get() = repository.calculatePotentialCapacityMrr()
     val projectedArr: Double get() = repository.calculateProjectedArr()
     val totalSettlementVolume: Double get() = repository.calculateTotalSettlementVolume()
 
-    // --- Search & Filter Actions ---
-    fun updateSearchQuery(query: String) {
-        _searchFilter.value = _searchFilter.value.copy(query = query)
-    }
-
-    fun setGovernorateFilter(gov: Governorate?) {
-        _searchFilter.value = _searchFilter.value.copy(selectedGovernorate = gov)
-    }
-
-    fun setSpaceTypeFilter(type: SpaceType?) {
-        _searchFilter.value = _searchFilter.value.copy(selectedSpaceType = type)
-    }
-
-    fun setFormulaFilter(formula: RentalFormulaType?) {
-        _searchFilter.value = _searchFilter.value.copy(selectedFormulaType = formula)
-    }
-
-    fun setFacilityFilter(facility: String?) {
-        _searchFilter.value = _searchFilter.value.copy(selectedFacility = facility)
-    }
-
-    fun setMaxPrice(price: Double) {
-        _searchFilter.value = _searchFilter.value.copy(maxPriceUsd = price)
-    }
-
-    fun resetFilters() {
-        _searchFilter.value = SearchFilterState()
-    }
-
-    fun selectSpace(space: SpaceListing?) {
-        _selectedSpace.value = space
-    }
+    // Search/filter state (query, governorate, space type, formula, price, etc.) and
+    // the resulting filtered-spaces list used to be duplicated here — an independently
+    // maintained copy of exactly what DiscoveryViewModel already did, since
+    // DiscoveryScreen (this block's only real caller) was never actually wired onto
+    // DiscoveryViewModel. It now is (see DiscoveryScreen.kt) — this whole block is
+    // gone, not just left dead, per the ViewModel-split effort.
 
     // Admin pricing/listing governance (setSubscriptionFee, resetSubscriptionFeeBaseline,
     // toggleListingVerification, toggleListingActive) used to be duplicated here — dead
@@ -207,20 +118,40 @@ class ProSpaceViewModel(
                     "Complete your payment in the browser. We'll confirm automatically once Whish settles it.",
                     Toast.LENGTH_LONG
                 ).show()
-                pollWhishPaymentStatus(init.txId, context)
+                pollWhishPaymentStatus(init.txId, purpose, context)
             }.onFailure { e ->
                 Toast.makeText(context, "Could not start payment: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
 
+    /**
+     * Re-reads the signed-in user's role from a force-refreshed Firebase Auth ID
+     * token and reflects it into currentUser — the client-side counterpart of
+     * grantEntitlement()'s grantProHostRoleIfNeeded() (see entitlements.ts). Called
+     * once a package/PAYG_LISTING payment is confirmed settled, so a SPECIALIST who
+     * just got promoted to PRO_HOST sees Pro Host navigation immediately, without
+     * needing to sign out and back in. Mirrors how AuthFlow.resolveVerifiedRole()
+     * already resolves role at sign-in — role always comes from the custom claim,
+     * never trusted from Firestore's user_profiles.role mirror field alone.
+     */
+    private suspend fun refreshCurrentUserRoleAfterEntitlement() {
+        val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser ?: return
+        val claim = com.example.data.auth.FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true) ?: return
+        val role = runCatching { UserRole.valueOf(claim) }.getOrNull() ?: return
+        repository.login(uid = firebaseUser.uid, email = firebaseUser.email ?: "", verifiedRole = role)
+    }
+
     /** Bounded polling fallback in case the server-to-server webhook is slow/missed. */
-    private fun pollWhishPaymentStatus(txId: String, context: Context) {
+    private fun pollWhishPaymentStatus(txId: String, purpose: String, context: Context) {
         viewModelScope.launch {
             repeat(24) {
                 kotlinx.coroutines.delay(5000)
                 val status = functionsClient.checkWhishStatus(txId).getOrNull()
                 if (status == "SUCCESS") {
+                    if (purpose == "OWNER_PACKAGE" || purpose == "PAYG_LISTING") {
+                        refreshCurrentUserRoleAfterEntitlement()
+                    }
                     Toast.makeText(context, "Payment confirmed! Your entitlement is now active.", Toast.LENGTH_LONG).show()
                     return@launch
                 } else if (status == "FAILED") {
@@ -232,9 +163,12 @@ class ProSpaceViewModel(
     }
 
     /** Manually triggered re-check, e.g. from a "Verify Payment" button in the UI. */
-    fun checkWhishPaymentStatus(txId: String, context: Context) {
+    fun checkWhishPaymentStatus(txId: String, purpose: String, context: Context) {
         viewModelScope.launch {
             val status = functionsClient.checkWhishStatus(txId).getOrNull()
+            if (status == "SUCCESS" && (purpose == "OWNER_PACKAGE" || purpose == "PAYG_LISTING")) {
+                refreshCurrentUserRoleAfterEntitlement()
+            }
             val message = when (status) {
                 "SUCCESS" -> "Payment confirmed! Your entitlement is now active."
                 "FAILED" -> "Whish reported this payment did not complete."
@@ -248,9 +182,10 @@ class ProSpaceViewModel(
         launchWhishCheckout("SUBSCRIPTION", spaceId, payerName, payerPhone, context)
     }
 
-    fun payBookingViaWhish(bookingId: String, payerName: String, payerPhone: String, context: Context) {
-        launchWhishCheckout("BOOKING", bookingId, payerName, payerPhone, context)
-    }
+    // payBookingViaWhish (booking rent settlement inside the app) is gone —
+    // Specialist and Pro Host settle rent entirely outside the app now. Host
+    // acceptance (see acceptBookingRequest below) records the deal instead: a
+    // signed leasing agreement uploaded to Storage, not a payment flag.
 
     // --- Space Owner Listing Creation ---
     fun createNewSpaceListing(listing: SpaceListing): Boolean {
@@ -309,178 +244,22 @@ class ProSpaceViewModel(
         launchWhishCheckout("PAYG_LISTING", spaceType.name, payerName, payerPhone, context)
     }
 
-    fun exportRevenueCsv(startDateMillis: Long?, endDateMillis: Long?): String {
-        return repository.exportTransactionsToCsv(startDateMillis, endDateMillis)
-    }
-
-    // --- Firebase Auth & Google Credential Manager States ---
-    private val _isAuthenticating = MutableStateFlow(false)
-    val isAuthenticating: StateFlow<Boolean> = _isAuthenticating.asStateFlow()
-
-    private val _authErrorMessage = MutableStateFlow<String?>(null)
-    val authErrorMessage: StateFlow<String?> = _authErrorMessage.asStateFlow()
-
-    private val _authSuccessMessage = MutableStateFlow<String?>(null)
-    val authSuccessMessage: StateFlow<String?> = _authSuccessMessage.asStateFlow()
-
-    fun clearAuthMessages() {
-        _authErrorMessage.value = null
-        _authSuccessMessage.value = null
-    }
-
-    // --- Authentication & Member Registration ---
-    // Role is NEVER taken from the client here. Sign-in resolves the caller's role from
-    // their Firebase Auth ID token's custom claim (assigned server-side by the
-    // assignInitialRole/requestRoleUpgrade/grantAdminRole Cloud Functions) — see
-    // com.example.data.auth.completeVerifiedLogin / completeVerifiedRegistration.
-    private val functionsClient = com.example.data.auth.FirebaseFunctionsClient()
-
-    fun signInWithEmailAndPassword(
-        context: Context,
-        email: String,
-        password: String,
-        onSuccess: () -> Unit
-    ) {
-        viewModelScope.launch {
-            _isAuthenticating.value = true
-            _authErrorMessage.value = null
-            val authService = com.example.data.auth.FirebaseAuthService(context)
-            when (val result = authService.signInWithEmail(email, password)) {
-                is com.example.data.auth.AuthResult.Success -> {
-                    val firebaseUser = result.firebaseUser
-                    if (firebaseUser == null) {
-                        _isAuthenticating.value = false
-                        _authErrorMessage.value = "Sign-in did not return a valid session. Please try again."
-                        return@launch
-                    }
-                    val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
-                    _isAuthenticating.value = false
-                    _authSuccessMessage.value = "Signed in successfully as ${user.fullName}"
-                    onSuccess()
-                }
-                is com.example.data.auth.AuthResult.Error -> {
-                    _isAuthenticating.value = false
-                    _authErrorMessage.value = result.message
-                }
-                com.example.data.auth.AuthResult.Cancelled -> {
-                    _isAuthenticating.value = false
-                }
-            }
-        }
-    }
-
-    fun registerMemberWithFirebase(
-        context: Context,
-        fullName: String,
-        email: String,
-        password: String,
-        phone: String,
-        requestedRole: UserRole,
-        specialty: String,
-        syndicateNumber: String,
-        affiliation: String,
-        governorate: Governorate,
-        onSuccess: () -> Unit
-    ) {
-        viewModelScope.launch {
-            _isAuthenticating.value = true
-            _authErrorMessage.value = null
-            val authService = com.example.data.auth.FirebaseAuthService(context)
-            when (val result = authService.registerWithEmail(email, password, fullName)) {
-                is com.example.data.auth.AuthResult.Success -> {
-                    val firebaseUser = result.firebaseUser
-                    if (firebaseUser == null) {
-                        _isAuthenticating.value = false
-                        _authErrorMessage.value = "Registration did not return a valid session. Please try again."
-                        return@launch
-                    }
-                    val user = com.example.data.auth.completeVerifiedRegistration(
-                        repository = repository,
-                        functionsClient = functionsClient,
-                        firebaseUser = firebaseUser,
-                        requestedRole = requestedRole,
-                        fullName = fullName,
-                        phone = phone,
-                        specialty = specialty,
-                        syndicateNumber = syndicateNumber,
-                        affiliation = affiliation,
-                        governorate = governorate
-                    )
-                    _isAuthenticating.value = false
-                    _authSuccessMessage.value = "Account created successfully for ${user.fullName}!"
-                    onSuccess()
-                }
-                is com.example.data.auth.AuthResult.Error -> {
-                    _isAuthenticating.value = false
-                    _authErrorMessage.value = result.message
-                }
-                com.example.data.auth.AuthResult.Cancelled -> {
-                    _isAuthenticating.value = false
-                }
-            }
-        }
-    }
-
-    fun signInWithGoogleCredentialManager(
-        activityContext: Context,
-        onSuccess: () -> Unit
-    ) {
-        viewModelScope.launch {
-            _isAuthenticating.value = true
-            _authErrorMessage.value = null
-            val authService = com.example.data.auth.FirebaseAuthService(activityContext)
-            when (val result = authService.signInWithGoogleCredentialManager(activityContext)) {
-                is com.example.data.auth.AuthResult.Success -> {
-                    val firebaseUser = result.firebaseUser
-                    if (firebaseUser == null) {
-                        _isAuthenticating.value = false
-                        _authErrorMessage.value = "Google sign-in did not return a valid session. Please try again."
-                        return@launch
-                    }
-                    val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
-                    _isAuthenticating.value = false
-                    _authSuccessMessage.value = "Google identity verified: ${user.fullName}"
-                    onSuccess()
-                }
-                is com.example.data.auth.AuthResult.Error -> {
-                    _isAuthenticating.value = false
-                    _authErrorMessage.value = result.message
-                }
-                com.example.data.auth.AuthResult.Cancelled -> {
-                    _isAuthenticating.value = false
-                }
-            }
-        }
-    }
-
-    fun sendPasswordReset(context: Context, email: String) {
-        viewModelScope.launch {
-            val trimmed = email.trim()
-            if (trimmed.isEmpty() || !trimmed.contains("@")) {
-                _authErrorMessage.value = "Please provide a valid email address to reset password."
-                return@launch
-            }
-            val authService = com.example.data.auth.FirebaseAuthService(context)
-            val result = authService.sendPasswordResetEmail(trimmed)
-            if (result.isSuccess) {
-                _authSuccessMessage.value = "Password reset instructions sent to $trimmed"
-                Toast.makeText(context, "Password reset email sent to $trimmed", Toast.LENGTH_LONG).show()
-            } else {
-                _authErrorMessage.value = "Failed to send reset email: ${result.exceptionOrNull()?.localizedMessage}"
-            }
-        }
-    }
+    // Sign-in/registration (phone OTP + Google Sign-In) moved to AuthViewModel —
+    // see its doc comment. Every method/state field there had exactly one caller
+    // (LoginAuthScreen) before this move.
 
     // registerMember(...)/login(...) synchronous wrappers were removed here — both let a
     // caller hand in an arbitrary role with zero server verification (the exact bug this
     // whole auth rewrite exists to close). Registration/sign-in now only ever happens
-    // through signInWithEmailAndPassword/registerMemberWithFirebase/
-    // signInWithGoogleCredentialManager above, which resolve role via Firebase Auth +
+    // through the phone-verification flow above (or Google Sign-In, itself gated on
+    // completing that same phone verification), which resolve role via Firebase Auth +
     // Cloud Functions custom claims.
     //
     // switchUserRole(...) was also removed — it let any already-logged-in user instantly
     // become ADMIN locally with no server check. A real role change now only happens via
-    // FirebaseFunctionsClient.requestSpaceOwnerUpgrade()/grantAdminRole().
+    // grantAdminRole() (Admin-to-Admin grants) or grantEntitlement() promoting a SPECIALIST
+    // to PRO_HOST the moment their package/listing Whish payment settles — never a free,
+    // client-invocable "upgrade" call.
 
     fun logout() {
         com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
@@ -495,61 +274,19 @@ class ProSpaceViewModel(
         name: String,
         specialty: String,
         phone: String,
-        affiliation: String,
-        syndicateNumber: String,
-        governorate: Governorate
+        country: String,
+        governorate: String,
+        city: String,
+        profilePictureUrl: String? = null
     ): Boolean {
-        return repository.updateCurrentUserProfile(name, specialty, phone, affiliation, syndicateNumber, governorate)
-    }
-
-    // --- Credential Document Operations ---
-
-    fun uploadCredentialDocument(
-        type: DocumentType,
-        fileName: String,
-        fileSizeKb: Int,
-        documentNumber: String,
-        issuingAuthority: String,
-        expiryDate: String,
-        fileUri: String? = null
-    ): CredentialDocument? {
-        val user = currentUser.value ?: return null
-        return repository.uploadCredentialDocument(
-            userId = user.id,
-            type = type,
-            fileName = fileName,
-            fileSizeKb = fileSizeKb,
-            documentNumber = documentNumber,
-            issuingAuthority = issuingAuthority,
-            expiryDate = expiryDate,
-            fileUri = fileUri
-        )
-    }
-
-    suspend fun removeCredentialDocument(documentId: String): Boolean {
-        return repository.removeCredentialDocument(documentId)
-    }
-
-    suspend fun submitForVerification(): Boolean {
-        val user = currentUser.value ?: return false
-        return repository.submitUserVerification(user.id)
-    }
-
-    suspend fun adminApproveDocument(documentId: String, notes: String = "Validated against Lebanese Syndicate Registry"): Boolean {
-        return repository.adminApproveDocument(documentId, notes)
-    }
-
-    suspend fun adminRejectDocument(documentId: String, reason: String): Boolean {
-        return repository.adminRejectDocument(documentId, reason)
+        return repository.updateCurrentUserProfile(name, specialty, phone, country, governorate, city, profilePictureUrl)
     }
 
     // --- WhatsApp Direct Connection ---
     fun launchWhatsAppInquiry(context: Context, space: SpaceListing, selectedFormula: RentalFormula?, request: RentalBookingRequest? = null) {
         val user = currentUser.value
         val professionalName = user?.fullName ?: "Specialist Member"
-        val specialty = user?.specialty ?: "Independent Specialist"
-        val affiliation = user?.affiliation ?: "ProSpace Member Network"
-        val syndicate = user?.syndicateNumber ?: "PRO-LB-VERIFIED"
+        val specialty = user?.specialty?.ifBlank { "Independent Specialist" } ?: "Independent Specialist"
 
         val formulaText = selectedFormula?.let { "${it.type.displayName} (${it.scheduleDescription} @ $${it.rateUsd}/mo)" }
             ?: "Full Practice Month ($${space.baseMonthlyRateUsd})"
@@ -570,7 +307,7 @@ class ProSpaceViewModel(
         } else ""
 
         val rawMessage = "Hello ${space.ownerName},\n\n" +
-                "I am ${professionalName} (${specialty}, affiliated with ${affiliation}, ID #${syndicate}).\n\n" +
+                "I am ${professionalName} (${specialty}).\n\n" +
                 "I am contacting you regarding your space \"${space.title}\" located in ${space.district}, ${space.governorate.displayName} on ProHost.\n" +
                 "Selected Formula: ${formulaText}$requestSnippet\n\n" +
                 "I would like to finalize payment and walk-through details.\n" +
@@ -582,6 +319,12 @@ class ProSpaceViewModel(
             val url = "https://wa.me/$cleanPhone?text=$encoded"
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             context.startActivity(intent)
+            repository.addAuditLog(
+                actionType = "WHATSAPP_INQUIRY_SPECIALIST_TO_HOST",
+                details = "${professionalName} contacted host ${space.ownerName} via WhatsApp about listing '${space.title}' (${space.id})" +
+                    (request?.let { " regarding booking #${it.id}" } ?: ""),
+                severity = "INFO"
+            )
         } catch (e: Exception) {
             Toast.makeText(context, "Could not launch WhatsApp. Showing copied message.", Toast.LENGTH_SHORT).show()
         }
@@ -605,6 +348,11 @@ class ProSpaceViewModel(
             val url = "https://wa.me/$cleanPhone?text=$encoded"
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             context.startActivity(intent)
+            repository.addAuditLog(
+                actionType = "WHATSAPP_INQUIRY_HOST_TO_SPECIALIST",
+                details = "$ownerName contacted specialist ${request.practitionerName} via WhatsApp about booking #${request.id} ('${request.spaceTitle}')",
+                severity = "INFO"
+            )
         } catch (e: Exception) {
             Toast.makeText(context, "Could not launch WhatsApp.", Toast.LENGTH_SHORT).show()
         }
@@ -626,7 +374,8 @@ class ProSpaceViewModel(
         calculatedTotalUsd: Double = 0.0,
         subdivisionId: String? = null,
         subdivisionName: String? = null,
-        selectedStrategy: String? = null
+        selectedStrategy: String? = null,
+        replacesBookingId: String? = null
     ): RentalBookingRequest? {
         val user = currentUser.value
         if (user == null) {
@@ -648,12 +397,17 @@ class ProSpaceViewModel(
             calculatedTotalUsd = calculatedTotalUsd,
             subdivisionId = subdivisionId,
             subdivisionName = subdivisionName,
-            selectedStrategy = selectedStrategy
+            selectedStrategy = selectedStrategy,
+            replacesBookingId = replacesBookingId
         )
 
         Toast.makeText(
             context,
-            "Rental Request #${request.id} Sent! Space hours remain open until owner approval.",
+            if (replacesBookingId != null) {
+                "Edit Request #${request.id} Sent! Your current booking stays active until the host approves this change."
+            } else {
+                "Rental Request #${request.id} Sent! Space hours remain open until owner approval."
+            },
             Toast.LENGTH_LONG
         ).show()
 
@@ -664,18 +418,45 @@ class ProSpaceViewModel(
         return request
     }
 
-    fun acceptBookingRequest(requestId: String, context: Context) {
-        val request = bookingRequests.value.find { it.id == requestId }
-        val success = repository.acceptBookingRequest(requestId)
-        if (success) {
-            Toast.makeText(context, "Booking Request #${requestId} ACCEPTED! Space schedule is now updated.", Toast.LENGTH_LONG).show()
-            if (request != null) {
-                postNotificationAlert(
-                    title = "Booking Approved! 🎉",
-                    body = "Your request for '${request.spaceTitle}' was accepted by host ${request.ownerName}.",
-                    category = "BOOKING_ACCEPTANCE",
-                    context = context
-                )
+    /**
+     * Finalizes host acceptance: uploads the signed agreement the host just picked
+     * ([agreementUri]) to Storage, then accepts the request with that URL attached
+     * (see ProSpaceRepository.acceptBookingRequest — this is also what releases a
+     * previously accepted booking this request replaces, if any). The practitioner
+     * hears about it via a real server-sent push (see
+     * functions/src/notifications/bookingNotifications.ts), not a local alert on
+     * this device, so nothing needs to be posted here.
+     */
+    fun acceptBookingRequest(context: Context, requestId: String, agreementUri: Uri) {
+        viewModelScope.launch {
+            val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
+            val ext = guessFileExtension(context, agreementUri, "pdf")
+            val agreementUrl = storageService.uploadBookingAgreement(requestId, agreementUri, ext)
+            if (agreementUrl == null) {
+                Toast.makeText(context, "Could not upload the agreement. Please try again.", Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            val success = repository.acceptBookingRequest(requestId, agreementUrl)
+            if (success) {
+                Toast.makeText(context, "Booking Request #$requestId ACCEPTED! Agreement saved.", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(context, "Could not finalize acceptance. Please try again.", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    /**
+     * Real cross-device push reminder (functions/src/notifications/sendPaymentReminder.ts)
+     * — this used to just call [postNotificationAlert], which only ever updated the
+     * host's own device's alert tray and never reached the specialist at all.
+     */
+    fun sendPaymentReminder(bookingId: String, practitionerName: String, context: Context) {
+        viewModelScope.launch {
+            val result = functionsClient.sendPaymentReminder(bookingId)
+            if (result.isSuccess) {
+                Toast.makeText(context, "Payment Reminder Sent to $practitionerName!", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(context, "Could not send the reminder. Please try again.", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -691,6 +472,35 @@ class ProSpaceViewModel(
         val success = repository.cancelBookingRequest(requestId)
         if (success) {
             Toast.makeText(context, "Booking Request #${requestId} Cancelled", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * Early termination of an already-ACCEPTED booking — see
+     * ProSpaceRepository.cancelAcceptedBooking's doc comment. Callable from either
+     * side (My Bookings for the practitioner, Renting Progress for the host); the
+     * caller only needs to be signed in as one of the booking's two parties, or Admin.
+     */
+    fun cancelAcceptedBooking(
+        requestId: String,
+        reasonCode: CancellationReasonCode,
+        note: String?,
+        context: Context
+    ) {
+        val user = currentUser.value ?: return
+        viewModelScope.launch {
+            val success = repository.cancelAcceptedBooking(
+                requestId = requestId,
+                reasonCode = reasonCode,
+                note = note,
+                cancelledByUid = user.id,
+                cancelledByRole = user.role.name
+            )
+            Toast.makeText(
+                context,
+                if (success) "Booking cancelled. The other party has been notified." else "Could not cancel this booking — please try again.",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 

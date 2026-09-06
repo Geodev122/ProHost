@@ -22,11 +22,18 @@ jobs:
 
       # This repo doesn't commit a Gradle wrapper (gradlew/gradle-wrapper.jar), so
       # install the exact version gradle/wrapper/gradle-wrapper.properties expects
-      # and invoke `gradle` directly instead of `./gradlew`.
+      # and invoke `gradle` directly instead of `./gradlew`. Gradle 8.10.2 is the
+      # version actually compatible with this project's AGP 8.8.1 + Kotlin 2.1.10 +
+      # KSP 2.1.10-1.0.29 — the wrapper properties previously pinned Gradle 9.3.1,
+      # which predates AGP 8.8.1's supported Gradle range entirely and was never
+      # validated (the wrapper jar itself was never committed to this repo, so no
+      # one had actually built with that version pin before this workflow's first
+      # run surfaced it as a bizarre "Unclosed comment" error from KSP's stub
+      # compiler on a file with no such syntax problem).
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "9.3.1"
+          gradle-version: "8.10.2"
 
       # app/build.gradle.kts points the debug signing config at ${rootDir}/debug.keystore,
       # which is gitignored (never committed) — generate the standard Android debug

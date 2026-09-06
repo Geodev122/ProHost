@@ -152,14 +152,6 @@ class AdminViewModel(
         setSelectedUserRoleFilter(role)
     }
 
-    fun setSelectedUserStatusFilter(status: MemberVerificationStatus?) {
-        _uiState.update { it.copy(selectedUserStatusFilter = status) }
-    }
-
-    fun setUserStatusFilter(status: MemberVerificationStatus?) {
-        setSelectedUserStatusFilter(status)
-    }
-
     fun openEditUserDialog(user: AppUser) {
         _uiState.update { it.copy(editingUser = user, isEditUserDialogOpen = true) }
     }
@@ -175,17 +167,6 @@ class AdminViewModel(
             _events.emit(
                 AdminUiEvent.ShowToast(
                     if (success) "User profile updated successfully" else "Failed to update user profile"
-                )
-            )
-        }
-    }
-
-    fun toggleUserVerification(userId: String) {
-        viewModelScope.launch {
-            val success = repository.toggleUserVerification(userId)
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "User verification status updated" else "Failed to update verification status"
                 )
             )
         }
@@ -231,6 +212,62 @@ class AdminViewModel(
             _events.emit(
                 AdminUiEvent.ShowToast(
                     if (result.isSuccess) "Admin role granted to $email" else "Failed to grant Admin role"
+                )
+            )
+        }
+    }
+
+    // --- Suspend / Reactivate Account ---
+    // The gap between "exists" and "deleted" Admin never had before — suspending
+    // blocks sign-in (assignInitialRole.ts) and new listings/booking requests
+    // (firestore.rules' isSuspended()) without erasing the account's data.
+    fun openSuspendUserDialog(user: AppUser) {
+        _uiState.update { it.copy(suspendingUser = user, isSuspendUserDialogOpen = true) }
+    }
+
+    fun closeSuspendUserDialog() {
+        _uiState.update { it.copy(suspendingUser = null, isSuspendUserDialogOpen = false) }
+    }
+
+    fun confirmToggleSuspend() {
+        val user = _uiState.value.suspendingUser ?: return
+        val newSuspended = !user.isSuspended
+        viewModelScope.launch {
+            val result = functionsClient.setAccountSuspended(user.id, newSuspended)
+            closeSuspendUserDialog()
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (result.isSuccess) {
+                        if (newSuspended) "${user.fullName} suspended" else "${user.fullName} reactivated"
+                    } else {
+                        "Could not ${if (newSuspended) "suspend" else "reactivate"} ${user.fullName}"
+                    }
+                )
+            )
+        }
+    }
+
+    // --- Revoke Pro Host Role ---
+    // The downgrade path PRO_HOST never had — see revokeProHostRole.ts's doc comment.
+    // Only offered for accounts that currently hold PRO_HOST (the Cloud Function itself
+    // also enforces this, but there's no reason to show the action otherwise).
+    fun openRevokeProHostDialog(user: AppUser) {
+        _uiState.update { it.copy(revokingProHostUser = user, isRevokeProHostDialogOpen = true) }
+    }
+
+    fun closeRevokeProHostDialog() {
+        _uiState.update { it.copy(revokingProHostUser = null, isRevokeProHostDialogOpen = false) }
+    }
+
+    fun confirmRevokeProHost() {
+        val user = _uiState.value.revokingProHostUser ?: return
+        viewModelScope.launch {
+            val result = functionsClient.revokeProHostRole(user.id)
+            closeRevokeProHostDialog()
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (result.isSuccess) "${user.fullName} downgraded to Specialist; their listings were deactivated"
+                    else "Could not revoke Pro Host role for ${user.fullName}"
                 )
             )
         }
@@ -502,5 +539,12 @@ class AdminViewModel(
     fun exportOwnerRegistrations() {
         val content = repository.exportOwnerRegistrationsToCsv()
         openExportDialog("Workspace Hosts & Property Ownership Audit (CSV)", content, "CSV")
+    }
+
+    /** Used by AdminRevenueScreen's own clipboard-copy export button (relocated from
+     * ProSpaceViewModel — Admin-only functionality, no reason it lived on the shared
+     * god object). */
+    fun exportRevenueCsv(startDateMillis: Long?, endDateMillis: Long?): String {
+        return repository.exportTransactionsToCsv(startDateMillis, endDateMillis)
     }
 }

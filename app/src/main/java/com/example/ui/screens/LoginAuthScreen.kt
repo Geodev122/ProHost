@@ -1,7 +1,7 @@
 package com.example.ui.screens
 
-import android.content.Context
-import android.widget.Toast
+import android.app.Activity
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,67 +15,88 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import com.example.data.model.Governorate
-import com.example.data.model.UserRole
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.data.model.findCountryByName
 import com.example.ui.components.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.AuthViewModel
+
+/**
+ * Every ProHost account — new or returning — goes through the exact same three steps,
+ * phone number first:
+ *  1. PHONE_ENTRY — enter a WhatsApp number, request an SMS code.
+ *  2. OTP_ENTRY — enter the 6-digit code.
+ *  3. REGISTRATION_FORM — shown ONLY when the verified number turns out to be brand new
+ *     (Firebase's own isNewUser signal decides this, never a guess made before
+ *     verification). A returning number skips straight past this and into the app.
+ *
+ * There is no "Sign In" vs "Register" choice anywhere in this screen anymore — asking
+ * the user to declare that up front, before their number is even checked, was the bug:
+ * it meant collecting a whole registration form before knowing whether the number
+ * already had an account. Verifying first and branching after fixes that.
+ */
+private enum class AuthStep { PHONE_ENTRY, OTP_ENTRY, REGISTRATION_FORM }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginAuthScreen(
-    viewModel: ProSpaceViewModel,
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
+    authViewModel: AuthViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    var isSignUpMode by remember { mutableStateOf(false) }
+    val activity = context as? Activity
+    var step by remember { mutableStateOf(AuthStep.PHONE_ENTRY) }
 
-    // Sign In form fields
-    var loginEmail by remember { mutableStateOf("") }
-    var loginPassword by remember { mutableStateOf("") }
-    var showPassword by remember { mutableStateOf(false) }
+    // --- Step 1: phone entry ---
+    var phoneCountry by remember { mutableStateOf(findCountryByName("Lebanon")) }
+    var phoneNumber by remember { mutableStateOf("") }
 
-    // Sign Up / Member Registration fields
+    // --- Step 2: OTP entry ---
+    var otpCode by remember { mutableStateOf("") }
+
+    // True once Google Sign-In succeeded but the account still has no verified phone —
+    // the phone step below then links that same account rather than resolving/creating
+    // a brand-new phone-identified one, and always lands on the registration form after
+    // (a Google identity is missing too many required fields to skip it).
+    var isLinkingGoogleAccount by remember { mutableStateOf(false) }
+
+    // --- Step 3: registration form (only ever shown for a brand-new phone number) ---
+    var regProfilePicUri by remember { mutableStateOf<Uri?>(null) }
     var regFullName by remember { mutableStateOf("") }
     var regEmail by remember { mutableStateOf("") }
-    var regPhone by remember { mutableStateOf("+961 ") }
-    var regPassword by remember { mutableStateOf("") }
-    var showRegPassword by remember { mutableStateOf(false) }
-    var regRole by remember { mutableStateOf(UserRole.PROFESSIONAL) }
     var regSpecialty by remember { mutableStateOf("") }
-    var regSyndicateNumber by remember { mutableStateOf("") }
-    var regAffiliation by remember { mutableStateOf("") }
-    var regGovernorate by remember { mutableStateOf(Governorate.BEIRUT) }
-    var showGovDropdown by remember { mutableStateOf(false) }
+    var regIdDocState by remember { mutableStateOf(DocumentPickerState()) }
+    var regCountry by remember { mutableStateOf(findCountryByName("Lebanon")) }
+    var regGovernorateArea by remember { mutableStateOf("") }
+    var regCity by remember { mutableStateOf("") }
 
-    // State from ViewModel
-    val isAuthenticating by viewModel.isAuthenticating.collectAsState()
-    val authErrorMessage by viewModel.authErrorMessage.collectAsState()
-    val authSuccessMessage by viewModel.authSuccessMessage.collectAsState()
+    val isAuthenticating by authViewModel.isAuthenticating.collectAsState()
+    val authErrorMessage by authViewModel.authErrorMessage.collectAsState()
+    val authSuccessMessage by authViewModel.authSuccessMessage.collectAsState()
 
     var localErrorMessage by remember { mutableStateOf<String?>(null) }
-    var showForgotPasswordDialog by remember { mutableStateOf(false) }
-    var forgotPasswordEmail by remember { mutableStateOf("") }
+    var showLegalDocument by remember { mutableStateOf<com.example.legal.LegalDocument?>(null) }
+
+    val verifiedPhoneE164 = phoneCountry.dialCode + phoneNumber.filter { it.isDigit() }
+
+    fun goToRegistrationForm() {
+        localErrorMessage = null
+        authViewModel.clearAuthMessages()
+        step = AuthStep.REGISTRATION_FORM
+    }
 
     val scrollState = rememberScrollState()
 
@@ -124,41 +145,11 @@ fun LoginAuthScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // Mode Selector: Sign In vs Register New Member
-        TabRow(
-            selectedTabIndex = if (isSignUpMode) 1 else 0,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-        ) {
-            Tab(
-                selected = !isSignUpMode,
-                onClick = {
-                    isSignUpMode = false
-                    localErrorMessage = null
-                    viewModel.clearAuthMessages()
-                },
-                text = { Text("Sign In", fontWeight = FontWeight.Bold) },
-                icon = { Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp)) }
-            )
-            Tab(
-                selected = isSignUpMode,
-                onClick = {
-                    isSignUpMode = true
-                    localErrorMessage = null
-                    viewModel.clearAuthMessages()
-                },
-                text = { Text("Register Member", fontWeight = FontWeight.Bold) },
-                icon = { Icon(Icons.Default.AppRegistration, contentDescription = null, modifier = Modifier.size(18.dp)) }
-            )
-        }
+        AuthStepIndicator(step = step)
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         // Status or Error Banners
         val displayError = localErrorMessage ?: authErrorMessage
@@ -216,126 +207,77 @@ fun LoginAuthScreen(
             }
         }
 
-        if (!isSignUpMode) {
-            // ==================== SIGN IN FLOW ====================
-            // There used to be a role picker here ("Select Access Clearance") that let
-            // anyone tap a "Super Admin" card, pre-fill the admin's email, and sign in
-            // with that clearance — with no password or server check tying role to
-            // identity. Role is now resolved entirely server-side (Firebase Auth +
-            // custom claims), so there is nothing to pick here at all.
-
-            // Sign In Credentials Form
-            ModernCard(
+        when (step) {
+            AuthStep.PHONE_ENTRY -> ModernCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 contentPadding = PaddingValues(20.dp),
                 elevation = 3.dp
             ) {
+                AuthStepHeader(
+                    icon = Icons.Default.Phone,
+                    title = if (isLinkingGoogleAccount) "Verify Your WhatsApp Number" else "Continue with Your Phone Number",
+                    subtitle = if (isLinkingGoogleAccount) {
+                        "Almost done — one real SMS code finishes setting up your account"
+                    } else {
+                        "One number for sign-in and registration — verified via a one-time SMS code"
+                    },
+                    isBusy = isAuthenticating
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Sign In with Firebase Auth",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "End-to-end encrypted",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (isAuthenticating) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    }
+                    CountryCodeSelector(
+                        selectedCountry = phoneCountry,
+                        onCountrySelected = { phoneCountry = it }
+                    )
+                    InputField(
+                        value = phoneNumber,
+                        onValueChange = {
+                            phoneNumber = it
+                            localErrorMessage = null
+                        },
+                        label = "WhatsApp Phone Number",
+                        placeholder = "70 123456",
+                        leadingIcon = Icons.Default.Phone,
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("auth_phone_input"),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        singleLine = true
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                InputField(
-                    value = loginEmail,
-                    onValueChange = {
-                        loginEmail = it
-                        localErrorMessage = null
-                    },
-                    label = "Email Address",
-                    leadingIcon = Icons.Default.Email,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("auth_email_input"),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    singleLine = true
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                InputField(
-                    value = loginPassword,
-                    onValueChange = {
-                        loginPassword = it
-                        localErrorMessage = null
-                    },
-                    label = "Password",
-                    leadingIcon = Icons.Default.Lock,
-                    trailingIcon = {
-                        IconButton(onClick = { showPassword = !showPassword }) {
-                            Icon(
-                                imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (showPassword) "Hide password" else "Show password",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("auth_password_input"),
-                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    singleLine = true
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(
-                        onClick = {
-                            forgotPasswordEmail = loginEmail
-                            showForgotPasswordDialog = true
-                        }
-                    ) {
-                        Text(
-                            text = "Forgot password?",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Primary Firebase Login Button
                 CustomButton(
-                    text = if (isAuthenticating) "Authenticating..." else "Sign In with Firebase Auth",
+                    text = if (isAuthenticating) "Sending Code..." else "Send Verification Code",
                     onClick = {
-                        if (loginEmail.isBlank()) {
-                            localErrorMessage = "Please enter an email address"
+                        val currentActivity = activity
+                        if (currentActivity == null) {
+                            localErrorMessage = "Unable to start phone verification right now."
                             return@CustomButton
                         }
-                        if (loginPassword.isBlank()) {
-                            localErrorMessage = "Please enter your password"
+                        if (phoneNumber.isBlank() || phoneNumber.filter { it.isDigit() }.length < 6) {
+                            localErrorMessage = "Please enter a valid phone number"
                             return@CustomButton
                         }
-                        viewModel.signInWithEmailAndPassword(
-                            context = context,
-                            email = loginEmail,
-                            password = loginPassword,
-                            onSuccess = onLoginSuccess
+                        authViewModel.startPhoneVerification(
+                            activity = currentActivity,
+                            e164Phone = verifiedPhoneE164,
+                            isLinkingExistingAccount = isLinkingGoogleAccount,
+                            onCodeSent = {
+                                otpCode = ""
+                                localErrorMessage = null
+                                step = AuthStep.OTP_ENTRY
+                            },
+                            onVerified = { needsRegistration ->
+                                if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
+                            }
                         )
                     },
                     enabled = !isAuthenticating,
@@ -346,91 +288,153 @@ fun LoginAuthScreen(
                         .testTag("submit_login_button")
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                if (!isLinkingGoogleAccount) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    AuthDivider()
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                // Google Sign In Button via Credential Manager
-                CustomButton(
-                    text = "Sign In with Google Credential Manager",
-                    onClick = {
-                        viewModel.signInWithGoogleCredentialManager(
-                            activityContext = context,
-                            onSuccess = onLoginSuccess
-                        )
-                    },
-                    enabled = !isAuthenticating,
-                    variant = CustomButtonVariant.OUTLINED,
-                    icon = Icons.Default.AccountCircle,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("google_sign_in_button")
-                )
-                // The "Quick Verified Profile Selector" shortcut that used to live here
-                // let anyone become any role — including Admin — with a single tap and
-                // zero credentials. Removed; there is no unauthenticated path to signing
-                // in as any account anymore.
+                    CustomButton(
+                        text = "Continue with Google",
+                        onClick = {
+                            val activityCtx = activity ?: context
+                            authViewModel.signInWithGoogleCredentialManager(
+                                activityContext = activityCtx,
+                                onSuccess = onLoginSuccess,
+                                onNeedsPhoneVerification = { fullName, email ->
+                                    isLinkingGoogleAccount = true
+                                    regFullName = fullName
+                                    regEmail = email
+                                    phoneNumber = ""
+                                }
+                            )
+                        },
+                        enabled = !isAuthenticating,
+                        variant = CustomButtonVariant.OUTLINED,
+                        icon = Icons.Default.AccountCircle,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("google_sign_in_button")
+                    )
+                }
             }
-        } else {
-            // ==================== MEMBER REGISTRATION FLOW ====================
-            ModernCard(
+
+            AuthStep.OTP_ENTRY -> ModernCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 contentPadding = PaddingValues(20.dp),
                 elevation = 3.dp
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                AuthStepHeader(
+                    icon = Icons.Default.Sms,
+                    title = "Enter the Verification Code",
+                    subtitle = "Sent via SMS to ${phoneCountry.dialCode} $phoneNumber",
+                    isBusy = isAuthenticating
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                InputField(
+                    value = otpCode,
+                    onValueChange = { otpCode = it.filter { c -> c.isDigit() }.take(6) },
+                    label = "6-Digit Code",
+                    leadingIcon = Icons.Default.Sms,
+                    modifier = Modifier.fillMaxWidth().testTag("otp_input"),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                CustomButton(
+                    text = if (isAuthenticating) "Verifying..." else "Verify Code",
+                    onClick = {
+                        val currentActivity = activity
+                        if (currentActivity == null) {
+                            localErrorMessage = "Unable to verify right now."
+                            return@CustomButton
+                        }
+                        if (otpCode.length < 6) {
+                            localErrorMessage = "Please enter the 6-digit code"
+                            return@CustomButton
+                        }
+                        authViewModel.submitPhoneVerificationCode(currentActivity, otpCode) { needsRegistration ->
+                            if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
+                        }
+                    },
+                    enabled = !isAuthenticating,
+                    variant = CustomButtonVariant.PRIMARY,
+                    icon = Icons.Default.CheckCircle,
+                    modifier = Modifier.fillMaxWidth().testTag("submit_otp_button")
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                TextButton(onClick = {
+                    step = AuthStep.PHONE_ENTRY
+                    otpCode = ""
+                    localErrorMessage = null
+                    authViewModel.clearAuthMessages()
+                }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Change phone number", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            AuthStep.REGISTRATION_FORM -> ModernCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                contentPadding = PaddingValues(20.dp),
+                elevation = 3.dp
+            ) {
+                AuthStepHeader(
+                    icon = Icons.Default.AppRegistration,
+                    title = "Complete Your Profile",
+                    subtitle = "Your phone number is verified — just a few more details to join ProHost",
+                    isBusy = isAuthenticating
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Surface(
+                    color = StatusSuccessContainer,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Register with Firebase Auth",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.VerifiedUser,
+                            contentDescription = null,
+                            tint = LebaneseCedarGreen,
+                            modifier = Modifier.size(18.dp)
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Join Lebanon's verified commercial workspace exchange network",
+                            text = "Phone verified: ${phoneCountry.dialCode} $phoneNumber",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = StatusOnSuccessContainer,
+                            fontWeight = FontWeight.SemiBold
                         )
-                    }
-                    if (isAuthenticating) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Membership Type Selection
-                Text(
-                    text = "MEMBERSHIP TYPE",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(
-                        selected = regRole == UserRole.PROFESSIONAL,
-                        onClick = { regRole = UserRole.PROFESSIONAL },
-                        label = { Text("Specialist / Renter") },
-                        leadingIcon = { Icon(Icons.Default.Work, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                        modifier = Modifier.weight(1f)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ProfilePicturePickerField(
+                        pictureUri = regProfilePicUri,
+                        onPictureSelected = { regProfilePicUri = it }
                     )
-                    FilterChip(
-                        selected = regRole == UserRole.SPACE_OWNER,
-                        onClick = { regRole = UserRole.SPACE_OWNER },
-                        label = { Text("Workspace Host") },
-                        leadingIcon = { Icon(Icons.Default.HomeWork, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                        modifier = Modifier.weight(1f)
-                    )
+                    Column {
+                        Text("Profile Picture", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Text("Optional", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 InputField(
                     value = regFullName,
@@ -439,7 +443,7 @@ fun LoginAuthScreen(
                         localErrorMessage = null
                     },
                     label = "Full Name",
-                    placeholder = "e.g. Dr. Maya Haddad, Eng. Jad Saliba",
+                    placeholder = "e.g. Maya Haddad",
                     leadingIcon = Icons.Default.Person,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -453,7 +457,7 @@ fun LoginAuthScreen(
                         regEmail = it
                         localErrorMessage = null
                     },
-                    label = "Work Email",
+                    label = "Email",
                     placeholder = "specialist@organization.lb",
                     leadingIcon = Icons.Default.Email,
                     modifier = Modifier.fillMaxWidth(),
@@ -464,171 +468,143 @@ fun LoginAuthScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 InputField(
-                    value = regPhone,
+                    value = regSpecialty,
                     onValueChange = {
-                        regPhone = it
+                        regSpecialty = it
                         localErrorMessage = null
                     },
-                    label = "Lebanese Phone (WhatsApp)",
-                    placeholder = "+961 70 123456",
-                    leadingIcon = Icons.Default.Phone,
+                    label = "Profession / Job Title (Optional)",
+                    placeholder = "e.g. Dermatologist, Architect, Coworking Manager",
+                    leadingIcon = Icons.Default.Badge,
                     modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     singleLine = true
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                if (regRole == UserRole.SPACE_OWNER) {
-                    Spacer(modifier = Modifier.height(10.dp))
+                DocumentPickerField(
+                    label = "ID Document (National ID / Passport)",
+                    helperText = "Kept on file to verify your identity — PDF, JPG, or PNG",
+                    state = regIdDocState,
+                    onStateChanged = { regIdDocState = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    required = true
+                )
 
-                    InputField(
-                        value = regSpecialty,
-                        onValueChange = {
-                            regSpecialty = it
-                            localErrorMessage = null
-                        },
-                        label = "Profession / Medical / Architectural Specialty",
-                        placeholder = "e.g. Clinical Dermatologist, Senior Architect",
-                        leadingIcon = Icons.Default.Badge,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                Spacer(modifier = Modifier.height(10.dp))
 
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    InputField(
-                        value = regSyndicateNumber,
-                        onValueChange = {
-                            regSyndicateNumber = it
-                            localErrorMessage = null
-                        },
-                        label = "Syndicate / License / Commercial ID",
-                        placeholder = "e.g. LOP-8492, OEA-7731, CR-9921",
-                        leadingIcon = Icons.Default.VerifiedUser,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    InputField(
-                        value = regAffiliation,
-                        onValueChange = {
-                            regAffiliation = it
-                            localErrorMessage = null
-                        },
-                        label = "Firm / Studio / Medical Center Name",
-                        placeholder = "e.g. Beirut Creative Hub, Horizon Clinic",
-                        leadingIcon = Icons.Default.Business,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Governorate Selector
-                    OutlinedCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showGovDropdown = true },
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.LocationOn, contentDescription = null, tint = OxfordBlue, modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column {
-                                    Text("Primary Operating Governorate", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(regGovernorate.displayName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                }
-                            }
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                        }
-                    }
-
-                    DropdownMenu(
-                        expanded = showGovDropdown,
-                        onDismissRequest = { showGovDropdown = false }
-                    ) {
-                        Governorate.values().forEach { gov ->
-                            DropdownMenuItem(
-                                text = { Text(gov.displayName) },
-                                onClick = {
-                                    regGovernorate = gov
-                                    showGovDropdown = false
-                                }
-                            )
-                        }
-                    }
-                }
+                CountryDropdownField(
+                    selectedCountry = regCountry,
+                    onCountrySelected = { regCountry = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 Spacer(modifier = Modifier.height(10.dp))
 
                 InputField(
-                    value = regPassword,
+                    value = regGovernorateArea,
                     onValueChange = {
-                        regPassword = it
+                        regGovernorateArea = it
                         localErrorMessage = null
                     },
-                    label = "Create Secure Password (6+ characters)",
-                    leadingIcon = Icons.Default.Lock,
-                    trailingIcon = {
-                        IconButton(onClick = { showRegPassword = !showRegPassword }) {
-                            Icon(
-                                imageVector = if (showRegPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (showRegPassword) "Hide password" else "Show password",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
+                    label = "Governorate / Area",
+                    placeholder = "e.g. Mount Lebanon",
+                    leadingIcon = Icons.Default.LocationOn,
                     modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = if (showRegPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(10.dp))
+
+                InputField(
+                    value = regCity,
+                    onValueChange = {
+                        regCity = it
+                        localErrorMessage = null
+                    },
+                    label = "City",
+                    placeholder = "e.g. Beirut",
+                    leadingIcon = Icons.Default.LocationCity,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "By continuing you agree to our",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Terms of Use",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.termsOfUse }
+                    )
+                    Text(text = " and ", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = "Privacy Policy",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.privacyPolicy }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
 
                 CustomButton(
-                    text = if (isAuthenticating) "Registering Account..." else "Create Account & Sign In",
+                    text = if (isAuthenticating) "Creating Account..." else "Create Account",
                     onClick = {
+                        val currentActivity = activity
+                        if (currentActivity == null) {
+                            localErrorMessage = "Unable to create your account right now."
+                            return@CustomButton
+                        }
                         if (regFullName.isBlank()) {
                             localErrorMessage = "Please enter your full name"
                             return@CustomButton
                         }
                         if (regEmail.isBlank() || !regEmail.contains("@")) {
-                            localErrorMessage = "Please enter a valid work email"
+                            localErrorMessage = "Please enter a valid email"
                             return@CustomButton
                         }
-                        if (regPassword.length < 6) {
-                            localErrorMessage = "Password must be at least 6 characters"
+                        if (!regIdDocState.isSelected) {
+                            localErrorMessage = "Please upload your ID document"
                             return@CustomButton
                         }
-                        if (regPhone.isBlank() || regPhone.length < 8) {
-                            localErrorMessage = "Please enter a valid Lebanese contact phone"
+                        if (regGovernorateArea.isBlank()) {
+                            localErrorMessage = "Please enter your governorate / area"
                             return@CustomButton
                         }
-                        if (regSpecialty.isBlank()) {
-                            localErrorMessage = "Please enter your specialty or profession"
+                        if (regCity.isBlank()) {
+                            localErrorMessage = "Please enter your city"
                             return@CustomButton
                         }
-
-                        viewModel.registerMemberWithFirebase(
-                            context = context,
-                            fullName = regFullName,
-                            email = regEmail,
-                            password = regPassword,
-                            phone = regPhone,
-                            requestedRole = regRole,
-                            specialty = regSpecialty,
-                            syndicateNumber = if (regSyndicateNumber.isBlank()) "LB-REG-" + (1000..9999).random() else regSyndicateNumber,
-                            affiliation = if (regAffiliation.isBlank()) "Independent Practitioner" else regAffiliation,
-                            governorate = regGovernorate,
+                        authViewModel.completePendingRegistration(
+                            activity = currentActivity,
+                            registration = AuthViewModel.PendingPhoneRegistration(
+                                fullName = regFullName,
+                                email = regEmail,
+                                phoneE164 = verifiedPhoneE164,
+                                specialty = regSpecialty,
+                                country = regCountry.name,
+                                governorate = regGovernorateArea,
+                                city = regCity,
+                                profilePictureUri = regProfilePicUri,
+                                idDocumentUri = regIdDocState.uri
+                            ),
                             onSuccess = onLoginSuccess
                         )
                     },
@@ -638,22 +614,6 @@ fun LoginAuthScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("submit_registration_button")
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                CustomButton(
-                    text = "Sign Up with Google Credential Manager",
-                    onClick = {
-                        viewModel.signInWithGoogleCredentialManager(
-                            activityContext = context,
-                            onSuccess = onLoginSuccess
-                        )
-                    },
-                    enabled = !isAuthenticating,
-                    variant = CustomButtonVariant.OUTLINED,
-                    icon = Icons.Default.AccountCircle,
-                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
@@ -678,7 +638,7 @@ fun LoginAuthScreen(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "ProSpace enforces Firebase Auth token validation, Credential Manager security, and Lebanese Commercial Code compliance.",
+                    text = "Every ProHost account is verified via Firebase Phone Auth SMS — the phone number you enter above is checked first, before anything else, and is your identity on the platform.",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -686,120 +646,127 @@ fun LoginAuthScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+    }
 
-        // Dialog for Password Reset
-        if (showForgotPasswordDialog) {
-            ForgotPasswordDialog(
-                initialEmail = forgotPasswordEmail,
-                onSendReset = { email ->
-                    showForgotPasswordDialog = false
-                    viewModel.sendPasswordReset(context, email)
-                },
-                onDismiss = {
-                    showForgotPasswordDialog = false
+    showLegalDocument?.let { doc ->
+        com.example.ui.components.LegalDocumentDialog(document = doc, onDismiss = { showLegalDocument = null })
+    }
+}
+
+@Composable
+private fun AuthStepHeader(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    isBusy: Boolean
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+            Surface(
+                color = OxfordBlue.copy(alpha = 0.1f),
+                shape = CircleShape,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(icon, contentDescription = null, tint = OxfordBlue, modifier = Modifier.size(18.dp))
                 }
-            )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        if (isBusy) {
+            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
         }
     }
 }
 
 @Composable
-fun ForgotPasswordDialog(
-    initialEmail: String,
-    onSendReset: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var email by remember { mutableStateOf(initialEmail) }
-    var error by remember { mutableStateOf<String?>(null) }
+private fun AuthDivider() {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        HorizontalDivider(modifier = Modifier.weight(1f))
+        Text(
+            text = "  OR  ",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        HorizontalDivider(modifier = Modifier.weight(1f))
+    }
+}
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(20.dp)
-                    .fillMaxWidth()
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.LockReset,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Reset Password",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "Enter your work email address to receive Firebase password reset instructions.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                InputField(
-                    value = email,
-                    onValueChange = {
-                        email = it
-                        error = null
-                    },
-                    label = "Work Email",
-                    leadingIcon = Icons.Default.Email,
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    singleLine = true
-                )
-
-                if (error != null) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = error ?: "",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
+@Composable
+private fun AuthStepIndicator(step: AuthStep) {
+    val steps = listOf(
+        Triple(AuthStep.PHONE_ENTRY, "Phone", Icons.Default.Phone),
+        Triple(AuthStep.OTP_ENTRY, "Verify", Icons.Default.Sms),
+        Triple(AuthStep.REGISTRATION_FORM, "Profile", Icons.Default.Person)
+    )
+    val currentIndex = steps.indexOfFirst { it.first == step }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        steps.forEachIndexed { index, (_, label, icon) ->
+            val isDone = index < currentIndex
+            val isCurrent = index == currentIndex
+            val dotColor = when {
+                isDone -> LebaneseCedarGreen
+                isCurrent -> CarnationOrange
+                else -> MaterialTheme.colorScheme.outlineVariant
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Surface(
+                    color = dotColor,
+                    shape = CircleShape,
+                    modifier = Modifier.size(26.dp)
                 ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            if (email.isBlank() || !email.contains("@")) {
-                                error = "Please enter a valid email address"
-                            } else {
-                                onSendReset(email)
-                            }
+                    Box(contentAlignment = Alignment.Center) {
+                        if (isDone) {
+                            Icon(Icons.Default.Check, contentDescription = null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(14.dp))
+                        } else {
+                            Icon(icon, contentDescription = null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(13.dp))
                         }
-                    ) {
-                        Text("Send Reset Link")
                     }
                 }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = label,
+                    fontSize = 10.sp,
+                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isCurrent) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (index < steps.size - 1) {
+                HorizontalDivider(
+                    modifier = Modifier
+                        .width(28.dp)
+                        .padding(horizontal = 4.dp)
+                        .padding(bottom = 14.dp),
+                    color = if (index < currentIndex) LebaneseCedarGreen else MaterialTheme.colorScheme.outlineVariant
+                )
             }
         }
     }
 }
+
+// ForgotPasswordDialog used to live here: password-based sign-in no longer exists —
+// every account is phone-verified, so there is no password to reset.
 
 // RoleSelectionCard used to live here: the 3-card "Select Access Clearance" picker on
 // the login screen, orphaned once that picker itself was removed (zero remaining

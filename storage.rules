@@ -19,11 +19,12 @@ service firebase.storage {
       return request.resource.size < 10 * 1024 * 1024;
     }
 
-    // Professional credential documents (syndicate cards, IDs, licenses, etc).
-    // Only the owning user can read/write their own folder; Admins can read for
-    // compliance review, never write (approval/rejection is a Firestore field
-    // change on the credential doc, not a file mutation).
-    match /credentials/{uid}/{fileName} {
+    // Registrant ID documents (national ID / passport), one per account — required
+    // once at registration, kept on file with no admin review workflow (see
+    // AppUser.idDocumentUrl's doc comment: there is no accreditation system
+    // anymore). Only the owning user can read/write their own file; Admins can
+    // read for reference, never write.
+    match /id_documents/{uid}/{fileName} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow write: if isSignedIn() && request.auth.uid == uid &&
         withinSizeLimit() &&
@@ -32,16 +33,74 @@ service firebase.storage {
       allow delete: if false;
     }
 
+    // Profile pictures. Publicly readable (shown wherever a member's identity is
+    // displayed to someone else, e.g. a booking request) but writable only by the
+    // account owner or an Admin.
+    match /profile_pictures/{uid}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn() && (request.auth.uid == uid || isAdmin()) &&
+        withinSizeLimit() &&
+        request.resource.contentType.matches('image/.*');
+      allow delete: if false;
+    }
+
+    // Pro Host proof of ownership / right to rent, one per listing — required at
+    // listing-creation time, kept on file with no admin review workflow (see
+    // SpaceListing.ownershipProofUrl's doc comment). Same "Firestore doc may not
+    // exist yet" bootstrapping as listing photos below, since this uploads before
+    // "Publish Listing" is tapped. Never publicly readable (unlike listing photos)
+    // — this is a legal/ownership document, not marketing material.
+    match /listing_ownership_docs/{spaceId}/{fileName} {
+      allow read: if isSignedIn() &&
+        (isAdmin() ||
+         (firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) &&
+          firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid));
+      allow write: if isSignedIn() &&
+        (isAdmin() ||
+         (role() == "PRO_HOST" &&
+          (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
+           firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid))) &&
+        withinSizeLimit() &&
+        (request.resource.contentType == 'application/pdf' ||
+         request.resource.contentType.matches('image/.*'));
+      allow delete: if false;
+    }
+
+    // Signed leasing agreement a Pro Host uploads when finalizing acceptance of a
+    // booking request (see BookingRequest.agreementUrl's doc comment) — the record
+    // that host and specialist reached a real agreement; payment itself happens
+    // outside the app entirely, and nobody at ProHost reviews this document. The
+    // booking_requests doc always exists by the time a host can accept it (created
+    // when the practitioner submitted the request), so no bootstrapping case is
+    // needed here unlike listing photos/ownership docs. Readable by either party
+    // to the booking (the specialist's Digital Key Pass links here) or an Admin;
+    // writable only by the host who owns the space being booked.
+    match /booking_agreements/{bookingId}/{fileName} {
+      allow read: if isSignedIn() &&
+        (isAdmin() ||
+         (firestore.exists(/databases/(default)/documents/booking_requests/$(bookingId)) &&
+          (firestore.get(/databases/(default)/documents/booking_requests/$(bookingId)).data.ownerId == request.auth.uid ||
+           firestore.get(/databases/(default)/documents/booking_requests/$(bookingId)).data.practitionerId == request.auth.uid)));
+      allow write: if isSignedIn() &&
+        (isAdmin() ||
+         (firestore.exists(/databases/(default)/documents/booking_requests/$(bookingId)) &&
+          firestore.get(/databases/(default)/documents/booking_requests/$(bookingId)).data.ownerId == request.auth.uid)) &&
+        withinSizeLimit() &&
+        (request.resource.contentType == 'application/pdf' ||
+         request.resource.contentType.matches('image/.*'));
+      allow delete: if false;
+    }
+
     // Listing cover photos. Publicly readable (the discovery feed and listing
     // details are browsable), writable by the listing's actual owner once the
-    // Firestore doc exists — or by any SPACE_OWNER while it doesn't yet, since
+    // Firestore doc exists — or by any PRO_HOST while it doesn't yet, since
     // photos are picked and uploaded before "Publish Listing" is tapped and the
     // Firestore document is created.
     match /listings/{spaceId}/{fileName} {
       allow read: if true;
       allow write: if isSignedIn() &&
         (isAdmin() ||
-         (role() == "SPACE_OWNER" &&
+         (role() == "PRO_HOST" &&
           (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
            firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid))) &&
         withinSizeLimit() &&

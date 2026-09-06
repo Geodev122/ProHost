@@ -1165,25 +1165,14 @@ fun WorkspaceCard(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        // Header: Category Tag & Price
+        // Header: Price (the specialty tag that used to sit here was removed — a
+        // workspace listing isn't tied to one specialty, and the tag read as a
+        // filter/category label that didn't match how Explore actually works)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(
-                    text = specialization,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
-            }
-
             ProCurrencyTag(usdAmount = rateUsd)
         }
 
@@ -1836,8 +1825,8 @@ fun ProSpaceTopAppBar(
                     Text(
                         text = when (currentRole) {
                             UserRole.ADMIN -> "Super Admin Node"
-                            UserRole.SPACE_OWNER -> "Host & Owner Hub"
-                            UserRole.PROFESSIONAL -> "Practitioner Circle"
+                            UserRole.PRO_HOST -> "Host & Owner Hub"
+                            UserRole.SPECIALIST -> "Practitioner Circle"
                         },
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
@@ -1874,6 +1863,53 @@ fun ProSpaceTopAppBar(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Top bar for a Pro Host drawer destination opened full-screen (no bottom nav —
+ * these screens live outside the unified Specialist/Pro Host bottom nav). Just
+ * the menu icon (to reopen the drawer, exactly like the regular top bar) and the
+ * screen's own heading — no brand lockup, no alerts bell, since this isn't the
+ * app's home surface.
+ */
+@Composable
+fun ProHostFullScreenTopAppBar(
+    title: String,
+    onMenuClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 3.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            IconButton(
+                onClick = onMenuClick,
+                modifier = Modifier.testTag("hamburger_menu_button")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Open Side Navigation Drawer",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

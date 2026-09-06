@@ -22,7 +22,6 @@ data class AdminUiState(
     // Filter and search states
     val userSearchQuery: String = "",
     val selectedUserRoleFilter: UserRole? = null,
-    val selectedUserStatusFilter: MemberVerificationStatus? = null,
 
     val listingSearchQuery: String = "",
     val selectedListingTypeFilter: SpaceType? = null,
@@ -54,6 +53,12 @@ data class AdminUiState(
     val isGrantAdminDialogOpen: Boolean = false,
     val grantingAdminUser: AppUser? = null,
 
+    val isSuspendUserDialogOpen: Boolean = false,
+    val suspendingUser: AppUser? = null,
+
+    val isRevokeProHostDialogOpen: Boolean = false,
+    val revokingProHostUser: AppUser? = null,
+
     val isAddSchemaItemDialogOpen: Boolean = false,
     val isResetSchemaDialogOpen: Boolean = false
 ) {
@@ -63,14 +68,13 @@ data class AdminUiState(
                     user.fullName.contains(userSearchQuery, ignoreCase = true) ||
                     user.email.contains(userSearchQuery, ignoreCase = true) ||
                     user.specialty.contains(userSearchQuery, ignoreCase = true) ||
-                    user.syndicateNumber.contains(userSearchQuery, ignoreCase = true) ||
-                    user.affiliation.contains(userSearchQuery, ignoreCase = true) ||
                     user.phone.contains(userSearchQuery, ignoreCase = true) ||
-                    user.governorate.displayName.contains(userSearchQuery, ignoreCase = true)
+                    user.city.contains(userSearchQuery, ignoreCase = true) ||
+                    user.governorate.contains(userSearchQuery, ignoreCase = true) ||
+                    user.country.contains(userSearchQuery, ignoreCase = true)
 
             val matchesRole = selectedUserRoleFilter == null || user.role == selectedUserRoleFilter
-            val matchesStatus = selectedUserStatusFilter == null || user.verificationStatus == selectedUserStatusFilter
-            matchesQuery && matchesRole && matchesStatus
+            matchesQuery && matchesRole
         }
 
     val filteredSpaces: List<SpaceListing>
@@ -111,11 +115,13 @@ data class AdminUiState(
             matchesQuery && matchesStatus
         }
 
+    // "Owner"/"Host" here means the account holds the PRO_HOST role (i.e. has listed
+    // at least one workspace) — every PRO_HOST account is still also fundamentally a
+    // Specialist underneath (can book workspaces exactly like a SPECIALIST account;
+    // see AdminConsoleScreen's "Workspace Hosts & Property Ownership" section, which
+    // this backs), not a separate, mutually-exclusive user category.
     val ownerUsers: List<AppUser>
-        get() = allUsers.filter { it.role == UserRole.SPACE_OWNER }
-
-    val specialistUsers: List<AppUser>
-        get() = allUsers.filter { it.role == UserRole.PROFESSIONAL || it.role == UserRole.MEDICAL_PRACTITIONER }
+        get() = allUsers.filter { it.role == UserRole.PRO_HOST }
 }
 
 /**

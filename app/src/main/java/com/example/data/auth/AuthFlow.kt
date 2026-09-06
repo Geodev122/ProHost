@@ -1,10 +1,17 @@
 package com.example.data.auth
 
 import com.example.data.model.AppUser
-import com.example.data.model.Governorate
 import com.example.data.model.UserRole
 import com.example.data.repository.ProSpaceRepository
 import com.google.firebase.auth.FirebaseUser
+
+/**
+ * Thrown when assignInitialRole.ts rejects a sign-in because the account is
+ * suspended (see setAccountSuspended.ts). Callers must sign the (already
+ * Firebase-Auth-authenticated) user back out and surface [message] instead of
+ * completing sign-in — see ProSpaceViewModel's phone/Google sign-in flows.
+ */
+class AccountSuspendedException(message: String) : Exception(message)
 
 /**
  * Resolves the signed-in [firebaseUser]'s server-verified role (assigning the default
@@ -26,38 +33,53 @@ suspend fun completeVerifiedLogin(
 }
 
 /**
- * Same as [completeVerifiedLogin], but for brand-new member registration. [requestedRole]
- * is only ever honored when it's SPACE_OWNER (the one self-service upgrade the
- * requestRoleUpgrade Cloud Function allows) — anything else (including any attempt to
- * request ADMIN) is ignored server-side and the account gets the default PROFESSIONAL role.
+ * Same as [completeVerifiedLogin], but for brand-new member registration. Every new
+ * account is a SPECIALIST — there is no registration-time way to become a PRO_HOST
+ * (that role is granted exclusively, server-side, once a real package/PAYG Whish
+ * payment settles; see FirebaseFunctionsClient's note on grantEntitlement()), and
+ * requesting ADMIN is never honored by any reachable code path.
+ *
+ * [firebaseUser] here has already been phone-verified (see LoginAuthScreen's OTP flow)
+ * — that's what [firebaseUser.uid] and [firebaseUser.phoneNumber] represent. [email]
+ * comes from the registration form, not [firebaseUser.email] (a phone-auth FirebaseUser
+ * has no email of its own). There is no admin accreditation review anymore: profile
+ * picture and ID document are simply kept on file (their Storage URLs, already
+ * uploaded by the caller once [firebaseUser.uid] existed to key the upload path on).
  */
 suspend fun completeVerifiedRegistration(
     repository: ProSpaceRepository,
     functionsClient: FirebaseFunctionsClient,
     firebaseUser: FirebaseUser,
-    requestedRole: UserRole,
     fullName: String,
+    email: String,
     phone: String,
     specialty: String,
-    syndicateNumber: String,
-    affiliation: String,
-    governorate: Governorate
+    profilePictureUrl: String?,
+    idDocumentUrl: String?,
+    country: String,
+    governorate: String,
+    city: String
 ): AppUser {
-    functionsClient.ensureInitialRole().getOrThrow()
-    if (requestedRole == UserRole.SPACE_OWNER) {
-        functionsClient.requestSpaceOwnerUpgrade().getOrThrow()
-    }
+    functionsClient.ensureInitialRole(
+        registrationDraft = mapOf(
+            "fullName" to fullName,
+            "email" to email,
+            "idDocumentUrl" to idDocumentUrl
+        )
+    ).getOrThrow()
     val role = resolveVerifiedRole(functionsClient, firebaseUser)
     return repository.registerMember(
         uid = firebaseUser.uid,
         fullName = fullName,
-        email = firebaseUser.email ?: "",
+        email = email,
         phone = phone,
         verifiedRole = role,
         specialty = specialty,
-        syndicateNumber = syndicateNumber,
-        affiliation = affiliation,
-        governorate = governorate
+        profilePictureUrl = profilePictureUrl,
+        idDocumentUrl = idDocumentUrl,
+        country = country,
+        governorate = governorate,
+        city = city
     )
 }
 
@@ -65,12 +87,18 @@ private suspend fun resolveVerifiedRole(
     functionsClient: FirebaseFunctionsClient,
     firebaseUser: FirebaseUser
 ): UserRole {
-    val claim = FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true)
-        ?: run {
-            // Brand-new account with no claim yet — ask the server to assign the default,
-            // then re-read the (now force-refreshed) token.
-            functionsClient.ensureInitialRole().getOrThrow()
-            FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true)
-        }
-    return claim?.let { runCatching { UserRole.valueOf(it) }.getOrNull() } ?: UserRole.PROFESSIONAL
+    val existingClaim = FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true)
+    // Always call assignInitialRole, not just when there's no claim yet — it's the only
+    // place lastSignInAtMillis (and isVerified) get refreshed, and that needs to happen
+    // on every sign-in, not just account creation. Idempotent server-side; a transient
+    // failure here shouldn't block sign-in for a returning user who already has a valid
+    // claim — EXCEPT an account-suspended rejection, which must always block sign-in
+    // regardless of whether a claim already existed (see setAccountSuspended.ts).
+    val result = functionsClient.ensureInitialRole()
+    result.exceptionOrNull()?.let { error ->
+        if (error is AccountSuspendedException || existingClaim == null) throw error
+    }
+    val claim = existingClaim
+        ?: FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true)
+    return claim?.let { runCatching { UserRole.valueOf(it) }.getOrNull() } ?: UserRole.SPECIALIST
 }

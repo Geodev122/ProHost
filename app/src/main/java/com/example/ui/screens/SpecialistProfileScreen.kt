@@ -9,8 +9,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,7 +51,6 @@ fun SpecialistProfileScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val currentUser by viewModel.currentUser.collectAsState()
-    val userDocuments by viewModel.currentUserDocuments.collectAsState()
 
     // No fabricated Super Admin fallback here anymore — a null currentUser means the
     // session genuinely isn't signed in (this screen used to bake in a real hardcoded
@@ -72,45 +69,23 @@ fun SpecialistProfileScreen(
     var name by remember(user) { mutableStateOf(user.fullName) }
     var specialty by remember(user) { mutableStateOf(user.specialty) }
     var phone by remember(user) { mutableStateOf(user.phone) }
-    var affiliation by remember(user) { mutableStateOf(user.affiliation) }
-    var syndicateNumber by remember(user) { mutableStateOf(user.syndicateNumber) }
-    var selectedGov by remember(user) { mutableStateOf(user.governorate) }
+    var selectedCountry by remember(user) { mutableStateOf(findCountryByName(user.country)) }
+    var governorateArea by remember(user) { mutableStateOf(user.governorate) }
+    var city by remember(user) { mutableStateOf(user.city) }
 
-    // Dialog States
-    var showUploadDialog by remember { mutableStateOf(false) }
-    var selectedDocTypeForUpload by remember { mutableStateOf<DocumentType?>(null) }
-    var previewingDocument by remember { mutableStateOf<CredentialDocument?>(null) }
     var showSignOutConfirmDialog by remember { mutableStateOf(false) }
-
-    // Required Documents Calculation
-    val requiredDocTypes = remember(user.role) {
-        DocumentType.entries.filter { it.requiredFor.contains(user.role) }
-    }
-    val optionalDocTypes = remember(user.role) {
-        DocumentType.entries.filter { !it.requiredFor.contains(user.role) }
-    }
-
-    val verifiedDocsCount = remember(userDocuments, requiredDocTypes) {
-        requiredDocTypes.count { req -> userDocuments.any { it.type == req && it.status == DocumentStatus.VERIFIED } }
-    }
-    val uploadedDocsCount = remember(userDocuments, requiredDocTypes) {
-        requiredDocTypes.count { req -> userDocuments.any { it.type == req && it.status != DocumentStatus.NOT_UPLOADED } }
-    }
-    val verificationProgress = remember(verifiedDocsCount, requiredDocTypes) {
-        if (requiredDocTypes.isEmpty()) 1f else (verifiedDocsCount.toFloat() / requiredDocTypes.size.toFloat())
-    }
 
     // Role-specific theme accents
     val primaryAccent = when (user.role) {
         UserRole.ADMIN -> AmberWarning
-        UserRole.SPACE_OWNER -> CarnationOrange
-        UserRole.PROFESSIONAL -> OxfordBlue
+        UserRole.PRO_HOST -> CarnationOrange
+        UserRole.SPECIALIST -> OxfordBlue
     }
 
     val heroGradient = when (user.role) {
         UserRole.ADMIN -> Brush.linearGradient(listOf(OxfordBlueDark, OxfordBlue, CoolGrayDark))
-        UserRole.SPACE_OWNER -> Brush.linearGradient(listOf(OxfordBlue, CarnationOrangeDark.copy(alpha = 0.85f), OxfordBlueDark))
-        UserRole.PROFESSIONAL -> Brush.linearGradient(listOf(OxfordBlueDark, OxfordBlue, VibrantBlue.copy(alpha = 0.7f)))
+        UserRole.PRO_HOST -> Brush.linearGradient(listOf(OxfordBlue, CarnationOrangeDark.copy(alpha = 0.85f), OxfordBlueDark))
+        UserRole.SPECIALIST -> Brush.linearGradient(listOf(OxfordBlueDark, OxfordBlue, VibrantBlue.copy(alpha = 0.7f)))
     }
 
     Box(
@@ -154,8 +129,8 @@ fun SpecialistProfileScreen(
                             Surface(
                                 color = when (user.role) {
                                     UserRole.ADMIN -> AmberWarning.copy(alpha = 0.25f)
-                                    UserRole.SPACE_OWNER -> CarnationOrange.copy(alpha = 0.25f)
-                                    UserRole.PROFESSIONAL -> VibrantBlue.copy(alpha = 0.25f)
+                                    UserRole.PRO_HOST -> CarnationOrange.copy(alpha = 0.25f)
+                                    UserRole.SPECIALIST -> VibrantBlue.copy(alpha = 0.25f)
                                 },
                                 shape = RoundedCornerShape(10.dp),
                                 border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.6f))
@@ -168,22 +143,22 @@ fun SpecialistProfileScreen(
                                     Icon(
                                         imageVector = when (user.role) {
                                             UserRole.ADMIN -> Icons.Default.Shield
-                                            UserRole.SPACE_OWNER -> Icons.Default.HomeWork
-                                            UserRole.PROFESSIONAL -> Icons.Default.VerifiedUser
+                                            UserRole.PRO_HOST -> Icons.Default.HomeWork
+                                            UserRole.SPECIALIST -> Icons.Default.VerifiedUser
                                         },
                                         contentDescription = null,
                                         tint = when (user.role) {
                                             UserRole.ADMIN -> AmberWarning
-                                            UserRole.SPACE_OWNER -> CarnationOrangeLight
-                                            UserRole.PROFESSIONAL -> Color.White
+                                            UserRole.PRO_HOST -> CarnationOrangeLight
+                                            UserRole.SPECIALIST -> Color.White
                                         },
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Text(
                                         text = when (user.role) {
                                             UserRole.ADMIN -> "Super Administrator Node"
-                                            UserRole.SPACE_OWNER -> "Verified Space Host"
-                                            UserRole.PROFESSIONAL -> "Practitioner / Specialist"
+                                            UserRole.PRO_HOST -> "Verified Space Host"
+                                            UserRole.SPECIALIST -> "Practitioner / Specialist"
                                         },
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
@@ -300,7 +275,7 @@ fun SpecialistProfileScreen(
 
                         HorizontalDivider(color = Color.White.copy(alpha = 0.15f))
 
-                        // Bottom Meta Row: Governorate + Trust Index + Syndicate ID
+                        // Bottom Meta Row: Location + Member ID + Phone-Verified Status
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -312,7 +287,7 @@ fun SpecialistProfileScreen(
                             ) {
                                 Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
                                 Text(
-                                    text = user.governorate.displayName.split(" ").first(),
+                                    text = user.city.ifBlank { user.governorate.ifBlank { user.country } },
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White.copy(alpha = 0.9f),
                                     fontWeight = FontWeight.Medium
@@ -325,7 +300,7 @@ fun SpecialistProfileScreen(
                             ) {
                                 Icon(Icons.Default.Badge, contentDescription = null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
                                 Text(
-                                    text = if (user.syndicateNumber.isNotBlank()) user.syndicateNumber else "ID: ${user.id.take(10)}",
+                                    text = "ID: ${user.id.take(10)}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White.copy(alpha = 0.9f),
                                     fontWeight = FontWeight.Medium
@@ -337,7 +312,7 @@ fun SpecialistProfileScreen(
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
-                                    text = "🛡️ Trust: ${user.trustScore}%",
+                                    text = if (user.isVerified) "🛡️ Phone Verified" else "Phone Unverified",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White,
@@ -351,9 +326,10 @@ fun SpecialistProfileScreen(
 
             // =========================================================================
             // 2. ACTIVE ROLE INDICATOR (informational only — a role change now only ever
-            // happens server-side, via Firebase Auth + the requestRoleUpgrade/
-            // grantAdminRole Cloud Functions. This used to be a tap-to-switch control
-            // that let any signed-in user instantly become Admin with no server check.)
+            // happens server-side: grantAdminRole for Admin grants, or grantEntitlement()
+            // promoting SPECIALIST to PRO_HOST the moment a package/listing payment settles.
+            // This used to be a tap-to-switch control that let any signed-in user instantly
+            // become Admin with no server check.)
             // =========================================================================
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -370,8 +346,8 @@ fun SpecialistProfileScreen(
                         UserRole.entries.forEach { role ->
                             val isSelected = user.role == role
                             val roleColor = when (role) {
-                                UserRole.PROFESSIONAL -> OxfordBlue
-                                UserRole.SPACE_OWNER -> CarnationOrange
+                                UserRole.SPECIALIST -> OxfordBlue
+                                UserRole.PRO_HOST -> CarnationOrange
                                 UserRole.ADMIN -> AmberWarning
                             }
 
@@ -390,8 +366,8 @@ fun SpecialistProfileScreen(
                                 ) {
                                     Icon(
                                         imageVector = when (role) {
-                                            UserRole.PROFESSIONAL -> Icons.Default.Work
-                                            UserRole.SPACE_OWNER -> Icons.Default.HomeWork
+                                            UserRole.SPECIALIST -> Icons.Default.Work
+                                            UserRole.PRO_HOST -> Icons.Default.HomeWork
                                             UserRole.ADMIN -> Icons.Default.AdminPanelSettings
                                         },
                                         contentDescription = null,
@@ -401,8 +377,8 @@ fun SpecialistProfileScreen(
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         text = when (role) {
-                                            UserRole.PROFESSIONAL -> "Practitioner"
-                                            UserRole.SPACE_OWNER -> "Host / Owner"
+                                            UserRole.SPECIALIST -> "Practitioner"
+                                            UserRole.PRO_HOST -> "Host / Owner"
                                             UserRole.ADMIN -> "Super Admin"
                                         },
                                         style = MaterialTheme.typography.labelSmall,
@@ -434,13 +410,13 @@ fun SpecialistProfileScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ProSectionHeader(
                         title = when (user.role) {
-                            UserRole.PROFESSIONAL -> "Practitioner Rental Activity"
-                            UserRole.SPACE_OWNER -> "Host Performance & Yield"
+                            UserRole.SPECIALIST -> "Practitioner Rental Activity"
+                            UserRole.PRO_HOST -> "Host Performance & Yield"
                             UserRole.ADMIN -> "Central Platform Governance"
                         },
                         subtitle = when (user.role) {
-                            UserRole.PROFESSIONAL -> "Active leases, pending bookings, and Syndicate standing"
-                            UserRole.SPACE_OWNER -> "Managed spaces, incoming tenant inquiries, and MRR yield"
+                            UserRole.SPECIALIST -> "Active leases, pending bookings, and Syndicate standing"
+                            UserRole.PRO_HOST -> "Managed spaces, incoming tenant inquiries, and MRR yield"
                             UserRole.ADMIN -> "System spaces, cloud sync status, and transaction integrity"
                         },
                         icon = Icons.Default.Analytics,
@@ -453,7 +429,7 @@ fun SpecialistProfileScreen(
                     )
 
                     when (user.role) {
-                        UserRole.PROFESSIONAL -> {
+                        UserRole.SPECIALIST -> {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -488,9 +464,9 @@ fun SpecialistProfileScreen(
                                     modifier = Modifier.weight(1f)
                                 )
                                 ProMetricTile(
-                                    title = "Trust Score",
-                                    value = "${user.trustScore}%",
-                                    subtitle = user.verificationTier.badgeTitle,
+                                    title = "Phone Status",
+                                    value = if (user.isVerified) "Verified" else "Unverified",
+                                    subtitle = "Firebase SMS verification",
                                     icon = Icons.Default.VerifiedUser,
                                     iconTint = FreshGreen,
                                     modifier = Modifier.weight(1f)
@@ -498,7 +474,7 @@ fun SpecialistProfileScreen(
                             }
                         }
 
-                        UserRole.SPACE_OWNER -> {
+                        UserRole.PRO_HOST -> {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -595,7 +571,7 @@ fun SpecialistProfileScreen(
             // 4. ROLE-TAILORED HUBS & ACCREDITATION SECTIONS
             // =========================================================================
 
-            if (user.role == UserRole.PROFESSIONAL) {
+            if (user.role == UserRole.SPECIALIST) {
                 // SPECIALIST PRACTITIONER FRIENDLY WORKSPACE HUB
                 ProSurfaceCard {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -633,12 +609,12 @@ fun SpecialistProfileScreen(
                                     )
                                     Column {
                                         Text(
-                                            text = "Welcome back, Dr. / Specialist ${user.fullName}",
+                                            text = "Welcome back, ${user.fullName}",
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Bold
                                         )
                                         Text(
-                                            text = "Syndicate No: ${user.syndicateNumber.ifBlank { "Pending Registration" }} • ${user.governorate.displayName}",
+                                            text = listOf(user.city, user.governorate, user.country).filter { it.isNotBlank() }.joinToString(", "),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -681,358 +657,10 @@ fun SpecialistProfileScreen(
                 }
             }
 
-            // 4-PILLAR ACCREDITATION HUB FOR PRACTITIONERS & HOSTS — runs for every
-            // role (the doc list itself is separately gated to exclude ADMIN below).
-            // This used to be the `else` of the PROFESSIONAL check above, which meant
-            // Specialists could never see this section or upload any verification
-            // document at all — the only place that ever did anything with document
-            // uploads was unreachable for the one role that most needs it.
-            run {
-                val isBasicInfoComplete = user.fullName.isNotBlank() && user.phone.isNotBlank()
-                val isSyndicateComplete = user.specialty.isNotBlank() && user.syndicateNumber.isNotBlank()
-                val isGovComplete = user.governorate.displayName.isNotBlank()
-                val isDocsComplete = verifiedDocsCount >= requiredDocTypes.size && requiredDocTypes.isNotEmpty()
-
-                val profileScore = (if (isBasicInfoComplete) 25 else 0) +
-                        (if (isSyndicateComplete) 25 else 0) +
-                        (if (isGovComplete) 25 else 0) +
-                        (if (isDocsComplete) 25 else (uploadedDocsCount * 25 / (if (requiredDocTypes.isEmpty()) 1 else requiredDocTypes.size)))
-
-                ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(end = 8.dp)
-                            ) {
-                                Text(
-                                    text = if (user.role == UserRole.SPACE_OWNER) "Commercial Host Accreditation" else "Specialist Syndicate Accreditation",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "Complete the 4 verification pillars for trusted Lebanese workspace leasing",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            Surface(
-                                color = if (profileScore >= 100) StatusSuccessContainer else OxfordBlueContainer,
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text(
-                                    text = "$profileScore% Verified",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = if (profileScore >= 100) StatusSuccess else OxfordBlue,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    maxLines = 1
-                                )
-                            }
-                        }
-
-                        LinearProgressIndicator(
-                            progress = { profileScore / 100f },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(8.dp)
-                                .clip(RoundedCornerShape(4.dp)),
-                            color = if (profileScore >= 100) FreshGreen else CarnationOrange,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-
-                        // 4 Pillars Checklist Grid
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            // Pillar 1: Contact
-                            Surface(
-                                color = if (isBasicInfoComplete) StatusSuccessContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                shape = RoundedCornerShape(10.dp),
-                                border = if (isBasicInfoComplete) BorderStroke(1.dp, StatusSuccess.copy(alpha = 0.4f)) else null,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(8.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        if (isBasicInfoComplete) Icons.Default.CheckCircle else Icons.Default.Person,
-                                        contentDescription = null,
-                                        tint = if (isBasicInfoComplete) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text("1. Contact", fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                                }
-                            }
-
-                            // Pillar 2: Syndicate / License
-                            Surface(
-                                color = if (isSyndicateComplete) StatusSuccessContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                shape = RoundedCornerShape(10.dp),
-                                border = if (isSyndicateComplete) BorderStroke(1.dp, StatusSuccess.copy(alpha = 0.4f)) else null,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(8.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        if (isSyndicateComplete) Icons.Default.CheckCircle else Icons.Default.Badge,
-                                        contentDescription = null,
-                                        tint = if (isSyndicateComplete) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        if (user.role == UserRole.SPACE_OWNER) "2. Register" else "2. Syndicate",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
-
-                            // Pillar 3: Territory
-                            Surface(
-                                color = if (isGovComplete) StatusSuccessContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                shape = RoundedCornerShape(10.dp),
-                                border = if (isGovComplete) BorderStroke(1.dp, StatusSuccess.copy(alpha = 0.4f)) else null,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(8.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        if (isGovComplete) Icons.Default.CheckCircle else Icons.Default.LocationOn,
-                                        contentDescription = null,
-                                        tint = if (isGovComplete) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text("3. Territory", fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                                }
-                            }
-
-                            // Pillar 4: Docs
-                            Surface(
-                                color = if (isDocsComplete) StatusSuccessContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                shape = RoundedCornerShape(10.dp),
-                                border = if (isDocsComplete) BorderStroke(1.dp, StatusSuccess.copy(alpha = 0.4f)) else null,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(8.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        if (isDocsComplete) Icons.Default.CheckCircle else Icons.Default.UploadFile,
-                                        contentDescription = null,
-                                        tint = if (isDocsComplete) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        "4. Docs ($uploadedDocsCount/${requiredDocTypes.size})",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (user.role != UserRole.ADMIN) {
-                    // REQUIRED CREDENTIAL DOCUMENTS LIST
-                    ProSurfaceCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                            ProSectionHeader(
-                                title = if (user.role == UserRole.SPACE_OWNER) "Property & Commercial Permits" else "Syndicate & Legal Credentials",
-                                subtitle = if (user.role == UserRole.SPACE_OWNER)
-                                    "Commercial Register (Sijil Tejari), Title Deed (Sanad Melkiyeh), and National ID"
-                                else
-                                    "Syndicate Membership Card, Practice Decree, and National ID",
-                                icon = Icons.Default.VerifiedUser,
-                                trailingContent = {
-                                    ProStatusBadge(
-                                        type = when (user.verificationStatus) {
-                                            MemberVerificationStatus.VERIFIED -> ProBadgeType.CUSTOM_SUCCESS
-                                            MemberVerificationStatus.PENDING_REVIEW -> ProBadgeType.CUSTOM_WARNING
-                                            MemberVerificationStatus.ACTION_REQUIRED -> ProBadgeType.CUSTOM_ERROR
-                                            MemberVerificationStatus.UNVERIFIED -> ProBadgeType.CUSTOM_INFO
-                                        },
-                                        customText = user.verificationStatus.displayName
-                                    )
-                                }
-                            )
-
-                            // Required documents
-                            Text(
-                                text = "Required Official Credentials (${user.role.displayName})",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                requiredDocTypes.forEach { docType ->
-                                    val uploadedDoc = userDocuments.find { it.type == docType && it.status != DocumentStatus.NOT_UPLOADED }
-                                    CredentialDocumentItemCard(
-                                        docType = docType,
-                                        uploadedDoc = uploadedDoc,
-                                        isRequired = true,
-                                        onUploadClick = {
-                                            selectedDocTypeForUpload = docType
-                                            showUploadDialog = true
-                                        },
-                                        onPreviewClick = { doc ->
-                                            previewingDocument = doc
-                                        },
-                                        onRemoveClick = { docId ->
-                                            coroutineScope.launch {
-                                                val success = viewModel.removeCredentialDocument(docId)
-                                                Toast.makeText(
-                                                    context,
-                                                    if (success) "Document removed" else "Failed to remove document — please try again",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-
-                            // Optional / Supplementary documents
-                            if (optionalDocTypes.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Supplementary / Recommended Certificates",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-
-                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    optionalDocTypes.forEach { docType ->
-                                        val uploadedDoc = userDocuments.find { it.type == docType && it.status != DocumentStatus.NOT_UPLOADED }
-                                        CredentialDocumentItemCard(
-                                            docType = docType,
-                                            uploadedDoc = uploadedDoc,
-                                            isRequired = false,
-                                            onUploadClick = {
-                                                selectedDocTypeForUpload = docType
-                                                showUploadDialog = true
-                                            },
-                                            onPreviewClick = { doc ->
-                                                previewingDocument = doc
-                                            },
-                                            onRemoveClick = { docId ->
-                                                coroutineScope.launch {
-                                                    val success = viewModel.removeCredentialDocument(docId)
-                                                    Toast.makeText(
-                                                        context,
-                                                        if (success) "Document removed" else "Failed to remove document — please try again",
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
-                                                }
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Upload New Credential Action Button
-                            OutlinedButton(
-                                onClick = {
-                                    selectedDocTypeForUpload = null
-                                    showUploadDialog = true
-                                },
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Upload Additional Supporting Document", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
-                            }
-
-                            // Submit For Review Action (if not yet verified)
-                            if (user.verificationStatus != MemberVerificationStatus.VERIFIED) {
-                                Button(
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            val success = viewModel.submitForVerification()
-                                            Toast.makeText(
-                                                context,
-                                                if (success) "Verification package submitted for administrative compliance check!" else "Failed to submit verification package — please try again",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                        }
-                                    },
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(containerColor = primaryAccent)
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Submit Accreditation Package for Review", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                }
-                            }
-
-                            // Legal & Regulatory note
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = SandstoneContainer.copy(alpha = 0.5f),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.Top,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Gavel,
-                                        contentDescription = null,
-                                        tint = SandstoneDark,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        Text(
-                                            text = "Lebanese Regulatory & Syndicate Compliance",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = SandstoneDark
-                                        )
-                                        Text(
-                                            text = if (user.role == UserRole.SPACE_OWNER)
-                                                "Commercial property hosts must verify Sanad Melkiyeh (Title Deed) or official lease contract to ensure legal occupancy, valid subleasing, and generator power supply compliance."
-                                            else
-                                                "Under Lebanese syndicate regulations (OEA, LOP, BBA), practitioners renting professional clinic or studio suites must be accredited members in good standing for liability protection.",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontSize = 11.sp
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
             // =========================================================================
             // 5. ROLE-SPECIFIC ACTIVITY CARDS (BOOKINGS / LEASES)
             // =========================================================================
-            if (user.role == UserRole.PROFESSIONAL) {
+            if (user.role == UserRole.SPECIALIST) {
                 val practitionerBookings by viewModel.practitionerBookings.collectAsState()
                 val spaces by viewModel.spaces.collectAsState()
 
@@ -1167,13 +795,29 @@ fun SpecialistProfileScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     ProSectionHeader(
                         title = when (user.role) {
-                            UserRole.PROFESSIONAL -> "Practitioner & Syndicate Details"
-                            UserRole.SPACE_OWNER -> "Host Business & Property Information"
+                            UserRole.SPECIALIST -> "Practitioner Details"
+                            UserRole.PRO_HOST -> "Host Business Details"
                             UserRole.ADMIN -> "Super Administrator Identity"
                         },
-                        subtitle = "Ensure your WhatsApp booking contact and credentials are up to date",
+                        subtitle = "Ensure your WhatsApp booking contact is up to date",
                         icon = Icons.Default.Badge
                     )
+
+                    var pendingProfilePicUri by remember { mutableStateOf<android.net.Uri?>(null) }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        ProfilePicturePickerField(
+                            pictureUri = pendingProfilePicUri,
+                            onPictureSelected = { pendingProfilePicUri = it }
+                        )
+                        Column {
+                            Text("Profile Picture", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Text(
+                                if (user.profilePictureUrl != null || pendingProfilePicUri != null) "Tap to replace" else "Tap to add a photo",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
 
                     InputField(
                         value = name,
@@ -1188,37 +832,11 @@ fun SpecialistProfileScreen(
                         value = specialty,
                         onValueChange = { specialty = it },
                         label = when (user.role) {
-                            UserRole.PROFESSIONAL -> "Profession / Specialization / Syndicate Title"
-                            UserRole.SPACE_OWNER -> "Host Category (Commercial Real Estate, Coworking, Clinic)"
+                            UserRole.SPECIALIST -> "Profession / Job Title (Optional)"
+                            UserRole.PRO_HOST -> "Host Category (Commercial Real Estate, Coworking, Clinic)"
                             UserRole.ADMIN -> "Super Administrator Role & Clearance"
                         },
                         leadingIcon = Icons.Default.Work,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    InputField(
-                        value = affiliation,
-                        onValueChange = { affiliation = it },
-                        label = when (user.role) {
-                            UserRole.PROFESSIONAL -> "Order / Hospital / Firm Affiliation"
-                            UserRole.SPACE_OWNER -> "Building Name / Real Estate Enterprise / Network"
-                            UserRole.ADMIN -> "Central Governance Organization"
-                        },
-                        leadingIcon = Icons.Default.Apartment,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    InputField(
-                        value = syndicateNumber,
-                        onValueChange = { syndicateNumber = it },
-                        label = when (user.role) {
-                            UserRole.PROFESSIONAL -> "Order / Syndicate / Specialist License ID (e.g. LOP / OEA)"
-                            UserRole.SPACE_OWNER -> "Commercial Register / Property Sijil Tejari ID"
-                            UserRole.ADMIN -> "Central Administrative Security Node ID"
-                        },
-                        leadingIcon = Icons.Default.Badge,
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -1232,13 +850,50 @@ fun SpecialistProfileScreen(
                         singleLine = true
                     )
 
-                    Text("Primary Governorate / Territory", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(Governorate.entries) { gov ->
-                            FilterChip(
-                                selected = selectedGov == gov,
-                                onClick = { selectedGov = gov },
-                                label = { Text(gov.displayName.split(" ").first(), style = MaterialTheme.typography.labelSmall) }
+                    CountryDropdownField(
+                        selectedCountry = selectedCountry,
+                        onCountrySelected = { selectedCountry = it },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    InputField(
+                        value = governorateArea,
+                        onValueChange = { governorateArea = it },
+                        label = "Governorate / Area",
+                        leadingIcon = Icons.Default.LocationOn,
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    InputField(
+                        value = city,
+                        onValueChange = { city = it },
+                        label = "City",
+                        leadingIcon = Icons.Default.LocationCity,
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                if (user.idDocumentUrl != null) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
+                                contentDescription = null,
+                                tint = if (user.idDocumentUrl != null) StatusSuccess else MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = if (user.idDocumentUrl != null) "ID document on file" else "No ID document on file",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
@@ -1249,7 +904,19 @@ fun SpecialistProfileScreen(
                         text = "Save Profile Changes",
                         onClick = {
                             coroutineScope.launch {
-                                val success = viewModel.updateProfile(name, specialty, phone, affiliation, syndicateNumber, selectedGov)
+                                var profilePictureUrl: String? = null
+                                val localPicUri = pendingProfilePicUri
+                                if (localPicUri != null) {
+                                    val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
+                                    val mime = context.contentResolver.getType(localPicUri)
+                                    val ext = mime?.let { android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(it) } ?: "jpg"
+                                    profilePictureUrl = storageService.uploadProfilePicture(user.id, localPicUri, ext)
+                                }
+                                val success = viewModel.updateProfile(
+                                    name, specialty, phone,
+                                    selectedCountry.name, governorateArea, city,
+                                    profilePictureUrl
+                                )
                                 Toast.makeText(
                                     context,
                                     if (success) "Profile Updated Successfully!" else "Failed to update profile — please try again",
@@ -1370,277 +1037,5 @@ fun SpecialistProfileScreen(
                 }
             }
         )
-    }
-
-    // Credential Upload Modal Dialog
-    if (showUploadDialog) {
-        CredentialUploadDialog(
-            initialType = selectedDocTypeForUpload,
-            userRole = user.role,
-            onDismiss = { showUploadDialog = false },
-            onDocumentUploaded = { type, fileName, fileSizeKb, docNumber, issuingAuth, expiryDate, fileUri ->
-                viewModel.uploadCredentialDocument(
-                    type = type,
-                    fileName = fileName,
-                    fileSizeKb = fileSizeKb,
-                    documentNumber = docNumber,
-                    issuingAuthority = issuingAuth,
-                    expiryDate = expiryDate,
-                    fileUri = fileUri
-                )
-            }
-        )
-    }
-
-    // Document Inspection & Preview Dialog
-    previewingDocument?.let { doc ->
-        DocumentPreviewDialog(
-            document = doc,
-            isAdmin = user.role == UserRole.ADMIN,
-            onDismiss = { previewingDocument = null },
-            onRemoveDocument = { docId ->
-                coroutineScope.launch {
-                    val success = viewModel.removeCredentialDocument(docId)
-                    Toast.makeText(
-                        context,
-                        if (success) "Document removed" else "Failed to remove document — please try again",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-                previewingDocument = null
-            },
-            onApproveDocument = { docId ->
-                previewingDocument = null
-                coroutineScope.launch {
-                    val success = viewModel.adminApproveDocument(docId)
-                    Toast.makeText(
-                        context,
-                        if (success) "Document approved and accredited!" else "Failed to approve document — try again",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            },
-            onRejectDocument = { docId, reason ->
-                previewingDocument = null
-                coroutineScope.launch {
-                    val success = viewModel.adminRejectDocument(docId, reason)
-                    Toast.makeText(
-                        context,
-                        if (success) "Revision requested from member" else "Failed to request revision — try again",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-        )
-    }
-}
-
-/**
- * Individual Credential Document Item Card Component
- */
-@Composable
-fun CredentialDocumentItemCard(
-    docType: DocumentType,
-    uploadedDoc: CredentialDocument?,
-    isRequired: Boolean,
-    onUploadClick: () -> Unit,
-    onPreviewClick: (CredentialDocument) -> Unit,
-    onRemoveClick: (String) -> Unit
-) {
-    val isUploaded = uploadedDoc != null && uploadedDoc.status != DocumentStatus.NOT_UPLOADED
-    val status = uploadedDoc?.status ?: DocumentStatus.NOT_UPLOADED
-
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .border(
-                width = 1.dp,
-                color = when (status) {
-                    DocumentStatus.VERIFIED -> StatusSuccess.copy(alpha = 0.5f)
-                    DocumentStatus.PENDING_REVIEW -> BrightOrange.copy(alpha = 0.5f)
-                    DocumentStatus.REJECTED -> CrimsonRed.copy(alpha = 0.5f)
-                    DocumentStatus.NOT_UPLOADED -> MaterialTheme.colorScheme.outlineVariant
-                },
-                shape = RoundedCornerShape(12.dp)
-            ),
-        color = when (status) {
-            DocumentStatus.VERIFIED -> StatusSuccessContainer.copy(alpha = 0.25f)
-            DocumentStatus.PENDING_REVIEW -> StatusWarningContainer.copy(alpha = 0.25f)
-            DocumentStatus.REJECTED -> StatusErrorContainer.copy(alpha = 0.25f)
-            DocumentStatus.NOT_UPLOADED -> MaterialTheme.colorScheme.surface
-        },
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        imageVector = when (status) {
-                            DocumentStatus.VERIFIED -> Icons.Default.Verified
-                            DocumentStatus.PENDING_REVIEW -> Icons.Default.PendingActions
-                            DocumentStatus.REJECTED -> Icons.Default.ErrorOutline
-                            DocumentStatus.NOT_UPLOADED -> Icons.Default.Description
-                        },
-                        contentDescription = null,
-                        tint = when (status) {
-                            DocumentStatus.VERIFIED -> StatusSuccess
-                            DocumentStatus.PENDING_REVIEW -> BrightOrange
-                            DocumentStatus.REJECTED -> CrimsonRed
-                            DocumentStatus.NOT_UPLOADED -> MaterialTheme.colorScheme.primary
-                        },
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Column {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                text = docType.title,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            if (isRequired) {
-                                Surface(
-                                    color = OxfordBlueContainer,
-                                    shape = RoundedCornerShape(4.dp)
-                                ) {
-                                    Text(
-                                        text = "Required",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = OxfordBlue,
-                                        fontSize = 9.sp,
-                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                    )
-                                }
-                            }
-                        }
-                        Text(
-                            text = docType.officialLebaneseLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                ProStatusBadge(
-                    type = when (status) {
-                        DocumentStatus.VERIFIED -> ProBadgeType.CUSTOM_SUCCESS
-                        DocumentStatus.PENDING_REVIEW -> ProBadgeType.CUSTOM_WARNING
-                        DocumentStatus.REJECTED -> ProBadgeType.CUSTOM_ERROR
-                        DocumentStatus.NOT_UPLOADED -> ProBadgeType.CUSTOM_INFO
-                    },
-                    customText = status.displayName
-                )
-            }
-
-            // Description / Guidance
-            Text(
-                text = docType.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 11.sp
-            )
-
-            // Metadata if Uploaded
-            if (uploadedDoc != null && isUploaded) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "📄 ${uploadedDoc.fileName ?: "Document.pdf"}",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = "${uploadedDoc.fileSizeKb} KB",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        if (uploadedDoc.documentNumber.isNotBlank()) {
-                            Text(
-                                text = "ID / License #: ${uploadedDoc.documentNumber} • Valid thru: ${uploadedDoc.expiryDate.ifBlank { "N/A" }}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        if (!uploadedDoc.rejectionReason.isNullOrBlank()) {
-                            Text(
-                                text = "⚠️ Action Needed: ${uploadedDoc.rejectionReason}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = CrimsonRed,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Action Buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (!isUploaded) {
-                    Button(
-                        onClick = onUploadClick,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(vertical = 6.dp)
-                    ) {
-                        Icon(Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Upload Scan / PDF", style = MaterialTheme.typography.labelSmall)
-                    }
-                } else {
-                    OutlinedButton(
-                        onClick = { onPreviewClick(uploadedDoc) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(vertical = 6.dp)
-                    ) {
-                        Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("View Certificate", style = MaterialTheme.typography.labelSmall)
-                    }
-
-                    OutlinedButton(
-                        onClick = onUploadClick,
-                        modifier = Modifier.weight(0.9f),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(vertical = 6.dp)
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Replace", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-            }
-        }
     }
 }

@@ -13,8 +13,9 @@ export const ping = onCall(() => {
 });
 
 export { assignInitialRole } from "./roles/assignInitialRole";
-export { requestRoleUpgrade } from "./roles/requestRoleUpgrade";
 export { grantAdminRole } from "./roles/grantAdminRole";
+export { setAccountSuspended } from "./roles/setAccountSuspended";
+export { revokeProHostRole } from "./roles/revokeProHostRole";
 export { bootstrapSuperAdmin } from "./roles/bootstrapSuperAdmin";
 
 export { initiateWhishPayment } from "./payments/initiateWhishPayment";
@@ -22,7 +23,11 @@ export { whishWebhook } from "./payments/whishWebhook";
 export { checkWhishStatus } from "./payments/checkWhishStatus";
 
 export { updatePricing } from "./admin/pricing";
-export { submitVerificationForReview, reviewCredentialDocument, adminSetUserVerification } from "./admin/verification";
 export { setListingVerification, setListingSubscriptionActive } from "./admin/listings";
 
 export { recordClientAuditLog } from "./audit/recordClientAuditLog";
+
+export { onBookingRequestCreated, onBookingRequestStatusChanged } from "./notifications/bookingNotifications";
+export { sendPaymentReminder } from "./notifications/sendPaymentReminder";
+
+export { onWorkspaceListingCreated, onWorkspaceListingDeleted } from "./listings/listingCountTracker";

@@ -33,11 +33,11 @@ class ProSpaceEndToEndLifecycleTest {
     }
 
     @Test
-    fun `test complete booking lifecycle - discovery to owner approval to whish renewal`() {
+    fun `test complete booking lifecycle - discovery to owner approval with signed agreement`() = kotlinx.coroutines.runBlocking {
         // 1. Practitioner logs in
-        val practitioner = repository.login(uid = "uid-dr-sami", email = "dr.sami@prospace.lb", verifiedRole = UserRole.PROFESSIONAL)
+        val practitioner = repository.login(uid = "uid-dr-sami", email = "dr.sami@prospace.lb", verifiedRole = UserRole.SPECIALIST)
         assertNotNull(practitioner)
-        assertEquals(UserRole.PROFESSIONAL, practitioner.role)
+        assertEquals(UserRole.SPECIALIST, practitioner.role)
 
         // 2. Discover available space
         val spaces = repository.spaces.value
@@ -68,45 +68,64 @@ class ProSpaceEndToEndLifecycleTest {
         val ownerIncoming = repository.bookingRequests.value.filter { it.spaceId == targetSpace.id }
         assertTrue(ownerIncoming.any { it.id == bookingRequest.id })
 
-        // 5. Owner Accepts Booking Application
-        val accepted = repository.acceptBookingRequest(bookingRequest.id)
+        // 5. Owner Accepts Booking Application, uploading the signed agreement — there
+        // is no in-app payment settlement anymore; both sides handle payment outside
+        // the app, and the uploaded agreement is the record of the deal instead.
+        val agreementUrl = "https://storage.example.com/booking_agreements/${bookingRequest.id}/agreement.pdf"
+        val accepted = repository.acceptBookingRequest(bookingRequest.id, agreementUrl)
         assertTrue(accepted)
 
         val updatedRequest = repository.bookingRequests.value.find { it.id == bookingRequest.id }
         assertNotNull(updatedRequest)
         assertEquals(BookingRequestStatus.ACCEPTED, updatedRequest?.status)
-        assertTrue(updatedRequest?.isExternalPaymentSettled == true)
+        assertEquals(agreementUrl, updatedRequest?.agreementUrl)
 
         // Verify space has resident practitioner added
         val updatedSpace = repository.spaces.value.find { it.id == targetSpace.id }
         assertTrue(updatedSpace?.residentPractitioners?.any { it.contains(practitioner.fullName) } == true)
+    }
 
-        // 6. Whish Pay Renewal / Direct Payment Settlement
-        val sampleSignature = WhishSecurity.generateSignature(
-            channel = WhishSecurity.CHANNEL_ID,
-            amount = bookingRequest.totalAmountUsd,
-            currency = "USD",
-            orderId = "ORD-BKG-" + bookingRequest.id
+    @Test
+    fun `editing an accepted booking and having the host accept it releases the original`() = kotlinx.coroutines.runBlocking {
+        val practitioner = repository.login(uid = "uid-dr-edit", email = "dr.edit@prospace.lb", verifiedRole = UserRole.SPECIALIST)
+        val space = repository.spaces.value.first { it.rentalFormulas.isNotEmpty() }
+        val formula = space.rentalFormulas.first()
+
+        val original = repository.createBookingRequest(
+            space = space,
+            formula = formula,
+            practitioner = practitioner,
+            startDate = "2026-09-01",
+            durationMonths = 1,
+            notes = "Original booking"
         )
-        assertNotNull(sampleSignature)
+        assertTrue(repository.acceptBookingRequest(original.id, "https://storage.example.com/original-agreement.pdf"))
+        assertEquals(BookingRequestStatus.ACCEPTED, repository.bookingRequests.value.find { it.id == original.id }?.status)
 
-        val paymentSettled = repository.processWhishPayBooking(
-            bookingId = bookingRequest.id,
-            payerName = practitioner.fullName,
-            payerPhone = practitioner.phone,
-            txId = "TX-WHISH-" + bookingRequest.id,
-            signature = sampleSignature
+        // Practitioner submits an edit referencing the original
+        val edit = repository.createBookingRequest(
+            space = space,
+            formula = formula,
+            practitioner = practitioner,
+            startDate = "2026-10-01",
+            durationMonths = 1,
+            notes = "Edit request",
+            replacesBookingId = original.id
         )
-        assertTrue(paymentSettled)
+        assertEquals(original.id, edit.replacesBookingId)
+        assertEquals(BookingRequestStatus.PENDING, edit.status)
+        // The original stays ACCEPTED until the edit is actually accepted
+        assertEquals(BookingRequestStatus.ACCEPTED, repository.bookingRequests.value.find { it.id == original.id }?.status)
 
-        // Verify transaction logged in ledger
-        val transactions = repository.transactions.value
-        assertTrue(transactions.any { it.orderId.contains(bookingRequest.id) && it.status == TransactionStatus.SUCCESS })
+        // Host accepts the edit — this must release (cancel) the original in the same operation
+        assertTrue(repository.acceptBookingRequest(edit.id, "https://storage.example.com/edit-agreement.pdf"))
+        assertEquals(BookingRequestStatus.ACCEPTED, repository.bookingRequests.value.find { it.id == edit.id }?.status)
+        assertEquals(BookingRequestStatus.CANCELLED, repository.bookingRequests.value.find { it.id == original.id }?.status)
     }
 
     @Test
     fun `test space owner rejection workflow and audit logging`() {
-        val practitioner = repository.login(uid = "uid-dr-maya", email = "dr.maya@prospace.lb", verifiedRole = UserRole.PROFESSIONAL)
+        val practitioner = repository.login(uid = "uid-dr-maya", email = "dr.maya@prospace.lb", verifiedRole = UserRole.SPECIALIST)
         val space = repository.spaces.value.first()
         val formula = space.rentalFormulas.first()
 
@@ -209,11 +228,11 @@ class ProSpaceEndToEndLifecycleTest {
         val user = repository.login(
             uid = "uid-arbitrary",
             email = "geo.elnajjar@gmail.com",
-            verifiedRole = UserRole.PROFESSIONAL
+            verifiedRole = UserRole.SPECIALIST
         )
         assertEquals(
             "The role actually assigned must be exactly the verifiedRole argument, regardless of which email was used",
-            UserRole.PROFESSIONAL,
+            UserRole.SPECIALIST,
             user.role
         )
     }

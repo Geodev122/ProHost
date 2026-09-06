@@ -13,6 +13,7 @@ import com.example.data.model.FCMAlert
 import com.example.data.repository.ProSpaceRepository
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 class ProSpaceMessagingService : FirebaseMessagingService() {
@@ -20,7 +21,7 @@ class ProSpaceMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("ProSpaceMessaging", "New FCM token registered: $token")
-        
+
         // Log to our system audit trails for full admin traceability
         val repository = ProSpaceRepository.getInstance()
         repository.addAuditLog(
@@ -28,6 +29,15 @@ class ProSpaceMessagingService : FirebaseMessagingService() {
             details = "New Firebase Cloud Messaging device registration signature generated successfully: ${token.take(16)}...",
             severity = "SECURE"
         )
+
+        // Persist the token to this user's profile so a Cloud Function can actually
+        // reach this device with a real push later (see notifications/*.ts). A no-op
+        // if nobody's signed in yet — the post-login/registration path in
+        // ProSpaceViewModel backfills the token once a session exists.
+        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            repository.registerFcmToken(uid, token)
+        }
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
@@ -38,6 +48,8 @@ class ProSpaceMessagingService : FirebaseMessagingService() {
         val title = remoteMessage.notification?.title ?: remoteMessage.data["title"] ?: "ProSpace Notification"
         val body = remoteMessage.notification?.body ?: remoteMessage.data["body"] ?: "New alert received."
         val categoryType = remoteMessage.data["category"] ?: "BOOKING_ACCEPTANCE"
+        val targetTab = remoteMessage.data["targetTab"]
+        val bookingId = remoteMessage.data["bookingId"]
 
         // Store inside the active singleton repository to immediately push updates to standard Compose UI flow
         val repository = ProSpaceRepository.getInstance()
@@ -48,8 +60,17 @@ class ProSpaceMessagingService : FirebaseMessagingService() {
         )
         repository.addFCMAlert(alert)
 
-        // Show standard physical status bar notification
-        showPhysicalNotification(applicationContext, title, body)
+        // Show standard physical status bar notification, deep-linking to the relevant
+        // screen (and, when present, an instant WhatsApp reply) on tap — this used to
+        // drop targetTab/bookingId/WhatsApp context on the floor even though
+        // showPhysicalNotification already supported all of it.
+        showPhysicalNotification(
+            applicationContext,
+            title,
+            body,
+            targetTab = targetTab,
+            bookingId = bookingId
+        )
     }
 
     companion object {
@@ -59,16 +80,14 @@ class ProSpaceMessagingService : FirebaseMessagingService() {
 
         /**
          * Core notification routine triggered by real-time Firebase Cloud Messaging and in-app system events.
-         * Supports deep-linking directly to target screens and instant WhatsApp reply actions.
+         * Supports deep-linking directly to target screens.
          */
         fun showPhysicalNotification(
             context: Context,
             title: String,
             body: String,
             targetTab: String? = null,
-            bookingId: String? = null,
-            whatsAppPhone: String? = null,
-            whatsAppMessage: String? = null
+            bookingId: String? = null
         ) {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -125,27 +144,6 @@ class ProSpaceMessagingService : FirebaseMessagingService() {
                     android.R.drawable.ic_menu_view,
                     actionTitle,
                     pendingIntent
-                )
-            }
-
-            // Action 2: Instant One-Tap WhatsApp Action
-            if (!whatsAppPhone.isNullOrBlank()) {
-                val cleanPhone = whatsAppPhone.replace("+", "").replace(" ", "").replace("-", "")
-                val textPayload = whatsAppMessage ?: "Hello, replying regarding the ProSpace booking alert: $title"
-                val encoded = java.net.URLEncoder.encode(textPayload, "UTF-8")
-                val waIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://wa.me/$cleanPhone?text=$encoded")).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                }
-                val waPendingIntent = PendingIntent.getActivity(
-                    context,
-                    (System.currentTimeMillis() + 1).toInt(),
-                    waIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                notificationBuilder.addAction(
-                    android.R.drawable.stat_notify_chat,
-                    "WhatsApp Reply",
-                    waPendingIntent
                 )
             }
 

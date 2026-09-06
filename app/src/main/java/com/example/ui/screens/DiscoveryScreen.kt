@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.state.DiscoveryUiState
@@ -34,39 +35,45 @@ import com.example.ui.viewmodel.ProSpaceViewModel
 import com.example.ui.theme.PremiumBackgroundGradient
 
 /**
- * ViewModel-connected wrapper for DiscoveryScreen.
+ * ViewModel-connected wrapper for DiscoveryScreen — search/filter/selection state
+ * now lives on the dedicated [DiscoveryViewModel] (Phase 4 ViewModel split), not
+ * the shared [ProSpaceViewModel] god object. [viewModel] (the shared instance) is
+ * still passed through for the one genuinely cross-cutting action this screen
+ * needs — launching a WhatsApp inquiry, which also writes to the shared audit log.
+ *
+ * DiscoveryViewModel already existed in the repo before this change but was never
+ * actually instantiated anywhere — ProSpaceViewModel had grown its own,
+ * independently-maintained duplicate of the exact same search/filter logic
+ * (SearchFilterState/filteredSpaces/updateSearchQuery/etc., now removed from
+ * ProSpaceViewModel since this screen was their only real caller).
  */
 @Composable
 fun DiscoveryScreen(
     viewModel: ProSpaceViewModel,
-    onSelectSpace: (SpaceListing) -> Unit
+    onSelectSpace: (SpaceListing) -> Unit,
+    discoveryViewModel: DiscoveryViewModel = viewModel()
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val spaces by viewModel.filteredSpaces.collectAsState()
-    val searchFilter by viewModel.searchFilter.collectAsState()
-    val selectedSpace by viewModel.selectedSpace.collectAsState()
-
-    var isMapView by remember { mutableStateOf(false) }
-    var showFilterSheet by remember { mutableStateOf(false) }
+    val uiState by discoveryViewModel.uiState.collectAsState()
 
     DiscoveryScreenContent(
-        spaces = spaces,
-        searchQuery = searchFilter.query,
-        selectedGovernorate = searchFilter.selectedGovernorate,
-        selectedSpaceType = searchFilter.selectedSpaceType,
-        selectedFormulaType = searchFilter.selectedFormulaType,
-        maxPriceUsd = searchFilter.maxPriceUsd,
-        selectedSpace = selectedSpace,
-        isMapView = isMapView,
-        showFilterSheet = showFilterSheet,
-        onSearchQueryChange = { viewModel.updateSearchQuery(it) },
-        onToggleMapView = { isMapView = !isMapView },
-        onSetFilterSheetVisible = { showFilterSheet = it },
-        onSelectGovernorate = { viewModel.setGovernorateFilter(it) },
-        onSelectSpaceType = { viewModel.setSpaceTypeFilter(it) },
-        onSelectFormulaType = { viewModel.setFormulaFilter(it) },
-        onSetMaxPrice = { viewModel.setMaxPrice(it) },
-        onResetFilters = { viewModel.resetFilters() },
+        spaces = uiState.filteredSpaces,
+        searchQuery = uiState.filterState.query,
+        selectedGovernorate = uiState.filterState.selectedGovernorate,
+        selectedSpaceType = uiState.filterState.selectedSpaceType,
+        selectedFormulaType = uiState.filterState.selectedFormulaType,
+        maxPriceUsd = uiState.filterState.maxPriceUsd,
+        selectedSpace = uiState.selectedSpace,
+        isMapView = uiState.isMapViewActive,
+        showFilterSheet = uiState.isFilterSheetVisible,
+        onSearchQueryChange = { discoveryViewModel.updateSearchQuery(it) },
+        onToggleMapView = { discoveryViewModel.toggleMapView() },
+        onSetFilterSheetVisible = { discoveryViewModel.setFilterSheetVisible(it) },
+        onSelectGovernorate = { discoveryViewModel.setGovernorateFilter(it) },
+        onSelectSpaceType = { discoveryViewModel.setSpaceTypeFilter(it) },
+        onSelectFormulaType = { discoveryViewModel.setFormulaFilter(it) },
+        onSetMaxPrice = { discoveryViewModel.setMaxPrice(it) },
+        onResetFilters = { discoveryViewModel.resetFilters() },
         onSelectSpace = onSelectSpace,
         onQuickWhatsApp = { space ->
             viewModel.launchWhatsAppInquiry(context, space, space.rentalFormulas.firstOrNull())

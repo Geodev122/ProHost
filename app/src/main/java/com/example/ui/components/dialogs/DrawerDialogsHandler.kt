@@ -26,17 +26,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.*
-import com.example.ui.components.DocumentPreviewDialog
 import com.example.ui.components.drawer.LawBulletinCard
 import com.example.ui.theme.LebaneseCedarGreen
 import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.viewmodel.ProSpaceViewModel
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrawerDialogsHandler(
     dialogId: String?,
@@ -54,20 +53,23 @@ fun DrawerDialogsHandler(
         return
     }
 
+    if (dialogId == "legal_documents") {
+        com.example.ui.components.LegalDocumentsMenu(onDismiss = onDismiss)
+        return
+    }
+
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     val currentUser by viewModel.currentUser.collectAsState()
     val allSpaces by viewModel.spaces.collectAsState()
-    val bookingRequests by viewModel.bookingRequests.collectAsState()
     val auditLogs by viewModel.auditLogs.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
     val fcmAlerts by viewModel.fcmAlerts.collectAsState()
 
-    // The admin credential-document registry (below) is the only place an admin can
-    // ever actually approve/reject a document — SpecialistProfileScreen's own preview
-    // dialog is reachable only from a user's OWN document list, which explicitly
-    // excludes ADMIN, so `isAdmin` could never be true at that call site.
-    var previewingAdminDocument by remember { mutableStateOf<CredentialDocument?>(null) }
+    // Audit Logs date-range filter (System Audit Logs dialog) — millis, inclusive.
+    var auditFromMillis by remember { mutableStateOf<Long?>(null) }
+    var auditToMillis by remember { mutableStateOf<Long?>(null) }
+    var showAuditFromPicker by remember { mutableStateOf(false) }
+    var showAuditToPicker by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -90,20 +92,13 @@ fun DrawerDialogsHandler(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val title = when (dialogId) {
-                        "pro_dues" -> "Payment Due Reminders"
-                        "pro_syndicate" -> "Syndicate ID Verification"
                         "pro_laws" -> "Lebanese Rent Laws"
                         "owner_whish" -> "Whish Money Transactions"
                         "owner_guidelines" -> "Practice Guidelines"
                         "admin_audit" -> "Central Security Audits"
                         "admin_gov" -> "Governorate Node Status"
-                        "admin_credentials_registry" -> "Credential Documents Registry"
                         "admin_app_updates" -> "App Version & In-App Updates"
-                        "pro_credentials_registry" -> "Credential Documents Registry"
-                        "pro_accreditation_hub" -> "Accreditation & Practice Hub"
                         "pro_app_updates" -> "App Version & In-App Updates"
-                        "owner_package_tiers" -> "Owner Package Tiers & Governance"
-                        "owner_app_updates" -> "App Version & In-App Updates"
                         "fcm_alerts" -> "Real-time Alerts Terminal"
                         else -> "Information Sheet"
                     }
@@ -127,160 +122,14 @@ fun DrawerDialogsHandler(
                         .heightIn(max = 480.dp)
                 ) {
                     when (dialogId) {
-                        // "Renting Requests" now routes to the real OwnerRentalRequestsScreen
-                        // (via onTabSelected("owner_requests")) instead of this dialog — the
-                        // screen has real filtering, a real reject-reason prompt, and a real
-                        // payment-reminder notification, none of which this cramped duplicate
-                        // ever had (its "Send Payment Reminder" button was Toast-only fakery).
-                        "pro_pending" -> {
-                            val userPending = bookingRequests.filter {
-                                it.status == BookingRequestStatus.PENDING &&
-                                (it.practitionerId == currentUser?.id || it.practitionerEmail.equals(currentUser?.email, ignoreCase = true))
-                            }
-                            if (userPending.isEmpty()) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(Icons.Default.Inbox, contentDescription = null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(48.dp))
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text("No Pending Requests", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
-                                }
-                            } else {
-                                LazyColumn(
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    items(userPending) { request ->
-                                        Card(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                        ) {
-                                            Column(modifier = Modifier.padding(12.dp)) {
-                                                Text(request.spaceTitle, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                                Text("Formula: ${request.formula.type.displayName}", style = MaterialTheme.typography.bodySmall)
-                                                Text("Monthly rate: $${request.formula.rateUsd.toInt()} USD", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
-                                                Spacer(modifier = Modifier.height(8.dp))
-                                                Button(
-                                                    onClick = {
-                                                        viewModel.cancelBookingRequest(request.id, context)
-                                                    },
-                                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    contentPadding = PaddingValues(vertical = 4.dp),
-                                                    shape = RoundedCornerShape(8.dp)
-                                                ) {
-                                                    Text("Cancel Rent Request", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        "pro_dues" -> {
-                            val activeRentals = bookingRequests.filter {
-                                it.status == BookingRequestStatus.ACCEPTED &&
-                                (it.practitionerId == currentUser?.id || it.practitionerEmail.equals(currentUser?.email, ignoreCase = true))
-                            }
-                            if (activeRentals.isEmpty()) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = StatusSuccess, modifier = Modifier.size(48.dp))
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text("All Dues Settled!", fontWeight = FontWeight.Bold, color = StatusSuccess)
-                                }
-                            } else {
-                                LazyColumn(
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    items(activeRentals) { rental ->
-                                        Card(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f))
-                                        ) {
-                                            Column(modifier = Modifier.padding(12.dp)) {
-                                                Text(rental.spaceTitle, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                                Text("Rate: $${rental.formula.rateUsd.toInt()} USD / month", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.error)
-                                                Text("Agreement duration: ${rental.durationMonths} Months (Started: ${rental.startDate})", style = MaterialTheme.typography.labelSmall)
-                                                Spacer(modifier = Modifier.height(8.dp))
-                                                Button(
-                                                    onClick = {
-                                                        val matchingSpace = allSpaces.find { it.id == rental.spaceId }
-                                                        if (matchingSpace != null) {
-                                                            viewModel.launchWhatsAppInquiry(context, matchingSpace, rental.formula, rental)
-                                                        }
-                                                    },
-                                                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    contentPadding = PaddingValues(vertical = 4.dp),
-                                                    shape = RoundedCornerShape(8.dp)
-                                                ) {
-                                                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text("Pay Host via WhatsApp", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        "pro_syndicate" -> {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(Icons.Default.Verified, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(64.dp))
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Text(
-                                        text = currentUser?.fullName ?: "Practitioner",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = currentUser?.specialty ?: "Independent Practice",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    HorizontalDivider()
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text("Syndicate Registry:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                        Text(currentUser?.syndicateNumber ?: "OEA-LB-8842", style = MaterialTheme.typography.bodySmall)
-                                    }
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text("Affiliation Node:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                        Text(currentUser?.affiliation ?: "Beirut Syndicate", style = MaterialTheme.typography.bodySmall)
-                                    }
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text("Registration Status:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                        Text("ACTIVE VERIFIED", color = StatusSuccess, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                    }
-                                }
-                            }
-                        }
+                        // "Renting Requests"/"Renting Progress" (Pro Host side) and
+                        // "Pending Requests"/"Payment Due Reminders" (this section, both
+                        // roles) all used to open their own cramped read-only dialogs —
+                        // duplicates of content already on the real My Bookings / Renting
+                        // Requests / Renting Progress screens, with weaker actions (a
+                        // "Send Payment Reminder" that was Toast-only fakery, a WhatsApp
+                        // button with no cancellation option, etc.). All four now route
+                        // straight to the real screen instead (see AppDrawerContent.kt).
                         "pro_laws" -> {
                             Column(
                                 modifier = Modifier
@@ -360,27 +209,117 @@ fun DrawerDialogsHandler(
                             }
                         }
                         "admin_audit" -> {
-                            LazyColumn(
-                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                items(auditLogs) { log ->
-                                    Card(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(containerColor = Color.Black)
-                                    ) {
-                                        Column(modifier = Modifier.padding(8.dp)) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Text(log.actionType, color = Color(0xFF00FF00), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
-                                                Text(log.severity, color = if (log.severity == "SECURE") Color.Red else Color.Yellow, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
-                                            }
-                                            Text(log.details, color = Color.White, style = MaterialTheme.typography.labelSmall)
-                                            Text("Actor: ${log.actorEmail} • IP: ${log.ipAddress}", color = Color.Gray, fontSize = 9.sp)
+                            val sdfShort = remember { SimpleDateFormat("MMM d, yyyy", Locale.US) }
+                            val filteredAuditLogs = remember(auditLogs, auditFromMillis, auditToMillis) {
+                                auditLogs.filter { log ->
+                                    (auditFromMillis == null || log.timestamp >= auditFromMillis!!) &&
+                                        (auditToMillis == null || log.timestamp <= auditToMillis!!)
+                                }
+                            }
+
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                // Date-range filter bar
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    AssistChip(
+                                        onClick = { showAuditFromPicker = true },
+                                        label = { Text(auditFromMillis?.let { "From: ${sdfShort.format(Date(it))}" } ?: "From: Any", fontSize = 11.sp) },
+                                        leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                    )
+                                    AssistChip(
+                                        onClick = { showAuditToPicker = true },
+                                        label = { Text(auditToMillis?.let { "To: ${sdfShort.format(Date(it))}" } ?: "To: Any", fontSize = 11.sp) },
+                                        leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                    )
+                                    if (auditFromMillis != null || auditToMillis != null) {
+                                        IconButton(onClick = { auditFromMillis = null; auditToMillis = null }, modifier = Modifier.size(28.dp)) {
+                                            Icon(Icons.Default.Close, contentDescription = "Clear date filter", modifier = Modifier.size(16.dp))
                                         }
                                     }
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("${filteredAuditLogs.size} of ${auditLogs.size} entries", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Button(
+                                        onClick = {
+                                            val csv = viewModel.repository.exportAuditLogsToCsv(auditFromMillis, auditToMillis)
+                                            viewModel.shareExportData(context, "Audit Logs", csv)
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Export CSV", fontSize = 11.sp)
+                                    }
+                                }
+
+                                LazyColumn(
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                                ) {
+                                    items(filteredAuditLogs) { log ->
+                                        Card(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = CardDefaults.cardColors(containerColor = Color.Black)
+                                        ) {
+                                            Column(modifier = Modifier.padding(8.dp)) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(log.actionType, color = Color(0xFF00FF00), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                                    Text(log.severity, color = if (log.severity == "SECURE") Color.Red else Color.Yellow, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                                }
+                                                Text(log.details, color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                                Text(
+                                                    "Actor: ${log.actorEmail} • ${SimpleDateFormat("MMM d, yyyy HH:mm", Locale.US).format(Date(log.timestamp))}",
+                                                    color = Color.Gray,
+                                                    fontSize = 9.sp
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (showAuditFromPicker) {
+                                val pickerState = rememberDatePickerState(initialSelectedDateMillis = auditFromMillis)
+                                DatePickerDialog(
+                                    onDismissRequest = { showAuditFromPicker = false },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            auditFromMillis = pickerState.selectedDateMillis
+                                            showAuditFromPicker = false
+                                        }) { Text("OK") }
+                                    },
+                                    dismissButton = { TextButton(onClick = { showAuditFromPicker = false }) { Text("Cancel") } }
+                                ) {
+                                    DatePicker(state = pickerState)
+                                }
+                            }
+
+                            if (showAuditToPicker) {
+                                val pickerState = rememberDatePickerState(initialSelectedDateMillis = auditToMillis)
+                                DatePickerDialog(
+                                    onDismissRequest = { showAuditToPicker = false },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            // Inclusive end-of-day so "To: today" also includes today's entries.
+                                            auditToMillis = pickerState.selectedDateMillis?.plus(24L * 60 * 60 * 1000 - 1)
+                                            showAuditToPicker = false
+                                        }) { Text("OK") }
+                                    },
+                                    dismissButton = { TextButton(onClick = { showAuditToPicker = false }) { Text("Cancel") } }
+                                ) {
+                                    DatePicker(state = pickerState)
                                 }
                             }
                         }
@@ -548,7 +487,7 @@ fun DrawerDialogsHandler(
                                                                     onClick = {
                                                                         viewModel.markAlertAsRead(alert.id)
                                                                         val targetTab = if (alert.category == "BOOKING_ACCEPTANCE") {
-                                                                            if (currentUser?.role == UserRole.PROFESSIONAL) "pro_rentals" else "owner_requests"
+                                                                            if (currentUser?.role == UserRole.SPECIALIST) "pro_rentals" else "owner_requests"
                                                                         } else {
                                                                             "owner_progress"
                                                                         }
@@ -577,117 +516,11 @@ fun DrawerDialogsHandler(
                                 }
                             }
                         }
-                        "admin_credentials_registry" -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Super Admin Supervisory Registry & Document Inspection", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("Tap a document to approve or request a revision.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                                val allDocs = viewModel.credentialDocuments.collectAsState().value
-                                if (allDocs.isEmpty()) {
-                                    Text("No pending member documents in the verification queue.", style = MaterialTheme.typography.bodySmall)
-                                } else {
-                                    LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.heightIn(max = 300.dp)) {
-                                        items(allDocs) { doc ->
-                                            Card(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clickable { previewingAdminDocument = doc },
-                                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                                            ) {
-                                                Column(modifier = Modifier.padding(10.dp)) {
-                                                    Text("User ID: ${doc.userId} • Type: ${doc.type.title}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                                                    Text("Document No: ${doc.documentNumber} • Status: ${doc.status}", style = MaterialTheme.typography.bodySmall)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
                         "admin_app_updates" -> {
                             AppUpdatesInfo(profileTabId = "admin_profile", onNavigateToTab = onNavigateToTab, onDismiss = onDismiss)
                         }
-                        "pro_credentials_registry" -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Practitioner Syndicate & Legal Credentials Registry", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("Manage your Syndicate membership card, Practice Decree, and National ID for Lebanese clinic rentals.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                val userDocs = viewModel.currentUserDocuments.collectAsState().value
-                                val requiredTypes = DocumentType.entries.filter { currentUser?.role?.let { role -> it.requiredFor.contains(role) } == true }
-                                requiredTypes.forEach { docType ->
-                                    val upDoc = userDocs.find { it.type == docType }
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(10.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(docType.title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                                                Text("Status: ${upDoc?.status?.name ?: "NOT_UPLOADED"}", style = MaterialTheme.typography.bodySmall, color = if (upDoc?.status == DocumentStatus.VERIFIED) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error)
-                                            }
-                                            if (onNavigateToTab != null) {
-                                                Button(
-                                                    onClick = {
-                                                        onNavigateToTab("pro_profile")
-                                                        onDismiss()
-                                                    },
-                                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                                    modifier = Modifier.height(32.dp)
-                                                ) {
-                                                    Text("Upload", fontSize = 11.sp)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        "pro_accreditation_hub" -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("4-Pillar Specialist Syndicate Accreditation", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("Complete contact verification, syndicate license, governorate selection, and required legal document uploads to achieve 100% verified status.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("• Pillar 1: Contact & Identity Info (${if (currentUser?.fullName?.isNotBlank() == true) "Complete" else "Pending"})", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                        Text("• Pillar 2: Syndicate & Specialty Registration (${if (currentUser?.syndicateNumber?.isNotBlank() == true) "Verified" else "Pending"})", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                        Text("• Pillar 3: Lebanese Governorate Node (${currentUser?.governorate?.displayName ?: "Beirut"})", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                        Text("• Pillar 4: Mandatory Compliance Documents", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                    }
-                                }
-                            }
-                        }
                         "pro_app_updates" -> {
                             AppUpdatesInfo(profileTabId = "pro_profile", onNavigateToTab = onNavigateToTab, onDismiss = onDismiss)
-                        }
-                        "owner_package_tiers" -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Owner Package Tiers & Governance", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("Current Tier: ${currentUser?.ownerPackageTier?.title ?: "Pay As You Go"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text("• Pay As You Go: Flexible per-booking commissions", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                        Text("• Limited 3-Listing Tier: $49/mo priority placement", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                        Text("• Unlimited Enterprise Tier: $120/mo full syndication", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                    }
-                                }
-                            }
-                        }
-                        "owner_app_updates" -> {
-                            AppUpdatesInfo(profileTabId = "owner_profile", onNavigateToTab = onNavigateToTab, onDismiss = onDismiss)
                         }
                     }
                 }
@@ -704,33 +537,6 @@ fun DrawerDialogsHandler(
         }
     }
 
-    previewingAdminDocument?.let { doc ->
-        DocumentPreviewDialog(
-            document = doc,
-            isAdmin = true,
-            onDismiss = { previewingAdminDocument = null },
-            onApproveDocument = { docId ->
-                coroutineScope.launch {
-                    val success = viewModel.adminApproveDocument(docId)
-                    Toast.makeText(
-                        context,
-                        if (success) "Document approved and accredited!" else "Failed to approve document — please try again",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            },
-            onRejectDocument = { docId, reason ->
-                coroutineScope.launch {
-                    val success = viewModel.adminRejectDocument(docId, reason)
-                    Toast.makeText(
-                        context,
-                        if (success) "Revision requested from member" else "Failed to request revision — please try again",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-        )
-    }
 }
 
 /**
