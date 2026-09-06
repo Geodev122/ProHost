@@ -23,19 +23,37 @@ import com.example.ui.components.ProSpaceCedarBadge
 import com.example.ui.theme.*
 
 /**
- * The unified drawer for both SPECIALIST and PRO_HOST — every account keeps the
- * same "PRIMARY CORES" (the bottom-nav tabs) regardless of role; only the
- * "PRO HOST" section differs: a single "Become a Pro Host" CTA for a SPECIALIST
- * (opens package purchasing full-screen), or the real Pro Host destination list
- * for a PRO_HOST (each also opens full-screen — see PRO_HOST_FULLSCREEN_TABS in
- * ProSpaceNavGraph.kt). Host-only resource links (Whish transactions, package
- * tiers, guidelines) only show once actually promoted to PRO_HOST.
+ * The unified drawer for both SPECIALIST and PRO_HOST.
+ *
+ * Design policy for what belongs here (kept deliberately lean — a PRO_HOST
+ * account is still a Specialist underneath, §1 of the workflow doc, so without
+ * this discipline the drawer would show both roles' full item sets at once):
+ *   1. Never duplicate a destination the bottom nav already shows at all times
+ *      — the three bottom-nav tabs (Explore/My Bookings/Profile) are NOT
+ *      repeated here; there used to be a "PRIMARY CORES" section that did
+ *      exactly that, adding a second, always-visible way to reach a
+ *      screen that's one tap away regardless of whether the drawer is open.
+ *   2. Never keep a drawer item that's just a pre-filtered view of a screen
+ *      already reachable another way — "Pending Requests"/"Payment Due
+ *      Reminders" used to route here to a filtered version of My Bookings;
+ *      that's what My Bookings' own filter chips are for.
+ *   3. Every remaining item represents a genuinely distinct workflow or a
+ *      piece of content that lives nowhere else (Subscription & Packages,
+ *      Stats, Whish Money Transactions, the two static-content bulletins,
+ *      Legal). "PRO HOST" is the only section whose contents differ by
+ *      role — a single "Become a Pro Host" CTA for a SPECIALIST (opens
+ *      package purchasing full-screen), or the real Pro Host destination
+ *      list for a PRO_HOST (each also opens full-screen — see
+ *      PRO_HOST_FULLSCREEN_TABS in ProSpaceNavGraph.kt). Host-only resource
+ *      links (Whish transactions, guidelines) only show once actually
+ *      promoted to PRO_HOST; everything else here is genuinely cross-role
+ *      (rent-law reference content, app updates, legal documents), so it's
+ *      shown to both rather than hidden for one and not the other.
  */
 @Composable
 fun SpecialistDrawerContent(
     currentUser: AppUser?,
     currentRole: UserRole,
-    activeTabId: String,
     activeProHostTabId: String?,
     onTabSelected: (String) -> Unit,
     onDrawerAction: (String) -> Unit
@@ -115,52 +133,6 @@ fun SpecialistDrawerContent(
                 }
             }
         }
-
-        Text(
-            text = "PRIMARY CORES",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = CoolGray,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-        )
-
-        NavigationDrawerItem(
-            label = { Text("Explore Listings", fontWeight = FontWeight.Bold) },
-            selected = activeTabId == "search_map",
-            onClick = { onTabSelected("search_map") },
-            icon = { Icon(Icons.Default.Search, contentDescription = null, tint = if (activeTabId == "search_map") CarnationOrange else OxfordBlue) },
-            colors = NavigationDrawerItemDefaults.colors(
-                selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                selectedTextColor = OxfordBlue,
-                unselectedTextColor = CoolGray
-            )
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("My Bookings & Reservations", fontWeight = FontWeight.Bold) },
-            selected = activeTabId == "pro_rentals",
-            onClick = { onTabSelected("pro_rentals") },
-            icon = { Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, tint = if (activeTabId == "pro_rentals") CarnationOrange else OxfordBlue) },
-            colors = NavigationDrawerItemDefaults.colors(
-                selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                selectedTextColor = OxfordBlue,
-                unselectedTextColor = CoolGray
-            )
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Profile", fontWeight = FontWeight.Bold) },
-            selected = activeTabId == "pro_profile",
-            onClick = { onTabSelected("pro_profile") },
-            icon = { Icon(Icons.Default.Person, contentDescription = null, tint = if (activeTabId == "pro_profile") CarnationOrange else OxfordBlue) },
-            colors = NavigationDrawerItemDefaults.colors(
-                selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                selectedTextColor = OxfordBlue,
-                unselectedTextColor = CoolGray
-            )
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
 
         Text(
             text = "PRO HOST",
@@ -246,31 +218,19 @@ fun SpecialistDrawerContent(
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
 
         Text(
-            text = "PRACTICE & FINANCE",
+            text = "PRACTICE RESOURCES",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = CarnationOrange,
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
 
-        // These two used to open their own cramped read-only dialogs — duplicates of
-        // content already on the real My Bookings screen (filtered to Pending /
-        // Accepted respectively), just with weaker actions. Now they route straight
-        // there, same consolidation already done for Renting Requests/Progress above.
-        NavigationDrawerItem(
-            label = { Text("Pending Requests", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onTabSelected("pro_rentals") },
-            icon = { Icon(Icons.Default.Inbox, contentDescription = null, tint = OxfordBlue) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NavigationDrawerItem(
-            label = { Text("Payment Due Reminders", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onTabSelected("pro_rentals") },
-            icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = OxfordBlue) }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
+        // "Pending Requests" and "Payment Due Reminders" used to live here as their
+        // own drawer shortcuts, routing to a pre-filtered view of My Bookings. My
+        // Bookings' own filter chips (Pending/Accepted/etc.) already cover exactly
+        // that, and it's one tap away from the bottom nav at all times — a drawer
+        // shortcut to it added nothing. Removed rather than kept as a redundant
+        // second path to the same screen.
         NavigationDrawerItem(
             label = { Text("Lebanese Rent Laws", fontWeight = FontWeight.SemiBold) },
             selected = false,

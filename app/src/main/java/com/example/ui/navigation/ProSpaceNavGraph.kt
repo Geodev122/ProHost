@@ -172,7 +172,6 @@ fun ProSpaceAppRoot(
                             SpecialistDrawerContent(
                                 currentUser = currentUser,
                                 currentRole = currentRole,
-                                activeTabId = if (fullScreenProHostTab == null) activeTabId else "",
                                 activeProHostTabId = fullScreenProHostTab,
                                 onTabSelected = { tabId ->
                                     navigateTo(tabId)
