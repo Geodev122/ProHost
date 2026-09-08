@@ -28,6 +28,7 @@ import com.example.ui.theme.StatusOnSuccessContainer
 import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.StatusSuccessContainer
 import com.example.ui.theme.StatusWarningContainer
+import com.example.ui.theme.Spacing
 
 @Composable
 fun WeeklyAvailabilityMatrix(
@@ -78,7 +79,7 @@ fun WeeklyAvailabilityMatrix(
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
-                                .padding(8.dp)
+                                .padding(Spacing.sm)
                                 .size(20.dp)
                         )
                     }
@@ -106,7 +107,7 @@ fun WeeklyAvailabilityMatrix(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (isFullMonthBooked) StatusOnErrorContainer else StatusOnSuccessContainer,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                     )
                 }
             }
@@ -168,7 +169,7 @@ fun WeeklyAvailabilityMatrix(
                     Box(
                         modifier = Modifier
                             .weight(0.7f)
-                            .padding(vertical = 4.dp),
+                            .padding(vertical = Spacing.xs),
                         contentAlignment = Alignment.CenterStart
                     ) {
                         Text(
@@ -229,7 +230,7 @@ fun WeeklyAvailabilityMatrix(
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center,
-                                modifier = Modifier.padding(horizontal = 4.dp)
+                                modifier = Modifier.padding(horizontal = Spacing.xs)
                             ) {
                                 if (isBooked) {
                                     Icon(

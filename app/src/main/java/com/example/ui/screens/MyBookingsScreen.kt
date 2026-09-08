@@ -171,7 +171,7 @@ fun MyBookingsScreen(
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                                 )
                             }
                         }
@@ -398,7 +398,7 @@ fun MyBookingsScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = Spacing.lg, vertical = Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 items(filteredBookings, key = { it.id }) { booking ->
@@ -680,7 +680,7 @@ fun MyBookingsScreen(
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 6.dp,
-                modifier = Modifier.fillMaxWidth().padding(16.dp)
+                modifier = Modifier.fillMaxWidth().padding(Spacing.lg)
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp),
@@ -696,7 +696,7 @@ fun MyBookingsScreen(
                         shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("📍 ${bkg.spaceTitle}", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                             Text("👤 Renter: ${bkg.practitionerName} (${bkg.practitionerSpecialty})", fontSize = MaterialTheme.typography.labelMedium.fontSize)
                             Text("🗓️ Dates: ${bkg.startDate} → ${bkg.endDate}", fontSize = MaterialTheme.typography.labelMedium.fontSize)
@@ -778,7 +778,7 @@ fun BookingReservationCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Header Row: Space Title, District, Status Badge
@@ -820,7 +820,7 @@ fun BookingReservationCard(
                     }
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -865,7 +865,7 @@ fun BookingReservationCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(Spacing.md),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Row(

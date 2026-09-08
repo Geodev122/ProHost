@@ -159,7 +159,7 @@ fun LoginAuthScreen(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(Spacing.md),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -186,7 +186,7 @@ fun LoginAuthScreen(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(Spacing.md),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -622,7 +622,7 @@ fun LoginAuthScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.padding(12.dp),
+                modifier = Modifier.padding(Spacing.md),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -751,7 +751,7 @@ private fun AuthStepIndicator(step: AuthStep) {
                 HorizontalDivider(
                     modifier = Modifier
                         .width(28.dp)
-                        .padding(horizontal = 4.dp)
+                        .padding(horizontal = Spacing.xs)
                         .padding(bottom = 14.dp),
                     color = if (index < currentIndex) LebaneseCedarGreen else MaterialTheme.colorScheme.outlineVariant
                 )

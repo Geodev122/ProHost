@@ -77,7 +77,7 @@ fun SplashScreen(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(24.dp)
+            modifier = Modifier.padding(Spacing.xl)
         ) {
             // Glowing App Icon
             Surface(

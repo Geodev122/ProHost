@@ -129,7 +129,7 @@ fun SpaceDetailsScreenContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = Spacing.lg, vertical = Spacing.md),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -235,7 +235,7 @@ fun SpaceDetailsScreenContent(
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                         )
                     }
                     Spacer(modifier = Modifier.height(6.dp))
@@ -260,7 +260,7 @@ fun SpaceDetailsScreenContent(
                     shape = MaterialTheme.shapes.large
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(Icons.Default.Videocam, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
@@ -271,7 +271,7 @@ fun SpaceDetailsScreenContent(
             }
 
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Active In-App Booking Request Status (if any)
@@ -411,7 +411,7 @@ fun SpaceDetailsScreenContent(
                                                 shape = MaterialTheme.shapes.small
                                             ) {
                                                 Row(
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
                                                     Icon(
@@ -557,7 +557,7 @@ fun SpaceDetailsScreenContent(
                                         Text(
                                             text = spec,
                                             style = MaterialTheme.typography.labelSmall,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                                             color = MaterialTheme.colorScheme.onSecondaryContainer
                                         )
                                     }

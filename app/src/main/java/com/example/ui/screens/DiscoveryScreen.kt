@@ -124,7 +124,7 @@ fun DiscoveryScreenContent(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = Spacing.lg, vertical = Spacing.md)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -276,7 +276,7 @@ fun DiscoveryScreenContent(
                                 Column(
                                     modifier = Modifier
                                         .align(Alignment.BottomStart)
-                                        .padding(16.dp),
+                                        .padding(Spacing.lg),
                                     verticalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Row(

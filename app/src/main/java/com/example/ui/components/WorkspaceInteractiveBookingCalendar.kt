@@ -531,7 +531,7 @@ fun WorkspaceInteractiveBookingCalendar(
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 4.dp)
+                            modifier = Modifier.padding(horizontal = Spacing.xs)
                         )
 
                         IconButton(
@@ -816,7 +816,7 @@ fun WorkspaceInteractiveBookingCalendar(
                                 customEndHour = times.second
                             }
                         ) {
-                            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                            Column(modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(
                                         text = shiftName,
@@ -905,7 +905,7 @@ fun WorkspaceInteractiveBookingCalendar(
                 modifier = Modifier.fillMaxWidth().testTag("availability_status_banner")
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(Spacing.md),
                     verticalAlignment = Alignment.Top
                 ) {
                     Icon(
@@ -951,7 +951,7 @@ fun WorkspaceInteractiveBookingCalendar(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(Spacing.md),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Row(

@@ -23,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import com.example.ui.theme.Spacing
 
 data class PickedListingLocation(
     val lat: Double,
@@ -134,11 +135,11 @@ fun ListingLocationMapPicker(
                         shape = MaterialTheme.shapes.medium,
                         modifier = Modifier
                             .align(Alignment.Center)
-                            .padding(12.dp)
+                            .padding(Spacing.md)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)
                         ) {
                             Icon(Icons.Default.PinDrop, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))

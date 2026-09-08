@@ -50,7 +50,7 @@ fun ExportDataDialog(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp),
+                .padding(vertical = Spacing.md),
             shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
@@ -132,7 +132,7 @@ fun ExportDataDialog(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(12.dp)
+                            .padding(Spacing.md)
                             .verticalScroll(rememberScrollState())
                             .horizontalScroll(rememberScrollState())
                     ) {

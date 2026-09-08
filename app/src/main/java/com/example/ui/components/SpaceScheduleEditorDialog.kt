@@ -112,7 +112,7 @@ fun SpaceScheduleEditorDialog(
                     }
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.md), color = MaterialTheme.colorScheme.outlineVariant)
 
                 Column(
                     modifier = Modifier
@@ -255,7 +255,7 @@ fun SpaceScheduleEditorDialog(
                                     shape = MaterialTheme.shapes.medium
                                 ) {
                                     Column(
-                                        modifier = Modifier.padding(12.dp),
+                                        modifier = Modifier.padding(Spacing.md),
                                         verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         InputField(
@@ -328,7 +328,7 @@ fun SpaceScheduleEditorDialog(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
@@ -464,7 +464,7 @@ fun SpaceScheduleEditorDialog(
                                                         text = "💡 In Day-per-Week formula, you set the days your space is available. When a specialist chooses this formula, they will select their specific day(s) from these available days.",
                                                         fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                                         color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                                        modifier = Modifier.padding(8.dp)
+                                                        modifier = Modifier.padding(Spacing.sm)
                                                     )
                                                 }
 

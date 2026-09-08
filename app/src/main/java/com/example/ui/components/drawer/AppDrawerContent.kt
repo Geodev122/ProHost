@@ -62,7 +62,7 @@ fun SpecialistDrawerContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .padding(Spacing.lg)
     ) {
         // Header — adapts to whichever role is currently active
         Surface(
@@ -73,7 +73,7 @@ fun SpecialistDrawerContent(
             color = OxfordBlue,
             shadowElevation = 4.dp
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(Spacing.lg)) {
                 Surface(
                     color = if (isProHost) FreshGreen else CarnationOrange,
                     shape = CircleShape,
@@ -107,7 +107,7 @@ fun SpecialistDrawerContent(
                     shape = MaterialTheme.shapes.small
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -214,7 +214,7 @@ fun SpecialistDrawerContent(
             )
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
+        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
 
         Text(
             text = "PRACTICE RESOURCES",
@@ -238,7 +238,7 @@ fun SpecialistDrawerContent(
         )
 
         if (isProHost) {
-            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
+            HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
 
             Text(
                 text = "HOST FINANCE & RESOURCES",
@@ -268,7 +268,7 @@ fun SpecialistDrawerContent(
             )
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
+        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
 
         Text(
             text = "CONFIGURATION & SETTINGS",
@@ -307,7 +307,7 @@ fun AdminDrawerContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .padding(Spacing.lg)
     ) {
         // Admin Header
         Surface(
@@ -318,7 +318,7 @@ fun AdminDrawerContent(
             color = OxfordBlue,
             shadowElevation = 4.dp
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(Spacing.lg)) {
                 Surface(
                     color = VibrantBlue,
                     shape = CircleShape,
@@ -352,7 +352,7 @@ fun AdminDrawerContent(
                     shape = MaterialTheme.shapes.small
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -412,7 +412,7 @@ fun AdminDrawerContent(
             )
         )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = LightGray)
+        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
 
         Text(
             text = "SYSTEM AUDIT & PRICING",
@@ -504,7 +504,7 @@ fun LawBulletinCard(number: String, title: String, content: String) {
         colors = CardDefaults.cardColors(containerColor = LightGray.copy(alpha = 0.5f)),
         border = BorderStroke(1.dp, LightGrayCardBorder)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(Spacing.md)) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     color = OxfordBlue,

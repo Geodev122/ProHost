@@ -99,7 +99,7 @@ fun SpecialistProfileScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .widthIn(max = 840.dp)
-                .padding(16.dp)
+                .padding(Spacing.lg)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -594,7 +594,7 @@ fun SpecialistProfileScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
-                                modifier = Modifier.padding(16.dp),
+                                modifier = Modifier.padding(Spacing.lg),
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Row(
@@ -682,7 +682,7 @@ fun SpecialistProfileScreen(
                                 title = "No Active Workspace Leases",
                                 description = "Explore available clinics, studios, and executive suites from Discovery / Map to submit direct rental requests.",
                                 icon = Icons.Default.EventAvailable,
-                                modifier = Modifier.padding(vertical = 8.dp)
+                                modifier = Modifier.padding(vertical = Spacing.sm)
                             )
                         } else {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -880,7 +880,7 @@ fun SpecialistProfileScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(Spacing.md),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {

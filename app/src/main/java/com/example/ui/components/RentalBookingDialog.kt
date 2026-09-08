@@ -281,7 +281,7 @@ fun RentalBookingDialog(
                     )
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.sm), color = MaterialTheme.colorScheme.outlineVariant)
 
                 if (bookingModeTab == 0) {
                     // Mode 0: Interactive Calendar with Real-time Availability & Collision Checker
@@ -354,7 +354,7 @@ fun RentalBookingDialog(
                                     ),
                                     border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
                                 ) {
-                                    Column(modifier = Modifier.padding(12.dp)) {
+                                    Column(modifier = Modifier.padding(Spacing.md)) {
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -413,7 +413,7 @@ fun RentalBookingDialog(
                                     border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary) else null
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                        modifier = Modifier.padding(Spacing.md).fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -482,7 +482,7 @@ fun RentalBookingDialog(
                                     ),
                                     border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
                                 ) {
-                                    Column(modifier = Modifier.padding(12.dp)) {
+                                    Column(modifier = Modifier.padding(Spacing.md)) {
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -525,7 +525,7 @@ fun RentalBookingDialog(
                                             shape = MaterialTheme.shapes.small
                                         ) {
                                             Row(
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Icon(
@@ -628,7 +628,7 @@ fun RentalBookingDialog(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(8.dp),
+                                            modifier = Modifier.padding(Spacing.sm),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = LebaneseCedarGreen, modifier = Modifier.size(14.dp))
@@ -879,7 +879,7 @@ fun RentalBookingDialog(
                         colors = CardDefaults.cardColors(containerColor = StatusSuccessContainer),
                         border = androidx.compose.foundation.BorderStroke(1.dp, StatusSuccess.copy(alpha = 0.5f))
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
+                        Column(modifier = Modifier.padding(Spacing.md)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     Icons.Default.Info,

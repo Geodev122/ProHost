@@ -112,7 +112,7 @@ fun OwnerIncomingRequestsView(
                         "No rental booking requests found under this filter."
                     },
                     icon = Icons.Default.Inbox,
-                    modifier = Modifier.padding(vertical = 12.dp)
+                    modifier = Modifier.padding(vertical = Spacing.md)
                 )
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -331,7 +331,7 @@ fun OwnerBookingRequestCard(
                     shape = MaterialTheme.shapes.small,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(modifier = Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         val chosenDaysStr = if (request.selectedDays.isNotEmpty()) request.selectedDays.joinToString(", ") else request.formula.daysOfWeek.joinToString(", ")
                         val chosenHoursStr = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank()) "${request.selectedStartHour} - ${request.selectedEndHour}" else "${request.formula.startHour} - ${request.formula.endHour}"
                         val shiftDetail = if (request.selectedShift.isNotBlank()) " • ${request.selectedShift}" else ""

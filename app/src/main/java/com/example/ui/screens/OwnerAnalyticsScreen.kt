@@ -271,7 +271,7 @@ fun ListingHealthCard(space: SpaceListing) {
             ) {
                 Text(
                     text = space.spaceType.displayName,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer

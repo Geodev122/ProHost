@@ -1469,7 +1469,7 @@ private fun AdminOwnersAndPaymentsTab(
                         shape = MaterialTheme.shapes.small,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Column(modifier = Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
                                 // Not MD5 (the signing function is SHA-256) and not something
                                 // this client — or an admin reading it — ever verifies; it's
@@ -1908,12 +1908,12 @@ private fun AdminExportDataDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.85f)
-                .padding(8.dp)
+                .padding(Spacing.sm)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
+                    .padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(
@@ -1955,7 +1955,7 @@ private fun AdminExportDataDialog(
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(scrollState)
-                            .padding(12.dp)
+                            .padding(Spacing.md)
                     )
                 }
 
@@ -2026,13 +2026,13 @@ private fun AdminEditUserDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.9f)
-                .padding(8.dp)
+                .padding(Spacing.sm)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
+                    .padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(
@@ -2269,13 +2269,13 @@ private fun AdminEditListingDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.9f)
-                .padding(8.dp)
+                .padding(Spacing.sm)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
+                    .padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(
@@ -2440,12 +2440,12 @@ private fun AdminAddSchemaItemDialog(
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp)
+                .padding(Spacing.sm)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(

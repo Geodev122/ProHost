@@ -53,7 +53,7 @@ fun OwnerSubscriptionsScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Header
@@ -124,7 +124,7 @@ fun OwnerSubscriptionsScreen(
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = PureWhite,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                         )
                     }
                 }
@@ -318,7 +318,7 @@ fun OwnerSubscriptionsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(if (selectedSpaceTypeForPayg == st) OxfordBlue.copy(alpha = 0.1f) else Color.Transparent, MaterialTheme.shapes.small)
-                                .padding(8.dp),
+                                .padding(Spacing.sm),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {

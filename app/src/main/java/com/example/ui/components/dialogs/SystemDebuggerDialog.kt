@@ -121,7 +121,7 @@ fun SystemDebuggerDialog(
                     ProCard(
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(Spacing.lg)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -240,7 +240,7 @@ fun SystemDebuggerDialog(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(12.dp),
+                                    .padding(Spacing.md),
                                 verticalAlignment = Alignment.Top
                             ) {
                                 Box(
@@ -347,7 +347,7 @@ private fun BadgePill(count: Int, label: String, color: Color) {
         shape = MaterialTheme.shapes.small
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {

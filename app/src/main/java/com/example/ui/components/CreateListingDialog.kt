@@ -43,7 +43,7 @@ fun CreateListingDialog(
     if (currentUser == null) {
         Dialog(onDismissRequest = onDismiss) {
             Card(shape = MaterialTheme.shapes.large) {
-                Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(modifier = Modifier.padding(Spacing.xl), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Sign In Required", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
                     Text(
                         "Your account couldn't be loaded. Please sign in again before creating a listing.",
@@ -413,7 +413,7 @@ fun CreateListingDialog(
                                             .clickable {
                                                 selectedFacilities = if (isChecked) selectedFacilities - facility else selectedFacilities + facility
                                             }
-                                            .padding(vertical = 4.dp)
+                                            .padding(vertical = Spacing.xs)
                                     ) {
                                         Checkbox(checked = isChecked, onCheckedChange = {
                                             selectedFacilities = if (it) selectedFacilities + facility else selectedFacilities - facility
@@ -504,7 +504,7 @@ fun CreateListingDialog(
                                                     shape = MaterialTheme.shapes.medium
                                                 ) {
                                                     Row(
-                                                        modifier = Modifier.padding(12.dp),
+                                                        modifier = Modifier.padding(Spacing.md),
                                                         horizontalArrangement = Arrangement.SpaceBetween,
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
@@ -534,7 +534,7 @@ fun CreateListingDialog(
                                         modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), MaterialTheme.shapes.medium),
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                                     ) {
-                                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                             Text("Add Room / Unit Details", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                             
                                             InputField(
@@ -795,7 +795,7 @@ fun CreateListingDialog(
                                         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
                                         shape = MaterialTheme.shapes.medium
                                     ) {
-                                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Row(modifier = Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
                                             Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                                             Spacer(modifier = Modifier.width(Spacing.sm))
                                             Text("Hourly consulting reference rate is auto-calculated at ~$suggestedHourly USD/hr.", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurface)
