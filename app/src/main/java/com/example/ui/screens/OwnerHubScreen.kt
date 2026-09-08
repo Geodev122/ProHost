@@ -29,13 +29,13 @@ import androidx.compose.ui.window.Dialog
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import kotlinx.coroutines.launch
 import java.util.Locale
 
 @Composable
 fun OwnerHubScreen(
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     onSelectSpace: (SpaceListing) -> Unit,
     onOpenSubscriptions: (() -> Unit)? = null
 ) {

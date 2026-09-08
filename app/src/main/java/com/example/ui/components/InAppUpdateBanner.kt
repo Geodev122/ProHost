@@ -72,7 +72,7 @@ fun InAppUpdateBanner(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (updateState == UpdateState.DOWNLOADED) "ProSpace Update Ready" else "Downloading ProSpace Update...",
+                            text = if (updateState == UpdateState.DOWNLOADED) "ProHost Update Ready" else "Downloading ProHost Update...",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = Color.White

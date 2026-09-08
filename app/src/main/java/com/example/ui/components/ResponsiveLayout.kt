@@ -8,7 +8,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Standard ProSpace Responsive Content Container.
+ * Standard ProHost Responsive Content Container.
  * Restricts maximum content width on wide screens (tablets, foldables, DeX, landscape)
  * to 840dp while centering horizontally and occupying 100% on phones.
  */

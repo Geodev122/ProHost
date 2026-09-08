@@ -32,14 +32,14 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyBookingsScreen(
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     onNavigateToDiscovery: () -> Unit,
     onSelectSpace: (SpaceListing) -> Unit
 ) {
@@ -89,7 +89,7 @@ fun MyBookingsScreen(
     var rebookSourceBooking by remember { mutableStateOf<BookingRequest?>(null) }
     // Editing an already-accepted booking is a separate flow from Re-book/Extend:
     // the submitted request references the booking it would replace (replacesBookingId)
-    // and, if the host accepts it, actually replaces it (see ProSpaceRepository.acceptBookingRequest)
+    // and, if the host accepts it, actually replaces it (see ProHostRepository.acceptBookingRequest)
     // instead of coexisting alongside it as an independent new lease.
     var editTargetSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var editSourceBooking by remember { mutableStateOf<BookingRequest?>(null) }
@@ -545,7 +545,7 @@ fun MyBookingsScreen(
 
     // Edit Active Booking Dialog with Interactive Calendar — pre-seeded with the
     // current accepted formula, submitted as a new PENDING request referencing the
-    // booking it would replace. If the host accepts it, ProSpaceRepository.acceptBookingRequest
+    // booking it would replace. If the host accepts it, ProHostRepository.acceptBookingRequest
     // releases the old booking and this one takes its place; availability is always
     // computed live from ACCEPTED bookings, so nothing else needs recalculating by hand.
     if (editTargetSpace != null) {

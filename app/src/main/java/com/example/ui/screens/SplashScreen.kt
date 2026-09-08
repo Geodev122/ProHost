@@ -90,7 +90,7 @@ fun SplashScreen(
                 shadowElevation = 12.dp
             ) {
                 Image(
-                    painter = painterResource(id = com.example.R.drawable.ic_prospace_logo_brand),
+                    painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
                     contentDescription = "ProHost Smart Space Logo",
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize().clip(MaterialTheme.shapes.extraLarge)

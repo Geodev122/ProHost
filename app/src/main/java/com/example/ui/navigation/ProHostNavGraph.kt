@@ -20,7 +20,7 @@ import com.example.ui.components.dialogs.DrawerDialogsHandler
 import com.example.ui.components.drawer.AdminDrawerContent
 import com.example.ui.components.drawer.SpecialistDrawerContent
 import com.example.ui.screens.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.InAppUpdateManager
 import com.example.util.UpdateState
 import kotlinx.coroutines.launch
@@ -69,11 +69,11 @@ private fun allowedTabIdsForRole(role: UserRole): Set<String> = when (role) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProSpaceAppRoot(
+fun ProHostAppRoot(
     deepLinkTab: String? = null,
     deepLinkBookingId: String? = null,
     inAppUpdateManager: InAppUpdateManager? = null,
-    viewModel: ProSpaceViewModel = viewModel()
+    viewModel: ProHostViewModel = viewModel()
 ) {
     val currentUser by viewModel.currentUser.collectAsState()
     var detailedSpace by remember { mutableStateOf<SpaceListing?>(null) }
@@ -225,7 +225,7 @@ fun ProSpaceAppRoot(
                             val alertsList = viewModel.fcmAlerts.collectAsState().value
                             val unreadCount = alertsList.count { !it.isRead }
 
-                            ProSpaceTopAppBar(
+                            ProHostTopAppBar(
                                 currentRole = currentRole,
                                 unreadAlertCount = unreadCount,
                                 onMenuClick = { scope.launch { drawerState.open() } },

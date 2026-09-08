@@ -111,7 +111,7 @@ fun LoginAuthScreen(
     ) {
         Spacer(modifier = Modifier.height(Spacing.lg))
 
-        // ProSpace Brand Header
+        // ProHost Brand Header
         Surface(
             color = OxfordBlue,
             shape = RoundedCornerShape(20.dp),
@@ -121,7 +121,7 @@ fun LoginAuthScreen(
             shadowElevation = 6.dp
         ) {
             Image(
-                painter = painterResource(id = com.example.R.drawable.ic_prospace_logo_brand),
+                painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
                 contentDescription = "ProHost Logo",
                 contentScale = ContentScale.Fit,
                 modifier = Modifier

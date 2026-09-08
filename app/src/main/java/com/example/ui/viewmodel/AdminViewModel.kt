@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.auth.FirebaseFunctionsClient
 import com.example.data.model.*
-import com.example.data.repository.ProSpaceRepository
+import com.example.data.repository.ProHostRepository
 import com.example.ui.state.AdminUiEvent
 import com.example.ui.state.AdminUiState
 import kotlinx.coroutines.flow.*
@@ -16,7 +16,7 @@ import java.util.UUID
  * Whish Money audit monitoring, dynamic space architecture schema modifications, and multi-format exports.
  */
 class AdminViewModel(
-    private val repository: ProSpaceRepository = ProSpaceRepository.getInstance()
+    private val repository: ProHostRepository = ProHostRepository.getInstance()
 ) : ViewModel() {
 
     private val functionsClient = FirebaseFunctionsClient()
@@ -508,27 +508,27 @@ class AdminViewModel(
 
     fun exportAllAuditReport() {
         val content = repository.exportToAuditText()
-        openExportDialog("Full ProSpace Audit & Revenue Report", content, "TXT")
+        openExportDialog("Full ProHost Audit & Revenue Report", content, "TXT")
     }
 
     fun exportAllCsv() {
         val content = repository.exportToCsv()
-        openExportDialog("Complete ProSpace Master Ledger (CSV)", content, "CSV")
+        openExportDialog("Complete ProHost Master Ledger (CSV)", content, "CSV")
     }
 
     fun exportAllJson() {
         val content = repository.exportToJson()
-        openExportDialog("ProSpace Platform JSON Export", content, "JSON")
+        openExportDialog("ProHost Platform JSON Export", content, "JSON")
     }
 
     fun exportUsersDirectory(format: String = "CSV") {
         val content = if (format == "JSON") repository.exportUsersToJson() else repository.exportUsersToCsv()
-        openExportDialog("ProSpace Registered Users Directory (${format})", content, format)
+        openExportDialog("ProHost Registered Users Directory (${format})", content, format)
     }
 
     fun exportListingsCatalog(format: String = "CSV") {
         val content = if (format == "JSON") repository.exportListingsToJson() else repository.exportListingsToCsv()
-        openExportDialog("ProSpace Workspace Listings Catalog (${format})", content, format)
+        openExportDialog("ProHost Workspace Listings Catalog (${format})", content, format)
     }
 
     fun exportTransactionsLedger() {
@@ -542,7 +542,7 @@ class AdminViewModel(
     }
 
     /** Used by AdminRevenueScreen's own clipboard-copy export button (relocated from
-     * ProSpaceViewModel — Admin-only functionality, no reason it lived on the shared
+     * ProHostViewModel — Admin-only functionality, no reason it lived on the shared
      * god object). */
     fun exportRevenueCsv(startDateMillis: Long?, endDateMillis: Long?): String {
         return repository.exportTransactionsToCsv(startDateMillis, endDateMillis)

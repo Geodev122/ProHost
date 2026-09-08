@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AppUser
 import com.example.data.model.UserRole
-import com.example.ui.components.ProSpaceBrandLogo
-import com.example.ui.components.ProSpaceCedarBadge
+import com.example.ui.components.ProHostBrandLogo
+import com.example.ui.components.ProHostCedarBadge
 import com.example.ui.theme.*
 
 /**
@@ -44,7 +44,7 @@ import com.example.ui.theme.*
  *      role — a single "Become a Pro Host" CTA for a SPECIALIST (opens
  *      package purchasing full-screen), or the real Pro Host destination
  *      list for a PRO_HOST (each also opens full-screen — see
- *      PRO_HOST_FULLSCREEN_TABS in ProSpaceNavGraph.kt). Host-only resource
+ *      PRO_HOST_FULLSCREEN_TABS in ProHostNavGraph.kt). Host-only resource
  *      links (Whish transactions, guidelines) only show once actually
  *      promoted to PRO_HOST; everything else here is genuinely cross-role
  *      (rent-law reference content, app updates, legal documents), so it's
@@ -293,7 +293,7 @@ fun SpecialistDrawerContent(
             icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = OxfordBlue) }
         )
 
-        ProSpaceDrawerFooter()
+        ProHostDrawerFooter()
     }
 }
 
@@ -451,12 +451,12 @@ fun AdminDrawerContent(
             icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = OxfordBlue) }
         )
 
-        ProSpaceDrawerFooter()
+        ProHostDrawerFooter()
     }
 }
 
 @Composable
-fun ProSpaceDrawerFooter() {
+fun ProHostDrawerFooter() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -468,7 +468,7 @@ fun ProSpaceDrawerFooter() {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            ProSpaceBrandLogo(
+            ProHostBrandLogo(
                 size = 28.dp,
                 roundedCorner = 7.dp,
                 elevation = 1.dp,
@@ -485,7 +485,7 @@ fun ProSpaceDrawerFooter() {
                         fontWeight = FontWeight.Bold,
                         color = OxfordBlue
                     )
-                    ProSpaceCedarBadge(text = "v2.5", isCompact = true)
+                    ProHostCedarBadge(text = "v2.5", isCompact = true)
                 }
                 Text(
                     text = "Verified Specialist Workspace Grid",

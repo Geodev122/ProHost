@@ -22,12 +22,12 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import java.util.Locale
 
 @Composable
 fun OwnerRentingProgressScreen(
-    viewModel: ProSpaceViewModel
+    viewModel: ProHostViewModel
 ) {
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()

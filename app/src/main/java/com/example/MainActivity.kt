@@ -8,8 +8,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.example.ui.navigation.ProSpaceAppRoot
-import com.example.ui.theme.ProSpaceTheme
+import com.example.ui.navigation.ProHostAppRoot
+import com.example.ui.theme.ProHostTheme
 import com.example.util.InAppUpdateManager
 
 class MainActivity : ComponentActivity() {
@@ -27,8 +27,8 @@ class MainActivity : ComponentActivity() {
         inAppUpdateManager.checkForAppUpdate(preferImmediate = false)
 
         setContent {
-            ProSpaceTheme {
-                ProSpaceAppRoot(
+            ProHostTheme {
+                ProHostAppRoot(
                     deepLinkTab = targetTab,
                     deepLinkBookingId = targetBookingId,
                     inAppUpdateManager = inAppUpdateManager
@@ -72,7 +72,7 @@ class MainActivity : ComponentActivity() {
         // The specific transaction isn't carried in the URL — checkWhishStatus polling,
         // already running since initiateWhishPayment was called, is what actually
         // confirms the result. This just brings the right tab to the front; role-based
-        // resolution of "payment_return" happens in ProSpaceNavGraph.
+        // resolution of "payment_return" happens in ProHostNavGraph.
         val data = intent.data
         if (data != null && data.scheme == "https" && data.host == "hopebearer-award.com" &&
             data.path?.startsWith("/payment") == true

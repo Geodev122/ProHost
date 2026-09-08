@@ -20,14 +20,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OwnerSubscriptionsScreen(
-    viewModel: ProSpaceViewModel
+    viewModel: ProHostViewModel
 ) {
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()

@@ -29,7 +29,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import java.text.NumberFormat
 import java.util.*
 
@@ -38,7 +38,7 @@ import java.util.*
 fun RentalBookingDialog(
     space: SpaceListing,
     initialFormula: RentalFormula?,
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     onDismiss: () -> Unit,
     onRequestSubmitted: () -> Unit
 ) {

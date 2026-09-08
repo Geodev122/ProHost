@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.data.repository.ProSpaceRepository
+import com.example.data.repository.ProHostRepository
 import com.example.ui.components.ProCard
 import com.example.ui.components.ProOutlinedButton
 import com.example.ui.components.ProPrimaryButton
@@ -34,7 +34,7 @@ import java.util.*
 
 @Composable
 fun SystemDebuggerDialog(
-    repository: ProSpaceRepository,
+    repository: ProHostRepository,
     onDismissRequest: () -> Unit
 ) {
     val context = LocalContext.current

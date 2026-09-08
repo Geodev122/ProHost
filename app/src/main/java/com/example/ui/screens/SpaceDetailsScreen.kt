@@ -26,13 +26,13 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpaceDetailsScreen(
     space: SpaceListing,
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current

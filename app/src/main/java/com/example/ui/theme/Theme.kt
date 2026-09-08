@@ -12,7 +12,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 /**
- * Official ProSpace Material 3 Light ColorScheme
+ * Official ProHost Material 3 Light ColorScheme
  * Primary: Oxford Blue (#384152)
  * Secondary: Carnation Orange (#F25F4C)
  * Tertiary: Fresh Green (#4CAF72)
@@ -42,7 +42,7 @@ private val LightColorScheme = lightColorScheme(
     surface = PureWhite,
     onSurface = CoolGray,
     surfaceVariant = LightGraySurface,
-    onSurfaceVariant = ProSpaceSecondaryText,
+    onSurfaceVariant = ProHostSecondaryText,
     surfaceTint = OxfordBlue,
     inverseSurface = CoolGrayDark,
     inverseOnSurface = PureWhite,
@@ -59,7 +59,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 /**
- * Official ProSpace Material 3 Dark ColorScheme
+ * Official ProHost Material 3 Dark ColorScheme
  */
 private val DarkColorScheme = darkColorScheme(
     primary = OxfordBlueLight,
@@ -101,7 +101,7 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 /**
- * ProSpace Brand Theme
+ * ProHost Brand Theme
  * Oxford Blue (#384152), Carnation Orange (#F25F4C), Fresh Green (#4CAF72),
  * Cool Gray (#283544), Light Gray (#E2E4E8), and White (#FFFFFF).
  *
@@ -110,7 +110,7 @@ private val DarkColorScheme = darkColorScheme(
  * future in-app theme toggle).
  */
 @Composable
-fun ProSpaceTheme(
+fun ProHostTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {

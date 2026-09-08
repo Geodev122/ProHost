@@ -2,14 +2,14 @@ package com.example.data.auth
 
 import com.example.data.model.AppUser
 import com.example.data.model.UserRole
-import com.example.data.repository.ProSpaceRepository
+import com.example.data.repository.ProHostRepository
 import com.google.firebase.auth.FirebaseUser
 
 /**
  * Thrown when assignInitialRole.ts rejects a sign-in because the account is
  * suspended (see setAccountSuspended.ts). Callers must sign the (already
  * Firebase-Auth-authenticated) user back out and surface [message] instead of
- * completing sign-in — see ProSpaceViewModel's phone/Google sign-in flows.
+ * completing sign-in — see ProHostViewModel's phone/Google sign-in flows.
  */
 class AccountSuspendedException(message: String) : Exception(message)
 
@@ -20,7 +20,7 @@ class AccountSuspendedException(message: String) : Exception(message)
  * decide a returning/new user's role after real Firebase Auth succeeds.
  */
 suspend fun completeVerifiedLogin(
-    repository: ProSpaceRepository,
+    repository: ProHostRepository,
     functionsClient: FirebaseFunctionsClient,
     firebaseUser: FirebaseUser
 ): AppUser {
@@ -47,7 +47,7 @@ suspend fun completeVerifiedLogin(
  * uploaded by the caller once [firebaseUser.uid] existed to key the upload path on).
  */
 suspend fun completeVerifiedRegistration(
-    repository: ProSpaceRepository,
+    repository: ProHostRepository,
     functionsClient: FirebaseFunctionsClient,
     firebaseUser: FirebaseUser,
     fullName: String,

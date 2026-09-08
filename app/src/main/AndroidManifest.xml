@@ -58,7 +58,7 @@
             android:value="${MAPS_API_KEY}" />
 
         <service
-            android:name="com.example.service.ProSpaceMessagingService"
+            android:name="com.example.service.ProHostMessagingService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />

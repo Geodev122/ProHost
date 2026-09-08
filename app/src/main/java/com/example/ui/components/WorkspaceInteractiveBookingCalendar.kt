@@ -63,7 +63,7 @@ data class CalendarDayItem(
  * every OTHER month shown too, forever, since its real date range was never
  * consulted. [booking.endDate] is often blank (most bookings only ever store
  * startDate + durationMonths), so the effective end is computed the same way
- * ProSpaceRepository.createBookingRequest describes a booking's term.
+ * ProHostRepository.createBookingRequest describes a booking's term.
  */
 private fun isBookingActiveOnDate(booking: RentalBookingRequest, date: Date, dateFormatter: SimpleDateFormat): Boolean {
     val start = try { dateFormatter.parse(booking.startDate) } catch (e: Exception) { null } ?: return false

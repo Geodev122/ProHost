@@ -21,11 +21,11 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.SpaceListing
 import com.example.ui.components.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 
 @Composable
 fun OwnerAnalyticsScreen(
-    viewModel: ProSpaceViewModel
+    viewModel: ProHostViewModel
 ) {
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
     val bookingRequests by viewModel.bookingRequests.collectAsState()

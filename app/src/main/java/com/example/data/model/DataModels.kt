@@ -164,7 +164,7 @@ data class BookingRequest(
     // Set by the practitioner when submitting an edit to an already-ACCEPTED
     // booking (see MyBookingsScreen's "Edit Booking" action) — this new request
     // goes through the normal PENDING -> host-review cycle like any other, but if
-    // the host accepts it, ProSpaceRepository.acceptBookingRequest releases the
+    // the host accepts it, ProHostRepository.acceptBookingRequest releases the
     // booking named here (marks it CANCELLED) in the same operation, so exactly
     // one of the two is ever ACCEPTED at a time.
     val replacesBookingId: String? = null,
@@ -176,7 +176,7 @@ data class BookingRequest(
     val agreementUrl: String? = null,
     // Early-termination record — set only when an already-ACCEPTED booking is
     // cancelled (as opposed to a PENDING request simply withdrawn/declined, which
-    // needs neither). See ProSpaceRepository.cancelAcceptedBooking's doc comment.
+    // needs neither). See ProHostRepository.cancelAcceptedBooking's doc comment.
     val cancellationReasonCode: String? = null,
     val cancellationNote: String? = null,
     val cancelledByRole: String? = null
@@ -828,7 +828,7 @@ data class SubscriptionFormula(
  * listing instead (see [SpaceListing.ownershipProofUrl]), not on the user profile.
  * [createdAtMillis]/[lastSignInAtMillis] are written only by assignInitialRole.ts —
  * the account-creation and last-sign-in audit trail Admin's Users Directory export
- * relies on (see ProSpaceRepository.exportUsersToCsv/exportUsersToJson).
+ * relies on (see ProHostRepository.exportUsersToCsv/exportUsersToJson).
  */
 data class AppUser(
     val id: String,

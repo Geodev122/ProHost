@@ -157,7 +157,7 @@ class FirestoreService(
             activeListeners.add(formulaListener)
 
             // Booking requests listener — the single collection ("booking_requests") that both
-            // reads and writes must agree on. See ProSpaceRepository for the write side.
+            // reads and writes must agree on. See ProHostRepository for the write side.
             val bookingListener = db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {

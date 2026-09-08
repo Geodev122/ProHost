@@ -26,13 +26,13 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpaceScheduleEditorDialog(
     space: SpaceListing,
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current

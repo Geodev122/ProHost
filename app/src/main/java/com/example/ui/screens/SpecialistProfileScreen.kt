@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.InAppUpdateManager
 import com.example.util.UpdateState
 import kotlinx.coroutines.launch
@@ -43,7 +43,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpecialistProfileScreen(
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     inAppUpdateManager: InAppUpdateManager? = null,
     onSignOut: () -> Unit = {},
     onNavigateToTab: (String) -> Unit = {}
@@ -964,7 +964,7 @@ fun SpecialistProfileScreen(
                                     UpdateState.DOWNLOADING -> "Downloading: ${(downloadProgress * 100).toInt()}%"
                                     UpdateState.DOWNLOADED -> "Update downloaded! Ready to install."
                                     UpdateState.FAILED -> "Update failed to download"
-                                    UpdateState.UP_TO_DATE -> "ProSpace is up to date"
+                                    UpdateState.UP_TO_DATE -> "ProHost is up to date"
                                 },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = when (updateState) {
@@ -992,7 +992,7 @@ fun SpecialistProfileScreen(
                                         inAppUpdateManager.checkForAppUpdate(preferImmediate = false)
                                         Toast.makeText(context, "Checking Google Play for updates...", Toast.LENGTH_SHORT).show()
                                     } else {
-                                        Toast.makeText(context, "ProSpace is up to date (Version 1.0.0)", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "ProHost is up to date (Version 1.0.0)", Toast.LENGTH_SHORT).show()
                                     }
                                 },
                                 shape = MaterialTheme.shapes.small,
@@ -1017,7 +1017,7 @@ fun SpecialistProfileScreen(
     if (showSignOutConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showSignOutConfirmDialog = false },
-            title = { Text("Sign Out of ProSpace", fontWeight = FontWeight.Bold) },
+            title = { Text("Sign Out of ProHost", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to sign out of your account (${user.email})?") },
             confirmButton = {
                 Button(

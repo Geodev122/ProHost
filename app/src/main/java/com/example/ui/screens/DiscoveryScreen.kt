@@ -31,26 +31,26 @@ import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.state.DiscoveryUiState
 import com.example.ui.viewmodel.DiscoveryViewModel
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import com.example.ui.theme.PremiumBackgroundGradient
 import com.example.ui.theme.Spacing
 
 /**
  * ViewModel-connected wrapper for DiscoveryScreen — search/filter/selection state
  * now lives on the dedicated [DiscoveryViewModel] (Phase 4 ViewModel split), not
- * the shared [ProSpaceViewModel] god object. [viewModel] (the shared instance) is
+ * the shared [ProHostViewModel] god object. [viewModel] (the shared instance) is
  * still passed through for the one genuinely cross-cutting action this screen
  * needs — launching a WhatsApp inquiry, which also writes to the shared audit log.
  *
  * DiscoveryViewModel already existed in the repo before this change but was never
- * actually instantiated anywhere — ProSpaceViewModel had grown its own,
+ * actually instantiated anywhere — ProHostViewModel had grown its own,
  * independently-maintained duplicate of the exact same search/filter logic
  * (SearchFilterState/filteredSpaces/updateSearchQuery/etc., now removed from
- * ProSpaceViewModel since this screen was their only real caller).
+ * ProHostViewModel since this screen was their only real caller).
  */
 @Composable
 fun DiscoveryScreen(
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     onSelectSpace: (SpaceListing) -> Unit,
     discoveryViewModel: DiscoveryViewModel = viewModel()
 ) {
@@ -263,7 +263,7 @@ fun DiscoveryScreenContent(
                             Box(modifier = Modifier.fillMaxSize()) {
                                 Image(
                                     painter = painterResource(id = com.example.R.drawable.img_discovery_hero),
-                                    contentDescription = "ProSpace Workspaces Banner",
+                                    contentDescription = "ProHost Workspaces Banner",
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
                                 )
@@ -283,7 +283,7 @@ fun DiscoveryScreenContent(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        ProSpaceCedarBadge(text = "Lebanon Verified Network", isCompact = true)
+                                        ProHostCedarBadge(text = "Lebanon Verified Network", isCompact = true)
                                     }
                                     Text(
                                         text = "Specialist Workspace Exchange",
@@ -314,7 +314,7 @@ fun DiscoveryScreenContent(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            ProSpaceCedarBadge(text = "Verified Listings", isCompact = false)
+                            ProHostCedarBadge(text = "Verified Listings", isCompact = false)
                         }
                     }
 

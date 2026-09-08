@@ -44,7 +44,7 @@ import com.example.ui.components.dialogs.SystemDebuggerDialog
 import com.example.ui.state.AdminUiEvent
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AdminViewModel
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import kotlinx.coroutines.flow.collectLatest
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -53,7 +53,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminConsoleScreen(
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     adminViewModel: AdminViewModel = viewModel()
 ) {
     val context = LocalContext.current

@@ -24,7 +24,7 @@ import com.example.ui.theme.StatusOnWarningContainer
 import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.StatusWarning
 import com.example.ui.theme.WhishBrandRed
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import com.example.ui.theme.Spacing
 import java.util.Locale
 
@@ -41,13 +41,13 @@ enum class WhishPaymentMethod(
 }
 
 /**
- * Collects payer details and hands off to ProSpaceViewModel.paySubscriptionViaWhish,
+ * Collects payer details and hands off to ProHostViewModel.paySubscriptionViaWhish,
  * which calls the initiateWhishPayment Cloud Function, opens the real Whish checkout
  * in the browser, and polls for server-confirmed settlement. This is the Pro Host
  * package/PAYG subscription flow only now — booking rent settlement (Specialist <->
  * Pro Host) happens entirely outside the app; a host records the deal by uploading
  * the signed leasing agreement when accepting a request instead (see
- * ProSpaceRepository.acceptBookingRequest).
+ * ProHostRepository.acceptBookingRequest).
  *
  * This used to also own the whole checkout lifecycle itself: it called Whish's API
  * directly with a client-side HMAC signature computed from a secret shipped in the
@@ -62,7 +62,7 @@ enum class WhishPaymentMethod(
 fun WhishPayModal(
     space: SpaceListing,
     currentFeeUsd: Double,
-    viewModel: ProSpaceViewModel? = null,
+    viewModel: ProHostViewModel? = null,
     onDismiss: () -> Unit,
     onConfirmPayment: (payerName: String, payerPhone: String) -> Unit
 ) {

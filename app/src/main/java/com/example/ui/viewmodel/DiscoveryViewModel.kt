@@ -3,7 +3,7 @@ package com.example.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.model.*
-import com.example.data.repository.ProSpaceRepository
+import com.example.data.repository.ProHostRepository
 import com.example.ui.state.DiscoveryFilterState
 import com.example.ui.state.DiscoveryUiEvent
 import com.example.ui.state.DiscoveryUiState
@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
  * ViewModel managing space catalog discovery, multi-criteria filtering, search debounce, and FCM notification alerts.
  */
 class DiscoveryViewModel(
-    private val repository: ProSpaceRepository = ProSpaceRepository.getInstance()
+    private val repository: ProHostRepository = ProHostRepository.getInstance()
 ) : ViewModel() {
 
     private val _filterState = MutableStateFlow(DiscoveryFilterState())

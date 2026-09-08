@@ -30,7 +30,7 @@ import com.example.ui.components.drawer.LawBulletinCard
 import com.example.ui.theme.LebaneseCedarGreen
 import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.WhatsAppGreen
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import com.example.ui.theme.Spacing
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -40,7 +40,7 @@ import java.util.Locale
 @Composable
 fun DrawerDialogsHandler(
     dialogId: String?,
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     onNavigateToTab: ((String) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
@@ -151,7 +151,7 @@ fun DrawerDialogsHandler(
                                 LawBulletinCard(
                                     number = "Sublease Safety",
                                     title = "Host Verification Protection",
-                                    content = "All hosts on ProSpace are legally bound to verify they own or hold exclusive rights to sublease workspace hours, protecting renters from arbitrary closures."
+                                    content = "All hosts on ProHost are legally bound to verify they own or hold exclusive rights to sublease workspace hours, protecting renters from arbitrary closures."
                                 )
                                 LawBulletinCard(
                                     number = "Whish Pay Receipts",

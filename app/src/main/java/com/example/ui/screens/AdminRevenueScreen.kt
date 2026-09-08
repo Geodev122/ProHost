@@ -26,8 +26,8 @@ import java.util.*
 
 /**
  * Admin-only screen — now reads from [AdminViewModel] instead of the shared
- * ProSpaceViewModel god object (ViewModel-split effort). This was the only screen
- * still reaching into ProSpaceViewModel for Admin-specific data (transactions +
+ * ProHostViewModel god object (ViewModel-split effort). This was the only screen
+ * still reaching into ProHostViewModel for Admin-specific data (transactions +
  * revenue CSV export) despite AdminConsoleScreen already having its own dedicated
  * ViewModel for everything else Admin does.
  */

@@ -17,21 +17,21 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 
-class ProSpaceRepository {
+class ProHostRepository {
 
     companion object {
-        private const val TAG = "ProSpaceRepository"
+        private const val TAG = "ProHostRepository"
 
         @Volatile
-        private var instance: ProSpaceRepository? = null
+        private var instance: ProHostRepository? = null
 
-        fun getInstance(): ProSpaceRepository {
+        fun getInstance(): ProHostRepository {
             return instance ?: synchronized(this) {
                 val existing = instance
                 if (existing != null) {
                     existing
                 } else {
-                    val newInstance = ProSpaceRepository()
+                    val newInstance = ProHostRepository()
                     instance = newInstance
                     newInstance
                 }

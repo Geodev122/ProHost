@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -37,7 +37,7 @@ import java.util.Locale
 fun OwnerIncomingRequestsView(
     requests: List<BookingRequest>,
     spaces: List<SpaceListing>,
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current

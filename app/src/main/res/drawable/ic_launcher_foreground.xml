@@ -8,7 +8,7 @@
 
     <!-- Group centered strictly within the 66dp safe zone (canvas 108dp) -->
     <group
-        android:name="prospace_icon_group">
+        android:name="prohost_icon_group">
 
         <!-- ============================================== -->
         <!-- Architectural Building Silhouette (Background) -->
@@ -113,7 +113,7 @@
         </path>
 
         <!-- ============================================== -->
-        <!-- Core Symbol: ProSpace Location Pin & Checkmark  -->
+        <!-- Core Symbol: ProHost Location Pin & Checkmark  -->
         <!-- ============================================== -->
 
         <!-- Pin Outer Shadow / Border for strong 3D depth -->

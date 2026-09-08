@@ -35,7 +35,7 @@ import java.text.NumberFormat
 import java.util.Locale
 
 /**
- * Common ProSpace Reusable UI Components
+ * Common ProHost Reusable UI Components
  * Ensures cohesive design language, typography, consistent padding, and accessibility across all screens.
  */
 
@@ -621,7 +621,7 @@ enum class CustomButtonVariant {
 
 /**
  * Standard CustomButton Component
- * Supports multiple ProSpace styles, loading states, leading/trailing icons, and adheres to 48dp touch targets.
+ * Supports multiple ProHost styles, loading states, leading/trailing icons, and adheres to 48dp touch targets.
  * Features consistent M3 typography (labelLarge, Bold) and standardized 12.dp curvature.
  */
 @Composable
@@ -756,7 +756,7 @@ private fun ButtonInnerContent(
 }
 
 /**
- * Standard ProSpace Primary Button (Filled with Carnation Orange #F25F4C, rounded 12dp, min 48dp height).
+ * Standard ProHost Primary Button (Filled with Carnation Orange #F25F4C, rounded 12dp, min 48dp height).
  */
 @Composable
 fun ProPrimaryButton(
@@ -785,7 +785,7 @@ fun ProPrimaryButton(
 }
 
 /**
- * Standard ProSpace Secondary Button (Cool Gray #283544 with Light Gray text, 12dp radius).
+ * Standard ProHost Secondary Button (Cool Gray #283544 with Light Gray text, 12dp radius).
  */
 @Composable
 fun ProSecondaryButton(
@@ -841,7 +841,7 @@ fun ProOutlinedButton(
 }
 
 /**
- * Standard ProSpace Icon Button with soft background.
+ * Standard ProHost Icon Button with soft background.
  */
 @Composable
 fun ProIconButton(
@@ -878,7 +878,7 @@ fun ProIconButton(
 
 /**
  * Standard InputField Component
- * Features consistent 12.dp corner radius, ProSpace light background, label, placeholder, leading/trailing icons,
+ * Features consistent 12.dp corner radius, ProHost light background, label, placeholder, leading/trailing icons,
  * supportive helper text, and error handling with M3 typography.
  */
 @Composable
@@ -973,7 +973,7 @@ fun InputField(
 }
 
 /**
- * Standard ProSpace Outlined Text Field with refined borders, rounded corners, and helper text (alias for InputField).
+ * Standard ProHost Outlined Text Field with refined borders, rounded corners, and helper text (alias for InputField).
  */
 @Composable
 fun ProOutlinedTextField(
@@ -1013,7 +1013,7 @@ fun ProOutlinedTextField(
 }
 
 /**
- * Dedicated ProSpace Search Field with soft background and clear button.
+ * Dedicated ProHost Search Field with soft background and clear button.
  */
 @Composable
 fun ProSearchField(
@@ -1379,7 +1379,7 @@ fun ClinicCard(
 }
 
 /**
- * Standard ProSpace Card Container (alias for ModernCard).
+ * Standard ProHost Card Container (alias for ModernCard).
  */
 @Composable
 fun ProCard(
@@ -1472,7 +1472,7 @@ fun ProHeroCard(
 }
 
 /**
- * Standard ProSpace Information Alert / Banner.
+ * Standard ProHost Information Alert / Banner.
  */
 @Composable
 fun ProInfoBanner(
@@ -1513,7 +1513,7 @@ fun ProInfoBanner(
 // =========================================================================
 
 /**
- * Standard ProSpace Filter Chip.
+ * Standard ProHost Filter Chip.
  */
 @Composable
 fun ProChip(
@@ -1663,7 +1663,7 @@ fun NetworkSyncResilienceBanner(
                         color = if (isOffline) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
-                        text = statusMessage ?: "Connected to Lebanese ProSpace Cloud Node",
+                        text = statusMessage ?: "Connected to Lebanese ProHost Cloud Node",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isOffline) MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                         maxLines = 1,
@@ -1688,11 +1688,11 @@ fun NetworkSyncResilienceBanner(
 }
 
 /**
- * Standardized ProSpace Brand Logo Composable
+ * Standardized ProHost Brand Logo Composable
  * Renders the official app icon vector asset with Oxford Blue, Carnation Orange, and White Checkmark.
  */
 @Composable
-fun ProSpaceBrandLogo(
+fun ProHostBrandLogo(
     size: Dp = 38.dp,
     roundedCorner: Dp = 10.dp,
     elevation: Dp = 3.dp,
@@ -1707,7 +1707,7 @@ fun ProSpaceBrandLogo(
         modifier = modifier.size(size)
     ) {
         Image(
-            painter = painterResource(id = com.example.R.drawable.ic_prospace_logo_brand),
+            painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
             contentDescription = "ProHost Logo",
             contentScale = ContentScale.Fit,
             modifier = Modifier
@@ -1721,7 +1721,7 @@ fun ProSpaceBrandLogo(
  * Authentic Lebanese Cedar Network Badge
  */
 @Composable
-fun ProSpaceCedarBadge(
+fun ProHostCedarBadge(
     text: String = "Lebanon Verified",
     isCompact: Boolean = false,
     modifier: Modifier = Modifier
@@ -1758,11 +1758,11 @@ fun ProSpaceCedarBadge(
 }
 
 /**
- * Standardized High-Impact ProSpace Brand Top App Bar
+ * Standardized High-Impact ProHost Brand Top App Bar
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProSpaceTopAppBar(
+fun ProHostTopAppBar(
     currentRole: UserRole,
     unreadAlertCount: Int,
     onMenuClick: () -> Unit,
@@ -1800,7 +1800,7 @@ fun ProSpaceTopAppBar(
                     )
                 }
 
-                ProSpaceBrandLogo(
+                ProHostBrandLogo(
                     size = 34.dp,
                     roundedCorner = 9.dp,
                     elevation = 2.dp
@@ -1814,12 +1814,12 @@ fun ProSpaceTopAppBar(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            text = "ProSpace",
+                            text = "ProHost",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        ProSpaceCedarBadge(text = "LB", isCompact = true)
+                        ProHostCedarBadge(text = "LB", isCompact = true)
                     }
 
                     Text(
