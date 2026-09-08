@@ -2,9 +2,11 @@ package com.example.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.example.R
 
 /**
  * ProHost Typography System
@@ -14,9 +16,22 @@ import androidx.compose.ui.unit.sp
  * Secondary Text: Regular 13 sp (#384152 at 70% opacity)
  * Button Text: Medium 15 sp (#FFFFFF)
  */
+
+/**
+ * Manrope, bundled only for the brand's two biggest headline moments
+ * (displayLarge, headlineLarge) - splash screen, empty states, the login
+ * screen's "ProHost" wordmark. Every other role stays on FontFamily.Default
+ * deliberately, so this never touches the ~600 existing body-text call sites.
+ */
+val ManropeDisplay = FontFamily(
+    Font(R.font.manrope_semibold, FontWeight.SemiBold),
+    Font(R.font.manrope_bold, FontWeight.Bold),
+    Font(R.font.manrope_extrabold, FontWeight.ExtraBold)
+)
+
 val Typography = Typography(
     displayLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = ManropeDisplay,
         fontWeight = FontWeight.Bold,
         fontSize = 32.sp,
         lineHeight = 40.sp,
@@ -37,7 +52,7 @@ val Typography = Typography(
         letterSpacing = 0.sp
     ),
     headlineLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = ManropeDisplay,
         fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
         lineHeight = 32.sp,

@@ -189,7 +189,7 @@ fun StatusBadge(
         modifier = modifier
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -302,7 +302,7 @@ fun ProMetricTile(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
@@ -394,7 +394,7 @@ fun ProCurrencyTag(
         modifier = modifier
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -786,35 +786,6 @@ fun ProPrimaryButton(
 }
 
 /**
- * Standard ProHost Secondary Button (Cool Gray #283544 with Light Gray text, 12dp radius).
- */
-@Composable
-fun ProSecondaryButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    icon: ImageVector? = null,
-    enabled: Boolean = true,
-    isLoading: Boolean = false,
-    containerColor: Color = CoolGray,
-    contentColor: Color = LightGray,
-    shape: CornerBasedShape = MaterialTheme.shapes.medium
-) {
-    CustomButton(
-        text = text,
-        onClick = onClick,
-        modifier = modifier,
-        variant = CustomButtonVariant.SECONDARY,
-        icon = icon,
-        enabled = enabled,
-        isLoading = isLoading,
-        customContainerColor = containerColor,
-        customContentColor = contentColor,
-        shape = shape
-    )
-}
-
-/**
  * Standard Outlined Button (Transparent with Oxford Blue border, 12dp radius).
  */
 @Composable
@@ -1110,7 +1081,7 @@ fun WorkspaceCard(
                 if (scheduleSummary != null) {
                     Surface(
                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(6.dp)
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -1136,7 +1107,7 @@ fun WorkspaceCard(
                 if (bookedDoctorCount > 0) {
                     Surface(
                         color = StatusInfoContainer,
-                        shape = RoundedCornerShape(6.dp)
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -1171,7 +1142,7 @@ fun WorkspaceCard(
                 facilities.take(3).forEach { facility ->
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(6.dp)
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Text(
                             text = facility,
@@ -1223,7 +1194,7 @@ fun WorkspaceCard(
                         onClick = onWhatsAppClick,
                         variant = CustomButtonVariant.WHATSAPP,
                         icon = Icons.AutoMirrored.Filled.Chat,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
@@ -1274,7 +1245,7 @@ fun ProInfoBanner(
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -1328,7 +1299,7 @@ fun ProChip(
                 )
             }
         } else null,
-        shape = RoundedCornerShape(10.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = MaterialTheme.colorScheme.primary,
             selectedLabelColor = Color.White,
@@ -1362,7 +1333,7 @@ fun ProSegmentedControl(
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(4.dp),
+            modifier = Modifier.padding(Spacing.xs),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             items.forEachIndexed { index, title ->
@@ -1376,7 +1347,7 @@ fun ProSegmentedControl(
                         .clickable { onIndexSelected(index) }
                 ) {
                     Box(
-                        modifier = Modifier.padding(vertical = 8.dp),
+                        modifier = Modifier.padding(vertical = Spacing.sm),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -1426,7 +1397,7 @@ fun NetworkSyncResilienceBanner(
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -1514,7 +1485,7 @@ fun ProHostCedarBadge(
 ) {
     Surface(
         color = LebaneseCedarContainer.copy(alpha = 0.85f),
-        shape = RoundedCornerShape(6.dp),
+        shape = MaterialTheme.shapes.small,
         border = BorderStroke(1.dp, LebaneseCedarGreen.copy(alpha = 0.35f)),
         modifier = modifier
     ) {

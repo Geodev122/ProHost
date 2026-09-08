@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.theme.FreshGreen
 import com.example.ui.theme.OxfordBlue
 import com.example.util.UpdateState
+import com.example.ui.theme.Spacing
 
 @Composable
 fun InAppUpdateBanner(
@@ -42,7 +43,7 @@ fun InAppUpdateBanner(
             elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
         ) {
             Column(
                 modifier = Modifier

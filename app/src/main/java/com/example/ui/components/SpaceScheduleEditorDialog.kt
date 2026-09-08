@@ -93,7 +93,7 @@ fun SpaceScheduleEditorDialog(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "Availability & Formula Control",
-                                fontSize = 18.sp,
+                                fontSize = MaterialTheme.typography.headlineSmall.fontSize,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -112,7 +112,7 @@ fun SpaceScheduleEditorDialog(
                     }
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.md), color = MaterialTheme.colorScheme.outlineVariant)
 
                 Column(
                     modifier = Modifier
@@ -132,7 +132,7 @@ fun SpaceScheduleEditorDialog(
                         ) {
                             Text(
                                 text = "1. Facility Operating Window",
-                                fontSize = 14.sp,
+                                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -198,7 +198,7 @@ fun SpaceScheduleEditorDialog(
                                         context = context
                                     )
                                 },
-                                shape = RoundedCornerShape(10.dp),
+                                shape = MaterialTheme.shapes.medium,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -226,7 +226,7 @@ fun SpaceScheduleEditorDialog(
                                 Column {
                                     Text(
                                         text = "2. Hidden Non-Operating Slots",
-                                        fontSize = 14.sp,
+                                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -252,10 +252,10 @@ fun SpaceScheduleEditorDialog(
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                    shape = RoundedCornerShape(10.dp)
+                                    shape = MaterialTheme.shapes.medium
                                 ) {
                                     Column(
-                                        modifier = Modifier.padding(12.dp),
+                                        modifier = Modifier.padding(Spacing.md),
                                         verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         InputField(
@@ -328,7 +328,7 @@ fun SpaceScheduleEditorDialog(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
@@ -372,7 +372,7 @@ fun SpaceScheduleEditorDialog(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = "3. Space Rental Formulas",
-                                        fontSize = 14.sp,
+                                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -464,7 +464,7 @@ fun SpaceScheduleEditorDialog(
                                                         text = "💡 In Day-per-Week formula, you set the days your space is available. When a specialist chooses this formula, they will select their specific day(s) from these available days.",
                                                         fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                                         color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                                        modifier = Modifier.padding(8.dp)
+                                                        modifier = Modifier.padding(Spacing.sm)
                                                     )
                                                 }
 
@@ -621,7 +621,7 @@ fun SpaceScheduleEditorDialog(
                             liveSpace.rentalFormulas.forEach { f ->
                                 Surface(
                                     color = MaterialTheme.colorScheme.surface,
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = MaterialTheme.shapes.medium,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Row(

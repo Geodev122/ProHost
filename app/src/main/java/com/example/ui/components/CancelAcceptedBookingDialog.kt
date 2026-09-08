@@ -3,7 +3,6 @@ package com.example.ui.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material3.*
@@ -43,7 +42,7 @@ fun CancelAcceptedBookingDialog(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.EventBusy, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                     Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text("Cancel Accepted Booking?", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Cancel Accepted Booking?", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
                 }
                 Text(
                     "This ends the active booking for \"$spaceTitle\" immediately and notifies $partyLabel. There is no in-app refund or penalty — settle anything owed directly with $partyLabel.",
@@ -58,7 +57,7 @@ fun CancelAcceptedBookingDialog(
                 ) {
                     items(CancellationReasonCode.entries) { reason ->
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
+                            shape = MaterialTheme.shapes.medium,
                             color = if (selectedReason == reason) MaterialTheme.colorScheme.primaryContainer
                                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             onClick = { selectedReason = reason },

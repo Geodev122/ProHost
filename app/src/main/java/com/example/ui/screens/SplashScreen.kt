@@ -77,7 +77,7 @@ fun SplashScreen(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(24.dp)
+            modifier = Modifier.padding(Spacing.xl)
         ) {
             // Glowing App Icon
             Surface(
@@ -102,6 +102,7 @@ fun SplashScreen(
             // Main Display Typography
             Text(
                 text = "ProHost",
+                fontFamily = ManropeDisplay,
                 fontSize = MaterialTheme.typography.displayLarge.fontSize,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -113,7 +114,7 @@ fun SplashScreen(
             // Professional Subtitle
             Text(
                 text = "Specialist Workspace & Studio Exchange",
-                fontSize = 14.sp,
+                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = subtitleAlpha),
                 textAlign = TextAlign.Center

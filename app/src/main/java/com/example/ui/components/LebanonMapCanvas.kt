@@ -20,7 +20,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -251,7 +250,7 @@ fun LebanonMapCanvas(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(Spacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -260,10 +259,10 @@ fun LebanonMapCanvas(
             Surface(
                 color = Color(0xEE1E293B),
                 shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = Spacing.lg)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -347,7 +346,7 @@ fun LebanonMapCanvas(
             exit = slideOutVertically { it } + fadeOut(),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(16.dp)
+                .padding(Spacing.lg)
         ) {
             activePinSpace?.let { space ->
                 Card(
@@ -359,7 +358,7 @@ fun LebanonMapCanvas(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(Spacing.lg)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -372,7 +371,7 @@ fun LebanonMapCanvas(
                             ) {
                                 Text(
                                     text = space.spaceType.displayName,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                                     fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -382,7 +381,7 @@ fun LebanonMapCanvas(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = "$${space.baseMonthlyRateUsd.toInt()}",
-                                    fontSize = 18.sp,
+                                    fontSize = MaterialTheme.typography.headlineSmall.fontSize,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -401,7 +400,7 @@ fun LebanonMapCanvas(
                             val dist = calculateDistanceKm(uLoc.latitude, uLoc.longitude, space.lat, space.lng)
                             Surface(
                                 color = MaterialTheme.colorScheme.secondaryContainer,
-                                shape = RoundedCornerShape(6.dp),
+                                shape = MaterialTheme.shapes.small,
                                 modifier = Modifier.padding(bottom = 6.dp)
                             ) {
                                 Text(
@@ -416,7 +415,7 @@ fun LebanonMapCanvas(
 
                         Text(
                             text = space.title,
-                            fontSize = 16.sp,
+                            fontSize = MaterialTheme.typography.bodyLarge.fontSize,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1
@@ -438,7 +437,7 @@ fun LebanonMapCanvas(
                             space.essentialFacilities.take(2).forEach { facility ->
                                 Surface(
                                     color = MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = RoundedCornerShape(6.dp)
+                                    shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
                                         text = facility,

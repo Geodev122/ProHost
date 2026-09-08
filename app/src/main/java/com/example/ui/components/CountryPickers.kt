@@ -2,7 +2,6 @@ package com.example.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Public
@@ -39,7 +38,7 @@ fun CountryCodeSelector(
             modifier = Modifier
                 .clickable { expanded = true }
                 .height(56.dp),
-            shape = RoundedCornerShape(10.dp)
+            shape = MaterialTheme.shapes.medium
         ) {
             Row(
                 modifier = Modifier
@@ -48,7 +47,7 @@ fun CountryCodeSelector(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(selectedCountry.flagEmoji, fontSize = 16.sp)
+                Text(selectedCountry.flagEmoji, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
                 Text(selectedCountry.dialCode, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                 Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose country code", modifier = Modifier.size(16.dp))
             }
@@ -90,7 +89,7 @@ fun CountryDropdownField(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { expanded = true },
-            shape = RoundedCornerShape(10.dp)
+            shape = MaterialTheme.shapes.medium
         ) {
             Row(
                 modifier = Modifier.padding(14.dp),

@@ -466,7 +466,7 @@ fun WorkspaceInteractiveBookingCalendar(
         modifier = modifier
             .fillMaxWidth()
             .testTag("interactive_booking_calendar"),
-        shape = RoundedCornerShape(20.dp),
+        shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
@@ -507,7 +507,7 @@ fun WorkspaceInteractiveBookingCalendar(
 
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(10.dp)
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -531,7 +531,7 @@ fun WorkspaceInteractiveBookingCalendar(
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 4.dp)
+                            modifier = Modifier.padding(horizontal = Spacing.xs)
                         )
 
                         IconButton(
@@ -552,7 +552,7 @@ fun WorkspaceInteractiveBookingCalendar(
 
             if (isEntireMonthBooked) {
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
+                    shape = MaterialTheme.shapes.medium,
                     color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -803,7 +803,7 @@ fun WorkspaceInteractiveBookingCalendar(
                         val isSelected = selectedShiftName == shiftName
                         val isConflicting = shiftName in conflictingShiftNames
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
+                            shape = MaterialTheme.shapes.medium,
                             color = when {
                                 isConflicting -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
                                 isSelected -> MaterialTheme.colorScheme.primaryContainer
@@ -816,7 +816,7 @@ fun WorkspaceInteractiveBookingCalendar(
                                 customEndHour = times.second
                             }
                         ) {
-                            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                            Column(modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(
                                         text = shiftName,
@@ -905,7 +905,7 @@ fun WorkspaceInteractiveBookingCalendar(
                 modifier = Modifier.fillMaxWidth().testTag("availability_status_banner")
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(Spacing.md),
                     verticalAlignment = Alignment.Top
                 ) {
                     Icon(
@@ -951,7 +951,7 @@ fun WorkspaceInteractiveBookingCalendar(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(Spacing.md),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Row(

@@ -5,7 +5,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -54,7 +53,7 @@ fun OwnerSubscriptionsScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Header
@@ -118,14 +117,14 @@ fun OwnerSubscriptionsScreen(
                     }
                     Surface(
                         color = CarnationOrange,
-                        shape = RoundedCornerShape(6.dp)
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Text(
                             text = activeTier.badgeName,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = PureWhite,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                         )
                     }
                 }
@@ -173,7 +172,7 @@ fun OwnerSubscriptionsScreen(
                         onClick = { showPaygBuyDialog = true },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Icon(Icons.Default.AddCircle, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(Spacing.sm))
@@ -186,7 +185,7 @@ fun OwnerSubscriptionsScreen(
                             onClick = { showPaygBuyDialog = true },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = MaterialTheme.shapes.medium
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(Spacing.sm))
@@ -319,7 +318,7 @@ fun OwnerSubscriptionsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(if (selectedSpaceTypeForPayg == st) OxfordBlue.copy(alpha = 0.1f) else Color.Transparent, MaterialTheme.shapes.small)
-                                .padding(8.dp),
+                                .padding(Spacing.sm),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -435,7 +434,7 @@ fun PackageOptionCard(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isCurrent) CoolGray else OxfordBlue
                 ),
-                shape = RoundedCornerShape(10.dp)
+                shape = MaterialTheme.shapes.medium
             ) {
                 Text(
                     text = if (isCurrent) "Current Active Package" else "Subscribe / Activate Package",

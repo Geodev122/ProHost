@@ -231,7 +231,7 @@ fun RentalBookingDialog(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "Rental Request & Booking",
-                                fontSize = 18.sp,
+                                fontSize = MaterialTheme.typography.headlineSmall.fontSize,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -281,7 +281,7 @@ fun RentalBookingDialog(
                     )
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.sm), color = MaterialTheme.colorScheme.outlineVariant)
 
                 if (bookingModeTab == 0) {
                     // Mode 0: Interactive Calendar with Real-time Availability & Collision Checker
@@ -338,7 +338,7 @@ fun RentalBookingDialog(
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(
                                 text = "1. Choose Subdivision / Room to Rent",
-                                fontSize = 14.sp,
+                                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -354,7 +354,7 @@ fun RentalBookingDialog(
                                     ),
                                     border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
                                 ) {
-                                    Column(modifier = Modifier.padding(12.dp)) {
+                                    Column(modifier = Modifier.padding(Spacing.md)) {
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -396,7 +396,7 @@ fun RentalBookingDialog(
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "2. Select Renting Strategy",
-                                fontSize = 14.sp,
+                                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -413,7 +413,7 @@ fun RentalBookingDialog(
                                     border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary) else null
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                        modifier = Modifier.padding(Spacing.md).fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -459,7 +459,7 @@ fun RentalBookingDialog(
                             ) {
                                 Text(
                                     text = "1. Select Rental Formula",
-                                    fontSize = 14.sp,
+                                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -482,7 +482,7 @@ fun RentalBookingDialog(
                                     ),
                                     border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
                                 ) {
-                                    Column(modifier = Modifier.padding(12.dp)) {
+                                    Column(modifier = Modifier.padding(Spacing.md)) {
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -522,10 +522,10 @@ fun RentalBookingDialog(
                                         Spacer(modifier = Modifier.height(Spacing.xs))
                                         Surface(
                                             color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
-                                            shape = RoundedCornerShape(6.dp)
+                                            shape = MaterialTheme.shapes.small
                                         ) {
                                             Row(
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Icon(
@@ -570,7 +570,7 @@ fun RentalBookingDialog(
                                 Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text(
                                     text = "2. Customize Your Required Availability",
-                                    fontSize = 14.sp,
+                                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -628,7 +628,7 @@ fun RentalBookingDialog(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(8.dp),
+                                            modifier = Modifier.padding(Spacing.sm),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = LebaneseCedarGreen, modifier = Modifier.size(14.dp))
@@ -781,7 +781,7 @@ fun RentalBookingDialog(
                     Column {
                         Text(
                             text = "3. Select Starting Date",
-                            fontSize = 14.sp,
+                            fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -817,7 +817,7 @@ fun RentalBookingDialog(
                     Column {
                         Text(
                             text = "4. Rental Duration Term",
-                            fontSize = 14.sp,
+                            fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -833,7 +833,7 @@ fun RentalBookingDialog(
                                     modifier = Modifier
                                         .weight(1f)
                                         .clickable { selectedDurationMonths = months },
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = MaterialTheme.shapes.medium,
                                     color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
                                 ) {
                                     Box(
@@ -879,7 +879,7 @@ fun RentalBookingDialog(
                         colors = CardDefaults.cardColors(containerColor = StatusSuccessContainer),
                         border = androidx.compose.foundation.BorderStroke(1.dp, StatusSuccess.copy(alpha = 0.5f))
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
+                        Column(modifier = Modifier.padding(Spacing.md)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     Icons.Default.Info,

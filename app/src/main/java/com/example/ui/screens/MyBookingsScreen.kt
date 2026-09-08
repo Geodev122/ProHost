@@ -171,7 +171,7 @@ fun MyBookingsScreen(
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                                 )
                             }
                         }
@@ -184,7 +184,7 @@ fun MyBookingsScreen(
 
                     FilledTonalButton(
                         onClick = onNavigateToDiscovery,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                         modifier = Modifier.testTag("explore_new_spaces_button")
                     ) {
@@ -211,7 +211,7 @@ fun MyBookingsScreen(
                                 Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("Active Leases", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Text("$totalActiveLeases Workspaces", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text("$totalActiveLeases Workspaces", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
 
@@ -227,7 +227,7 @@ fun MyBookingsScreen(
                                 Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("Monthly Rate", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Text("$${String.format(Locale.US, "%.0f", totalMonthlySpendUsd)}/mo", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text("$${String.format(Locale.US, "%.0f", totalMonthlySpendUsd)}/mo", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
                     }
 
@@ -243,7 +243,7 @@ fun MyBookingsScreen(
                                 Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("Pending Host", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Text("$pendingRequestsCount Requests", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text("$pendingRequestsCount Requests", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
@@ -398,7 +398,7 @@ fun MyBookingsScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = Spacing.lg, vertical = Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 items(filteredBookings, key = { it.id }) { booking ->
@@ -677,10 +677,10 @@ fun MyBookingsScreen(
         val bkg = showDigitalPassBooking!!
         Dialog(onDismissRequest = { showDigitalPassBooking = null }) {
             Surface(
-                shape = RoundedCornerShape(20.dp),
+                shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 6.dp,
-                modifier = Modifier.fillMaxWidth().padding(16.dp)
+                modifier = Modifier.fillMaxWidth().padding(Spacing.lg)
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp),
@@ -696,7 +696,7 @@ fun MyBookingsScreen(
                         shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("📍 ${bkg.spaceTitle}", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                             Text("👤 Renter: ${bkg.practitionerName} (${bkg.practitionerSpecialty})", fontSize = MaterialTheme.typography.labelMedium.fontSize)
                             Text("🗓️ Dates: ${bkg.startDate} → ${bkg.endDate}", fontSize = MaterialTheme.typography.labelMedium.fontSize)
@@ -720,7 +720,7 @@ fun MyBookingsScreen(
                                     Toast.makeText(context, "Could not open the agreement.", Toast.LENGTH_SHORT).show()
                                 }
                             },
-                            shape = RoundedCornerShape(10.dp),
+                            shape = MaterialTheme.shapes.medium,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -730,7 +730,7 @@ fun MyBookingsScreen(
                     } else {
                         Surface(
                             color = StatusWarningContainer,
-                            shape = RoundedCornerShape(10.dp),
+                            shape = MaterialTheme.shapes.medium,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
@@ -778,7 +778,7 @@ fun BookingReservationCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Header Row: Space Title, District, Status Badge
@@ -820,7 +820,7 @@ fun BookingReservationCard(
                     }
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -865,7 +865,7 @@ fun BookingReservationCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(Spacing.md),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Row(
@@ -926,7 +926,7 @@ fun BookingReservationCard(
                 }
 
                 if (booking.status == BookingRequestStatus.ACCEPTED && booking.agreementUrl != null) {
-                    Surface(color = StatusSuccessContainer, shape = RoundedCornerShape(6.dp)) {
+                    Surface(color = StatusSuccessContainer, shape = MaterialTheme.shapes.small) {
                         Text("Agreement On File", color = StatusOnSuccessContainer, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                     }
                 }
@@ -943,7 +943,7 @@ fun BookingReservationCard(
                 // Re-book / Extend Button (Prominent)
                 Button(
                     onClick = onRebook,
-                    shape = RoundedCornerShape(10.dp),
+                    shape = MaterialTheme.shapes.medium,
                     modifier = Modifier
                         .weight(1f)
                         .height(40.dp)
@@ -964,7 +964,7 @@ fun BookingReservationCard(
                     onClick = onContactWhatsApp,
                     modifier = Modifier
                         .size(40.dp)
-                        .background(WhatsAppGreen.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+                        .background(WhatsAppGreen.copy(alpha = 0.15f), MaterialTheme.shapes.medium)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "WhatsApp Host", tint = WhatsAppDarkGreen, modifier = Modifier.size(18.dp))
                 }
@@ -975,7 +975,7 @@ fun BookingReservationCard(
                         onClick = onViewDigitalPass,
                         modifier = Modifier
                             .size(40.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
                     ) {
                         Icon(Icons.Default.VpnKey, contentDescription = "Digital Pass", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                     }
@@ -987,7 +987,7 @@ fun BookingReservationCard(
                         onClick = onEditBooking,
                         modifier = Modifier
                             .size(40.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
                             .testTag("edit_booking_button_${booking.id}")
                     ) {
                         Icon(Icons.Default.EditCalendar, contentDescription = "Edit Booking", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
@@ -1000,7 +1000,7 @@ fun BookingReservationCard(
                         onClick = onCancelRequest,
                         modifier = Modifier
                             .size(40.dp)
-                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), MaterialTheme.shapes.medium)
                     ) {
                         Icon(Icons.Default.Close, contentDescription = "Cancel Request", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                     }
@@ -1013,7 +1013,7 @@ fun BookingReservationCard(
                         onClick = onCancelAcceptedBooking,
                         modifier = Modifier
                             .size(40.dp)
-                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), MaterialTheme.shapes.medium)
                     ) {
                         Icon(Icons.Default.EventBusy, contentDescription = "Cancel Booking", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                     }

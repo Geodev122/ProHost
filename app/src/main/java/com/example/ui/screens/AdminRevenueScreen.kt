@@ -4,7 +4,6 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -65,7 +64,7 @@ fun AdminRevenueScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Header
@@ -135,7 +134,7 @@ fun AdminRevenueScreen(
             },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = FreshGreen),
-            shape = RoundedCornerShape(10.dp)
+            shape = MaterialTheme.shapes.medium
         ) {
             Icon(Icons.Default.Download, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(Spacing.sm))
@@ -189,7 +188,7 @@ fun TransactionCard(tx: WhishTransaction) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(1.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -203,7 +202,7 @@ fun TransactionCard(tx: WhishTransaction) {
                 )
                 Surface(
                     color = if (tx.status.name == "SUCCESS") FreshGreen.copy(alpha = 0.15f) else AmberWarning.copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(6.dp)
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Text(
                         text = tx.status.name,

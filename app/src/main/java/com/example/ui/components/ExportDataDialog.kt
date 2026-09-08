@@ -7,7 +7,6 @@ import android.widget.Toast
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -51,8 +50,8 @@ fun ExportDataDialog(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp),
-            shape = RoundedCornerShape(20.dp),
+                .padding(vertical = Spacing.md),
+            shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
         ) {
@@ -76,7 +75,7 @@ fun ExportDataDialog(
                         Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
                             text = "Multi-Format Export Hub",
-                            fontSize = 16.sp,
+                            fontSize = MaterialTheme.typography.bodyLarge.fontSize,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -133,7 +132,7 @@ fun ExportDataDialog(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(12.dp)
+                            .padding(Spacing.md)
                             .verticalScroll(rememberScrollState())
                             .horizontalScroll(rememberScrollState())
                     ) {

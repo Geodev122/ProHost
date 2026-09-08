@@ -112,7 +112,7 @@ fun OwnerIncomingRequestsView(
                         "No rental booking requests found under this filter."
                     },
                     icon = Icons.Default.Inbox,
-                    modifier = Modifier.padding(vertical = 12.dp)
+                    modifier = Modifier.padding(vertical = Spacing.md)
                 )
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -331,7 +331,7 @@ fun OwnerBookingRequestCard(
                     shape = MaterialTheme.shapes.small,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(modifier = Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         val chosenDaysStr = if (request.selectedDays.isNotEmpty()) request.selectedDays.joinToString(", ") else request.formula.daysOfWeek.joinToString(", ")
                         val chosenHoursStr = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank()) "${request.selectedStartHour} - ${request.selectedEndHour}" else "${request.formula.startHour} - ${request.formula.endHour}"
                         val shiftDetail = if (request.selectedShift.isNotBlank()) " • ${request.selectedShift}" else ""
@@ -382,7 +382,7 @@ fun OwnerBookingRequestCard(
             if (request.clinicalNotes.isNotBlank()) {
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(6.dp),
+                    shape = MaterialTheme.shapes.small,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
@@ -449,7 +449,7 @@ fun OwnerBookingRequestCard(
                     Button(
                         onClick = onAccept,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = Color.White
@@ -469,7 +469,7 @@ fun OwnerBookingRequestCard(
                     OutlinedButton(
                         onClick = onReject,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.error
                         ),
@@ -489,7 +489,7 @@ fun OwnerBookingRequestCard(
                     Button(
                         onClick = onWhatsAppProfessional,
                         modifier = Modifier.weight(1.2f),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
                     ) {
@@ -514,7 +514,7 @@ fun OwnerBookingRequestCard(
                         // WhatsApp
                         Button(
                             onClick = onWhatsAppProfessional,
-                            shape = RoundedCornerShape(10.dp),
+                            shape = MaterialTheme.shapes.medium,
                             colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
                             modifier = Modifier.weight(1.2f),
                             contentPadding = PaddingValues(vertical = 10.dp)
@@ -532,7 +532,7 @@ fun OwnerBookingRequestCard(
                         // Send Payment Reminder FCM Button
                         Button(
                             onClick = onSendPaymentReminder,
-                            shape = RoundedCornerShape(10.dp),
+                            shape = MaterialTheme.shapes.medium,
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                             modifier = Modifier.weight(1.5f),
                             contentPadding = PaddingValues(vertical = 10.dp)
@@ -550,7 +550,7 @@ fun OwnerBookingRequestCard(
                 } else {
                     Button(
                         onClick = onWhatsAppProfessional,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = PaddingValues(vertical = 10.dp)

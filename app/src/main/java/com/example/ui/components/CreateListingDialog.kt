@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -44,8 +43,8 @@ fun CreateListingDialog(
     if (currentUser == null) {
         Dialog(onDismissRequest = onDismiss) {
             Card(shape = MaterialTheme.shapes.large) {
-                Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Sign In Required", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Column(modifier = Modifier.padding(Spacing.xl), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Sign In Required", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
                     Text(
                         "Your account couldn't be loaded. Please sign in again before creating a listing.",
                         fontSize = MaterialTheme.typography.bodySmall.fontSize,
@@ -201,7 +200,7 @@ fun CreateListingDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.95f),
-            shape = RoundedCornerShape(20.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
@@ -218,7 +217,7 @@ fun CreateListingDialog(
                     Column {
                         Text(
                             text = "Publish Workspace Listing",
-                            fontSize = 18.sp,
+                            fontSize = MaterialTheme.typography.headlineSmall.fontSize,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -352,7 +351,7 @@ fun CreateListingDialog(
                                         Box(
                                             modifier = Modifier
                                                 .size(88.dp)
-                                                .clip(RoundedCornerShape(10.dp))
+                                                .clip(MaterialTheme.shapes.medium)
                                         ) {
                                             AsyncImage(
                                                 model = url,
@@ -381,7 +380,7 @@ fun CreateListingDialog(
                                         Surface(
                                             modifier = Modifier
                                                 .size(88.dp)
-                                                .clip(RoundedCornerShape(10.dp))
+                                                .clip(MaterialTheme.shapes.medium)
                                                 .clickable(enabled = !isUploadingPhoto) {
                                                     photoPickerLauncher.launch("image/*")
                                                 },
@@ -414,7 +413,7 @@ fun CreateListingDialog(
                                             .clickable {
                                                 selectedFacilities = if (isChecked) selectedFacilities - facility else selectedFacilities + facility
                                             }
-                                            .padding(vertical = 4.dp)
+                                            .padding(vertical = Spacing.xs)
                                     ) {
                                         Checkbox(checked = isChecked, onCheckedChange = {
                                             selectedFacilities = if (it) selectedFacilities + facility else selectedFacilities - facility
@@ -435,7 +434,7 @@ fun CreateListingDialog(
                                     placeholder = { Text("Search equipment...") },
                                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = MaterialTheme.shapes.medium,
                                     singleLine = true
                                 )
 
@@ -502,15 +501,15 @@ fun CreateListingDialog(
                                                 Card(
                                                     modifier = Modifier.fillMaxWidth(),
                                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
-                                                    shape = RoundedCornerShape(10.dp)
+                                                    shape = MaterialTheme.shapes.medium
                                                 ) {
                                                     Row(
-                                                        modifier = Modifier.padding(12.dp),
+                                                        modifier = Modifier.padding(Spacing.md),
                                                         horizontalArrangement = Arrangement.SpaceBetween,
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
                                                         Column(modifier = Modifier.weight(1f)) {
-                                                            Text(sub.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                                            Text(sub.name, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
                                                             Text("Type: ${sub.type.displayName}", fontSize = MaterialTheme.typography.labelMedium.fontSize, color = MaterialTheme.colorScheme.primary)
                                                             Text(
                                                                 "Renting: " + sub.rentalStrategies.joinToString { "${it.strategy.displayName} ($${it.rateUsd})" },
@@ -535,7 +534,7 @@ fun CreateListingDialog(
                                         modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), MaterialTheme.shapes.medium),
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                                     ) {
-                                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                             Text("Add Room / Unit Details", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                             
                                             InputField(
@@ -794,9 +793,9 @@ fun CreateListingDialog(
 
                                     Surface(
                                         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                                        shape = RoundedCornerShape(10.dp)
+                                        shape = MaterialTheme.shapes.medium
                                     ) {
-                                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Row(modifier = Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
                                             Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                                             Spacer(modifier = Modifier.width(Spacing.sm))
                                             Text("Hourly consulting reference rate is auto-calculated at ~$suggestedHourly USD/hr.", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurface)

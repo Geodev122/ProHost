@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
@@ -74,12 +73,12 @@ fun DrawerDialogsHandler(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(20.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp)
+                .padding(vertical = Spacing.md)
         ) {
             Column(
                 modifier = Modifier
@@ -114,7 +113,7 @@ fun DrawerDialogsHandler(
                     }
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.md))
 
                 // Scrollable Content Pane
                 Box(
@@ -177,7 +176,7 @@ fun DrawerDialogsHandler(
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
                                             Row(
-                                                modifier = Modifier.padding(12.dp),
+                                                modifier = Modifier.padding(Spacing.md),
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
@@ -271,7 +270,7 @@ fun DrawerDialogsHandler(
                                             modifier = Modifier.fillMaxWidth(),
                                             colors = CardDefaults.cardColors(containerColor = Color.Black)
                                         ) {
-                                            Column(modifier = Modifier.padding(8.dp)) {
+                                            Column(modifier = Modifier.padding(Spacing.sm)) {
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth(),
                                                     horizontalArrangement = Arrangement.SpaceBetween
@@ -337,7 +336,7 @@ fun DrawerDialogsHandler(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(12.dp),
+                                            modifier = Modifier.padding(Spacing.md),
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
@@ -349,7 +348,7 @@ fun DrawerDialogsHandler(
                                                 color = MaterialTheme.colorScheme.primaryContainer,
                                                 shape = MaterialTheme.shapes.small
                                             ) {
-                                                Text("$listingCount active", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                                Text("$listingCount active", modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                             }
                                         }
                                     }
@@ -373,13 +372,13 @@ fun DrawerDialogsHandler(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
 
-                                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.xs))
 
                                 if (fcmAlerts.isEmpty()) {
                                     Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(24.dp),
+                                            .padding(Spacing.xl),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
                                         Icon(
@@ -400,7 +399,7 @@ fun DrawerDialogsHandler(
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.outline,
                                             textAlign = TextAlign.Center,
-                                            modifier = Modifier.padding(horizontal = 16.dp)
+                                            modifier = Modifier.padding(horizontal = Spacing.lg)
                                         )
                                     }
                                 } else {
@@ -422,7 +421,7 @@ fun DrawerDialogsHandler(
                                                     BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
                                                 } else null
                                             ) {
-                                                Column(modifier = Modifier.padding(12.dp)) {
+                                                Column(modifier = Modifier.padding(Spacing.md)) {
                                                     Row(
                                                         modifier = Modifier.fillMaxWidth(),
                                                         horizontalArrangement = Arrangement.SpaceBetween,

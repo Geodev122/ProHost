@@ -124,7 +124,7 @@ fun DiscoveryScreenContent(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = Spacing.lg, vertical = Spacing.md)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -276,7 +276,7 @@ fun DiscoveryScreenContent(
                                 Column(
                                     modifier = Modifier
                                         .align(Alignment.BottomStart)
-                                        .padding(16.dp),
+                                        .padding(Spacing.lg),
                                     verticalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Row(
@@ -347,7 +347,7 @@ fun DiscoveryScreenContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Filter Workspaces", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("Filter Workspaces", fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold)
                     TextButton(onClick = onResetFilters) {
                         Text("Reset")
                     }

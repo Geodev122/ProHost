@@ -28,6 +28,7 @@ import com.example.ui.theme.StatusOnSuccessContainer
 import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.StatusSuccessContainer
 import com.example.ui.theme.StatusWarningContainer
+import com.example.ui.theme.Spacing
 
 @Composable
 fun WeeklyAvailabilityMatrix(
@@ -52,7 +53,7 @@ fun WeeklyAvailabilityMatrix(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -78,7 +79,7 @@ fun WeeklyAvailabilityMatrix(
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
-                                .padding(8.dp)
+                                .padding(Spacing.sm)
                                 .size(20.dp)
                         )
                     }
@@ -86,7 +87,7 @@ fun WeeklyAvailabilityMatrix(
                     Column {
                         Text(
                             text = "Weekly Availability Matrix",
-                            fontSize = 16.sp,
+                            fontSize = MaterialTheme.typography.bodyLarge.fontSize,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -106,7 +107,7 @@ fun WeeklyAvailabilityMatrix(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (isFullMonthBooked) StatusOnErrorContainer else StatusOnSuccessContainer,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                     )
                 }
             }
@@ -168,7 +169,7 @@ fun WeeklyAvailabilityMatrix(
                     Box(
                         modifier = Modifier
                             .weight(0.7f)
-                            .padding(vertical = 4.dp),
+                            .padding(vertical = Spacing.xs),
                         contentAlignment = Alignment.CenterStart
                     ) {
                         Text(
@@ -202,9 +203,9 @@ fun WeeklyAvailabilityMatrix(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(42.dp)
-                                .clip(RoundedCornerShape(10.dp))
+                                .clip(MaterialTheme.shapes.medium)
                                 .background(cellColor)
-                                .border(1.dp, borderColor, RoundedCornerShape(10.dp))
+                                .border(1.dp, borderColor, MaterialTheme.shapes.medium)
                                 .clickable {
                                     selectedCellInfo = Triple(day, shiftName, isBooked)
                                     if (!isBooked) {
@@ -229,7 +230,7 @@ fun WeeklyAvailabilityMatrix(
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center,
-                                modifier = Modifier.padding(horizontal = 4.dp)
+                                modifier = Modifier.padding(horizontal = Spacing.xs)
                             ) {
                                 if (isBooked) {
                                     Icon(
@@ -270,7 +271,7 @@ fun WeeklyAvailabilityMatrix(
             selectedCellInfo?.let { (day, shiftName, isBooked) ->
                 Surface(
                     color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = MaterialTheme.shapes.medium,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(

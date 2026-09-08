@@ -71,7 +71,7 @@ fun SpaceAvailabilityCalendarView(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // Title Header
@@ -105,7 +105,7 @@ fun SpaceAvailabilityCalendarView(
                         color = if (remainingAvailableHours > 0) StatusOnSuccessContainer else StatusOnErrorContainer,
                         fontWeight = FontWeight.Bold,
                         fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                     )
                 }
             }
@@ -243,7 +243,7 @@ fun SpaceAvailabilityCalendarView(
 
                                 Surface(
                                     color = StatusInfoContainer,
-                                    shape = RoundedCornerShape(6.dp)
+                                    shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
                                         text = "UNAVAILABLE",
@@ -296,7 +296,7 @@ fun SpaceAvailabilityCalendarView(
 
                                 Surface(
                                     color = StatusLockedContainer,
-                                    shape = RoundedCornerShape(6.dp)
+                                    shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
                                         text = "HIDDEN",
