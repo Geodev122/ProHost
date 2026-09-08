@@ -586,12 +586,6 @@ class ProHostRepository {
     suspend fun updateUser(updated: AppUser): Boolean {
         val current = _users.value.find { it.id == updated.id }
         val safeUpdate = if (current != null) {
-            // Every field here is Cloud-Function/Admin-SDK-only per firestore.rules'
-            // user_profiles protected-fields list — always echo back the current
-            // server-known value regardless of what the edit dialog's local AppUser
-            // copy happens to hold, so this generic profile-edit write can never
-            // accidentally touch one (which would reject the entire write, not just
-            // that field, since the rule checks affectedKeys() on the whole diff).
             updated.copy(
                 role = current.role,
                 isVerified = current.isVerified,
@@ -602,7 +596,29 @@ class ProHostRepository {
         } else {
             updated
         }
-        val success = firestoreService.saveUserProfile(safeUpdate)
+        // A targeted write of only these fields — role/isVerified/isSuspended/
+        // ownerPackageTier/etc. are Cloud-Function/Admin-SDK-only per firestore.rules'
+        // user_profiles protected-fields list, and are never sent here at all (not
+        // even echoed back unchanged) — echoing back the *locally cached* value used
+        // to be this function's protection, but that cache can itself be stale
+        // relative to the real server-stored value, which gets the entire write
+        // rejected instead of just silently keeping the stale field as-is.
+        val success = firestoreService.updateUserProfileFields(
+            safeUpdate.id,
+            mapOf(
+                "fullName" to safeUpdate.fullName,
+                "email" to safeUpdate.email,
+                "specialty" to safeUpdate.specialty,
+                "phone" to safeUpdate.phone,
+                "country" to safeUpdate.country,
+                "governorate" to safeUpdate.governorate,
+                "city" to safeUpdate.city,
+                "profilePictureUrl" to safeUpdate.profilePictureUrl,
+                "idDocumentUrl" to safeUpdate.idDocumentUrl,
+                "subscriptionExpiryMillis" to safeUpdate.subscriptionExpiryMillis,
+                "paygListingsBoughtCount" to safeUpdate.paygListingsBoughtCount
+            )
+        )
         if (success) {
             _users.value = _users.value.map { if (it.id == safeUpdate.id) safeUpdate else it }
             if (_currentUser.value?.id == safeUpdate.id) {
@@ -1221,7 +1237,18 @@ class ProHostRepository {
 
         _users.value = _users.value.filterNot { it.id == uid } + user
         _currentUser.value = user
-        coroutineScope.launch { firestoreService.saveUserProfile(user) }
+        // assignInitialRole.ts already runs (Admin SDK, bypassing rules) before this
+        // is ever called — see completeVerifiedLogin — and keeps role/isVerified/
+        // createdAtMillis/lastSignInAtMillis correctly in sync server-side on every
+        // sign-in. This client-side write exists only to fix up email, and only ever
+        // as a targeted field: writing this function's other, locally-fabricated
+        // defaults (specialty="", phone="", country="Lebanon", ...) for a user whose
+        // real profile just hasn't synced to this device yet would clobber their real
+        // stored values, and echoing role/isVerified back risks disagreeing with the
+        // real server-stored value and getting the whole write rejected.
+        if (cleanEmail.isNotBlank()) {
+            coroutineScope.launch { firestoreService.updateUserProfileFields(uid, mapOf("email" to cleanEmail)) }
+        }
 
         addAuditLog(
             actionType = "USER_LOGIN_SUCCESS",
@@ -1270,10 +1297,24 @@ class ProHostRepository {
             city = city,
             profilePictureUrl = profilePictureUrl ?: current.profilePictureUrl
         )
-        // This used to only mutate in-memory state — the "Profile Updated Successfully"
-        // toast fired unconditionally while the edit was never sent to Firestore at all,
-        // so it silently vanished on app restart or on another device.
-        val success = firestoreService.saveUserProfile(updated)
+        // A targeted write of only these fields — never role/isVerified/isSuspended/
+        // ownerPackageTier/etc. Echoing those back from the locally-cached AppUser
+        // (the old approach) could disagree with the real server-stored value (e.g.
+        // right after a role grant the local cache hasn't refreshed yet) and get the
+        // *entire* write rejected by firestore.rules' protected-fields check, even
+        // though the caller only meant to change their name.
+        val success = firestoreService.updateUserProfileFields(
+            current.id,
+            mapOf(
+                "fullName" to updated.fullName,
+                "specialty" to updated.specialty,
+                "phone" to updated.phone,
+                "country" to updated.country,
+                "governorate" to updated.governorate,
+                "city" to updated.city,
+                "profilePictureUrl" to updated.profilePictureUrl
+            )
+        )
         if (success) {
             _currentUser.value = updated
             _users.value = _users.value.map { if (it.id == updated.id) updated else it }

@@ -318,6 +318,33 @@ class FirestoreService(
     }
 
     /**
+     * Targeted merge write of only the given [fields] on [uid]'s profile — never the
+     * full [AppUser] object. Use this for any client-initiated profile edit (self or
+     * Admin-on-behalf-of-another-user): role/isVerified/createdAtMillis/
+     * lastSignInAtMillis/isSuspended/ownerPackageTier/ownerPackageExpiryMillis are
+     * exclusively server-maintained (assignInitialRole/grantAdminRole/
+     * setAccountSuspended/the Whish webhook — see firestore.rules' user_profiles
+     * update rule) and must never appear in [fields]. Echoing a full AppUser back
+     * through [saveUserProfile] risks writing a locally-cached, possibly-stale value
+     * for one of those fields that no longer matches the real server-stored one —
+     * Firestore then rejects the *entire* write as an attempted protected-field
+     * change, even though the caller only meant to edit their name.
+     */
+    suspend fun updateUserProfileFields(uid: String, fields: Map<String, Any?>): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.USER_PROFILES)
+                .document(uid)
+                .set(fields + ("updatedAt" to System.currentTimeMillis()), SetOptions.merge())
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating user profile fields: ${e.message}", e)
+            false
+        }
+    }
+
+    /**
      * Persists this device's current FCM registration token onto the signed-in user's
      * own profile doc — the only way a server-side Cloud Function can ever reach this
      * device with a real push (see functions/src/notifications/ ts files). A merge write, so
