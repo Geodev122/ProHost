@@ -1,10 +1,12 @@
 package com.example.ui.screens
 
+import android.Manifest
 import android.app.Activity
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -18,7 +20,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -35,11 +36,17 @@ import com.example.data.model.findCountryByName
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AuthViewModel
+import com.example.util.PhoneCountryDetector
+import kotlinx.coroutines.launch
 
 /**
  * Every ProHost account — new or returning — goes through the exact same three steps,
  * phone number first:
- *  1. PHONE_ENTRY — enter a WhatsApp number, request an SMS code.
+ *  1. PHONE_ENTRY — enter a phone number, request an SMS code. The dial code is
+ *     auto-detected (SIM, then last known location, then locale — see
+ *     [PhoneCountryDetector]) and shown as a fixed prefix inside the same field, so
+ *     there is nothing to pick from a separate dropdown; a "Change" action is still
+ *     there in case auto-detection picked the wrong country.
  *  2. OTP_ENTRY — enter the 6-digit code.
  *  3. REGISTRATION_FORM — shown ONLY when the verified number turns out to be brand new
  *     (Firebase's own isNewUser signal decides this, never a guess made before
@@ -60,20 +67,44 @@ fun LoginAuthScreen(
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
+    val coroutineScope = rememberCoroutineScope()
     var step by remember { mutableStateOf(AuthStep.PHONE_ENTRY) }
 
     // --- Step 1: phone entry ---
     var phoneCountry by remember { mutableStateOf(findCountryByName("Lebanon")) }
     var phoneNumber by remember { mutableStateOf("") }
+    // Only true until the very first auto-detect pass finishes, so it never overwrites
+    // a country the user has since changed themselves via the field's "Change" action.
+    var hasAutoDetectedCountry by remember { mutableStateOf(false) }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        // Whether granted or denied, re-run detection — SIM/locale fallbacks inside
+        // PhoneCountryDetector work with no permission at all, and a grant just makes
+        // the location-based fallback available too.
+        coroutineScope.launch {
+            if (!hasAutoDetectedCountry) {
+                phoneCountry = PhoneCountryDetector.detectCountry(context)
+                hasAutoDetectedCountry = true
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (!PhoneCountryDetector.hasLocationPermission(context)) {
+            locationPermissionLauncher.launch(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+            )
+        }
+        if (!hasAutoDetectedCountry) {
+            phoneCountry = PhoneCountryDetector.detectCountry(context)
+            hasAutoDetectedCountry = true
+        }
+    }
 
     // --- Step 2: OTP entry ---
     var otpCode by remember { mutableStateOf("") }
-
-    // True once Google Sign-In succeeded but the account still has no verified phone —
-    // the phone step below then links that same account rather than resolving/creating
-    // a brand-new phone-identified one, and always lands on the registration form after
-    // (a Google identity is missing too many required fields to skip it).
-    var isLinkingGoogleAccount by remember { mutableStateOf(false) }
 
     // --- Step 3: registration form (only ever shown for a brand-new phone number) ---
     var regProfilePicUri by remember { mutableStateOf<Uri?>(null) }
@@ -210,41 +241,23 @@ fun LoginAuthScreen(
             ) {
                 AuthStepHeader(
                     icon = Icons.Default.Phone,
-                    title = if (isLinkingGoogleAccount) "Verify Your WhatsApp Number" else "Continue with Your Phone Number",
-                    subtitle = if (isLinkingGoogleAccount) {
-                        "Almost done — one real SMS code finishes setting up your account"
-                    } else {
-                        "One number for sign-in and registration — verified via a one-time SMS code"
-                    },
+                    title = "Use your Phone Number",
+                    subtitle = null,
                     isBusy = isAuthenticating
                 )
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    CountryCodeSelector(
-                        selectedCountry = phoneCountry,
-                        onCountrySelected = { phoneCountry = it }
-                    )
-                    InputField(
-                        value = phoneNumber,
-                        onValueChange = {
-                            phoneNumber = it
-                            localErrorMessage = null
-                        },
-                        label = "WhatsApp Phone Number",
-                        placeholder = "70 123456",
-                        leadingIcon = Icons.Default.Phone,
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("auth_phone_input"),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                        singleLine = true
-                    )
-                }
+                PhoneNumberField(
+                    country = phoneCountry,
+                    onCountryChange = { phoneCountry = it },
+                    number = phoneNumber,
+                    onNumberChange = {
+                        phoneNumber = it
+                        localErrorMessage = null
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag("auth_phone_input")
+                )
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
@@ -263,7 +276,6 @@ fun LoginAuthScreen(
                         authViewModel.startPhoneVerification(
                             activity = currentActivity,
                             e164Phone = verifiedPhoneE164,
-                            isLinkingExistingAccount = isLinkingGoogleAccount,
                             onCodeSent = {
                                 otpCode = ""
                                 localErrorMessage = null
@@ -280,34 +292,6 @@ fun LoginAuthScreen(
                         .fillMaxWidth()
                         .testTag("submit_login_button")
                 )
-
-                if (!isLinkingGoogleAccount) {
-                    Spacer(modifier = Modifier.height(14.dp))
-                    AuthDivider()
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    ProOutlinedButton(
-                        text = "Continue with Google",
-                        onClick = {
-                            val activityCtx = activity ?: context
-                            authViewModel.signInWithGoogleCredentialManager(
-                                activityContext = activityCtx,
-                                onSuccess = onLoginSuccess,
-                                onNeedsPhoneVerification = { fullName, email ->
-                                    isLinkingGoogleAccount = true
-                                    regFullName = fullName
-                                    regEmail = email
-                                    phoneNumber = ""
-                                }
-                            )
-                        },
-                        enabled = !isAuthenticating,
-                        icon = Icons.Default.AccountCircle,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("google_sign_in_button")
-                    )
-                }
             }
 
             AuthStep.OTP_ENTRY -> ModernCard(
@@ -628,7 +612,7 @@ fun LoginAuthScreen(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Every ProHost account is verified via Firebase Phone Auth SMS — the phone number you enter above is checked first, before anything else, and is your identity on the platform.",
+                    text = "Your Phone Number is your gateway to the app, verified via one-time SMS code.",
                     fontSize = MaterialTheme.typography.labelSmall.fontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -647,7 +631,7 @@ fun LoginAuthScreen(
 private fun AuthStepHeader(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
-    subtitle: String,
+    subtitle: String?,
     isBusy: Boolean
 ) {
     Row(
@@ -673,29 +657,18 @@ private fun AuthStepHeader(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
         if (isBusy) {
             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
         }
-    }
-}
-
-@Composable
-private fun AuthDivider() {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        HorizontalDivider(modifier = Modifier.weight(1f))
-        Text(
-            text = "  OR  ",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        HorizontalDivider(modifier = Modifier.weight(1f))
     }
 }
 

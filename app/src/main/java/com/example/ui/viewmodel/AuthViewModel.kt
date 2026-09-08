@@ -1,7 +1,6 @@
 package com.example.ui.viewmodel
 
 import android.app.Activity
-import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,12 +13,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 /**
- * ViewModel for LoginAuthScreen — the phone-OTP-first sign-in/registration flow,
- * plus Google Sign-In as a convenience alt path. Relocated here from
- * ProHostViewModel (the ViewModel-split effort): every method/state field below
- * had exactly one caller (LoginAuthScreen) before this move, unlike the payment,
- * WhatsApp, and booking-dialog logic that stayed on the shared ViewModel because
- * multiple different screens call it identically.
+ * ViewModel for LoginAuthScreen — the phone-OTP-only sign-in/registration flow.
+ * Relocated here from ProHostViewModel (the ViewModel-split effort): every
+ * method/state field below had exactly one caller (LoginAuthScreen) before this
+ * move, unlike the payment, WhatsApp, and booking-dialog logic that stayed on the
+ * shared ViewModel because multiple different screens call it identically.
  *
  * Role is NEVER taken from the client here. Sign-in resolves the caller's role from
  * their Firebase Auth ID token's custom claim (assigned server-side by the
@@ -67,7 +65,6 @@ class AuthViewModel(
     )
 
     private var pendingVerificationId: String? = null
-    private var pendingIsLinkingGoogleAccount = false
 
     /**
      * Backfills this device's current FCM token onto [uid]'s profile right after a
@@ -92,19 +89,14 @@ class AuthViewModel(
      * happens after the code is verified — sign the caller straight into an existing
      * account, or ask them to fill in the rest of a brand-new profile — is decided in
      * [submitPhoneVerificationCode] purely from Firebase's own `isNewUser` signal, never
-     * guessed or asked up front. Pass [isLinkingExistingAccount] = true only when
-     * completing a Google Sign-In account that has no phone number yet (see
-     * [signInWithGoogleCredentialManager]) — that links the phone to the already-signed-in
-     * Google identity instead of resolving/creating a separate phone-identified account.
+     * guessed or asked up front.
      */
     fun startPhoneVerification(
         activity: Activity,
         e164Phone: String,
-        isLinkingExistingAccount: Boolean = false,
         onCodeSent: () -> Unit,
         onVerified: (needsRegistration: Boolean) -> Unit
     ) {
-        pendingIsLinkingGoogleAccount = isLinkingExistingAccount
         _isAuthenticating.value = true
         _authErrorMessage.value = null
         val authService = com.example.data.auth.FirebaseAuthService(activity)
@@ -142,8 +134,8 @@ class AuthViewModel(
 
     /**
      * Resolves the verified phone credential and decides what the caller sees next:
-     * an existing account (or a Google account being linked) is never routed back
-     * through a registration form — only a genuinely brand-new phone number is.
+     * an existing account is never routed back through a registration form — only a
+     * genuinely brand-new phone number is.
      */
     private suspend fun finishPhoneVerification(
         activity: Activity,
@@ -151,11 +143,7 @@ class AuthViewModel(
         onVerified: (needsRegistration: Boolean) -> Unit
     ) {
         val authService = com.example.data.auth.FirebaseAuthService(activity)
-        val result = if (pendingIsLinkingGoogleAccount) {
-            authService.linkPhoneCredential(credential)
-        } else {
-            authService.signInWithPhoneCredential(credential)
-        }
+        val result = authService.signInWithPhoneCredential(credential)
         when (result) {
             is com.example.data.auth.AuthResult.Success -> {
                 val firebaseUser = result.firebaseUser
@@ -166,7 +154,7 @@ class AuthViewModel(
                 }
                 pendingVerificationId = null
                 _isAuthenticating.value = false
-                if (!pendingIsLinkingGoogleAccount && !result.isNewUser) {
+                if (!result.isNewUser) {
                     // This exact phone number already had an account — sign the caller
                     // straight into it, no registration form, nothing to overwrite.
                     try {
@@ -179,9 +167,9 @@ class AuthViewModel(
                         _authErrorMessage.value = e.message
                     }
                 } else {
-                    // Brand-new phone number (or a Google account still missing one) —
-                    // Firebase Auth already has a signed-in session for it; the caller
-                    // just needs to fill in the rest of their profile now.
+                    // Brand-new phone number — Firebase Auth already has a signed-in
+                    // session for it; the caller just needs to fill in the rest of
+                    // their profile now.
                     onVerified(true)
                 }
             }
@@ -236,14 +224,12 @@ class AuthViewModel(
                     governorate = registration.governorate,
                     city = registration.city
                 )
-                pendingIsLinkingGoogleAccount = false
                 _isAuthenticating.value = false
                 registerFcmTokenForCurrentUser(user.id)
                 _authSuccessMessage.value = "Account created successfully for ${user.fullName}!"
                 onSuccess()
             } catch (e: com.example.data.auth.AccountSuspendedException) {
                 com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-                pendingIsLinkingGoogleAccount = false
                 _isAuthenticating.value = false
                 _authErrorMessage.value = e.message
             } catch (e: Exception) {
@@ -252,60 +238,28 @@ class AuthViewModel(
                 // uncaught here, which would have crashed the coroutine instead of
                 // surfacing a message the registration form could show.
                 _isAuthenticating.value = false
-                _authErrorMessage.value = e.message ?: "Registration failed. Please check your details and try again."
+                _authErrorMessage.value = friendlyRegistrationErrorMessage(e)
             }
         }
     }
 
     /**
-     * Google Sign-In — a convenience alt path, never a substitute for phone
-     * verification. [onNeedsPhoneVerification] fires instead of [onSuccess] when this
-     * Google identity has no verified phone number yet (every account needs one — see
-     * [startPhoneVerification] with `isLinkingExistingAccount = true` for how the
-     * caller should complete that).
+     * A Cloud Function's own rejection message (e.g. assignInitialRole's format
+     * validation) is already written for end users and safe to show as-is. Anything
+     * else — a raw network/SDK exception — is never shown verbatim, since it can
+     * contain technical text ("FirebaseFunctionsException", stack-trace fragments)
+     * that would read like an app crash to someone who has never heard of Firebase.
      */
-    fun signInWithGoogleCredentialManager(
-        activityContext: Context,
-        onSuccess: () -> Unit,
-        onNeedsPhoneVerification: (fullName: String, email: String) -> Unit
-    ) {
-        viewModelScope.launch {
-            _isAuthenticating.value = true
-            _authErrorMessage.value = null
-            val authService = com.example.data.auth.FirebaseAuthService(activityContext)
-            when (val result = authService.signInWithGoogleCredentialManager(activityContext)) {
-                is com.example.data.auth.AuthResult.Success -> {
-                    val firebaseUser = result.firebaseUser
-                    if (firebaseUser == null) {
-                        _isAuthenticating.value = false
-                        _authErrorMessage.value = "Google sign-in did not return a valid session. Please try again."
-                        return@launch
-                    }
-                    try {
-                        val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
-                        registerFcmTokenForCurrentUser(user.id)
-                        _isAuthenticating.value = false
-                        if (firebaseUser.phoneNumber.isNullOrBlank()) {
-                            _authSuccessMessage.value = "Signed in as ${user.fullName} with Google — just need to verify your phone number."
-                            onNeedsPhoneVerification(result.displayName ?: user.fullName, result.email)
-                        } else {
-                            _authSuccessMessage.value = "Google identity verified: ${user.fullName}"
-                            onSuccess()
-                        }
-                    } catch (e: com.example.data.auth.AccountSuspendedException) {
-                        authService.signOut()
-                        _isAuthenticating.value = false
-                        _authErrorMessage.value = e.message
-                    }
-                }
-                is com.example.data.auth.AuthResult.Error -> {
-                    _isAuthenticating.value = false
-                    _authErrorMessage.value = result.message
-                }
-                com.example.data.auth.AuthResult.Cancelled -> {
-                    _isAuthenticating.value = false
-                }
-            }
+    private fun friendlyRegistrationErrorMessage(e: Exception): String {
+        val message = e.message
+        val looksTechnical = message.isNullOrBlank() ||
+            message.contains("Firebase", ignoreCase = true) ||
+            message.contains("Exception", ignoreCase = true) ||
+            message.contains("com.google", ignoreCase = true)
+        return if (looksTechnical) {
+            "Registration failed. Please check your details and try again."
+        } else {
+            message!!
         }
     }
 }

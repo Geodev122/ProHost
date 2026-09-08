@@ -125,13 +125,10 @@ dependencies {
   implementation(libs.firebase.storage)
   implementation(libs.firebase.dataconnect)
 
-  // Uncomment ALL FOUR of the following dependencies together to use Firebase Auth and Google
-  // Sign-In via Credential Manager:
+  // Firebase Auth: phone-number SMS OTP is the app's only sign-in method (no Google
+  // Sign-In / Credential Manager — removed by design, every account is phone-verified).
   implementation(libs.firebase.auth)
   implementation(libs.firebase.functions)
-  implementation(libs.androidx.credentials)
-  implementation(libs.androidx.credentials.play.services)
-  implementation(libs.googleid)
   implementation(libs.firebase.appcheck.recaptcha)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)

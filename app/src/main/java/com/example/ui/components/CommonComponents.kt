@@ -828,6 +828,7 @@ fun InputField(
     label: String,
     modifier: Modifier = Modifier,
     placeholder: String? = null,
+    prefix: String? = null,
     leadingIcon: ImageVector? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
     isError: Boolean = false,
@@ -847,6 +848,7 @@ fun InputField(
             onValueChange = onValueChange,
             label = { Text(label, style = MaterialTheme.typography.bodyMedium) },
             placeholder = if (placeholder != null) { { Text(placeholder, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) } } else null,
+            prefix = if (prefix != null) { { Text(prefix, style = MaterialTheme.typography.bodyMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold) } } else null,
             leadingIcon = if (leadingIcon != null) {
                 {
                     Icon(

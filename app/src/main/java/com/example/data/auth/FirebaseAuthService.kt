@@ -3,22 +3,11 @@ package com.example.data.auth
 import android.app.Activity
 import android.content.Context
 import android.util.Log
-import androidx.credentials.CredentialManager
-import androidx.credentials.CustomCredential
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialCancellationException
-import androidx.credentials.exceptions.GetCredentialException
-import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.gms.tasks.Task
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseException
-import com.google.firebase.auth.AuthResult as FirebaseAuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
@@ -46,7 +35,10 @@ sealed class AuthResult {
 }
 
 /**
- * Service encapsulating Firebase Auth operations and Google Credential Manager integration.
+ * Service encapsulating Firebase Auth operations. Every user-facing message this class
+ * hands back — success or failure — is written for someone who has never heard of
+ * Firebase: no exception class names, no raw SDK text, ever. [Log.e]/[Log.w] still
+ * carry the real technical detail for anyone reading device logs.
  */
 class FirebaseAuthService(private val context: Context) {
 
@@ -62,10 +54,6 @@ class FirebaseAuthService(private val context: Context) {
             Log.w(tag, "Firebase initialization warning: ${e.message}")
             null
         }
-    }
-
-    private val credentialManager: CredentialManager by lazy {
-        CredentialManager.create(context)
     }
 
     val currentFirebaseUser: FirebaseUser?
@@ -125,17 +113,7 @@ class FirebaseAuthService(private val context: Context) {
 
                 override fun onVerificationFailed(e: FirebaseException) {
                     Log.e(tag, "Phone verification failed: ${e.message}", e)
-                    val friendlyMessage = when {
-                        e.message?.contains("invalid", ignoreCase = true) == true &&
-                            e.message?.contains("phone", ignoreCase = true) == true ->
-                            "That phone number doesn't look valid — check the country code and number."
-                        e.message?.contains("quota", ignoreCase = true) == true ->
-                            "Too many verification attempts right now. Please try again later."
-                        e.message?.contains("network", ignoreCase = true) == true ->
-                            "Network connection error. Check your internet access."
-                        else -> e.localizedMessage ?: "Phone verification failed. Please try again."
-                    }
-                    onError(friendlyMessage)
+                    onError(friendlyVerificationErrorMessage(e))
                 }
 
                 override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
@@ -177,120 +155,39 @@ class FirebaseAuthService(private val context: Context) {
     }
 
     /**
-     * Links [credential] to the currently signed-in Firebase user — used to attach a
-     * verified phone number to an account that signed up via Google Sign-In (which
-     * doesn't itself verify a phone number), completing the "every account gets
-     * phone-verified" requirement without creating a second, separate account.
+     * Maps any exception from a phone-credential sign-in attempt to a short, plain-language
+     * message — never the raw Firebase/SDK text, which can otherwise surface technical
+     * strings (project config, reCAPTCHA/Play Integrity failures, class names) that mean
+     * nothing to an end user and read like an app crash.
      */
-    suspend fun linkPhoneCredential(credential: PhoneAuthCredential): AuthResult {
-        val auth = firebaseAuth
-            ?: return AuthResult.Error("Authentication service unavailable. Please check your connection and try again.")
-        val user = auth.currentUser
-            ?: return AuthResult.Error("You need to be signed in before linking a phone number.")
-        return try {
-            val result = user.linkWithCredential(credential).awaitTask()
-            val linkedUser = result.user ?: user
-            AuthResult.Success(
-                firebaseUser = linkedUser,
-                email = linkedUser.email ?: "",
-                displayName = linkedUser.displayName,
-                photoUrl = linkedUser.photoUrl?.toString()
-            )
-        } catch (e: Exception) {
-            Log.e(tag, "linkPhoneCredential error: ${e.message}", e)
-            val friendlyMessage = if (e.message?.contains("credential-already-in-use", ignoreCase = true) == true) {
+    private fun phoneCredentialErrorMessage(e: Exception): String = friendlyPhoneAuthMessage(e.message)
+
+    private fun friendlyVerificationErrorMessage(e: Exception): String = friendlyPhoneAuthMessage(e.message)
+
+    private fun friendlyPhoneAuthMessage(rawMessage: String?): String {
+        val m = rawMessage.orEmpty()
+        return when {
+            m.contains("invalid-verification-code", ignoreCase = true) ->
+                "That code doesn't match. Please check and try again."
+            m.contains("session-expired", ignoreCase = true) || m.contains("code-expired", ignoreCase = true) ->
+                "This code has expired — request a new one."
+            m.contains("invalid", ignoreCase = true) && m.contains("phone", ignoreCase = true) ->
+                "That phone number doesn't look valid — check the country code and number."
+            m.contains("too-many-requests", ignoreCase = true) || m.contains("quota", ignoreCase = true) ->
+                "Too many attempts right now. Please wait a bit and try again."
+            m.contains("network", ignoreCase = true) ->
+                "Network connection error. Check your internet access and try again."
+            m.contains("app-not-authorized", ignoreCase = true) ||
+                m.contains("recaptcha", ignoreCase = true) ||
+                m.contains("safetynet", ignoreCase = true) ||
+                m.contains("play integrity", ignoreCase = true) ||
+                m.contains("blocked-by-firebase", ignoreCase = true) ||
+                m.contains("app-verification", ignoreCase = true) ->
+                "We couldn't verify your phone number right now. Please try again in a moment, or contact support if this keeps happening."
+            m.contains("credential-already-in-use", ignoreCase = true) ->
                 "This phone number is already registered to a different account."
-            } else {
-                phoneCredentialErrorMessage(e)
-            }
-            AuthResult.Error(friendlyMessage, e)
-        }
-    }
-
-    private fun phoneCredentialErrorMessage(e: Exception): String = when {
-        e.message?.contains("invalid-verification-code", ignoreCase = true) == true -> "That code doesn't match. Please check and try again."
-        e.message?.contains("session-expired", ignoreCase = true) == true ||
-            e.message?.contains("code-expired", ignoreCase = true) == true -> "This code has expired — request a new one."
-        e.message?.contains("network", ignoreCase = true) == true -> "Network connection error. Check your internet access."
-        else -> e.localizedMessage ?: "Phone verification failed. Please try again."
-    }
-
-    /**
-     * Google Sign-In using Android Credential Manager and Firebase Auth GoogleAuthProvider.
-     */
-    suspend fun signInWithGoogleCredentialManager(
-        activityContext: Context,
-        serverClientId: String? = null
-    ): AuthResult {
-        return try {
-            val clientId = serverClientId
-                ?: "114265295089-prospace-android.apps.googleusercontent.com"
-
-            val googleIdOption = GetGoogleIdOption.Builder()
-                .setFilterByAuthorizedAccounts(false)
-                .setServerClientId(clientId)
-                .setAutoSelectEnabled(false)
-                .build()
-
-            val request = GetCredentialRequest.Builder()
-                .addCredentialOption(googleIdOption)
-                .build()
-
-            val response = credentialManager.getCredential(
-                context = activityContext,
-                request = request
-            )
-
-            val credential = response.credential
-            if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
-                val idToken = googleIdTokenCredential.idToken
-                val email = googleIdTokenCredential.id
-                val displayName = googleIdTokenCredential.displayName ?: email.substringBefore("@")
-                val photoUrl = googleIdTokenCredential.profilePictureUri?.toString()
-
-                val auth = firebaseAuth
-                if (auth == null) {
-                    return AuthResult.Error("Authentication service unavailable. Please check your connection and try again.")
-                }
-                if (idToken.isBlank()) {
-                    return AuthResult.Error("Google sign-in did not return a valid identity token.")
-                }
-
-                val firebaseUser: FirebaseUser = try {
-                    val authCredential = GoogleAuthProvider.getCredential(idToken, null)
-                    val authResult = auth.signInWithCredential(authCredential).awaitTask()
-                    authResult.user
-                        ?: return AuthResult.Error("Google sign-in did not return a Firebase user.")
-                } catch (e: Exception) {
-                    Log.e(tag, "GoogleAuthProvider signInWithCredential error: ${e.message}", e)
-                    return AuthResult.Error("Google sign-in failed: ${e.localizedMessage}", e)
-                }
-
-                AuthResult.Success(
-                    firebaseUser = firebaseUser,
-                    email = email,
-                    displayName = displayName,
-                    photoUrl = photoUrl
-                )
-            } else {
-                AuthResult.Error("Unexpected credential type returned.")
-            }
-        } catch (e: GetCredentialCancellationException) {
-            Log.i(tag, "Credential manager cancelled by user")
-            AuthResult.Cancelled
-        } catch (e: NoCredentialException) {
-            Log.w(tag, "No Google accounts found or Google Play Services unavailable: ${e.message}")
-            AuthResult.Error("No Google credentials available on this device.", e)
-        } catch (e: GoogleIdTokenParsingException) {
-            Log.e(tag, "Failed to parse Google ID token: ${e.message}", e)
-            AuthResult.Error("Failed to parse Google ID token.", e)
-        } catch (e: GetCredentialException) {
-            Log.e(tag, "CredentialManager error: ${e.message}", e)
-            AuthResult.Error("Google Sign-In failed: ${e.localizedMessage}", e)
-        } catch (e: Exception) {
-            Log.e(tag, "Unexpected error during Google Sign-In: ${e.message}", e)
-            AuthResult.Error("Sign in error: ${e.localizedMessage}", e)
+            else ->
+                "We couldn't verify your phone number right now. Please try again."
         }
     }
 
