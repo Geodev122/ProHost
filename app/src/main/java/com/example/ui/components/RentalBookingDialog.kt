@@ -981,7 +981,7 @@ fun RentalBookingDialog(
                     }
 
                     // In-App Only Request Button
-                    CustomButton(
+                    ProOutlinedButton(
                         text = "In-App Request",
                         onClick = {
                             viewModel.submitBookingRequest(
@@ -1004,7 +1004,6 @@ fun RentalBookingDialog(
                             onRequestSubmitted()
                             onDismiss()
                         },
-                        variant = CustomButtonVariant.OUTLINED,
                         icon = Icons.AutoMirrored.Filled.Send,
                         modifier = Modifier.weight(1f)
                     )

@@ -154,7 +154,7 @@ fun ExportDataDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    CustomButton(
+                    ProOutlinedButton(
                         text = "Copy",
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -162,15 +162,13 @@ fun ExportDataDialog(
                             clipboard.setPrimaryClip(clip)
                             Toast.makeText(context, "$formatLabel copied to clipboard!", Toast.LENGTH_SHORT).show()
                         },
-                        variant = CustomButtonVariant.OUTLINED,
                         icon = Icons.Default.ContentCopy,
                         modifier = Modifier.weight(1f)
                     )
 
-                    CustomButton(
+                    ProPrimaryButton(
                         text = "Share File / Sheet",
                         onClick = { onShare(formatLabel, currentContent) },
-                        variant = CustomButtonVariant.PRIMARY,
                         icon = Icons.Default.Share,
                         modifier = Modifier.weight(1.5f)
                     )

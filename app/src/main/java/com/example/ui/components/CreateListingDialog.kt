@@ -879,15 +879,14 @@ fun CreateListingDialog(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     if (currentStep > 0) {
-                        CustomButton(
+                        ProOutlinedButton(
                             text = "Back",
                             onClick = { currentStep-- },
-                            variant = CustomButtonVariant.OUTLINED,
                             modifier = Modifier.weight(1f)
                         )
                     }
 
-                    CustomButton(
+                    ProPrimaryButton(
                         text = if (currentStep < totalSteps - 1) "Next" else "Publish Listing",
                         onClick = {
                             if (currentStep < totalSteps - 1) {
@@ -1005,7 +1004,6 @@ fun CreateListingDialog(
                                 onListingCreated(newListing)
                             }
                         },
-                        variant = CustomButtonVariant.PRIMARY,
                         modifier = Modifier.weight(1.5f),
                         enabled = if (currentStep < totalSteps - 1) {
                             currentStep != 0 || title.isNotBlank() || district.isNotBlank()

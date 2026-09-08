@@ -1337,48 +1337,6 @@ fun WorkspaceCard(
 }
 
 /**
- * Legacy alias for WorkspaceCard
- */
-@Composable
-fun ClinicCard(
-    title: String,
-    specialization: String,
-    location: String,
-    rateUsd: Double,
-    modifier: Modifier = Modifier,
-    imageUrl: String? = null,
-    scheduleSummary: String? = null,
-    doctorName: String? = null,
-    practiceType: String? = null,
-    isVerified: Boolean = true,
-    bookedDoctorCount: Int = 0,
-    facilities: List<String> = emptyList(),
-    elevation: Dp = 3.dp,
-    shape: RoundedCornerShape = MaterialTheme.shapes.large,
-    onClick: () -> Unit,
-    onWhatsAppClick: (() -> Unit)? = null
-) {
-    WorkspaceCard(
-        title = title,
-        specialization = specialization,
-        location = location,
-        rateUsd = rateUsd,
-        modifier = modifier,
-        imageUrl = imageUrl,
-        scheduleSummary = scheduleSummary,
-        doctorName = doctorName,
-        practiceType = practiceType,
-        isVerified = isVerified,
-        bookedDoctorCount = bookedDoctorCount,
-        facilities = facilities,
-        elevation = elevation,
-        shape = shape,
-        onClick = onClick,
-        onWhatsAppClick = onWhatsAppClick
-    )
-}
-
-/**
  * Standard ProHost Card Container (alias for ModernCard).
  */
 @Composable

@@ -900,7 +900,7 @@ fun SpecialistProfileScreen(
 
                     Spacer(modifier = Modifier.height(Spacing.xs))
 
-                    CustomButton(
+                    ProPrimaryButton(
                         text = "Save Profile Changes",
                         onClick = {
                             coroutineScope.launch {

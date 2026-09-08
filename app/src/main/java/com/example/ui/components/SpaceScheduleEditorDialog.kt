@@ -294,7 +294,7 @@ fun SpaceScheduleEditorDialog(
                                             modifier = Modifier.fillMaxWidth()
                                         )
 
-                                        CustomButton(
+                                        ProPrimaryButton(
                                             text = "Save Blackout Slot",
                                             onClick = {
                                                 viewModel.addBlackoutSlot(
@@ -585,7 +585,7 @@ fun SpaceScheduleEditorDialog(
                                             )
                                         }
 
-                                        CustomButton(
+                                        ProPrimaryButton(
                                             text = "Publish Rental Formula",
                                             onClick = {
                                                 val rate = formulaRateUsd.toDoubleOrNull() ?: 100.0
@@ -669,7 +669,7 @@ fun SpaceScheduleEditorDialog(
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
-                CustomButton(
+                ProPrimaryButton(
                     text = "Done",
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth()

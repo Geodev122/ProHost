@@ -254,17 +254,17 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
-                CustomButton(
+                ProPrimaryButton(
                     text = if (isAuthenticating) "Sending Code..." else "Send Verification Code",
                     onClick = {
                         val currentActivity = activity
                         if (currentActivity == null) {
                             localErrorMessage = "Unable to start phone verification right now."
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         if (phoneNumber.isBlank() || phoneNumber.filter { it.isDigit() }.length < 6) {
                             localErrorMessage = "Please enter a valid phone number"
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         authViewModel.startPhoneVerification(
                             activity = currentActivity,
@@ -281,7 +281,6 @@ fun LoginAuthScreen(
                         )
                     },
                     enabled = !isAuthenticating,
-                    variant = CustomButtonVariant.PRIMARY,
                     icon = Icons.AutoMirrored.Filled.Login,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -293,7 +292,7 @@ fun LoginAuthScreen(
                     AuthDivider()
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    CustomButton(
+                    ProOutlinedButton(
                         text = "Continue with Google",
                         onClick = {
                             val activityCtx = activity ?: context
@@ -309,7 +308,6 @@ fun LoginAuthScreen(
                             )
                         },
                         enabled = !isAuthenticating,
-                        variant = CustomButtonVariant.OUTLINED,
                         icon = Icons.Default.AccountCircle,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -345,24 +343,23 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
-                CustomButton(
+                ProPrimaryButton(
                     text = if (isAuthenticating) "Verifying..." else "Verify Code",
                     onClick = {
                         val currentActivity = activity
                         if (currentActivity == null) {
                             localErrorMessage = "Unable to verify right now."
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         if (otpCode.length < 6) {
                             localErrorMessage = "Please enter the 6-digit code"
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         authViewModel.submitPhoneVerificationCode(currentActivity, otpCode) { needsRegistration ->
                             if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
                         }
                     },
                     enabled = !isAuthenticating,
-                    variant = CustomButtonVariant.PRIMARY,
                     icon = Icons.Default.CheckCircle,
                     modifier = Modifier.fillMaxWidth().testTag("submit_otp_button")
                 )
@@ -564,33 +561,33 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                CustomButton(
+                ProPrimaryButton(
                     text = if (isAuthenticating) "Creating Account..." else "Create Account",
                     onClick = {
                         val currentActivity = activity
                         if (currentActivity == null) {
                             localErrorMessage = "Unable to create your account right now."
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         if (regFullName.isBlank()) {
                             localErrorMessage = "Please enter your full name"
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         if (regEmail.isBlank() || !regEmail.contains("@")) {
                             localErrorMessage = "Please enter a valid email"
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         if (!regIdDocState.isSelected) {
                             localErrorMessage = "Please upload your ID document"
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         if (regGovernorateArea.isBlank()) {
                             localErrorMessage = "Please enter your governorate / area"
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         if (regCity.isBlank()) {
                             localErrorMessage = "Please enter your city"
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         authViewModel.completePendingRegistration(
                             activity = currentActivity,
@@ -609,7 +606,6 @@ fun LoginAuthScreen(
                         )
                     },
                     enabled = !isAuthenticating,
-                    variant = CustomButtonVariant.PRIMARY,
                     icon = Icons.Default.CheckCircle,
                     modifier = Modifier
                         .fillMaxWidth()

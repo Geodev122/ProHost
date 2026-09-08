@@ -289,15 +289,14 @@ fun WhishPayModal(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    CustomButton(
+                    ProOutlinedButton(
                         text = "Cancel",
                         onClick = onDismiss,
-                        variant = CustomButtonVariant.OUTLINED,
                         modifier = Modifier.weight(1f),
                         enabled = !isLaunching
                     )
 
-                    CustomButton(
+                    ProPrimaryButton(
                         text = "Authorize Settlement",
                         onClick = {
                             isLaunching = true
@@ -306,8 +305,8 @@ fun WhishPayModal(
                             onDismiss()
                         },
                         icon = Icons.Default.Lock,
-                        customContainerColor = WhishBrandRed,
-                        customContentColor = Color.White,
+                        containerColor = WhishBrandRed,
+                        contentColor = Color.White,
                         modifier = Modifier.weight(1.5f),
                         isLoading = isLaunching,
                         enabled = !isLaunching && payerName.isNotBlank() && payerPhone.isNotBlank() && viewModel != null
