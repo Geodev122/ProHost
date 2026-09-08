@@ -142,7 +142,7 @@ fun OwnerAnalyticsScreen(
                         icon = Icons.Default.LocalHospital
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(Spacing.xs))
 
                     if (specialtyDemand.isEmpty()) {
                         Text(
@@ -240,7 +240,7 @@ fun ListingHealthCard(space: SpaceListing) {
                     }
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(Spacing.md))
 
                 Column {
                     Text(
@@ -263,7 +263,7 @@ fun ListingHealthCard(space: SpaceListing) {
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(Spacing.sm))
 
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer,

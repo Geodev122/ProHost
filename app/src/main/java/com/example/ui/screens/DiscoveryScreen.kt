@@ -33,6 +33,7 @@ import com.example.ui.state.DiscoveryUiState
 import com.example.ui.viewmodel.DiscoveryViewModel
 import com.example.ui.viewmodel.ProSpaceViewModel
 import com.example.ui.theme.PremiumBackgroundGradient
+import com.example.ui.theme.Spacing
 
 /**
  * ViewModel-connected wrapper for DiscoveryScreen — search/filter/selection state
@@ -352,7 +353,7 @@ fun DiscoveryScreenContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 Text("Space Type", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -365,7 +366,7 @@ fun DiscoveryScreenContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 Text("Rental Formula", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -378,7 +379,7 @@ fun DiscoveryScreenContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 Text(
                     text = "Maximum Monthly Rate: $${maxPriceUsd.toInt()} USD",
@@ -392,7 +393,7 @@ fun DiscoveryScreenContent(
                     steps = 14
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 Button(
                     onClick = { onSetFilterSheetVisible(false) },

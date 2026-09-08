@@ -97,7 +97,7 @@ fun SpaceScheduleEditorDialog(
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = "Owner Suite")
                         }
                         Text(
@@ -243,7 +243,7 @@ fun SpaceScheduleEditorDialog(
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                                 ) {
                                     Icon(if (showAddBlackout) Icons.Default.ExpandLess else Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.xs))
                                     Text(if (showAddBlackout) "Cancel" else "Add Blackout", fontSize = 12.sp)
                                 }
                             }
@@ -389,7 +389,7 @@ fun SpaceScheduleEditorDialog(
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                                 ) {
                                     Icon(if (showAddFormula) Icons.Default.ExpandLess else Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.xs))
                                     Text(if (showAddFormula) "Close" else "Create Formula", fontSize = 12.sp)
                                 }
                             }

@@ -161,7 +161,7 @@ fun SpaceDetailsScreenContent(
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
                         ) {
                             Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Request Rent", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                         }
 
@@ -174,7 +174,7 @@ fun SpaceDetailsScreenContent(
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("WhatsApp", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -265,7 +265,7 @@ fun SpaceDetailsScreenContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(Icons.Default.Videocam, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("10s Video Tour", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                     }
                 }
@@ -421,7 +421,7 @@ fun SpaceDetailsScreenContent(
                                                         modifier = Modifier.size(12.dp),
                                                         tint = MaterialTheme.colorScheme.primary
                                                     )
-                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Spacer(modifier = Modifier.width(Spacing.xs))
                                                     Text(
                                                         text = "${formula.daysOfWeek.joinToString()} • ${formula.startHour} - ${formula.endHour} (${formula.totalWeeklyHours} hrs/wk)",
                                                         style = MaterialTheme.typography.labelSmall,
@@ -459,7 +459,7 @@ fun SpaceDetailsScreenContent(
                                         tint = LebaneseCedarGreen,
                                         modifier = Modifier.size(16.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.sm))
                                     Text(facility, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                                 }
                             }
@@ -537,7 +537,7 @@ fun SpaceDetailsScreenContent(
                                 liveSpace.residentPractitioners.forEach { doc ->
                                     Text("• $doc", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 2.dp))
                                 }
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(Spacing.xs))
                             }
 
                             Text(

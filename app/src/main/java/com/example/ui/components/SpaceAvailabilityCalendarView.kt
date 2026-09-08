@@ -29,6 +29,7 @@ import com.example.ui.theme.StatusOnInfoContainer
 import com.example.ui.theme.StatusOnSuccessContainer
 import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.StatusSuccessContainer
+import com.example.ui.theme.Spacing
 
 @Composable
 fun SpaceAvailabilityCalendarView(
@@ -86,7 +87,7 @@ fun SpaceAvailabilityCalendarView(
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
                         text = "Operating & Smart Availability",
                         fontSize = 15.sp,
@@ -323,7 +324,7 @@ private fun LegendItem(color: Color, text: String) {
                 .clip(CircleShape)
                 .background(color)
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(Spacing.xs))
         Text(text, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

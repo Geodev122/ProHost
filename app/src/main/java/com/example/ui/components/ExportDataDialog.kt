@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.ui.theme.Spacing
 
 @Composable
 fun ExportDataDialog(
@@ -72,7 +73,7 @@ fun ExportDataDialog(
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
                             text = "Multi-Format Export Hub",
                             fontSize = 16.sp,
@@ -110,7 +111,7 @@ fun ExportDataDialog(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 Text(
                     text = "Live Monospace Preview ($formatLabel):",
@@ -146,7 +147,7 @@ fun ExportDataDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 // Actions: Copy & Native Android Share Sheet
                 Row(

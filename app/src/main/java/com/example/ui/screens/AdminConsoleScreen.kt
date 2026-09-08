@@ -114,7 +114,7 @@ fun AdminConsoleScreen(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(Spacing.md))
                         Column {
                             Text(
                                 text = "Governance Console",
@@ -134,7 +134,7 @@ fun AdminConsoleScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(Spacing.sm))
 
                     // Status Badges Group
                     Row(
@@ -490,7 +490,7 @@ private fun AdminRevenueTab(
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Reset $1.80", style = MaterialTheme.typography.labelSmall)
                         }
                     }
@@ -687,7 +687,7 @@ private fun AdminRevenueTab(
                             colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
                         ) {
                             Icon(Icons.Default.Summarize, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Full Audit (TXT)", style = MaterialTheme.typography.labelSmall)
                         }
 
@@ -698,7 +698,7 @@ private fun AdminRevenueTab(
                             colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                         ) {
                             Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Master (JSON)", style = MaterialTheme.typography.labelSmall)
                         }
                     }
@@ -743,7 +743,7 @@ private fun AdminUsersDirectoryTab(
                                 colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
                             ) {
                                 Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("CSV", style = MaterialTheme.typography.labelSmall)
                             }
                             Button(
@@ -753,7 +753,7 @@ private fun AdminUsersDirectoryTab(
                                 colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                             ) {
                                 Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("JSON", style = MaterialTheme.typography.labelSmall)
                             }
                         }
@@ -946,7 +946,7 @@ private fun AdminUsersDirectoryTab(
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Edit", style = MaterialTheme.typography.labelSmall)
                         }
 
@@ -1046,7 +1046,7 @@ private fun AdminListingsCatalogTab(
                                 colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
                             ) {
                                 Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("CSV", style = MaterialTheme.typography.labelSmall)
                             }
                             Button(
@@ -1056,7 +1056,7 @@ private fun AdminListingsCatalogTab(
                                 colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                             ) {
                                 Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("JSON", style = MaterialTheme.typography.labelSmall)
                             }
                         }
@@ -1216,7 +1216,7 @@ private fun AdminListingsCatalogTab(
                                 contentDescription = null,
                                 modifier = Modifier.size(14.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(
                                 text = if (space.isActiveSubscription) "Deactivate" else "Activate",
                                 style = MaterialTheme.typography.labelSmall
@@ -1231,7 +1231,7 @@ private fun AdminListingsCatalogTab(
                             contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
                         ) {
                             Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(
                                 text = if (space.isVerified) "Unverify" else "Verify",
                                 style = MaterialTheme.typography.labelSmall
@@ -1246,7 +1246,7 @@ private fun AdminListingsCatalogTab(
                             contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
                         ) {
                             Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Edit", style = MaterialTheme.typography.labelSmall)
                         }
 
@@ -1299,7 +1299,7 @@ private fun AdminOwnersAndPaymentsTab(
                             colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                         ) {
                             Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Export Hosts", style = MaterialTheme.typography.labelSmall)
                         }
                     }
@@ -1355,7 +1355,7 @@ private fun AdminOwnersAndPaymentsTab(
                                     Icon(Icons.Default.Security, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
                                 }
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Text(
                                 text = "Whish Pay Gateway Protocol",
                                 style = MaterialTheme.typography.titleSmall,
@@ -1370,7 +1370,7 @@ private fun AdminOwnersAndPaymentsTab(
                             colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
                         ) {
                             Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Export Ledger", style = MaterialTheme.typography.labelSmall)
                         }
                     }
@@ -1538,7 +1538,7 @@ private fun AdminSchemaArchitectureTab(
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Icon(Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("Reset Defaults", style = MaterialTheme.typography.labelSmall)
                             }
 
@@ -1549,7 +1549,7 @@ private fun AdminSchemaArchitectureTab(
                                 colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("Add Node", style = MaterialTheme.typography.labelSmall)
                             }
                         }
@@ -1754,7 +1754,7 @@ private fun AdminSchemaArchitectureTab(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Storage, contentDescription = null, tint = OxfordBlue, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
                             text = "Cloud Firestore Collections Contract",
                             style = MaterialTheme.typography.titleSmall,
@@ -1813,7 +1813,7 @@ private fun AdminSecurityAuditTab(
                             colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
                         ) {
                             Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Export Audit", style = MaterialTheme.typography.labelSmall)
                         }
                     }
@@ -1976,7 +1976,7 @@ private fun AdminExportDataDialog(
                         shape = MaterialTheme.shapes.small
                     ) {
                         Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Copy Text")
                     }
 
@@ -1994,7 +1994,7 @@ private fun AdminExportDataDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
                     ) {
                         Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Share / Export")
                     }
                 }
@@ -2075,7 +2075,7 @@ private fun AdminEditUserDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -2347,7 +2347,7 @@ private fun AdminEditListingDialog(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = MaterialTheme.shapes.small) {

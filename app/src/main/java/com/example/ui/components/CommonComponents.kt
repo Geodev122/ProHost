@@ -268,7 +268,7 @@ fun ProSectionHeader(
             }
         }
         if (trailingContent != null) {
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(Spacing.sm))
             trailingContent()
         }
     }
@@ -476,7 +476,7 @@ fun ProMemberAvatar(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     if (isVerified) {
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Icon(
                             Icons.Default.Verified,
                             contentDescription = "Verified",
@@ -578,7 +578,7 @@ fun ProEmptyState(
                 )
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Spacing.lg))
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
@@ -593,7 +593,7 @@ fun ProEmptyState(
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
         if (actionButtonText != null && onActionClick != null) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.lg))
             Button(
                 onClick = onActionClick,
                 shape = MaterialTheme.shapes.medium
@@ -731,14 +731,14 @@ private fun ButtonInnerContent(
             modifier = Modifier.size(18.dp),
             strokeWidth = 2.dp
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(Spacing.sm))
     } else if (icon != null) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(18.dp)
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(Spacing.sm))
     }
     Text(
         text = text,
@@ -746,7 +746,7 @@ private fun ButtonInnerContent(
         fontWeight = FontWeight.Bold
     )
     if (!isLoading && trailingIcon != null) {
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(Spacing.sm))
         Icon(
             imageVector = trailingIcon,
             contentDescription = null,
@@ -942,7 +942,7 @@ fun InputField(
             modifier = Modifier.fillMaxWidth()
         )
         if (isError && !errorMessage.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(start = 6.dp)
@@ -953,7 +953,7 @@ fun InputField(
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(14.dp)
                 )
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(Spacing.xs))
                 Text(
                     text = errorMessage,
                     style = MaterialTheme.typography.bodySmall,
@@ -961,7 +961,7 @@ fun InputField(
                 )
             }
         } else if (!helperText.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
             Text(
                 text = helperText,
                 style = MaterialTheme.typography.bodySmall,
@@ -1162,7 +1162,7 @@ fun WorkspaceCard(
                     .clip(MaterialTheme.shapes.medium),
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
         }
 
         // Header: Price (the specialty tag that used to sit here was removed — a
@@ -1186,7 +1186,7 @@ fun WorkspaceCard(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(Spacing.xs))
 
         // Location with pin
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1196,7 +1196,7 @@ fun WorkspaceCard(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(16.dp)
             )
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(Spacing.xs))
             Text(
                 text = location,
                 style = MaterialTheme.typography.bodyMedium,
@@ -1206,7 +1206,7 @@ fun WorkspaceCard(
 
         // Schedule & Occupancy Subtitle
         if (scheduleSummary != null || bookedDoctorCount > 0) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Spacing.sm))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1226,7 +1226,7 @@ fun WorkspaceCard(
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
                                 modifier = Modifier.size(12.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(
                                 text = scheduleSummary,
                                 style = MaterialTheme.typography.labelSmall,
@@ -1252,7 +1252,7 @@ fun WorkspaceCard(
                                 tint = StatusOnInfoContainer,
                                 modifier = Modifier.size(12.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(
                                 text = "$bookedDoctorCount Active Member(s)",
                                 style = MaterialTheme.typography.labelSmall,
@@ -1290,7 +1290,7 @@ fun WorkspaceCard(
 
         // Footer: Owner details & Quick WhatsApp inquiry
         if (doctorName != null || onWhatsAppClick != null) {
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -1302,7 +1302,7 @@ fun WorkspaceCard(
                 if (doctorName != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         ProMemberAvatar(name = doctorName, isVerified = isVerified, size = 34.dp)
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Column {
                             Text(
                                 text = doctorName,
@@ -1679,7 +1679,7 @@ fun NetworkSyncResilienceBanner(
                     modifier = Modifier.height(28.dp)
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(12.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(if (pendingOfflineCount > 0) "Retry ($pendingOfflineCount)" else "Sync", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }

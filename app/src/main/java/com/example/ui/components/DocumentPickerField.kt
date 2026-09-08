@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.ui.theme.OxfordBlue
 import com.example.ui.theme.OxfordBlueContainer
+import com.example.ui.theme.Spacing
 
 /**
  * A required-document picker: tap to pick a file (PDF or image) from the device, shows
@@ -71,11 +72,11 @@ fun DocumentPickerField(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             if (required) {
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(Spacing.xs))
                 Text("*", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
             }
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(Spacing.xs))
         Surface(
             modifier = Modifier
                 .fillMaxWidth()

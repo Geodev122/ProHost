@@ -31,6 +31,7 @@ import com.example.ui.theme.LebaneseCedarGreen
 import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.WhatsAppGreen
 import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.theme.Spacing
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -256,7 +257,7 @@ fun DrawerDialogsHandler(
                                         shape = MaterialTheme.shapes.small
                                     ) {
                                         Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Spacer(modifier = Modifier.width(Spacing.xs))
                                         Text("Export CSV", fontSize = 11.sp)
                                     }
                                 }
@@ -387,7 +388,7 @@ fun DrawerDialogsHandler(
                                             tint = MaterialTheme.colorScheme.outlineVariant,
                                             modifier = Modifier.size(48.dp)
                                         )
-                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Spacer(modifier = Modifier.height(Spacing.sm))
                                         Text(
                                             text = "No notifications yet.",
                                             fontWeight = FontWeight.Bold,
@@ -462,14 +463,14 @@ fun DrawerDialogsHandler(
                                                         }
                                                     }
 
-                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Spacer(modifier = Modifier.height(Spacing.xs))
                                                     Text(
                                                         text = alert.body,
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = if (alert.isRead) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
 
-                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Spacer(modifier = Modifier.height(Spacing.xs))
                                                     Row(
                                                         modifier = Modifier.fillMaxWidth(),
                                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -497,7 +498,7 @@ fun DrawerDialogsHandler(
                                                                     modifier = Modifier.height(28.dp)
                                                                 ) {
                                                                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(12.dp))
-                                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                                    Spacer(modifier = Modifier.width(Spacing.xs))
                                                                     Text("Open Screen", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                                                 }
                                                             }
@@ -525,7 +526,7 @@ fun DrawerDialogsHandler(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 Button(
                     onClick = onDismiss,
@@ -562,7 +563,7 @@ private fun AppUpdatesInfo(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         if (onNavigateToTab != null) {
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
             Button(
                 onClick = {
                     onNavigateToTab(profileTabId)

@@ -29,6 +29,7 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
+import com.example.ui.theme.Spacing
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -233,7 +234,7 @@ fun CreateListingDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 // Scrollable Content per step
                 Box(
@@ -703,7 +704,7 @@ fun CreateListingDialog(
                                                 enabled = subName.isNotBlank() && (subHourlyEnabled || subShiftEnabled || subDailyEnabled || subMonthlyEnabled)
                                             ) {
                                                 Icon(Icons.Default.Add, contentDescription = null)
-                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Spacer(modifier = Modifier.width(Spacing.xs))
                                                 Text("Add Room / Desk to Listing", fontSize = 12.sp)
                                             }
                                         }
@@ -797,7 +798,7 @@ fun CreateListingDialog(
                                     ) {
                                         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                             Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Spacer(modifier = Modifier.width(Spacing.sm))
                                             Text("Hourly consulting reference rate is auto-calculated at ~$suggestedHourly USD/hr.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
                                         }
                                     }

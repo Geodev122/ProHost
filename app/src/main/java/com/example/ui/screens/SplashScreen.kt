@@ -97,7 +97,7 @@ fun SplashScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(Spacing.xl))
 
             // Main Display Typography
             Text(
@@ -108,7 +108,7 @@ fun SplashScreen(
                 letterSpacing = 1.sp
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Spacing.sm))
 
             // Professional Subtitle
             Text(
@@ -143,7 +143,7 @@ fun SplashScreen(
                 color = MaterialTheme.colorScheme.primary,
                 letterSpacing = 1.5.sp
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
             Text(
                 text = "Licensed exchange • Secure local sqlite store enabled",
                 fontSize = 10.sp,

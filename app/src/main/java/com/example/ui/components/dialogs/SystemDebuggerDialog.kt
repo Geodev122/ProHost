@@ -93,7 +93,7 @@ fun SystemDebuggerDialog(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(Spacing.md))
                         Column {
                             Text(
                                 "System & Firebase Debugger",
@@ -113,7 +113,7 @@ fun SystemDebuggerDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 // Status Overview Card
                 if (report != null) {
@@ -152,7 +152,7 @@ fun SystemDebuggerDialog(
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(Spacing.md))
 
                             // Progress Bar
                             LinearProgressIndicator(
@@ -177,7 +177,7 @@ fun SystemDebuggerDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 // Category Filter Chips
                 if (report != null) {
@@ -295,7 +295,7 @@ fun SystemDebuggerDialog(
                                         )
                                     }
 
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(Spacing.xs))
 
                                     Text(
                                         text = item.details,

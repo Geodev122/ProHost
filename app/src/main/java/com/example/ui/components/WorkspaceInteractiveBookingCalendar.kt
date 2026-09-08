@@ -490,7 +490,7 @@ fun WorkspaceInteractiveBookingCalendar(
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(22.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
                             text = "Interactive Booking Calendar",
                             style = MaterialTheme.typography.titleMedium,
@@ -558,7 +558,7 @@ fun WorkspaceInteractiveBookingCalendar(
                 ) {
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.EventBusy, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
                             text = "$monthTitle is fully booked — try a different month or shift.",
                             style = MaterialTheme.typography.labelSmall,
@@ -1037,7 +1037,7 @@ fun WorkspaceInteractiveBookingCalendar(
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
                         text = when (availabilityCheck.statusLevel) {
                             AvailabilityLevel.AVAILABLE -> "Book Selected Dates (${String.format(Locale.US, "%.0f", totalCalculatedUsd)} USD)"

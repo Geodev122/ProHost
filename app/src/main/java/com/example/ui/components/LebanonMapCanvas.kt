@@ -49,6 +49,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.example.data.model.Governorate
 import com.example.data.model.SpaceListing
+import com.example.ui.theme.Spacing
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.MapView
@@ -393,7 +394,7 @@ fun LebanonMapCanvas(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(Spacing.sm))
 
                         // Distance badge if GPS is loaded
                         userLocation?.let { uLoc ->
@@ -449,7 +450,7 @@ fun LebanonMapCanvas(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(Spacing.md))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),

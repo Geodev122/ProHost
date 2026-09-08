@@ -303,7 +303,7 @@ fun OwnerBookingRequestCard(
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(14.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(
                         text = request.spaceTitle,
                         style = MaterialTheme.typography.titleSmall,
@@ -343,7 +343,7 @@ fun OwnerBookingRequestCard(
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(13.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(
                                 text = "Requested Slot: $chosenDaysStr ($chosenHoursStr)$shiftDetail",
                                 style = MaterialTheme.typography.bodySmall,
@@ -457,7 +457,7 @@ fun OwnerBookingRequestCard(
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
                     ) {
                         Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(
                             text = "Accept",
                             style = MaterialTheme.typography.labelMedium,
@@ -477,7 +477,7 @@ fun OwnerBookingRequestCard(
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
                     ) {
                         Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(
                             text = "Reject",
                             style = MaterialTheme.typography.labelMedium,
@@ -494,7 +494,7 @@ fun OwnerBookingRequestCard(
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
                     ) {
                         Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(
                             text = "WhatsApp",
                             style = MaterialTheme.typography.labelMedium,
@@ -520,7 +520,7 @@ fun OwnerBookingRequestCard(
                             contentPadding = PaddingValues(vertical = 10.dp)
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(
                                 text = "WhatsApp",
                                 style = MaterialTheme.typography.labelMedium,
@@ -538,7 +538,7 @@ fun OwnerBookingRequestCard(
                             contentPadding = PaddingValues(vertical = 10.dp)
                         ) {
                             Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(
                                 text = "Remind Payment",
                                 style = MaterialTheme.typography.labelMedium,

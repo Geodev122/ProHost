@@ -25,6 +25,7 @@ import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.StatusWarning
 import com.example.ui.theme.WhishBrandRed
 import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.theme.Spacing
 import java.util.Locale
 
 enum class WhishPaymentMethod(
@@ -102,7 +103,7 @@ fun WhishPayModal(
                             tint = Color.White,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
                             text = "Whish Pay Subscription",
                             color = Color.White,
@@ -112,7 +113,7 @@ fun WhishPayModal(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 Text(
                     text = "30-Day Listing Entitlement",
@@ -127,7 +128,7 @@ fun WhishPayModal(
                     maxLines = 1
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
@@ -239,7 +240,7 @@ fun WhishPayModal(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 InputField(
                     value = payerName,
@@ -261,7 +262,7 @@ fun WhishPayModal(
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -282,7 +283,7 @@ fun WhishPayModal(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

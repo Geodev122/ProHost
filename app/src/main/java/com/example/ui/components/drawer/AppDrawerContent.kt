@@ -89,7 +89,7 @@ fun SpecialistDrawerContent(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
                 Text(
                     text = currentUser?.fullName ?: if (isProHost) "Workspace Host" else "Practitioner Member",
                     style = MaterialTheme.typography.titleMedium,
@@ -102,7 +102,7 @@ fun SpecialistDrawerContent(
                     color = LightGray,
                     fontWeight = FontWeight.SemiBold
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
                 Surface(
                     color = CoolGray.copy(alpha = 0.6f),
                     shape = RoundedCornerShape(6.dp)
@@ -154,7 +154,7 @@ fun SpecialistDrawerContent(
                     unselectedTextColor = CoolGray
                 )
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
             NavigationDrawerItem(
                 label = { Text("Renting Requests", fontWeight = FontWeight.Bold) },
                 selected = activeProHostTabId == "owner_requests",
@@ -166,7 +166,7 @@ fun SpecialistDrawerContent(
                     unselectedTextColor = CoolGray
                 )
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
             NavigationDrawerItem(
                 label = { Text("Renting Progress", fontWeight = FontWeight.Bold) },
                 selected = activeProHostTabId == "owner_progress",
@@ -178,7 +178,7 @@ fun SpecialistDrawerContent(
                     unselectedTextColor = CoolGray
                 )
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
             NavigationDrawerItem(
                 label = { Text("Financial Stats & Yields", fontWeight = FontWeight.Bold) },
                 selected = activeProHostTabId == "stats",
@@ -190,7 +190,7 @@ fun SpecialistDrawerContent(
                     unselectedTextColor = CoolGray
                 )
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
             NavigationDrawerItem(
                 label = { Text("Subscription & Packages", fontWeight = FontWeight.Bold) },
                 selected = activeProHostTabId == "owner_subscriptions",
@@ -260,7 +260,7 @@ fun SpecialistDrawerContent(
             // destination) with a second, stale copy of the tier pricing — hardcoded
             // "$49/mo"/"$120/mo" figures that didn't even track the real admin-configurable
             // pricing the actual Subscription & Packages screen shows. Removed outright.
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
             NavigationDrawerItem(
                 label = { Text("Practice Guidelines", fontWeight = FontWeight.SemiBold) },
                 selected = false,
@@ -334,7 +334,7 @@ fun AdminDrawerContent(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
                 Text(
                     text = currentUser?.fullName ?: "Admin",
                     style = MaterialTheme.typography.titleMedium,
@@ -347,7 +347,7 @@ fun AdminDrawerContent(
                     color = LightGray,
                     fontWeight = FontWeight.SemiBold
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
                 Surface(
                     color = CoolGray.copy(alpha = 0.6f),
                     shape = RoundedCornerShape(6.dp)
@@ -388,7 +388,7 @@ fun AdminDrawerContent(
                 unselectedTextColor = CoolGray
             )
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
             label = { Text("Security ID Card", fontWeight = FontWeight.Bold) },
             selected = activeTabId == "admin_profile",
@@ -400,7 +400,7 @@ fun AdminDrawerContent(
                 unselectedTextColor = CoolGray
             )
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
             label = { Text("Package Revenue & Performance", fontWeight = FontWeight.Bold) },
             selected = activeTabId == "admin_revenue",
@@ -429,21 +429,21 @@ fun AdminDrawerContent(
             onClick = { onDrawerAction("admin_audit") },
             icon = { Icon(Icons.Default.Terminal, contentDescription = null, tint = OxfordBlue) }
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
             label = { Text("Governorate Nodes Status", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { onDrawerAction("admin_gov") },
             icon = { Icon(Icons.Default.Dns, contentDescription = null, tint = VibrantBlue) }
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
             label = { Text("Firebase & System Debugger", fontWeight = FontWeight.Bold) },
             selected = false,
             onClick = { onDrawerAction("system_debugger") },
             icon = { Icon(Icons.Default.BugReport, contentDescription = null, tint = AmberWarning) }
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
             label = { Text("Legal (Privacy, Terms & Policies)", fontWeight = FontWeight.SemiBold) },
             selected = false,
@@ -515,7 +515,7 @@ fun LawBulletinCard(number: String, title: String, content: String) {
                 }
                 Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = OxfordBlue)
             }
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
             Text(content, style = MaterialTheme.typography.bodySmall, color = CoolGray)
         }
     }

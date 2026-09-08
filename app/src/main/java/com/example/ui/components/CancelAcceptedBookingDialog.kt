@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.CancellationReasonCode
+import com.example.ui.theme.Spacing
 
 /**
  * Early-termination confirmation for an already-ACCEPTED booking — a reason code
@@ -41,7 +42,7 @@ fun CancelAcceptedBookingDialog(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.EventBusy, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(Spacing.sm))
                     Text("Cancel Accepted Booking?", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
                 Text(
@@ -68,7 +69,7 @@ fun CancelAcceptedBookingDialog(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
                             ) {
                                 RadioButton(selected = selectedReason == reason, onClick = { selectedReason = reason })
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text(reason.displayName, fontSize = 13.sp)
                             }
                         }

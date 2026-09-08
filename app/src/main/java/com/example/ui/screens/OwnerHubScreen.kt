@@ -444,7 +444,7 @@ fun OwnerHubScreenContent(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(Icons.Default.Verified, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.xs))
                                     Text("Space Owner Portal", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                 }
                             }
@@ -543,7 +543,7 @@ fun OwnerHubScreenContent(
                                 Icon(Icons.Default.AddBusiness, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
                             }
                         }
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(Spacing.lg))
                         Column {
                             Text(
                                 text = "Add New Workspace Listing",
@@ -571,7 +571,7 @@ fun OwnerHubScreenContent(
                 trailingContent = {
                     TextButton(onClick = onOpenCreateListing) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("New Space", style = MaterialTheme.typography.labelMedium)
                     }
                 }
@@ -720,7 +720,7 @@ fun OwnerHubScreenContent(
                                 shape = RoundedCornerShape(10.dp)
                             ) {
                                 Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("Availability", style = MaterialTheme.typography.labelMedium)
                             }
 

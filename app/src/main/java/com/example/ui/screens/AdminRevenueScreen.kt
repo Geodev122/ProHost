@@ -88,7 +88,7 @@ fun AdminRevenueScreen(
                             fontWeight = FontWeight.Black,
                             color = PureWhite
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(Spacing.xs))
                         Text(
                             text = "Monitor package purchases, Whish verification transactions, and financial yields",
                             style = MaterialTheme.typography.bodyMedium,
@@ -138,7 +138,7 @@ fun AdminRevenueScreen(
             shape = RoundedCornerShape(10.dp)
         ) {
             Icon(Icons.Default.Download, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(Spacing.sm))
             Text("Export to Excel / CSV (Package ID, User ID, Price, Date, Expiration)", fontWeight = FontWeight.Bold, color = PureWhite)
         }
 

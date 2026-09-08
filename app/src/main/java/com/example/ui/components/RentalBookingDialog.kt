@@ -235,7 +235,7 @@ fun RentalBookingDialog(
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = "Formula-Based")
                         }
                         Text(
@@ -494,7 +494,7 @@ fun RentalBookingDialog(
                                                     onClick = { innerSelectedFormula = formula },
                                                     colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
                                                 )
-                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Spacer(modifier = Modifier.width(Spacing.xs))
                                                 Column {
                                                     Text(
                                                         text = formula.type.displayName,
@@ -519,7 +519,7 @@ fun RentalBookingDialog(
                                         }
 
                                         // Owner Availability Offered Tag
-                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Spacer(modifier = Modifier.height(Spacing.xs))
                                         Surface(
                                             color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
                                             shape = RoundedCornerShape(6.dp)
@@ -534,7 +534,7 @@ fun RentalBookingDialog(
                                                     modifier = Modifier.size(12.dp),
                                                     tint = MaterialTheme.colorScheme.primary
                                                 )
-                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Spacer(modifier = Modifier.width(Spacing.xs))
                                                 Text(
                                                     text = "Owner Availability: ${formula.daysOfWeek.joinToString()} • ${formula.startHour} - ${formula.endHour}",
                                                     fontSize = 11.sp,
@@ -567,7 +567,7 @@ fun RentalBookingDialog(
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text(
                                     text = "2. Customize Your Required Availability",
                                     fontSize = 14.sp,
@@ -785,7 +785,7 @@ fun RentalBookingDialog(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(Spacing.sm))
 
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(dateOptions) { option ->
@@ -802,7 +802,7 @@ fun RentalBookingDialog(
                         }
 
                         if (selectedDateOption == "Custom Date") {
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(Spacing.sm))
                             OutlinedTextField(
                                 value = customStartDate,
                                 onValueChange = { customStartDate = it },
@@ -821,7 +821,7 @@ fun RentalBookingDialog(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(Spacing.sm))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -860,7 +860,7 @@ fun RentalBookingDialog(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(Spacing.sm))
 
                         InputField(
                             value = clinicalNotes,
@@ -887,7 +887,7 @@ fun RentalBookingDialog(
                                     tint = StatusSuccess,
                                     modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text(
                                     text = "Smart Availability & Confirmation Rule",
                                     fontWeight = FontWeight.Bold,
@@ -895,7 +895,7 @@ fun RentalBookingDialog(
                                     color = StatusSuccess
                                 )
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(Spacing.xs))
                             Text(
                                 text = "• Space hours remain AVAILABLE to other professionals until the space owner accepts your request.\n" +
                                        "• Once accepted by the owner, your chosen schedule ($chosenSlotSummary) is locked exclusively for your use.\n" +
@@ -955,7 +955,7 @@ fun RentalBookingDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 // Bottom Action Buttons
                 Row(

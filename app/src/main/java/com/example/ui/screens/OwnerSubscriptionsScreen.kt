@@ -77,7 +77,7 @@ fun OwnerSubscriptionsScreen(
                             fontWeight = FontWeight.Black,
                             color = PureWhite
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(Spacing.xs))
                         Text(
                             text = "Manage your ProHost hosting tiers, PAYG listings, and Whish billing",
                             style = MaterialTheme.typography.bodyMedium,
@@ -176,7 +176,7 @@ fun OwnerSubscriptionsScreen(
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Icon(Icons.Default.AddCircle, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text("Buy New Listing Slot (PAYG)", fontWeight = FontWeight.Bold, color = PureWhite)
                     }
                 } else {
@@ -189,7 +189,7 @@ fun OwnerSubscriptionsScreen(
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Text("Package Limit Reached — Buy Additional Listing Slot", fontWeight = FontWeight.Bold, color = PureWhite)
                         }
                     }
@@ -334,7 +334,7 @@ fun OwnerSubscriptionsScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(Spacing.sm))
                     OutlinedTextField(
                         value = payerName,
                         onValueChange = { payerName = it },
@@ -426,7 +426,7 @@ fun PackageOptionCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
 
             Button(
                 onClick = onSelect,

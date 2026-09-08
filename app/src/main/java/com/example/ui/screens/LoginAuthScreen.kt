@@ -109,7 +109,7 @@ fun LoginAuthScreen(
             .testTag("login_auth_screen"),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Spacing.lg))
 
         // ProSpace Brand Header
         Surface(
@@ -130,7 +130,7 @@ fun LoginAuthScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(Spacing.md))
 
         Text(
             text = "ProHost",
@@ -169,7 +169,7 @@ fun LoginAuthScreen(
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
                         text = displayError,
                         style = MaterialTheme.typography.bodySmall,
@@ -196,7 +196,7 @@ fun LoginAuthScreen(
                         tint = LebaneseCedarGreen,
                         modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
                         text = authSuccessMessage ?: "",
                         style = MaterialTheme.typography.bodySmall,
@@ -225,7 +225,7 @@ fun LoginAuthScreen(
                     isBusy = isAuthenticating
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -252,7 +252,7 @@ fun LoginAuthScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 CustomButton(
                     text = if (isAuthenticating) "Sending Code..." else "Send Verification Code",
@@ -331,7 +331,7 @@ fun LoginAuthScreen(
                     isBusy = isAuthenticating
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 InputField(
                     value = otpCode,
@@ -343,7 +343,7 @@ fun LoginAuthScreen(
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 CustomButton(
                     text = if (isAuthenticating) "Verifying..." else "Verify Code",
@@ -367,7 +367,7 @@ fun LoginAuthScreen(
                     modifier = Modifier.fillMaxWidth().testTag("submit_otp_button")
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
 
                 TextButton(onClick = {
                     step = AuthStep.PHONE_ENTRY
@@ -376,7 +376,7 @@ fun LoginAuthScreen(
                     authViewModel.clearAuthMessages()
                 }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
                     Text("Change phone number", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
@@ -411,7 +411,7 @@ fun LoginAuthScreen(
                             tint = LebaneseCedarGreen,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
                             text = "Phone verified: ${phoneCountry.dialCode} $phoneNumber",
                             style = MaterialTheme.typography.bodySmall,
@@ -421,7 +421,7 @@ fun LoginAuthScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     ProfilePicturePickerField(
@@ -645,7 +645,7 @@ fun LoginAuthScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(Spacing.xl))
     }
 
     showLegalDocument?.let { doc ->
@@ -744,7 +744,7 @@ private fun AuthStepIndicator(step: AuthStep) {
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(Spacing.xs))
                 Text(
                     text = label,
                     fontSize = 10.sp,
