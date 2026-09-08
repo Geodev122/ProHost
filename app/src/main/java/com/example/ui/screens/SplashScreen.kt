@@ -79,10 +79,16 @@ fun SplashScreen(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(Spacing.xl)
         ) {
-            // ProHost app icon - the exact same launcher icon shown when the app is
-            // installed, so the splash screen is a seamless continuation of the icon tap.
+            // ProHost app icon - the same artwork shown when the app is installed, so
+            // the splash screen is a seamless continuation of the icon tap. Deliberately
+            // NOT R.mipmap.ic_launcher: on API 26+ that resource name resolves through
+            // mipmap-anydpi-v26/ic_launcher.xml, an <adaptive-icon> — a type only the
+            // launcher/PackageManager know how to inflate. Loading it via
+            // painterResource() here crashes immediately (this screen is the very first
+            // thing rendered), which is why the app never got past the splash screen.
+            // img_app_icon is the same bitmap under a plain, non-adaptive-icon name.
             Image(
-                painter = painterResource(id = com.example.R.mipmap.ic_launcher),
+                painter = painterResource(id = com.example.R.drawable.img_app_icon),
                 contentDescription = "ProHost",
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
