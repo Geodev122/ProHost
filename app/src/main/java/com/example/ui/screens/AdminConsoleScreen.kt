@@ -39,7 +39,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.crypto.WhishSecurity
 import com.example.data.model.*
 import com.example.ui.components.*
-import com.example.ui.components.dialogs.SystemDebuggerDialog
 import com.example.ui.state.AdminUiEvent
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AdminViewModel
@@ -58,9 +57,8 @@ fun AdminConsoleScreen(
     val context = LocalContext.current
     val uiState by adminViewModel.uiState.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
-    var isDebuggerDialogOpen by remember { mutableStateOf(false) }
 
-    // Listen to admin events (Toasts & export triggers)
+    // Listen to admin events (Toasts)
     LaunchedEffect(adminViewModel) {
         adminViewModel.events.collectLatest { event ->
             when (event) {
@@ -69,9 +67,6 @@ fun AdminConsoleScreen(
                 }
                 is AdminUiEvent.PricingUpdated -> {
                     Toast.makeText(context, "Subscription fee updated to $${event.newFee} USD", Toast.LENGTH_SHORT).show()
-                }
-                is AdminUiEvent.DataExportReady -> {
-                    // Export dialog is opened
                 }
             }
         }
@@ -140,10 +135,6 @@ fun AdminConsoleScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        ProStatusBadge(
-                            type = ProBadgeType.SUPER_ADMIN,
-                            modifier = Modifier.wrapContentWidth()
-                        )
                         Surface(
                             color = FreshGreen.copy(alpha = 0.12f),
                             shape = MaterialTheme.shapes.small
@@ -168,56 +159,6 @@ fun AdminConsoleScreen(
                                 )
                             }
                         }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Action Bar Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedButton(
-                        onClick = { isDebuggerDialogOpen = true },
-                        shape = MaterialTheme.shapes.medium,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, AmberWarning.copy(alpha = 0.6f)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AmberWarning),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .defaultMinSize(minHeight = 36.dp)
-                    ) {
-                        Icon(Icons.Default.BugReport, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            "System Debugger",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
-
-                    Button(
-                        onClick = { adminViewModel.exportAllCsv() },
-                        shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .defaultMinSize(minHeight = 36.dp)
-                    ) {
-                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            "Export Master",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            softWrap = false
-                        )
                     }
                 }
 
@@ -259,6 +200,11 @@ fun AdminConsoleScreen(
                         onClick = { adminViewModel.setSelectedTab(5) },
                         text = { Text("Security Audit", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                     )
+                    Tab(
+                        selected = uiState.selectedTab == 6,
+                        onClick = { adminViewModel.setSelectedTab(6) },
+                        text = { Text("Transactions", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                    )
                 }
             }
         }
@@ -282,6 +228,11 @@ fun AdminConsoleScreen(
                     3 -> AdminOwnersAndPaymentsTab(uiState = uiState, adminViewModel = adminViewModel)
                     4 -> AdminSchemaArchitectureTab(uiState = uiState, adminViewModel = adminViewModel)
                     5 -> AdminSecurityAuditTab(uiState = uiState, adminViewModel = adminViewModel, currentUser = currentUser)
+                    // Transaction search/filter/CSV-export — kept as its own sub-tab
+                    // rather than nested inside tab 0's run-rate LazyColumn (avoids
+                    // nesting two scrollables) now that Package Revenue is no longer
+                    // a separate top-level destination outside Admin Console.
+                    6 -> AdminRevenueScreen(adminViewModel = adminViewModel)
                 }
             }
         }
@@ -290,14 +241,6 @@ fun AdminConsoleScreen(
     // ==========================================
     // ALL ADMIN MODAL DIALOGS
     // ==========================================
-
-    // System & Firebase Compliance Debugger
-    if (isDebuggerDialogOpen) {
-        SystemDebuggerDialog(
-            repository = viewModel.repository,
-            onDismissRequest = { isDebuggerDialogOpen = false }
-        )
-    }
 
     // 1. Multi-Format Export Dialog
     if (uiState.isExportDialogOpen) {
@@ -1085,7 +1028,7 @@ private fun AdminListingsCatalogTab(
                             FilterChip(
                                 selected = uiState.selectedListingTypeFilter == null,
                                 onClick = { adminViewModel.setListingTypeFilter(null) },
-                                label = { Text("All Types (${uiState.allSpaces.size})") }
+                                label = { Text("All Types (${uiState.allSpaces.size})", style = MaterialTheme.typography.labelSmall) }
                             )
                         }
                         items(SpaceType.entries) { type ->
@@ -1093,7 +1036,7 @@ private fun AdminListingsCatalogTab(
                             FilterChip(
                                 selected = uiState.selectedListingTypeFilter == type,
                                 onClick = { adminViewModel.setListingTypeFilter(type) },
-                                label = { Text("${type.displayName} ($count)") }
+                                label = { Text("${type.displayName} ($count)", style = MaterialTheme.typography.labelSmall) }
                             )
                         }
                     }
@@ -1105,7 +1048,7 @@ private fun AdminListingsCatalogTab(
                             FilterChip(
                                 selected = uiState.selectedListingStatusFilter == key,
                                 onClick = { adminViewModel.setListingStatusFilter(key) },
-                                label = { Text(label) }
+                                label = { Text(label, style = MaterialTheme.typography.labelSmall) }
                             )
                         }
                     }
@@ -1513,12 +1456,12 @@ private fun AdminSchemaArchitectureTab(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         // Schema Header & Overview
         item {
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1684,22 +1627,8 @@ private fun AdminSchemaArchitectureTab(
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                if (item.isSystemDefault) {
-                                    Surface(
-                                        color = OxfordBlueContainer,
-                                        shape = MaterialTheme.shapes.extraSmall
-                                    ) {
-                                        Text(
-                                            text = "LEBANESE DEFAULT",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = OxfordBlue,
-                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                } else {
+                                if (!item.isSystemDefault) {
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     Surface(
                                         color = CarnationOrangeContainer,
                                         shape = MaterialTheme.shapes.extraSmall

@@ -1285,44 +1285,6 @@ class ProHostRepository {
     suspend fun registerFcmToken(uid: String, token: String): Boolean = firestoreService.saveFcmToken(uid, token)
 
     // --- Multi-Format Data Export Hub ---
-    fun exportToCsv(): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
-        val sb = StringBuilder()
-        sb.appendLine("=== PROHOST LEBANON AUDIT EXPORT (CSV) ===")
-        sb.appendLine("Export Date,${sdf.format(Date())}")
-        sb.appendLine("Active Subscription Fee USD,${_pricingState.value.monthlySubscriptionFeeUsd}")
-        sb.appendLine("Active MRR USD,${calculateActiveMrr()}")
-        sb.appendLine("Potential 100% Capacity MRR USD,${calculatePotentialCapacityMrr()}")
-        sb.appendLine("Projected ARR USD,${calculateProjectedArr()}")
-        sb.appendLine("Whish Channel ID,${WhishSecurity.CHANNEL_ID}")
-        sb.appendLine("Whish Source Email,${WhishSecurity.SOURCE_EMAIL}")
-        sb.appendLine()
-        sb.appendLine("--- CLINIC SPACES INVENTORY ---")
-        sb.appendLine("ID,Title,SpaceType,Governorate,District,StreetAddress,IsShared,BaseMonthlyUsd,IsActiveSub,OwnerName,OwnerPhone")
-        _spaces.value.forEach { sp ->
-            sb.appendLine("\"${sp.id}\",\"${sp.title.replace("\"", "\"\"")}\",\"${sp.spaceType.name}\",\"${sp.governorate.displayName}\",\"${sp.district}\",\"${sp.streetAddress}\",${sp.isShared},${sp.baseMonthlyRateUsd},${sp.isActiveSubscription},\"${sp.ownerName}\",\"${sp.ownerPhone}\"")
-        }
-        sb.appendLine()
-        sb.appendLine("--- WHISH PAY TRANSACTIONS LEDGER ---")
-        sb.appendLine("TxID,OrderId,AmountUSD,Status,Timestamp,PayerName,PayerPhone,ChannelID,SignatureMD5,SpaceID")
-        _transactions.value.forEach { tx ->
-            sb.appendLine("\"${tx.id}\",\"${tx.orderId}\",${tx.amountUsd},\"${tx.status}\",\"${sdf.format(Date(tx.timestamp))}\",\"${tx.payerName}\",\"${tx.payerPhone}\",\"${tx.channelId}\",\"${tx.signatureHash}\",\"${tx.spaceId}\"")
-        }
-        sb.appendLine()
-        sb.appendLine("--- REGISTERED USERS & PROFESSIONALS ---")
-        sb.appendLine("UserID,FullName,Email,Role,Specialty,Phone,Country,Governorate,City,IsVerified")
-        _users.value.forEach { u ->
-            sb.appendLine("\"${u.id}\",\"${u.fullName}\",\"${u.email}\",\"${u.role.name}\",\"${u.specialty}\",\"${u.phone}\",\"${u.country}\",\"${u.governorate}\",\"${u.city}\",${u.isVerified}")
-        }
-        sb.appendLine()
-        sb.appendLine("--- SECURITY & AUDIT EVENT LOGS ---")
-        sb.appendLine("LogID,Timestamp,ActionType,Details,ActorEmail,Severity")
-        _auditLogs.value.forEach { l ->
-            sb.appendLine("\"${l.id}\",\"${sdf.format(Date(l.timestamp))}\",\"${l.actionType}\",\"${l.details.replace("\"", "\"\"")}\",\"${l.actorEmail}\",\"${l.severity}\"")
-        }
-        return sb.toString()
-    }
-
     fun exportToJson(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
         val sb = StringBuilder()

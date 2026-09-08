@@ -32,8 +32,11 @@ sealed class AppNavTab(
     object Stats : AppNavTab("stats", "Stats", Icons.Filled.Analytics, Icons.Outlined.Analytics)
     object OwnerSubscriptions : AppNavTab("owner_subscriptions", "Subscription & Packages", Icons.Filled.Layers, Icons.Outlined.Layers)
 
-    // Super Admin tab (restricted exclusively to Super Admin role)
+    // Admin's own side-menu destinations — reachable only via the drawer (no bottom
+    // nav for Admin at all), rendered full-screen the same way Pro Host's are.
+    // "Admin Console" is the single entry point; its own inner tabs (including the
+    // Revenue & Run-Rate / Transactions ones — see AdminConsoleScreen) are its
+    // sub-tabs, not separate peer destinations like this used to have.
     object AdminConsole : AppNavTab("admin_console", "Admin Console", Icons.Filled.AdminPanelSettings, Icons.Outlined.AdminPanelSettings)
-    object AdminRevenue : AppNavTab("admin_revenue", "Package Revenue", Icons.Filled.MonetizationOn, Icons.Outlined.MonetizationOn)
     object AdminProfile : AppNavTab("admin_profile", "Security ID", Icons.Filled.Shield, Icons.Outlined.Shield)
 }

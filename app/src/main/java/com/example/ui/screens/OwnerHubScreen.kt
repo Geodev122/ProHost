@@ -66,6 +66,10 @@ fun OwnerHubScreen(
         allSpaces = spaces,
         allBookingRequests = allBookingRequests,
         monthlySubscriptionFeeUsd = pricingState.monthlySubscriptionFeeUsd,
+        // Admin's listing/booking capability is unconditional — never a purchased
+        // package (see ProHostNavGraph excluding OwnerSubscriptions from Admin's
+        // allowed tabs) — so the package/renewal banner never shows for Admin.
+        isAdminUnlimited = currentUser?.role == UserRole.ADMIN,
         onSelectSpace = onSelectSpace,
         onOpenWhishRenewal = { space -> selectedSpaceForWhish = space },
         onOpenScheduleEditor = { space -> selectedSpaceForSchedule = space },
@@ -378,6 +382,7 @@ fun OwnerHubScreenContent(
     onOpenScheduleEditor: (SpaceListing) -> Unit,
     onOpenCreateListing: () -> Unit,
     onOpenPackageSelection: () -> Unit,
+    isAdminUnlimited: Boolean = false,
     onEditSpace: (SpaceListing) -> Unit = {},
     onDeleteSpace: (SpaceListing) -> Unit = {},
     modifier: Modifier = Modifier
@@ -448,61 +453,78 @@ fun OwnerHubScreenContent(
                                 }
                             }
 
-                            Surface(
-                                color = WhishRed,
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                Text(
-                                    text = "$${String.format(Locale.US, "%.2f", monthlySubscriptionFeeUsd)} /mo",
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-                                )
+                            if (!isAdminUnlimited) {
+                                Surface(
+                                    color = WhishRed,
+                                    shape = MaterialTheme.shapes.small
+                                ) {
+                                    Text(
+                                        text = "$${String.format(Locale.US, "%.2f", monthlySubscriptionFeeUsd)} /mo",
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                                    )
+                                }
                             }
                         }
 
-                        Text(
-                            text = "30-Day Listing Entitlement",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = "Manage smart availability, blackout offline hours, and keep your space active across Lebanon with Whish Pay.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xCCFFFFFF),
-                            lineHeight = 16.sp
-                        )
+                        if (isAdminUnlimited) {
+                            Text(
+                                text = "Unlimited Listings — Admin Access",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "No package or subscription applies to your account — every listing, of any type, is always active.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xCCFFFFFF),
+                                lineHeight = 16.sp
+                            )
+                        } else {
+                            Text(
+                                text = "30-Day Listing Entitlement",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Manage smart availability, blackout offline hours, and keep your space active across Lebanon with Whish Pay.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xCCFFFFFF),
+                                lineHeight = 16.sp
+                            )
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Button(
-                                onClick = {
-                                    val target = ownerSpaces.firstOrNull() ?: allSpaces.firstOrNull()
-                                    onOpenWhishRenewal(target)
-                                },
-                                modifier = Modifier.weight(1f),
-                                shape = MaterialTheme.shapes.medium,
-                                colors = ButtonDefaults.buttonColors(containerColor = WhishRed)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Renew", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                            }
+                                Button(
+                                    onClick = {
+                                        val target = ownerSpaces.firstOrNull() ?: allSpaces.firstOrNull()
+                                        onOpenWhishRenewal(target)
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = MaterialTheme.shapes.medium,
+                                    colors = ButtonDefaults.buttonColors(containerColor = WhishRed)
+                                ) {
+                                    Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Renew", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                }
 
-                            OutlinedButton(
-                                onClick = onOpenPackageSelection,
-                                modifier = Modifier.weight(1f),
-                                shape = MaterialTheme.shapes.medium,
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                                border = BorderStroke(1.dp, Color.White)
-                            ) {
-                                Icon(Icons.Default.Layers, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Manage Packages", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                OutlinedButton(
+                                    onClick = onOpenPackageSelection,
+                                    modifier = Modifier.weight(1f),
+                                    shape = MaterialTheme.shapes.medium,
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                                    border = BorderStroke(1.dp, Color.White)
+                                ) {
+                                    Icon(Icons.Default.Layers, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Manage Packages", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }

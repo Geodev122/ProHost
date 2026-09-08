@@ -299,7 +299,7 @@ fun SpecialistDrawerContent(
 @Composable
 fun AdminDrawerContent(
     currentUser: AppUser?,
-    activeTabId: String,
+    activeTabId: String?,
     onTabSelected: (String) -> Unit,
     onDrawerAction: (String) -> Unit
 ) {
@@ -399,17 +399,46 @@ fun AdminDrawerContent(
                 unselectedTextColor = CoolGray
             )
         )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
+
+        // Admin gets every Pro Host capability unconditionally — unlimited listings,
+        // no package to buy (see ProHostRepository's admin bypass) — so these route
+        // through the exact same screens a fully-entitled Pro Host uses.
+        Text(
+            text = "PRO HOST ACCESS (UNLIMITED)",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = OxfordBlue,
+            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+        )
+
+        NavigationDrawerItem(
+            label = { Text("My Listings", fontWeight = FontWeight.SemiBold) },
+            selected = activeTabId == "manage_listings",
+            onClick = { onTabSelected("manage_listings") },
+            icon = { Icon(Icons.Default.HomeWork, contentDescription = null, tint = if (activeTabId == "manage_listings") CarnationOrange else OxfordBlue) }
+        )
         Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
-            label = { Text("Package Revenue & Performance", fontWeight = FontWeight.Bold) },
-            selected = activeTabId == "admin_revenue",
-            onClick = { onTabSelected("admin_revenue") },
-            icon = { Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = if (activeTabId == "admin_revenue") CarnationOrange else OxfordBlue) },
-            colors = NavigationDrawerItemDefaults.colors(
-                selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                selectedTextColor = OxfordBlue,
-                unselectedTextColor = CoolGray
-            )
+            label = { Text("Renting Requests", fontWeight = FontWeight.SemiBold) },
+            selected = activeTabId == "owner_requests",
+            onClick = { onTabSelected("owner_requests") },
+            icon = { Icon(Icons.Default.Inbox, contentDescription = null, tint = if (activeTabId == "owner_requests") CarnationOrange else OxfordBlue) }
+        )
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        NavigationDrawerItem(
+            label = { Text("Renting Progress", fontWeight = FontWeight.SemiBold) },
+            selected = activeTabId == "owner_progress",
+            onClick = { onTabSelected("owner_progress") },
+            icon = { Icon(Icons.Default.Schedule, contentDescription = null, tint = if (activeTabId == "owner_progress") CarnationOrange else OxfordBlue) }
+        )
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        NavigationDrawerItem(
+            label = { Text("Stats", fontWeight = FontWeight.SemiBold) },
+            selected = activeTabId == "stats",
+            onClick = { onTabSelected("stats") },
+            icon = { Icon(Icons.Default.Analytics, contentDescription = null, tint = if (activeTabId == "stats") CarnationOrange else OxfordBlue) }
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
@@ -435,19 +464,15 @@ fun AdminDrawerContent(
             onClick = { onDrawerAction("admin_gov") },
             icon = { Icon(Icons.Default.Dns, contentDescription = null, tint = VibrantBlue) }
         )
+
+        // System Debugger stays at the very bottom of the admin side menu, below
+        // every other destination.
         Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
             label = { Text("Firebase & System Debugger", fontWeight = FontWeight.Bold) },
             selected = false,
             onClick = { onDrawerAction("system_debugger") },
             icon = { Icon(Icons.Default.BugReport, contentDescription = null, tint = AmberWarning) }
-        )
-        Spacer(modifier = Modifier.height(Spacing.xs))
-        NavigationDrawerItem(
-            label = { Text("Legal (Privacy, Terms & Policies)", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("legal_documents") },
-            icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = OxfordBlue) }
         )
 
         ProHostDrawerFooter()

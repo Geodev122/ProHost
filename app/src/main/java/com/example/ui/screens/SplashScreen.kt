@@ -79,13 +79,14 @@ fun SplashScreen(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(Spacing.xl)
         ) {
-            // ProHost mark - the pin carries its own background/gradient, no box needed
+            // ProHost app icon - the exact same launcher icon shown when the app is
+            // installed, so the splash screen is a seamless continuation of the icon tap.
             Image(
-                painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
-                contentDescription = "ProHost Logo",
+                painter = painterResource(id = com.example.R.mipmap.ic_launcher),
+                contentDescription = "ProHost",
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .size(width = 110.dp, height = 133.dp)
+                    .size(110.dp)
                     .scale(logoScale)
             )
 

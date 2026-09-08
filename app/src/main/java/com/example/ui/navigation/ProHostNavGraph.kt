@@ -38,9 +38,11 @@ private val SPECIALIST_BOTTOM_TABS = listOf(
 
 /**
  * Pro Host destinations — reachable only via the drawer's "Pro Host" section,
- * rendered full-screen (see fullScreenProHostTab below) with no bottom nav.
+ * rendered full-screen (see fullScreenDrawerTab below) with no bottom nav.
  * Only a PRO_HOST account can reach all of these; a SPECIALIST can reach only
  * OwnerSubscriptions, as the "Become a Pro Host" package-purchase entry point.
+ * Admin also reaches all but OwnerSubscriptions (see ADMIN_FULLSCREEN_TABS) —
+ * Admin's listing/booking capability is unconditional, never a purchased package.
  */
 private val PRO_HOST_FULLSCREEN_TABS = listOf(
     AppNavTab.ManageListings,
@@ -50,7 +52,20 @@ private val PRO_HOST_FULLSCREEN_TABS = listOf(
     AppNavTab.OwnerSubscriptions
 )
 
-private val PRO_HOST_FULLSCREEN_TAB_IDS: Set<String> = PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet()
+/**
+ * Admin's own side-menu destinations, rendered full-screen the same way Pro Host's
+ * are. "Admin Console" is a single side-menu entry (its own inner tabs are its
+ * sub-tabs — Revenue, Users, Listings, Owners & Payments, Schema, Security Audit —
+ * not separate peer destinations); "Security ID" is the same personal-profile
+ * screen every role has. Admin has no bottom nav at all.
+ */
+private val ADMIN_FULLSCREEN_TABS = listOf(
+    AppNavTab.AdminConsole,
+    AppNavTab.AdminProfile
+)
+
+private val FULLSCREEN_TAB_IDS: Set<String> =
+    (PRO_HOST_FULLSCREEN_TABS + ADMIN_FULLSCREEN_TABS).map { it.id }.toSet()
 
 /**
  * The complete set of tab ids a given role may ever land on — bottom-nav tabs
@@ -59,12 +74,9 @@ private val PRO_HOST_FULLSCREEN_TAB_IDS: Set<String> = PRO_HOST_FULLSCREEN_TABS.
  */
 private fun allowedTabIdsForRole(role: UserRole): Set<String> = when (role) {
     UserRole.SPECIALIST -> SPECIALIST_BOTTOM_TABS.map { it.id }.toSet() + AppNavTab.OwnerSubscriptions.id
-    UserRole.PRO_HOST -> SPECIALIST_BOTTOM_TABS.map { it.id }.toSet() + PRO_HOST_FULLSCREEN_TAB_IDS
-    UserRole.ADMIN -> setOf(
-        AppNavTab.AdminConsole.id,
-        AppNavTab.AdminRevenue.id,
-        AppNavTab.AdminProfile.id
-    )
+    UserRole.PRO_HOST -> SPECIALIST_BOTTOM_TABS.map { it.id }.toSet() + PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet()
+    UserRole.ADMIN -> ADMIN_FULLSCREEN_TABS.map { it.id }.toSet() +
+        (PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() - AppNavTab.OwnerSubscriptions.id)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,20 +91,22 @@ fun ProHostAppRoot(
     var detailedSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var activeTabId by remember { mutableStateOf("search_map") }
     var activeDrawerTabDialog by remember { mutableStateOf<String?>(null) }
-    // Non-null while a Pro Host drawer destination is open. These render full-screen
-    // (no bottom nav, just a top bar with the screen's title + menu icon) since they
-    // live outside the unified Specialist/Pro Host bottom nav — see PRO_HOST_FULLSCREEN_TABS.
-    var fullScreenProHostTab by remember { mutableStateOf<String?>(null) }
+    // Non-null while a drawer-only destination is open — a Pro Host destination, or
+    // (for Admin, who has no bottom nav at all) Admin Console/Security ID. These
+    // render full-screen (no bottom nav, just a top bar with the screen's title +
+    // menu icon) since they live outside the unified Specialist/Pro Host bottom nav —
+    // see FULLSCREEN_TAB_IDS.
+    var fullScreenDrawerTab by remember { mutableStateOf<String?>(null) }
 
-    // Routes to any tab id, transparently choosing full-screen Pro Host presentation
-    // vs. the regular bottom-nav tab switch — the single place that decides how a
-    // given destination id gets shown, used by the drawer, FCM alert taps, the
+    // Routes to any tab id, transparently choosing full-screen presentation vs. the
+    // regular bottom-nav tab switch — the single place that decides how a given
+    // destination id gets shown, used by the drawer, FCM alert taps, the
     // payment-return deep link, and initial role-based routing alike.
     fun navigateTo(targetTabId: String) {
-        if (targetTabId in PRO_HOST_FULLSCREEN_TAB_IDS) {
-            fullScreenProHostTab = targetTabId
+        if (targetTabId in FULLSCREEN_TAB_IDS) {
+            fullScreenDrawerTab = targetTabId
         } else {
-            fullScreenProHostTab = null
+            fullScreenDrawerTab = null
             activeTabId = targetTabId
         }
     }
@@ -148,14 +162,13 @@ fun ProHostAppRoot(
         // Determine visible bottom-nav tabs strictly according to role — identical
         // for SPECIALIST and PRO_HOST (point 4 of the role-model spec: a unified
         // bottom nav for both). Pro Host destinations live in PRO_HOST_FULLSCREEN_TABS
-        // instead, reachable only via the drawer's "Pro Host" section.
+        // instead, reachable only via the drawer's "Pro Host" section. Admin has no
+        // bottom nav at all — every Admin destination (Admin Console, Security ID,
+        // and the Pro Host tabs it also gets) is a single side-menu entry rendered
+        // full-screen, never a peer bottom-nav tab.
         val roleTabs: List<AppNavTab> = when (currentRole) {
             UserRole.SPECIALIST, UserRole.PRO_HOST -> SPECIALIST_BOTTOM_TABS
-            UserRole.ADMIN -> listOf(
-                AppNavTab.AdminConsole,
-                AppNavTab.AdminRevenue,
-                AppNavTab.AdminProfile
-            )
+            UserRole.ADMIN -> emptyList()
         }
 
         ModalNavigationDrawer(
@@ -172,7 +185,7 @@ fun ProHostAppRoot(
                             SpecialistDrawerContent(
                                 currentUser = currentUser,
                                 currentRole = currentRole,
-                                activeProHostTabId = fullScreenProHostTab,
+                                activeProHostTabId = fullScreenDrawerTab,
                                 onTabSelected = { tabId ->
                                     navigateTo(tabId)
                                     scope.launch { drawerState.close() }
@@ -186,9 +199,9 @@ fun ProHostAppRoot(
                         UserRole.ADMIN -> {
                             AdminDrawerContent(
                                 currentUser = currentUser,
-                                activeTabId = activeTabId,
+                                activeTabId = fullScreenDrawerTab,
                                 onTabSelected = { tabId ->
-                                    activeTabId = tabId
+                                    navigateTo(tabId)
                                     scope.launch { drawerState.close() }
                                 },
                                 onDrawerAction = { actionId ->
@@ -203,10 +216,10 @@ fun ProHostAppRoot(
         ) {
             // Defense in depth: never render a full-screen Pro Host destination
             // outside the current role's allowed set — same rule that already
-            // gates activeTabId below, applied to fullScreenProHostTab too, since
+            // gates activeTabId below, applied to fullScreenDrawerTab too, since
             // this is the actual authorization boundary for what renders (the
             // drawer only controls what's offered, not what can render).
-            val safeFullScreenProHostTab = fullScreenProHostTab?.takeIf {
+            val safeFullScreenDrawerTab = fullScreenDrawerTab?.takeIf {
                 it in allowedTabIdsForRole(currentRole)
             }
 
@@ -214,8 +227,9 @@ fun ProHostAppRoot(
                 modifier = Modifier.fillMaxSize(),
                 topBar = {
                     if (detailedSpace == null) {
-                        if (safeFullScreenProHostTab != null) {
-                            val title = PRO_HOST_FULLSCREEN_TABS.firstOrNull { it.id == safeFullScreenProHostTab }?.title
+                        if (safeFullScreenDrawerTab != null) {
+                            val title = (PRO_HOST_FULLSCREEN_TABS + ADMIN_FULLSCREEN_TABS)
+                                .firstOrNull { it.id == safeFullScreenDrawerTab }?.title
                                 ?: "Pro Host"
                             ProHostFullScreenTopAppBar(
                                 title = title,
@@ -235,9 +249,10 @@ fun ProHostAppRoot(
                     }
                 },
                 bottomBar = {
-                    // No bottom nav while a Pro Host destination is open full-screen —
-                    // only the top bar's menu icon (reopen the drawer) is offered.
-                    if (detailedSpace == null && safeFullScreenProHostTab == null) {
+                    // No bottom nav while a full-screen drawer destination is open, and
+                    // none at all for Admin (roleTabs is empty for that role) — only the
+                    // top bar's menu icon (reopen the drawer) is offered either way.
+                    if (detailedSpace == null && safeFullScreenDrawerTab == null && roleTabs.isNotEmpty()) {
                         NavigationBar(
                             tonalElevation = 6.dp,
                             modifier = Modifier.testTag("bottom_navigation_bar")
@@ -284,8 +299,8 @@ fun ProHostAppRoot(
                                     viewModel = viewModel,
                                     onBack = { detailedSpace = null }
                                 )
-                            } else if (safeFullScreenProHostTab != null) {
-                                when (safeFullScreenProHostTab) {
+                            } else if (safeFullScreenDrawerTab != null) {
+                                when (safeFullScreenDrawerTab) {
                                     AppNavTab.ManageListings.id -> OwnerHubScreen(
                                         viewModel = viewModel,
                                         onSelectSpace = { detailedSpace = it },
@@ -302,6 +317,18 @@ fun ProHostAppRoot(
                                     )
                                     AppNavTab.OwnerSubscriptions.id -> OwnerSubscriptionsScreen(
                                         viewModel = viewModel
+                                    )
+                                    AppNavTab.AdminConsole.id -> AdminConsoleScreen(
+                                        viewModel = viewModel
+                                    )
+                                    AppNavTab.AdminProfile.id -> SpecialistProfileScreen(
+                                        viewModel = viewModel,
+                                        inAppUpdateManager = inAppUpdateManager,
+                                        onSignOut = {
+                                            viewModel.logout()
+                                            activeTabId = "auth"
+                                        },
+                                        onNavigateToTab = { tabId -> navigateTo(tabId) }
                                     )
                                 }
                             } else {
@@ -327,12 +354,7 @@ fun ProHostAppRoot(
                                         onNavigateToDiscovery = { activeTabId = AppNavTab.SearchMap.id },
                                         onSelectSpace = { detailedSpace = it }
                                     )
-                                    AppNavTab.AdminConsole.id -> AdminConsoleScreen(
-                                        viewModel = viewModel
-                                    )
-                                    AppNavTab.AdminRevenue.id -> AdminRevenueScreen()
-                                    AppNavTab.ProfessionalProfile.id,
-                                    AppNavTab.AdminProfile.id -> SpecialistProfileScreen(
+                                    AppNavTab.ProfessionalProfile.id -> SpecialistProfileScreen(
                                         viewModel = viewModel,
                                         inAppUpdateManager = inAppUpdateManager,
                                         onSignOut = {

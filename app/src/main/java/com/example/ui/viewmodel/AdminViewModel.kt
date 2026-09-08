@@ -511,11 +511,6 @@ class AdminViewModel(
         openExportDialog("Full ProHost Audit & Revenue Report", content, "TXT")
     }
 
-    fun exportAllCsv() {
-        val content = repository.exportToCsv()
-        openExportDialog("Complete ProHost Master Ledger (CSV)", content, "CSV")
-    }
-
     fun exportAllJson() {
         val content = repository.exportToJson()
         openExportDialog("ProHost Platform JSON Export", content, "JSON")

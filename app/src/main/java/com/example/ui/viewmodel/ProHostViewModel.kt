@@ -617,7 +617,6 @@ class ProHostViewModel(
     }
 
     // --- Data Export Hub ---
-    fun getCsvExport(): String = repository.exportToCsv()
     fun getJsonExport(): String = repository.exportToJson()
     fun getAuditTextExport(): String = repository.exportToAuditText()
 
