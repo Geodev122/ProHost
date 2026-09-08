@@ -116,3 +116,20 @@ fun findCountryByDialCode(dialCode: String): Country =
 /** [AppUser.country] stores the plain country name (e.g. "Lebanon"), not an ISO code. */
 fun findCountryByName(name: String): Country =
     COUNTRIES.find { it.name.equals(name, ignoreCase = true) } ?: COUNTRIES.first()
+
+/**
+ * Formats a raw user-entered phone number input into a clean E.164 phone string (e.g., "+96170123456").
+ * Removes leading zeroes, international prefixes (00 or +), and handles pasting full dial codes.
+ */
+fun formatToE164(country: Country, input: String): String {
+    val digitsOnly = input.filter { it.isDigit() }
+    val dialCodeDigits = country.dialCode.filter { it.isDigit() }
+
+    val numberWithoutDialCode = when {
+        digitsOnly.startsWith("00$dialCodeDigits") -> digitsOnly.removePrefix("00$dialCodeDigits").removePrefix("0")
+        digitsOnly.startsWith(dialCodeDigits) && digitsOnly.length > dialCodeDigits.length + 4 -> digitsOnly.removePrefix(dialCodeDigits).removePrefix("0")
+        else -> digitsOnly.removePrefix("0")
+    }
+
+    return "${country.dialCode}$numberWithoutDialCode"
+}

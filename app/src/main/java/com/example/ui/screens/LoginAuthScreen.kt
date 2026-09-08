@@ -59,6 +59,15 @@ import kotlinx.coroutines.launch
  */
 private enum class AuthStep { PHONE_ENTRY, OTP_ENTRY, REGISTRATION_FORM }
 
+private fun android.content.Context.findActivity(): Activity? {
+    var ctx = this
+    while (ctx is android.content.ContextWrapper) {
+        if (ctx is Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginAuthScreen(
@@ -66,7 +75,7 @@ fun LoginAuthScreen(
     authViewModel: AuthViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
+    val activity = remember(context) { context.findActivity() }
     val coroutineScope = rememberCoroutineScope()
     var step by remember { mutableStateOf(AuthStep.PHONE_ENTRY) }
 
@@ -123,7 +132,7 @@ fun LoginAuthScreen(
     var localErrorMessage by remember { mutableStateOf<String?>(null) }
     var showLegalDocument by remember { mutableStateOf<com.example.legal.LegalDocument?>(null) }
 
-    val verifiedPhoneE164 = phoneCountry.dialCode + phoneNumber.filter { it.isDigit() }
+    val verifiedPhoneE164 = com.example.data.model.formatToE164(phoneCountry, phoneNumber)
 
     fun goToRegistrationForm() {
         localErrorMessage = null
