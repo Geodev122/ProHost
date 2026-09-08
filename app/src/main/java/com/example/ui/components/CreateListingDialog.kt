@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -201,7 +200,7 @@ fun CreateListingDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.95f),
-            shape = RoundedCornerShape(20.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
@@ -352,7 +351,7 @@ fun CreateListingDialog(
                                         Box(
                                             modifier = Modifier
                                                 .size(88.dp)
-                                                .clip(RoundedCornerShape(10.dp))
+                                                .clip(MaterialTheme.shapes.medium)
                                         ) {
                                             AsyncImage(
                                                 model = url,
@@ -381,7 +380,7 @@ fun CreateListingDialog(
                                         Surface(
                                             modifier = Modifier
                                                 .size(88.dp)
-                                                .clip(RoundedCornerShape(10.dp))
+                                                .clip(MaterialTheme.shapes.medium)
                                                 .clickable(enabled = !isUploadingPhoto) {
                                                     photoPickerLauncher.launch("image/*")
                                                 },
@@ -435,7 +434,7 @@ fun CreateListingDialog(
                                     placeholder = { Text("Search equipment...") },
                                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = MaterialTheme.shapes.medium,
                                     singleLine = true
                                 )
 
@@ -502,7 +501,7 @@ fun CreateListingDialog(
                                                 Card(
                                                     modifier = Modifier.fillMaxWidth(),
                                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
-                                                    shape = RoundedCornerShape(10.dp)
+                                                    shape = MaterialTheme.shapes.medium
                                                 ) {
                                                     Row(
                                                         modifier = Modifier.padding(12.dp),
@@ -794,7 +793,7 @@ fun CreateListingDialog(
 
                                     Surface(
                                         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                                        shape = RoundedCornerShape(10.dp)
+                                        shape = MaterialTheme.shapes.medium
                                     ) {
                                         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                             Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))

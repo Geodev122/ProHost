@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
@@ -89,7 +88,7 @@ fun OwnerHubScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                shape = RoundedCornerShape(20.dp),
+                shape = MaterialTheme.shapes.extraLarge,
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
@@ -401,8 +400,8 @@ fun OwnerHubScreenContent(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(20.dp)),
-                shape = RoundedCornerShape(20.dp),
+                    .shadow(4.dp, MaterialTheme.shapes.extraLarge),
+                shape = MaterialTheme.shapes.extraLarge,
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Box(
@@ -708,7 +707,7 @@ fun OwnerHubScreenContent(
                             OutlinedButton(
                                 onClick = { onSelectSpace(space) },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(10.dp)
+                                shape = MaterialTheme.shapes.medium
                             ) {
                                 Text("Details", style = MaterialTheme.typography.labelMedium)
                             }
@@ -717,7 +716,7 @@ fun OwnerHubScreenContent(
                             Button(
                                 onClick = { onOpenScheduleEditor(space) },
                                 modifier = Modifier.weight(1.5f),
-                                shape = RoundedCornerShape(10.dp)
+                                shape = MaterialTheme.shapes.medium
                             ) {
                                 Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(Spacing.xs))
@@ -728,7 +727,7 @@ fun OwnerHubScreenContent(
                             OutlinedButton(
                                 onClick = { onEditSpace(space) },
                                 modifier = Modifier.weight(0.9f),
-                                shape = RoundedCornerShape(10.dp),
+                                shape = MaterialTheme.shapes.medium,
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
                             ) {
                                 Icon(Icons.Default.Edit, contentDescription = "Edit Listing", modifier = Modifier.size(14.dp))

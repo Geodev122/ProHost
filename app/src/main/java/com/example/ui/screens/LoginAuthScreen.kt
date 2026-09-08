@@ -9,7 +9,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -114,10 +113,10 @@ fun LoginAuthScreen(
         // ProHost Brand Header
         Surface(
             color = OxfordBlue,
-            shape = RoundedCornerShape(20.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             modifier = Modifier
                 .size(76.dp)
-                .border(1.5.dp, CarnationOrange, RoundedCornerShape(20.dp)),
+                .border(1.5.dp, CarnationOrange, MaterialTheme.shapes.extraLarge),
             shadowElevation = 6.dp
         ) {
             Image(
@@ -126,7 +125,7 @@ fun LoginAuthScreen(
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(MaterialTheme.shapes.extraLarge)
             )
         }
 
@@ -156,7 +155,7 @@ fun LoginAuthScreen(
         if (displayError != null) {
             Surface(
                 color = MaterialTheme.colorScheme.errorContainer,
-                shape = RoundedCornerShape(10.dp),
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
             ) {
                 Row(
@@ -183,7 +182,7 @@ fun LoginAuthScreen(
         if (authSuccessMessage != null) {
             Surface(
                 color = StatusSuccessContainer,
-                shape = RoundedCornerShape(10.dp),
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
             ) {
                 Row(
@@ -395,7 +394,7 @@ fun LoginAuthScreen(
 
                 Surface(
                     color = StatusSuccessContainer,
-                    shape = RoundedCornerShape(10.dp),
+                    shape = MaterialTheme.shapes.medium,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(

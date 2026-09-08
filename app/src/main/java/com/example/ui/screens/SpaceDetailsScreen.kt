@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
@@ -409,7 +408,7 @@ fun SpaceDetailsScreenContent(
                                             Spacer(modifier = Modifier.height(6.dp))
                                             Surface(
                                                 color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
-                                                shape = RoundedCornerShape(6.dp)
+                                                shape = MaterialTheme.shapes.small
                                             ) {
                                                 Row(
                                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -499,7 +498,7 @@ fun SpaceDetailsScreenContent(
                                     }
                                     Surface(
                                         color = MaterialTheme.colorScheme.surfaceVariant,
-                                        shape = RoundedCornerShape(6.dp)
+                                        shape = MaterialTheme.shapes.small
                                     ) {
                                         Text(
                                             text = "Qty: ${item.quantity}",
@@ -553,7 +552,7 @@ fun SpaceDetailsScreenContent(
                                 items(liveSpace.complementarySpecialties) { spec ->
                                     Surface(
                                         color = MaterialTheme.colorScheme.secondaryContainer,
-                                        shape = RoundedCornerShape(6.dp)
+                                        shape = MaterialTheme.shapes.small
                                     ) {
                                         Text(
                                             text = spec,

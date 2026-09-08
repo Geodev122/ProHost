@@ -1109,7 +1109,7 @@ fun WorkspaceCard(
                 if (scheduleSummary != null) {
                     Surface(
                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(6.dp)
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -1135,7 +1135,7 @@ fun WorkspaceCard(
                 if (bookedDoctorCount > 0) {
                     Surface(
                         color = StatusInfoContainer,
-                        shape = RoundedCornerShape(6.dp)
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -1170,7 +1170,7 @@ fun WorkspaceCard(
                 facilities.take(3).forEach { facility ->
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(6.dp)
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Text(
                             text = facility,
@@ -1222,7 +1222,7 @@ fun WorkspaceCard(
                         onClick = onWhatsAppClick,
                         variant = CustomButtonVariant.WHATSAPP,
                         icon = Icons.AutoMirrored.Filled.Chat,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
@@ -1327,7 +1327,7 @@ fun ProChip(
                 )
             }
         } else null,
-        shape = RoundedCornerShape(10.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = MaterialTheme.colorScheme.primary,
             selectedLabelColor = Color.White,
@@ -1513,7 +1513,7 @@ fun ProHostCedarBadge(
 ) {
     Surface(
         color = LebaneseCedarContainer.copy(alpha = 0.85f),
-        shape = RoundedCornerShape(6.dp),
+        shape = MaterialTheme.shapes.small,
         border = BorderStroke(1.dp, LebaneseCedarGreen.copy(alpha = 0.35f)),
         modifier = modifier
     ) {

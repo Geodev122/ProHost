@@ -131,7 +131,7 @@ fun ListingLocationMapPicker(
                 if (!hasPlacedPin) {
                     Surface(
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier
                             .align(Alignment.Center)
                             .padding(12.dp)
@@ -173,7 +173,7 @@ fun ListingLocationMapPicker(
             val pos = pickedLatLng ?: markerState.position
             Surface(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                shape = RoundedCornerShape(10.dp),
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {

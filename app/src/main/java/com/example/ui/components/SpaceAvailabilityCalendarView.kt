@@ -243,7 +243,7 @@ fun SpaceAvailabilityCalendarView(
 
                                 Surface(
                                     color = StatusInfoContainer,
-                                    shape = RoundedCornerShape(6.dp)
+                                    shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
                                         text = "UNAVAILABLE",
@@ -296,7 +296,7 @@ fun SpaceAvailabilityCalendarView(
 
                                 Surface(
                                     color = StatusLockedContainer,
-                                    shape = RoundedCornerShape(6.dp)
+                                    shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
                                         text = "HIDDEN",

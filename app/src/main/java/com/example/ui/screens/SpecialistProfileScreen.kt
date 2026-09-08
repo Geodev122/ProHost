@@ -109,8 +109,8 @@ fun SpecialistProfileScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(6.dp, RoundedCornerShape(20.dp)),
-                shape = RoundedCornerShape(20.dp),
+                    .shadow(6.dp, MaterialTheme.shapes.extraLarge),
+                shape = MaterialTheme.shapes.extraLarge,
                 colors = CardDefaults.cardColors(containerColor = Color.Transparent)
             ) {
                 Box(
@@ -132,7 +132,7 @@ fun SpecialistProfileScreen(
                                     UserRole.PRO_HOST -> CarnationOrange.copy(alpha = 0.25f)
                                     UserRole.SPECIALIST -> VibrantBlue.copy(alpha = 0.25f)
                                 },
-                                shape = RoundedCornerShape(10.dp),
+                                shape = MaterialTheme.shapes.medium,
                                 border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.6f))
                             ) {
                                 Row(
@@ -173,7 +173,7 @@ fun SpecialistProfileScreen(
                                     containerColor = Color.White.copy(alpha = 0.15f),
                                     contentColor = Color.White
                                 ),
-                                shape = RoundedCornerShape(10.dp),
+                                shape = MaterialTheme.shapes.medium,
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                             ) {
                                 Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(14.dp))
@@ -309,7 +309,7 @@ fun SpecialistProfileScreen(
 
                             Surface(
                                 color = Color.White.copy(alpha = 0.15f),
-                                shape = RoundedCornerShape(6.dp)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Text(
                                     text = if (user.isVerified) "🛡️ Phone Verified" else "Phone Unverified",
@@ -634,7 +634,7 @@ fun SpecialistProfileScreen(
                                     Button(
                                         onClick = { onNavigateToTab("search_map") },
                                         modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(10.dp)
+                                        shape = MaterialTheme.shapes.medium
                                     ) {
                                         Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
@@ -644,7 +644,7 @@ fun SpecialistProfileScreen(
                                     OutlinedButton(
                                         onClick = { onNavigateToTab("pro_rentals") },
                                         modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(10.dp)
+                                        shape = MaterialTheme.shapes.medium
                                     ) {
                                         Icon(Icons.Default.EventNote, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
@@ -875,7 +875,7 @@ fun SpecialistProfileScreen(
                     )
 
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier.fillMaxWidth()
                     ) {

@@ -182,7 +182,7 @@ fun OwnerRentingProgressScreenContent(
                         reminders.forEach { reminder ->
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                shape = RoundedCornerShape(10.dp),
+                                shape = MaterialTheme.shapes.medium,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
@@ -339,7 +339,7 @@ fun OwnerRentingProgressScreenContent(
                             Button(
                                 onClick = { onWhatsAppPractitioner(booking) },
                                 colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                                shape = RoundedCornerShape(10.dp),
+                                shape = MaterialTheme.shapes.medium,
                                 modifier = Modifier.weight(1f),
                                 contentPadding = PaddingValues(vertical = 10.dp)
                             ) {
@@ -351,7 +351,7 @@ fun OwnerRentingProgressScreenContent(
                             Button(
                                 onClick = { onSendPaymentReminder(booking) },
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-                                shape = RoundedCornerShape(10.dp),
+                                shape = MaterialTheme.shapes.medium,
                                 modifier = Modifier.weight(1.3f),
                                 contentPadding = PaddingValues(vertical = 10.dp)
                             ) {
@@ -366,7 +366,7 @@ fun OwnerRentingProgressScreenContent(
                                 onClick = { onCancelAcceptedBooking(booking) },
                                 modifier = Modifier
                                     .size(40.dp)
-                                    .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                                    .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), MaterialTheme.shapes.medium)
                             ) {
                                 Icon(Icons.Default.EventBusy, contentDescription = "Cancel Booking", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                             }

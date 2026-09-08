@@ -2,7 +2,6 @@ package com.example.ui.components
 
 import android.webkit.WebView
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PictureAsPdf
@@ -122,7 +121,7 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
                 com.example.legal.LegalContent.all.forEach { doc ->
                     Surface(
                         onClick = { openDocument = doc },
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier.fillMaxWidth()
                     ) {

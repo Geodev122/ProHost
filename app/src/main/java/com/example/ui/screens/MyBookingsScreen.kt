@@ -184,7 +184,7 @@ fun MyBookingsScreen(
 
                     FilledTonalButton(
                         onClick = onNavigateToDiscovery,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                         modifier = Modifier.testTag("explore_new_spaces_button")
                     ) {
@@ -677,7 +677,7 @@ fun MyBookingsScreen(
         val bkg = showDigitalPassBooking!!
         Dialog(onDismissRequest = { showDigitalPassBooking = null }) {
             Surface(
-                shape = RoundedCornerShape(20.dp),
+                shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 6.dp,
                 modifier = Modifier.fillMaxWidth().padding(16.dp)
@@ -720,7 +720,7 @@ fun MyBookingsScreen(
                                     Toast.makeText(context, "Could not open the agreement.", Toast.LENGTH_SHORT).show()
                                 }
                             },
-                            shape = RoundedCornerShape(10.dp),
+                            shape = MaterialTheme.shapes.medium,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -730,7 +730,7 @@ fun MyBookingsScreen(
                     } else {
                         Surface(
                             color = StatusWarningContainer,
-                            shape = RoundedCornerShape(10.dp),
+                            shape = MaterialTheme.shapes.medium,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
@@ -926,7 +926,7 @@ fun BookingReservationCard(
                 }
 
                 if (booking.status == BookingRequestStatus.ACCEPTED && booking.agreementUrl != null) {
-                    Surface(color = StatusSuccessContainer, shape = RoundedCornerShape(6.dp)) {
+                    Surface(color = StatusSuccessContainer, shape = MaterialTheme.shapes.small) {
                         Text("Agreement On File", color = StatusOnSuccessContainer, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                     }
                 }
@@ -943,7 +943,7 @@ fun BookingReservationCard(
                 // Re-book / Extend Button (Prominent)
                 Button(
                     onClick = onRebook,
-                    shape = RoundedCornerShape(10.dp),
+                    shape = MaterialTheme.shapes.medium,
                     modifier = Modifier
                         .weight(1f)
                         .height(40.dp)
@@ -964,7 +964,7 @@ fun BookingReservationCard(
                     onClick = onContactWhatsApp,
                     modifier = Modifier
                         .size(40.dp)
-                        .background(WhatsAppGreen.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+                        .background(WhatsAppGreen.copy(alpha = 0.15f), MaterialTheme.shapes.medium)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "WhatsApp Host", tint = WhatsAppDarkGreen, modifier = Modifier.size(18.dp))
                 }
@@ -975,7 +975,7 @@ fun BookingReservationCard(
                         onClick = onViewDigitalPass,
                         modifier = Modifier
                             .size(40.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
                     ) {
                         Icon(Icons.Default.VpnKey, contentDescription = "Digital Pass", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                     }
@@ -987,7 +987,7 @@ fun BookingReservationCard(
                         onClick = onEditBooking,
                         modifier = Modifier
                             .size(40.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
                             .testTag("edit_booking_button_${booking.id}")
                     ) {
                         Icon(Icons.Default.EditCalendar, contentDescription = "Edit Booking", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
@@ -1000,7 +1000,7 @@ fun BookingReservationCard(
                         onClick = onCancelRequest,
                         modifier = Modifier
                             .size(40.dp)
-                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), MaterialTheme.shapes.medium)
                     ) {
                         Icon(Icons.Default.Close, contentDescription = "Cancel Request", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                     }
@@ -1013,7 +1013,7 @@ fun BookingReservationCard(
                         onClick = onCancelAcceptedBooking,
                         modifier = Modifier
                             .size(40.dp)
-                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), MaterialTheme.shapes.medium)
                     ) {
                         Icon(Icons.Default.EventBusy, contentDescription = "Cancel Booking", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                     }

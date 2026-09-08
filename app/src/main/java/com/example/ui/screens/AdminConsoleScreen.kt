@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -182,7 +181,7 @@ fun AdminConsoleScreen(
                 ) {
                     OutlinedButton(
                         onClick = { isDebuggerDialogOpen = true },
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         border = androidx.compose.foundation.BorderStroke(1.dp, AmberWarning.copy(alpha = 0.6f)),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = AmberWarning),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
@@ -203,7 +202,7 @@ fun AdminConsoleScreen(
 
                     Button(
                         onClick = { adminViewModel.exportAllCsv() },
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                         modifier = Modifier
@@ -854,7 +853,7 @@ private fun AdminUsersDirectoryTab(
 
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             if (user.isSuspended) {
-                                Surface(color = StatusErrorContainer, shape = RoundedCornerShape(6.dp)) {
+                                Surface(color = StatusErrorContainer, shape = MaterialTheme.shapes.small) {
                                     Text(
                                         text = "SUSPENDED",
                                         style = MaterialTheme.typography.labelSmall,
@@ -871,7 +870,7 @@ private fun AdminUsersDirectoryTab(
                                     UserRole.PRO_HOST -> CarnationOrangeContainer
                                     UserRole.SPECIALIST -> OxfordBlueContainer
                                 },
-                                shape = RoundedCornerShape(6.dp)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Text(
                                     text = user.role.name.replace("_", " "),
@@ -1168,7 +1167,7 @@ private fun AdminListingsCatalogTab(
                     ) {
                         Surface(
                             color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(6.dp)
+                            shape = MaterialTheme.shapes.small
                         ) {
                             Text(
                                 text = space.spaceType.displayName,
@@ -1467,7 +1466,7 @@ private fun AdminOwnersAndPaymentsTab(
 
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(6.dp),
+                        shape = MaterialTheme.shapes.small,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {

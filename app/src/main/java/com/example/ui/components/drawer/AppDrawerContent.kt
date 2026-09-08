@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
@@ -105,7 +104,7 @@ fun SpecialistDrawerContent(
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Surface(
                     color = CoolGray.copy(alpha = 0.6f),
-                    shape = RoundedCornerShape(6.dp)
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -350,7 +349,7 @@ fun AdminDrawerContent(
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Surface(
                     color = CoolGray.copy(alpha = 0.6f),
-                    shape = RoundedCornerShape(6.dp)
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

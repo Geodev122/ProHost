@@ -198,7 +198,7 @@ fun SpaceScheduleEditorDialog(
                                         context = context
                                     )
                                 },
-                                shape = RoundedCornerShape(10.dp),
+                                shape = MaterialTheme.shapes.medium,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -252,7 +252,7 @@ fun SpaceScheduleEditorDialog(
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                    shape = RoundedCornerShape(10.dp)
+                                    shape = MaterialTheme.shapes.medium
                                 ) {
                                     Column(
                                         modifier = Modifier.padding(12.dp),
@@ -621,7 +621,7 @@ fun SpaceScheduleEditorDialog(
                             liveSpace.rentalFormulas.forEach { f ->
                                 Surface(
                                     color = MaterialTheme.colorScheme.surface,
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = MaterialTheme.shapes.medium,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Row(

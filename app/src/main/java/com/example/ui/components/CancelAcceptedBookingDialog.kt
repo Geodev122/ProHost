@@ -3,7 +3,6 @@ package com.example.ui.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material3.*
@@ -58,7 +57,7 @@ fun CancelAcceptedBookingDialog(
                 ) {
                     items(CancellationReasonCode.entries) { reason ->
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
+                            shape = MaterialTheme.shapes.medium,
                             color = if (selectedReason == reason) MaterialTheme.colorScheme.primaryContainer
                                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             onClick = { selectedReason = reason },

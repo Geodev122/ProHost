@@ -522,7 +522,7 @@ fun RentalBookingDialog(
                                         Spacer(modifier = Modifier.height(Spacing.xs))
                                         Surface(
                                             color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
-                                            shape = RoundedCornerShape(6.dp)
+                                            shape = MaterialTheme.shapes.small
                                         ) {
                                             Row(
                                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -833,7 +833,7 @@ fun RentalBookingDialog(
                                     modifier = Modifier
                                         .weight(1f)
                                         .clickable { selectedDurationMonths = months },
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = MaterialTheme.shapes.medium,
                                     color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
                                 ) {
                                     Box(

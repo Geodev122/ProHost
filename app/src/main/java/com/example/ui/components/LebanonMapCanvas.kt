@@ -20,7 +20,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -401,7 +400,7 @@ fun LebanonMapCanvas(
                             val dist = calculateDistanceKm(uLoc.latitude, uLoc.longitude, space.lat, space.lng)
                             Surface(
                                 color = MaterialTheme.colorScheme.secondaryContainer,
-                                shape = RoundedCornerShape(6.dp),
+                                shape = MaterialTheme.shapes.small,
                                 modifier = Modifier.padding(bottom = 6.dp)
                             ) {
                                 Text(
@@ -438,7 +437,7 @@ fun LebanonMapCanvas(
                             space.essentialFacilities.take(2).forEach { facility ->
                                 Surface(
                                     color = MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = RoundedCornerShape(6.dp)
+                                    shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
                                         text = facility,
