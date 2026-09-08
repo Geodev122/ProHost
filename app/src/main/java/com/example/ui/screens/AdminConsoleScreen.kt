@@ -68,6 +68,9 @@ fun AdminConsoleScreen(
                 is AdminUiEvent.PricingUpdated -> {
                     Toast.makeText(context, "Subscription fee updated to $${event.newFee} USD", Toast.LENGTH_SHORT).show()
                 }
+                is AdminUiEvent.DataExportReady -> {
+                    Toast.makeText(context, "${event.title} ready for download", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
