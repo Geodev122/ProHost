@@ -714,7 +714,7 @@ data class AuditSecurityLog(
                 timestamp = (data["timestamp"] as? Number)?.toLong() ?: System.currentTimeMillis(),
                 actionType = data["actionType"] as? String ?: "SYSTEM_EVENT",
                 details = data["details"] as? String ?: "",
-                actorEmail = data["actorEmail"] as? String ?: "admin@prospace.lb",
+                actorEmail = data["actorEmail"] as? String ?: "admin@prohost.lb",
                 severity = data["severity"] as? String ?: "INFO",
                 ipAddress = data["ipAddress"] as? String ?: "127.0.0.1"
             )

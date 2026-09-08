@@ -605,7 +605,7 @@ fun ProEmptyState(
 }
 
 // =========================================================================
-// REUSABLE PROSPACE BUTTONS
+// REUSABLE PROHOST BUTTONS
 // =========================================================================
 
 enum class CustomButtonVariant {
@@ -840,40 +840,8 @@ fun ProOutlinedButton(
     )
 }
 
-/**
- * Standard ProHost Icon Button with soft background.
- */
-@Composable
-fun ProIconButton(
-    icon: ImageVector,
-    onClick: () -> Unit,
-    contentDescription: String?,
-    modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
-    contentColor: Color = MaterialTheme.colorScheme.onSurface,
-    size: Dp = 40.dp,
-    shape: RoundedCornerShape = RoundedCornerShape(10.dp)
-) {
-    Surface(
-        color = containerColor,
-        shape = shape,
-        modifier = modifier
-            .size(size)
-            .clickable(onClick = onClick)
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
-                contentDescription = contentDescription,
-                tint = contentColor,
-                modifier = Modifier.size(size * 0.5f)
-            )
-        }
-    }
-}
-
 // =========================================================================
-// REUSABLE PROSPACE INPUTS & TEXT FIELDS
+// REUSABLE PROHOST INPUTS & TEXT FIELDS
 // =========================================================================
 
 /**
@@ -1012,81 +980,8 @@ fun ProOutlinedTextField(
     )
 }
 
-/**
- * Dedicated ProHost Search Field with soft background and clear button.
- */
-@Composable
-fun ProSearchField(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    placeholder: String = "Search workspaces, areas, disciplines...",
-    modifier: Modifier = Modifier,
-    onClear: (() -> Unit)? = null
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 14.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            TextField(
-                value = query,
-                onValueChange = onQueryChange,
-                placeholder = {
-                    Text(
-                        text = placeholder,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                },
-                singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                ),
-                modifier = Modifier.weight(1f)
-            )
-            if (query.isNotBlank()) {
-                IconButton(
-                    onClick = {
-                        if (onClear != null) onClear() else onQueryChange("")
-                    },
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Clear search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
 // =========================================================================
-// REUSABLE PROSPACE CARDS & CONTAINERS (WITH MODERN SHADOWS)
+// REUSABLE PROHOST CARDS & CONTAINERS (WITH MODERN SHADOWS)
 // =========================================================================
 
 /**
@@ -1360,74 +1255,6 @@ fun ProCard(
     )
 }
 
-
-/**
- * Standard Hero Card for Announcements, Header Highlights, and Onboarding.
- */
-@Composable
-fun ProHeroCard(
-    title: String,
-    subtitle: String,
-    badgeText: String? = null,
-    icon: ImageVector = Icons.Default.BusinessCenter,
-    containerColor: Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
-    modifier: Modifier = Modifier,
-    actionButton: (@Composable () -> Unit)? = null
-) {
-    Surface(
-        color = containerColor,
-        shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = CircleShape,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-                if (badgeText != null) {
-                    ProStatusBadge(
-                        type = ProBadgeType.CUSTOM_INFO,
-                        customText = badgeText
-                    )
-                }
-            }
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.ExtraBold
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (actionButton != null) {
-                Spacer(modifier = Modifier.height(2.dp))
-                actionButton()
-            }
-        }
-    }
-}
 
 /**
  * Standard ProHost Information Alert / Banner.
