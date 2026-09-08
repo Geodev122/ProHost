@@ -134,7 +134,7 @@ fun DiscoveryScreenContent(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = onSearchQueryChange,
-                        placeholder = { Text("Search workspaces, studios, offices, districts...", fontSize = MaterialTheme.typography.bodySmall.fontSize) },
+                        placeholder = { Text("Search...", fontSize = MaterialTheme.typography.bodySmall.fontSize) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {

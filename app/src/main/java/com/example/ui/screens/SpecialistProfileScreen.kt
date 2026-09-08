@@ -324,73 +324,7 @@ fun SpecialistProfileScreen(
                 }
             }
 
-            // =========================================================================
-            // 2. ACTIVE ROLE INDICATOR (informational only — a role change now only ever
-            // happens server-side: grantAdminRole for Admin grants, or grantEntitlement()
-            // promoting SPECIALIST to PRO_HOST the moment a package/listing payment settles.
-            // This used to be a tap-to-switch control that let any signed-in user instantly
-            // become Admin with no server check.)
-            // =========================================================================
-            ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    ProSectionHeader(
-                        title = "Account Role",
-                        subtitle = "Your verified role on ProHost",
-                        icon = Icons.Default.SwapHoriz
-                    )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        UserRole.entries.forEach { role ->
-                            val isSelected = user.role == role
-                            val roleColor = when (role) {
-                                UserRole.SPECIALIST -> OxfordBlue
-                                UserRole.PRO_HOST -> CarnationOrange
-                                UserRole.ADMIN -> AmberWarning
-                            }
-
-                            Surface(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(MaterialTheme.shapes.medium),
-                                color = if (isSelected) roleColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                shape = MaterialTheme.shapes.medium,
-                                border = if (isSelected) BorderStroke(1.5.dp, roleColor) else null
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        imageVector = when (role) {
-                                            UserRole.SPECIALIST -> Icons.Default.Work
-                                            UserRole.PRO_HOST -> Icons.Default.HomeWork
-                                            UserRole.ADMIN -> Icons.Default.AdminPanelSettings
-                                        },
-                                        contentDescription = null,
-                                        tint = if (isSelected) roleColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(Spacing.xs))
-                                    Text(
-                                        text = when (role) {
-                                            UserRole.SPECIALIST -> "Practitioner"
-                                            UserRole.PRO_HOST -> "Host / Owner"
-                                            UserRole.ADMIN -> "Super Admin"
-                                        },
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                        color = if (isSelected) roleColor else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
 
             // =========================================================================
             // 3. ROLE-SPECIFIC VITAL TELEMETRY & PERFORMANCE METRICS

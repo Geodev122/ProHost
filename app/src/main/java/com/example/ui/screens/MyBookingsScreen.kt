@@ -292,7 +292,7 @@ fun MyBookingsScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search by space or location...", fontSize = MaterialTheme.typography.labelMedium.fontSize) },
+                        placeholder = { Text("Search...", fontSize = MaterialTheme.typography.labelMedium.fontSize) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         trailingIcon = if (searchQuery.isNotEmpty()) {
                             {

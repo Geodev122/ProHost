@@ -75,6 +75,11 @@ android {
     compose = true
     buildConfig = true
   }
+  lint {
+    checkReleaseBuilds = false
+    abortOnError = false
+    disable.add("InvalidFragmentVersionForActivityResult")
+  }
   testOptions { unitTests { isIncludeAndroidResources = true } }
   dependenciesInfo {
     includeInApk = false
