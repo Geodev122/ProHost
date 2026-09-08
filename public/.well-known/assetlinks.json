@@ -1,0 +1,14 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.geonajjar.prohost",
+      "sha256_cert_fingerprints": [
+        "90:5D:E4:5E:8D:08:CF:FB:BF:FD:00:44:26:31:CF:46:59:73:8D:CD:81:3F:57:69:3A:C7:88:DF:98:26:10:07",
+        "35:06:F5:EC:73:7C:AB:0B:03:86:61:D6:1A:D9:13:0F:46:CC:52:44:D4:79:1C:5D:34:0D:8E:B9:34:C1:AE:C5",
+        "2C:A9:C2:D8:7C:A8:AA:26:5E:0B:E5:DF:BC:4F:A8:46:06:48:9D:15:38:82:3E:90:3E:36:6F:F6:05:C9:1B:CC"
+      ]
+    }
+  }
+]

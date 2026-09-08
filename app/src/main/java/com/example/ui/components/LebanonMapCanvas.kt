@@ -51,40 +51,15 @@ import com.example.data.model.SpaceListing
 import com.example.ui.theme.Spacing
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.rememberMarkerState
 import java.util.Locale
-
-@Composable
-fun rememberMapViewWithLifecycle(): MapView {
-    val context = LocalContext.current
-    val mapView = remember { MapView(context) }
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    
-    DisposableEffect(lifecycle) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_CREATE -> mapView.onCreate(Bundle())
-                Lifecycle.Event.ON_START -> mapView.onStart()
-                Lifecycle.Event.ON_RESUME -> mapView.onResume()
-                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
-                Lifecycle.Event.ON_STOP -> mapView.onStop()
-                Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
-                else -> {}
-            }
-        }
-        lifecycle.addObserver(observer)
-        onDispose {
-            lifecycle.removeObserver(observer)
-        }
-    }
-    return mapView
-}
 
 @Composable
 fun LebanonMapCanvas(
@@ -96,8 +71,6 @@ fun LebanonMapCanvas(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    
-    // Pure Google Maps integration
     
     // GPS Proximity coordinates
     var userLocation by remember { mutableStateOf<LatLng?>(null) }
@@ -167,81 +140,59 @@ fun LebanonMapCanvas(
         activePinSpace = selectedSpace
     }
 
+    val defaultCenter = LatLng(33.8886, 35.5184)
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(defaultCenter, 9f)
+    }
+
+    LaunchedEffect(userLocation) {
+        userLocation?.let { uLoc ->
+            cameraPositionState.animate(
+                CameraUpdateFactory.newLatLngZoom(uLoc, 11f)
+            )
+        }
+    }
+
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color(0xFFE2E8F0))
+        modifier = modifier.fillMaxSize()
     ) {
-        // NATIVE INTERACTIVE GOOGLE MAPS INTEGRATION ONLY
-        val mapView = rememberMapViewWithLifecycle()
-        
-        AndroidView(
-            factory = { mapView },
-            modifier = Modifier.fillMaxSize()
-        ) { mapV ->
-            mapV.getMapAsync { googleMap ->
-                googleMap.clear()
-                
-                // Map configurations
-                googleMap.uiSettings.isZoomControlsEnabled = true
-                googleMap.uiSettings.isMyLocationButtonEnabled = true
-                googleMap.uiSettings.isMapToolbarEnabled = true
-                
-                // Add markers for all active workspace spaces
-                spaces.forEach { space ->
-                    val pos = LatLng(space.lat, space.lng)
-                    val isSel = activePinSpace?.id == space.id
-                    
-                    val markerOptions = MarkerOptions()
-                        .position(pos)
-                        .title(space.title)
-                        .snippet("$${space.baseMonthlyRateUsd.toInt()}/mo • ${space.spaceType.displayName}")
-                    
-                    // Highlight active/selected space pin with customized color
-                    if (isSel) {
-                        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
-                    } else if (space.isActiveSubscription) {
-                        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
-                    } else {
-                        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
-                    }
-                    
-                    val marker = googleMap.addMarker(markerOptions)
-                    marker?.tag = space
-                }
-                
-                // Add blue marker for user's GPS local area lock
-                userLocation?.let { uLoc ->
-                    googleMap.addMarker(
-                        MarkerOptions()
-                            .position(uLoc)
-                            .title("Your Location")
-                            .snippet("Finding nearest spaces...")
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-                    )
-                    
-                    // Centring camera on user's location
-                    googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(uLoc, 11f))
-                } ?: run {
-                    // Default focus framing the whole Lebanon region
-                    val lebanonCenter = LatLng(33.8886, 35.5184)
-                    googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lebanonCenter, 9.0f))
-                }
-                
-                // Selection handling
-                googleMap.setOnMarkerClickListener { marker ->
-                    val space = marker.tag as? SpaceListing
-                    if (space != null) {
+        GoogleMap(
+            modifier = Modifier.fillMaxSize(),
+            cameraPositionState = cameraPositionState,
+            uiSettings = MapUiSettings(
+                zoomControlsEnabled = true,
+                myLocationButtonEnabled = true
+            ),
+            onMapClick = {
+                activePinSpace = null
+                onSpaceSelected(null)
+            }
+        ) {
+            spaces.forEach { space ->
+                val pos = LatLng(space.lat, space.lng)
+                val isSel = activePinSpace?.id == space.id
+                Marker(
+                    state = rememberMarkerState(key = space.id, position = pos),
+                    title = space.title,
+                    snippet = "$${space.baseMonthlyRateUsd.toInt()}/mo • ${space.spaceType.displayName}",
+                    icon = if (isSel) BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
+                           else if (space.isActiveSubscription) BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
+                           else BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW),
+                    onClick = {
                         activePinSpace = space
                         onSpaceSelected(space)
+                        false
                     }
-                    false
-                }
-                
-                googleMap.setOnMapClickListener {
-                    activePinSpace = null
-                    onSpaceSelected(null)
-                }
+                )
+            }
+
+            userLocation?.let { uLoc ->
+                Marker(
+                    state = rememberMarkerState(key = "user_location", position = uLoc),
+                    title = "Your Location",
+                    snippet = "Finding nearest spaces...",
+                    icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
+                )
             }
         }
 
