@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProHost - Specialist Workspace & Office Rental Exchange</title>
+  <meta name="description" content="ProHost is Lebanon's premier marketplace connecting independent healthcare practitioners and professional specialists with workspace hosts.">
+  <link rel="icon" type="image/png" href="/logo.png">
+  <style>
+    :root {
+      --primary: #F25F4C;
+      --primary-hover: #E04E3A;
+      --oxford-blue: #0F172A;
+      --vibrant-blue: #2563EB;
+      --bg-light: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text-dark: #1E293B;
+      --text-muted: #64748B;
+      --border-color: #E2E8F0;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background-color: var(--bg-light);
+      color: var(--text-dark);
+      line-height: 1.6;
+    }
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+    }
+    .brand img {
+      width: 42px;
+      height: 48px;
+      object-fit: contain;
+    }
+    .brand-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .brand-pro { color: var(--oxford-blue); }
+    .brand-host { color: var(--vibrant-blue); }
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text-dark);
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+    .hero {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 4rem 1.5rem 3rem;
+      text-align: center;
+    }
+    .badge {
+      display: inline-block;
+      background-color: #FEF2F2;
+      color: var(--primary);
+      border: 1px solid #FCA5A5;
+      padding: 0.35rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+    }
+    .hero h1 {
+      font-size: 2.75rem;
+      font-weight: 900;
+      line-height: 1.2;
+      color: var(--oxford-blue);
+      margin-bottom: 1.25rem;
+      letter-spacing: -0.03em;
+    }
+    .hero p {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      max-width: 750px;
+      margin: 0 auto 2.5rem;
+    }
+    .cta-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 0.85rem 1.75rem;
+      border-radius: 0.5rem;
+      font-weight: 700;
+      text-decoration: none;
+      font-size: 1rem;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .btn-primary {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      box-shadow: 0 4px 12px rgba(242, 95, 76, 0.25);
+    }
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+    }
+    .btn-secondary {
+      background-color: #FFFFFF;
+      color: var(--oxford-blue);
+      border: 1px solid var(--border-color);
+    }
+    .btn-secondary:hover {
+      background-color: #F1F5F9;
+    }
+    .features {
+      max-width: 1100px;
+      margin: 2rem auto 4rem;
+      padding: 0 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1f));
+      gap: 1.75rem;
+    }
+    .feature-card {
+      background-color: var(--card-bg);
+      padding: 2rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    .feature-card h3 {
+      font-size: 1.25rem;
+      color: var(--oxford-blue);
+      margin-bottom: 0.75rem;
+      font-weight: 800;
+    }
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .legal-notice-box {
+      max-width: 1100px;
+      margin: 0 auto 4rem;
+      padding: 2rem 1.5rem;
+    }
+    .notice-content {
+      background-color: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      padding: 2rem;
+      border-radius: 1rem;
+      text-align: center;
+    }
+    .notice-content h3 {
+      color: #1E40AF;
+      margin-bottom: 0.75rem;
+      font-size: 1.2rem;
+    }
+    .notice-content p {
+      color: #1E3A8A;
+      font-size: 0.95rem;
+      margin-bottom: 1.25rem;
+    }
+    footer {
+      background-color: var(--oxford-blue);
+      color: #94A3B8;
+      padding: 3rem 1.5rem;
+      border-top: 1px solid #1E293B;
+    }
+    .footer-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+    .footer-brand {
+      color: #FFFFFF;
+      font-weight: 800;
+      font-size: 1.25rem;
+    }
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+    .footer-links a {
+      color: #CBD5E1;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover {
+      color: #FFFFFF;
+    }
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 2rem; }
+      .hero p { font-size: 1rem; }
+      .nav-links { gap: 1rem; }
+      .footer-container { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="nav-container">
+      <a href="/" class="brand">
+        <img src="/logo.png" alt="ProHost Logo">
+        <span class="brand-title">
+          <span class="brand-pro">Pro</span><span class="brand-host">Host</span>
+        </span>
+      </a>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="/privacy.html">Privacy Policy</a>
+        <a href="/terms.html">Terms of Service</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <span class="badge">Lebanon Workspace & Office Exchange</span>
+      <h1>Empowering Independent Specialists & Workspace Hosts</h1>
+      <p>ProHost is a specialized marketplace designed for healthcare practitioners, architects, consultants, and independent professionals in Lebanon to discover, reserve, and host verified clinics, studios, and professional office spaces.</p>
+
+      <div class="cta-buttons">
+        <a href="/privacy.html" class="btn btn-primary">Read Privacy Policy</a>
+        <a href="/terms.html" class="btn btn-secondary">Terms of Service</a>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <h3>Secure Phone-OTP Authentication</h3>
+        <p>ProHost utilizes instant SMS one-time passcode (OTP) verification powered by Firebase Authentication to verify identity securely without password overhead.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📍</div>
+        <h3>Interactive GPS Workspace Search</h3>
+        <p>Browse verified medical clinics, dental chairs, therapy rooms, and executive suites across Lebanese governorates with real-time location mapping and interactive schedules.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <h3>Identity & Accreditation Security</h3>
+        <p>Your privacy and safety are paramount. User identity verification and document uploads strictly adhere to Lebanese Law No. 81/2018 on Electronic Transactions and Personal Data.</p>
+      </div>
+    </section>
+
+    <section class="legal-notice-box">
+      <div class="notice-content">
+        <h3>Application Identity & User Privacy</h3>
+        <p>ProHost is committed to user data protection, transparency, and explicit consent. Review our full documentation regarding how user data, phone numbers, and profile details are processed.</p>
+        <div class="cta-buttons">
+          <a href="/privacy.html" class="btn btn-primary">View Privacy Policy</a>
+          <a href="/terms.html" class="btn btn-secondary">View Terms of Service</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-container">
+      <div>
+        <div class="footer-brand">ProHost</div>
+        <p style="margin-top: 0.25rem; font-size: 0.85rem;">© 2026 ProHost. All rights reserved. Support: geo.elnajjar@gmail.com</p>
+      </div>
+      <div class="footer-links">
+        <a href="/">Home</a>
+        <a href="/privacy.html">Privacy Policy</a>
+        <a href="/terms.html">Terms of Service</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
