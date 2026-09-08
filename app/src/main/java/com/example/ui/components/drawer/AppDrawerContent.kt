@@ -467,12 +467,7 @@ fun ProHostDrawerFooter() {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            ProHostBrandLogo(
-                size = 28.dp,
-                roundedCorner = 7.dp,
-                elevation = 1.dp,
-                showBorder = true
-            )
+            ProHostBrandLogo(size = 28.dp)
             Column {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

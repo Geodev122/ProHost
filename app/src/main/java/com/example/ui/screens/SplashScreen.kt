@@ -4,22 +4,22 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BusinessCenter
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.*
@@ -79,33 +79,27 @@ fun SplashScreen(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(Spacing.xl)
         ) {
-            // Glowing App Icon
-            Surface(
-                color = OxfordBlue,
-                shape = MaterialTheme.shapes.extraLarge,
+            // ProHost mark - the pin carries its own background/gradient, no box needed
+            Image(
+                painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
+                contentDescription = "ProHost Logo",
+                contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .size(110.dp)
+                    .size(width = 96.dp, height = 118.dp)
                     .scale(logoScale)
-                    .border(2.dp, CarnationOrange, MaterialTheme.shapes.extraLarge),
-                shadowElevation = 12.dp
-            ) {
-                Image(
-                    painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
-                    contentDescription = "ProHost Smart Space Logo",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize().clip(MaterialTheme.shapes.extraLarge)
-                )
-            }
+            )
 
             Spacer(modifier = Modifier.height(Spacing.xl))
 
-            // Main Display Typography
+            // Main Display Typography - two-tone "ProHost" wordmark, matching the mark
             Text(
-                text = "ProHost",
+                text = buildAnnotatedString {
+                    withStyle(SpanStyle(color = OxfordBlueDark)) { append("Pro") }
+                    withStyle(SpanStyle(color = VibrantBlue)) { append("Host") }
+                },
                 fontFamily = ManropeDisplay,
                 fontSize = MaterialTheme.typography.displayLarge.fontSize,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface,
                 letterSpacing = 1.sp
             )
 

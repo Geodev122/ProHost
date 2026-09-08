@@ -1446,32 +1446,20 @@ fun NetworkSyncResilienceBanner(
 
 /**
  * Standardized ProHost Brand Logo Composable
- * Renders the official app icon vector asset with Oxford Blue, Carnation Orange, and White Checkmark.
+ * Renders the official pin-shaped mark (workspace silhouette on a two-tone base),
+ * which carries its own background/gradient - no surrounding box or border needed.
  */
 @Composable
 fun ProHostBrandLogo(
     size: Dp = 38.dp,
-    roundedCorner: Dp = 10.dp,
-    elevation: Dp = 3.dp,
-    showBorder: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        color = OxfordBlue,
-        shape = RoundedCornerShape(roundedCorner),
-        border = if (showBorder) BorderStroke(1.5.dp, CarnationOrange.copy(alpha = 0.6f)) else null,
-        shadowElevation = elevation,
+    Image(
+        painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
+        contentDescription = "ProHost Logo",
+        contentScale = ContentScale.Fit,
         modifier = modifier.size(size)
-    ) {
-        Image(
-            painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
-            contentDescription = "ProHost Logo",
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(roundedCorner))
-        )
-    }
+    )
 }
 
 /**
@@ -1557,11 +1545,7 @@ fun ProHostTopAppBar(
                     )
                 }
 
-                ProHostBrandLogo(
-                    size = 34.dp,
-                    roundedCorner = 9.dp,
-                    elevation = 2.dp
-                )
+                ProHostBrandLogo(size = 34.dp)
 
                 Column(
                     verticalArrangement = Arrangement.Center

@@ -23,8 +23,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -110,33 +113,24 @@ fun LoginAuthScreen(
     ) {
         Spacer(modifier = Modifier.height(Spacing.lg))
 
-        // ProHost Brand Header
-        Surface(
-            color = OxfordBlue,
-            shape = MaterialTheme.shapes.extraLarge,
-            modifier = Modifier
-                .size(76.dp)
-                .border(1.5.dp, CarnationOrange, MaterialTheme.shapes.extraLarge),
-            shadowElevation = 6.dp
-        ) {
-            Image(
-                painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
-                contentDescription = "ProHost Logo",
-                contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(MaterialTheme.shapes.extraLarge)
-            )
-        }
+        // ProHost mark - the pin carries its own background/gradient, no box needed
+        Image(
+            painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
+            contentDescription = "ProHost Logo",
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.size(width = 66.dp, height = 81.dp)
+        )
 
         Spacer(modifier = Modifier.height(Spacing.md))
 
         Text(
-            text = "ProHost",
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(color = OxfordBlueDark)) { append("Pro") }
+                withStyle(SpanStyle(color = VibrantBlue)) { append("Host") }
+            },
             fontFamily = ManropeDisplay,
             fontSize = MaterialTheme.typography.headlineLarge.fontSize,
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.onSurface
+            fontWeight = FontWeight.ExtraBold
         )
 
         Text(
