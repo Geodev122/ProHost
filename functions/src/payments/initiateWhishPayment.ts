@@ -70,9 +70,9 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
         }
         const pricing = await getPricingState();
         amountUsd = getPackageFee(pricing, targetId as OwnerPackageTier);
-        invoiceLabel = `Owner package upgrade: ${targetId}`;
+        invoiceLabel = `ProHost package upgrade: ${targetId}`;
         spaceIdForRecord = `OWNER-PKG-${targetId}`;
-        spaceTitleForRecord = `Owner Package Subscription: ${targetId}`;
+        spaceTitleForRecord = `ProHost Package Subscription: ${targetId}`;
         break;
       }
       case "PAYG_LISTING": {

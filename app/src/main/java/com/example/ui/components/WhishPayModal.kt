@@ -250,17 +250,6 @@ fun WhishPayModal(
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                InputField(
-                    value = payerPhone,
-                    onValueChange = { payerPhone = it },
-                    label = if (selectedPaymentMethod == WhishPaymentMethod.WHISH_LBP_ACCOUNT) "Whish LBP Mobile (89,500 Rate)" else "Whish Registered Mobile",
-                    leadingIcon = Icons.Default.Phone,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
                 Spacer(modifier = Modifier.height(Spacing.md))
 
                 Card(
@@ -296,7 +285,7 @@ fun WhishPayModal(
                     )
 
                     ProPrimaryButton(
-                        text = "Authorize Settlement",
+                        text = "Go to Whish Pay",
                         onClick = {
                             isLaunching = true
                             viewModel?.paySubscriptionViaWhish(space.id, payerName, payerPhone, context)

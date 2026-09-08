@@ -100,7 +100,7 @@ fun OwnerHubScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
-                        text = "Owner Package Tiers & Governance",
+                        text = "ProHost Package Tiers & Governance",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -189,7 +189,7 @@ fun OwnerHubScreen(
             viewModel = viewModel,
             onDismiss = { selectedSpaceForWhish = null },
             onConfirmPayment = { _, _ ->
-                // WhishPayModal's own "Authorize Settlement" button already calls
+                // WhishPayModal's own "Go to Whish Pay" button already calls
                 // viewModel.paySubscriptionViaWhish and dismisses itself — calling it again
                 // here used to double-fire the payment (two initiateWhishPayment calls, two
                 // browser launches, two polling loops for one tap). This callback only needs
@@ -223,7 +223,7 @@ fun OwnerHubScreen(
                 } else {
                     android.widget.Toast.makeText(
                         context,
-                        "Package Limit Reached. Please upgrade your package tier in Owner Portal.",
+                        "Package Limit Reached. Please upgrade your package tier in Subscription & Packages.",
                         android.widget.Toast.LENGTH_LONG
                     ).show()
                 }
@@ -449,7 +449,7 @@ fun OwnerHubScreenContent(
                                 ) {
                                     Icon(Icons.Default.Verified, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text("Space Owner Portal", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    Text("ProHost Portal", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                 }
                             }
 

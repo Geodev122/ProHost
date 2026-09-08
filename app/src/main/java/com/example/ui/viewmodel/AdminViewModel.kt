@@ -108,7 +108,7 @@ class AdminViewModel(
             val success = repository.updatePackageFees(package2Fee, package3Fee)
             _events.emit(
                 AdminUiEvent.ShowToast(
-                    if (success) "Owner package pricing updated successfully" else "Failed to update owner package pricing"
+                    if (success) "ProHost package pricing updated successfully" else "Failed to update ProHost package pricing"
                 )
             )
         }

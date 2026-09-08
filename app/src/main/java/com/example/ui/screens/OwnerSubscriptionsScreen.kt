@@ -264,17 +264,10 @@ fun OwnerSubscriptionsScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Price: $${String.format(Locale.US, "%.2f", pricingState.getPackageFee(selectedTierToSubscribe))} for 30 Days")
-                    Text("Secure Whish Money Gateway Integration (Channel: 15462415)", style = MaterialTheme.typography.bodySmall, color = CoolGray)
                     OutlinedTextField(
                         value = payerName,
                         onValueChange = { payerName = it },
                         label = { Text("Payer Full Name") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = payerPhone,
-                        onValueChange = { payerPhone = it },
-                        label = { Text("Whish Account Phone Number") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -293,7 +286,7 @@ fun OwnerSubscriptionsScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = FreshGreen)
                 ) {
-                    Text("Confirm Whish Payment", color = PureWhite, fontWeight = FontWeight.Bold)
+                    Text("Go to Whish Pay", color = PureWhite, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -337,13 +330,7 @@ fun OwnerSubscriptionsScreen(
                     OutlinedTextField(
                         value = payerName,
                         onValueChange = { payerName = it },
-                        label = { Text("Payer Name") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = payerPhone,
-                        onValueChange = { payerPhone = it },
-                        label = { Text("Whish Phone Number") },
+                        label = { Text("Payer Full Name") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -361,7 +348,7 @@ fun OwnerSubscriptionsScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                 ) {
-                    Text("Pay via Whish Money", color = PureWhite, fontWeight = FontWeight.Bold)
+                    Text("Go to Whish Pay", color = PureWhite, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {

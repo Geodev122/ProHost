@@ -515,7 +515,7 @@ private fun AdminRevenueTab(
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     ProSectionHeader(
-                        title = "Owner Packages & Governance Hub",
+                        title = "ProHost Packages & Governance Hub",
                         subtitle = "Configure Package Tiers, PAYG fees per workspace type, and Control Tag",
                         icon = Icons.Default.AdminPanelSettings
                     )
