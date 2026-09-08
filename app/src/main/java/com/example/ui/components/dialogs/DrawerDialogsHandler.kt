@@ -253,7 +253,7 @@ fun DrawerDialogsHandler(
                                             viewModel.shareExportData(context, "Audit Logs", csv)
                                         },
                                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                        shape = RoundedCornerShape(8.dp)
+                                        shape = MaterialTheme.shapes.small
                                     ) {
                                         Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
@@ -346,7 +346,7 @@ fun DrawerDialogsHandler(
                                             }
                                             Surface(
                                                 color = MaterialTheme.colorScheme.primaryContainer,
-                                                shape = RoundedCornerShape(8.dp)
+                                                shape = MaterialTheme.shapes.small
                                             ) {
                                                 Text("$listingCount active", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                             }
@@ -569,7 +569,7 @@ private fun AppUpdatesInfo(
                     onDismiss()
                 },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp)
+                shape = MaterialTheme.shapes.small
             ) {
                 Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))

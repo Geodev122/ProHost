@@ -354,9 +354,9 @@ fun SpecialistProfileScreen(
                             Surface(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(12.dp)),
+                                    .clip(MaterialTheme.shapes.medium),
                                 color = if (isSelected) roleColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = MaterialTheme.shapes.medium,
                                 border = if (isSelected) BorderStroke(1.5.dp, roleColor) else null
                             ) {
                                 Column(
@@ -758,7 +758,7 @@ fun SpecialistProfileScreen(
                                                             viewModel.launchWhatsAppInquiry(context, targetSpace, req.formula, req)
                                                         },
                                                         modifier = Modifier.weight(1f),
-                                                        shape = RoundedCornerShape(8.dp),
+                                                        shape = MaterialTheme.shapes.small,
                                                         colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
                                                         contentPadding = PaddingValues(vertical = 6.dp)
                                                     ) {
@@ -772,7 +772,7 @@ fun SpecialistProfileScreen(
                                                     OutlinedButton(
                                                         onClick = { viewModel.cancelBookingRequest(req.id, context) },
                                                         modifier = Modifier.weight(0.6f),
-                                                        shape = RoundedCornerShape(8.dp),
+                                                        shape = MaterialTheme.shapes.small,
                                                         contentPadding = PaddingValues(vertical = 6.dp)
                                                     ) {
                                                         Text("Cancel", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
@@ -980,7 +980,7 @@ fun SpecialistProfileScreen(
                             Button(
                                 onClick = { inAppUpdateManager?.completeUpdate() },
                                 colors = ButtonDefaults.buttonColors(containerColor = FreshGreen),
-                                shape = RoundedCornerShape(8.dp),
+                                shape = MaterialTheme.shapes.small,
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                             ) {
                                 Text("Restart & Install", fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -995,7 +995,7 @@ fun SpecialistProfileScreen(
                                         Toast.makeText(context, "ProSpace is up to date (Version 1.0.0)", Toast.LENGTH_SHORT).show()
                                     }
                                 },
-                                shape = RoundedCornerShape(8.dp),
+                                shape = MaterialTheme.shapes.small,
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                             ) {
                                 Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))

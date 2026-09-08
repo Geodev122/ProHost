@@ -649,7 +649,7 @@ fun WorkspaceInteractiveBookingCalendar(
                                     .size(38.dp)
                                     .clip(
                                         when {
-                                            isStart && isEnd -> RoundedCornerShape(12.dp)
+                                            isStart && isEnd -> MaterialTheme.shapes.medium
                                             isStart -> RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp)
                                             isEnd -> RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp)
                                             inRange -> RoundedCornerShape(0.dp)
@@ -888,7 +888,7 @@ fun WorkspaceInteractiveBookingCalendar(
 
             // Real-Time Availability Check Status Banner
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = MaterialTheme.shapes.medium,
                 color = when (availabilityCheck.statusLevel) {
                     AvailabilityLevel.AVAILABLE -> StatusSuccessContainer
                     AvailabilityLevel.PARTIAL -> StatusWarningContainer
@@ -946,7 +946,7 @@ fun WorkspaceInteractiveBookingCalendar(
 
             // Summary Info & Price Estimator
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -1022,7 +1022,7 @@ fun WorkspaceInteractiveBookingCalendar(
                         .fillMaxWidth()
                         .height(48.dp)
                         .testTag("confirm_calendar_schedule_button"),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = MaterialTheme.shapes.medium,
                     // A hard UNAVAILABLE result (blackout or a genuinely overlapping accepted
                     // booking) now actually blocks submission — this used to stay tappable
                     // regardless, so the "Unavailable" banner above was purely informational

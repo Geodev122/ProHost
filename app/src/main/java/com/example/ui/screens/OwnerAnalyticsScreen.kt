@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
@@ -207,7 +206,7 @@ fun DisciplineDemandBar(name: String, percentage: Int, color: Color) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
-                .clip(RoundedCornerShape(4.dp)),
+                .clip(MaterialTheme.shapes.extraSmall),
             color = color,
             trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
@@ -268,7 +267,7 @@ fun ListingHealthCard(space: SpaceListing) {
 
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(8.dp)
+                shape = MaterialTheme.shapes.small
             ) {
                 Text(
                     text = space.spaceType.displayName,

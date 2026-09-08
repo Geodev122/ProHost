@@ -164,7 +164,7 @@ fun MyBookingsScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Surface(
                                 color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(8.dp)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Text(
                                     text = "${userBookings.size} Total",
@@ -203,7 +203,7 @@ fun MyBookingsScreen(
                     Surface(
                         modifier = Modifier.weight(1f),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -219,7 +219,7 @@ fun MyBookingsScreen(
                     Surface(
                         modifier = Modifier.weight(1f),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -235,7 +235,7 @@ fun MyBookingsScreen(
                     Surface(
                         modifier = Modifier.weight(1f),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -302,7 +302,7 @@ fun MyBookingsScreen(
                             }
                         } else null,
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp),
@@ -385,7 +385,7 @@ fun MyBookingsScreen(
                     )
                     Button(
                         onClick = onNavigateToDiscovery,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.testTag("empty_state_browse_button")
                     ) {
                         Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -455,7 +455,7 @@ fun MyBookingsScreen(
                 modifier = Modifier
                     .fillMaxWidth(0.95f)
                     .fillMaxHeight(0.92f)
-                    .clip(RoundedCornerShape(24.dp)),
+                    .clip(MaterialTheme.shapes.extraLarge),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 8.dp
             ) {
@@ -566,7 +566,7 @@ fun MyBookingsScreen(
                 modifier = Modifier
                     .fillMaxWidth(0.95f)
                     .fillMaxHeight(0.92f)
-                    .clip(RoundedCornerShape(24.dp)),
+                    .clip(MaterialTheme.shapes.extraLarge),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 8.dp
             ) {
@@ -693,7 +693,7 @@ fun MyBookingsScreen(
 
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -811,7 +811,7 @@ fun BookingReservationCard(
 
                 // Status Badge
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = MaterialTheme.shapes.small,
                     color = when (booking.status) {
                         BookingRequestStatus.ACCEPTED -> StatusSuccessContainer
                         BookingRequestStatus.PENDING -> StatusWarningContainer
@@ -861,7 +861,7 @@ fun BookingReservationCard(
             // Schedule & Formula Details Box
             Surface(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(12.dp),
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(

@@ -77,7 +77,7 @@ fun WhishPayModal(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp),
-            shape = RoundedCornerShape(24.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
         ) {
@@ -90,7 +90,7 @@ fun WhishPayModal(
             ) {
                 Surface(
                     color = WhishBrandRed, // Official Whish Red
-                    shape = RoundedCornerShape(12.dp)
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
@@ -132,7 +132,7 @@ fun WhishPayModal(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(16.dp)
+                    shape = MaterialTheme.shapes.large
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -224,7 +224,7 @@ fun WhishPayModal(
                                 }
                                 Surface(
                                     color = if (method.currencyBadge == "LBP") StatusWarning.copy(alpha = 0.2f) else StatusSuccess.copy(alpha = 0.2f),
-                                    shape = RoundedCornerShape(4.dp)
+                                    shape = MaterialTheme.shapes.extraSmall
                                 ) {
                                     Text(
                                         text = method.currencyBadge,
@@ -265,7 +265,7 @@ fun WhishPayModal(
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Row(

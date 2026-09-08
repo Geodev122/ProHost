@@ -74,7 +74,7 @@ fun SpaceScheduleEditorDialog(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
                 .fillMaxHeight(0.94f)
-                .clip(RoundedCornerShape(24.dp)),
+                .clip(MaterialTheme.shapes.extraLarge),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp
         ) {
@@ -239,7 +239,7 @@ fun SpaceScheduleEditorDialog(
 
                                 FilledTonalButton(
                                     onClick = { showAddBlackout = !showAddBlackout },
-                                    shape = RoundedCornerShape(8.dp),
+                                    shape = MaterialTheme.shapes.small,
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                                 ) {
                                     Icon(if (showAddBlackout) Icons.Default.ExpandLess else Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -324,7 +324,7 @@ fun SpaceScheduleEditorDialog(
                                 schedule.blackoutSlots.forEach { slot ->
                                     Surface(
                                         color = MaterialTheme.colorScheme.surface,
-                                        shape = RoundedCornerShape(8.dp),
+                                        shape = MaterialTheme.shapes.small,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Row(
@@ -385,7 +385,7 @@ fun SpaceScheduleEditorDialog(
 
                                 FilledTonalButton(
                                     onClick = { showAddFormula = !showAddFormula },
-                                    shape = RoundedCornerShape(8.dp),
+                                    shape = MaterialTheme.shapes.small,
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                                 ) {
                                     Icon(if (showAddFormula) Icons.Default.ExpandLess else Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -398,7 +398,7 @@ fun SpaceScheduleEditorDialog(
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = MaterialTheme.shapes.medium,
                                     border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
                                 ) {
                                     Column(
@@ -457,7 +457,7 @@ fun SpaceScheduleEditorDialog(
                                             RentalFormulaType.DAY_PER_WEEK -> {
                                                 Surface(
                                                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                                                    shape = RoundedCornerShape(8.dp),
+                                                    shape = MaterialTheme.shapes.small,
                                                     modifier = Modifier.fillMaxWidth()
                                                 ) {
                                                     Text(

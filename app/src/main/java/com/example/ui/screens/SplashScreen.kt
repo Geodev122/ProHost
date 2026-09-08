@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BusinessCenter
 import androidx.compose.material3.*
@@ -83,18 +82,18 @@ fun SplashScreen(
             // Glowing App Icon
             Surface(
                 color = OxfordBlue,
-                shape = RoundedCornerShape(24.dp),
+                shape = MaterialTheme.shapes.extraLarge,
                 modifier = Modifier
                     .size(110.dp)
                     .scale(logoScale)
-                    .border(2.dp, CarnationOrange, RoundedCornerShape(24.dp)),
+                    .border(2.dp, CarnationOrange, MaterialTheme.shapes.extraLarge),
                 shadowElevation = 12.dp
             ) {
                 Image(
                     painter = painterResource(id = com.example.R.drawable.ic_prospace_logo_brand),
                     contentDescription = "ProHost Smart Space Logo",
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp))
+                    modifier = Modifier.fillMaxSize().clip(MaterialTheme.shapes.extraLarge)
                 )
             }
 

@@ -70,7 +70,7 @@ fun SpecialistDrawerContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             color = OxfordBlue,
             shadowElevation = 4.dp
         ) {
@@ -315,7 +315,7 @@ fun AdminDrawerContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             color = OxfordBlue,
             shadowElevation = 4.dp
         ) {
@@ -509,7 +509,7 @@ fun LawBulletinCard(number: String, title: String, content: String) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     color = OxfordBlue,
-                    shape = RoundedCornerShape(4.dp)
+                    shape = MaterialTheme.shapes.extraSmall
                 ) {
                     Text(number, color = PureWhite, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
                 }

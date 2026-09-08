@@ -71,7 +71,7 @@ fun WeeklyAvailabilityMatrix(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
                         color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(8.dp)
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Icon(
                             Icons.Default.EventAvailable,
@@ -99,7 +99,7 @@ fun WeeklyAvailabilityMatrix(
                 }
                 Surface(
                     color = if (isFullMonthBooked) StatusErrorContainer else StatusSuccessContainer,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Text(
                         text = if (isFullMonthBooked) "Fully Occupied" else "Multi-Tenant Active",
@@ -136,7 +136,7 @@ fun WeeklyAvailabilityMatrix(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f), MaterialTheme.shapes.small)
                             .padding(vertical = 8.dp, horizontal = 4.dp),
                         contentAlignment = Alignment.Center
                     ) {

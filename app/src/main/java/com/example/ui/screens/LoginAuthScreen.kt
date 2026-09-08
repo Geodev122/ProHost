@@ -210,7 +210,7 @@ fun LoginAuthScreen(
         when (step) {
             AuthStep.PHONE_ENTRY -> ModernCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(20.dp),
                 elevation = 3.dp
             ) {
@@ -320,7 +320,7 @@ fun LoginAuthScreen(
 
             AuthStep.OTP_ENTRY -> ModernCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(20.dp),
                 elevation = 3.dp
             ) {
@@ -383,7 +383,7 @@ fun LoginAuthScreen(
 
             AuthStep.REGISTRATION_FORM -> ModernCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(20.dp),
                 elevation = 3.dp
             ) {
@@ -623,7 +623,7 @@ fun LoginAuthScreen(
         // Security Notice Box
         Surface(
             color = MaterialTheme.colorScheme.surfaceVariant,
-            shape = RoundedCornerShape(12.dp),
+            shape = MaterialTheme.shapes.medium,
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(

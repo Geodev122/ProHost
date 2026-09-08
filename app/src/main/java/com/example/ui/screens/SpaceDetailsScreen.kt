@@ -156,7 +156,7 @@ fun SpaceDetailsScreenContent(
                         // Request to Rent Button
                         Button(
                             onClick = onRequestRentClick,
-                            shape = RoundedCornerShape(12.dp),
+                            shape = MaterialTheme.shapes.medium,
                             modifier = Modifier.weight(1f),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
                         ) {
@@ -168,7 +168,7 @@ fun SpaceDetailsScreenContent(
                         // WhatsApp Direct Inquiry Button
                         Button(
                             onClick = onWhatsAppClick,
-                            shape = RoundedCornerShape(12.dp),
+                            shape = MaterialTheme.shapes.medium,
                             colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
                             modifier = Modifier.weight(1f),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
@@ -229,7 +229,7 @@ fun SpaceDetailsScreenContent(
                 ) {
                     Surface(
                         color = Color(0x33FFFFFF),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Text(
                             text = "${liveSpace.spaceType.displayName} • ${if (liveSpace.isShared) "Shared Co-Working Space" else "Private Studio / Office"}",
@@ -258,7 +258,7 @@ fun SpaceDetailsScreenContent(
                 Surface(
                     modifier = Modifier.align(Alignment.TopEnd),
                     color = Color(0xCC000000),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = MaterialTheme.shapes.large
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -372,7 +372,7 @@ fun SpaceDetailsScreenContent(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable { onSelectFormula(formula) },
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = MaterialTheme.shapes.medium,
                                     colors = CardDefaults.cardColors(
                                         containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
                                     ),

@@ -143,7 +143,7 @@ fun DiscoveryScreenContent(
                             }
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -161,7 +161,7 @@ fun DiscoveryScreenContent(
                     IconButton(
                         onClick = onToggleMapView,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(MaterialTheme.shapes.medium)
                             .background(if (isMapView) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Icon(
@@ -175,7 +175,7 @@ fun DiscoveryScreenContent(
                     IconButton(
                         onClick = { onSetFilterSheetVisible(true) },
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(MaterialTheme.shapes.medium)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         val hasActiveFilter = selectedGovernorate != null ||
@@ -397,7 +397,7 @@ fun DiscoveryScreenContent(
                 Button(
                     onClick = { onSetFilterSheetVisible(false) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     Text("Apply Filters (${spaces.size} Results)")
                 }

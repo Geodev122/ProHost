@@ -258,7 +258,7 @@ fun LebanonMapCanvas(
             // Current Coordinates & Info HUD
             Surface(
                 color = Color(0xEE1E293B),
-                shape = RoundedCornerShape(12.dp),
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {
                 Row(
@@ -352,9 +352,9 @@ fun LebanonMapCanvas(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(12.dp, RoundedCornerShape(16.dp))
+                        .shadow(12.dp, MaterialTheme.shapes.large)
                         .clickable { onNavigateToDetails(space) },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
@@ -367,7 +367,7 @@ fun LebanonMapCanvas(
                         ) {
                             Surface(
                                 color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(8.dp)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Text(
                                     text = space.spaceType.displayName,
@@ -458,7 +458,7 @@ fun LebanonMapCanvas(
                             OutlinedButton(
                                 onClick = { activePinSpace = null },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(8.dp)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Text("Close")
                             }
@@ -466,7 +466,7 @@ fun LebanonMapCanvas(
                             Button(
                                 onClick = { onNavigateToDetails(space) },
                                 modifier = Modifier.weight(2f),
-                                shape = RoundedCornerShape(8.dp)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))

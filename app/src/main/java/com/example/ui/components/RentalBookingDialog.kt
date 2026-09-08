@@ -212,7 +212,7 @@ fun RentalBookingDialog(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
                 .fillMaxHeight(0.94f)
-                .clip(RoundedCornerShape(24.dp)),
+                .clip(MaterialTheme.shapes.extraLarge),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp
         ) {
@@ -348,7 +348,7 @@ fun RentalBookingDialog(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable { selectedSubdivision = sub },
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = MaterialTheme.shapes.medium,
                                     colors = CardDefaults.cardColors(
                                         containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
                                     ),
@@ -406,7 +406,7 @@ fun RentalBookingDialog(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable { selectedSubStrategy = strat },
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = MaterialTheme.shapes.medium,
                                     colors = CardDefaults.cardColors(
                                         containerColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant
                                     ),
@@ -476,7 +476,7 @@ fun RentalBookingDialog(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable { innerSelectedFormula = formula },
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = MaterialTheme.shapes.medium,
                                     colors = CardDefaults.cardColors(
                                         containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
                                     ),
@@ -624,7 +624,7 @@ fun RentalBookingDialog(
 
                                     Surface(
                                         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                                        shape = RoundedCornerShape(8.dp),
+                                        shape = MaterialTheme.shapes.small,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Row(
@@ -875,7 +875,7 @@ fun RentalBookingDialog(
                     // Booking Rules Notice Banner
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         colors = CardDefaults.cardColors(containerColor = StatusSuccessContainer),
                         border = androidx.compose.foundation.BorderStroke(1.dp, StatusSuccess.copy(alpha = 0.5f))
                     ) {

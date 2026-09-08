@@ -63,7 +63,7 @@ fun SystemDebuggerDialog(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
                 .fillMaxHeight(0.90f),
-            shape = RoundedCornerShape(24.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp
         ) {
@@ -81,7 +81,7 @@ fun SystemDebuggerDialog(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Surface(
                             color = OxfordBlue.copy(alpha = 0.12f),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = MaterialTheme.shapes.medium,
                             modifier = Modifier.size(44.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -225,7 +225,7 @@ fun SystemDebuggerDialog(
                 ) {
                     items(displayedItems) { item ->
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
+                            shape = MaterialTheme.shapes.medium,
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
@@ -317,7 +317,7 @@ fun SystemDebuggerDialog(
                 ) {
                     OutlinedButton(
                         onClick = onDismissRequest,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("Close")
@@ -326,7 +326,7 @@ fun SystemDebuggerDialog(
                     Button(
                         onClick = { runAudit() },
                         enabled = !isRunning,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue),
                         modifier = Modifier.weight(1f)
                     ) {
@@ -344,7 +344,7 @@ fun SystemDebuggerDialog(
 private fun BadgePill(count: Int, label: String, color: Color) {
     Surface(
         color = color.copy(alpha = 0.12f),
-        shape = RoundedCornerShape(8.dp)
+        shape = MaterialTheme.shapes.small
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

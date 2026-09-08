@@ -42,7 +42,7 @@ fun CreateListingDialog(
 ) {
     if (currentUser == null) {
         Dialog(onDismissRequest = onDismiss) {
-            Card(shape = RoundedCornerShape(16.dp)) {
+            Card(shape = MaterialTheme.shapes.large) {
                 Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Sign In Required", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Text(
@@ -409,7 +409,7 @@ fun CreateListingDialog(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clip(RoundedCornerShape(8.dp))
+                                            .clip(MaterialTheme.shapes.small)
                                             .clickable {
                                                 selectedFacilities = if (isChecked) selectedFacilities - facility else selectedFacilities + facility
                                             }
@@ -447,7 +447,7 @@ fun CreateListingDialog(
                                         val isSelected = chosenEquipment.any { it.name == item.name }
                                         Surface(
                                             color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                                            shape = RoundedCornerShape(8.dp),
+                                            shape = MaterialTheme.shapes.small,
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .clickable {
@@ -531,7 +531,7 @@ fun CreateListingDialog(
                                     }
 
                                     Card(
-                                        modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
+                                        modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), MaterialTheme.shapes.medium),
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                                     ) {
                                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -736,7 +736,7 @@ fun CreateListingDialog(
                                     Card(
                                         modifier = Modifier.fillMaxWidth(),
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                                        shape = RoundedCornerShape(12.dp)
+                                        shape = MaterialTheme.shapes.medium
                                     ) {
                                         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                             Row(
@@ -765,7 +765,7 @@ fun CreateListingDialog(
                                     Card(
                                         modifier = Modifier.fillMaxWidth(),
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                                        shape = RoundedCornerShape(12.dp)
+                                        shape = MaterialTheme.shapes.medium
                                     ) {
                                         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                             Row(

@@ -64,7 +64,7 @@ fun SpaceAvailabilityCalendarView(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
@@ -97,7 +97,7 @@ fun SpaceAvailabilityCalendarView(
 
                 Surface(
                     color = if (remainingAvailableHours > 0) StatusSuccessContainer else StatusErrorContainer,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Text(
                         text = if (remainingAvailableHours > 0) "$remainingAvailableHours hrs/wk Open" else "Fully Booked",
@@ -212,7 +212,7 @@ fun SpaceAvailabilityCalendarView(
                     acceptedBookings.forEach { booking ->
                         Surface(
                             color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             modifier = Modifier.fillMaxWidth(),
                             border = androidx.compose.foundation.BorderStroke(1.dp, StatusInfo.copy(alpha = 0.3f))
                         ) {
@@ -271,7 +271,7 @@ fun SpaceAvailabilityCalendarView(
                     schedule.blackoutSlots.forEach { slot ->
                         Surface(
                             color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(

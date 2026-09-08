@@ -91,7 +91,7 @@ fun ExportDataDialog(
                 TabRow(
                     selectedTabIndex = selectedFormat,
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.clip(RoundedCornerShape(12.dp))
+                    modifier = Modifier.clip(MaterialTheme.shapes.medium)
                 ) {
                     Tab(
                         selected = selectedFormat == 0,
@@ -127,7 +127,7 @@ fun ExportDataDialog(
                         .fillMaxWidth()
                         .height(280.dp),
                     color = MaterialTheme.colorScheme.inverseSurface,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     Box(
                         modifier = Modifier
