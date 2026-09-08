@@ -320,7 +320,7 @@ class FirestoreService(
     /**
      * Persists this device's current FCM registration token onto the signed-in user's
      * own profile doc — the only way a server-side Cloud Function can ever reach this
-     * device with a real push (see functions/src/notifications/*.ts). A merge write, so
+     * device with a real push (see functions/src/notifications/ ts files). A merge write, so
      * it never touches any other field; not a protected field in firestore.rules since
      * only the owning user ever writes their own token.
      */

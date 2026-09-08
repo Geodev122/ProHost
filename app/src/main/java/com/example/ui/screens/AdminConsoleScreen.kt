@@ -282,7 +282,7 @@ fun AdminConsoleScreen(
                     2 -> AdminListingsCatalogTab(uiState = uiState, adminViewModel = adminViewModel)
                     3 -> AdminOwnersAndPaymentsTab(uiState = uiState, adminViewModel = adminViewModel)
                     4 -> AdminSchemaArchitectureTab(uiState = uiState, adminViewModel = adminViewModel)
-                    5 -> AdminSecurityAuditTab(uiState = uiState, adminViewModel = adminViewModel)
+                    5 -> AdminSecurityAuditTab(uiState = uiState, adminViewModel = adminViewModel, currentUser = currentUser)
                 }
             }
         }
@@ -1785,7 +1785,8 @@ private fun AdminSchemaArchitectureTab(
 @Composable
 private fun AdminSecurityAuditTab(
     uiState: com.example.ui.state.AdminUiState,
-    adminViewModel: AdminViewModel
+    adminViewModel: AdminViewModel,
+    currentUser: com.example.data.model.AppUser? = null
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),

@@ -7,7 +7,7 @@ import kotlinx.coroutines.tasks.await
 
 /**
  * Thin wrapper around the server-verified role Cloud Functions
- * (functions/src/roles/*.ts). This — and reading the signed-in user's own ID
+ * (functions/src/roles/ ts files). This — and reading the signed-in user's own ID
  * token claims — is the ONLY way this app ever learns or changes a user's
  * role. Nothing here accepts a role as a trusted client-side value.
  */

@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
@@ -122,7 +123,7 @@ fun StatusBadge(
     label: String? = null,
     modifier: Modifier = Modifier,
     customIcon: ImageVector? = null,
-    shape: RoundedCornerShape = MaterialTheme.shapes.small
+    shape: CornerBasedShape = MaterialTheme.shapes.small
 ) {
     val (bg, text, defaultIcon, defaultText) = when (status) {
         StatusBadgeType.AVAILABLE -> Quad(
@@ -354,7 +355,7 @@ fun ProSurfaceCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
     borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-    shape: RoundedCornerShape = MaterialTheme.shapes.large,
+    shape: CornerBasedShape = MaterialTheme.shapes.large,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
@@ -636,7 +637,7 @@ fun CustomButton(
     isLoading: Boolean = false,
     customContainerColor: Color? = null,
     customContentColor: Color? = null,
-    shape: RoundedCornerShape = MaterialTheme.shapes.medium,
+    shape: CornerBasedShape = MaterialTheme.shapes.medium,
     contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
 ) {
     val containerColor = customContainerColor ?: when (variant) {
@@ -768,7 +769,7 @@ fun ProPrimaryButton(
     isLoading: Boolean = false,
     containerColor: Color = CarnationOrange,
     contentColor: Color = PureWhite,
-    shape: RoundedCornerShape = MaterialTheme.shapes.medium
+    shape: CornerBasedShape = MaterialTheme.shapes.medium
 ) {
     CustomButton(
         text = text,
@@ -797,7 +798,7 @@ fun ProSecondaryButton(
     isLoading: Boolean = false,
     containerColor: Color = CoolGray,
     contentColor: Color = LightGray,
-    shape: RoundedCornerShape = MaterialTheme.shapes.medium
+    shape: CornerBasedShape = MaterialTheme.shapes.medium
 ) {
     CustomButton(
         text = text,
@@ -825,7 +826,7 @@ fun ProOutlinedButton(
     enabled: Boolean = true,
     borderColor: Color = OxfordBlue,
     contentColor: Color = OxfordBlue,
-    shape: RoundedCornerShape = MaterialTheme.shapes.medium
+    shape: CornerBasedShape = MaterialTheme.shapes.medium
 ) {
     CustomButton(
         text = text,
@@ -867,7 +868,7 @@ fun InputField(
     enabled: Boolean = true,
     keyboardOptions: androidx.compose.foundation.text.KeyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default,
     visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
-    shape: RoundedCornerShape = MaterialTheme.shapes.medium
+    shape: CornerBasedShape = MaterialTheme.shapes.medium
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         OutlinedTextField(
@@ -959,7 +960,7 @@ fun ProOutlinedTextField(
     maxLines: Int = 1,
     readOnly: Boolean = false,
     enabled: Boolean = true,
-    shape: RoundedCornerShape = MaterialTheme.shapes.medium
+    shape: CornerBasedShape = MaterialTheme.shapes.medium
 ) {
     InputField(
         value = value,
@@ -992,7 +993,7 @@ fun ModernCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
     borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
-    shape: RoundedCornerShape = MaterialTheme.shapes.large,
+    shape: CornerBasedShape = MaterialTheme.shapes.large,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     elevation: Dp = 2.dp,
     onClick: (() -> Unit)? = null,
@@ -1036,7 +1037,7 @@ fun WorkspaceCard(
     bookedDoctorCount: Int = 0,
     facilities: List<String> = emptyList(),
     elevation: Dp = 3.dp,
-    shape: RoundedCornerShape = MaterialTheme.shapes.large,
+    shape: CornerBasedShape = MaterialTheme.shapes.large,
     onClick: () -> Unit,
     onWhatsAppClick: (() -> Unit)? = null
 ) {
@@ -1239,7 +1240,7 @@ fun ProCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
     borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
-    shape: RoundedCornerShape = MaterialTheme.shapes.large,
+    shape: CornerBasedShape = MaterialTheme.shapes.large,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
