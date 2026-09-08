@@ -15,16 +15,21 @@ import com.example.util.InAppUpdateManager
 class MainActivity : ComponentActivity() {
     private var targetTab by mutableStateOf<String?>(null)
     private var targetBookingId by mutableStateOf<String?>(null)
-    private lateinit var inAppUpdateManager: InAppUpdateManager
+    private var inAppUpdateManager: InAppUpdateManager? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         handleIncomingIntent(intent)
 
-        // Initialize Google Play In-App Updates
-        inAppUpdateManager = InAppUpdateManager(this)
-        inAppUpdateManager.checkForAppUpdate(preferImmediate = false)
+        // Initialize Google Play In-App Updates safely
+        try {
+            val manager = InAppUpdateManager(this)
+            manager.checkForAppUpdate(preferImmediate = false)
+            inAppUpdateManager = manager
+        } catch (e: Exception) {
+            android.util.Log.w("MainActivity", "InAppUpdateManager initialization failed: ${e.message}")
+        }
 
         setContent {
             ProHostTheme {
@@ -39,15 +44,19 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (::inAppUpdateManager.isInitialized) {
-            inAppUpdateManager.onResume()
+        try {
+            inAppUpdateManager?.onResume()
+        } catch (e: Exception) {
+            android.util.Log.w("MainActivity", "InAppUpdateManager.onResume warning: ${e.message}")
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (::inAppUpdateManager.isInitialized) {
-            inAppUpdateManager.onDestroy()
+        try {
+            inAppUpdateManager?.onDestroy()
+        } catch (e: Exception) {
+            android.util.Log.w("MainActivity", "InAppUpdateManager.onDestroy warning: ${e.message}")
         }
     }
 
