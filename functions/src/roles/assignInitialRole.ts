@@ -95,16 +95,8 @@ export const assignInitialRole = onCall(async (request) => {
   const isVerified = Boolean(auth.token.phone_number);
   const now = Date.now();
 
-  const SUPER_ADMIN_UIDS = new Set([
-    "CQoBpfpJQ3UtOinYpiKHFSRWLb22",
-    "Y3PcMu4UzsU9mW094Wa6guwAruV2"
-  ]);
-
-  const isSuperAdmin = SUPER_ADMIN_UIDS.has(auth.uid);
-  const targetRole = isSuperAdmin ? "ADMIN" : DEFAULT_ROLE;
-
   const existingRole = auth.token.role;
-  if (isAppRole(existingRole) && !isSuperAdmin) {
+  if (isAppRole(existingRole)) {
     await db.collection("user_profiles").doc(auth.uid).set(
       { isVerified, lastSignInAtMillis: now, updatedAt: now },
       { merge: true }
@@ -112,11 +104,11 @@ export const assignInitialRole = onCall(async (request) => {
     return { role: existingRole, assigned: false };
   }
 
-  await getAuth().setCustomUserClaims(auth.uid, { role: targetRole });
+  await getAuth().setCustomUserClaims(auth.uid, { role: DEFAULT_ROLE });
 
   await db.collection("user_profiles").doc(auth.uid).set(
     {
-      role: targetRole,
+      role: DEFAULT_ROLE,
       isVerified,
       createdAtMillis: now,
       lastSignInAtMillis: now,
