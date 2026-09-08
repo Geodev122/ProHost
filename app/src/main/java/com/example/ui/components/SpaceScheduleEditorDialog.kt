@@ -47,12 +47,12 @@ fun SpaceScheduleEditorDialog(
     val weekDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
     var selectedDays by remember(schedule) { mutableStateOf(schedule.operatingDays.toSet()) }
 
-    // Blackout slot creation state
-    var showAddBlackout by remember { mutableStateOf(false) }
-    var blackoutDay by remember { mutableStateOf("Friday") }
-    var blackoutStart by remember { mutableStateOf("18:00") }
-    var blackoutEnd by remember { mutableStateOf("20:00") }
-    var blackoutReason by remember { mutableStateOf("Sterilization & Maintenance") }
+    // The rentable slots the host can switch on or off are derived from the space's
+    // own formulas rather than typed by hand, so a blocked slot always lines up with
+    // something a specialist could actually have booked.
+    val derivedSlots = remember(liveSpace.rentalFormulas, schedule) {
+        buildRentableSlots(liveSpace.rentalFormulas, schedule)
+    }
 
     // Formula creation state
     var showAddFormula by remember { mutableStateOf(false) }
@@ -92,7 +92,7 @@ fun SpaceScheduleEditorDialog(
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Availability & Formula Control",
+                                text = "Availability Control",
                                 fontSize = MaterialTheme.typography.headlineSmall.fontSize,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -169,7 +169,7 @@ fun SpaceScheduleEditorDialog(
                                         onClick = {
                                             selectedDays = if (isSelected) selectedDays - day else selectedDays + day
                                         },
-                                        label = { Text(day, fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+                                        label = { Text(day.take(1), fontSize = MaterialTheme.typography.bodyMedium.fontSize) },
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
@@ -218,110 +218,110 @@ fun SpaceScheduleEditorDialog(
                             modifier = Modifier.padding(14.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(
-                                        text = "2. Hidden Non-Operating Slots",
-                                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        text = "Hide specific slots for maintenance or private surgeries",
-                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-
-                                FilledTonalButton(
-                                    onClick = { showAddBlackout = !showAddBlackout },
-                                    shape = MaterialTheme.shapes.small,
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                                ) {
-                                    Icon(if (showAddBlackout) Icons.Default.ExpandLess else Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text(if (showAddBlackout) "Cancel" else "Add Blackout", fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                                }
-                            }
-
-                            if (showAddBlackout) {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(Spacing.md),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        InputField(
-                                            value = blackoutDay,
-                                            onValueChange = { blackoutDay = it },
-                                            label = "Day of Week (e.g. Friday)",
-                                            singleLine = true,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            InputField(
-                                                value = blackoutStart,
-                                                onValueChange = { blackoutStart = it },
-                                                label = "From (HH:mm)",
-                                                modifier = Modifier.weight(1f),
-                                                singleLine = true
-                                            )
-                                            InputField(
-                                                value = blackoutEnd,
-                                                onValueChange = { blackoutEnd = it },
-                                                label = "To (HH:mm)",
-                                                modifier = Modifier.weight(1f),
-                                                singleLine = true
-                                            )
-                                        }
-
-                                        InputField(
-                                            value = blackoutReason,
-                                            onValueChange = { blackoutReason = it },
-                                            label = "Reason (e.g. Sterilization, Sanitization)",
-                                            singleLine = true,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-
-                                        ProPrimaryButton(
-                                            text = "Save Blackout Slot",
-                                            onClick = {
-                                                viewModel.addBlackoutSlot(
-                                                    spaceId = liveSpace.id,
-                                                    dayOfWeek = blackoutDay,
-                                                    startTime = blackoutStart,
-                                                    endTime = blackoutEnd,
-                                                    reason = blackoutReason,
-                                                    context = context
-                                                )
-                                                showAddBlackout = false
-                                            },
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Existing Blackout Slots List
-                            if (schedule.blackoutSlots.isEmpty()) {
+                            Column {
                                 Text(
-                                    text = "No blackout slots configured. Space is fully operational during open hours.",
+                                    text = "2. Slots Offered for Rent",
+                                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "Every slot your formulas create is on by default. Switch off anything you don't want to rent out.",
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            if (derivedSlots.isEmpty()) {
+                                Text(
+                                    text = "No rentable slots yet — publish a rental formula in section 3 below and its slots will appear here.",
                                     fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             } else {
-                                schedule.blackoutSlots.forEach { slot ->
+                                derivedSlots.groupBy { it.groupLabel }.forEach { (groupLabel, slots) ->
+                                    Text(
+                                        text = groupLabel,
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    slots.forEach { slot ->
+                                        val blocking = schedule.blackoutSlots.firstOrNull {
+                                            it.dayOfWeek.equals(slot.day, ignoreCase = true) &&
+                                                it.startTime == slot.startTime &&
+                                                it.endTime == slot.endTime
+                                        }
+                                        val isOffered = blocking == null
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.surface,
+                                            shape = MaterialTheme.shapes.small,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = slot.label,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                                        color = if (isOffered) {
+                                                            MaterialTheme.colorScheme.onSurface
+                                                        } else {
+                                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                                        }
+                                                    )
+                                                    Text(
+                                                        text = if (isOffered) "Available to rent" else "Hidden — not offered",
+                                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                        color = if (isOffered) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+
+                                                Switch(
+                                                    checked = isOffered,
+                                                    onCheckedChange = { nowOffered ->
+                                                        if (nowOffered) {
+                                                            blocking?.let { viewModel.removeBlackoutSlot(liveSpace.id, it.id, context) }
+                                                        } else {
+                                                            viewModel.addBlackoutSlot(
+                                                                spaceId = liveSpace.id,
+                                                                dayOfWeek = slot.day,
+                                                                startTime = slot.startTime,
+                                                                endTime = slot.endTime,
+                                                                reason = "Not offered for rent",
+                                                                context = context
+                                                            )
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Anything blocked that no current formula produces — kept
+                            // visible so older or since-removed slots stay removable
+                            // instead of silently blocking availability forever.
+                            val orphanSlots = schedule.blackoutSlots.filterNot { blocked ->
+                                derivedSlots.any {
+                                    it.day.equals(blocked.dayOfWeek, ignoreCase = true) &&
+                                        it.startTime == blocked.startTime &&
+                                        it.endTime == blocked.endTime
+                                }
+                            }
+                            if (orphanSlots.isNotEmpty()) {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                Text(
+                                    text = "Other blocked slots",
+                                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                orphanSlots.forEach { slot ->
                                     Surface(
                                         color = MaterialTheme.colorScheme.surface,
                                         shape = MaterialTheme.shapes.small,
@@ -559,7 +559,7 @@ fun SpaceScheduleEditorDialog(
                                                             formulaSelectedDays + day
                                                         }
                                                     },
-                                                    label = { Text(day, fontSize = 10.sp) },
+                                                    label = { Text(day.take(1), fontSize = MaterialTheme.typography.bodySmall.fontSize) },
                                                     modifier = Modifier.weight(1f)
                                                 )
                                             }
@@ -677,4 +677,86 @@ fun SpaceScheduleEditorDialog(
             }
         }
     }
+}
+
+/** One rentable unit of time produced by a rental formula, used to drive the on/off switches. */
+private data class RentableSlot(
+    val groupLabel: String,
+    val day: String,
+    val startTime: String,
+    val endTime: String,
+    val label: String
+)
+
+private fun parseHour(value: String): Int? =
+    value.substringBefore(':').trim().toIntOrNull()?.takeIf { it in 0..24 }
+
+private fun hourLabel(hour: Int): String = "%02d:00".format(hour)
+
+/**
+ * Expands a space's rental formulas into the individual slots a specialist could book,
+ * restricted to the days the space actually operates. Hourly formulas expand to one
+ * switch per hour, shift formulas to one switch per day for that shift's window, and
+ * day-per-week / full-month formulas to one whole-day switch.
+ *
+ * Days are emitted in the same 3-letter form the rest of the app matches against
+ * (SimpleDateFormat("EEE")), which the old hand-typed blackout form never did.
+ */
+private fun buildRentableSlots(
+    formulas: List<RentalFormula>,
+    schedule: SpaceOperatingSchedule
+): List<RentableSlot> {
+    val operatingDays = schedule.operatingDays.toMutableList()
+    if (schedule.isSundayOperating && operatingDays.none { it.equals("Sun", ignoreCase = true) }) {
+        operatingDays.add("Sun")
+    }
+    if (operatingDays.isEmpty()) return emptyList()
+
+    val openHour = parseHour(schedule.openingHour) ?: 0
+    val closeHour = parseHour(schedule.closingHour) ?: 24
+
+    return formulas.flatMap { formula ->
+        val days = operatingDays.filter { day ->
+            formula.daysOfWeek.any { it.equals(day, ignoreCase = true) }
+        }
+        when (formula.type) {
+            RentalFormulaType.HOURLY -> {
+                val from = maxOf(parseHour(formula.startHour) ?: openHour, openHour)
+                val to = minOf(parseHour(formula.endHour) ?: closeHour, closeHour)
+                days.flatMap { day ->
+                    (from until to).map { hour ->
+                        RentableSlot(
+                            groupLabel = "Hourly • ${formula.scheduleDescription}",
+                            day = day,
+                            startTime = hourLabel(hour),
+                            endTime = hourLabel(hour + 1),
+                            label = "$day  ${hourLabel(hour)} - ${hourLabel(hour + 1)}"
+                        )
+                    }
+                }
+            }
+            RentalFormulaType.SHIFT -> days.map { day ->
+                RentableSlot(
+                    groupLabel = "Shift • ${formula.shiftName}",
+                    day = day,
+                    startTime = formula.startHour,
+                    endTime = formula.endHour,
+                    label = "$day  ${formula.startHour} - ${formula.endHour}"
+                )
+            }
+            RentalFormulaType.DAY_PER_WEEK, RentalFormulaType.FULL_MONTH -> days.map { day ->
+                RentableSlot(
+                    groupLabel = if (formula.type == RentalFormulaType.FULL_MONTH) {
+                        "Full Month"
+                    } else {
+                        "Day per Week"
+                    },
+                    day = day,
+                    startTime = schedule.openingHour,
+                    endTime = schedule.closingHour,
+                    label = "$day  full day (${schedule.openingHour} - ${schedule.closingHour})"
+                )
+            }
+        }
+    }.distinctBy { "${it.groupLabel}|${it.day}|${it.startTime}|${it.endTime}" }
 }

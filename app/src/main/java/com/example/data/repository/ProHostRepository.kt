@@ -507,13 +507,26 @@ class ProHostRepository {
     }
 
     // --- Space Listing Management ---
-    fun addSpaceListing(listing: SpaceListing) {
-        _spaces.value = listOf(listing) + _spaces.value
-        addAuditLog(
-            actionType = "LISTING_CREATED",
-            details = "New space created: ${listing.title} (${listing.district}) by ${listing.ownerName}",
-            severity = "INFO"
-        )
+    /**
+     * This only ever mutated the in-memory _spaces list — it never wrote to
+     * Firestore at all, so a freshly "published" listing lived purely in RAM and
+     * was wiped the moment attachLiveListeners' workspace_listings snapshot next
+     * replaced _spaces wholesale (see startRealtimeSync). That also silently broke
+     * every follow-up edit: the schedule/blackout/formula saves all look the space
+     * up in _spaces first and bail out when it isn't there. Now persisted first,
+     * and local state only commits once the write is confirmed.
+     */
+    suspend fun addSpaceListing(listing: SpaceListing): Boolean {
+        val success = firestoreService.saveWorkspace(listing)
+        if (success) {
+            _spaces.value = listOf(listing) + _spaces.value
+            addAuditLog(
+                actionType = "LISTING_CREATED",
+                details = "New space created: ${listing.title} (${listing.district}) by ${listing.ownerName}",
+                severity = "INFO"
+            )
+        }
+        return success
     }
 
     /**
@@ -1089,10 +1102,31 @@ class ProHostRepository {
     // persisted via the same firestoreService.saveWorkspace path updateSpaceListing
     // already uses, only committing local state once the write is confirmed.
 
+    /**
+     * Same guard updateSpaceListing applies: always write back the CURRENTLY STORED
+     * ownerId/isVerified/isActiveSubscription/subscriptionExpiryMillis rather than
+     * whatever the local copy holds. firestore.rules rejects any workspace_listings
+     * update whose affectedKeys() touches those, and fromFirestoreMap regenerates a
+     * fresh subscriptionExpiryMillis (now + 30 days) whenever the field is missing
+     * from the document — so echoing the local value back could change that key and
+     * get the whole write denied, permanently, for that listing. Schedule, blackout
+     * and formula saves all funnel through here and never had this protection.
+     */
     private suspend fun saveUpdatedSpace(updated: SpaceListing): Boolean {
-        val success = firestoreService.saveWorkspace(updated)
+        val current = _spaces.value.find { it.id == updated.id }
+        val safeUpdate = if (current != null) {
+            updated.copy(
+                ownerId = current.ownerId,
+                isVerified = current.isVerified,
+                isActiveSubscription = current.isActiveSubscription,
+                subscriptionExpiryMillis = current.subscriptionExpiryMillis
+            )
+        } else {
+            updated
+        }
+        val success = firestoreService.saveWorkspace(safeUpdate)
         if (success) {
-            _spaces.value = _spaces.value.map { if (it.id == updated.id) updated else it }
+            _spaces.value = _spaces.value.map { if (it.id == safeUpdate.id) safeUpdate else it }
         }
         return success
     }

@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
+import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -144,8 +145,9 @@ fun SpaceDetailsScreenContent(
                 ) {
                     Column(modifier = Modifier.weight(0.9f)) {
                         val price = selectedFormula?.rateUsd ?: liveSpace.baseMonthlyRateUsd
+                        val priceUnit = selectedFormula?.let { SpaceCalculationUtils.rateUnitLabel(it.type) } ?: "/mo"
                         Text(
-                            text = "$${price.toInt()} USD",
+                            text = "$${price.toInt()} USD$priceUnit",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.primary
@@ -409,7 +411,10 @@ fun SpaceDetailsScreenContent(
                                                 )
                                             }
 
-                                            ProCurrencyTag(rateUsd = formula.rateUsd, isPerMonth = true)
+                                            ProCurrencyTag(
+                                                rateUsd = formula.rateUsd,
+                                                unitLabel = SpaceCalculationUtils.rateUnitLabel(formula.type)
+                                            )
                                         }
 
                                         // Attached Hours Tag
