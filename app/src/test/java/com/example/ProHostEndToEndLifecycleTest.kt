@@ -4,8 +4,8 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.crypto.WhishSecurity
 import com.example.data.model.*
-import com.example.data.repository.ProSpaceRepository
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.data.repository.ProHostRepository
+import com.example.ui.viewmodel.ProHostViewModel
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -14,22 +14,22 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * ProSpace End-to-End Flow & Critical User Journey (CUJ) Tests
+ * ProHost End-to-End Flow & Critical User Journey (CUJ) Tests
  * Covers all 3 core role workflows: Professional Practitioner, Space Owner, and Super Admin.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
-class ProSpaceEndToEndLifecycleTest {
+class ProHostEndToEndLifecycleTest {
 
-    private lateinit var repository: ProSpaceRepository
-    private lateinit var viewModel: ProSpaceViewModel
+    private lateinit var repository: ProHostRepository
+    private lateinit var viewModel: ProHostViewModel
     private lateinit var context: Context
 
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
-        repository = ProSpaceRepository()
-        viewModel = ProSpaceViewModel(repository)
+        repository = ProHostRepository()
+        viewModel = ProHostViewModel(repository)
     }
 
     @Test
@@ -207,11 +207,11 @@ class ProSpaceEndToEndLifecycleTest {
 
     @Test
     fun `fresh repository starts signed out, not pre-authenticated as Super Admin`() {
-        // A brand-new ProSpaceRepository used to default currentUser to a fully-populated
+        // A brand-new ProHostRepository used to default currentUser to a fully-populated
         // ADMIN AppUser, meaning every fresh install opened straight into the Admin
         // console with zero authentication. A freshly constructed repository (as happens
         // on process start) must start with no signed-in user.
-        val freshRepository = ProSpaceRepository()
+        val freshRepository = ProHostRepository()
         assertNull(
             "A new repository instance must start signed out — it must NOT default to a pre-authenticated Admin session",
             freshRepository.currentUser.value

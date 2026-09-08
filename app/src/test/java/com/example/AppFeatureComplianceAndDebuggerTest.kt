@@ -7,7 +7,7 @@ import com.example.data.crypto.WhishSecurity
 import com.example.data.firestore.FirestoreSchema
 import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
-import com.example.data.repository.ProSpaceRepository
+import com.example.data.repository.ProHostRepository
 import com.example.util.AppSystemDebugger
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
@@ -31,13 +31,13 @@ import org.robolectric.annotation.Config
 class AppFeatureComplianceAndDebuggerTest {
 
     private lateinit var context: Context
-    private lateinit var repository: ProSpaceRepository
+    private lateinit var repository: ProHostRepository
     private lateinit var firestoreService: FirestoreService
 
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
-        repository = ProSpaceRepository()
+        repository = ProHostRepository()
         firestoreService = FirestoreService.getInstance()
     }
 
