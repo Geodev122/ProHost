@@ -134,7 +134,7 @@ fun LoginAuthScreen(
 
         Text(
             text = "ProHost",
-            fontSize = 24.sp,
+            fontSize = MaterialTheme.typography.headlineLarge.fontSize,
             fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.onSurface
         )

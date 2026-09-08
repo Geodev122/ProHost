@@ -211,7 +211,7 @@ fun MyBookingsScreen(
                                 Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("Active Leases", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Text("$totalActiveLeases Workspaces", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text("$totalActiveLeases Workspaces", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
 
@@ -227,7 +227,7 @@ fun MyBookingsScreen(
                                 Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("Monthly Rate", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Text("$${String.format(Locale.US, "%.0f", totalMonthlySpendUsd)}/mo", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text("$${String.format(Locale.US, "%.0f", totalMonthlySpendUsd)}/mo", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
                     }
 
@@ -243,7 +243,7 @@ fun MyBookingsScreen(
                                 Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("Pending Host", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Text("$pendingRequestsCount Requests", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text("$pendingRequestsCount Requests", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }

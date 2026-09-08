@@ -86,7 +86,7 @@ fun WeeklyAvailabilityMatrix(
                     Column {
                         Text(
                             text = "Weekly Availability Matrix",
-                            fontSize = 16.sp,
+                            fontSize = MaterialTheme.typography.bodyLarge.fontSize,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )

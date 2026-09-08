@@ -45,7 +45,7 @@ fun CreateListingDialog(
         Dialog(onDismissRequest = onDismiss) {
             Card(shape = MaterialTheme.shapes.large) {
                 Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Sign In Required", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Sign In Required", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
                     Text(
                         "Your account couldn't be loaded. Please sign in again before creating a listing.",
                         fontSize = MaterialTheme.typography.bodySmall.fontSize,
@@ -218,7 +218,7 @@ fun CreateListingDialog(
                     Column {
                         Text(
                             text = "Publish Workspace Listing",
-                            fontSize = 18.sp,
+                            fontSize = MaterialTheme.typography.headlineSmall.fontSize,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -510,7 +510,7 @@ fun CreateListingDialog(
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
                                                         Column(modifier = Modifier.weight(1f)) {
-                                                            Text(sub.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                                            Text(sub.name, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
                                                             Text("Type: ${sub.type.displayName}", fontSize = MaterialTheme.typography.labelMedium.fontSize, color = MaterialTheme.colorScheme.primary)
                                                             Text(
                                                                 "Renting: " + sub.rentalStrategies.joinToString { "${it.strategy.displayName} ($${it.rateUsd})" },

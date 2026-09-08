@@ -231,7 +231,7 @@ fun RentalBookingDialog(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "Rental Request & Booking",
-                                fontSize = 18.sp,
+                                fontSize = MaterialTheme.typography.headlineSmall.fontSize,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -338,7 +338,7 @@ fun RentalBookingDialog(
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(
                                 text = "1. Choose Subdivision / Room to Rent",
-                                fontSize = 14.sp,
+                                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -396,7 +396,7 @@ fun RentalBookingDialog(
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "2. Select Renting Strategy",
-                                fontSize = 14.sp,
+                                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -459,7 +459,7 @@ fun RentalBookingDialog(
                             ) {
                                 Text(
                                     text = "1. Select Rental Formula",
-                                    fontSize = 14.sp,
+                                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -570,7 +570,7 @@ fun RentalBookingDialog(
                                 Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text(
                                     text = "2. Customize Your Required Availability",
-                                    fontSize = 14.sp,
+                                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -781,7 +781,7 @@ fun RentalBookingDialog(
                     Column {
                         Text(
                             text = "3. Select Starting Date",
-                            fontSize = 14.sp,
+                            fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -817,7 +817,7 @@ fun RentalBookingDialog(
                     Column {
                         Text(
                             text = "4. Rental Duration Term",
-                            fontSize = 14.sp,
+                            fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )

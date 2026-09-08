@@ -93,7 +93,7 @@ fun SpaceScheduleEditorDialog(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "Availability & Formula Control",
-                                fontSize = 18.sp,
+                                fontSize = MaterialTheme.typography.headlineSmall.fontSize,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -132,7 +132,7 @@ fun SpaceScheduleEditorDialog(
                         ) {
                             Text(
                                 text = "1. Facility Operating Window",
-                                fontSize = 14.sp,
+                                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -226,7 +226,7 @@ fun SpaceScheduleEditorDialog(
                                 Column {
                                     Text(
                                         text = "2. Hidden Non-Operating Slots",
-                                        fontSize = 14.sp,
+                                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -372,7 +372,7 @@ fun SpaceScheduleEditorDialog(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = "3. Space Rental Formulas",
-                                        fontSize = 14.sp,
+                                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
                                     )

@@ -76,7 +76,7 @@ fun ExportDataDialog(
                         Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
                             text = "Multi-Format Export Hub",
-                            fontSize = 16.sp,
+                            fontSize = MaterialTheme.typography.bodyLarge.fontSize,
                             fontWeight = FontWeight.Bold
                         )
                     }

@@ -108,7 +108,7 @@ fun WhishPayModal(
                             text = "Whish Pay Subscription",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
+                            fontSize = MaterialTheme.typography.bodyMedium.fontSize
                         )
                     }
                 }
@@ -117,7 +117,7 @@ fun WhishPayModal(
 
                 Text(
                     text = "30-Day Listing Entitlement",
-                    fontSize = 18.sp,
+                    fontSize = MaterialTheme.typography.headlineSmall.fontSize,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -154,7 +154,7 @@ fun WhishPayModal(
                             )
                             Text(
                                 text = " USD",
-                                fontSize = 14.sp,
+                                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier.padding(bottom = 6.dp),
                                 color = MaterialTheme.colorScheme.onPrimaryContainer

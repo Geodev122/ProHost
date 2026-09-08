@@ -347,7 +347,7 @@ fun DiscoveryScreenContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Filter Workspaces", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("Filter Workspaces", fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold)
                     TextButton(onClick = onResetFilters) {
                         Text("Reset")
                     }

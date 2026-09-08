@@ -382,7 +382,7 @@ fun LebanonMapCanvas(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = "$${space.baseMonthlyRateUsd.toInt()}",
-                                    fontSize = 18.sp,
+                                    fontSize = MaterialTheme.typography.headlineSmall.fontSize,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -416,7 +416,7 @@ fun LebanonMapCanvas(
 
                         Text(
                             text = space.title,
-                            fontSize = 16.sp,
+                            fontSize = MaterialTheme.typography.bodyLarge.fontSize,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1

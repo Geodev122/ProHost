@@ -55,7 +55,7 @@ fun LegalDocumentDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(document.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(document.title, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             TextButton(
                                 enabled = !isGeneratingPdf,
@@ -118,7 +118,7 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = MaterialTheme.shapes.large) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Legal", fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.padding(bottom = 8.dp))
+                Text("Legal", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyLarge.fontSize, modifier = Modifier.padding(bottom = 8.dp))
                 com.example.legal.LegalContent.all.forEach { doc ->
                     Surface(
                         onClick = { openDocument = doc },
@@ -127,7 +127,7 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Text(doc.title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(doc.title, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
                             Text(doc.shortDescription, fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }

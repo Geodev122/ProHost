@@ -48,7 +48,7 @@ fun CountryCodeSelector(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(selectedCountry.flagEmoji, fontSize = 16.sp)
+                Text(selectedCountry.flagEmoji, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
                 Text(selectedCountry.dialCode, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                 Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose country code", modifier = Modifier.size(16.dp))
             }
