@@ -19,7 +19,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.SpaceListing
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.theme.StatusOnSuccessContainer
+import com.example.ui.theme.StatusOnWarningContainer
+import com.example.ui.theme.StatusSuccess
+import com.example.ui.theme.StatusWarning
+import com.example.ui.theme.WhishBrandRed
+import com.example.ui.viewmodel.ProHostViewModel
+import com.example.ui.theme.Spacing
 import java.util.Locale
 
 enum class WhishPaymentMethod(
@@ -35,13 +41,13 @@ enum class WhishPaymentMethod(
 }
 
 /**
- * Collects payer details and hands off to ProSpaceViewModel.paySubscriptionViaWhish,
+ * Collects payer details and hands off to ProHostViewModel.paySubscriptionViaWhish,
  * which calls the initiateWhishPayment Cloud Function, opens the real Whish checkout
  * in the browser, and polls for server-confirmed settlement. This is the Pro Host
  * package/PAYG subscription flow only now — booking rent settlement (Specialist <->
  * Pro Host) happens entirely outside the app; a host records the deal by uploading
  * the signed leasing agreement when accepting a request instead (see
- * ProSpaceRepository.acceptBookingRequest).
+ * ProHostRepository.acceptBookingRequest).
  *
  * This used to also own the whole checkout lifecycle itself: it called Whish's API
  * directly with a client-side HMAC signature computed from a secret shipped in the
@@ -56,7 +62,7 @@ enum class WhishPaymentMethod(
 fun WhishPayModal(
     space: SpaceListing,
     currentFeeUsd: Double,
-    viewModel: ProSpaceViewModel? = null,
+    viewModel: ProHostViewModel? = null,
     onDismiss: () -> Unit,
     onConfirmPayment: (payerName: String, payerPhone: String) -> Unit
 ) {
@@ -72,7 +78,7 @@ fun WhishPayModal(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp),
-            shape = RoundedCornerShape(24.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
         ) {
@@ -84,8 +90,8 @@ fun WhishPayModal(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Surface(
-                    color = Color(0xFFE2001A), // Official Whish Red
-                    shape = RoundedCornerShape(12.dp)
+                    color = WhishBrandRed, // Official Whish Red
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
@@ -97,7 +103,7 @@ fun WhishPayModal(
                             tint = Color.White,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
                             text = "Whish Pay Subscription",
                             color = Color.White,
@@ -107,7 +113,7 @@ fun WhishPayModal(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 Text(
                     text = "30-Day Listing Entitlement",
@@ -117,17 +123,17 @@ fun WhishPayModal(
                 )
                 Text(
                     text = space.title,
-                    fontSize = 13.sp,
+                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(16.dp)
+                    shape = MaterialTheme.shapes.large
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -135,14 +141,14 @@ fun WhishPayModal(
                     ) {
                         Text(
                             text = "Monthly Subscription Fee",
-                            fontSize = 12.sp,
+                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                             fontWeight = FontWeight.SemiBold
                         )
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
                                 text = "$${String.format(Locale.US, "%.2f", currentFeeUsd)}",
-                                fontSize = 32.sp,
+                                fontSize = MaterialTheme.typography.displayLarge.fontSize,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -168,7 +174,7 @@ fun WhishPayModal(
 
                 Text(
                     text = "Select Whish Payment Instrument:",
-                    fontSize = 12.sp,
+                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.fillMaxWidth()
@@ -183,7 +189,7 @@ fun WhishPayModal(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
                             color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                            border = BorderStroke(if (isSelected) 1.5.dp else 1.dp, if (isSelected) Color(0xFFE2001A) else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                            border = BorderStroke(if (isSelected) 1.5.dp else 1.dp, if (isSelected) WhishBrandRed else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                         ) {
                             Row(
                                 modifier = Modifier.padding(12.dp),
@@ -191,7 +197,7 @@ fun WhishPayModal(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Surface(
-                                    color = if (isSelected) Color(0xFFE2001A) else MaterialTheme.colorScheme.surfaceVariant,
+                                    color = if (isSelected) WhishBrandRed else MaterialTheme.colorScheme.surfaceVariant,
                                     shape = CircleShape,
                                     modifier = Modifier.size(32.dp)
                                 ) {
@@ -207,7 +213,7 @@ fun WhishPayModal(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = method.title,
-                                        fontSize = 12.sp,
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
@@ -218,14 +224,14 @@ fun WhishPayModal(
                                     )
                                 }
                                 Surface(
-                                    color = if (method.currencyBadge == "LBP") Color(0xFFFF9800).copy(alpha = 0.2f) else Color(0xFF4CAF50).copy(alpha = 0.2f),
-                                    shape = RoundedCornerShape(4.dp)
+                                    color = if (method.currencyBadge == "LBP") StatusWarning.copy(alpha = 0.2f) else StatusSuccess.copy(alpha = 0.2f),
+                                    shape = MaterialTheme.shapes.extraSmall
                                 ) {
                                     Text(
                                         text = method.currencyBadge,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (method.currencyBadge == "LBP") Color(0xFFE65100) else Color(0xFF2E7D32),
+                                        color = if (method.currencyBadge == "LBP") StatusOnWarningContainer else StatusOnSuccessContainer,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
@@ -234,7 +240,7 @@ fun WhishPayModal(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 InputField(
                     value = payerName,
@@ -256,11 +262,11 @@ fun WhishPayModal(
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Row(
@@ -268,30 +274,29 @@ fun WhishPayModal(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFFE2001A), modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Lock, contentDescription = null, tint = WhishBrandRed, modifier = Modifier.size(18.dp))
                         Text(
                             text = "You'll complete payment on Whish's secure checkout page. We only confirm settlement after Whish itself verifies it — this app never signs or self-reports payments.",
-                            fontSize = 11.sp,
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    CustomButton(
+                    ProOutlinedButton(
                         text = "Cancel",
                         onClick = onDismiss,
-                        variant = CustomButtonVariant.OUTLINED,
                         modifier = Modifier.weight(1f),
                         enabled = !isLaunching
                     )
 
-                    CustomButton(
+                    ProPrimaryButton(
                         text = "Authorize Settlement",
                         onClick = {
                             isLaunching = true
@@ -300,8 +305,8 @@ fun WhishPayModal(
                             onDismiss()
                         },
                         icon = Icons.Default.Lock,
-                        customContainerColor = Color(0xFFE2001A),
-                        customContentColor = Color.White,
+                        containerColor = WhishBrandRed,
+                        contentColor = Color.White,
                         modifier = Modifier.weight(1.5f),
                         isLoading = isLaunching,
                         enabled = !isLaunching && payerName.isNotBlank() && payerPhone.isNotBlank() && viewModel != null

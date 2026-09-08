@@ -62,7 +62,7 @@ class FirebaseFunctionsClient {
     // anyone can just ask for. It's granted exclusively, server-side, by
     // functions/src/lib/entitlements.ts's grantEntitlement() the moment a
     // SPECIALIST's OWNER_PACKAGE or PAYG_LISTING Whish payment actually settles
-    // — see ProSpaceRepository.refreshCurrentUserAfterEntitlement(), called
+    // — see ProHostRepository.refreshCurrentUserAfterEntitlement(), called
     // once client-side polling observes that success.
 
     /** Only succeeds when the CALLER already has the Admin role server-side. */

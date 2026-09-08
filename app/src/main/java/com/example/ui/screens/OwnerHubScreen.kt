@@ -29,13 +29,13 @@ import androidx.compose.ui.window.Dialog
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import kotlinx.coroutines.launch
 import java.util.Locale
 
 @Composable
 fun OwnerHubScreen(
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     onSelectSpace: (SpaceListing) -> Unit,
     onOpenSubscriptions: (() -> Unit)? = null
 ) {
@@ -285,7 +285,7 @@ private fun OwnerEditListingDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -437,21 +437,21 @@ fun OwnerHubScreenContent(
                         ) {
                             Surface(
                                 color = Color(0x33FFFFFF),
-                                shape = RoundedCornerShape(8.dp)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(Icons.Default.Verified, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.xs))
                                     Text("Space Owner Portal", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                 }
                             }
 
                             Surface(
                                 color = WhishRed,
-                                shape = RoundedCornerShape(8.dp)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Text(
                                     text = "$${String.format(Locale.US, "%.2f", monthlySubscriptionFeeUsd)} /mo",
@@ -486,7 +486,7 @@ fun OwnerHubScreenContent(
                                     onOpenWhishRenewal(target)
                                 },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = MaterialTheme.shapes.medium,
                                 colors = ButtonDefaults.buttonColors(containerColor = WhishRed)
                             ) {
                                 Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
@@ -497,7 +497,7 @@ fun OwnerHubScreenContent(
                             OutlinedButton(
                                 onClick = onOpenPackageSelection,
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = MaterialTheme.shapes.medium,
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
                                 border = BorderStroke(1.dp, Color.White)
                             ) {
@@ -522,9 +522,9 @@ fun OwnerHubScreenContent(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(6.dp, RoundedCornerShape(16.dp))
+                        .shadow(6.dp, MaterialTheme.shapes.large)
                         .clickable { onOpenCreateListing() },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                 ) {
                     Row(
@@ -543,7 +543,7 @@ fun OwnerHubScreenContent(
                                 Icon(Icons.Default.AddBusiness, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
                             }
                         }
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(Spacing.lg))
                         Column {
                             Text(
                                 text = "Add New Workspace Listing",
@@ -571,7 +571,7 @@ fun OwnerHubScreenContent(
                 trailingContent = {
                     TextButton(onClick = onOpenCreateListing) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("New Space", style = MaterialTheme.typography.labelMedium)
                     }
                 }
@@ -630,7 +630,7 @@ fun OwnerHubScreenContent(
                         if (space.isOwnerSuspended) {
                             Surface(
                                 color = MaterialTheme.colorScheme.errorContainer,
-                                shape = RoundedCornerShape(8.dp),
+                                shape = MaterialTheme.shapes.small,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
@@ -646,7 +646,7 @@ fun OwnerHubScreenContent(
                         // Smart Availability summary badges
                         Surface(
                             color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -670,7 +670,7 @@ fun OwnerHubScreenContent(
                         ) {
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = RoundedCornerShape(8.dp),
+                                shape = MaterialTheme.shapes.small,
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Row(
@@ -685,7 +685,7 @@ fun OwnerHubScreenContent(
 
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = RoundedCornerShape(8.dp),
+                                shape = MaterialTheme.shapes.small,
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Row(
@@ -720,7 +720,7 @@ fun OwnerHubScreenContent(
                                 shape = RoundedCornerShape(10.dp)
                             ) {
                                 Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("Availability", style = MaterialTheme.typography.labelMedium)
                             }
 

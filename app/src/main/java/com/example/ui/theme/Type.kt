@@ -7,7 +7,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * ProSpace Typography System
+ * ProHost Typography System
  * App Title / Header: Semi-Bold 22–24 sp (#384152)
  * Section Title: Medium 18 sp (#283544)
  * Body Text: Regular 14–16 sp (#283544)

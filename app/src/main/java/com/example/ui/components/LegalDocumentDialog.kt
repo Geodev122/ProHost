@@ -80,7 +80,7 @@ fun LegalDocumentDialog(
                                     Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                                 }
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Download PDF (A5)", fontSize = 12.sp)
+                                Text("Download PDF (A5)", fontSize = MaterialTheme.typography.labelMedium.fontSize)
                             }
                             IconButton(onClick = onDismiss) {
                                 Icon(Icons.Default.Close, contentDescription = "Close")
@@ -116,7 +116,7 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = RoundedCornerShape(16.dp)) {
+        Surface(shape = MaterialTheme.shapes.large) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Legal", fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.padding(bottom = 8.dp))
                 com.example.legal.LegalContent.all.forEach { doc ->
@@ -128,7 +128,7 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(doc.title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Text(doc.shortDescription, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(doc.shortDescription, fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     Spacer(modifier = Modifier.height(6.dp))

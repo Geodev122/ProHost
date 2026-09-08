@@ -16,14 +16,14 @@ sealed class AppNavTab(
     // Unified bottom-nav tabs — identical set for SPECIALIST and PRO_HOST (a Pro
     // Host is still a Specialist underneath; only the additional Pro Host section
     // in the drawer differs between the two roles). See allowedTabIdsForRole /
-    // roleTabs in ProSpaceNavGraph.kt.
+    // roleTabs in ProHostNavGraph.kt.
     object SearchMap : AppNavTab("search_map", "Explore", Icons.Filled.Search, Icons.Outlined.Search)
     object ProfessionalRentals : AppNavTab("pro_rentals", "My Bookings", Icons.AutoMirrored.Filled.ReceiptLong, Icons.AutoMirrored.Outlined.ReceiptLong)
     object ProfessionalProfile : AppNavTab("pro_profile", "Profile", Icons.Filled.Person, Icons.Outlined.Person)
 
     // Pro Host destinations — reachable only from the drawer's "Pro Host" section,
     // never from the bottom nav. Each opens full-screen (see
-    // ProSpaceAppRoot's fullScreenProHostTab) with no bottom bar. OwnerSubscriptions
+    // ProHostAppRoot's fullScreenProHostTab) with no bottom bar. OwnerSubscriptions
     // doubles as the "Become a Pro Host" package-purchase destination for a
     // SPECIALIST who hasn't been promoted yet.
     object ManageListings : AppNavTab("manage_listings", "My Listings", Icons.Filled.HomeWork, Icons.Outlined.HomeWork)

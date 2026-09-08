@@ -35,7 +35,7 @@ data class AdminUiState(
     // Dialog and Modal states
     val isExportDialogOpen: Boolean = false,
     val exportDataContent: String = "",
-    val exportDataTitle: String = "Export ProSpace Data",
+    val exportDataTitle: String = "Export ProHost Data",
     val activeExportFormat: String = "CSV",
 
     val isEditListingDialogOpen: Boolean = false,

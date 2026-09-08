@@ -12,11 +12,11 @@ import androidx.compose.ui.unit.dp
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.PremiumBackgroundGradient
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 
 @Composable
 fun OwnerRentalRequestsScreen(
-    viewModel: ProSpaceViewModel
+    viewModel: ProHostViewModel
 ) {
     val incomingRequests by viewModel.ownerIncomingRequests.collectAsState()
     val spaces by viewModel.spaces.collectAsState()
@@ -43,7 +43,7 @@ fun OwnerRentalRequestsScreenContent(
     syncStatus: String? = null,
     pendingOfflineCount: Int = 0,
     onRetrySync: () -> Unit = {},
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(

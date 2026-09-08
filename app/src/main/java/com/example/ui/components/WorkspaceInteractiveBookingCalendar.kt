@@ -63,7 +63,7 @@ data class CalendarDayItem(
  * every OTHER month shown too, forever, since its real date range was never
  * consulted. [booking.endDate] is often blank (most bookings only ever store
  * startDate + durationMonths), so the effective end is computed the same way
- * ProSpaceRepository.createBookingRequest describes a booking's term.
+ * ProHostRepository.createBookingRequest describes a booking's term.
  */
 private fun isBookingActiveOnDate(booking: RentalBookingRequest, date: Date, dateFormatter: SimpleDateFormat): Boolean {
     val start = try { dateFormatter.parse(booking.startDate) } catch (e: Exception) { null } ?: return false
@@ -490,7 +490,7 @@ fun WorkspaceInteractiveBookingCalendar(
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(22.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
                             text = "Interactive Booking Calendar",
                             style = MaterialTheme.typography.titleMedium,
@@ -558,7 +558,7 @@ fun WorkspaceInteractiveBookingCalendar(
                 ) {
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.EventBusy, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
                             text = "$monthTitle is fully booked — try a different month or shift.",
                             style = MaterialTheme.typography.labelSmall,
@@ -594,7 +594,7 @@ fun WorkspaceInteractiveBookingCalendar(
                                 Text(
                                     text = label,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    fontSize = 12.sp
+                                    fontSize = MaterialTheme.typography.labelMedium.fontSize
                                 )
                             },
                             leadingIcon = if (isSelected) {
@@ -649,7 +649,7 @@ fun WorkspaceInteractiveBookingCalendar(
                                     .size(38.dp)
                                     .clip(
                                         when {
-                                            isStart && isEnd -> RoundedCornerShape(12.dp)
+                                            isStart && isEnd -> MaterialTheme.shapes.medium
                                             isStart -> RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp)
                                             isEnd -> RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp)
                                             inRange -> RoundedCornerShape(0.dp)
@@ -696,7 +696,7 @@ fun WorkspaceInteractiveBookingCalendar(
                                     } else {
                                         Text(
                                             text = dayItem.dayNumber.toString(),
-                                            fontSize = 12.sp,
+                                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                             fontWeight = if (isStart || isEnd || dayItem.isToday) FontWeight.Bold else FontWeight.Normal,
                                             color = when {
                                                 !dayItem.isCurrentMonth -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
@@ -719,8 +719,8 @@ fun WorkspaceInteractiveBookingCalendar(
                                                     when {
                                                         isStart || isEnd -> Color.White
                                                         !dayItem.isOperatingDay || dayItem.isBlockedForSelection -> MaterialTheme.colorScheme.error
-                                                        dayItem.isPartiallyBooked -> Color(0xFFF59E0B) // Amber
-                                                        else -> Color(0xFF10B981) // Green Available
+                                                        dayItem.isPartiallyBooked -> StatusWarning // Amber
+                                                        else -> StatusSuccess // Green Available
                                                     }
                                                 )
                                         )
@@ -739,11 +739,11 @@ fun WorkspaceInteractiveBookingCalendar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF10B981)))
+                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(StatusSuccess))
                     Text("Available", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFF59E0B)))
+                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(StatusWarning))
                     Text("Partial / Shifts", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -875,7 +875,7 @@ fun WorkspaceInteractiveBookingCalendar(
                                 Box(contentAlignment = Alignment.Center) {
                                     Text(
                                         text = day.take(1),
-                                        fontSize = 11.sp,
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                         fontWeight = FontWeight.Bold,
                                         color = if (isDaySelected) Color.White else if (!isSpaceOpen) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f) else MaterialTheme.colorScheme.onSurface
                                     )
@@ -888,18 +888,18 @@ fun WorkspaceInteractiveBookingCalendar(
 
             // Real-Time Availability Check Status Banner
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = MaterialTheme.shapes.medium,
                 color = when (availabilityCheck.statusLevel) {
-                    AvailabilityLevel.AVAILABLE -> Color(0xFFE8F5E9)
-                    AvailabilityLevel.PARTIAL -> Color(0xFFFFF8E1)
-                    AvailabilityLevel.UNAVAILABLE -> Color(0xFFFFEBEE)
+                    AvailabilityLevel.AVAILABLE -> StatusSuccessContainer
+                    AvailabilityLevel.PARTIAL -> StatusWarningContainer
+                    AvailabilityLevel.UNAVAILABLE -> StatusErrorContainer
                 },
                 border = BorderStroke(
                     1.dp,
                     when (availabilityCheck.statusLevel) {
-                        AvailabilityLevel.AVAILABLE -> Color(0xFF4CAF50)
-                        AvailabilityLevel.PARTIAL -> Color(0xFFFFB300)
-                        AvailabilityLevel.UNAVAILABLE -> Color(0xFFEF5350)
+                        AvailabilityLevel.AVAILABLE -> StatusSuccess
+                        AvailabilityLevel.PARTIAL -> StatusWarning
+                        AvailabilityLevel.UNAVAILABLE -> StatusError
                     }
                 ),
                 modifier = Modifier.fillMaxWidth().testTag("availability_status_banner")
@@ -916,9 +916,9 @@ fun WorkspaceInteractiveBookingCalendar(
                         },
                         contentDescription = null,
                         tint = when (availabilityCheck.statusLevel) {
-                            AvailabilityLevel.AVAILABLE -> Color(0xFF2E7D32)
-                            AvailabilityLevel.PARTIAL -> Color(0xFFF57F17)
-                            AvailabilityLevel.UNAVAILABLE -> Color(0xFFC62828)
+                            AvailabilityLevel.AVAILABLE -> StatusOnSuccessContainer
+                            AvailabilityLevel.PARTIAL -> StatusOnWarningContainer
+                            AvailabilityLevel.UNAVAILABLE -> StatusOnErrorContainer
                         },
                         modifier = Modifier.size(20.dp)
                     )
@@ -929,15 +929,15 @@ fun WorkspaceInteractiveBookingCalendar(
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = when (availabilityCheck.statusLevel) {
-                                AvailabilityLevel.AVAILABLE -> Color(0xFF1B5E20)
-                                AvailabilityLevel.PARTIAL -> Color(0xFFE65100)
-                                AvailabilityLevel.UNAVAILABLE -> Color(0xFFB71C1C)
+                                AvailabilityLevel.AVAILABLE -> StatusOnSuccessContainer
+                                AvailabilityLevel.PARTIAL -> StatusOnWarningContainer
+                                AvailabilityLevel.UNAVAILABLE -> StatusOnErrorContainer
                             }
                         )
                         Text(
                             text = availabilityCheck.detailedReason,
                             style = MaterialTheme.typography.bodySmall,
-                            fontSize = 11.sp,
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -946,7 +946,7 @@ fun WorkspaceInteractiveBookingCalendar(
 
             // Summary Info & Price Estimator
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -1022,7 +1022,7 @@ fun WorkspaceInteractiveBookingCalendar(
                         .fillMaxWidth()
                         .height(48.dp)
                         .testTag("confirm_calendar_schedule_button"),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = MaterialTheme.shapes.medium,
                     // A hard UNAVAILABLE result (blackout or a genuinely overlapping accepted
                     // booking) now actually blocks submission — this used to stay tappable
                     // regardless, so the "Unavailable" banner above was purely informational
@@ -1037,7 +1037,7 @@ fun WorkspaceInteractiveBookingCalendar(
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
                         text = when (availabilityCheck.statusLevel) {
                             AvailabilityLevel.AVAILABLE -> "Book Selected Dates (${String.format(Locale.US, "%.0f", totalCalculatedUsd)} USD)"

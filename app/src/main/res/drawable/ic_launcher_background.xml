@@ -6,7 +6,7 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     
-    <!-- ProSpace Brand Background Gradient: Oxford Blue (#384152) to Deep Cool Navy (#1E2633) -->
+    <!-- ProHost Brand Background Gradient: Oxford Blue (#384152) to Deep Cool Navy (#1E2633) -->
     <path
         android:pathData="M0,0h108v108h-108z">
         <aapt:attr name="android:fillColor">

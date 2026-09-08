@@ -26,8 +26,8 @@ import java.util.*
 
 /**
  * Admin-only screen — now reads from [AdminViewModel] instead of the shared
- * ProSpaceViewModel god object (ViewModel-split effort). This was the only screen
- * still reaching into ProSpaceViewModel for Admin-specific data (transactions +
+ * ProHostViewModel god object (ViewModel-split effort). This was the only screen
+ * still reaching into ProHostViewModel for Admin-specific data (transactions +
  * revenue CSV export) despite AdminConsoleScreen already having its own dedicated
  * ViewModel for everything else Admin does.
  */
@@ -71,7 +71,7 @@ fun AdminRevenueScreen(
         // Header
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             color = OxfordBlue,
             shadowElevation = 4.dp
         ) {
@@ -88,7 +88,7 @@ fun AdminRevenueScreen(
                             fontWeight = FontWeight.Black,
                             color = PureWhite
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(Spacing.xs))
                         Text(
                             text = "Monitor package purchases, Whish verification transactions, and financial yields",
                             style = MaterialTheme.typography.bodyMedium,
@@ -103,7 +103,7 @@ fun AdminRevenueScreen(
         // Metrics Summary Card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(2.dp)
         ) {
@@ -138,7 +138,7 @@ fun AdminRevenueScreen(
             shape = RoundedCornerShape(10.dp)
         ) {
             Icon(Icons.Default.Download, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(Spacing.sm))
             Text("Export to Excel / CSV (Package ID, User ID, Price, Date, Expiration)", fontWeight = FontWeight.Bold, color = PureWhite)
         }
 
@@ -149,7 +149,7 @@ fun AdminRevenueScreen(
             label = { Text("Search transactions by ID, User, Phone or Package") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = MaterialTheme.shapes.medium
         )
 
         Text(
@@ -185,7 +185,7 @@ fun TransactionCard(tx: WhishTransaction) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(1.dp)
     ) {

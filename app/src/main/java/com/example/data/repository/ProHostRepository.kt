@@ -17,21 +17,21 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 
-class ProSpaceRepository {
+class ProHostRepository {
 
     companion object {
-        private const val TAG = "ProSpaceRepository"
+        private const val TAG = "ProHostRepository"
 
         @Volatile
-        private var instance: ProSpaceRepository? = null
+        private var instance: ProHostRepository? = null
 
-        fun getInstance(): ProSpaceRepository {
+        fun getInstance(): ProHostRepository {
             return instance ?: synchronized(this) {
                 val existing = instance
                 if (existing != null) {
                     existing
                 } else {
-                    val newInstance = ProSpaceRepository()
+                    val newInstance = ProHostRepository()
                     instance = newInstance
                     newInstance
                 }
@@ -1288,7 +1288,7 @@ class ProSpaceRepository {
     fun exportToCsv(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         val sb = StringBuilder()
-        sb.appendLine("=== PROSPACE LEBANON AUDIT EXPORT (CSV) ===")
+        sb.appendLine("=== PROHOST LEBANON AUDIT EXPORT (CSV) ===")
         sb.appendLine("Export Date,${sdf.format(Date())}")
         sb.appendLine("Active Subscription Fee USD,${_pricingState.value.monthlySubscriptionFeeUsd}")
         sb.appendLine("Active MRR USD,${calculateActiveMrr()}")
@@ -1374,7 +1374,7 @@ class ProSpaceRepository {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         return """
 ================================================================================
-                       PROSPACE LEBANON AUDIT & REVENUE REPORT
+                       PROHOST LEBANON AUDIT & REVENUE REPORT
 ================================================================================
 Generated: ${sdf.format(Date())}
 System Status: HEALTHY | Compliance Engine: SECURE MD5 CRYPTO
@@ -1406,7 +1406,7 @@ ${_spaces.value.joinToString("\n") { sp ->
 }}
 
 ================================================================================
-                      END OF PROSPACE AUDIT LEDGER
+                      END OF PROHOST AUDIT LEDGER
 ================================================================================
         """.trimIndent()
     }
@@ -1477,7 +1477,7 @@ ${_spaces.value.joinToString("\n") { sp ->
     fun exportListingsToCsv(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         val sb = StringBuilder()
-        sb.appendLine("=== PROSPACE WORKSPACE LISTINGS EXPORT (CSV) ===")
+        sb.appendLine("=== PROHOST WORKSPACE LISTINGS EXPORT (CSV) ===")
         sb.appendLine("Export Date,${sdf.format(Date())}")
         sb.appendLine("Total Listings,${_spaces.value.size}")
         sb.appendLine()
@@ -1521,7 +1521,7 @@ ${_spaces.value.joinToString("\n") { sp ->
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         val owners = _users.value.filter { it.role == UserRole.PRO_HOST }
         val sb = StringBuilder()
-        sb.appendLine("=== PROSPACE OWNER REGISTRATIONS & WORKSPACES AUDIT ===")
+        sb.appendLine("=== PROHOST OWNER REGISTRATIONS & WORKSPACES AUDIT ===")
         sb.appendLine("Export Date,${sdf.format(Date())}")
         sb.appendLine("Total Registered Hosts,${owners.size}")
         sb.appendLine()
@@ -1537,7 +1537,7 @@ ${_spaces.value.joinToString("\n") { sp ->
     fun exportTransactionsToCsv(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         val sb = StringBuilder()
-        sb.appendLine("=== PROSPACE WHISH PAY TRANSACTIONS LEDGER (CSV) ===")
+        sb.appendLine("=== PROHOST WHISH PAY TRANSACTIONS LEDGER (CSV) ===")
         sb.appendLine("Export Date,${sdf.format(Date())}")
         sb.appendLine("Total Transactions,${_transactions.value.size}")
         sb.appendLine("Total Volume USD,${calculateTotalSettlementVolume()}")
@@ -1554,7 +1554,7 @@ ${_spaces.value.joinToString("\n") { sp ->
     fun exportBookingsCsv(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         val sb = StringBuilder()
-        sb.appendLine("=== PROSPACE BOOKINGS LEDGER (CSV) ===")
+        sb.appendLine("=== PROHOST BOOKINGS LEDGER (CSV) ===")
         sb.appendLine("Export Date,${sdf.format(Date())}")
         sb.appendLine("Total Bookings,${_bookingRequests.value.size}")
         sb.appendLine()

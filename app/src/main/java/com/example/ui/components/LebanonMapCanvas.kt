@@ -49,6 +49,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.example.data.model.Governorate
 import com.example.data.model.SpaceListing
+import com.example.ui.theme.Spacing
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.MapView
@@ -258,7 +259,7 @@ fun LebanonMapCanvas(
             // Current Coordinates & Info HUD
             Surface(
                 color = Color(0xEE1E293B),
-                shape = RoundedCornerShape(12.dp),
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {
                 Row(
@@ -287,7 +288,7 @@ fun LebanonMapCanvas(
                     Text(
                         text = coordinatesText,
                         color = Color.White,
-                        fontSize = 11.sp,
+                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -352,9 +353,9 @@ fun LebanonMapCanvas(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(12.dp, RoundedCornerShape(16.dp))
+                        .shadow(12.dp, MaterialTheme.shapes.large)
                         .clickable { onNavigateToDetails(space) },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
@@ -367,12 +368,12 @@ fun LebanonMapCanvas(
                         ) {
                             Surface(
                                 color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(8.dp)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Text(
                                     text = space.spaceType.displayName,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    fontSize = 11.sp,
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
@@ -387,13 +388,13 @@ fun LebanonMapCanvas(
                                 )
                                 Text(
                                     text = " /mo",
-                                    fontSize = 12.sp,
+                                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(Spacing.sm))
 
                         // Distance badge if GPS is loaded
                         userLocation?.let { uLoc ->
@@ -405,7 +406,7 @@ fun LebanonMapCanvas(
                             ) {
                                 Text(
                                     text = "📍 Near You (${String.format(Locale.US, "%.1f", dist)} km away)",
-                                    fontSize = 11.sp,
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
@@ -423,7 +424,7 @@ fun LebanonMapCanvas(
 
                         Text(
                             text = "📍 ${space.district}, ${space.governorate.displayName}",
-                            fontSize = 13.sp,
+                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
@@ -441,7 +442,7 @@ fun LebanonMapCanvas(
                                 ) {
                                     Text(
                                         text = facility,
-                                        fontSize = 11.sp,
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -449,7 +450,7 @@ fun LebanonMapCanvas(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(Spacing.md))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -458,7 +459,7 @@ fun LebanonMapCanvas(
                             OutlinedButton(
                                 onClick = { activePinSpace = null },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(8.dp)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Text("Close")
                             }
@@ -466,7 +467,7 @@ fun LebanonMapCanvas(
                             Button(
                                 onClick = { onNavigateToDetails(space) },
                                 modifier = Modifier.weight(2f),
-                                shape = RoundedCornerShape(8.dp)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))

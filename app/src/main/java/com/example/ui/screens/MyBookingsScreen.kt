@@ -32,14 +32,14 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyBookingsScreen(
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     onNavigateToDiscovery: () -> Unit,
     onSelectSpace: (SpaceListing) -> Unit
 ) {
@@ -89,7 +89,7 @@ fun MyBookingsScreen(
     var rebookSourceBooking by remember { mutableStateOf<BookingRequest?>(null) }
     // Editing an already-accepted booking is a separate flow from Re-book/Extend:
     // the submitted request references the booking it would replace (replacesBookingId)
-    // and, if the host accepts it, actually replaces it (see ProSpaceRepository.acceptBookingRequest)
+    // and, if the host accepts it, actually replaces it (see ProHostRepository.acceptBookingRequest)
     // instead of coexisting alongside it as an independent new lease.
     var editTargetSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var editSourceBooking by remember { mutableStateOf<BookingRequest?>(null) }
@@ -161,10 +161,10 @@ fun MyBookingsScreen(
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Surface(
                                 color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(8.dp)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Text(
                                     text = "${userBookings.size} Total",
@@ -189,8 +189,8 @@ fun MyBookingsScreen(
                         modifier = Modifier.testTag("explore_new_spaces_button")
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Book Space", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Text("Book Space", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -203,13 +203,13 @@ fun MyBookingsScreen(
                     Surface(
                         modifier = Modifier.weight(1f),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Verified, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Active Leases", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.width(Spacing.xs))
+                                Text("Active Leases", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Text("$totalActiveLeases Workspaces", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
@@ -219,13 +219,13 @@ fun MyBookingsScreen(
                     Surface(
                         modifier = Modifier.weight(1f),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.AttachMoney, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Monthly Rate", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.width(Spacing.xs))
+                                Text("Monthly Rate", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Text("$${String.format(Locale.US, "%.0f", totalMonthlySpendUsd)}/mo", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
@@ -235,13 +235,13 @@ fun MyBookingsScreen(
                     Surface(
                         modifier = Modifier.weight(1f),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Schedule, contentDescription = null, tint = BrightOrange, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Pending Host", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.width(Spacing.xs))
+                                Text("Pending Host", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Text("$pendingRequestsCount Requests", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
@@ -292,7 +292,7 @@ fun MyBookingsScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search by space or location...", fontSize = 12.sp) },
+                        placeholder = { Text("Search by space or location...", fontSize = MaterialTheme.typography.labelMedium.fontSize) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         trailingIcon = if (searchQuery.isNotEmpty()) {
                             {
@@ -302,7 +302,7 @@ fun MyBookingsScreen(
                             }
                         } else null,
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp),
@@ -329,7 +329,7 @@ fun MyBookingsScreen(
                         FilterChip(
                             selected = isSelected,
                             onClick = { selectedFilterChip = key },
-                            label = { Text(label, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                            label = { Text(label, fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                             leadingIcon = if (isSelected) {
                                 { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
                             } else null,
@@ -385,11 +385,11 @@ fun MyBookingsScreen(
                     )
                     Button(
                         onClick = onNavigateToDiscovery,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.testTag("empty_state_browse_button")
                     ) {
                         Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text("Explore Workspaces", fontWeight = FontWeight.Bold)
                     }
                 }
@@ -455,7 +455,7 @@ fun MyBookingsScreen(
                 modifier = Modifier
                     .fillMaxWidth(0.95f)
                     .fillMaxHeight(0.92f)
-                    .clip(RoundedCornerShape(24.dp)),
+                    .clip(MaterialTheme.shapes.extraLarge),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 8.dp
             ) {
@@ -474,7 +474,7 @@ fun MyBookingsScreen(
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Repeat, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text(
                                     text = "Re-book / Extend Workspace",
                                     style = MaterialTheme.typography.titleMedium,
@@ -545,7 +545,7 @@ fun MyBookingsScreen(
 
     // Edit Active Booking Dialog with Interactive Calendar — pre-seeded with the
     // current accepted formula, submitted as a new PENDING request referencing the
-    // booking it would replace. If the host accepts it, ProSpaceRepository.acceptBookingRequest
+    // booking it would replace. If the host accepts it, ProHostRepository.acceptBookingRequest
     // releases the old booking and this one takes its place; availability is always
     // computed live from ACCEPTED bookings, so nothing else needs recalculating by hand.
     if (editTargetSpace != null) {
@@ -566,7 +566,7 @@ fun MyBookingsScreen(
                 modifier = Modifier
                     .fillMaxWidth(0.95f)
                     .fillMaxHeight(0.92f)
-                    .clip(RoundedCornerShape(24.dp)),
+                    .clip(MaterialTheme.shapes.extraLarge),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 8.dp
             ) {
@@ -584,7 +584,7 @@ fun MyBookingsScreen(
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.EditCalendar, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text(
                                     text = "Edit Active Booking",
                                     style = MaterialTheme.typography.titleMedium,
@@ -693,22 +693,22 @@ fun MyBookingsScreen(
 
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("📍 ${bkg.spaceTitle}", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            Text("👤 Renter: ${bkg.practitionerName} (${bkg.practitionerSpecialty})", fontSize = 12.sp)
-                            Text("🗓️ Dates: ${bkg.startDate} → ${bkg.endDate}", fontSize = 12.sp)
-                            Text("⏰ Schedule: ${bkg.selectedDays.joinToString()} • ${bkg.selectedStartHour} - ${bkg.selectedEndHour}", fontSize = 12.sp)
-                            Text("🔑 Smart Key Pass: PRO-PASS-${bkg.id.take(6).uppercase()}", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary, fontSize = 13.sp)
+                            Text("📍 ${bkg.spaceTitle}", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                            Text("👤 Renter: ${bkg.practitionerName} (${bkg.practitionerSpecialty})", fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                            Text("🗓️ Dates: ${bkg.startDate} → ${bkg.endDate}", fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                            Text("⏰ Schedule: ${bkg.selectedDays.joinToString()} • ${bkg.selectedStartHour} - ${bkg.selectedEndHour}", fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                            Text("🔑 Smart Key Pass: PRO-PASS-${bkg.id.take(6).uppercase()}", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                         }
                     }
 
                     if (bkg.agreementUrl != null) {
                         Text(
                             text = "This pass links to the signed leasing agreement your host uploaded when accepting.",
-                            fontSize = 11.sp,
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Button(
@@ -735,7 +735,7 @@ fun MyBookingsScreen(
                         ) {
                             Text(
                                 text = "No signed agreement on file for this booking yet — contact your host on WhatsApp.",
-                                fontSize = 11.sp,
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                 color = StatusOnWarningContainer,
                                 modifier = Modifier.padding(10.dp)
                             )
@@ -798,7 +798,7 @@ fun BookingReservationCard(
                             overflow = TextOverflow.Ellipsis
                         )
                         if (space?.isVerified == true) {
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Icon(Icons.Default.Verified, contentDescription = "Verified Space", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                         }
                     }
@@ -811,7 +811,7 @@ fun BookingReservationCard(
 
                 // Status Badge
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = MaterialTheme.shapes.small,
                     color = when (booking.status) {
                         BookingRequestStatus.ACCEPTED -> StatusSuccessContainer
                         BookingRequestStatus.PENDING -> StatusWarningContainer
@@ -861,7 +861,7 @@ fun BookingReservationCard(
             // Schedule & Formula Details Box
             Surface(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(12.dp),
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -884,7 +884,7 @@ fun BookingReservationCard(
                             val timeStr = if (booking.selectedStartHour.isNotBlank()) "${booking.selectedStartHour} - ${booking.selectedEndHour}" else "${booking.formula.startHour} - ${booking.formula.endHour}"
                             Text(
                                 text = "$daysStr @ $timeStr",
-                                fontSize = 11.sp,
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -899,7 +899,7 @@ fun BookingReservationCard(
                             )
                             Text(
                                 text = "Start: ${booking.startDate.ifEmpty { "Immediate" }}",
-                                fontSize = 11.sp,
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -955,7 +955,7 @@ fun BookingReservationCard(
                     Text(
                         text = if (booking.status == BookingRequestStatus.ACCEPTED) "Extend / Re-book" else "Re-book Space",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize
                     )
                 }
 

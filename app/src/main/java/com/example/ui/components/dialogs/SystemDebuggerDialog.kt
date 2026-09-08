@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.data.repository.ProSpaceRepository
+import com.example.data.repository.ProHostRepository
 import com.example.ui.components.ProCard
 import com.example.ui.components.ProOutlinedButton
 import com.example.ui.components.ProPrimaryButton
@@ -34,7 +34,7 @@ import java.util.*
 
 @Composable
 fun SystemDebuggerDialog(
-    repository: ProSpaceRepository,
+    repository: ProHostRepository,
     onDismissRequest: () -> Unit
 ) {
     val context = LocalContext.current
@@ -63,7 +63,7 @@ fun SystemDebuggerDialog(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
                 .fillMaxHeight(0.90f),
-            shape = RoundedCornerShape(24.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp
         ) {
@@ -81,7 +81,7 @@ fun SystemDebuggerDialog(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Surface(
                             color = OxfordBlue.copy(alpha = 0.12f),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = MaterialTheme.shapes.medium,
                             modifier = Modifier.size(44.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -93,7 +93,7 @@ fun SystemDebuggerDialog(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(Spacing.md))
                         Column {
                             Text(
                                 "System & Firebase Debugger",
@@ -113,7 +113,7 @@ fun SystemDebuggerDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 // Status Overview Card
                 if (report != null) {
@@ -152,7 +152,7 @@ fun SystemDebuggerDialog(
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(Spacing.md))
 
                             // Progress Bar
                             LinearProgressIndicator(
@@ -177,7 +177,7 @@ fun SystemDebuggerDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 // Category Filter Chips
                 if (report != null) {
@@ -225,7 +225,7 @@ fun SystemDebuggerDialog(
                 ) {
                     items(displayedItems) { item ->
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
+                            shape = MaterialTheme.shapes.medium,
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
@@ -295,7 +295,7 @@ fun SystemDebuggerDialog(
                                         )
                                     }
 
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(Spacing.xs))
 
                                     Text(
                                         text = item.details,
@@ -317,7 +317,7 @@ fun SystemDebuggerDialog(
                 ) {
                     OutlinedButton(
                         onClick = onDismissRequest,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("Close")
@@ -326,7 +326,7 @@ fun SystemDebuggerDialog(
                     Button(
                         onClick = { runAudit() },
                         enabled = !isRunning,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue),
                         modifier = Modifier.weight(1f)
                     ) {
@@ -344,7 +344,7 @@ fun SystemDebuggerDialog(
 private fun BadgePill(count: Int, label: String, color: Color) {
     Surface(
         color = color.copy(alpha = 0.12f),
-        shape = RoundedCornerShape(8.dp)
+        shape = MaterialTheme.shapes.small
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

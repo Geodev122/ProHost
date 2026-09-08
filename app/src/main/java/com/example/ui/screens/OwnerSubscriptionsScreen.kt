@@ -20,14 +20,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OwnerSubscriptionsScreen(
-    viewModel: ProSpaceViewModel
+    viewModel: ProHostViewModel
 ) {
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
@@ -60,7 +60,7 @@ fun OwnerSubscriptionsScreen(
         // Header
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             color = OxfordBlue,
             shadowElevation = 4.dp
         ) {
@@ -77,7 +77,7 @@ fun OwnerSubscriptionsScreen(
                             fontWeight = FontWeight.Black,
                             color = PureWhite
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(Spacing.xs))
                         Text(
                             text = "Manage your ProHost hosting tiers, PAYG listings, and Whish billing",
                             style = MaterialTheme.typography.bodyMedium,
@@ -92,7 +92,7 @@ fun OwnerSubscriptionsScreen(
         // Active Package Status Card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(2.dp)
         ) {
@@ -105,7 +105,7 @@ fun OwnerSubscriptionsScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Surface(
                             color = FreshGreen.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = MaterialTheme.shapes.small
                         ) {
                             Icon(Icons.Default.Verified, contentDescription = null, tint = FreshGreen, modifier = Modifier.padding(6.dp).size(20.dp))
                         }
@@ -176,7 +176,7 @@ fun OwnerSubscriptionsScreen(
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Icon(Icons.Default.AddCircle, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text("Buy New Listing Slot (PAYG)", fontWeight = FontWeight.Bold, color = PureWhite)
                     }
                 } else {
@@ -189,7 +189,7 @@ fun OwnerSubscriptionsScreen(
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Text("Package Limit Reached — Buy Additional Listing Slot", fontWeight = FontWeight.Bold, color = PureWhite)
                         }
                     }
@@ -318,7 +318,7 @@ fun OwnerSubscriptionsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(if (selectedSpaceTypeForPayg == st) OxfordBlue.copy(alpha = 0.1f) else Color.Transparent, RoundedCornerShape(8.dp))
+                                .background(if (selectedSpaceTypeForPayg == st) OxfordBlue.copy(alpha = 0.1f) else Color.Transparent, MaterialTheme.shapes.small)
                                 .padding(8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -334,7 +334,7 @@ fun OwnerSubscriptionsScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(Spacing.sm))
                     OutlinedTextField(
                         value = payerName,
                         onValueChange = { payerName = it },
@@ -384,7 +384,7 @@ fun PackageOptionCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = if (isCurrent) OxfordBlue.copy(alpha = 0.04f) else MaterialTheme.colorScheme.surface
         ),
@@ -426,7 +426,7 @@ fun PackageOptionCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
 
             Button(
                 onClick = onSelect,

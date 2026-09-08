@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.ui.theme.Spacing
 
 @Composable
 fun ExportDataDialog(
@@ -72,7 +73,7 @@ fun ExportDataDialog(
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
                             text = "Multi-Format Export Hub",
                             fontSize = 16.sp,
@@ -91,30 +92,30 @@ fun ExportDataDialog(
                 TabRow(
                     selectedTabIndex = selectedFormat,
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.clip(RoundedCornerShape(12.dp))
+                    modifier = Modifier.clip(MaterialTheme.shapes.medium)
                 ) {
                     Tab(
                         selected = selectedFormat == 0,
                         onClick = { selectedFormat = 0 },
-                        text = { Text("CSV", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                        text = { Text("CSV", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = selectedFormat == 1,
                         onClick = { selectedFormat = 1 },
-                        text = { Text("JSON", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                        text = { Text("JSON", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = selectedFormat == 2,
                         onClick = { selectedFormat = 2 },
-                        text = { Text("Audit TXT", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                        text = { Text("Audit TXT", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold) }
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 Text(
                     text = "Live Monospace Preview ($formatLabel):",
-                    fontSize = 12.sp,
+                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -127,7 +128,7 @@ fun ExportDataDialog(
                         .fillMaxWidth()
                         .height(280.dp),
                     color = MaterialTheme.colorScheme.inverseSurface,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     Box(
                         modifier = Modifier
@@ -139,21 +140,21 @@ fun ExportDataDialog(
                         Text(
                             text = currentContent,
                             fontFamily = FontFamily.Monospace,
-                            fontSize = 11.sp,
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                             color = MaterialTheme.colorScheme.inverseOnSurface,
                             lineHeight = 16.sp
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 // Actions: Copy & Native Android Share Sheet
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    CustomButton(
+                    ProOutlinedButton(
                         text = "Copy",
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -161,15 +162,13 @@ fun ExportDataDialog(
                             clipboard.setPrimaryClip(clip)
                             Toast.makeText(context, "$formatLabel copied to clipboard!", Toast.LENGTH_SHORT).show()
                         },
-                        variant = CustomButtonVariant.OUTLINED,
                         icon = Icons.Default.ContentCopy,
                         modifier = Modifier.weight(1f)
                     )
 
-                    CustomButton(
+                    ProPrimaryButton(
                         text = "Share File / Sheet",
                         onClick = { onShare(formatLabel, currentContent) },
-                        variant = CustomButtonVariant.PRIMARY,
                         icon = Icons.Default.Share,
                         modifier = Modifier.weight(1.5f)
                     )

@@ -7,15 +7,15 @@ import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.model.*
-import com.example.data.repository.ProSpaceRepository
+import com.example.data.repository.ProHostRepository
 import com.example.util.guessFileExtension
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.net.URLEncoder
 
-class ProSpaceViewModel(
-    val repository: ProSpaceRepository = ProSpaceRepository.getInstance()
+class ProHostViewModel(
+    val repository: ProHostRepository = ProHostRepository.getInstance()
 ) : ViewModel() {
 
     // Used by the Whish payment functions and sendPaymentReminder below — kept here
@@ -421,7 +421,7 @@ class ProSpaceViewModel(
     /**
      * Finalizes host acceptance: uploads the signed agreement the host just picked
      * ([agreementUri]) to Storage, then accepts the request with that URL attached
-     * (see ProSpaceRepository.acceptBookingRequest — this is also what releases a
+     * (see ProHostRepository.acceptBookingRequest — this is also what releases a
      * previously accepted booking this request replaces, if any). The practitioner
      * hears about it via a real server-sent push (see
      * functions/src/notifications/bookingNotifications.ts), not a local alert on
@@ -477,7 +477,7 @@ class ProSpaceViewModel(
 
     /**
      * Early termination of an already-ACCEPTED booking — see
-     * ProSpaceRepository.cancelAcceptedBooking's doc comment. Callable from either
+     * ProHostRepository.cancelAcceptedBooking's doc comment. Callable from either
      * side (My Bookings for the practitioner, Renting Progress for the host); the
      * caller only needs to be signed in as one of the booking's two parties, or Admin.
      */

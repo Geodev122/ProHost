@@ -30,7 +30,8 @@ import com.example.ui.components.drawer.LawBulletinCard
 import com.example.ui.theme.LebaneseCedarGreen
 import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.WhatsAppGreen
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
+import com.example.ui.theme.Spacing
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -39,7 +40,7 @@ import java.util.Locale
 @Composable
 fun DrawerDialogsHandler(
     dialogId: String?,
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     onNavigateToTab: ((String) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
@@ -150,7 +151,7 @@ fun DrawerDialogsHandler(
                                 LawBulletinCard(
                                     number = "Sublease Safety",
                                     title = "Host Verification Protection",
-                                    content = "All hosts on ProSpace are legally bound to verify they own or hold exclusive rights to sublease workspace hours, protecting renters from arbitrary closures."
+                                    content = "All hosts on ProHost are legally bound to verify they own or hold exclusive rights to sublease workspace hours, protecting renters from arbitrary closures."
                                 )
                                 LawBulletinCard(
                                     number = "Whish Pay Receipts",
@@ -226,12 +227,12 @@ fun DrawerDialogsHandler(
                                 ) {
                                     AssistChip(
                                         onClick = { showAuditFromPicker = true },
-                                        label = { Text(auditFromMillis?.let { "From: ${sdfShort.format(Date(it))}" } ?: "From: Any", fontSize = 11.sp) },
+                                        label = { Text(auditFromMillis?.let { "From: ${sdfShort.format(Date(it))}" } ?: "From: Any", fontSize = MaterialTheme.typography.labelSmall.fontSize) },
                                         leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
                                     )
                                     AssistChip(
                                         onClick = { showAuditToPicker = true },
-                                        label = { Text(auditToMillis?.let { "To: ${sdfShort.format(Date(it))}" } ?: "To: Any", fontSize = 11.sp) },
+                                        label = { Text(auditToMillis?.let { "To: ${sdfShort.format(Date(it))}" } ?: "To: Any", fontSize = MaterialTheme.typography.labelSmall.fontSize) },
                                         leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
                                     )
                                     if (auditFromMillis != null || auditToMillis != null) {
@@ -253,11 +254,11 @@ fun DrawerDialogsHandler(
                                             viewModel.shareExportData(context, "Audit Logs", csv)
                                         },
                                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                        shape = RoundedCornerShape(8.dp)
+                                        shape = MaterialTheme.shapes.small
                                     ) {
                                         Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Export CSV", fontSize = 11.sp)
+                                        Spacer(modifier = Modifier.width(Spacing.xs))
+                                        Text("Export CSV", fontSize = MaterialTheme.typography.labelSmall.fontSize)
                                     }
                                 }
 
@@ -275,7 +276,7 @@ fun DrawerDialogsHandler(
                                                     modifier = Modifier.fillMaxWidth(),
                                                     horizontalArrangement = Arrangement.SpaceBetween
                                                 ) {
-                                                    Text(log.actionType, color = Color(0xFF00FF00), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                                    Text(log.actionType, color = Color.Green, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
                                                     Text(log.severity, color = if (log.severity == "SECURE") Color.Red else Color.Yellow, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
                                                 }
                                                 Text(log.details, color = Color.White, style = MaterialTheme.typography.labelSmall)
@@ -346,7 +347,7 @@ fun DrawerDialogsHandler(
                                             }
                                             Surface(
                                                 color = MaterialTheme.colorScheme.primaryContainer,
-                                                shape = RoundedCornerShape(8.dp)
+                                                shape = MaterialTheme.shapes.small
                                             ) {
                                                 Text("$listingCount active", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                             }
@@ -387,7 +388,7 @@ fun DrawerDialogsHandler(
                                             tint = MaterialTheme.colorScheme.outlineVariant,
                                             modifier = Modifier.size(48.dp)
                                         )
-                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Spacer(modifier = Modifier.height(Spacing.sm))
                                         Text(
                                             text = "No notifications yet.",
                                             fontWeight = FontWeight.Bold,
@@ -434,7 +435,7 @@ fun DrawerDialogsHandler(
                                                             Icon(
                                                                 imageVector = if (alert.category == "BOOKING_ACCEPTANCE") Icons.Default.CheckCircle else Icons.Default.NotificationImportant,
                                                                 contentDescription = null,
-                                                                tint = if (alert.category == "BOOKING_ACCEPTANCE") Color(0xFF00796B) else MaterialTheme.colorScheme.error,
+                                                                tint = if (alert.category == "BOOKING_ACCEPTANCE") StatusSuccess else MaterialTheme.colorScheme.error,
                                                                 modifier = Modifier.size(16.dp)
                                                             )
                                                             Text(
@@ -451,7 +452,7 @@ fun DrawerDialogsHandler(
                                                                 contentPadding = PaddingValues(0.dp),
                                                                 modifier = Modifier.height(24.dp)
                                                             ) {
-                                                                Text("Mark Read", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                                Text("Mark Read", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold)
                                                             }
                                                         } else {
                                                             Text(
@@ -462,14 +463,14 @@ fun DrawerDialogsHandler(
                                                         }
                                                     }
 
-                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Spacer(modifier = Modifier.height(Spacing.xs))
                                                     Text(
                                                         text = alert.body,
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = if (alert.isRead) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
 
-                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Spacer(modifier = Modifier.height(Spacing.xs))
                                                     Row(
                                                         modifier = Modifier.fillMaxWidth(),
                                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -497,7 +498,7 @@ fun DrawerDialogsHandler(
                                                                     modifier = Modifier.height(28.dp)
                                                                 ) {
                                                                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(12.dp))
-                                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                                    Spacer(modifier = Modifier.width(Spacing.xs))
                                                                     Text("Open Screen", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                                                 }
                                                             }
@@ -525,7 +526,7 @@ fun DrawerDialogsHandler(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 Button(
                     onClick = onDismiss,
@@ -562,14 +563,14 @@ private fun AppUpdatesInfo(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         if (onNavigateToTab != null) {
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
             Button(
                 onClick = {
                     onNavigateToTab(profileTabId)
                     onDismiss()
                 },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp)
+                shape = MaterialTheme.shapes.small
             ) {
                 Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))

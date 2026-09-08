@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 
 // ==========================================
-// Official ProSpace Brand Palette
+// Official ProHost Brand Palette
 // Defined strictly in brand identity & guidelines:
 // - Oxford Blue (#384152): App Bar, Headers, Primary Navy
 // - Carnation Orange (#F25F4C): Primary CTA, Booking Highlights
@@ -28,7 +28,7 @@ val VibrantBlue = Color(0xFF246BEE)            // Icons, illustrations, branding
 val BrightOrange = Color(0xFFF98B1D)           // Warning / pending reservation badge (#F98B1D)
 val CrimsonRed = Color(0xFFD32F2F)             // Error / cancelled badge (#D32F2F)
 
-// ProSpace Derived Tonal Scales
+// ProHost Derived Tonal Scales
 val OxfordBlueLight = Color(0xFF5A667A)
 val OxfordBlueDark = Color(0xFF272F3C)
 val OxfordBlueContainer = Color(0xFFECEFF4)
@@ -44,41 +44,14 @@ val CoolGrayContainer = Color(0xFFE6EAEF)
 val LightGrayCardBorder = Color(0xFFD1D5DC)
 val LightGraySurface = Color(0xFFF8F9FA)
 
-// Secondary Secondary Text Helper (#384152 at 70% opacity)
-val ProSpaceSecondaryText = OxfordBlue.copy(alpha = 0.70f)
-val ProSpaceMutedText = OxfordBlue.copy(alpha = 0.50f)
-
-// App Canvas & Background Gradients
-val ProSpaceAppBackground = PureWhite
-val ProSpaceCardBackground = PureWhite
-val ProSpaceSurfaceVariant = LightGray
+// Secondary Text Helper (#384152 at 70% opacity)
+val ProHostSecondaryText = OxfordBlue.copy(alpha = 0.70f)
 
 val PremiumBackgroundGradient = Brush.verticalGradient(
     colors = listOf(
         PureWhite,
         LightGraySurface,
         LightGray.copy(alpha = 0.40f)
-    )
-)
-
-val ProSpaceBrandGradient = Brush.horizontalGradient(
-    colors = listOf(
-        VibrantBlue,
-        CarnationOrange
-    )
-)
-
-val ProSpaceHeaderGradient = Brush.verticalGradient(
-    colors = listOf(
-        OxfordBlue,
-        CoolGray
-    )
-)
-
-val ProSpaceHeroGradient = Brush.linearGradient(
-    colors = listOf(
-        OxfordBlue,
-        CoolGrayDark
     )
 )
 
@@ -94,6 +67,9 @@ val LebaneseCedarGreen = FreshGreen
 val LebaneseCedarContainer = Color(0xFFE8F6ED)
 val WhishRed = CrimsonRed
 val WhishRedContainer = Color(0xFFFDE8E8)
+// Whish's own merchant brand red (#E2001A) — distinct from the app's semantic
+// StatusError/CrimsonRed; used only for Whish-branded UI chrome (payment sheet).
+val WhishBrandRed = Color(0xFFE2001A)
 val WhatsAppGreen = Color(0xFF25D366)
 val WhatsAppDarkGreen = Color(0xFF1E7E34)
 val InstagramPink = Color(0xFFE1306C)
@@ -124,7 +100,7 @@ val NeutralGray100 = LightGraySurface
 val NeutralGray200 = LightGray
 val NeutralGray300 = LightGrayCardBorder
 val NeutralGray400 = Color(0xFF9EA7B4)
-val NeutralGray500 = ProSpaceSecondaryText
+val NeutralGray500 = ProHostSecondaryText
 val NeutralGray600 = CoolGrayLight
 val NeutralGray700 = OxfordBlue
 val NeutralGray800 = CoolGray
@@ -139,13 +115,6 @@ val OutlineVariantLight = LightGray
 val CardShadowLight = Color(0x14283544)
 
 // Backward Compatibility Aliases
-val ProSpacePrimaryBlue = OxfordBlue
-val ProSpaceBlueDark = CoolGray
-val ProSpaceBlueDarkNavy = CoolGrayDark
-val ProSpaceBlueLight = VibrantBlue
-val ProSpaceIceBlue = OxfordBlueContainer
-val ProSpaceSoftBlueContainer = LightGray
-val ProSpaceDeepBlue = CoolGray
 val ProTealDark = OxfordBlue
 val ProTealPrimary = VibrantBlue
 val ProTealLight = VibrantBlue
@@ -166,11 +135,11 @@ val ClinicalDeepBlue = CoolGray
 val NavyDark = CoolGrayDark
 val AmberWarning = BrightOrange
 val ClinicalSlate = OxfordBlue
-val ClinicalSlateLight = ProSpaceSecondaryText
+val ClinicalSlateLight = ProHostSecondaryText
 val ClinicalSlateContainer = LightGray
 val ClinicalOnSlate = CoolGray
 val ProSlate = CoolGray
-val ProSlateLight = ProSpaceSecondaryText
+val ProSlateLight = ProHostSecondaryText
 val ProSlateContainer = LightGray
 val ProOnSlateContainer = CoolGray
 

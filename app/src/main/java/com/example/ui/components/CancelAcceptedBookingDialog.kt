@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.CancellationReasonCode
+import com.example.ui.theme.Spacing
 
 /**
  * Early-termination confirmation for an already-ACCEPTED booking — a reason code
@@ -34,23 +35,23 @@ fun CancelAcceptedBookingDialog(
     var note by remember { mutableStateOf("") }
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(shape = RoundedCornerShape(16.dp)) {
+        Card(shape = MaterialTheme.shapes.large) {
             Column(
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.EventBusy, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(Spacing.sm))
                     Text("Cancel Accepted Booking?", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
                 Text(
                     "This ends the active booking for \"$spaceTitle\" immediately and notifies $partyLabel. There is no in-app refund or penalty — settle anything owed directly with $partyLabel.",
-                    fontSize = 12.sp,
+                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Text("Reason", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("Reason", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 220.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -68,8 +69,8 @@ fun CancelAcceptedBookingDialog(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
                             ) {
                                 RadioButton(selected = selectedReason == reason, onClick = { selectedReason = reason })
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(reason.displayName, fontSize = 13.sp)
+                                Spacer(modifier = Modifier.width(Spacing.xs))
+                                Text(reason.displayName, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                             }
                         }
                     }

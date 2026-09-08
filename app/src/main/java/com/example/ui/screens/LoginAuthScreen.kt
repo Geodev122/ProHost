@@ -109,9 +109,9 @@ fun LoginAuthScreen(
             .testTag("login_auth_screen"),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Spacing.lg))
 
-        // ProSpace Brand Header
+        // ProHost Brand Header
         Surface(
             color = OxfordBlue,
             shape = RoundedCornerShape(20.dp),
@@ -121,7 +121,7 @@ fun LoginAuthScreen(
             shadowElevation = 6.dp
         ) {
             Image(
-                painter = painterResource(id = com.example.R.drawable.ic_prospace_logo_brand),
+                painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
                 contentDescription = "ProHost Logo",
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
@@ -130,7 +130,7 @@ fun LoginAuthScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(Spacing.md))
 
         Text(
             text = "ProHost",
@@ -141,7 +141,7 @@ fun LoginAuthScreen(
 
         Text(
             text = "Specialist Workspace & Office Rental Exchange",
-            fontSize = 13.sp,
+            fontSize = MaterialTheme.typography.bodySmall.fontSize,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -169,7 +169,7 @@ fun LoginAuthScreen(
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
                         text = displayError,
                         style = MaterialTheme.typography.bodySmall,
@@ -196,7 +196,7 @@ fun LoginAuthScreen(
                         tint = LebaneseCedarGreen,
                         modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
                         text = authSuccessMessage ?: "",
                         style = MaterialTheme.typography.bodySmall,
@@ -210,7 +210,7 @@ fun LoginAuthScreen(
         when (step) {
             AuthStep.PHONE_ENTRY -> ModernCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(20.dp),
                 elevation = 3.dp
             ) {
@@ -225,7 +225,7 @@ fun LoginAuthScreen(
                     isBusy = isAuthenticating
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -252,19 +252,19 @@ fun LoginAuthScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
-                CustomButton(
+                ProPrimaryButton(
                     text = if (isAuthenticating) "Sending Code..." else "Send Verification Code",
                     onClick = {
                         val currentActivity = activity
                         if (currentActivity == null) {
                             localErrorMessage = "Unable to start phone verification right now."
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         if (phoneNumber.isBlank() || phoneNumber.filter { it.isDigit() }.length < 6) {
                             localErrorMessage = "Please enter a valid phone number"
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         authViewModel.startPhoneVerification(
                             activity = currentActivity,
@@ -281,7 +281,6 @@ fun LoginAuthScreen(
                         )
                     },
                     enabled = !isAuthenticating,
-                    variant = CustomButtonVariant.PRIMARY,
                     icon = Icons.AutoMirrored.Filled.Login,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -293,7 +292,7 @@ fun LoginAuthScreen(
                     AuthDivider()
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    CustomButton(
+                    ProOutlinedButton(
                         text = "Continue with Google",
                         onClick = {
                             val activityCtx = activity ?: context
@@ -309,7 +308,6 @@ fun LoginAuthScreen(
                             )
                         },
                         enabled = !isAuthenticating,
-                        variant = CustomButtonVariant.OUTLINED,
                         icon = Icons.Default.AccountCircle,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -320,7 +318,7 @@ fun LoginAuthScreen(
 
             AuthStep.OTP_ENTRY -> ModernCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(20.dp),
                 elevation = 3.dp
             ) {
@@ -331,7 +329,7 @@ fun LoginAuthScreen(
                     isBusy = isAuthenticating
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 InputField(
                     value = otpCode,
@@ -343,31 +341,30 @@ fun LoginAuthScreen(
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
-                CustomButton(
+                ProPrimaryButton(
                     text = if (isAuthenticating) "Verifying..." else "Verify Code",
                     onClick = {
                         val currentActivity = activity
                         if (currentActivity == null) {
                             localErrorMessage = "Unable to verify right now."
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         if (otpCode.length < 6) {
                             localErrorMessage = "Please enter the 6-digit code"
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         authViewModel.submitPhoneVerificationCode(currentActivity, otpCode) { needsRegistration ->
                             if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
                         }
                     },
                     enabled = !isAuthenticating,
-                    variant = CustomButtonVariant.PRIMARY,
                     icon = Icons.Default.CheckCircle,
                     modifier = Modifier.fillMaxWidth().testTag("submit_otp_button")
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
 
                 TextButton(onClick = {
                     step = AuthStep.PHONE_ENTRY
@@ -376,14 +373,14 @@ fun LoginAuthScreen(
                     authViewModel.clearAuthMessages()
                 }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Change phone number", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text("Change phone number", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
                 }
             }
 
             AuthStep.REGISTRATION_FORM -> ModernCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(20.dp),
                 elevation = 3.dp
             ) {
@@ -411,7 +408,7 @@ fun LoginAuthScreen(
                             tint = LebaneseCedarGreen,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
                             text = "Phone verified: ${phoneCountry.dialCode} $phoneNumber",
                             style = MaterialTheme.typography.bodySmall,
@@ -421,7 +418,7 @@ fun LoginAuthScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     ProfilePicturePickerField(
@@ -537,7 +534,7 @@ fun LoginAuthScreen(
                 ) {
                     Text(
                         text = "By continuing you agree to our",
-                        fontSize = 11.sp,
+                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -547,15 +544,15 @@ fun LoginAuthScreen(
                 ) {
                     Text(
                         text = "Terms of Use",
-                        fontSize = 11.sp,
+                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.termsOfUse }
                     )
-                    Text(text = " and ", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = " and ", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = "Privacy Policy",
-                        fontSize = 11.sp,
+                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.privacyPolicy }
@@ -564,33 +561,33 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                CustomButton(
+                ProPrimaryButton(
                     text = if (isAuthenticating) "Creating Account..." else "Create Account",
                     onClick = {
                         val currentActivity = activity
                         if (currentActivity == null) {
                             localErrorMessage = "Unable to create your account right now."
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         if (regFullName.isBlank()) {
                             localErrorMessage = "Please enter your full name"
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         if (regEmail.isBlank() || !regEmail.contains("@")) {
                             localErrorMessage = "Please enter a valid email"
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         if (!regIdDocState.isSelected) {
                             localErrorMessage = "Please upload your ID document"
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         if (regGovernorateArea.isBlank()) {
                             localErrorMessage = "Please enter your governorate / area"
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         if (regCity.isBlank()) {
                             localErrorMessage = "Please enter your city"
-                            return@CustomButton
+                            return@ProPrimaryButton
                         }
                         authViewModel.completePendingRegistration(
                             activity = currentActivity,
@@ -609,7 +606,6 @@ fun LoginAuthScreen(
                         )
                     },
                     enabled = !isAuthenticating,
-                    variant = CustomButtonVariant.PRIMARY,
                     icon = Icons.Default.CheckCircle,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -623,7 +619,7 @@ fun LoginAuthScreen(
         // Security Notice Box
         Surface(
             color = MaterialTheme.colorScheme.surfaceVariant,
-            shape = RoundedCornerShape(12.dp),
+            shape = MaterialTheme.shapes.medium,
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
@@ -639,13 +635,13 @@ fun LoginAuthScreen(
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = "Every ProHost account is verified via Firebase Phone Auth SMS — the phone number you enter above is checked first, before anything else, and is your identity on the platform.",
-                    fontSize = 11.sp,
+                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(Spacing.xl))
     }
 
     showLegalDocument?.let { doc ->
@@ -744,7 +740,7 @@ private fun AuthStepIndicator(step: AuthStep) {
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(Spacing.xs))
                 Text(
                     text = label,
                     fontSize = 10.sp,

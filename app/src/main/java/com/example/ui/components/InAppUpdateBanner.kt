@@ -35,7 +35,7 @@ fun InAppUpdateBanner(
         modifier = modifier
     ) {
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(
                 containerColor = if (updateState == UpdateState.DOWNLOADED) FreshGreen else OxfordBlue
             ),
@@ -58,7 +58,7 @@ fun InAppUpdateBanner(
                     Box(
                         modifier = Modifier
                             .size(36.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(MaterialTheme.shapes.small)
                             .background(Color.White.copy(alpha = 0.2f)),
                         contentAlignment = Alignment.Center
                     ) {
@@ -72,7 +72,7 @@ fun InAppUpdateBanner(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (updateState == UpdateState.DOWNLOADED) "ProSpace Update Ready" else "Downloading ProSpace Update...",
+                            text = if (updateState == UpdateState.DOWNLOADED) "ProHost Update Ready" else "Downloading ProHost Update...",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -81,7 +81,7 @@ fun InAppUpdateBanner(
                             text = if (updateState == UpdateState.DOWNLOADED) "Restart the app to apply the latest features and security patches." else "Download in progress: ${(downloadProgress * 100).toInt()}%",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.85f),
-                            fontSize = 12.sp
+                            fontSize = MaterialTheme.typography.labelMedium.fontSize
                         )
                     }
 
@@ -92,13 +92,13 @@ fun InAppUpdateBanner(
                                 containerColor = Color.White,
                                 contentColor = FreshGreen
                             ),
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
                                 text = "Restart",
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 12.sp
+                                fontSize = MaterialTheme.typography.labelMedium.fontSize
                             )
                         }
                     }

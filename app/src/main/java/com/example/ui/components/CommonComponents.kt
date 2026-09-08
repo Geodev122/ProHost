@@ -35,7 +35,7 @@ import java.text.NumberFormat
 import java.util.Locale
 
 /**
- * Common ProSpace Reusable UI Components
+ * Common ProHost Reusable UI Components
  * Ensures cohesive design language, typography, consistent padding, and accessibility across all screens.
  */
 
@@ -122,7 +122,7 @@ fun StatusBadge(
     label: String? = null,
     modifier: Modifier = Modifier,
     customIcon: ImageVector? = null,
-    shape: RoundedCornerShape = RoundedCornerShape(8.dp)
+    shape: RoundedCornerShape = MaterialTheme.shapes.small
 ) {
     val (bg, text, defaultIcon, defaultText) = when (status) {
         StatusBadgeType.AVAILABLE -> Quad(
@@ -236,7 +236,7 @@ fun ProSectionHeader(
             if (icon != null) {
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(8.dp),
+                    shape = MaterialTheme.shapes.small,
                     modifier = Modifier.size(32.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
@@ -268,7 +268,7 @@ fun ProSectionHeader(
             }
         }
         if (trailingContent != null) {
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(Spacing.sm))
             trailingContent()
         }
     }
@@ -295,7 +295,7 @@ fun ProMetricTile(
             .then(
                 if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
             ),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = containerColor),
         border = BorderStroke(1.dp, borderColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -354,7 +354,7 @@ fun ProSurfaceCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
     borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-    shape: RoundedCornerShape = RoundedCornerShape(16.dp),
+    shape: RoundedCornerShape = MaterialTheme.shapes.large,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
@@ -389,7 +389,7 @@ fun ProCurrencyTag(
 
     Surface(
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-        shape = RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.small,
         modifier = modifier
     ) {
         Row(
@@ -476,7 +476,7 @@ fun ProMemberAvatar(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     if (isVerified) {
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Icon(
                             Icons.Default.Verified,
                             contentDescription = "Verified",
@@ -578,7 +578,7 @@ fun ProEmptyState(
                 )
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Spacing.lg))
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
@@ -593,10 +593,10 @@ fun ProEmptyState(
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
         if (actionButtonText != null && onActionClick != null) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.lg))
             Button(
                 onClick = onActionClick,
-                shape = RoundedCornerShape(12.dp)
+                shape = MaterialTheme.shapes.medium
             ) {
                 Text(actionButtonText, style = MaterialTheme.typography.labelMedium)
             }
@@ -605,7 +605,7 @@ fun ProEmptyState(
 }
 
 // =========================================================================
-// REUSABLE PROSPACE BUTTONS
+// REUSABLE PROHOST BUTTONS
 // =========================================================================
 
 enum class CustomButtonVariant {
@@ -621,7 +621,7 @@ enum class CustomButtonVariant {
 
 /**
  * Standard CustomButton Component
- * Supports multiple ProSpace styles, loading states, leading/trailing icons, and adheres to 48dp touch targets.
+ * Supports multiple ProHost styles, loading states, leading/trailing icons, and adheres to 48dp touch targets.
  * Features consistent M3 typography (labelLarge, Bold) and standardized 12.dp curvature.
  */
 @Composable
@@ -636,7 +636,7 @@ fun CustomButton(
     isLoading: Boolean = false,
     customContainerColor: Color? = null,
     customContentColor: Color? = null,
-    shape: RoundedCornerShape = RoundedCornerShape(12.dp),
+    shape: RoundedCornerShape = MaterialTheme.shapes.medium,
     contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
 ) {
     val containerColor = customContainerColor ?: when (variant) {
@@ -731,14 +731,14 @@ private fun ButtonInnerContent(
             modifier = Modifier.size(18.dp),
             strokeWidth = 2.dp
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(Spacing.sm))
     } else if (icon != null) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(18.dp)
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(Spacing.sm))
     }
     Text(
         text = text,
@@ -746,7 +746,7 @@ private fun ButtonInnerContent(
         fontWeight = FontWeight.Bold
     )
     if (!isLoading && trailingIcon != null) {
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(Spacing.sm))
         Icon(
             imageVector = trailingIcon,
             contentDescription = null,
@@ -756,7 +756,7 @@ private fun ButtonInnerContent(
 }
 
 /**
- * Standard ProSpace Primary Button (Filled with Carnation Orange #F25F4C, rounded 12dp, min 48dp height).
+ * Standard ProHost Primary Button (Filled with Carnation Orange #F25F4C, rounded 12dp, min 48dp height).
  */
 @Composable
 fun ProPrimaryButton(
@@ -768,7 +768,7 @@ fun ProPrimaryButton(
     isLoading: Boolean = false,
     containerColor: Color = CarnationOrange,
     contentColor: Color = PureWhite,
-    shape: RoundedCornerShape = RoundedCornerShape(12.dp)
+    shape: RoundedCornerShape = MaterialTheme.shapes.medium
 ) {
     CustomButton(
         text = text,
@@ -785,7 +785,7 @@ fun ProPrimaryButton(
 }
 
 /**
- * Standard ProSpace Secondary Button (Cool Gray #283544 with Light Gray text, 12dp radius).
+ * Standard ProHost Secondary Button (Cool Gray #283544 with Light Gray text, 12dp radius).
  */
 @Composable
 fun ProSecondaryButton(
@@ -797,7 +797,7 @@ fun ProSecondaryButton(
     isLoading: Boolean = false,
     containerColor: Color = CoolGray,
     contentColor: Color = LightGray,
-    shape: RoundedCornerShape = RoundedCornerShape(12.dp)
+    shape: RoundedCornerShape = MaterialTheme.shapes.medium
 ) {
     CustomButton(
         text = text,
@@ -825,7 +825,7 @@ fun ProOutlinedButton(
     enabled: Boolean = true,
     borderColor: Color = OxfordBlue,
     contentColor: Color = OxfordBlue,
-    shape: RoundedCornerShape = RoundedCornerShape(12.dp)
+    shape: RoundedCornerShape = MaterialTheme.shapes.medium
 ) {
     CustomButton(
         text = text,
@@ -840,45 +840,13 @@ fun ProOutlinedButton(
     )
 }
 
-/**
- * Standard ProSpace Icon Button with soft background.
- */
-@Composable
-fun ProIconButton(
-    icon: ImageVector,
-    onClick: () -> Unit,
-    contentDescription: String?,
-    modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
-    contentColor: Color = MaterialTheme.colorScheme.onSurface,
-    size: Dp = 40.dp,
-    shape: RoundedCornerShape = RoundedCornerShape(10.dp)
-) {
-    Surface(
-        color = containerColor,
-        shape = shape,
-        modifier = modifier
-            .size(size)
-            .clickable(onClick = onClick)
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
-                contentDescription = contentDescription,
-                tint = contentColor,
-                modifier = Modifier.size(size * 0.5f)
-            )
-        }
-    }
-}
-
 // =========================================================================
-// REUSABLE PROSPACE INPUTS & TEXT FIELDS
+// REUSABLE PROHOST INPUTS & TEXT FIELDS
 // =========================================================================
 
 /**
  * Standard InputField Component
- * Features consistent 12.dp corner radius, ProSpace light background, label, placeholder, leading/trailing icons,
+ * Features consistent 12.dp corner radius, ProHost light background, label, placeholder, leading/trailing icons,
  * supportive helper text, and error handling with M3 typography.
  */
 @Composable
@@ -899,7 +867,7 @@ fun InputField(
     enabled: Boolean = true,
     keyboardOptions: androidx.compose.foundation.text.KeyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default,
     visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
-    shape: RoundedCornerShape = RoundedCornerShape(12.dp)
+    shape: RoundedCornerShape = MaterialTheme.shapes.medium
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         OutlinedTextField(
@@ -942,7 +910,7 @@ fun InputField(
             modifier = Modifier.fillMaxWidth()
         )
         if (isError && !errorMessage.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(start = 6.dp)
@@ -953,7 +921,7 @@ fun InputField(
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(14.dp)
                 )
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(Spacing.xs))
                 Text(
                     text = errorMessage,
                     style = MaterialTheme.typography.bodySmall,
@@ -961,7 +929,7 @@ fun InputField(
                 )
             }
         } else if (!helperText.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
             Text(
                 text = helperText,
                 style = MaterialTheme.typography.bodySmall,
@@ -973,7 +941,7 @@ fun InputField(
 }
 
 /**
- * Standard ProSpace Outlined Text Field with refined borders, rounded corners, and helper text (alias for InputField).
+ * Standard ProHost Outlined Text Field with refined borders, rounded corners, and helper text (alias for InputField).
  */
 @Composable
 fun ProOutlinedTextField(
@@ -991,7 +959,7 @@ fun ProOutlinedTextField(
     maxLines: Int = 1,
     readOnly: Boolean = false,
     enabled: Boolean = true,
-    shape: RoundedCornerShape = RoundedCornerShape(12.dp)
+    shape: RoundedCornerShape = MaterialTheme.shapes.medium
 ) {
     InputField(
         value = value,
@@ -1012,81 +980,8 @@ fun ProOutlinedTextField(
     )
 }
 
-/**
- * Dedicated ProSpace Search Field with soft background and clear button.
- */
-@Composable
-fun ProSearchField(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    placeholder: String = "Search workspaces, areas, disciplines...",
-    modifier: Modifier = Modifier,
-    onClear: (() -> Unit)? = null
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 14.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            TextField(
-                value = query,
-                onValueChange = onQueryChange,
-                placeholder = {
-                    Text(
-                        text = placeholder,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                },
-                singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                ),
-                modifier = Modifier.weight(1f)
-            )
-            if (query.isNotBlank()) {
-                IconButton(
-                    onClick = {
-                        if (onClear != null) onClear() else onQueryChange("")
-                    },
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Clear search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
 // =========================================================================
-// REUSABLE PROSPACE CARDS & CONTAINERS (WITH MODERN SHADOWS)
+// REUSABLE PROHOST CARDS & CONTAINERS (WITH MODERN SHADOWS)
 // =========================================================================
 
 /**
@@ -1097,7 +992,7 @@ fun ModernCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
     borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
-    shape: RoundedCornerShape = RoundedCornerShape(16.dp),
+    shape: RoundedCornerShape = MaterialTheme.shapes.large,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     elevation: Dp = 2.dp,
     onClick: (() -> Unit)? = null,
@@ -1141,7 +1036,7 @@ fun WorkspaceCard(
     bookedDoctorCount: Int = 0,
     facilities: List<String> = emptyList(),
     elevation: Dp = 3.dp,
-    shape: RoundedCornerShape = RoundedCornerShape(16.dp),
+    shape: RoundedCornerShape = MaterialTheme.shapes.large,
     onClick: () -> Unit,
     onWhatsAppClick: (() -> Unit)? = null
 ) {
@@ -1159,10 +1054,10 @@ fun WorkspaceCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(140.dp)
-                    .clip(RoundedCornerShape(12.dp)),
+                    .clip(MaterialTheme.shapes.medium),
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
         }
 
         // Header: Price (the specialty tag that used to sit here was removed — a
@@ -1186,7 +1081,7 @@ fun WorkspaceCard(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(Spacing.xs))
 
         // Location with pin
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1196,7 +1091,7 @@ fun WorkspaceCard(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(16.dp)
             )
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(Spacing.xs))
             Text(
                 text = location,
                 style = MaterialTheme.typography.bodyMedium,
@@ -1206,7 +1101,7 @@ fun WorkspaceCard(
 
         // Schedule & Occupancy Subtitle
         if (scheduleSummary != null || bookedDoctorCount > 0) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Spacing.sm))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1226,7 +1121,7 @@ fun WorkspaceCard(
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
                                 modifier = Modifier.size(12.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(
                                 text = scheduleSummary,
                                 style = MaterialTheme.typography.labelSmall,
@@ -1252,7 +1147,7 @@ fun WorkspaceCard(
                                 tint = StatusOnInfoContainer,
                                 modifier = Modifier.size(12.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(
                                 text = "$bookedDoctorCount Active Member(s)",
                                 style = MaterialTheme.typography.labelSmall,
@@ -1290,7 +1185,7 @@ fun WorkspaceCard(
 
         // Footer: Owner details & Quick WhatsApp inquiry
         if (doctorName != null || onWhatsAppClick != null) {
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -1302,7 +1197,7 @@ fun WorkspaceCard(
                 if (doctorName != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         ProMemberAvatar(name = doctorName, isVerified = isVerified, size = 34.dp)
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Column {
                             Text(
                                 text = doctorName,
@@ -1337,56 +1232,14 @@ fun WorkspaceCard(
 }
 
 /**
- * Legacy alias for WorkspaceCard
- */
-@Composable
-fun ClinicCard(
-    title: String,
-    specialization: String,
-    location: String,
-    rateUsd: Double,
-    modifier: Modifier = Modifier,
-    imageUrl: String? = null,
-    scheduleSummary: String? = null,
-    doctorName: String? = null,
-    practiceType: String? = null,
-    isVerified: Boolean = true,
-    bookedDoctorCount: Int = 0,
-    facilities: List<String> = emptyList(),
-    elevation: Dp = 3.dp,
-    shape: RoundedCornerShape = RoundedCornerShape(16.dp),
-    onClick: () -> Unit,
-    onWhatsAppClick: (() -> Unit)? = null
-) {
-    WorkspaceCard(
-        title = title,
-        specialization = specialization,
-        location = location,
-        rateUsd = rateUsd,
-        modifier = modifier,
-        imageUrl = imageUrl,
-        scheduleSummary = scheduleSummary,
-        doctorName = doctorName,
-        practiceType = practiceType,
-        isVerified = isVerified,
-        bookedDoctorCount = bookedDoctorCount,
-        facilities = facilities,
-        elevation = elevation,
-        shape = shape,
-        onClick = onClick,
-        onWhatsAppClick = onWhatsAppClick
-    )
-}
-
-/**
- * Standard ProSpace Card Container (alias for ModernCard).
+ * Standard ProHost Card Container (alias for ModernCard).
  */
 @Composable
 fun ProCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
     borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
-    shape: RoundedCornerShape = RoundedCornerShape(16.dp),
+    shape: RoundedCornerShape = MaterialTheme.shapes.large,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
@@ -1404,75 +1257,7 @@ fun ProCard(
 
 
 /**
- * Standard Hero Card for Announcements, Header Highlights, and Onboarding.
- */
-@Composable
-fun ProHeroCard(
-    title: String,
-    subtitle: String,
-    badgeText: String? = null,
-    icon: ImageVector = Icons.Default.BusinessCenter,
-    containerColor: Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
-    modifier: Modifier = Modifier,
-    actionButton: (@Composable () -> Unit)? = null
-) {
-    Surface(
-        color = containerColor,
-        shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = CircleShape,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-                if (badgeText != null) {
-                    ProStatusBadge(
-                        type = ProBadgeType.CUSTOM_INFO,
-                        customText = badgeText
-                    )
-                }
-            }
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.ExtraBold
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (actionButton != null) {
-                Spacer(modifier = Modifier.height(2.dp))
-                actionButton()
-            }
-        }
-    }
-}
-
-/**
- * Standard ProSpace Information Alert / Banner.
+ * Standard ProHost Information Alert / Banner.
  */
 @Composable
 fun ProInfoBanner(
@@ -1484,7 +1269,7 @@ fun ProInfoBanner(
 ) {
     Surface(
         color = containerColor,
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
@@ -1513,7 +1298,7 @@ fun ProInfoBanner(
 // =========================================================================
 
 /**
- * Standard ProSpace Filter Chip.
+ * Standard ProHost Filter Chip.
  */
 @Composable
 fun ProChip(
@@ -1572,7 +1357,7 @@ fun ProSegmentedControl(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
@@ -1635,7 +1420,7 @@ fun NetworkSyncResilienceBanner(
 ) {
     Surface(
         color = if (isOffline) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.85f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         border = BorderStroke(1.dp, if (isOffline) MaterialTheme.colorScheme.error.copy(alpha = 0.5f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
         modifier = modifier.fillMaxWidth()
     ) {
@@ -1663,7 +1448,7 @@ fun NetworkSyncResilienceBanner(
                         color = if (isOffline) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
-                        text = statusMessage ?: "Connected to Lebanese ProSpace Cloud Node",
+                        text = statusMessage ?: "Connected to Lebanese ProHost Cloud Node",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isOffline) MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                         maxLines = 1,
@@ -1679,8 +1464,8 @@ fun NetworkSyncResilienceBanner(
                     modifier = Modifier.height(28.dp)
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(12.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(if (pendingOfflineCount > 0) "Retry ($pendingOfflineCount)" else "Sync", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(if (pendingOfflineCount > 0) "Retry ($pendingOfflineCount)" else "Sync", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -1688,11 +1473,11 @@ fun NetworkSyncResilienceBanner(
 }
 
 /**
- * Standardized ProSpace Brand Logo Composable
+ * Standardized ProHost Brand Logo Composable
  * Renders the official app icon vector asset with Oxford Blue, Carnation Orange, and White Checkmark.
  */
 @Composable
-fun ProSpaceBrandLogo(
+fun ProHostBrandLogo(
     size: Dp = 38.dp,
     roundedCorner: Dp = 10.dp,
     elevation: Dp = 3.dp,
@@ -1707,7 +1492,7 @@ fun ProSpaceBrandLogo(
         modifier = modifier.size(size)
     ) {
         Image(
-            painter = painterResource(id = com.example.R.drawable.ic_prospace_logo_brand),
+            painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
             contentDescription = "ProHost Logo",
             contentScale = ContentScale.Fit,
             modifier = Modifier
@@ -1721,7 +1506,7 @@ fun ProSpaceBrandLogo(
  * Authentic Lebanese Cedar Network Badge
  */
 @Composable
-fun ProSpaceCedarBadge(
+fun ProHostCedarBadge(
     text: String = "Lebanon Verified",
     isCompact: Boolean = false,
     modifier: Modifier = Modifier
@@ -1758,11 +1543,11 @@ fun ProSpaceCedarBadge(
 }
 
 /**
- * Standardized High-Impact ProSpace Brand Top App Bar
+ * Standardized High-Impact ProHost Brand Top App Bar
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProSpaceTopAppBar(
+fun ProHostTopAppBar(
     currentRole: UserRole,
     unreadAlertCount: Int,
     onMenuClick: () -> Unit,
@@ -1800,7 +1585,7 @@ fun ProSpaceTopAppBar(
                     )
                 }
 
-                ProSpaceBrandLogo(
+                ProHostBrandLogo(
                     size = 34.dp,
                     roundedCorner = 9.dp,
                     elevation = 2.dp
@@ -1814,12 +1599,12 @@ fun ProSpaceTopAppBar(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            text = "ProSpace",
+                            text = "ProHost",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        ProSpaceCedarBadge(text = "LB", isCompact = true)
+                        ProHostCedarBadge(text = "LB", isCompact = true)
                     }
 
                     Text(

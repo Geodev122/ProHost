@@ -9,7 +9,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.AttachFile
@@ -28,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.ui.theme.OxfordBlue
 import com.example.ui.theme.OxfordBlueContainer
+import com.example.ui.theme.Spacing
 
 /**
  * A required-document picker: tap to pick a file (PDF or image) from the device, shows
@@ -72,23 +72,23 @@ fun DocumentPickerField(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             if (required) {
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(Spacing.xs))
                 Text("*", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
             }
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(Spacing.xs))
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+                .clip(MaterialTheme.shapes.medium)
                 .border(
                     width = 1.5.dp,
                     color = if (state.isSelected) OxfordBlue else MaterialTheme.colorScheme.outlineVariant,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = MaterialTheme.shapes.medium
                 )
                 .background(if (state.isSelected) OxfordBlueContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                 .clickable { filePickerLauncher.launch("application/pdf,image/*") },
-            shape = RoundedCornerShape(12.dp)
+            shape = MaterialTheme.shapes.medium
         ) {
             if (!state.isSelected) {
                 Column(

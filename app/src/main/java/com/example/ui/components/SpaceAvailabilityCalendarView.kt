@@ -19,6 +19,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.*
+import com.example.ui.theme.StatusErrorContainer
+import com.example.ui.theme.StatusInfo
+import com.example.ui.theme.StatusInfoContainer
+import com.example.ui.theme.StatusLocked
+import com.example.ui.theme.StatusLockedContainer
+import com.example.ui.theme.StatusOnErrorContainer
+import com.example.ui.theme.StatusOnInfoContainer
+import com.example.ui.theme.StatusOnSuccessContainer
+import com.example.ui.theme.StatusSuccess
+import com.example.ui.theme.StatusSuccessContainer
+import com.example.ui.theme.Spacing
 
 @Composable
 fun SpaceAvailabilityCalendarView(
@@ -54,7 +65,7 @@ fun SpaceAvailabilityCalendarView(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
@@ -76,24 +87,24 @@ fun SpaceAvailabilityCalendarView(
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
                         text = "Operating & Smart Availability",
-                        fontSize = 15.sp,
+                        fontSize = MaterialTheme.typography.labelLarge.fontSize,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
                 Surface(
-                    color = if (remainingAvailableHours > 0) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
-                    shape = RoundedCornerShape(8.dp)
+                    color = if (remainingAvailableHours > 0) StatusSuccessContainer else StatusErrorContainer,
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Text(
                         text = if (remainingAvailableHours > 0) "$remainingAvailableHours hrs/wk Open" else "Fully Booked",
-                        color = if (remainingAvailableHours > 0) Color(0xFF2E7D32) else Color(0xFFC62828),
+                        color = if (remainingAvailableHours > 0) StatusOnSuccessContainer else StatusOnErrorContainer,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
+                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -107,12 +118,12 @@ fun SpaceAvailabilityCalendarView(
             ) {
                 Text(
                     text = "⏰ Operating Hours: ${schedule.openingHour} - ${schedule.closingHour}",
-                    fontSize = 12.sp,
+                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "🗓️ ${schedule.operatingDays.joinToString()}",
-                    fontSize = 12.sp,
+                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -124,8 +135,8 @@ fun SpaceAvailabilityCalendarView(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Capacity Allocation", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("$occupancyPercentage% Rented", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("Capacity Allocation", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("$occupancyPercentage% Rented", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 }
 
                 // Multi-segment progress bar
@@ -134,7 +145,7 @@ fun SpaceAvailabilityCalendarView(
                         .fillMaxWidth()
                         .height(10.dp)
                         .clip(RoundedCornerShape(5.dp))
-                        .background(Color(0xFFE2E8F0))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     val rentedFraction = if (totalWeeklyOperatingHours > 0) (totalRentedWeeklyHours.toFloat() / totalWeeklyOperatingHours.toFloat()).coerceIn(0f, 1f) else 0f
                     val blackoutFraction = if (totalWeeklyOperatingHours > 0) (totalBlackoutHours.toFloat() / totalWeeklyOperatingHours.toFloat()).coerceIn(0f, 1f - rentedFraction) else 0f
@@ -153,7 +164,7 @@ fun SpaceAvailabilityCalendarView(
                             modifier = Modifier
                                 .weight(blackoutFraction)
                                 .fillMaxHeight()
-                                .background(Color(0xFF94A3B8))
+                                .background(MaterialTheme.colorScheme.outline)
                         )
                     }
                     if (availableFraction > 0f) {
@@ -161,7 +172,7 @@ fun SpaceAvailabilityCalendarView(
                             modifier = Modifier
                                 .weight(availableFraction)
                                 .fillMaxHeight()
-                                .background(Color(0xFF22C55E))
+                                .background(StatusSuccess)
                         )
                     }
                 }
@@ -172,8 +183,8 @@ fun SpaceAvailabilityCalendarView(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     LegendItem(color = MaterialTheme.colorScheme.primary, text = "Rented ($totalRentedWeeklyHours h)")
-                    LegendItem(color = Color(0xFF94A3B8), text = "Blackout/Closed ($totalBlackoutHours h)")
-                    LegendItem(color = Color(0xFF22C55E), text = "Available ($remainingAvailableHours h)")
+                    LegendItem(color = MaterialTheme.colorScheme.outline, text = "Blackout/Closed ($totalBlackoutHours h)")
+                    LegendItem(color = StatusSuccess, text = "Available ($remainingAvailableHours h)")
                 }
             }
 
@@ -187,24 +198,24 @@ fun SpaceAvailabilityCalendarView(
                     ) {
                         Text(
                             text = "🔒 Booked Slots (Unavailable to Public):",
-                            fontSize = 12.sp,
+                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "$totalRentedWeeklyHours hrs locked",
-                            fontSize = 11.sp,
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF1D4ED8)
+                            color = StatusInfo
                         )
                     }
 
                     acceptedBookings.forEach { booking ->
                         Surface(
                             color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             modifier = Modifier.fillMaxWidth(),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBFDBFE))
+                            border = androidx.compose.foundation.BorderStroke(1.dp, StatusInfo.copy(alpha = 0.3f))
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
@@ -214,31 +225,31 @@ fun SpaceAvailabilityCalendarView(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = "${booking.formula.scheduleDescription} (${booking.formula.daysOfWeek.joinToString()} • ${booking.formula.startHour} - ${booking.formula.endHour})",
-                                        fontSize = 12.sp,
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
                                         text = "Resident Specialist: ${booking.practitionerName} (${booking.practitionerSpecialty})",
-                                        fontSize = 11.sp,
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
                                         text = "Slot: ${booking.selectedDateTimeRange.ifBlank { "${booking.startDate} (${booking.durationMonths} mo)" }}",
                                         fontSize = 10.sp,
-                                        color = Color(0xFF64748B)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
 
                                 Surface(
-                                    color = Color(0xFFDBEAFE),
+                                    color = StatusInfoContainer,
                                     shape = RoundedCornerShape(6.dp)
                                 ) {
                                     Text(
                                         text = "UNAVAILABLE",
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = Color(0xFF1D4ED8),
+                                        color = StatusOnInfoContainer,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                                     )
                                 }
@@ -253,7 +264,7 @@ fun SpaceAvailabilityCalendarView(
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         text = "🚫 Non-Operating / Owner Blackout Hours:",
-                        fontSize = 12.sp,
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -261,7 +272,7 @@ fun SpaceAvailabilityCalendarView(
                     schedule.blackoutSlots.forEach { slot ->
                         Surface(
                             color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -272,26 +283,26 @@ fun SpaceAvailabilityCalendarView(
                                 Column {
                                     Text(
                                         text = "${slot.dayOfWeek}: ${slot.startTime} - ${slot.endTime}",
-                                        fontSize = 12.sp,
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
                                         text = slot.reason,
-                                        fontSize = 11.sp,
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
 
                                 Surface(
-                                    color = Color(0xFFF1F5F9),
+                                    color = StatusLockedContainer,
                                     shape = RoundedCornerShape(6.dp)
                                 ) {
                                     Text(
                                         text = "HIDDEN",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF64748B),
+                                        color = StatusLocked,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
@@ -313,7 +324,7 @@ private fun LegendItem(color: Color, text: String) {
                 .clip(CircleShape)
                 .background(color)
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(Spacing.xs))
         Text(text, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

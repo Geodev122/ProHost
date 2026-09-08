@@ -56,8 +56,8 @@ object SpaceCalculationUtils {
     }
 
     // A buildWhatsAppInquiryUrl(...) helper used to live here, duplicating
-    // ProSpaceViewModel.launchWhatsAppInquiry's message-building logic almost
+    // ProHostViewModel.launchWhatsAppInquiry's message-building logic almost
     // verbatim with zero callers anywhere in the app — a stale fork that would
     // have drifted out of sync with the real, live version. Removed; use
-    // ProSpaceViewModel.launchWhatsAppInquiry instead.
+    // ProHostViewModel.launchWhatsAppInquiry instead.
 }

@@ -31,25 +31,26 @@ import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.state.DiscoveryUiState
 import com.example.ui.viewmodel.DiscoveryViewModel
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import com.example.ui.theme.PremiumBackgroundGradient
+import com.example.ui.theme.Spacing
 
 /**
  * ViewModel-connected wrapper for DiscoveryScreen — search/filter/selection state
  * now lives on the dedicated [DiscoveryViewModel] (Phase 4 ViewModel split), not
- * the shared [ProSpaceViewModel] god object. [viewModel] (the shared instance) is
+ * the shared [ProHostViewModel] god object. [viewModel] (the shared instance) is
  * still passed through for the one genuinely cross-cutting action this screen
  * needs — launching a WhatsApp inquiry, which also writes to the shared audit log.
  *
  * DiscoveryViewModel already existed in the repo before this change but was never
- * actually instantiated anywhere — ProSpaceViewModel had grown its own,
+ * actually instantiated anywhere — ProHostViewModel had grown its own,
  * independently-maintained duplicate of the exact same search/filter logic
  * (SearchFilterState/filteredSpaces/updateSearchQuery/etc., now removed from
- * ProSpaceViewModel since this screen was their only real caller).
+ * ProHostViewModel since this screen was their only real caller).
  */
 @Composable
 fun DiscoveryScreen(
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     onSelectSpace: (SpaceListing) -> Unit,
     discoveryViewModel: DiscoveryViewModel = viewModel()
 ) {
@@ -133,7 +134,7 @@ fun DiscoveryScreenContent(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = onSearchQueryChange,
-                        placeholder = { Text("Search workspaces, studios, offices, districts...", fontSize = 13.sp) },
+                        placeholder = { Text("Search workspaces, studios, offices, districts...", fontSize = MaterialTheme.typography.bodySmall.fontSize) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
@@ -143,7 +144,7 @@ fun DiscoveryScreenContent(
                             }
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -161,7 +162,7 @@ fun DiscoveryScreenContent(
                     IconButton(
                         onClick = onToggleMapView,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(MaterialTheme.shapes.medium)
                             .background(if (isMapView) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Icon(
@@ -175,7 +176,7 @@ fun DiscoveryScreenContent(
                     IconButton(
                         onClick = { onSetFilterSheetVisible(true) },
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(MaterialTheme.shapes.medium)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         val hasActiveFilter = selectedGovernorate != null ||
@@ -205,14 +206,14 @@ fun DiscoveryScreenContent(
                         FilterChip(
                             selected = selectedGovernorate == null,
                             onClick = { onSelectGovernorate(null) },
-                            label = { Text("All Lebanon", fontSize = 11.sp) }
+                            label = { Text("All Lebanon", fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                     items(Governorate.entries) { gov ->
                         FilterChip(
                             selected = selectedGovernorate == gov,
                             onClick = { onSelectGovernorate(if (selectedGovernorate == gov) null else gov) },
-                            label = { Text(gov.displayName.split(" ").first(), fontSize = 11.sp) }
+                            label = { Text(gov.displayName.split(" ").first(), fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                 }
@@ -262,7 +263,7 @@ fun DiscoveryScreenContent(
                             Box(modifier = Modifier.fillMaxSize()) {
                                 Image(
                                     painter = painterResource(id = com.example.R.drawable.img_discovery_hero),
-                                    contentDescription = "ProSpace Workspaces Banner",
+                                    contentDescription = "ProHost Workspaces Banner",
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
                                 )
@@ -282,7 +283,7 @@ fun DiscoveryScreenContent(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        ProSpaceCedarBadge(text = "Lebanon Verified Network", isCompact = true)
+                                        ProHostCedarBadge(text = "Lebanon Verified Network", isCompact = true)
                                     }
                                     Text(
                                         text = "Specialist Workspace Exchange",
@@ -293,7 +294,7 @@ fun DiscoveryScreenContent(
                                     Text(
                                         text = "Co-share modern offices, consulting clinics & studios with flexible Whish settlement",
                                         style = MaterialTheme.typography.bodySmall,
-                                        fontSize = 12.sp,
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                         color = Color.White.copy(alpha = 0.92f)
                                     )
                                 }
@@ -313,7 +314,7 @@ fun DiscoveryScreenContent(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            ProSpaceCedarBadge(text = "Verified Listings", isCompact = false)
+                            ProHostCedarBadge(text = "Verified Listings", isCompact = false)
                         }
                     }
 
@@ -352,38 +353,38 @@ fun DiscoveryScreenContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
-                Text("Space Type", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Text("Space Type", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(SpaceType.entries) { type ->
                         FilterChip(
                             selected = selectedSpaceType == type,
                             onClick = { onSelectSpaceType(if (selectedSpaceType == type) null else type) },
-                            label = { Text(type.displayName, fontSize = 11.sp) }
+                            label = { Text(type.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
-                Text("Rental Formula", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Text("Rental Formula", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(RentalFormulaType.entries) { formula ->
                         FilterChip(
                             selected = selectedFormulaType == formula,
                             onClick = { onSelectFormulaType(if (selectedFormulaType == formula) null else formula) },
-                            label = { Text(formula.displayName, fontSize = 11.sp) }
+                            label = { Text(formula.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 Text(
                     text = "Maximum Monthly Rate: $${maxPriceUsd.toInt()} USD",
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp
+                    fontSize = MaterialTheme.typography.bodySmall.fontSize
                 )
                 Slider(
                     value = maxPriceUsd.toFloat(),
@@ -392,12 +393,12 @@ fun DiscoveryScreenContent(
                     steps = 14
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 Button(
                     onClick = { onSetFilterSheetVisible(false) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     Text("Apply Filters (${spaces.size} Results)")
                 }

@@ -7,7 +7,7 @@ import com.example.data.crypto.WhishSecurity
 import com.example.data.firestore.FirestoreSchema
 import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
-import com.example.data.repository.ProSpaceRepository
+import com.example.data.repository.ProHostRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -48,7 +48,7 @@ object AppSystemDebugger {
 
     suspend fun runFullSystemAudit(
         context: Context,
-        repository: ProSpaceRepository
+        repository: ProHostRepository
     ): FullAuditReport = withContext(Dispatchers.IO) {
         val startTime = System.currentTimeMillis()
         val results = mutableListOf<DiagnosticItem>()

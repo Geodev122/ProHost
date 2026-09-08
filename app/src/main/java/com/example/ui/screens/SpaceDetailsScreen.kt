@@ -26,13 +26,13 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpaceDetailsScreen(
     space: SpaceListing,
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -156,25 +156,25 @@ fun SpaceDetailsScreenContent(
                         // Request to Rent Button
                         Button(
                             onClick = onRequestRentClick,
-                            shape = RoundedCornerShape(12.dp),
+                            shape = MaterialTheme.shapes.medium,
                             modifier = Modifier.weight(1f),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
                         ) {
                             Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Request Rent", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                         }
 
                         // WhatsApp Direct Inquiry Button
                         Button(
                             onClick = onWhatsAppClick,
-                            shape = RoundedCornerShape(12.dp),
+                            shape = MaterialTheme.shapes.medium,
                             colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
                             modifier = Modifier.weight(1f),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("WhatsApp", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -229,7 +229,7 @@ fun SpaceDetailsScreenContent(
                 ) {
                     Surface(
                         color = Color(0x33FFFFFF),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Text(
                             text = "${liveSpace.spaceType.displayName} • ${if (liveSpace.isShared) "Shared Co-Working Space" else "Private Studio / Office"}",
@@ -258,14 +258,14 @@ fun SpaceDetailsScreenContent(
                 Surface(
                     modifier = Modifier.align(Alignment.TopEnd),
                     color = Color(0xCC000000),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = MaterialTheme.shapes.large
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(Icons.Default.Videocam, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("10s Video Tour", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                     }
                 }
@@ -372,7 +372,7 @@ fun SpaceDetailsScreenContent(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable { onSelectFormula(formula) },
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = MaterialTheme.shapes.medium,
                                     colors = CardDefaults.cardColors(
                                         containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
                                     ),
@@ -421,7 +421,7 @@ fun SpaceDetailsScreenContent(
                                                         modifier = Modifier.size(12.dp),
                                                         tint = MaterialTheme.colorScheme.primary
                                                     )
-                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Spacer(modifier = Modifier.width(Spacing.xs))
                                                     Text(
                                                         text = "${formula.daysOfWeek.joinToString()} • ${formula.startHour} - ${formula.endHour} (${formula.totalWeeklyHours} hrs/wk)",
                                                         style = MaterialTheme.typography.labelSmall,
@@ -459,7 +459,7 @@ fun SpaceDetailsScreenContent(
                                         tint = LebaneseCedarGreen,
                                         modifier = Modifier.size(16.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.sm))
                                     Text(facility, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                                 }
                             }
@@ -537,7 +537,7 @@ fun SpaceDetailsScreenContent(
                                 liveSpace.residentPractitioners.forEach { doc ->
                                     Text("• $doc", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 2.dp))
                                 }
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(Spacing.xs))
                             }
 
                             Text(

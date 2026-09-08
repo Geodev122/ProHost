@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.InAppUpdateManager
 import com.example.util.UpdateState
 import kotlinx.coroutines.launch
@@ -43,7 +43,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpecialistProfileScreen(
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     inAppUpdateManager: InAppUpdateManager? = null,
     onSignOut: () -> Unit = {},
     onNavigateToTab: (String) -> Unit = {}
@@ -177,7 +177,7 @@ fun SpecialistProfileScreen(
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                             ) {
                                 Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("Sign Out", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                             }
                         }
@@ -206,7 +206,7 @@ fun SpecialistProfileScreen(
                                                 .ifEmpty { "PS" },
                                             color = Color.White,
                                             fontWeight = FontWeight.ExtraBold,
-                                            fontSize = 22.sp
+                                            fontSize = MaterialTheme.typography.headlineMedium.fontSize
                                         )
                                     }
                                 }
@@ -354,9 +354,9 @@ fun SpecialistProfileScreen(
                             Surface(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(12.dp)),
+                                    .clip(MaterialTheme.shapes.medium),
                                 color = if (isSelected) roleColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = MaterialTheme.shapes.medium,
                                 border = if (isSelected) BorderStroke(1.5.dp, roleColor) else null
                             ) {
                                 Column(
@@ -374,7 +374,7 @@ fun SpecialistProfileScreen(
                                         tint = if (isSelected) roleColor else MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(20.dp)
                                     )
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(Spacing.xs))
                                     Text(
                                         text = when (role) {
                                             UserRole.SPECIALIST -> "Practitioner"
@@ -758,12 +758,12 @@ fun SpecialistProfileScreen(
                                                             viewModel.launchWhatsAppInquiry(context, targetSpace, req.formula, req)
                                                         },
                                                         modifier = Modifier.weight(1f),
-                                                        shape = RoundedCornerShape(8.dp),
+                                                        shape = MaterialTheme.shapes.small,
                                                         colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
                                                         contentPadding = PaddingValues(vertical = 6.dp)
                                                     ) {
                                                         Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Spacer(modifier = Modifier.width(Spacing.xs))
                                                         Text("WhatsApp Host", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
                                                     }
                                                 }
@@ -772,7 +772,7 @@ fun SpecialistProfileScreen(
                                                     OutlinedButton(
                                                         onClick = { viewModel.cancelBookingRequest(req.id, context) },
                                                         modifier = Modifier.weight(0.6f),
-                                                        shape = RoundedCornerShape(8.dp),
+                                                        shape = MaterialTheme.shapes.small,
                                                         contentPadding = PaddingValues(vertical = 6.dp)
                                                     ) {
                                                         Text("Cancel", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
@@ -898,9 +898,9 @@ fun SpecialistProfileScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(Spacing.xs))
 
-                    CustomButton(
+                    ProPrimaryButton(
                         text = "Save Profile Changes",
                         onClick = {
                             coroutineScope.launch {
@@ -964,7 +964,7 @@ fun SpecialistProfileScreen(
                                     UpdateState.DOWNLOADING -> "Downloading: ${(downloadProgress * 100).toInt()}%"
                                     UpdateState.DOWNLOADED -> "Update downloaded! Ready to install."
                                     UpdateState.FAILED -> "Update failed to download"
-                                    UpdateState.UP_TO_DATE -> "ProSpace is up to date"
+                                    UpdateState.UP_TO_DATE -> "ProHost is up to date"
                                 },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = when (updateState) {
@@ -980,10 +980,10 @@ fun SpecialistProfileScreen(
                             Button(
                                 onClick = { inAppUpdateManager?.completeUpdate() },
                                 colors = ButtonDefaults.buttonColors(containerColor = FreshGreen),
-                                shape = RoundedCornerShape(8.dp),
+                                shape = MaterialTheme.shapes.small,
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                             ) {
-                                Text("Restart & Install", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text("Restart & Install", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold)
                             }
                         } else {
                             OutlinedButton(
@@ -992,15 +992,15 @@ fun SpecialistProfileScreen(
                                         inAppUpdateManager.checkForAppUpdate(preferImmediate = false)
                                         Toast.makeText(context, "Checking Google Play for updates...", Toast.LENGTH_SHORT).show()
                                     } else {
-                                        Toast.makeText(context, "ProSpace is up to date (Version 1.0.0)", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "ProHost is up to date (Version 1.0.0)", Toast.LENGTH_SHORT).show()
                                     }
                                 },
-                                shape = RoundedCornerShape(8.dp),
+                                shape = MaterialTheme.shapes.small,
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                             ) {
                                 Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Check Updates", fontSize = 12.sp)
+                                Spacer(modifier = Modifier.width(Spacing.xs))
+                                Text("Check Updates", fontSize = MaterialTheme.typography.labelMedium.fontSize)
                             }
                         }
                     }
@@ -1017,7 +1017,7 @@ fun SpecialistProfileScreen(
     if (showSignOutConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showSignOutConfirmDialog = false },
-            title = { Text("Sign Out of ProSpace", fontWeight = FontWeight.Bold) },
+            title = { Text("Sign Out of ProHost", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to sign out of your account (${user.email})?") },
             confirmButton = {
                 Button(

@@ -44,7 +44,7 @@ import com.example.ui.components.dialogs.SystemDebuggerDialog
 import com.example.ui.state.AdminUiEvent
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AdminViewModel
-import com.example.ui.viewmodel.ProSpaceViewModel
+import com.example.ui.viewmodel.ProHostViewModel
 import kotlinx.coroutines.flow.collectLatest
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -53,7 +53,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminConsoleScreen(
-    viewModel: ProSpaceViewModel,
+    viewModel: ProHostViewModel,
     adminViewModel: AdminViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -102,7 +102,7 @@ fun AdminConsoleScreen(
                     ) {
                         Surface(
                             color = AmberWarning.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = MaterialTheme.shapes.medium,
                             modifier = Modifier.size(42.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -114,7 +114,7 @@ fun AdminConsoleScreen(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(Spacing.md))
                         Column {
                             Text(
                                 text = "Governance Console",
@@ -134,7 +134,7 @@ fun AdminConsoleScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(Spacing.sm))
 
                     // Status Badges Group
                     Row(
@@ -147,7 +147,7 @@ fun AdminConsoleScreen(
                         )
                         Surface(
                             color = FreshGreen.copy(alpha = 0.12f),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = MaterialTheme.shapes.small
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
@@ -227,7 +227,7 @@ fun AdminConsoleScreen(
                 ScrollableTabRow(
                     selectedTabIndex = uiState.selectedTab,
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.clip(RoundedCornerShape(12.dp)),
+                    modifier = Modifier.clip(MaterialTheme.shapes.medium),
                     edgePadding = 0.dp
                 ) {
                     Tab(
@@ -486,11 +486,11 @@ private fun AdminRevenueTab(
 
                         OutlinedButton(
                             onClick = { adminViewModel.resetSubscriptionFeeBaseline() },
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Reset $1.80", style = MaterialTheme.typography.labelSmall)
                         }
                     }
@@ -499,7 +499,7 @@ private fun AdminRevenueTab(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(12.dp)
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),
@@ -658,7 +658,7 @@ private fun AdminRevenueTab(
                             adminViewModel.updatePackageFees(f2, f3)
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Text("Save Package Bundle Fees")
                     }
@@ -683,22 +683,22 @@ private fun AdminRevenueTab(
                         Button(
                             onClick = { adminViewModel.exportAllAuditReport() },
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
                         ) {
                             Icon(Icons.Default.Summarize, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Full Audit (TXT)", style = MaterialTheme.typography.labelSmall)
                         }
 
                         Button(
                             onClick = { adminViewModel.exportAllJson() },
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                         ) {
                             Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Master (JSON)", style = MaterialTheme.typography.labelSmall)
                         }
                     }
@@ -738,22 +738,22 @@ private fun AdminUsersDirectoryTab(
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Button(
                                 onClick = { adminViewModel.exportUsersDirectory("CSV") },
-                                shape = RoundedCornerShape(8.dp),
+                                shape = MaterialTheme.shapes.small,
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
                             ) {
                                 Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("CSV", style = MaterialTheme.typography.labelSmall)
                             }
                             Button(
                                 onClick = { adminViewModel.exportUsersDirectory("JSON") },
-                                shape = RoundedCornerShape(8.dp),
+                                shape = MaterialTheme.shapes.small,
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                             ) {
                                 Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("JSON", style = MaterialTheme.typography.labelSmall)
                             }
                         }
@@ -941,12 +941,12 @@ private fun AdminUsersDirectoryTab(
                         // Edit Button
                         OutlinedButton(
                             onClick = { adminViewModel.openEditUserDialog(user) },
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             modifier = Modifier.weight(0.9f),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Edit", style = MaterialTheme.typography.labelSmall)
                         }
 
@@ -1041,22 +1041,22 @@ private fun AdminListingsCatalogTab(
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Button(
                                 onClick = { adminViewModel.exportListingsCatalog("CSV") },
-                                shape = RoundedCornerShape(8.dp),
+                                shape = MaterialTheme.shapes.small,
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
                             ) {
                                 Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("CSV", style = MaterialTheme.typography.labelSmall)
                             }
                             Button(
                                 onClick = { adminViewModel.exportListingsCatalog("JSON") },
-                                shape = RoundedCornerShape(8.dp),
+                                shape = MaterialTheme.shapes.small,
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                             ) {
                                 Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("JSON", style = MaterialTheme.typography.labelSmall)
                             }
                         }
@@ -1207,7 +1207,7 @@ private fun AdminListingsCatalogTab(
                         // boolean; it doesn't grant or fabricate any time period).
                         OutlinedButton(
                             onClick = { adminViewModel.toggleListingSubscription(space.id, space.isActiveSubscription) },
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             modifier = Modifier.weight(1.1f),
                             contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
                         ) {
@@ -1216,7 +1216,7 @@ private fun AdminListingsCatalogTab(
                                 contentDescription = null,
                                 modifier = Modifier.size(14.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(
                                 text = if (space.isActiveSubscription) "Deactivate" else "Activate",
                                 style = MaterialTheme.typography.labelSmall
@@ -1226,12 +1226,12 @@ private fun AdminListingsCatalogTab(
                         // Toggle Verified
                         OutlinedButton(
                             onClick = { adminViewModel.toggleListingVerification(space.id) },
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             modifier = Modifier.weight(1f),
                             contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
                         ) {
                             Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(
                                 text = if (space.isVerified) "Unverify" else "Verify",
                                 style = MaterialTheme.typography.labelSmall
@@ -1241,12 +1241,12 @@ private fun AdminListingsCatalogTab(
                         // Edit Button
                         OutlinedButton(
                             onClick = { adminViewModel.openEditListingDialog(space) },
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             modifier = Modifier.weight(0.8f),
                             contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
                         ) {
                             Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Edit", style = MaterialTheme.typography.labelSmall)
                         }
 
@@ -1294,12 +1294,12 @@ private fun AdminOwnersAndPaymentsTab(
 
                         Button(
                             onClick = { adminViewModel.exportOwnerRegistrations() },
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                         ) {
                             Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Export Hosts", style = MaterialTheme.typography.labelSmall)
                         }
                     }
@@ -1355,7 +1355,7 @@ private fun AdminOwnersAndPaymentsTab(
                                     Icon(Icons.Default.Security, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
                                 }
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Text(
                                 text = "Whish Pay Gateway Protocol",
                                 style = MaterialTheme.typography.titleSmall,
@@ -1365,12 +1365,12 @@ private fun AdminOwnersAndPaymentsTab(
 
                         Button(
                             onClick = { adminViewModel.exportTransactionsLedger() },
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
                         ) {
                             Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Export Ledger", style = MaterialTheme.typography.labelSmall)
                         }
                     }
@@ -1534,22 +1534,22 @@ private fun AdminSchemaArchitectureTab(
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             OutlinedButton(
                                 onClick = { adminViewModel.openResetSchemaDialog() },
-                                shape = RoundedCornerShape(8.dp),
+                                shape = MaterialTheme.shapes.small,
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Icon(Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("Reset Defaults", style = MaterialTheme.typography.labelSmall)
                             }
 
                             Button(
                                 onClick = { adminViewModel.openAddSchemaItemDialog() },
-                                shape = RoundedCornerShape(8.dp),
+                                shape = MaterialTheme.shapes.small,
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("Add Node", style = MaterialTheme.typography.labelSmall)
                             }
                         }
@@ -1657,7 +1657,7 @@ private fun AdminSchemaArchitectureTab(
                     ) {
                         Surface(
                             color = if (item.isEnabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             modifier = Modifier.size(38.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -1689,7 +1689,7 @@ private fun AdminSchemaArchitectureTab(
                                 if (item.isSystemDefault) {
                                     Surface(
                                         color = OxfordBlueContainer,
-                                        shape = RoundedCornerShape(4.dp)
+                                        shape = MaterialTheme.shapes.extraSmall
                                     ) {
                                         Text(
                                             text = "LEBANESE DEFAULT",
@@ -1703,7 +1703,7 @@ private fun AdminSchemaArchitectureTab(
                                 } else {
                                     Surface(
                                         color = CarnationOrangeContainer,
-                                        shape = RoundedCornerShape(4.dp)
+                                        shape = MaterialTheme.shapes.extraSmall
                                     ) {
                                         Text(
                                             text = "CUSTOM NODE",
@@ -1720,13 +1720,13 @@ private fun AdminSchemaArchitectureTab(
                                 text = "Category: ${item.category} • ID: ${item.id}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 11.sp
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize
                             )
                             if (item.description.isNotBlank()) {
                                 Text(
                                     text = item.description,
                                     style = MaterialTheme.typography.bodySmall,
-                                    fontSize = 11.sp
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize
                                 )
                             }
                         }
@@ -1754,7 +1754,7 @@ private fun AdminSchemaArchitectureTab(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Storage, contentDescription = null, tint = OxfordBlue, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
                             text = "Cloud Firestore Collections Contract",
                             style = MaterialTheme.typography.titleSmall,
@@ -1771,7 +1771,7 @@ private fun AdminSchemaArchitectureTab(
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = FontFamily.Monospace,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp
+                        fontSize = MaterialTheme.typography.labelSmall.fontSize
                     )
                 }
             }
@@ -1808,12 +1808,12 @@ private fun AdminSecurityAuditTab(
 
                         Button(
                             onClick = { adminViewModel.exportAllAuditReport() },
-                            shape = RoundedCornerShape(8.dp),
+                            shape = MaterialTheme.shapes.small,
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
                         ) {
                             Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text("Export Audit", style = MaterialTheme.typography.labelSmall)
                         }
                     }
@@ -1840,7 +1840,7 @@ private fun AdminSecurityAuditTab(
                         val isHighSeverity = log.severity.contains("WARN", ignoreCase = true) || log.severity.contains("CRIT", ignoreCase = true) || log.severity.contains("HIGH", ignoreCase = true)
                         Surface(
                             color = if (isHighSeverity) StatusErrorContainer else StatusSuccessContainer,
-                            shape = RoundedCornerShape(4.dp)
+                            shape = MaterialTheme.shapes.extraSmall
                         ) {
                             Text(
                                 text = log.severity,
@@ -1854,7 +1854,7 @@ private fun AdminSecurityAuditTab(
                         Text(
                             text = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date(log.timestamp)),
                             style = MaterialTheme.typography.bodySmall,
-                            fontSize = 11.sp,
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -1904,7 +1904,7 @@ private fun AdminExportDataDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier
                 .fillMaxWidth()
@@ -1941,7 +1941,7 @@ private fun AdminExportDataDialog(
 
                 // Scrollable Content Box
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = MaterialTheme.shapes.small,
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier
                         .weight(1f)
@@ -1952,7 +1952,7 @@ private fun AdminExportDataDialog(
                         text = content,
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = FontFamily.Monospace,
-                        fontSize = 11.sp,
+                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(scrollState)
@@ -1973,10 +1973,10 @@ private fun AdminExportDataDialog(
                             Toast.makeText(context, "Copied to clipboard!", Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Copy Text")
                     }
 
@@ -1990,11 +1990,11 @@ private fun AdminExportDataDialog(
                             context.startActivity(Intent.createChooser(shareIntent, "Share Export Data"))
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = MaterialTheme.shapes.small,
                         colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
                     ) {
                         Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Share / Export")
                     }
                 }
@@ -2022,7 +2022,7 @@ private fun AdminEditUserDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier
                 .fillMaxWidth()
@@ -2058,7 +2058,7 @@ private fun AdminEditUserDialog(
                 // read-only here; use the Grant Admin action on the user row instead.
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = MaterialTheme.shapes.small,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -2075,13 +2075,13 @@ private fun AdminEditUserDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = RoundedCornerShape(8.dp)) {
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = MaterialTheme.shapes.small) {
                         Text("Cancel")
                     }
                     Button(
@@ -2098,7 +2098,7 @@ private fun AdminEditUserDialog(
                             onSave(updated)
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = MaterialTheme.shapes.small,
                         colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
                     ) {
                         Text("Save Changes")
@@ -2265,7 +2265,7 @@ private fun AdminEditListingDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier
                 .fillMaxWidth()
@@ -2309,7 +2309,7 @@ private fun AdminEditListingDialog(
                         FilterChip(
                             selected = selectedSpaceType == type,
                             onClick = { selectedSpaceType = type },
-                            label = { Text(type.displayName, fontSize = 11.sp) }
+                            label = { Text(type.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                 }
@@ -2320,7 +2320,7 @@ private fun AdminEditListingDialog(
                         FilterChip(
                             selected = selectedGov == gov,
                             onClick = { selectedGov = gov },
-                            label = { Text(gov.displayName.split(" ").first(), fontSize = 11.sp) }
+                            label = { Text(gov.displayName.split(" ").first(), fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                 }
@@ -2336,7 +2336,7 @@ private fun AdminEditListingDialog(
                 // direct write to either from this generic edit form.
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = MaterialTheme.shapes.small,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
@@ -2347,10 +2347,10 @@ private fun AdminEditListingDialog(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = RoundedCornerShape(8.dp)) {
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = MaterialTheme.shapes.small) {
                         Text("Cancel")
                     }
                     Button(
@@ -2371,7 +2371,7 @@ private fun AdminEditListingDialog(
                             onSave(updated)
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = MaterialTheme.shapes.small,
                         colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
                     ) {
                         Text("Save Changes")
@@ -2437,7 +2437,7 @@ private fun AdminAddSchemaItemDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier
                 .fillMaxWidth()
@@ -2464,7 +2464,7 @@ private fun AdminAddSchemaItemDialog(
                         FilterChip(
                             selected = selectedCategory == catKey,
                             onClick = { selectedCategory = catKey },
-                            label = { Text(catLabel, fontSize = 11.sp) }
+                            label = { Text(catLabel, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                 }
@@ -2488,7 +2488,7 @@ private fun AdminAddSchemaItemDialog(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = RoundedCornerShape(8.dp)) {
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = MaterialTheme.shapes.small) {
                         Text("Cancel")
                     }
                     Button(
@@ -2499,7 +2499,7 @@ private fun AdminAddSchemaItemDialog(
                         },
                         enabled = name.isNotBlank(),
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = MaterialTheme.shapes.small,
                         colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                     ) {
                         Text("Create Node")

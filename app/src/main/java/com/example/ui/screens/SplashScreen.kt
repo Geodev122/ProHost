@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BusinessCenter
 import androidx.compose.material3.*
@@ -83,33 +82,33 @@ fun SplashScreen(
             // Glowing App Icon
             Surface(
                 color = OxfordBlue,
-                shape = RoundedCornerShape(24.dp),
+                shape = MaterialTheme.shapes.extraLarge,
                 modifier = Modifier
                     .size(110.dp)
                     .scale(logoScale)
-                    .border(2.dp, CarnationOrange, RoundedCornerShape(24.dp)),
+                    .border(2.dp, CarnationOrange, MaterialTheme.shapes.extraLarge),
                 shadowElevation = 12.dp
             ) {
                 Image(
-                    painter = painterResource(id = com.example.R.drawable.ic_prospace_logo_brand),
+                    painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
                     contentDescription = "ProHost Smart Space Logo",
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp))
+                    modifier = Modifier.fillMaxSize().clip(MaterialTheme.shapes.extraLarge)
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(Spacing.xl))
 
             // Main Display Typography
             Text(
                 text = "ProHost",
-                fontSize = 32.sp,
+                fontSize = MaterialTheme.typography.displayLarge.fontSize,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 letterSpacing = 1.sp
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Spacing.sm))
 
             // Professional Subtitle
             Text(
@@ -139,12 +138,12 @@ fun SplashScreen(
         ) {
             Text(
                 text = "LEBANON RENTAL INFRASTRUCTURE NODE",
-                fontSize = 11.sp,
+                fontSize = MaterialTheme.typography.labelSmall.fontSize,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
                 letterSpacing = 1.5.sp
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Spacing.xs))
             Text(
                 text = "Licensed exchange • Secure local sqlite store enabled",
                 fontSize = 10.sp,

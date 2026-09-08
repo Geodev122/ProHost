@@ -142,7 +142,7 @@ fun ListingLocationMapPicker(
                         ) {
                             Icon(Icons.Default.PinDrop, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Tap the map to drop a pin at the exact location", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Tap the map to drop a pin at the exact location", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -182,15 +182,15 @@ fun ListingLocationMapPicker(
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             "Pinned: ${String.format(Locale.US, "%.5f", pos.latitude)}, ${String.format(Locale.US, "%.5f", pos.longitude)}",
-                            fontSize = 11.sp,
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                             fontWeight = FontWeight.Bold
                         )
                     }
                     val detected = lastResolved?.addressLine
                     if (detected != null) {
-                        Text("Detected address: $detected", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Detected address: $detected", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else if (isResolving) {
-                        Text("Resolving address…", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Resolving address…", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }

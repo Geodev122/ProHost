@@ -5,7 +5,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.repository.ProSpaceRepository
+import com.example.data.repository.ProHostRepository
 import com.example.util.guessFileExtension
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +16,7 @@ import kotlinx.coroutines.tasks.await
 /**
  * ViewModel for LoginAuthScreen — the phone-OTP-first sign-in/registration flow,
  * plus Google Sign-In as a convenience alt path. Relocated here from
- * ProSpaceViewModel (the ViewModel-split effort): every method/state field below
+ * ProHostViewModel (the ViewModel-split effort): every method/state field below
  * had exactly one caller (LoginAuthScreen) before this move, unlike the payment,
  * WhatsApp, and booking-dialog logic that stayed on the shared ViewModel because
  * multiple different screens call it identically.
@@ -28,7 +28,7 @@ import kotlinx.coroutines.tasks.await
  * com.example.data.auth.completeVerifiedLogin / completeVerifiedRegistration.
  */
 class AuthViewModel(
-    private val repository: ProSpaceRepository = ProSpaceRepository.getInstance()
+    private val repository: ProHostRepository = ProHostRepository.getInstance()
 ) : ViewModel() {
 
     private val functionsClient = com.example.data.auth.FirebaseFunctionsClient()
@@ -71,7 +71,7 @@ class AuthViewModel(
 
     /**
      * Backfills this device's current FCM token onto [uid]'s profile right after a
-     * successful sign-in/registration — [com.example.service.ProSpaceMessagingService.onNewToken]
+     * successful sign-in/registration — [com.example.service.ProHostMessagingService.onNewToken]
      * only fires on a genuine token refresh, which could be long after this device
      * first got a token (e.g. it was assigned before this account ever signed in).
      * Best effort: a failure here shouldn't block sign-in.
