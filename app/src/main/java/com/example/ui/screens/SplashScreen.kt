@@ -102,6 +102,7 @@ fun SplashScreen(
             // Main Display Typography
             Text(
                 text = "ProHost",
+                fontFamily = ManropeDisplay,
                 fontSize = MaterialTheme.typography.displayLarge.fontSize,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface,

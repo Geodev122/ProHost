@@ -133,6 +133,7 @@ fun LoginAuthScreen(
 
         Text(
             text = "ProHost",
+            fontFamily = ManropeDisplay,
             fontSize = MaterialTheme.typography.headlineLarge.fontSize,
             fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.onSurface
