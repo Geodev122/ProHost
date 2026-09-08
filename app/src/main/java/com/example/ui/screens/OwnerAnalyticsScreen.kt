@@ -29,7 +29,6 @@ fun OwnerAnalyticsScreen(
 ) {
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
     val bookingRequests by viewModel.bookingRequests.collectAsState()
-    val user by viewModel.currentUser.collectAsState()
     val pricingState by viewModel.pricingState.collectAsState()
 
     // Used to silently fall back to up to 3 arbitrary OTHER owners' listings when this
@@ -75,12 +74,9 @@ fun OwnerAnalyticsScreen(
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     ProSectionHeader(
-                        title = "Workspace Analytics & Revenue",
-                        subtitle = "Performance Telemetry • ${user?.fullName ?: "Workspace Host"}",
-                        icon = Icons.Default.Analytics,
-                        trailingContent = {
-                            ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = "Live Telemetry")
-                        }
+                        title = "Analytics & Revenue",
+                        subtitle = "Live Telemetry",
+                        icon = Icons.Default.Analytics
                     )
 
                     // 4 Quick Metric Cards
@@ -137,8 +133,7 @@ fun OwnerAnalyticsScreen(
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ProSectionHeader(
-                        title = "Specialist Demand by Discipline",
-                        subtitle = "Based on booking requests received for your listings",
+                        title = "Attracted Discipline",
                         icon = Icons.Default.LocalHospital
                     )
 
@@ -168,8 +163,8 @@ fun OwnerAnalyticsScreen(
         // Active Listings Health & Whish Status
         item {
             ProSectionHeader(
-                title = "Listing Entitlement Health",
-                subtitle = "Whish subscription status and syndication readiness",
+                title = "My Listings",
+                subtitle = "Whish subscription status",
                 icon = Icons.Default.Shield
             )
         }

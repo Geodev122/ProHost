@@ -361,8 +361,8 @@ data class SpaceListing(
     val imageUrls: List<String> = emptyList(),
     val videoTourDurationSec: Int = 10,
     val baseMonthlyRateUsd: Double = 450.0,
-    val avatarEngagementViews: Int = 850,
-    val avatarInquiryClicks: Int = 14,
+    val avatarEngagementViews: Int = 0,
+    val avatarInquiryClicks: Int = 0,
     val subdivisions: List<Subdivision> = emptyList()
 ) {
     fun toFirestoreMap(): Map<String, Any?> {

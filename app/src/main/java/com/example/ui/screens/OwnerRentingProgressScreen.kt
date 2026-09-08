@@ -54,10 +54,6 @@ fun OwnerRentingProgressScreen(
         list.filter { it.status == BookingRequestStatus.ACCEPTED }
     }
 
-    val isOffline by viewModel.isOfflineMode.collectAsState()
-    val syncStatus by viewModel.syncStatusMessage.collectAsState()
-    val pendingOfflineTx by viewModel.pendingOfflineTransactions.collectAsState()
-
     var cancelTargetBooking by remember { mutableStateOf<BookingRequest?>(null) }
     if (cancelTargetBooking != null) {
         val bkg = cancelTargetBooking!!
@@ -76,10 +72,6 @@ fun OwnerRentingProgressScreen(
         ownerSpaces = ownerSpaces,
         activeBookings = activeBookings,
         monthlySubscriptionFeeUsd = pricingState.monthlySubscriptionFeeUsd,
-        isOffline = isOffline,
-        syncStatus = syncStatus,
-        pendingOfflineCount = pendingOfflineTx.size,
-        onRetrySync = { viewModel.retryOfflineSync() },
         onWhatsAppPractitioner = { booking ->
             viewModel.launchWhatsAppToPractitioner(context, booking)
         },
@@ -100,10 +92,6 @@ fun OwnerRentingProgressScreenContent(
     ownerSpaces: List<SpaceListing>,
     activeBookings: List<BookingRequest>,
     monthlySubscriptionFeeUsd: Double,
-    isOffline: Boolean = false,
-    syncStatus: String? = null,
-    pendingOfflineCount: Int = 0,
-    onRetrySync: () -> Unit = {},
     onWhatsAppPractitioner: (BookingRequest) -> Unit,
     onSendPaymentReminder: (BookingRequest) -> Unit,
     onCancelAcceptedBooking: (BookingRequest) -> Unit = {},
@@ -154,12 +142,26 @@ fun OwnerRentingProgressScreenContent(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                NetworkSyncResilienceBanner(
-                    isOffline = isOffline,
-                    statusMessage = syncStatus,
-                    pendingOfflineCount = pendingOfflineCount,
-                    onRetrySync = onRetrySync
-                )
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                    shape = MaterialTheme.shapes.medium,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.EventAvailable, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                        Text(
+                            text = "${activeBookings.size} Active Leases",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
             }
 
         // Top Reminders Card
@@ -170,12 +172,9 @@ fun OwnerRentingProgressScreenContent(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     ProSectionHeader(
-                        title = "Practice Shifts & Payment Alerts",
+                        title = "Alerts",
                         subtitle = "Real-time alerts for contracts, schedules & dues",
-                        icon = Icons.Default.NotificationsActive,
-                        trailingContent = {
-                            ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = "${activeBookings.size} Active Leases")
-                        }
+                        icon = Icons.Default.NotificationsActive
                     )
 
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

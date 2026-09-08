@@ -1151,6 +1151,21 @@ class ProHostRepository {
         return saveUpdatedSpace(updated)
     }
 
+    // Best-effort, fire-and-forget engagement counters (real "Views"/"Inquiries" data,
+    // replacing the old fixed 850/14 placeholders). Not offline-queued — this is a
+    // low-stakes analytics counter, not a transaction, so silently no-op-ing while
+    // offline is an acceptable tradeoff. The live workspace_listings snapshot
+    // listener picks up the new value and refreshes _spaces automatically, so no
+    // manual local-state patch is needed here. Mirrors addAuditLog's coroutineScope
+    // fire-and-forget pattern rather than being a suspend fun.
+    fun incrementSpaceViewCount(spaceId: String) {
+        coroutineScope.launch { firestoreService.incrementSpaceCounter(spaceId, "avatarEngagementViews") }
+    }
+
+    fun incrementSpaceInquiryCount(spaceId: String) {
+        coroutineScope.launch { firestoreService.incrementSpaceCounter(spaceId, "avatarInquiryClicks") }
+    }
+
     // --- User Authentication & Member Registration ---
     /**
      * Registers a new member. [uid] must be the real Firebase Auth UID (so this user's

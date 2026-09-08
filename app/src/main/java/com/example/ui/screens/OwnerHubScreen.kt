@@ -220,6 +220,11 @@ fun OwnerHubScreen(
                 if (success) {
                     showCreateListingDialog = false
                     android.widget.Toast.makeText(context, "Workspace listing published successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                    // Straight into the real Availability & Formula Control editor
+                    // (same one used to manage an existing listing) so the host sets
+                    // operating hours, blackout slots, and any additional formulas
+                    // right after publishing.
+                    selectedSpaceForSchedule = newListing
                 } else {
                     android.widget.Toast.makeText(
                         context,
@@ -546,7 +551,8 @@ fun OwnerHubScreenContent(
                         .shadow(6.dp, MaterialTheme.shapes.large)
                         .clickable { onOpenCreateListing() },
                     shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    border = BorderStroke(2.dp, FreshGreen)
                 ) {
                     Row(
                         modifier = Modifier
@@ -586,16 +592,9 @@ fun OwnerHubScreenContent(
         // Section Title: Owner's Workspace Listings
         item {
             ProSectionHeader(
-                title = "My Workspace Listings (${ownerSpaces.size})",
+                title = "My Listings (${ownerSpaces.size})",
                 subtitle = "Manage facilities, pricing formulas, and availability schedules",
-                icon = Icons.Default.HomeWork,
-                trailingContent = {
-                    TextButton(onClick = onOpenCreateListing) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("New Space", style = MaterialTheme.typography.labelMedium)
-                    }
-                }
+                icon = Icons.Default.HomeWork
             )
         }
 
@@ -664,23 +663,33 @@ fun OwnerHubScreenContent(
                             }
                         }
 
-                        // Smart Availability summary badges
+                        // Smart Availability summary badges — 2 rows of 2 so the 4
+                        // values wrap instead of squeezing into one line.
                         Surface(
                             color = MaterialTheme.colorScheme.surfaceVariant,
                             shape = MaterialTheme.shapes.small,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 10.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text("🗓️ ${space.schedule.openingHour}-${space.schedule.closingHour}", style = MaterialTheme.typography.labelSmall)
-                                Text("🔒 Rented: ${rentedH}h", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                Text("🚫 Closed: ${blackoutH}h", style = MaterialTheme.typography.labelSmall, color = NeutralGray500)
-                                Text("🟢 Open: ${openH}h", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = StatusSuccess)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("🗓️ ${space.schedule.openingHour}-${space.schedule.closingHour}", style = MaterialTheme.typography.labelSmall)
+                                    Text("🔒 Rented: ${rentedH}h", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("🚫 Closed: ${blackoutH}h", style = MaterialTheme.typography.labelSmall, color = NeutralGray500)
+                                    Text("🟢 Open: ${openH}h", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = StatusSuccess)
+                                }
                             }
                         }
 
@@ -755,8 +764,13 @@ fun OwnerHubScreenContent(
                                 Icon(Icons.Default.Edit, contentDescription = "Edit Listing", modifier = Modifier.size(14.dp))
                             }
 
-                            // Delete Listing Button
-                            IconButton(onClick = { onDeleteSpace(space) }) {
+                            // Delete Listing Button — weighted like the other 3 controls
+                            // so all four divide the row's width predictably instead of
+                            // this one's intrinsic size squeezing the rest.
+                            IconButton(
+                                onClick = { onDeleteSpace(space) },
+                                modifier = Modifier.weight(0.6f)
+                            ) {
                                 Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Listing", tint = MaterialTheme.colorScheme.error)
                             }
                         }

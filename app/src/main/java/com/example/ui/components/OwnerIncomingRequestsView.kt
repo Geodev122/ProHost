@@ -67,7 +67,7 @@ fun OwnerIncomingRequestsView(
         ) {
             // Header with badge
             ProSectionHeader(
-                title = "Incoming Booking Requests",
+                title = "Incoming Requests",
                 subtitle = "Review and confirm professional rental contracts",
                 icon = Icons.Default.Inbox,
                 trailingContent = {
@@ -79,17 +79,21 @@ fun OwnerIncomingRequestsView(
                 }
             )
 
-            // Filter Chips Bar
-            Row(
+            // Filter Chips Bar — a LazyRow (rather than a fixed-width Row) so the
+            // chips scroll horizontally instead of compressing/clipping on narrow
+            // screens, since "Declined (N)" was the one getting squeezed last.
+            LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                listOf(
-                    "ALL" to "All (${requests.size})",
-                    "PENDING" to "Pending ($pendingCount)",
-                    "ACCEPTED" to "Accepted ($acceptedCount)",
-                    "REJECTED" to "Declined ($rejectedCount)"
-                ).forEach { (filterKey, label) ->
+                items(
+                    listOf(
+                        "ALL" to "All (${requests.size})",
+                        "PENDING" to "Pending ($pendingCount)",
+                        "ACCEPTED" to "Accepted ($acceptedCount)",
+                        "REJECTED" to "Declined ($rejectedCount)"
+                    )
+                ) { (filterKey, label) ->
                     val isSelected = selectedFilter == filterKey
                     FilterChip(
                         selected = isSelected,

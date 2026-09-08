@@ -51,6 +51,15 @@ fun SpaceDetailsScreen(
         } else emptyList()
     }
 
+    // Real "Views" engagement count — fires once per detail-screen entry, not on
+    // every recomposition. Skipped when the viewer is the listing's own owner so a
+    // host's own visits don't inflate their own stats.
+    LaunchedEffect(liveSpace.id) {
+        if (currentUser?.id != liveSpace.ownerId) {
+            viewModel.registerSpaceView(liveSpace.id)
+        }
+    }
+
     var selectedFormula by remember { mutableStateOf<RentalFormula?>(liveSpace.rentalFormulas.firstOrNull()) }
     var showBookingDialog by remember { mutableStateOf(false) }
 

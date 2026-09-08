@@ -2,6 +2,7 @@ package com.example.data.firestore
 
 import android.util.Log
 import com.example.data.model.*
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
@@ -272,6 +273,29 @@ class FirestoreService(
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error saving workspace: ${e.message}", e)
+            false
+        }
+    }
+
+    /**
+     * Atomically increments a single numeric field on a workspace_listings document
+     * (used for the real "Views"/"Inquiries" engagement counters). Deliberately uses
+     * Firestore's server-side FieldValue.increment rather than the read-modify-write
+     * "copy local state, saveWorkspace() the whole doc" pattern used elsewhere in this
+     * file — that pattern has a lost-update race under concurrent writes from
+     * different users, which is exactly this scenario (many different Specialists
+     * viewing/inquiring on the same listing around the same time).
+     */
+    suspend fun incrementSpaceCounter(spaceId: String, field: String): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
+                .document(spaceId)
+                .update(field, FieldValue.increment(1))
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error incrementing $field for workspace $spaceId: ${e.message}", e)
             false
         }
     }

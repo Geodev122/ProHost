@@ -109,7 +109,9 @@ fun DrawerIdentityCard(
                                 },
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -214,20 +216,24 @@ fun DrawerIdentityCard(
                             text = user?.email ?: "",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.65f),
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
 
                 HorizontalDivider(color = Color.White.copy(alpha = 0.15f))
 
-                // Bottom Meta Row: Location + Member ID + Phone-Verified Status
+                // Bottom Meta: Location + Member ID on one row (each weighted +
+                // truncated so they never collide on narrow screens), Phone-Verified
+                // status on its own row below.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
+                        modifier = Modifier.weight(1f),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -236,11 +242,14 @@ fun DrawerIdentityCard(
                             text = user?.city?.ifBlank { user.governorate.ifBlank { user.country } } ?: "—",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.9f),
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
                     Row(
+                        modifier = Modifier.weight(1f),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -249,10 +258,14 @@ fun DrawerIdentityCard(
                             text = "ID: ${user?.id?.take(10) ?: "—"}",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.9f),
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
+                }
 
+                Row(modifier = Modifier.fillMaxWidth()) {
                     Surface(
                         color = Color.White.copy(alpha = 0.15f),
                         shape = MaterialTheme.shapes.small

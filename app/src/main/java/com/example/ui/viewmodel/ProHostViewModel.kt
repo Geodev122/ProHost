@@ -282,6 +282,13 @@ class ProHostViewModel(
         return repository.updateCurrentUserProfile(name, specialty, phone, country, governorate, city, profilePictureUrl)
     }
 
+    // Fires exactly once per space-detail view (call from a LaunchedEffect(space.id),
+    // not on every recomposition) — real engagement data replacing the old fixed 850
+    // placeholder.
+    fun registerSpaceView(spaceId: String) {
+        repository.incrementSpaceViewCount(spaceId)
+    }
+
     // --- WhatsApp Direct Connection ---
     fun launchWhatsAppInquiry(context: Context, space: SpaceListing, selectedFormula: RentalFormula?, request: RentalBookingRequest? = null) {
         val user = currentUser.value
@@ -319,6 +326,7 @@ class ProHostViewModel(
             val url = "https://wa.me/$cleanPhone?text=$encoded"
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             context.startActivity(intent)
+            repository.incrementSpaceInquiryCount(space.id)
             repository.addAuditLog(
                 actionType = "WHATSAPP_INQUIRY_SPECIALIST_TO_HOST",
                 details = "${professionalName} contacted host ${space.ownerName} via WhatsApp about listing '${space.title}' (${space.id})" +

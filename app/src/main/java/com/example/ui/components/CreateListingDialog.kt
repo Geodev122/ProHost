@@ -147,11 +147,13 @@ fun CreateListingDialog(
     }
     var equipmentSearchQuery by remember { mutableStateOf("") }
 
-    // Rental formulas
-    var shiftFormulaEnabled by remember { mutableStateOf(true) }
-    var shiftRate by remember { mutableStateOf("120") }
-    var dayPerWeekEnabled by remember { mutableStateOf(true) }
-    var dayPerWeekRate by remember { mutableStateOf("250") }
+    // Premises rules — real editable fields, replacing the previously-hardcoded
+    // PremisesRules() default at listing construction.
+    var smokingAllowed by remember { mutableStateOf(false) }
+    var foodAllowed by remember { mutableStateOf(true) }
+    var petsAllowed by remember { mutableStateOf(false) }
+    var offHoursAccess by remember { mutableStateOf(true) }
+    var visitorPolicy by remember { mutableStateOf("Clients & visitors welcomed in reception lounge") }
 
     // Complementary specialties
     val commonSpecialties = listOf("Consultant", "Designer", "Architect", "Developer", "Lawyer", "Accountant", "Marketer", "Coach")
@@ -710,106 +712,37 @@ fun CreateListingDialog(
                                     }
                                 }
                             } else {
-                                // Smart Dynamic Pricing & Formula Wizard (Step 2)
+                                // Base pricing only — the full formula builder (Hourly,
+                                // Shift, Day-per-Week, Full-Month, each with real
+                                // per-formula customization) plus Operating Hours and
+                                // Blackout slots now live in the same "Availability &
+                                // Formula Control" editor used to manage an existing
+                                // listing (SpaceScheduleEditorDialog), opened
+                                // automatically right after this listing is published.
                                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                    Text("Smart Dynamic Pricing & Formula Wizard", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
-                                    Text("Enter your base monthly valuation. The system automatically computes and suggests pro-rata fractional rates for shifting and day-per-week rentals.", fontSize = MaterialTheme.typography.labelMedium.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("Base Pricing", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                    Text(
+                                        "Enter your base monthly valuation — this publishes with a Full-Month formula active immediately. You'll set operating hours, blackout slots, and any additional Hourly/Shift/Day-per-Week formulas right after publishing.",
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
 
                                     InputField(
                                         value = baseMonthlyRate,
-                                        onValueChange = {
-                                            baseMonthlyRate = it
-                                            val baseVal = it.toDoubleOrNull() ?: 500.0
-                                            shiftRate = (baseVal * 0.4 / 4).toInt().toString()
-                                            dayPerWeekRate = (baseVal * 0.35).toInt().toString()
-                                        },
+                                        onValueChange = { baseMonthlyRate = it },
                                         label = "Base Monthly Valuation (USD/mo)",
                                         modifier = Modifier.fillMaxWidth(),
                                         singleLine = true
                                     )
-
-                                    val baseNum = baseMonthlyRate.toDoubleOrNull() ?: 500.0
-                                    val suggestedShift = (baseNum * 0.4 / 4).toInt()
-                                    val suggestedDayPerWk = (baseNum * 0.35).toInt()
-                                    val suggestedHourly = (baseNum / 160).toInt().coerceAtLeast(15)
-
-                                    Card(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                                        shape = MaterialTheme.shapes.medium
-                                    ) {
-                                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Text("Shift / Time-Slot Basis (40% pro-rata)", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                                                    Text("Suggested: $$suggestedShift USD / slot", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.primary)
-                                                }
-                                                Switch(checked = shiftFormulaEnabled, onCheckedChange = { shiftFormulaEnabled = it })
-                                            }
-                                            if (shiftFormulaEnabled) {
-                                                InputField(
-                                                    value = shiftRate,
-                                                    onValueChange = { shiftRate = it },
-                                                    label = "Shift Rate (USD)",
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    singleLine = true
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    Card(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                                        shape = MaterialTheme.shapes.medium
-                                    ) {
-                                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Text("Day-per-Week Basis (35% pro-rata)", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                                                    Text("Suggested: $$suggestedDayPerWk USD / mo", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.primary)
-                                                }
-                                                Switch(checked = dayPerWeekEnabled, onCheckedChange = { dayPerWeekEnabled = it })
-                                            }
-                                            if (dayPerWeekEnabled) {
-                                                InputField(
-                                                    value = dayPerWeekRate,
-                                                    onValueChange = { dayPerWeekRate = it },
-                                                    label = "Day-per-Week Rate (USD)",
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    singleLine = true
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                                        shape = MaterialTheme.shapes.medium
-                                    ) {
-                                        Row(modifier = Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                                            Spacer(modifier = Modifier.width(Spacing.sm))
-                                            Text("Hourly consulting reference rate is auto-calculated at ~$suggestedHourly USD/hr.", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurface)
-                                        }
-                                    }
                                 }
                             }
                         }
 
                         3 -> {
-                            // Step 3: Operating Hours, Blackouts & Contact
+                            // Step 3: Contact, Premises Rules & Ownership Proof
                             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("Operating Hours, Blackouts & Contact", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
-                                Text("Define operating days, shift hours, and host contact details for bookings.", fontSize = MaterialTheme.typography.labelMedium.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Contact & Premises Rules", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                Text("Host contact details and the premises rules specialists will see before booking.", fontSize = MaterialTheme.typography.labelMedium.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                                 Text("Complementary Specialist Disciplines", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -829,6 +762,50 @@ fun CreateListingDialog(
                                     value = ownerPhone,
                                     onValueChange = { ownerPhone = it },
                                     label = "Space Owner WhatsApp Phone (+961 ...)",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+
+                                HorizontalDivider()
+
+                                Text("Premises Rules", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Smoking Allowed", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                    Switch(checked = smokingAllowed, onCheckedChange = { smokingAllowed = it })
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Food Allowed", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                    Switch(checked = foodAllowed, onCheckedChange = { foodAllowed = it })
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Pets Allowed", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                    Switch(checked = petsAllowed, onCheckedChange = { petsAllowed = it })
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Off-Hours Access", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                    Switch(checked = offHoursAccess, onCheckedChange = { offHoursAccess = it })
+                                }
+                                InputField(
+                                    value = visitorPolicy,
+                                    onValueChange = { visitorPolicy = it },
+                                    label = "Visitor Policy",
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true
                                 )
@@ -902,6 +879,11 @@ fun CreateListingDialog(
                                     baseMonthlyRate.toDoubleOrNull() ?: 500.0
                                 }
                                 
+                                // Always publish with a Full-Month formula so the listing
+                                // is never unbookable — Hourly/Shift/Day-per-Week formulas,
+                                // operating hours, and blackout slots are set right after
+                                // publishing in the same "Availability & Formula Control"
+                                // editor used for existing listings (see onListingCreated).
                                 if (!hasSubdivisions) {
                                     formulas.add(
                                         RentalFormula(
@@ -914,36 +896,6 @@ fun CreateListingDialog(
                                             totalWeeklyHours = 72
                                         )
                                     )
-                                    if (shiftFormulaEnabled) {
-                                        val sRate = shiftRate.toDoubleOrNull() ?: 120.0
-                                        formulas.add(
-                                            RentalFormula(
-                                                type = RentalFormulaType.SHIFT,
-                                                rateUsd = sRate,
-                                                scheduleDescription = "Morning / Afternoon Shift Slots",
-                                                daysOfWeek = listOf("Mon", "Wed", "Fri"),
-                                                startHour = "08:00",
-                                                endHour = "14:00",
-                                                totalWeeklyHours = 18,
-                                                shiftName = "Morning Shift"
-                                            )
-                                        )
-                                    }
-                                    if (dayPerWeekEnabled) {
-                                        val dRate = dayPerWeekRate.toDoubleOrNull() ?: 180.0
-                                        formulas.add(
-                                            RentalFormula(
-                                                type = RentalFormulaType.DAY_PER_WEEK,
-                                                rateUsd = dRate,
-                                                scheduleDescription = "Day-per-Week Space Reservation (Choose 1 or 2 days/wk)",
-                                                daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
-                                                startHour = "08:00",
-                                                endHour = "18:00",
-                                                totalWeeklyHours = 10,
-                                                daysCountRequired = 1
-                                            )
-                                        )
-                                    }
                                 }
 
                                 // Prefer the real pin dropped on the map (recorded via
@@ -987,7 +939,13 @@ fun CreateListingDialog(
                                     essentialFacilities = selectedFacilities.toList(),
                                     equipment = chosenEquipment,
                                     rentalFormulas = formulas,
-                                    rules = PremisesRules(),
+                                    rules = PremisesRules(
+                                        smokingAllowed = smokingAllowed,
+                                        foodAllowed = foodAllowed,
+                                        petsAllowed = petsAllowed,
+                                        visitorPolicy = visitorPolicy,
+                                        offHoursAccess = offHoursAccess
+                                    ),
                                     ownerId = activeUser.id,
                                     ownerName = activeUser.fullName,
                                     ownerPhone = ownerPhone,
