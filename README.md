@@ -61,11 +61,18 @@ The output `.aab` will be located at `app/build/outputs/bundle/debug/app-debug.a
 
 ---
 
-## 📦 Recommendations for Future Release Bundle (AAB) & APK Builds
+## 📦 Release Signing & Bundle (AAB) Instructions
 
 When preparing production builds for Google Play Store or distribution, follow these guidelines:
 
-### 1. Generating Release Android App Bundle (.aab)
+### 1. Keystore Configuration & Defaults
+The project is configured in `app/build.gradle.kts` to look for a release keystore at `${rootDir}/my-upload-key.jks` by default.
+
+- **Default Keystore File**: `my-upload-key.jks` (placed in project root directory)
+- **Alias**: `upload`
+- **Security**: All `*.jks` keystore files are strictly ignored by `.gitignore` to prevent committing sensitive keys to version control.
+
+### 2. Generating Release Android App Bundle (.aab)
 Google Play Store requires `.aab` (Android App Bundle) format instead of `.apk` for new apps:
 ```bash
 ./gradlew :app:bundleRelease
@@ -73,41 +80,38 @@ Google Play Store requires `.aab` (Android App Bundle) format instead of `.apk` 
 The resulting file will be generated at:
 `app/build/outputs/bundle/release/app-release.aab`
 
-### 2. Release Signing Configuration
-Release signing is configured in `app/build.gradle.kts` to pull credentials securely from environment variables:
-
-Set the following environment variables before building release binaries:
-- `KEYSTORE_PATH`: Path to your `.jks` release keystore (e.g., `/path/to/my-upload-key.jks`)
-- `STORE_PASSWORD`: Keystore store password
-- `KEY_PASSWORD`: Key alias password
-
-Example command on Linux/macOS:
+### 3. Generating Release APK
+To build a signed release APK directly:
 ```bash
-export KEYSTORE_PATH="/path/to/upload-key.jks"
+./gradlew :app:assembleRelease
+```
+The output file will be at:
+`app/build/outputs/apk/release/app-release.apk`
+
+### 4. Overriding Keystore Credentials via Environment Variables
+You can override the keystore path and passwords dynamically during CI/CD or custom builds by setting environment variables:
+
+Linux / macOS:
+```bash
+export KEYSTORE_PATH="/custom/path/to/upload-key.jks"
 export STORE_PASSWORD="your_store_password"
 export KEY_PASSWORD="your_key_password"
 ./gradlew :app:bundleRelease
 ```
 
-Example command on Windows (PowerShell):
+Windows (PowerShell):
 ```powershell
-$env:KEYSTORE_PATH="C:\path\to\upload-key.jks"
+$env:KEYSTORE_PATH="C:\custom\path\to\upload-key.jks"
 $env:STORE_PASSWORD="your_store_password"
 $env:KEY_PASSWORD="your_key_password"
 .\gradlew :app:bundleRelease
 ```
 
-### 3. Versioning Strategy
-Before generating a release bundle for Google Play:
-- Update `versionCode` (must be incremented sequentially for every Play Store submission).
-- Update `versionName` (semantic version, e.g., `"1.0.1"`).
-Location: `app/build.gradle.kts` -> `defaultConfig`.
+---
 
-### 4. Code Shrinking & Obfuscation (R8/Proguard)
-Ensure `isMinifyEnabled = true` is verified in `buildTypes { release { ... } }` when deploying to production to reduce bundle size and obfuscate bytecode. Test all serialization classes to ensure necessary Keep rules are present in `app/proguard-rules.pro`.
+## 💡 Best Practices Checklist Before Release
 
-### 5. Best Practices Checklist Before Release
-- [ ] Run `./gradlew :app:compileDebugKotlin` and `./gradlew test` to ensure zero compilation or unit test failures.
-- [ ] Verify `google-services.json` is configured for production Firebase project.
-- [ ] Verify `MAPS_API_KEY` in `.env` has appropriate HTTP / Android package SHA-1 restrictions in Google Cloud Console.
-- [ ] Test the release `.aab` locally using [bundletool](https://developer.android.com/tools/bundletool) or Play Console Internal Testing track before publishing.
+1. **Versioning**: Update `versionCode` (increment sequentially) and `versionName` in `app/build.gradle.kts` -> `defaultConfig`.
+2. **Compilation**: Run `./gradlew :app:compileDebugKotlin` and `./gradlew test` to ensure zero compilation or unit test failures.
+3. **Firebase & Google Cloud**: Verify `app/google-services.json` is present and SHA-1 / SHA-256 fingerprints are added in Firebase Console for Google Sign-In & App Check.
+4. **Code Shrinking & Obfuscation (R8/Proguard)**: Ensure `isMinifyEnabled = true` is verified in `buildTypes { release { ... } }` when deploying to production.
