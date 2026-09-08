@@ -785,35 +785,6 @@ fun ProPrimaryButton(
 }
 
 /**
- * Standard ProHost Secondary Button (Cool Gray #283544 with Light Gray text, 12dp radius).
- */
-@Composable
-fun ProSecondaryButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    icon: ImageVector? = null,
-    enabled: Boolean = true,
-    isLoading: Boolean = false,
-    containerColor: Color = CoolGray,
-    contentColor: Color = LightGray,
-    shape: RoundedCornerShape = MaterialTheme.shapes.medium
-) {
-    CustomButton(
-        text = text,
-        onClick = onClick,
-        modifier = modifier,
-        variant = CustomButtonVariant.SECONDARY,
-        icon = icon,
-        enabled = enabled,
-        isLoading = isLoading,
-        customContainerColor = containerColor,
-        customContentColor = contentColor,
-        shape = shape
-    )
-}
-
-/**
  * Standard Outlined Button (Transparent with Oxford Blue border, 12dp radius).
  */
 @Composable
