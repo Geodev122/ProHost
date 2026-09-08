@@ -158,7 +158,7 @@ fun LoginAuthScreen(
             painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
             contentDescription = "ProHost Logo",
             contentScale = ContentScale.Fit,
-            modifier = Modifier.size(width = 66.dp, height = 81.dp)
+            modifier = Modifier.size(width = 110.dp, height = 133.dp)
         )
 
         Spacer(modifier = Modifier.height(Spacing.md))

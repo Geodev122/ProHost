@@ -85,7 +85,7 @@ fun SplashScreen(
                 contentDescription = "ProHost Logo",
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .size(width = 96.dp, height = 118.dp)
+                    .size(width = 110.dp, height = 133.dp)
                     .scale(logoScale)
             )
 
