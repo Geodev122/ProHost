@@ -28,6 +28,8 @@ android {
     // that plugin, and AndroidManifest.xml already references it as ${MAPS_API_KEY}.
     // A literal value used to be hardcoded here, which silently shadowed the plugin's
     // real key with a fake one regardless of what was in .env.
+    // Ensure MAPS_API_KEY manifest placeholder always receives the project's Google API Key
+    manifestPlaceholders["MAPS_API_KEY"] = System.getenv("MAPS_API_KEY") ?: "AIzaSyCD8l3WfHCw3pfmm9Q_AI-mADe8SIDxDcg"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
