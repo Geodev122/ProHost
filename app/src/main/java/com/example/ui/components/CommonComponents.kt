@@ -1680,7 +1680,7 @@ fun NetworkSyncResilienceBanner(
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(12.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(if (pendingOfflineCount > 0) "Retry ($pendingOfflineCount)" else "Sync", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(if (pendingOfflineCount > 0) "Retry ($pendingOfflineCount)" else "Sync", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold)
                 }
             }
         }

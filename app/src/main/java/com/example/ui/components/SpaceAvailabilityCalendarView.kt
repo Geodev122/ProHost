@@ -90,7 +90,7 @@ fun SpaceAvailabilityCalendarView(
                     Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
                         text = "Operating & Smart Availability",
-                        fontSize = 15.sp,
+                        fontSize = MaterialTheme.typography.labelLarge.fontSize,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -104,7 +104,7 @@ fun SpaceAvailabilityCalendarView(
                         text = if (remainingAvailableHours > 0) "$remainingAvailableHours hrs/wk Open" else "Fully Booked",
                         color = if (remainingAvailableHours > 0) StatusOnSuccessContainer else StatusOnErrorContainer,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
+                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -118,12 +118,12 @@ fun SpaceAvailabilityCalendarView(
             ) {
                 Text(
                     text = "⏰ Operating Hours: ${schedule.openingHour} - ${schedule.closingHour}",
-                    fontSize = 12.sp,
+                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "🗓️ ${schedule.operatingDays.joinToString()}",
-                    fontSize = 12.sp,
+                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -135,8 +135,8 @@ fun SpaceAvailabilityCalendarView(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Capacity Allocation", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("$occupancyPercentage% Rented", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("Capacity Allocation", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("$occupancyPercentage% Rented", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 }
 
                 // Multi-segment progress bar
@@ -198,13 +198,13 @@ fun SpaceAvailabilityCalendarView(
                     ) {
                         Text(
                             text = "🔒 Booked Slots (Unavailable to Public):",
-                            fontSize = 12.sp,
+                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "$totalRentedWeeklyHours hrs locked",
-                            fontSize = 11.sp,
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                             fontWeight = FontWeight.SemiBold,
                             color = StatusInfo
                         )
@@ -225,13 +225,13 @@ fun SpaceAvailabilityCalendarView(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = "${booking.formula.scheduleDescription} (${booking.formula.daysOfWeek.joinToString()} • ${booking.formula.startHour} - ${booking.formula.endHour})",
-                                        fontSize = 12.sp,
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
                                         text = "Resident Specialist: ${booking.practitionerName} (${booking.practitionerSpecialty})",
-                                        fontSize = 11.sp,
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
@@ -264,7 +264,7 @@ fun SpaceAvailabilityCalendarView(
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         text = "🚫 Non-Operating / Owner Blackout Hours:",
-                        fontSize = 12.sp,
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -283,13 +283,13 @@ fun SpaceAvailabilityCalendarView(
                                 Column {
                                     Text(
                                         text = "${slot.dayOfWeek}: ${slot.startTime} - ${slot.endTime}",
-                                        fontSize = 12.sp,
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
                                         text = slot.reason,
-                                        fontSize = 11.sp,
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }

@@ -206,7 +206,7 @@ fun SpecialistProfileScreen(
                                                 .ifEmpty { "PS" },
                                             color = Color.White,
                                             fontWeight = FontWeight.ExtraBold,
-                                            fontSize = 22.sp
+                                            fontSize = MaterialTheme.typography.headlineMedium.fontSize
                                         )
                                     }
                                 }
@@ -983,7 +983,7 @@ fun SpecialistProfileScreen(
                                 shape = MaterialTheme.shapes.small,
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                             ) {
-                                Text("Restart & Install", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text("Restart & Install", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold)
                             }
                         } else {
                             OutlinedButton(
@@ -1000,7 +1000,7 @@ fun SpecialistProfileScreen(
                             ) {
                                 Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("Check Updates", fontSize = 12.sp)
+                                Text("Check Updates", fontSize = MaterialTheme.typography.labelMedium.fontSize)
                             }
                         }
                     }

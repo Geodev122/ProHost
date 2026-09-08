@@ -97,17 +97,17 @@ fun ExportDataDialog(
                     Tab(
                         selected = selectedFormat == 0,
                         onClick = { selectedFormat = 0 },
-                        text = { Text("CSV", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                        text = { Text("CSV", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = selectedFormat == 1,
                         onClick = { selectedFormat = 1 },
-                        text = { Text("JSON", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                        text = { Text("JSON", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = selectedFormat == 2,
                         onClick = { selectedFormat = 2 },
-                        text = { Text("Audit TXT", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                        text = { Text("Audit TXT", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold) }
                     )
                 }
 
@@ -115,7 +115,7 @@ fun ExportDataDialog(
 
                 Text(
                     text = "Live Monospace Preview ($formatLabel):",
-                    fontSize = 12.sp,
+                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -140,7 +140,7 @@ fun ExportDataDialog(
                         Text(
                             text = currentContent,
                             fontFamily = FontFamily.Monospace,
-                            fontSize = 11.sp,
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                             color = MaterialTheme.colorScheme.inverseOnSurface,
                             lineHeight = 16.sp
                         )

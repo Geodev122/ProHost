@@ -92,7 +92,7 @@ fun WeeklyAvailabilityMatrix(
                         )
                         Text(
                             text = "Live Heatmap (Morning, Afternoon, Evening)",
-                            fontSize = 11.sp,
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -130,7 +130,7 @@ fun WeeklyAvailabilityMatrix(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Box(modifier = Modifier.weight(0.7f), contentAlignment = Alignment.CenterStart) {
-                    Text("Day", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Day", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 shifts.forEach { shift ->
                     Box(
@@ -173,7 +173,7 @@ fun WeeklyAvailabilityMatrix(
                     ) {
                         Text(
                             text = day,
-                            fontSize = 12.sp,
+                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -283,7 +283,7 @@ fun WeeklyAvailabilityMatrix(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "$day ($shiftName Shift): ${if (isBooked) "Currently Reserved" else "Available for booking"}",
-                                fontSize = 11.sp,
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )

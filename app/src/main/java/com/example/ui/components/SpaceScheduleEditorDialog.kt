@@ -102,7 +102,7 @@ fun SpaceScheduleEditorDialog(
                         }
                         Text(
                             text = "${liveSpace.title} • Configure operating windows and dynamic rental formulas",
-                            fontSize = 12.sp,
+                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -157,7 +157,7 @@ fun SpaceScheduleEditorDialog(
                                 )
                             }
 
-                            Text("Operating Days:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Operating Days:", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -169,7 +169,7 @@ fun SpaceScheduleEditorDialog(
                                         onClick = {
                                             selectedDays = if (isSelected) selectedDays - day else selectedDays + day
                                         },
-                                        label = { Text(day, fontSize = 11.sp) },
+                                        label = { Text(day, fontSize = MaterialTheme.typography.labelSmall.fontSize) },
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
@@ -180,7 +180,7 @@ fun SpaceScheduleEditorDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Open on Sundays", fontSize = 13.sp)
+                                Text("Open on Sundays", fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 Switch(
                                     checked = isSundayOperating,
                                     onCheckedChange = { isSundayOperating = it }
@@ -203,7 +203,7 @@ fun SpaceScheduleEditorDialog(
                             ) {
                                 Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Save Operating Window", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                Text("Save Operating Window", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -232,7 +232,7 @@ fun SpaceScheduleEditorDialog(
                                     )
                                     Text(
                                         text = "Hide specific slots for maintenance or private surgeries",
-                                        fontSize = 11.sp,
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -244,7 +244,7 @@ fun SpaceScheduleEditorDialog(
                                 ) {
                                     Icon(if (showAddBlackout) Icons.Default.ExpandLess else Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text(if (showAddBlackout) "Cancel" else "Add Blackout", fontSize = 12.sp)
+                                    Text(if (showAddBlackout) "Cancel" else "Add Blackout", fontSize = MaterialTheme.typography.labelMedium.fontSize)
                                 }
                             }
 
@@ -317,7 +317,7 @@ fun SpaceScheduleEditorDialog(
                             if (schedule.blackoutSlots.isEmpty()) {
                                 Text(
                                     text = "No blackout slots configured. Space is fully operational during open hours.",
-                                    fontSize = 12.sp,
+                                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             } else {
@@ -336,9 +336,9 @@ fun SpaceScheduleEditorDialog(
                                                 Text(
                                                     text = "🚫 ${slot.dayOfWeek} (${slot.startTime} - ${slot.endTime})",
                                                     fontWeight = FontWeight.Bold,
-                                                    fontSize = 12.sp
+                                                    fontSize = MaterialTheme.typography.labelMedium.fontSize
                                                 )
-                                                Text(slot.reason, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                Text(slot.reason, fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                             }
 
                                             IconButton(
@@ -378,7 +378,7 @@ fun SpaceScheduleEditorDialog(
                                     )
                                     Text(
                                         text = "Create Day-per-Week, Shift, Hourly, or Full-Month packages",
-                                        fontSize = 11.sp,
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -390,7 +390,7 @@ fun SpaceScheduleEditorDialog(
                                 ) {
                                     Icon(if (showAddFormula) Icons.Default.ExpandLess else Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text(if (showAddFormula) "Close" else "Create Formula", fontSize = 12.sp)
+                                    Text(if (showAddFormula) "Close" else "Create Formula", fontSize = MaterialTheme.typography.labelMedium.fontSize)
                                 }
                             }
 
@@ -405,7 +405,7 @@ fun SpaceScheduleEditorDialog(
                                         modifier = Modifier.padding(14.dp),
                                         verticalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
-                                        Text("Select Formula Model:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Text("Select Formula Model:", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold)
                                         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                             items(RentalFormulaType.values().toList()) { type ->
                                                 val isSelected = formulaType == type
@@ -447,7 +447,7 @@ fun SpaceScheduleEditorDialog(
                                                             }
                                                         }
                                                     },
-                                                    label = { Text(type.displayName, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) }
+                                                    label = { Text(type.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) }
                                                 )
                                             }
                                         }
@@ -462,7 +462,7 @@ fun SpaceScheduleEditorDialog(
                                                 ) {
                                                     Text(
                                                         text = "💡 In Day-per-Week formula, you set the days your space is available. When a specialist chooses this formula, they will select their specific day(s) from these available days.",
-                                                        fontSize = 11.sp,
+                                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                                                         modifier = Modifier.padding(8.dp)
                                                     )
@@ -543,7 +543,7 @@ fun SpaceScheduleEditorDialog(
                                             modifier = Modifier.fillMaxWidth()
                                         )
 
-                                        Text("Set Days Space is Available for this Formula:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                        Text("Set Days Space is Available for this Formula:", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -634,17 +634,17 @@ fun SpaceScheduleEditorDialog(
                                                 Text(
                                                     text = f.type.displayName,
                                                     fontWeight = FontWeight.Bold,
-                                                    fontSize = 13.sp
+                                                    fontSize = MaterialTheme.typography.bodySmall.fontSize
                                                 )
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Text(
                                                     text = if (f.type == RentalFormulaType.HOURLY) "$${f.rateUsd.toInt()} USD/hr" else "$${f.rateUsd.toInt()} USD/mo",
                                                     fontWeight = FontWeight.ExtraBold,
                                                     color = MaterialTheme.colorScheme.primary,
-                                                    fontSize = 13.sp
+                                                    fontSize = MaterialTheme.typography.bodySmall.fontSize
                                                 )
                                             }
-                                            Text(f.scheduleDescription, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text(f.scheduleDescription, fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                             if (f.daysOfWeek.isNotEmpty() && f.startHour.isNotBlank()) {
                                                 Text(
                                                     text = "🗓 Available: ${f.daysOfWeek.joinToString()} • ${f.startHour} - ${f.endHour} (${f.totalWeeklyHours} hrs/wk)",

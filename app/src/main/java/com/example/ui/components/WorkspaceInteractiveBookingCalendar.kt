@@ -594,7 +594,7 @@ fun WorkspaceInteractiveBookingCalendar(
                                 Text(
                                     text = label,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    fontSize = 12.sp
+                                    fontSize = MaterialTheme.typography.labelMedium.fontSize
                                 )
                             },
                             leadingIcon = if (isSelected) {
@@ -696,7 +696,7 @@ fun WorkspaceInteractiveBookingCalendar(
                                     } else {
                                         Text(
                                             text = dayItem.dayNumber.toString(),
-                                            fontSize = 12.sp,
+                                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                             fontWeight = if (isStart || isEnd || dayItem.isToday) FontWeight.Bold else FontWeight.Normal,
                                             color = when {
                                                 !dayItem.isCurrentMonth -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
@@ -875,7 +875,7 @@ fun WorkspaceInteractiveBookingCalendar(
                                 Box(contentAlignment = Alignment.Center) {
                                     Text(
                                         text = day.take(1),
-                                        fontSize = 11.sp,
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                         fontWeight = FontWeight.Bold,
                                         color = if (isDaySelected) Color.White else if (!isSpaceOpen) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f) else MaterialTheme.colorScheme.onSurface
                                     )
@@ -937,7 +937,7 @@ fun WorkspaceInteractiveBookingCalendar(
                         Text(
                             text = availabilityCheck.detailedReason,
                             style = MaterialTheme.typography.bodySmall,
-                            fontSize = 11.sp,
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }

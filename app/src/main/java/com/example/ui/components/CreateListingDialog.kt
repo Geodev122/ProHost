@@ -48,7 +48,7 @@ fun CreateListingDialog(
                     Text("Sign In Required", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Text(
                         "Your account couldn't be loaded. Please sign in again before creating a listing.",
-                        fontSize = 13.sp,
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Button(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text("Close") }
@@ -224,7 +224,7 @@ fun CreateListingDialog(
                         )
                         Text(
                             text = "Step ${currentStep + 1} of $totalSteps • Lebanon Network",
-                            fontSize = 12.sp,
+                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -254,32 +254,32 @@ fun CreateListingDialog(
                                     singleLine = true
                                 )
 
-                                Text("Space Category & Layout", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Space Category & Layout", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     items(SpaceType.values()) { type ->
                                         FilterChip(
                                             selected = selectedSpaceType == type,
                                             onClick = { selectedSpaceType = type },
-                                            label = { Text(type.displayName, fontSize = 12.sp) }
+                                            label = { Text(type.displayName, fontSize = MaterialTheme.typography.labelMedium.fontSize) }
                                         )
                                     }
                                 }
 
-                                Text("Lebanon Governorate", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Lebanon Governorate", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     items(Governorate.values()) { gov ->
                                         FilterChip(
                                             selected = selectedGovernorate == gov,
                                             onClick = { selectedGovernorate = gov },
-                                            label = { Text(gov.displayName, fontSize = 12.sp) }
+                                            label = { Text(gov.displayName, fontSize = MaterialTheme.typography.labelMedium.fontSize) }
                                         )
                                     }
                                 }
 
-                                Text("Pin the Exact Location", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Pin the Exact Location", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 Text(
                                     "Tap the map to record the real GPS coordinates specialists will see when searching nearby — required to publish.",
-                                    fontSize = 11.sp,
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 ListingLocationMapPicker(
@@ -301,7 +301,7 @@ fun CreateListingDialog(
                                     }) {
                                         Icon(Icons.Default.AutoFixHigh, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Apply detected address to fields below", fontSize = 12.sp)
+                                        Text("Apply detected address to fields below", fontSize = MaterialTheme.typography.labelMedium.fontSize)
                                     }
                                 }
 
@@ -335,16 +335,16 @@ fun CreateListingDialog(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Column {
-                                        Text("Co-Sharing Practice", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                        Text("Shared with complementary doctors", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("Co-Sharing Practice", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                        Text("Shared with complementary doctors", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Switch(checked = isShared, onCheckedChange = { isShared = it })
                                 }
 
-                                Text("Cover Photos", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Cover Photos", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 Text(
                                     "Real photos of the space — shown first in search results. Optional, but listings without any get a plain placeholder.",
-                                    fontSize = 11.sp,
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -403,7 +403,7 @@ fun CreateListingDialog(
                         1 -> {
                             // Step 1: Facilities & Equipment Catalog
                             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("Essential Facilities & Utilities", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Essential Facilities & Utilities", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 standardFacilities.forEach { facility ->
                                     val isChecked = selectedFacilities.contains(facility)
                                     Row(
@@ -420,14 +420,14 @@ fun CreateListingDialog(
                                             selectedFacilities = if (it) selectedFacilities + facility else selectedFacilities - facility
                                         })
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text(facility, fontSize = 13.sp)
+                                        Text(facility, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                     }
                                 }
 
                                 HorizontalDivider()
 
-                                Text("Professional Equipment Catalog", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text("Select equipment available on premises", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Professional Equipment Catalog", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                Text("Select equipment available on premises", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                                 OutlinedTextField(
                                     value = equipmentSearchQuery,
@@ -465,8 +465,8 @@ fun CreateListingDialog(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Column(modifier = Modifier.weight(1f)) {
-                                                    Text(item.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                                    Text(item.category.displayName, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                    Text(item.name, fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.SemiBold)
+                                                    Text(item.category.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                                 }
                                                 Icon(
                                                     if (isSelected) Icons.Default.CheckCircle else Icons.Default.AddCircleOutline,
@@ -486,17 +486,17 @@ fun CreateListingDialog(
                                     Text(
                                         "Configure Rooms & Workspace Subdivisions",
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp,
+                                        fontSize = MaterialTheme.typography.labelLarge.fontSize,
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
                                         "Add individual rooms, offices, clinical chambers, or shared desks that professionals can rent separately. Specify individual features and custom pricing strategies for each.",
-                                        fontSize = 12.sp,
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
 
                                     if (subdivisionsList.isNotEmpty()) {
-                                        Text("Configured Subdivisions (${subdivisionsList.size})", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                                        Text("Configured Subdivisions (${subdivisionsList.size})", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                             subdivisionsList.forEachIndexed { index, sub ->
                                                 Card(
@@ -511,14 +511,14 @@ fun CreateListingDialog(
                                                     ) {
                                                         Column(modifier = Modifier.weight(1f)) {
                                                             Text(sub.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                                            Text("Type: ${sub.type.displayName}", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                                                            Text("Type: ${sub.type.displayName}", fontSize = MaterialTheme.typography.labelMedium.fontSize, color = MaterialTheme.colorScheme.primary)
                                                             Text(
                                                                 "Renting: " + sub.rentalStrategies.joinToString { "${it.strategy.displayName} ($${it.rateUsd})" },
-                                                                fontSize = 11.sp,
+                                                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                                             )
                                                             if (sub.amenities.isNotEmpty()) {
-                                                                Text("Amenities: ${sub.amenities.joinToString()}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                                Text("Amenities: ${sub.amenities.joinToString()}", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                                             }
                                                         }
                                                         IconButton(onClick = { subdivisionsList = subdivisionsList.filterIndexed { i, _ -> i != index } }) {
@@ -536,7 +536,7 @@ fun CreateListingDialog(
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                                     ) {
                                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                            Text("Add Room / Unit Details", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                                            Text("Add Room / Unit Details", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                             
                                             InputField(
                                                 value = subName,
@@ -546,18 +546,18 @@ fun CreateListingDialog(
                                                 singleLine = true
                                             )
 
-                                            Text("Room / Subdivision Type", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                            Text("Room / Subdivision Type", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
                                             LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                                 items(Level2Type.values()) { type ->
                                                     FilterChip(
                                                         selected = subType == type,
                                                         onClick = { subType = type },
-                                                        label = { Text(type.displayName, fontSize = 11.sp) }
+                                                        label = { Text(type.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                                                     )
                                                 }
                                             }
 
-                                            Text("Room Amenities", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                            Text("Room Amenities", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
                                             LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                                 items(subAmenitiesPreset) { amen ->
                                                     val isSel = subAmenitiesSelected.contains(amen)
@@ -571,7 +571,7 @@ fun CreateListingDialog(
                                                 }
                                             }
 
-                                            Text("Renting Strategies & Rates for this Room", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                            Text("Renting Strategies & Rates for this Room", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
                                             
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
@@ -580,7 +580,7 @@ fun CreateListingDialog(
                                             ) {
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                                     Checkbox(checked = subHourlyEnabled, onCheckedChange = { subHourlyEnabled = it })
-                                                    Text("Hourly Basis", fontSize = 12.sp)
+                                                    Text("Hourly Basis", fontSize = MaterialTheme.typography.labelMedium.fontSize)
                                                 }
                                                 if (subHourlyEnabled) {
                                                     OutlinedTextField(
@@ -601,7 +601,7 @@ fun CreateListingDialog(
                                                 Column {
                                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                                         Checkbox(checked = subShiftEnabled, onCheckedChange = { subShiftEnabled = it })
-                                                        Text("Shift-Based", fontSize = 12.sp)
+                                                        Text("Shift-Based", fontSize = MaterialTheme.typography.labelMedium.fontSize)
                                                     }
                                                     if (subShiftEnabled) {
                                                         OutlinedTextField(
@@ -631,7 +631,7 @@ fun CreateListingDialog(
                                             ) {
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                                     Checkbox(checked = subDailyEnabled, onCheckedChange = { subDailyEnabled = it })
-                                                    Text("Daily Basis", fontSize = 12.sp)
+                                                    Text("Daily Basis", fontSize = MaterialTheme.typography.labelMedium.fontSize)
                                                 }
                                                 if (subDailyEnabled) {
                                                     OutlinedTextField(
@@ -651,7 +651,7 @@ fun CreateListingDialog(
                                             ) {
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                                     Checkbox(checked = subMonthlyEnabled, onCheckedChange = { subMonthlyEnabled = it })
-                                                    Text("Monthly Basis", fontSize = 12.sp)
+                                                    Text("Monthly Basis", fontSize = MaterialTheme.typography.labelMedium.fontSize)
                                                 }
                                                 if (subMonthlyEnabled) {
                                                     OutlinedTextField(
@@ -705,7 +705,7 @@ fun CreateListingDialog(
                                             ) {
                                                 Icon(Icons.Default.Add, contentDescription = null)
                                                 Spacer(modifier = Modifier.width(Spacing.xs))
-                                                Text("Add Room / Desk to Listing", fontSize = 12.sp)
+                                                Text("Add Room / Desk to Listing", fontSize = MaterialTheme.typography.labelMedium.fontSize)
                                             }
                                         }
                                     }
@@ -713,8 +713,8 @@ fun CreateListingDialog(
                             } else {
                                 // Smart Dynamic Pricing & Formula Wizard (Step 2)
                                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                    Text("Smart Dynamic Pricing & Formula Wizard", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
-                                    Text("Enter your base monthly valuation. The system automatically computes and suggests pro-rata fractional rates for shifting and day-per-week rentals.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("Smart Dynamic Pricing & Formula Wizard", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                    Text("Enter your base monthly valuation. The system automatically computes and suggests pro-rata fractional rates for shifting and day-per-week rentals.", fontSize = MaterialTheme.typography.labelMedium.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                                     InputField(
                                         value = baseMonthlyRate,
@@ -746,8 +746,8 @@ fun CreateListingDialog(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Column(modifier = Modifier.weight(1f)) {
-                                                    Text("Shift / Time-Slot Basis (40% pro-rata)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                                    Text("Suggested: $$suggestedShift USD / slot", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                                                    Text("Shift / Time-Slot Basis (40% pro-rata)", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                                    Text("Suggested: $$suggestedShift USD / slot", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.primary)
                                                 }
                                                 Switch(checked = shiftFormulaEnabled, onCheckedChange = { shiftFormulaEnabled = it })
                                             }
@@ -775,8 +775,8 @@ fun CreateListingDialog(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Column(modifier = Modifier.weight(1f)) {
-                                                    Text("Day-per-Week Basis (35% pro-rata)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                                    Text("Suggested: $$suggestedDayPerWk USD / mo", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                                                    Text("Day-per-Week Basis (35% pro-rata)", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                                    Text("Suggested: $$suggestedDayPerWk USD / mo", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.primary)
                                                 }
                                                 Switch(checked = dayPerWeekEnabled, onCheckedChange = { dayPerWeekEnabled = it })
                                             }
@@ -799,7 +799,7 @@ fun CreateListingDialog(
                                         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                             Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                                             Spacer(modifier = Modifier.width(Spacing.sm))
-                                            Text("Hourly consulting reference rate is auto-calculated at ~$suggestedHourly USD/hr.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+                                            Text("Hourly consulting reference rate is auto-calculated at ~$suggestedHourly USD/hr.", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurface)
                                         }
                                     }
                                 }
@@ -809,10 +809,10 @@ fun CreateListingDialog(
                         3 -> {
                             // Step 3: Operating Hours, Blackouts & Contact
                             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("Operating Hours, Blackouts & Contact", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
-                                Text("Define operating days, shift hours, and host contact details for bookings.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Operating Hours, Blackouts & Contact", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                Text("Define operating days, shift hours, and host contact details for bookings.", fontSize = MaterialTheme.typography.labelMedium.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-                                Text("Complementary Specialist Disciplines", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Complementary Specialist Disciplines", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     items(commonSpecialties) { spec ->
                                         val isSel = selectedSpecialties.contains(spec)
@@ -821,7 +821,7 @@ fun CreateListingDialog(
                                             onClick = {
                                                 selectedSpecialties = if (isSel) selectedSpecialties - spec else selectedSpecialties + spec
                                             },
-                                            label = { Text(spec, fontSize = 11.sp) }
+                                            label = { Text(spec, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                                         )
                                     }
                                 }
@@ -836,10 +836,10 @@ fun CreateListingDialog(
 
                                 HorizontalDivider()
 
-                                Text("Proof of Ownership / Right to Rent", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Proof of Ownership / Right to Rent", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 Text(
                                     "Required to publish — a title deed, lease contract, or other document showing you're entitled to rent this specific space out. Kept on file, no review needed.",
-                                    fontSize = 11.sp,
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 DocumentPickerField(

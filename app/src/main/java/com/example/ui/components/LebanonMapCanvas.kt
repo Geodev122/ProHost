@@ -288,7 +288,7 @@ fun LebanonMapCanvas(
                     Text(
                         text = coordinatesText,
                         color = Color.White,
-                        fontSize = 11.sp,
+                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -373,7 +373,7 @@ fun LebanonMapCanvas(
                                 Text(
                                     text = space.spaceType.displayName,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    fontSize = 11.sp,
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
@@ -388,7 +388,7 @@ fun LebanonMapCanvas(
                                 )
                                 Text(
                                     text = " /mo",
-                                    fontSize = 12.sp,
+                                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -406,7 +406,7 @@ fun LebanonMapCanvas(
                             ) {
                                 Text(
                                     text = "📍 Near You (${String.format(Locale.US, "%.1f", dist)} km away)",
-                                    fontSize = 11.sp,
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
@@ -424,7 +424,7 @@ fun LebanonMapCanvas(
 
                         Text(
                             text = "📍 ${space.district}, ${space.governorate.displayName}",
-                            fontSize = 13.sp,
+                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
@@ -442,7 +442,7 @@ fun LebanonMapCanvas(
                                 ) {
                                     Text(
                                         text = facility,
-                                        fontSize = 11.sp,
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

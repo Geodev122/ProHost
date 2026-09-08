@@ -227,12 +227,12 @@ fun DrawerDialogsHandler(
                                 ) {
                                     AssistChip(
                                         onClick = { showAuditFromPicker = true },
-                                        label = { Text(auditFromMillis?.let { "From: ${sdfShort.format(Date(it))}" } ?: "From: Any", fontSize = 11.sp) },
+                                        label = { Text(auditFromMillis?.let { "From: ${sdfShort.format(Date(it))}" } ?: "From: Any", fontSize = MaterialTheme.typography.labelSmall.fontSize) },
                                         leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
                                     )
                                     AssistChip(
                                         onClick = { showAuditToPicker = true },
-                                        label = { Text(auditToMillis?.let { "To: ${sdfShort.format(Date(it))}" } ?: "To: Any", fontSize = 11.sp) },
+                                        label = { Text(auditToMillis?.let { "To: ${sdfShort.format(Date(it))}" } ?: "To: Any", fontSize = MaterialTheme.typography.labelSmall.fontSize) },
                                         leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
                                     )
                                     if (auditFromMillis != null || auditToMillis != null) {
@@ -258,7 +258,7 @@ fun DrawerDialogsHandler(
                                     ) {
                                         Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
                                         Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text("Export CSV", fontSize = 11.sp)
+                                        Text("Export CSV", fontSize = MaterialTheme.typography.labelSmall.fontSize)
                                     }
                                 }
 
@@ -452,7 +452,7 @@ fun DrawerDialogsHandler(
                                                                 contentPadding = PaddingValues(0.dp),
                                                                 modifier = Modifier.height(24.dp)
                                                             ) {
-                                                                Text("Mark Read", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                                Text("Mark Read", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold)
                                                             }
                                                         } else {
                                                             Text(

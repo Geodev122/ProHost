@@ -253,7 +253,7 @@ fun ProSpaceAppRoot(
                                             contentDescription = tab.title
                                         )
                                     },
-                                    label = { Text(tab.title, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                    label = { Text(tab.title, fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold) },
                                     modifier = Modifier.testTag("nav_item_${tab.id}")
                                 )
                             }

@@ -141,7 +141,7 @@ fun LoginAuthScreen(
 
         Text(
             text = "Specialist Workspace & Office Rental Exchange",
-            fontSize = 13.sp,
+            fontSize = MaterialTheme.typography.bodySmall.fontSize,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -377,7 +377,7 @@ fun LoginAuthScreen(
                 }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Change phone number", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Change phone number", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -537,7 +537,7 @@ fun LoginAuthScreen(
                 ) {
                     Text(
                         text = "By continuing you agree to our",
-                        fontSize = 11.sp,
+                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -547,15 +547,15 @@ fun LoginAuthScreen(
                 ) {
                     Text(
                         text = "Terms of Use",
-                        fontSize = 11.sp,
+                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.termsOfUse }
                     )
-                    Text(text = " and ", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = " and ", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = "Privacy Policy",
-                        fontSize = 11.sp,
+                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.privacyPolicy }
@@ -639,7 +639,7 @@ fun LoginAuthScreen(
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = "Every ProHost account is verified via Firebase Phone Auth SMS — the phone number you enter above is checked first, before anything else, and is your identity on the platform.",
-                    fontSize = 11.sp,
+                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

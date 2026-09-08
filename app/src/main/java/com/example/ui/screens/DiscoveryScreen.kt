@@ -134,7 +134,7 @@ fun DiscoveryScreenContent(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = onSearchQueryChange,
-                        placeholder = { Text("Search workspaces, studios, offices, districts...", fontSize = 13.sp) },
+                        placeholder = { Text("Search workspaces, studios, offices, districts...", fontSize = MaterialTheme.typography.bodySmall.fontSize) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
@@ -206,14 +206,14 @@ fun DiscoveryScreenContent(
                         FilterChip(
                             selected = selectedGovernorate == null,
                             onClick = { onSelectGovernorate(null) },
-                            label = { Text("All Lebanon", fontSize = 11.sp) }
+                            label = { Text("All Lebanon", fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                     items(Governorate.entries) { gov ->
                         FilterChip(
                             selected = selectedGovernorate == gov,
                             onClick = { onSelectGovernorate(if (selectedGovernorate == gov) null else gov) },
-                            label = { Text(gov.displayName.split(" ").first(), fontSize = 11.sp) }
+                            label = { Text(gov.displayName.split(" ").first(), fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                 }
@@ -294,7 +294,7 @@ fun DiscoveryScreenContent(
                                     Text(
                                         text = "Co-share modern offices, consulting clinics & studios with flexible Whish settlement",
                                         style = MaterialTheme.typography.bodySmall,
-                                        fontSize = 12.sp,
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                         color = Color.White.copy(alpha = 0.92f)
                                     )
                                 }
@@ -355,26 +355,26 @@ fun DiscoveryScreenContent(
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
-                Text("Space Type", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Text("Space Type", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(SpaceType.entries) { type ->
                         FilterChip(
                             selected = selectedSpaceType == type,
                             onClick = { onSelectSpaceType(if (selectedSpaceType == type) null else type) },
-                            label = { Text(type.displayName, fontSize = 11.sp) }
+                            label = { Text(type.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
-                Text("Rental Formula", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Text("Rental Formula", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(RentalFormulaType.entries) { formula ->
                         FilterChip(
                             selected = selectedFormulaType == formula,
                             onClick = { onSelectFormulaType(if (selectedFormulaType == formula) null else formula) },
-                            label = { Text(formula.displayName, fontSize = 11.sp) }
+                            label = { Text(formula.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                 }
@@ -384,7 +384,7 @@ fun DiscoveryScreenContent(
                 Text(
                     text = "Maximum Monthly Rate: $${maxPriceUsd.toInt()} USD",
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp
+                    fontSize = MaterialTheme.typography.bodySmall.fontSize
                 )
                 Slider(
                     value = maxPriceUsd.toFloat(),

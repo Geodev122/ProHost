@@ -81,7 +81,7 @@ fun InAppUpdateBanner(
                             text = if (updateState == UpdateState.DOWNLOADED) "Restart the app to apply the latest features and security patches." else "Download in progress: ${(downloadProgress * 100).toInt()}%",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.85f),
-                            fontSize = 12.sp
+                            fontSize = MaterialTheme.typography.labelMedium.fontSize
                         )
                     }
 
@@ -98,7 +98,7 @@ fun InAppUpdateBanner(
                             Text(
                                 text = "Restart",
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 12.sp
+                                fontSize = MaterialTheme.typography.labelMedium.fontSize
                             )
                         }
                     }

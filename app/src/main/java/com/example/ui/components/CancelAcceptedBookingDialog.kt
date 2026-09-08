@@ -47,11 +47,11 @@ fun CancelAcceptedBookingDialog(
                 }
                 Text(
                     "This ends the active booking for \"$spaceTitle\" immediately and notifies $partyLabel. There is no in-app refund or penalty — settle anything owed directly with $partyLabel.",
-                    fontSize = 12.sp,
+                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Text("Reason", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("Reason", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 220.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -70,7 +70,7 @@ fun CancelAcceptedBookingDialog(
                             ) {
                                 RadioButton(selected = selectedReason == reason, onClick = { selectedReason = reason })
                                 Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text(reason.displayName, fontSize = 13.sp)
+                                Text(reason.displayName, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                             }
                         }
                     }

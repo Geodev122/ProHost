@@ -102,7 +102,7 @@ fun SplashScreen(
             // Main Display Typography
             Text(
                 text = "ProHost",
-                fontSize = 32.sp,
+                fontSize = MaterialTheme.typography.displayLarge.fontSize,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 letterSpacing = 1.sp
@@ -138,7 +138,7 @@ fun SplashScreen(
         ) {
             Text(
                 text = "LEBANON RENTAL INFRASTRUCTURE NODE",
-                fontSize = 11.sp,
+                fontSize = MaterialTheme.typography.labelSmall.fontSize,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
                 letterSpacing = 1.5.sp

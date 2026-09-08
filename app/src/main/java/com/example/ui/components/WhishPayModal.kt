@@ -123,7 +123,7 @@ fun WhishPayModal(
                 )
                 Text(
                     text = space.title,
-                    fontSize = 13.sp,
+                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1
                 )
@@ -141,14 +141,14 @@ fun WhishPayModal(
                     ) {
                         Text(
                             text = "Monthly Subscription Fee",
-                            fontSize = 12.sp,
+                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                             fontWeight = FontWeight.SemiBold
                         )
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
                                 text = "$${String.format(Locale.US, "%.2f", currentFeeUsd)}",
-                                fontSize = 32.sp,
+                                fontSize = MaterialTheme.typography.displayLarge.fontSize,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -174,7 +174,7 @@ fun WhishPayModal(
 
                 Text(
                     text = "Select Whish Payment Instrument:",
-                    fontSize = 12.sp,
+                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.fillMaxWidth()
@@ -213,7 +213,7 @@ fun WhishPayModal(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = method.title,
-                                        fontSize = 12.sp,
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
@@ -277,7 +277,7 @@ fun WhishPayModal(
                         Icon(Icons.Default.Lock, contentDescription = null, tint = WhishBrandRed, modifier = Modifier.size(18.dp))
                         Text(
                             text = "You'll complete payment on Whish's secure checkout page. We only confirm settlement after Whish itself verifies it — this app never signs or self-reports payments.",
-                            fontSize = 11.sp,
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }

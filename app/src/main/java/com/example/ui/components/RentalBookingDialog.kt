@@ -240,7 +240,7 @@ fun RentalBookingDialog(
                         }
                         Text(
                             text = "${space.title} • ${space.district}, ${space.governorate.displayName}",
-                            fontSize = 12.sp,
+                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -265,7 +265,7 @@ fun RentalBookingDialog(
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Text("Interactive Calendar", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("Interactive Calendar", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
                             }
                         }
                     )
@@ -275,7 +275,7 @@ fun RentalBookingDialog(
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Text("Formula Wizard", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("Formula Wizard", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
                             }
                         }
                     )
@@ -371,18 +371,18 @@ fun RentalBookingDialog(
                                                     Text(
                                                         text = sub.name,
                                                         fontWeight = FontWeight.Bold,
-                                                        fontSize = 13.sp,
+                                                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
                                                         color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                                                     )
                                                     Text(
                                                         text = "Type: ${sub.type.displayName}",
-                                                        fontSize = 11.sp,
+                                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                                         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                     if (sub.amenities.isNotEmpty()) {
                                                         Text(
                                                             text = "Amenities: ${sub.amenities.joinToString()}",
-                                                            fontSize = 11.sp,
+                                                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
                                                     }
@@ -428,13 +428,13 @@ fun RentalBookingDialog(
                                                 Text(
                                                     text = strat.strategy.displayName,
                                                     fontWeight = FontWeight.Bold,
-                                                    fontSize = 13.sp,
+                                                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
                                                     color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
                                                 )
                                                 if (strat.availableHoursOrShifts.isNotBlank()) {
                                                     Text(
                                                         text = "Schedule: ${strat.availableHoursOrShifts}",
-                                                        fontSize = 11.sp,
+                                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                 }
@@ -443,7 +443,7 @@ fun RentalBookingDialog(
                                         Text(
                                             text = "$${strat.rateUsd.toInt()} USD",
                                             fontWeight = FontWeight.ExtraBold,
-                                            fontSize = 13.sp,
+                                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
                                             color = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
                                         )
                                     }
@@ -465,7 +465,7 @@ fun RentalBookingDialog(
                                 )
                                 Text(
                                     text = "${space.rentalFormulas.size} Owner Formulas Offered",
-                                    fontSize = 11.sp,
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -499,12 +499,12 @@ fun RentalBookingDialog(
                                                     Text(
                                                         text = formula.type.displayName,
                                                         fontWeight = FontWeight.Bold,
-                                                        fontSize = 13.sp,
+                                                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
                                                         color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                                                     )
                                                     Text(
                                                         text = formula.scheduleDescription,
-                                                        fontSize = 11.sp,
+                                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                                         color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                 }
@@ -513,7 +513,7 @@ fun RentalBookingDialog(
                                             Text(
                                                 text = "$${formula.rateUsd.toInt()} USD/mo",
                                                 fontWeight = FontWeight.ExtraBold,
-                                                fontSize = 13.sp,
+                                                fontSize = MaterialTheme.typography.bodySmall.fontSize,
                                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                             )
                                         }
@@ -537,7 +537,7 @@ fun RentalBookingDialog(
                                                 Spacer(modifier = Modifier.width(Spacing.xs))
                                                 Text(
                                                     text = "Owner Availability: ${formula.daysOfWeek.joinToString()} • ${formula.startHour} - ${formula.endHour}",
-                                                    fontSize = 11.sp,
+                                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                                     fontWeight = FontWeight.SemiBold,
                                                     color = MaterialTheme.colorScheme.primary
                                                 )
@@ -581,7 +581,7 @@ fun RentalBookingDialog(
                                     Text(
                                         text = "The owner offers availability on: ${selectedFormula.daysOfWeek.joinToString(", ")}.\n" +
                                                "Please choose which day(s) (${selectedFormula.daysCountRequired} day(s) included in base rate) you want to rent:",
-                                        fontSize = 12.sp,
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         lineHeight = 16.sp
                                     )
@@ -610,7 +610,7 @@ fun RentalBookingDialog(
                                                 label = {
                                                     Text(
                                                         text = day,
-                                                        fontSize = 11.sp,
+                                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                                     )
                                                 },
@@ -635,7 +635,7 @@ fun RentalBookingDialog(
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Text(
                                                 text = "Your Chosen Practice Days: ${chosenDaysForDayPerWeek.joinToString(", ")} (${selectedFormula.startHour} - ${selectedFormula.endHour})",
-                                                fontSize = 11.sp,
+                                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                                             )
@@ -647,7 +647,7 @@ fun RentalBookingDialog(
                                     Text(
                                         text = "Shift timing: ${selectedFormula.startHour} - ${selectedFormula.endHour}. Owner offers this shift on: ${selectedFormula.daysOfWeek.joinToString(", ")}.\n" +
                                                "Choose your shift preference and practice days:",
-                                        fontSize = 12.sp,
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         lineHeight = 16.sp
                                     )
@@ -680,7 +680,7 @@ fun RentalBookingDialog(
                                         }
                                     }
 
-                                    Text("Select Shift Days from Owner's Availability:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("Select Shift Days from Owner's Availability:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -701,7 +701,7 @@ fun RentalBookingDialog(
                                                         }
                                                     }
                                                 },
-                                                label = { Text(day, fontSize = 11.sp) },
+                                                label = { Text(day, fontSize = MaterialTheme.typography.labelSmall.fontSize) },
                                                 modifier = Modifier.weight(1f)
                                             )
                                         }
@@ -712,7 +712,7 @@ fun RentalBookingDialog(
                                     Text(
                                         text = "Hourly Booking: Space open from ${selectedFormula.startHour} to ${selectedFormula.endHour} on: ${selectedFormula.daysOfWeek.joinToString(", ")}.\n" +
                                                "Choose your required days & precise practice hours:",
-                                        fontSize = 12.sp,
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         lineHeight = 16.sp
                                     )
@@ -737,7 +737,7 @@ fun RentalBookingDialog(
                                         )
                                     }
 
-                                    Text("Select practice days:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("Select practice days:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -758,7 +758,7 @@ fun RentalBookingDialog(
                                                         }
                                                     }
                                                 },
-                                                label = { Text(day, fontSize = 11.sp) },
+                                                label = { Text(day, fontSize = MaterialTheme.typography.labelSmall.fontSize) },
                                                 modifier = Modifier.weight(1f)
                                             )
                                         }
@@ -768,7 +768,7 @@ fun RentalBookingDialog(
                                 RentalFormulaType.FULL_MONTH -> {
                                     Text(
                                         text = "Exclusive Full-Month Access: The clinic space is reserved exclusively for your practice during all facility operating days (${space.schedule.operatingDays.joinToString(", ")}) from ${space.schedule.openingHour} to ${space.schedule.closingHour}.",
-                                        fontSize = 12.sp,
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         lineHeight = 16.sp
                                     )
@@ -793,7 +793,7 @@ fun RentalBookingDialog(
                                 FilterChip(
                                     selected = isSelected,
                                     onClick = { selectedDateOption = option },
-                                    label = { Text(option, fontSize = 12.sp) },
+                                    label = { Text(option, fontSize = MaterialTheme.typography.labelMedium.fontSize) },
                                     leadingIcon = if (isSelected) {
                                         { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
                                     } else null
@@ -842,7 +842,7 @@ fun RentalBookingDialog(
                                     ) {
                                         Text(
                                             text = "$months mo",
-                                            fontSize = 12.sp,
+                                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                             fontWeight = FontWeight.Bold,
                                             color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -891,7 +891,7 @@ fun RentalBookingDialog(
                                 Text(
                                     text = "Smart Availability & Confirmation Rule",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
+                                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                     color = StatusSuccess
                                 )
                             }
@@ -900,7 +900,7 @@ fun RentalBookingDialog(
                                 text = "• Space hours remain AVAILABLE to other professionals until the space owner accepts your request.\n" +
                                        "• Once accepted by the owner, your chosen schedule ($chosenSlotSummary) is locked exclusively for your use.\n" +
                                        "• Payment is settled directly with the space owner (Cash / Whish Money / Wire Transfer).",
-                                fontSize = 11.sp,
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                 color = StatusOnSuccessContainer,
                                 lineHeight = 16.sp
                             )
@@ -922,12 +922,12 @@ fun RentalBookingDialog(
                                 Column {
                                     Text(
                                         text = "Total Rental Agreement Value",
-                                        fontSize = 11.sp,
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                     )
                                     Text(
                                         text = "$${dynamicMonthlyRate.toInt()} USD × $selectedDurationMonths month${if (selectedDurationMonths > 1) "s" else ""}",
-                                        fontSize = 12.sp,
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                         fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
@@ -947,7 +947,7 @@ fun RentalBookingDialog(
 
                             Text(
                                 text = "📋 Selected Slot: $chosenSlotSummary",
-                                fontSize = 11.sp,
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )

@@ -1720,13 +1720,13 @@ private fun AdminSchemaArchitectureTab(
                                 text = "Category: ${item.category} • ID: ${item.id}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 11.sp
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize
                             )
                             if (item.description.isNotBlank()) {
                                 Text(
                                     text = item.description,
                                     style = MaterialTheme.typography.bodySmall,
-                                    fontSize = 11.sp
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize
                                 )
                             }
                         }
@@ -1771,7 +1771,7 @@ private fun AdminSchemaArchitectureTab(
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = FontFamily.Monospace,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp
+                        fontSize = MaterialTheme.typography.labelSmall.fontSize
                     )
                 }
             }
@@ -1854,7 +1854,7 @@ private fun AdminSecurityAuditTab(
                         Text(
                             text = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date(log.timestamp)),
                             style = MaterialTheme.typography.bodySmall,
-                            fontSize = 11.sp,
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -1952,7 +1952,7 @@ private fun AdminExportDataDialog(
                         text = content,
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = FontFamily.Monospace,
-                        fontSize = 11.sp,
+                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(scrollState)
@@ -2309,7 +2309,7 @@ private fun AdminEditListingDialog(
                         FilterChip(
                             selected = selectedSpaceType == type,
                             onClick = { selectedSpaceType = type },
-                            label = { Text(type.displayName, fontSize = 11.sp) }
+                            label = { Text(type.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                 }
@@ -2320,7 +2320,7 @@ private fun AdminEditListingDialog(
                         FilterChip(
                             selected = selectedGov == gov,
                             onClick = { selectedGov = gov },
-                            label = { Text(gov.displayName.split(" ").first(), fontSize = 11.sp) }
+                            label = { Text(gov.displayName.split(" ").first(), fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                 }
@@ -2464,7 +2464,7 @@ private fun AdminAddSchemaItemDialog(
                         FilterChip(
                             selected = selectedCategory == catKey,
                             onClick = { selectedCategory = catKey },
-                            label = { Text(catLabel, fontSize = 11.sp) }
+                            label = { Text(catLabel, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                 }
