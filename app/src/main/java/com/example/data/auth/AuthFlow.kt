@@ -83,10 +83,20 @@ suspend fun completeVerifiedRegistration(
     )
 }
 
+private val SUPER_ADMIN_UIDS = setOf(
+    "CQoBpfpJQ3UtOinYpiKHFSRWLb22",
+    "Y3PcMu4UzsU9mW094Wa6guwAruV2"
+)
+
 private suspend fun resolveVerifiedRole(
     functionsClient: FirebaseFunctionsClient,
     firebaseUser: FirebaseUser
 ): UserRole {
+    if (SUPER_ADMIN_UIDS.contains(firebaseUser.uid)) {
+        runCatching { functionsClient.ensureInitialRole() }
+        return UserRole.ADMIN
+    }
+
     val existingClaim = FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true)
     // Always call assignInitialRole, not just when there's no claim yet — it's the only
     // place lastSignInAtMillis (and isVerified) get refreshed, and that needs to happen
