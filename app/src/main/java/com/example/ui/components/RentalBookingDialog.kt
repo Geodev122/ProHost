@@ -22,13 +22,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.R
 import com.example.data.model.*
 import com.example.ui.theme.*
+import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
 import java.text.NumberFormat
 import java.util.*
@@ -40,10 +43,10 @@ fun RentalBookingDialog(
     initialFormula: RentalFormula?,
     viewModel: ProHostViewModel,
     onDismiss: () -> Unit,
-    onRequestSubmitted: () -> Unit
+    onRequestSubmitted: () -> Unit,
+    replacesBookingId: String? = null
 ) {
     val context = LocalContext.current
-    val currentUser by viewModel.currentUser.collectAsState()
 
     val allWeekDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
@@ -146,13 +149,7 @@ fun RentalBookingDialog(
     val durationOptions = listOf(1, 2, 3, 6, 12)
     var selectedDurationMonths by remember { mutableStateOf(1) }
 
-    var clinicalNotes by remember {
-        mutableStateOf(
-            "Specialist workspace rental (${currentUser?.specialty?.ifBlank { "Specialist" } ?: "Specialist"})."
-        )
-    }
-
-    var bookingModeTab by remember { mutableStateOf(0) } // 0: Interactive Calendar & Live Availability, 1: Step-by-Step Formula Wizard
+    var clinicalNotes by remember { mutableStateOf("") }
 
     // Dynamic Financial Calculation
     val dynamicMonthlyRate = remember(selectedFormula, chosenDaysForDayPerWeek, chosenDaysForShift, chosenDaysForHourly, hourlyStartHour, hourlyEndHour) {
@@ -230,7 +227,7 @@ fun RentalBookingDialog(
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Rental Request & Booking",
+                                text = "Rental Request",
                                 fontSize = MaterialTheme.typography.headlineSmall.fontSize,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -253,86 +250,15 @@ fun RentalBookingDialog(
                     }
                 }
 
-                TabRow(
-                    selectedTabIndex = bookingModeTab,
-                    containerColor = Color.Transparent,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    divider = {}
-                ) {
-                    Tab(
-                        selected = bookingModeTab == 0,
-                        onClick = { bookingModeTab = 0 },
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Text("Interactive Calendar", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                            }
-                        }
-                    )
-                    Tab(
-                        selected = bookingModeTab == 1,
-                        onClick = { bookingModeTab = 1 },
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Text("Formula Wizard", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                            }
-                        }
-                    )
-                }
-
                 HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.sm), color = MaterialTheme.colorScheme.outlineVariant)
 
-                if (bookingModeTab == 0) {
-                    // Mode 0: Interactive Calendar with Real-time Availability & Collision Checker
-                    val spaceAcceptedBookings = viewModel.bookingRequests.collectAsState().value.filter {
-                        it.spaceId == space.id && it.status == BookingRequestStatus.ACCEPTED
-                    }
-                    WorkspaceInteractiveBookingCalendar(
-                        space = space,
-                        acceptedBookings = spaceAcceptedBookings,
-                        initialFormula = selectedFormula,
-                        onScheduleSelected = { startDate, endDate, durationMonths, selectedDays, startHour, endHour, selectedShift, totalUsd, isInstantAvailable ->
-                            val formula = selectedFormula.copy(
-                                rateUsd = totalUsd / durationMonths.coerceAtLeast(1),
-                                scheduleDescription = "Interactive Booking $selectedShift ($startHour - $endHour)",
-                                daysOfWeek = selectedDays,
-                                startHour = startHour,
-                                endHour = endHour,
-                                totalWeeklyHours = 40
-                            )
-
-                            viewModel.submitBookingRequest(
-                                space = space,
-                                formula = formula,
-                                startDate = startDate,
-                                durationMonths = durationMonths,
-                                notes = clinicalNotes,
-                                context = context,
-                                alsoOpenWhatsApp = false,
-                                selectedDays = selectedDays,
-                                selectedStartHour = startHour,
-                                selectedEndHour = endHour,
-                                selectedShift = selectedShift,
-                                calculatedTotalUsd = totalUsd,
-                                subdivisionId = selectedSubdivision?.id,
-                                subdivisionName = selectedSubdivision?.name,
-                                selectedStrategy = selectedSubStrategy?.strategy?.name
-                            )
-                            onRequestSubmitted()
-                            onDismiss()
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                } else {
-                    // Mode 1: Step-by-Step Formula Configuration
-                    // Scrollable Form Content
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
+                // Step-by-step formula configuration (scrollable form content)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     // 1. Choose Formula or Subdivision & Strategy
                     if (hasSubdivisions) {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -511,7 +437,7 @@ fun RentalBookingDialog(
                                             }
 
                                             Text(
-                                                text = "$${formula.rateUsd.toInt()} USD/mo",
+                                                text = "$${formula.rateUsd.toInt()} USD${SpaceCalculationUtils.rateUnitLabel(formula.type)}",
                                                 fontWeight = FontWeight.ExtraBold,
                                                 fontSize = MaterialTheme.typography.bodySmall.fontSize,
                                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
@@ -609,8 +535,8 @@ fun RentalBookingDialog(
                                                 },
                                                 label = {
                                                     Text(
-                                                        text = day,
-                                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                        text = day.take(1),
+                                                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                                     )
                                                 },
@@ -701,7 +627,7 @@ fun RentalBookingDialog(
                                                         }
                                                     }
                                                 },
-                                                label = { Text(day, fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+                                                label = { Text(day.take(1), fontSize = MaterialTheme.typography.bodyMedium.fontSize) },
                                                 modifier = Modifier.weight(1f)
                                             )
                                         }
@@ -758,7 +684,7 @@ fun RentalBookingDialog(
                                                         }
                                                     }
                                                 },
-                                                label = { Text(day, fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+                                                label = { Text(day.take(1), fontSize = MaterialTheme.typography.bodyMedium.fontSize) },
                                                 modifier = Modifier.weight(1f)
                                             )
                                         }
@@ -855,7 +781,7 @@ fun RentalBookingDialog(
                     // 5. Notes & Scope
                     Column {
                         Text(
-                            text = "5. Specialist Requirements & Notes",
+                            text = "5. Requirements & Notes",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -865,7 +791,8 @@ fun RentalBookingDialog(
                         InputField(
                             value = clinicalNotes,
                             onValueChange = { clinicalNotes = it },
-                            label = "Intended use, team size & special equipment needed",
+                            label = "",
+                            placeholder = "Intended use, team size & special equipment needed...",
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = false,
                             maxLines = 4
@@ -921,12 +848,12 @@ fun RentalBookingDialog(
                             ) {
                                 Column {
                                     Text(
-                                        text = "Total Rental Agreement Value",
+                                        text = "To pay per month",
                                         fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                     )
                                     Text(
-                                        text = "$${dynamicMonthlyRate.toInt()} USD × $selectedDurationMonths month${if (selectedDurationMonths > 1) "s" else ""}",
+                                        text = "Based on your selection above",
                                         fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                         fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -935,12 +862,29 @@ fun RentalBookingDialog(
 
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
-                                        text = "$${totalCalculatedUsd.toInt()} USD",
+                                        text = "$${dynamicMonthlyRate.toInt()} USD/mo",
                                         fontSize = 20.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                 }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Full term ($selectedDurationMonths month${if (selectedDurationMonths > 1) "s" else ""})",
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                                Text(
+                                    text = "$${totalCalculatedUsd.toInt()} USD",
+                                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
                             }
 
                             HorizontalDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
@@ -982,7 +926,7 @@ fun RentalBookingDialog(
 
                     // In-App Only Request Button
                     ProOutlinedButton(
-                        text = "In-App Request",
+                        text = "Request",
                         onClick = {
                             viewModel.submitBookingRequest(
                                 space = space,
@@ -999,18 +943,20 @@ fun RentalBookingDialog(
                                 calculatedTotalUsd = totalCalculatedUsd,
                                 subdivisionId = selectedSubdivision?.id,
                                 subdivisionName = selectedSubdivision?.name,
-                                selectedStrategy = selectedSubStrategy?.strategy?.name
+                                selectedStrategy = selectedSubStrategy?.strategy?.name,
+                                replacesBookingId = replacesBookingId
                             )
                             onRequestSubmitted()
                             onDismiss()
                         },
                         icon = Icons.AutoMirrored.Filled.Send,
+                        compact = true,
                         modifier = Modifier.weight(1f)
                     )
 
                     // Request + WhatsApp Connect Button
                     CustomButton(
-                        text = "Send & WhatsApp",
+                        text = "Request and contact",
                         onClick = {
                             viewModel.submitBookingRequest(
                                 space = space,
@@ -1027,17 +973,18 @@ fun RentalBookingDialog(
                                 calculatedTotalUsd = totalCalculatedUsd,
                                 subdivisionId = selectedSubdivision?.id,
                                 subdivisionName = selectedSubdivision?.name,
-                                selectedStrategy = selectedSubStrategy?.strategy?.name
+                                selectedStrategy = selectedSubStrategy?.strategy?.name,
+                                replacesBookingId = replacesBookingId
                             )
                             onRequestSubmitted()
                             onDismiss()
                         },
                         variant = CustomButtonVariant.WHATSAPP,
-                        icon = Icons.AutoMirrored.Filled.Chat,
+                        iconPainter = painterResource(id = R.drawable.ic_whatsapp),
+                        compact = true,
                         modifier = Modifier.weight(1.3f)
                     )
                 }
-            }
         }
     }
 }

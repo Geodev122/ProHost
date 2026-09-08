@@ -98,17 +98,22 @@ fun WeeklyAvailabilityMatrix(
                         )
                     }
                 }
-                Surface(
-                    color = if (isFullMonthBooked) StatusErrorContainer else StatusSuccessContainer,
-                    shape = MaterialTheme.shapes.small
-                ) {
-                    Text(
-                        text = if (isFullMonthBooked) "Fully Occupied" else "Multi-Tenant Active",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isFullMonthBooked) StatusOnErrorContainer else StatusOnSuccessContainer,
-                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-                    )
+                // Only the "fully occupied" state carries information worth a badge;
+                // the other case is just "some slots are free", which the heatmap
+                // below already shows.
+                if (isFullMonthBooked) {
+                    Surface(
+                        color = StatusErrorContainer,
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text(
+                            text = "Fully Occupied",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = StatusOnErrorContainer,
+                            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                        )
+                    }
                 }
             }
 

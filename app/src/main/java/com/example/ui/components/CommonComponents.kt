@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -383,10 +384,15 @@ fun ProCurrencyTag(
     usdAmount: Double = 0.0,
     rateUsd: Double = usdAmount,
     isPerMonth: Boolean = true,
+    // Overrides the isPerMonth boolean when supplied, so a rate can be labelled
+    // with the unit it was actually entered in ("/hr" for hourly formulas) rather
+    // than being stamped "/mo" regardless of type. See rateUnitLabel().
+    unitLabel: String? = null,
     exchangeRateLbp: Long = 89500L, // Kept for backwards signature compatibility
     modifier: Modifier = Modifier
 ) {
     val finalUsd = if (usdAmount > 0.0) usdAmount else rateUsd
+    val suffix = unitLabel ?: if (isPerMonth) "/mo" else ""
 
     Surface(
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
@@ -399,7 +405,7 @@ fun ProCurrencyTag(
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = "$${finalUsd.toInt()} USD${if (isPerMonth) "/mo" else ""}",
+                text = "$${finalUsd.toInt()} USD$suffix",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.primary
@@ -632,14 +638,26 @@ fun CustomButton(
     modifier: Modifier = Modifier,
     variant: CustomButtonVariant = CustomButtonVariant.PRIMARY,
     icon: ImageVector? = null,
+    // For brand marks that only exist as drawables (e.g. the WhatsApp glyph),
+    // which can't be expressed as an ImageVector from the Material icon set.
+    // Takes precedence over [icon] when both are supplied.
+    iconPainter: Painter? = null,
     trailingIcon: ImageVector? = null,
     enabled: Boolean = true,
     isLoading: Boolean = false,
+    // Tightens padding and drops the icon/label a step, for buttons that have to
+    // sit two-to-a-row on narrow screens.
+    compact: Boolean = false,
     customContainerColor: Color? = null,
     customContentColor: Color? = null,
     shape: CornerBasedShape = MaterialTheme.shapes.medium,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
+    contentPadding: PaddingValues = if (compact) {
+        PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+    } else {
+        PaddingValues(horizontal = 20.dp, vertical = 12.dp)
+    }
 ) {
+    val minHeight = if (compact) 40.dp else 48.dp
     val containerColor = customContainerColor ?: when (variant) {
         CustomButtonVariant.PRIMARY -> CarnationOrange
         CustomButtonVariant.SECONDARY -> CoolGray
@@ -666,7 +684,7 @@ fun CustomButton(
         CustomButtonVariant.OUTLINED -> {
             OutlinedButton(
                 onClick = onClick,
-                modifier = modifier.defaultMinSize(minHeight = 48.dp),
+                modifier = modifier.defaultMinSize(minHeight = minHeight),
                 enabled = enabled && !isLoading,
                 shape = shape,
                 border = BorderStroke(1.dp, if (enabled) (customContainerColor ?: OxfordBlue) else LightGray),
@@ -676,13 +694,13 @@ fun CustomButton(
                 ),
                 contentPadding = contentPadding
             ) {
-                ButtonInnerContent(text, icon, trailingIcon, isLoading, contentColor)
+                ButtonInnerContent(text, icon, iconPainter, trailingIcon, isLoading, contentColor, compact)
             }
         }
         CustomButtonVariant.TEXT -> {
             TextButton(
                 onClick = onClick,
-                modifier = modifier.defaultMinSize(minHeight = 48.dp),
+                modifier = modifier.defaultMinSize(minHeight = minHeight),
                 enabled = enabled && !isLoading,
                 shape = shape,
                 colors = ButtonDefaults.textButtonColors(
@@ -691,13 +709,13 @@ fun CustomButton(
                 ),
                 contentPadding = contentPadding
             ) {
-                ButtonInnerContent(text, icon, trailingIcon, isLoading, contentColor)
+                ButtonInnerContent(text, icon, iconPainter, trailingIcon, isLoading, contentColor, compact)
             }
         }
         else -> {
             Button(
                 onClick = onClick,
-                modifier = modifier.defaultMinSize(minHeight = 48.dp),
+                modifier = modifier.defaultMinSize(minHeight = minHeight),
                 enabled = enabled && !isLoading,
                 shape = shape,
                 colors = ButtonDefaults.buttonColors(
@@ -712,7 +730,7 @@ fun CustomButton(
                 ),
                 contentPadding = contentPadding
             ) {
-                ButtonInnerContent(text, icon, trailingIcon, isLoading, contentColor)
+                ButtonInnerContent(text, icon, iconPainter, trailingIcon, isLoading, contentColor, compact)
             }
         }
     }
@@ -722,36 +740,50 @@ fun CustomButton(
 private fun ButtonInnerContent(
     text: String,
     icon: ImageVector?,
+    iconPainter: Painter?,
     trailingIcon: ImageVector?,
     isLoading: Boolean,
-    contentColor: Color
+    contentColor: Color,
+    compact: Boolean
 ) {
+    val iconSize = if (compact) 14.dp else 18.dp
+    val gap = if (compact) Spacing.xs else Spacing.sm
+
     if (isLoading) {
         CircularProgressIndicator(
             color = contentColor,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(iconSize),
             strokeWidth = 2.dp
         )
-        Spacer(modifier = Modifier.width(Spacing.sm))
+        Spacer(modifier = Modifier.width(gap))
+    } else if (iconPainter != null) {
+        Icon(
+            painter = iconPainter,
+            contentDescription = null,
+            modifier = Modifier.size(iconSize)
+        )
+        Spacer(modifier = Modifier.width(gap))
     } else if (icon != null) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(iconSize)
         )
-        Spacer(modifier = Modifier.width(Spacing.sm))
+        Spacer(modifier = Modifier.width(gap))
     }
     Text(
         text = text,
-        style = MaterialTheme.typography.labelLarge,
-        fontWeight = FontWeight.Bold
+        style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.Bold,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
     )
     if (!isLoading && trailingIcon != null) {
-        Spacer(modifier = Modifier.width(Spacing.sm))
+        Spacer(modifier = Modifier.width(gap))
         Icon(
             imageVector = trailingIcon,
             contentDescription = null,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(iconSize)
         )
     }
 }
@@ -795,6 +827,7 @@ fun ProOutlinedButton(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     enabled: Boolean = true,
+    compact: Boolean = false,
     borderColor: Color = OxfordBlue,
     contentColor: Color = OxfordBlue,
     shape: CornerBasedShape = MaterialTheme.shapes.medium
@@ -802,6 +835,7 @@ fun ProOutlinedButton(
     CustomButton(
         text = text,
         onClick = onClick,
+        compact = compact,
         modifier = modifier,
         variant = CustomButtonVariant.OUTLINED,
         icon = icon,
@@ -846,7 +880,9 @@ fun InputField(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            label = { Text(label, style = MaterialTheme.typography.bodyMedium) },
+            // A blank label renders no label at all, so a placeholder-only field
+            // isn't left with an empty notch cut into its outline.
+            label = if (label.isNotBlank()) { { Text(label, style = MaterialTheme.typography.bodyMedium) } } else null,
             placeholder = if (placeholder != null) { { Text(placeholder, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) } } else null,
             prefix = if (prefix != null) { { Text(prefix, style = MaterialTheme.typography.bodyMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold) } } else null,
             leadingIcon = if (leadingIcon != null) {

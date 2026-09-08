@@ -216,21 +216,24 @@ fun OwnerHubScreen(
             currentUser = currentUser,
             onDismiss = { showCreateListingDialog = false },
             onListingCreated = { newListing ->
-                val success = viewModel.createNewSpaceListing(newListing)
-                if (success) {
-                    showCreateListingDialog = false
-                    android.widget.Toast.makeText(context, "Workspace listing published successfully!", android.widget.Toast.LENGTH_SHORT).show()
-                    // Straight into the real Availability & Formula Control editor
-                    // (same one used to manage an existing listing) so the host sets
-                    // operating hours, blackout slots, and any additional formulas
-                    // right after publishing.
-                    selectedSpaceForSchedule = newListing
-                } else {
-                    android.widget.Toast.makeText(
-                        context,
-                        "Package Limit Reached. Please upgrade your package tier in Subscription & Packages.",
-                        android.widget.Toast.LENGTH_LONG
-                    ).show()
+                coroutineScope.launch {
+                    val success = viewModel.createNewSpaceListing(newListing)
+                    if (success) {
+                        showCreateListingDialog = false
+                        android.widget.Toast.makeText(context, "Workspace listing published successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                        // Straight into the real Availability Control editor (same one
+                        // used to manage an existing listing) so the host sets operating
+                        // hours, blackout slots, and any additional formulas right after
+                        // publishing. Only reached once the listing is really persisted,
+                        // since every save in that editor looks the space up first.
+                        selectedSpaceForSchedule = newListing
+                    } else {
+                        android.widget.Toast.makeText(
+                            context,
+                            "Couldn't publish this listing. Check your connection, or your package limit in Subscription & Packages.",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
                 }
             }
         )

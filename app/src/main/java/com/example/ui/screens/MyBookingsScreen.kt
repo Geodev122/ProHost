@@ -471,112 +471,30 @@ fun MyBookingsScreen(
         }
     }
 
-    // Re-booking Dialog with Interactive Calendar
+    // Re-booking dialog — reuses the standard Rental Request flow so a re-book
+    // is configured exactly the way a first booking is.
     if (rebookTargetSpace != null) {
         val targetSpace = rebookTargetSpace!!
         val sourceBooking = rebookSourceBooking
-        val spaceAcceptedBookings = allBookingRequests.filter { it.spaceId == targetSpace.id && it.status == BookingRequestStatus.ACCEPTED }
 
-        Dialog(
-            onDismissRequest = {
+        RentalBookingDialog(
+            space = targetSpace,
+            initialFormula = sourceBooking?.formula,
+            viewModel = viewModel,
+            onDismiss = {
                 rebookTargetSpace = null
                 rebookSourceBooking = null
             },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
-        ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth(0.95f)
-                    .fillMaxHeight(0.92f)
-                    .clip(MaterialTheme.shapes.extraLarge),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    // Dialog Header
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Repeat, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                Spacer(modifier = Modifier.width(Spacing.sm))
-                                Text(
-                                    text = "Re-book / Extend Workspace",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            Text(
-                                text = "Re-booking: ${targetSpace.title} • ${targetSpace.district}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        IconButton(
-                            onClick = {
-                                rebookTargetSpace = null
-                                rebookSourceBooking = null
-                            }
-                        ) {
-                            Icon(Icons.Default.Close, contentDescription = "Close")
-                        }
-                    }
-
-                    // Interactive Calendar Embedded inside Re-booking
-                    WorkspaceInteractiveBookingCalendar(
-                        space = targetSpace,
-                        acceptedBookings = spaceAcceptedBookings,
-                        initialFormula = sourceBooking?.formula,
-                        onScheduleSelected = { startDate, endDate, durationMonths, selectedDays, startHour, endHour, selectedShift, totalUsd, isInstantAvailable ->
-                            val formula = sourceBooking?.formula ?: targetSpace.rentalFormulas.firstOrNull() ?: RentalFormula(
-                                type = RentalFormulaType.FULL_MONTH,
-                                rateUsd = totalUsd / durationMonths.coerceAtLeast(1),
-                                scheduleDescription = "Re-booked $selectedShift ($startHour - $endHour)",
-                                daysOfWeek = selectedDays,
-                                startHour = startHour,
-                                endHour = endHour,
-                                totalWeeklyHours = 40
-                            )
-
-                            val created = viewModel.submitBookingRequest(
-                                space = targetSpace,
-                                formula = formula,
-                                startDate = startDate,
-                                durationMonths = durationMonths,
-                                notes = "Re-booking reservation renewal. Previous Ref #${sourceBooking?.id ?: "N/A"}. Licensed practitioner.",
-                                context = context,
-                                alsoOpenWhatsApp = false,
-                                selectedDays = selectedDays,
-                                selectedStartHour = startHour,
-                                selectedEndHour = endHour,
-                                selectedShift = selectedShift,
-                                calculatedTotalUsd = totalUsd
-                            )
-
-                            if (created != null) {
-                                rebookTargetSpace = null
-                                rebookSourceBooking = null
-                                Toast.makeText(context, "Re-booking Request #${created.id} submitted successfully!", Toast.LENGTH_LONG).show()
-                            }
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+            // submitBookingRequest already confirms the request by toast, so this
+            // just closes the dialog.
+            onRequestSubmitted = {
+                rebookTargetSpace = null
+                rebookSourceBooking = null
             }
-        }
+        )
     }
 
-    // Edit Active Booking Dialog with Interactive Calendar — pre-seeded with the
+    // Edit Active Booking dialog — the same Rental Request flow, pre-seeded with the
     // current accepted formula, submitted as a new PENDING request referencing the
     // booking it would replace. If the host accepts it, ProHostRepository.acceptBookingRequest
     // releases the old booking and this one takes its place; availability is always
@@ -584,106 +502,23 @@ fun MyBookingsScreen(
     if (editTargetSpace != null) {
         val targetSpace = editTargetSpace!!
         val sourceBooking = editSourceBooking
-        val spaceAcceptedBookings = allBookingRequests.filter {
-            it.spaceId == targetSpace.id && it.status == BookingRequestStatus.ACCEPTED && it.id != sourceBooking?.id
-        }
 
-        Dialog(
-            onDismissRequest = {
+        RentalBookingDialog(
+            space = targetSpace,
+            initialFormula = sourceBooking?.formula,
+            viewModel = viewModel,
+            replacesBookingId = sourceBooking?.id,
+            onDismiss = {
                 editTargetSpace = null
                 editSourceBooking = null
             },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
-        ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth(0.95f)
-                    .fillMaxHeight(0.92f)
-                    .clip(MaterialTheme.shapes.extraLarge),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.EditCalendar, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                Spacer(modifier = Modifier.width(Spacing.sm))
-                                Text(
-                                    text = "Edit Active Booking",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            Text(
-                                text = "Editing: ${targetSpace.title} • ${targetSpace.district} — submitted for host approval, replaces your current booking once accepted",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        IconButton(
-                            onClick = {
-                                editTargetSpace = null
-                                editSourceBooking = null
-                            }
-                        ) {
-                            Icon(Icons.Default.Close, contentDescription = "Close")
-                        }
-                    }
-
-                    WorkspaceInteractiveBookingCalendar(
-                        space = targetSpace,
-                        acceptedBookings = spaceAcceptedBookings,
-                        initialFormula = sourceBooking?.formula,
-                        onScheduleSelected = { startDate, endDate, durationMonths, selectedDays, startHour, endHour, selectedShift, totalUsd, isInstantAvailable ->
-                            val formula = sourceBooking?.formula ?: targetSpace.rentalFormulas.firstOrNull() ?: RentalFormula(
-                                type = RentalFormulaType.FULL_MONTH,
-                                rateUsd = totalUsd / durationMonths.coerceAtLeast(1),
-                                scheduleDescription = "Edited $selectedShift ($startHour - $endHour)",
-                                daysOfWeek = selectedDays,
-                                startHour = startHour,
-                                endHour = endHour,
-                                totalWeeklyHours = 40
-                            )
-
-                            val created = viewModel.submitBookingRequest(
-                                space = targetSpace,
-                                formula = formula,
-                                startDate = startDate,
-                                durationMonths = durationMonths,
-                                notes = "Edit request for accepted booking #${sourceBooking?.id ?: "N/A"} — replaces it if approved.",
-                                context = context,
-                                alsoOpenWhatsApp = false,
-                                selectedDays = selectedDays,
-                                selectedStartHour = startHour,
-                                selectedEndHour = endHour,
-                                selectedShift = selectedShift,
-                                calculatedTotalUsd = totalUsd,
-                                replacesBookingId = sourceBooking?.id
-                            )
-
-                            if (created != null) {
-                                editTargetSpace = null
-                                editSourceBooking = null
-                                Toast.makeText(context, "Edit Request #${created.id} submitted — awaiting host approval.", Toast.LENGTH_LONG).show()
-                            }
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+            // submitBookingRequest already confirms the request by toast, so this
+            // just closes the dialog.
+            onRequestSubmitted = {
+                editTargetSpace = null
+                editSourceBooking = null
             }
-        }
+        )
     }
 
     // Cancel Accepted Booking Dialog — early termination, previously not possible

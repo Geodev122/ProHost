@@ -188,7 +188,7 @@ class ProHostViewModel(
     // signed leasing agreement uploaded to Storage, not a payment flag.
 
     // --- Space Owner Listing Creation ---
-    fun createNewSpaceListing(listing: SpaceListing): Boolean {
+    suspend fun createNewSpaceListing(listing: SpaceListing): Boolean {
         val user = currentUser.value
         val tier = user?.ownerPackageTier ?: OwnerPackageTier.PAY_AS_YOU_GO
         val ownerSpaces = spaces.value.filter { it.ownerId == listing.ownerId || it.ownerEmail.equals(listing.ownerEmail, ignoreCase = true) }
@@ -202,8 +202,9 @@ class ProHostViewModel(
             return false
         }
 
-        repository.addSpaceListing(listing)
-        return true
+        // Reports the real Firestore result now — this used to return an
+        // unconditional true for a listing that was never actually persisted.
+        return repository.addSpaceListing(listing)
     }
 
     // An owner had no in-app way to correct a mistake in, or take down, their own
@@ -514,8 +515,9 @@ class ProHostViewModel(
 
     // --- Schedule & Blackout Management ---
     fun addBlackoutSlot(spaceId: String, dayOfWeek: String, startTime: String, endTime: String, reason: String, context: Context) {
+        // Id left to BlackoutSlot's own UUID default: the availability editor can
+        // now create one slot per hour, and a 3-digit random id would collide.
         val slot = BlackoutSlot(
-            id = "BLK-" + (100..999).random(),
             dayOfWeek = dayOfWeek,
             startTime = startTime,
             endTime = endTime,
@@ -525,7 +527,7 @@ class ProHostViewModel(
             val success = repository.addBlackoutSlot(spaceId, slot)
             Toast.makeText(
                 context,
-                if (success) "Blackout hour added: $dayOfWeek ($startTime - $endTime)" else "Failed to add blackout hour — please try again",
+                if (success) "$dayOfWeek $startTime - $endTime is no longer offered" else "Couldn't switch that slot off — please try again",
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -536,7 +538,7 @@ class ProHostViewModel(
             val success = repository.removeBlackoutSlot(spaceId, slotId)
             Toast.makeText(
                 context,
-                if (success) "Blackout slot removed" else "Failed to remove blackout slot — please try again",
+                if (success) "Slot is back on offer" else "Couldn't switch that slot on — please try again",
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -550,7 +552,13 @@ class ProHostViewModel(
         isSundayOperating: Boolean,
         context: Context
     ) {
-        val currentSpace = spaces.value.find { it.id == spaceId } ?: return
+        // Used to return silently here, so a missing space produced no feedback at
+        // all — indistinguishable from the button doing nothing.
+        val currentSpace = spaces.value.find { it.id == spaceId }
+        if (currentSpace == null) {
+            Toast.makeText(context, "Couldn't load this listing — reopen it and try again", Toast.LENGTH_SHORT).show()
+            return
+        }
         val updatedSchedule = currentSpace.schedule.copy(
             openingHour = openingHour,
             closingHour = closingHour,

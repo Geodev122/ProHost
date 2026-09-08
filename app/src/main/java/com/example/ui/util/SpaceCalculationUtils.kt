@@ -9,6 +9,23 @@ import com.example.data.model.*
 object SpaceCalculationUtils {
 
     /**
+     * The unit a formula's [RentalFormula.rateUsd] is actually denominated in, so a
+     * rate can be labelled honestly instead of being stamped "/mo" regardless of type.
+     *
+     * This mirrors what the host is asked to enter in SpaceScheduleEditorDialog's
+     * formula builder: HOURLY collects "Rate ($ USD / hour)", while SHIFT,
+     * DAY_PER_WEEK and FULL_MONTH all collect a monthly figure ("Rate ($ USD/mo)" /
+     * "Monthly Rate ($ USD)"). Deriving a per-shift or per-day number from the
+     * monthly one would be inventing a figure the host never set.
+     */
+    fun rateUnitLabel(type: RentalFormulaType): String = when (type) {
+        RentalFormulaType.HOURLY -> "/hr"
+        RentalFormulaType.SHIFT,
+        RentalFormulaType.DAY_PER_WEEK,
+        RentalFormulaType.FULL_MONTH -> "/mo"
+    }
+
+    /**
      * Computes the total price in USD based on selected formula, hours, days, duration, or subdivision strategy.
      */
     fun calculateTotalRentalPrice(
