@@ -175,9 +175,9 @@ class FirebaseAuthService(private val context: Context) {
             m.contains("session-expired", ignoreCase = true) || m.contains("code-expired", ignoreCase = true) ->
                 "This code has expired — request a new one."
             m.contains("invalid", ignoreCase = true) && m.contains("phone", ignoreCase = true) ->
-                "The phone number format is invalid. Please check the country dial code and number."
+                "That phone number doesn't look valid — check the country code and number."
             m.contains("too-many-requests", ignoreCase = true) || m.contains("quota", ignoreCase = true) ->
-                "Too many SMS requests. Please wait a few minutes or test with a registered test phone number."
+                "Too many attempts right now. Please wait a bit and try again."
             m.contains("network", ignoreCase = true) ->
                 "Network connection error. Check your internet access and try again."
             m.contains("app-not-authorized", ignoreCase = true) ||
@@ -186,10 +186,9 @@ class FirebaseAuthService(private val context: Context) {
                 m.contains("play integrity", ignoreCase = true) ||
                 m.contains("blocked-by-firebase", ignoreCase = true) ||
                 m.contains("app-verification", ignoreCase = true) ->
-                "App verification failed. Ensure your SHA fingerprint and package name are registered in Firebase Console, or use a test phone number."
+                "We couldn't verify your phone number right now. Please try again in a moment, or contact support if this keeps happening."
             m.contains("credential-already-in-use", ignoreCase = true) ->
                 "This phone number is already registered to a different account."
-            m.isNotBlank() -> m
             else ->
                 "We couldn't verify your phone number right now. Please try again."
         }
