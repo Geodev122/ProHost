@@ -10,7 +10,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -22,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -45,7 +43,6 @@ import kotlinx.coroutines.launch
 fun SpecialistProfileScreen(
     viewModel: ProHostViewModel,
     inAppUpdateManager: InAppUpdateManager? = null,
-    onSignOut: () -> Unit = {},
     onNavigateToTab: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -73,21 +70,6 @@ fun SpecialistProfileScreen(
     var governorateArea by remember(user) { mutableStateOf(user.governorate) }
     var city by remember(user) { mutableStateOf(user.city) }
 
-    var showSignOutConfirmDialog by remember { mutableStateOf(false) }
-
-    // Role-specific theme accents
-    val primaryAccent = when (user.role) {
-        UserRole.ADMIN -> AmberWarning
-        UserRole.PRO_HOST -> CarnationOrange
-        UserRole.SPECIALIST -> OxfordBlue
-    }
-
-    val heroGradient = when (user.role) {
-        UserRole.ADMIN -> Brush.linearGradient(listOf(OxfordBlueDark, OxfordBlue, CoolGrayDark))
-        UserRole.PRO_HOST -> Brush.linearGradient(listOf(OxfordBlue, CarnationOrangeDark.copy(alpha = 0.85f), OxfordBlueDark))
-        UserRole.SPECIALIST -> Brush.linearGradient(listOf(OxfordBlueDark, OxfordBlue, VibrantBlue.copy(alpha = 0.7f)))
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -104,227 +86,109 @@ fun SpecialistProfileScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // =========================================================================
-            // 1. HERO PROFILE IDENTITY HEADER CARD (ROLE-TAILORED)
+            // 1. WELCOME BOX WITH REAL, LATEST-UPDATE-DRIVEN STATUS (SPECIALIST)
             // =========================================================================
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(6.dp, MaterialTheme.shapes.extraLarge),
-                shape = MaterialTheme.shapes.extraLarge,
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(heroGradient)
-                        .padding(20.dp)
+            // The identity card + Sign Out action that used to live here moved to the
+            // side drawer (DrawerIdentityCard) — every role now sees it there instead
+            // of duplicated in a different visual style on this page.
+            if (user.role == UserRole.SPECIALIST) {
+                val fcmAlertsForWelcome by viewModel.fcmAlerts.collectAsState()
+                val bookingsForWelcome by viewModel.practitionerBookings.collectAsState()
+
+                val dateFormat = remember { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US) }
+                fun daysUntil(dateStr: String): Long? {
+                    if (dateStr.isBlank()) return null
+                    return try {
+                        val target = dateFormat.parse(dateStr) ?: return null
+                        val diffMs = target.time - System.currentTimeMillis()
+                        diffMs / (24 * 60 * 60 * 1000)
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+
+                val latestRelevantAlert = fcmAlertsForWelcome
+                    .filter { !it.isRead && (it.category == "BOOKING_ACCEPTANCE" || it.category == "PAYMENT_REMINDER") }
+                    .maxByOrNull { it.timestamp }
+
+                val nearestUpcomingBooking = bookingsForWelcome
+                    .filter { it.status == BookingRequestStatus.ACCEPTED }
+                    .mapNotNull { booking -> daysUntil(booking.startDate)?.let { booking to it } }
+                    .filter { it.second >= 0 }
+                    .minByOrNull { it.second }
+
+                val pendingCount = bookingsForWelcome.count { it.status == BookingRequestStatus.PENDING }
+
+                val updateLine: String = when {
+                    latestRelevantAlert != null -> latestRelevantAlert.body.ifBlank { latestRelevantAlert.title }
+                    nearestUpcomingBooking != null -> {
+                        val (booking, days) = nearestUpcomingBooking
+                        when {
+                            days == 0L -> "Your booking at ${booking.spaceTitle} starts today."
+                            days == 1L -> "Your booking at ${booking.spaceTitle} starts tomorrow."
+                            else -> "Your booking at ${booking.spaceTitle} starts in $days days."
+                        }
+                    }
+                    pendingCount > 0 -> "$pendingCount request${if (pendingCount != 1) "s" else ""} awaiting host response."
+                    else -> "No updates right now — explore available workspaces."
+                }
+
+                ProSurfaceCard(
+                    modifier = Modifier.shadow(4.dp, MaterialTheme.shapes.extraLarge),
+                    shape = MaterialTheme.shapes.extraLarge,
+                    contentPadding = PaddingValues(Spacing.lg)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        // Top row: Role Pill + Sign Out
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                color = when (user.role) {
-                                    UserRole.ADMIN -> AmberWarning.copy(alpha = 0.25f)
-                                    UserRole.PRO_HOST -> CarnationOrange.copy(alpha = 0.25f)
-                                    UserRole.SPECIALIST -> VibrantBlue.copy(alpha = 0.25f)
-                                },
-                                shape = MaterialTheme.shapes.medium,
-                                border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.6f))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = when (user.role) {
-                                            UserRole.ADMIN -> Icons.Default.Shield
-                                            UserRole.PRO_HOST -> Icons.Default.HomeWork
-                                            UserRole.SPECIALIST -> Icons.Default.VerifiedUser
-                                        },
-                                        contentDescription = null,
-                                        tint = when (user.role) {
-                                            UserRole.ADMIN -> AmberWarning
-                                            UserRole.PRO_HOST -> CarnationOrangeLight
-                                            UserRole.SPECIALIST -> Color.White
-                                        },
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = when (user.role) {
-                                            UserRole.ADMIN -> "Super Administrator Node"
-                                            UserRole.PRO_HOST -> "Verified Space Host"
-                                            UserRole.SPECIALIST -> "Practitioner / Specialist"
-                                        },
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                }
-                            }
-
-                            FilledTonalButton(
-                                onClick = { showSignOutConfirmDialog = true },
-                                colors = ButtonDefaults.filledTonalButtonColors(
-                                    containerColor = Color.White.copy(alpha = 0.15f),
-                                    contentColor = Color.White
-                                ),
-                                shape = MaterialTheme.shapes.medium,
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("Sign Out", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
-                            }
-                        }
-
-                        // Middle row: Avatar + Name + Credentials
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            // Avatar with glowing ring
-                            Box(modifier = Modifier.size(64.dp)) {
-                                Surface(
-                                    color = primaryAccent,
-                                    shape = CircleShape,
-                                    modifier = Modifier.fillMaxSize(),
-                                    border = BorderStroke(2.5.dp, Color.White.copy(alpha = 0.9f))
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = user.fullName.split(" ")
-                                                .filter { it.isNotBlank() }
-                                                .take(2)
-                                                .mapNotNull { it.firstOrNull()?.uppercase() }
-                                                .joinToString("")
-                                                .ifEmpty { "PS" },
-                                            color = Color.White,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            fontSize = MaterialTheme.typography.headlineMedium.fontSize
-                                        )
-                                    }
-                                }
-                                if (user.isVerified) {
-                                    Surface(
-                                        color = FreshGreen,
-                                        shape = CircleShape,
-                                        border = BorderStroke(2.dp, OxfordBlueDark),
-                                        modifier = Modifier
-                                            .size(22.dp)
-                                            .align(Alignment.BottomEnd)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                Icons.Default.Check,
-                                                contentDescription = "Verified",
-                                                tint = Color.White,
-                                                modifier = Modifier.size(13.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = user.fullName,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    if (user.isVerified) {
-                                        Icon(
-                                            Icons.Default.Verified,
-                                            contentDescription = "Verified Member",
-                                            tint = if (user.role == UserRole.ADMIN) AmberWarning else FreshGreen,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                }
-
-                                Text(
-                                    text = user.specialty.ifBlank { user.role.displayName },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.White.copy(alpha = 0.85f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-
-                                Spacer(modifier = Modifier.height(2.dp))
-
-                                Text(
-                                    text = user.email,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.65f),
-                                    maxLines = 1
-                                )
-                            }
+                            Icon(
+                                Icons.Default.WavingHand,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Text(
+                                text = "Welcome back, ${user.fullName}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
 
-                        HorizontalDivider(color = Color.White.copy(alpha = 0.15f))
+                        Text(
+                            text = updateLine,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
 
-                        // Bottom Meta Row: Location + Member ID + Phone-Verified Status
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            Button(
+                                onClick = { onNavigateToTab("search_map") },
+                                modifier = Modifier.weight(1f),
+                                shape = MaterialTheme.shapes.medium
                             ) {
-                                Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
-                                Text(
-                                    text = user.city.ifBlank { user.governorate.ifBlank { user.country } },
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.9f),
-                                    fontWeight = FontWeight.Medium
-                                )
+                                Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Find Space", style = MaterialTheme.typography.labelMedium)
                             }
 
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            OutlinedButton(
+                                onClick = { onNavigateToTab("pro_rentals") },
+                                modifier = Modifier.weight(1f),
+                                shape = MaterialTheme.shapes.medium
                             ) {
-                                Icon(Icons.Default.Badge, contentDescription = null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
-                                Text(
-                                    text = "ID: ${user.id.take(10)}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.9f),
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-
-                            Surface(
-                                color = Color.White.copy(alpha = 0.15f),
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                Text(
-                                    text = if (user.isVerified) "🛡️ Phone Verified" else "Phone Unverified",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
+                                Icon(Icons.Default.EventNote, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("View Rentals", style = MaterialTheme.typography.labelMedium)
                             }
                         }
                     }
                 }
             }
-
-
 
             // =========================================================================
             // 3. ROLE-SPECIFIC VITAL TELEMETRY & PERFORMANCE METRICS
@@ -502,103 +366,15 @@ fun SpecialistProfileScreen(
             }
 
             // =========================================================================
-            // 4. ROLE-TAILORED HUBS & ACCREDITATION SECTIONS
-            // =========================================================================
-
-            if (user.role == UserRole.SPECIALIST) {
-                // SPECIALIST PRACTITIONER FRIENDLY WORKSPACE HUB
-                ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        ProSectionHeader(
-                            title = "Practitioner Workspace & Booking Hub",
-                            subtitle = "Manage clinical and consulting room rentals across Lebanon with real-time availability",
-                            icon = Icons.Default.MedicalServices,
-                            trailingContent = {
-                                ProStatusBadge(
-                                    type = if (user.isVerified) ProBadgeType.CUSTOM_SUCCESS else ProBadgeType.CUSTOM_WARNING,
-                                    customText = if (user.isVerified) "Syndicate Verified" else "Verification Pending"
-                                )
-                            }
-                        )
-
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(Spacing.lg),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.VerifiedUser,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                    Column {
-                                        Text(
-                                            text = "Welcome back, ${user.fullName}",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Text(
-                                            text = listOf(user.city, user.governorate, user.country).filter { it.isNotBlank() }.joinToString(", "),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-
-                                Text(
-                                    text = "You have $activeLeasesCount active workspace leases and $pendingApplicationsCount pending applications. All bookings factor in live operating hours, accepted tenant schedules, and host blackout maintenance slots.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Button(
-                                        onClick = { onNavigateToTab("search_map") },
-                                        modifier = Modifier.weight(1f),
-                                        shape = MaterialTheme.shapes.medium
-                                    ) {
-                                        Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Find Workspaces", style = MaterialTheme.typography.labelMedium)
-                                    }
-
-                                    OutlinedButton(
-                                        onClick = { onNavigateToTab("pro_rentals") },
-                                        modifier = Modifier.weight(1f),
-                                        shape = MaterialTheme.shapes.medium
-                                    ) {
-                                        Icon(Icons.Default.EventNote, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("View Bookings", style = MaterialTheme.typography.labelMedium)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // =========================================================================
             // 5. ROLE-SPECIFIC ACTIVITY CARDS (BOOKINGS / LEASES)
             // =========================================================================
             if (user.role == UserRole.SPECIALIST) {
                 val practitionerBookings by viewModel.practitionerBookings.collectAsState()
                 val spaces by viewModel.spaces.collectAsState()
 
-                ProSurfaceCard {
+                ProSurfaceCard(
+                    modifier = Modifier.shadow(2.dp, MaterialTheme.shapes.large)
+                ) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         ProSectionHeader(
                             title = "My Rented Workspaces & Schedules",
@@ -941,35 +717,5 @@ fun SpecialistProfileScreen(
                 }
             }
         }
-    }
-
-    // =========================================================================
-    // DIALOGS: UPLOAD, PREVIEW, AND SIGN OUT CONFIRMATION
-    // =========================================================================
-
-    // Sign Out Confirmation Dialog
-    if (showSignOutConfirmDialog) {
-        AlertDialog(
-            onDismissRequest = { showSignOutConfirmDialog = false },
-            title = { Text("Sign Out of ProHost", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to sign out of your account (${user.email})?") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showSignOutConfirmDialog = false
-                        viewModel.logout()
-                        onSignOut()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = CrimsonRed)
-                ) {
-                    Text("Sign Out", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSignOutConfirmDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
     }
 }

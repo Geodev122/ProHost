@@ -3,7 +3,6 @@ package com.example.ui.components.drawer
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
@@ -55,7 +54,8 @@ fun SpecialistDrawerContent(
     currentRole: UserRole,
     activeProHostTabId: String?,
     onTabSelected: (String) -> Unit,
-    onDrawerAction: (String) -> Unit
+    onDrawerAction: (String) -> Unit,
+    onSignOut: () -> Unit
 ) {
     val isProHost = currentRole == UserRole.PRO_HOST
     Column(
@@ -64,74 +64,11 @@ fun SpecialistDrawerContent(
             .verticalScroll(rememberScrollState())
             .padding(Spacing.lg)
     ) {
-        // Header — adapts to whichever role is currently active
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            shape = MaterialTheme.shapes.large,
-            color = OxfordBlue,
-            shadowElevation = 4.dp
-        ) {
-            Column(modifier = Modifier.padding(Spacing.lg)) {
-                Surface(
-                    color = if (isProHost) FreshGreen else CarnationOrange,
-                    shape = CircleShape,
-                    modifier = Modifier.size(52.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = currentUser?.fullName?.take(1) ?: if (isProHost) "H" else "P",
-                            color = PureWhite,
-                            fontWeight = FontWeight.ExtraBold,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(Spacing.md))
-                Text(
-                    text = currentUser?.fullName ?: if (isProHost) "Workspace Host" else "Practitioner Member",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Black,
-                    color = PureWhite
-                )
-                Text(
-                    text = currentUser?.specialty ?: if (isProHost) "Commercial Host Node" else "Licensed Specialist",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = LightGray,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(Spacing.sm))
-                Surface(
-                    color = CoolGray.copy(alpha = 0.6f),
-                    shape = MaterialTheme.shapes.small
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        if (isProHost) {
-                            Icon(Icons.Default.Star, contentDescription = null, tint = BrightOrange, modifier = Modifier.size(13.dp))
-                            Text(
-                                text = "Premium Host Node",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = PureWhite
-                            )
-                        } else {
-                            Icon(Icons.Default.Shield, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(13.dp))
-                            Text(
-                                text = if (currentUser?.isVerified == true) "Phone Verified" else "Phone Unverified",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = PureWhite
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        DrawerIdentityCard(
+            user = currentUser,
+            onSignOut = onSignOut,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
 
         Text(
             text = "PRO HOST",
@@ -202,16 +139,29 @@ fun SpecialistDrawerContent(
                 )
             )
         } else {
-            NavigationDrawerItem(
-                label = { Text("Become a Pro Host", fontWeight = FontWeight.Bold) },
-                selected = false,
+            Surface(
                 onClick = { onTabSelected("owner_subscriptions") },
-                icon = { Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = FreshGreen) },
-                colors = NavigationDrawerItemDefaults.colors(
-                    unselectedContainerColor = FreshGreen.copy(alpha = 0.10f),
-                    unselectedTextColor = OxfordBlue
-                )
-            )
+                shape = MaterialTheme.shapes.medium,
+                color = FreshGreen,
+                shadowElevation = 3.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = PureWhite)
+                    Text(
+                        text = "Become a Pro Host",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = PureWhite,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
+                }
+            }
         }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
@@ -279,13 +229,6 @@ fun SpecialistDrawerContent(
         )
 
         NavigationDrawerItem(
-            label = { Text("App Version & Updates", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("pro_app_updates") },
-            icon = { Icon(Icons.Default.SystemUpdate, contentDescription = null, tint = VibrantBlue) }
-        )
-
-        NavigationDrawerItem(
             label = { Text("Legal (Privacy, Terms & Policies)", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { onDrawerAction("legal_documents") },
@@ -301,7 +244,8 @@ fun AdminDrawerContent(
     currentUser: AppUser?,
     activeTabId: String?,
     onTabSelected: (String) -> Unit,
-    onDrawerAction: (String) -> Unit
+    onDrawerAction: (String) -> Unit,
+    onSignOut: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -309,64 +253,11 @@ fun AdminDrawerContent(
             .verticalScroll(rememberScrollState())
             .padding(Spacing.lg)
     ) {
-        // Admin Header
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            shape = MaterialTheme.shapes.large,
-            color = OxfordBlue,
-            shadowElevation = 4.dp
-        ) {
-            Column(modifier = Modifier.padding(Spacing.lg)) {
-                Surface(
-                    color = VibrantBlue,
-                    shape = CircleShape,
-                    modifier = Modifier.size(52.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = currentUser?.fullName?.take(1) ?: "A",
-                            color = PureWhite,
-                            fontWeight = FontWeight.ExtraBold,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(Spacing.md))
-                Text(
-                    text = currentUser?.fullName ?: "Admin",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Black,
-                    color = PureWhite
-                )
-                Text(
-                    text = "Platform Super Admin Node",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = LightGray,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(Spacing.sm))
-                Surface(
-                    color = CoolGray.copy(alpha = 0.6f),
-                    shape = MaterialTheme.shapes.small
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = BrightOrange, modifier = Modifier.size(13.dp))
-                        Text(
-                            text = "Admin Access: Root Node",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = PureWhite
-                        )
-                    }
-                }
-            }
-        }
+        DrawerIdentityCard(
+            user = currentUser,
+            onSignOut = onSignOut,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
 
         Text(
             text = "CENTRAL SECURITY CORES",

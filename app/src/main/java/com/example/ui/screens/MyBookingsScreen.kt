@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -122,8 +124,22 @@ fun MyBookingsScreen(
     val totalActiveLeases = remember(userBookings) {
         userBookings.count { it.status == BookingRequestStatus.ACCEPTED }
     }
-    val totalMonthlySpendUsd = remember(userBookings) {
-        userBookings.filter { it.status == BookingRequestStatus.ACCEPTED }.sumOf { it.formula.rateUsd }
+    // Real current-calendar-month spend: sums the recurring rate of ACCEPTED
+    // bookings whose lease term (startDate through startDate + durationMonths) actually
+    // covers the current month, rather than a flat all-time sum of every accepted
+    // booking regardless of whether it's active this month.
+    val thisMonthSpendUsd = remember(userBookings) {
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        val now = Calendar.getInstance()
+        userBookings.filter { it.status == BookingRequestStatus.ACCEPTED }.sumOf { booking ->
+            try {
+                val start = Calendar.getInstance().apply { time = dateFormat.parse(booking.startDate) ?: return@sumOf 0.0 }
+                val end = (start.clone() as Calendar).apply { add(Calendar.MONTH, booking.durationMonths) }
+                if (!now.before(start) && now.before(end)) booking.formula.rateUsd else 0.0
+            } catch (e: Exception) {
+                0.0
+            }
+        }
     }
     val pendingRequestsCount = remember(userBookings) {
         userBookings.count { it.status == BookingRequestStatus.PENDING }
@@ -147,63 +163,63 @@ fun MyBookingsScreen(
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Header Title & Action
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "My Bookings & Leases",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.width(Spacing.sm))
-                            Surface(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                Text(
-                                    text = "${userBookings.size} Total",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-                                )
-                            }
-                        }
+                // Header Title
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "${currentUser?.fullName ?: "Licensed Member"} • ${currentUser?.specialty ?: "Practitioner"}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "My Bookings & Leases",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
+                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Text(
+                                text = "${userBookings.size} Total",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                            )
+                        }
                     }
-
-                    FilledTonalButton(
-                        onClick = onNavigateToDiscovery,
-                        shape = MaterialTheme.shapes.medium,
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        modifier = Modifier.testTag("explore_new_spaces_button")
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("Book Space", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold)
-                    }
+                    Text(
+                        text = "${currentUser?.fullName ?: "Licensed Member"} • ${currentUser?.specialty ?: "Practitioner"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
-                // Summary Key Metrics Row
+                // Book Space — its own full-width row so it never competes with the
+                // title block for space on narrow screens.
+                FilledTonalButton(
+                    onClick = onNavigateToDiscovery,
+                    shape = MaterialTheme.shapes.medium,
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("explore_new_spaces_button")
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text("Book Space", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold)
+                }
+
+                // Summary Key Metrics Row — elevated white cards with a real shadow,
+                // trimmed labels/values so they read at a glance on narrow screens.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Active Leases
-                    Surface(
+                    Card(
                         modifier = Modifier.weight(1f),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        shape = MaterialTheme.shapes.medium
+                        shape = MaterialTheme.shapes.medium,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -211,31 +227,33 @@ fun MyBookingsScreen(
                                 Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("Active Leases", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Text("$totalActiveLeases Workspaces", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text("$totalActiveLeases", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
 
-                    // Monthly Spend
-                    Surface(
+                    // This Month's Spend
+                    Card(
                         modifier = Modifier.weight(1f),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        shape = MaterialTheme.shapes.medium
+                        shape = MaterialTheme.shapes.medium,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.AttachMoney, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("Monthly Rate", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("This Month", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Text("$${String.format(Locale.US, "%.0f", totalMonthlySpendUsd)}/mo", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text("Spent $${String.format(Locale.US, "%.0f", thisMonthSpendUsd)}", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
                     }
 
-                    // Pending Review
-                    Surface(
+                    // Pending Host
+                    Card(
                         modifier = Modifier.weight(1f),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        shape = MaterialTheme.shapes.medium
+                        shape = MaterialTheme.shapes.medium,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -243,44 +261,58 @@ fun MyBookingsScreen(
                                 Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("Pending Host", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Text("$pendingRequestsCount Requests", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text("$pendingRequestsCount", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
 
-                // Primary Tab Switcher: Upcoming & Active vs Past & History
-                TabRow(
-                    selectedTabIndex = selectedMainTab,
-                    containerColor = Color.Transparent,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    divider = {}
+                // Primary Tab Switcher: Upcoming & Active vs Past & History — a
+                // segmented control (bordered container, filled + shadowed selected
+                // pill) so the two tabs are visually distinguishable, not just a
+                // color-only indicator underline.
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                 ) {
-                    Tab(
-                        selected = selectedMainTab == 0,
-                        onClick = {
-                            selectedMainTab = 0
-                            selectedFilterChip = "ALL"
-                        },
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Icon(Icons.Default.Upcoming, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Text("Upcoming & Active (${upcomingAndActiveBookings.size})", fontWeight = FontWeight.Bold)
+                    Row(modifier = Modifier.padding(4.dp)) {
+                        val tabs = listOf(
+                            Triple(0, Icons.Default.Upcoming, "Upcoming & Active (${upcomingAndActiveBookings.size})"),
+                            Triple(1, Icons.Default.History, "Past & History (${pastBookings.size})")
+                        )
+                        tabs.forEach { (index, icon, label) ->
+                            val isSelected = selectedMainTab == index
+                            Surface(
+                                onClick = {
+                                    selectedMainTab = index
+                                    selectedFilterChip = "ALL"
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .then(if (isSelected) Modifier.shadow(2.dp, MaterialTheme.shapes.small) else Modifier),
+                                shape = MaterialTheme.shapes.small,
+                                color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
+                                contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        label,
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                         }
-                    )
-                    Tab(
-                        selected = selectedMainTab == 1,
-                        onClick = {
-                            selectedMainTab = 1
-                            selectedFilterChip = "ALL"
-                        },
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Text("Past & History (${pastBookings.size})", fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    )
+                    }
                 }
 
                 // Search Bar and Filter Row
@@ -396,9 +428,10 @@ fun MyBookingsScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                modifier = Modifier.fillMaxSize(),
+                // bottom = 24.dp (rather than Spacing.md) so the last card always
+                // clears the bottom nav bar with real breathing room.
+                contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, top = Spacing.md, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 items(filteredBookings, key = { it.id }) { booking ->

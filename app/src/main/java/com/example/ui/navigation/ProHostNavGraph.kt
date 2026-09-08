@@ -193,6 +193,11 @@ fun ProHostAppRoot(
                                 onDrawerAction = { actionId ->
                                     activeDrawerTabDialog = actionId
                                     scope.launch { drawerState.close() }
+                                },
+                                onSignOut = {
+                                    scope.launch { drawerState.close() }
+                                    viewModel.logout()
+                                    activeTabId = "auth"
                                 }
                             )
                         }
@@ -207,6 +212,11 @@ fun ProHostAppRoot(
                                 onDrawerAction = { actionId ->
                                     activeDrawerTabDialog = actionId
                                     scope.launch { drawerState.close() }
+                                },
+                                onSignOut = {
+                                    scope.launch { drawerState.close() }
+                                    viewModel.logout()
+                                    activeTabId = "auth"
                                 }
                             )
                         }
@@ -324,10 +334,6 @@ fun ProHostAppRoot(
                                     AppNavTab.AdminProfile.id -> SpecialistProfileScreen(
                                         viewModel = viewModel,
                                         inAppUpdateManager = inAppUpdateManager,
-                                        onSignOut = {
-                                            viewModel.logout()
-                                            activeTabId = "auth"
-                                        },
                                         onNavigateToTab = { tabId -> navigateTo(tabId) }
                                     )
                                 }
@@ -357,10 +363,6 @@ fun ProHostAppRoot(
                                     AppNavTab.ProfessionalProfile.id -> SpecialistProfileScreen(
                                         viewModel = viewModel,
                                         inAppUpdateManager = inAppUpdateManager,
-                                        onSignOut = {
-                                            viewModel.logout()
-                                            activeTabId = "auth"
-                                        },
                                         onNavigateToTab = { tabId -> navigateTo(tabId) }
                                     )
                                     else -> DiscoveryScreen(

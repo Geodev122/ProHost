@@ -98,7 +98,6 @@ fun DrawerDialogsHandler(
                         "admin_audit" -> "Central Security Audits"
                         "admin_gov" -> "Governorate Node Status"
                         "admin_app_updates" -> "App Version & In-App Updates"
-                        "pro_app_updates" -> "App Version & In-App Updates"
                         "fcm_alerts" -> "Real-time Alerts Terminal"
                         else -> "Information Sheet"
                     }
@@ -518,9 +517,6 @@ fun DrawerDialogsHandler(
                         }
                         "admin_app_updates" -> {
                             AppUpdatesInfo(profileTabId = "admin_profile", onNavigateToTab = onNavigateToTab, onDismiss = onDismiss)
-                        }
-                        "pro_app_updates" -> {
-                            AppUpdatesInfo(profileTabId = "pro_profile", onNavigateToTab = onNavigateToTab, onDismiss = onDismiss)
                         }
                     }
                 }
