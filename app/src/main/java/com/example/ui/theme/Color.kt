@@ -94,6 +94,9 @@ val LebaneseCedarGreen = FreshGreen
 val LebaneseCedarContainer = Color(0xFFE8F6ED)
 val WhishRed = CrimsonRed
 val WhishRedContainer = Color(0xFFFDE8E8)
+// Whish's own merchant brand red (#E2001A) — distinct from the app's semantic
+// StatusError/CrimsonRed; used only for Whish-branded UI chrome (payment sheet).
+val WhishBrandRed = Color(0xFFE2001A)
 val WhatsAppGreen = Color(0xFF25D366)
 val WhatsAppDarkGreen = Color(0xFF1E7E34)
 val InstagramPink = Color(0xFFE1306C)

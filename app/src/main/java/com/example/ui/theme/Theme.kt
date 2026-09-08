@@ -1,6 +1,7 @@
 package com.example.ui.theme
 
 import android.app.Activity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -103,11 +104,14 @@ private val DarkColorScheme = darkColorScheme(
  * ProSpace Brand Theme
  * Oxford Blue (#384152), Carnation Orange (#F25F4C), Fresh Green (#4CAF72),
  * Cool Gray (#283544), Light Gray (#E2E4E8), and White (#FFFFFF).
+ *
+ * Follows the device's system dark-mode setting by default via
+ * isSystemInDarkTheme(); pass darkTheme explicitly to override (e.g. for a
+ * future in-app theme toggle).
  */
 @Composable
 fun ProSpaceTheme(
-    darkTheme: Boolean = false,
-    dynamicColor: Boolean = false,
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme

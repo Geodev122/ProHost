@@ -19,6 +19,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.SpaceListing
+import com.example.ui.theme.StatusOnSuccessContainer
+import com.example.ui.theme.StatusOnWarningContainer
+import com.example.ui.theme.StatusSuccess
+import com.example.ui.theme.StatusWarning
+import com.example.ui.theme.WhishBrandRed
 import com.example.ui.viewmodel.ProSpaceViewModel
 import java.util.Locale
 
@@ -84,7 +89,7 @@ fun WhishPayModal(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Surface(
-                    color = Color(0xFFE2001A), // Official Whish Red
+                    color = WhishBrandRed, // Official Whish Red
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
@@ -183,7 +188,7 @@ fun WhishPayModal(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
                             color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                            border = BorderStroke(if (isSelected) 1.5.dp else 1.dp, if (isSelected) Color(0xFFE2001A) else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                            border = BorderStroke(if (isSelected) 1.5.dp else 1.dp, if (isSelected) WhishBrandRed else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                         ) {
                             Row(
                                 modifier = Modifier.padding(12.dp),
@@ -191,7 +196,7 @@ fun WhishPayModal(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Surface(
-                                    color = if (isSelected) Color(0xFFE2001A) else MaterialTheme.colorScheme.surfaceVariant,
+                                    color = if (isSelected) WhishBrandRed else MaterialTheme.colorScheme.surfaceVariant,
                                     shape = CircleShape,
                                     modifier = Modifier.size(32.dp)
                                 ) {
@@ -218,14 +223,14 @@ fun WhishPayModal(
                                     )
                                 }
                                 Surface(
-                                    color = if (method.currencyBadge == "LBP") Color(0xFFFF9800).copy(alpha = 0.2f) else Color(0xFF4CAF50).copy(alpha = 0.2f),
+                                    color = if (method.currencyBadge == "LBP") StatusWarning.copy(alpha = 0.2f) else StatusSuccess.copy(alpha = 0.2f),
                                     shape = RoundedCornerShape(4.dp)
                                 ) {
                                     Text(
                                         text = method.currencyBadge,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (method.currencyBadge == "LBP") Color(0xFFE65100) else Color(0xFF2E7D32),
+                                        color = if (method.currencyBadge == "LBP") StatusOnWarningContainer else StatusOnSuccessContainer,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
@@ -268,7 +273,7 @@ fun WhishPayModal(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFFE2001A), modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Lock, contentDescription = null, tint = WhishBrandRed, modifier = Modifier.size(18.dp))
                         Text(
                             text = "You'll complete payment on Whish's secure checkout page. We only confirm settlement after Whish itself verifies it — this app never signs or self-reports payments.",
                             fontSize = 11.sp,
@@ -300,7 +305,7 @@ fun WhishPayModal(
                             onDismiss()
                         },
                         icon = Icons.Default.Lock,
-                        customContainerColor = Color(0xFFE2001A),
+                        customContainerColor = WhishBrandRed,
                         customContentColor = Color.White,
                         modifier = Modifier.weight(1.5f),
                         isLoading = isLaunching,

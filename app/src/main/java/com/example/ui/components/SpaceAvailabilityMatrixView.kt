@@ -21,6 +21,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.*
+import com.example.ui.theme.StatusError
+import com.example.ui.theme.StatusErrorContainer
+import com.example.ui.theme.StatusOnErrorContainer
+import com.example.ui.theme.StatusOnSuccessContainer
+import com.example.ui.theme.StatusSuccess
+import com.example.ui.theme.StatusSuccessContainer
+import com.example.ui.theme.StatusWarningContainer
 
 @Composable
 fun WeeklyAvailabilityMatrix(
@@ -91,14 +98,14 @@ fun WeeklyAvailabilityMatrix(
                     }
                 }
                 Surface(
-                    color = if (isFullMonthBooked) Color(0xFFFFEBEE) else Color(0xFFE8F5E9),
+                    color = if (isFullMonthBooked) StatusErrorContainer else StatusSuccessContainer,
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
                         text = if (isFullMonthBooked) "Fully Occupied" else "Multi-Tenant Active",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isFullMonthBooked) Color(0xFFC62828) else Color(0xFF2E7D32),
+                        color = if (isFullMonthBooked) StatusOnErrorContainer else StatusOnSuccessContainer,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -110,9 +117,9 @@ fun WeeklyAvailabilityMatrix(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                LegendItem(color = Color(0xFFE8F5E9), label = "Open (0%)")
-                LegendItem(color = Color(0xFFFFF8E1), label = "Moderate")
-                LegendItem(color = Color(0xFFFFEBEE), label = "Reserved (100%)")
+                LegendItem(color = StatusSuccessContainer, label = "Open (0%)")
+                LegendItem(color = StatusWarningContainer, label = "Moderate")
+                LegendItem(color = StatusErrorContainer, label = "Reserved (100%)")
             }
 
             Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -187,9 +194,9 @@ fun WeeklyAvailabilityMatrix(
                         }
 
                         // Heatmap styling based on state
-                        val cellColor = if (isBooked) Color(0xFFFFEBEE) else Color(0xFFE8F5E9)
-                        val borderColor = if (isBooked) Color(0xFFEF9A9A) else Color(0xFFAED581)
-                        val textColor = if (isBooked) Color(0xFFC62828) else Color(0xFF2E7D32)
+                        val cellColor = if (isBooked) StatusErrorContainer else StatusSuccessContainer
+                        val borderColor = if (isBooked) StatusError.copy(alpha = 0.5f) else StatusSuccess.copy(alpha = 0.5f)
+                        val textColor = if (isBooked) StatusOnErrorContainer else StatusOnSuccessContainer
 
                         Box(
                             modifier = Modifier

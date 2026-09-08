@@ -876,15 +876,15 @@ fun RentalBookingDialog(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF86EFAC))
+                        colors = CardDefaults.cardColors(containerColor = StatusSuccessContainer),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, StatusSuccess.copy(alpha = 0.5f))
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     Icons.Default.Info,
                                     contentDescription = null,
-                                    tint = Color(0xFF16A34A),
+                                    tint = StatusSuccess,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -892,7 +892,7 @@ fun RentalBookingDialog(
                                     text = "Smart Availability & Confirmation Rule",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp,
-                                    color = Color(0xFF16A34A)
+                                    color = StatusSuccess
                                 )
                             }
                             Spacer(modifier = Modifier.height(4.dp))
@@ -901,7 +901,7 @@ fun RentalBookingDialog(
                                        "• Once accepted by the owner, your chosen schedule ($chosenSlotSummary) is locked exclusively for your use.\n" +
                                        "• Payment is settled directly with the space owner (Cash / Whish Money / Wire Transfer).",
                                 fontSize = 11.sp,
-                                color = Color(0xFF15803D),
+                                color = StatusOnSuccessContainer,
                                 lineHeight = 16.sp
                             )
                         }

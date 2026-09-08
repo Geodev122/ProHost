@@ -275,7 +275,7 @@ fun DrawerDialogsHandler(
                                                     modifier = Modifier.fillMaxWidth(),
                                                     horizontalArrangement = Arrangement.SpaceBetween
                                                 ) {
-                                                    Text(log.actionType, color = Color(0xFF00FF00), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                                    Text(log.actionType, color = Color.Green, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
                                                     Text(log.severity, color = if (log.severity == "SECURE") Color.Red else Color.Yellow, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
                                                 }
                                                 Text(log.details, color = Color.White, style = MaterialTheme.typography.labelSmall)
@@ -434,7 +434,7 @@ fun DrawerDialogsHandler(
                                                             Icon(
                                                                 imageVector = if (alert.category == "BOOKING_ACCEPTANCE") Icons.Default.CheckCircle else Icons.Default.NotificationImportant,
                                                                 contentDescription = null,
-                                                                tint = if (alert.category == "BOOKING_ACCEPTANCE") Color(0xFF00796B) else MaterialTheme.colorScheme.error,
+                                                                tint = if (alert.category == "BOOKING_ACCEPTANCE") StatusSuccess else MaterialTheme.colorScheme.error,
                                                                 modifier = Modifier.size(16.dp)
                                                             )
                                                             Text(

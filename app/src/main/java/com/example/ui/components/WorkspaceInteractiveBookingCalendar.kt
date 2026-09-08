@@ -719,8 +719,8 @@ fun WorkspaceInteractiveBookingCalendar(
                                                     when {
                                                         isStart || isEnd -> Color.White
                                                         !dayItem.isOperatingDay || dayItem.isBlockedForSelection -> MaterialTheme.colorScheme.error
-                                                        dayItem.isPartiallyBooked -> Color(0xFFF59E0B) // Amber
-                                                        else -> Color(0xFF10B981) // Green Available
+                                                        dayItem.isPartiallyBooked -> StatusWarning // Amber
+                                                        else -> StatusSuccess // Green Available
                                                     }
                                                 )
                                         )
@@ -739,11 +739,11 @@ fun WorkspaceInteractiveBookingCalendar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF10B981)))
+                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(StatusSuccess))
                     Text("Available", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFF59E0B)))
+                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(StatusWarning))
                     Text("Partial / Shifts", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -890,16 +890,16 @@ fun WorkspaceInteractiveBookingCalendar(
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = when (availabilityCheck.statusLevel) {
-                    AvailabilityLevel.AVAILABLE -> Color(0xFFE8F5E9)
-                    AvailabilityLevel.PARTIAL -> Color(0xFFFFF8E1)
-                    AvailabilityLevel.UNAVAILABLE -> Color(0xFFFFEBEE)
+                    AvailabilityLevel.AVAILABLE -> StatusSuccessContainer
+                    AvailabilityLevel.PARTIAL -> StatusWarningContainer
+                    AvailabilityLevel.UNAVAILABLE -> StatusErrorContainer
                 },
                 border = BorderStroke(
                     1.dp,
                     when (availabilityCheck.statusLevel) {
-                        AvailabilityLevel.AVAILABLE -> Color(0xFF4CAF50)
-                        AvailabilityLevel.PARTIAL -> Color(0xFFFFB300)
-                        AvailabilityLevel.UNAVAILABLE -> Color(0xFFEF5350)
+                        AvailabilityLevel.AVAILABLE -> StatusSuccess
+                        AvailabilityLevel.PARTIAL -> StatusWarning
+                        AvailabilityLevel.UNAVAILABLE -> StatusError
                     }
                 ),
                 modifier = Modifier.fillMaxWidth().testTag("availability_status_banner")
@@ -916,9 +916,9 @@ fun WorkspaceInteractiveBookingCalendar(
                         },
                         contentDescription = null,
                         tint = when (availabilityCheck.statusLevel) {
-                            AvailabilityLevel.AVAILABLE -> Color(0xFF2E7D32)
-                            AvailabilityLevel.PARTIAL -> Color(0xFFF57F17)
-                            AvailabilityLevel.UNAVAILABLE -> Color(0xFFC62828)
+                            AvailabilityLevel.AVAILABLE -> StatusOnSuccessContainer
+                            AvailabilityLevel.PARTIAL -> StatusOnWarningContainer
+                            AvailabilityLevel.UNAVAILABLE -> StatusOnErrorContainer
                         },
                         modifier = Modifier.size(20.dp)
                     )
@@ -929,9 +929,9 @@ fun WorkspaceInteractiveBookingCalendar(
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = when (availabilityCheck.statusLevel) {
-                                AvailabilityLevel.AVAILABLE -> Color(0xFF1B5E20)
-                                AvailabilityLevel.PARTIAL -> Color(0xFFE65100)
-                                AvailabilityLevel.UNAVAILABLE -> Color(0xFFB71C1C)
+                                AvailabilityLevel.AVAILABLE -> StatusOnSuccessContainer
+                                AvailabilityLevel.PARTIAL -> StatusOnWarningContainer
+                                AvailabilityLevel.UNAVAILABLE -> StatusOnErrorContainer
                             }
                         )
                         Text(
