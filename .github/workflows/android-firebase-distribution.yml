@@ -46,6 +46,20 @@ jobs:
               -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
 
+      # .env is git-ignored (see app/build.gradle.kts's secrets { } block, which reads
+      # it via the Secrets Gradle Plugin) — without it, a CI-built APK ships whatever
+      # placeholder .env.example has, and the map renders blank on every device that
+      # installs a build distributed by this workflow. Add a MAPS_API_KEY repo secret
+      # (Settings -> Secrets and variables -> Actions) with a real key restricted to
+      # "Maps SDK for Android" to make this real; until then this step is a no-op and
+      # the build falls back to .env.example's placeholder, same as any local build
+      # without a real key.
+      - name: Write .env for Maps API key
+        if: ${{ secrets.MAPS_API_KEY != '' }}
+        run: echo "MAPS_API_KEY=${MAPS_API_KEY}" > .env
+        env:
+          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
+
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace
 
