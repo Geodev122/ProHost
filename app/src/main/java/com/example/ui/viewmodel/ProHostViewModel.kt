@@ -565,6 +565,13 @@ class ProHostViewModel(
         }
     }
 
+    /** Toggles [spaceId] in the current user's personal saved/favorites list. */
+    fun toggleSavedSpace(spaceId: String) {
+        viewModelScope.launch {
+            repository.toggleSavedSpace(spaceId)
+        }
+    }
+
     // --- Schedule & Blackout Management ---
     fun addBlackoutSlot(spaceId: String, dayOfWeek: String, startTime: String, endTime: String, reason: String, context: Context) {
         // Id left to BlackoutSlot's own UUID default: the availability editor can

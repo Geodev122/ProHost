@@ -37,11 +37,12 @@ class DiscoveryViewModel(
         repository.spaces,
         _filterState,
         _selectedSpace,
-        combine(_isFilterSheetVisible, _isMapViewActive, repository.fcmAlerts) { sheet, map, alerts ->
-            Triple(sheet, map, alerts)
+        combine(_isFilterSheetVisible, _isMapViewActive, repository.fcmAlerts, repository.currentUser) { sheet, map, alerts, user ->
+            Quad(sheet, map, alerts, user)
         }
-    ) { spaces: List<SpaceListing>, filter: DiscoveryFilterState, selected: SpaceListing?, extra: Triple<Boolean, Boolean, List<FCMAlert>> ->
-        val (sheetVisible, mapActive, alerts) = extra
+    ) { spaces: List<SpaceListing>, filter: DiscoveryFilterState, selected: SpaceListing?, extra: Quad<Boolean, Boolean, List<FCMAlert>, AppUser?> ->
+        val (sheetVisible, mapActive, alerts, user) = extra
+        val savedIds = user?.savedSpaceIds ?: emptyList()
         val filtered = spaces.filter { space ->
             val matchesQuery = filter.query.isBlank() ||
                     space.title.contains(filter.query, ignoreCase = true) ||
@@ -58,8 +59,9 @@ class DiscoveryViewModel(
             val matchesPrice = space.baseMonthlyRateUsd <= filter.maxPriceUsd
             val matchesVerified = !filter.onlyVerified || space.isVerified
             val matchesSub = !filter.onlyActiveSubscribed || space.isActiveSubscription
+            val matchesSaved = !filter.onlySaved || savedIds.contains(space.id)
 
-            matchesQuery && matchesGov && matchesType && matchesFormula && matchesFacility && matchesEquip && matchesPrice && matchesVerified && matchesSub
+            matchesQuery && matchesGov && matchesType && matchesFormula && matchesFacility && matchesEquip && matchesPrice && matchesVerified && matchesSub && matchesSaved
         }
 
         DiscoveryUiState(
@@ -70,9 +72,12 @@ class DiscoveryViewModel(
             isFilterSheetVisible = sheetVisible,
             isMapViewActive = mapActive,
             isLoading = false,
-            fcmAlerts = alerts
+            fcmAlerts = alerts,
+            savedSpaceIds = savedIds
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DiscoveryUiState())
+
+    private data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
     fun updateSearchQuery(query: String) {
         _filterState.update { it.copy(query = query) }
@@ -104,6 +109,16 @@ class DiscoveryViewModel(
 
     fun toggleVerifiedOnly(verifiedOnly: Boolean) {
         _filterState.update { it.copy(onlyVerified = verifiedOnly) }
+    }
+
+    fun toggleSavedOnly(savedOnly: Boolean) {
+        _filterState.update { it.copy(onlySaved = savedOnly) }
+    }
+
+    fun toggleSavedSpace(spaceId: String) {
+        viewModelScope.launch {
+            repository.toggleSavedSpace(spaceId)
+        }
     }
 
     fun resetFilters() {

@@ -10,6 +10,22 @@ enum class SpaceType(val displayName: String, val iconName: String) {
     COWORKING_SPACE("Co-working Space", "Groups")
 }
 
+// Shared with both the listing-creation facility toggles and the Discovery
+// filter sheet, so a facility a host offers is spelled identically to the
+// one a specialist filters by.
+object FacilityCatalog {
+    val standard = listOf(
+        "24/7 Generator Electricity",
+        "Continuous Water Supply",
+        "High-Speed Fiber Wi-Fi",
+        "HVAC Climate Control",
+        "Daily Professional Cleaning",
+        "Dedicated Underground Parking",
+        "Client Accessibility / Elevator",
+        "Reception & Admin Support"
+    )
+}
+
 enum class Level2Type(val displayName: String, val iconName: String) {
     ROOMS("Room", "MeetingRoom"),
     CONFERENCE_ROOM("Conference Room", "CoPresent"),

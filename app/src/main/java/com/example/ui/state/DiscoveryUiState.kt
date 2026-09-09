@@ -14,7 +14,8 @@ data class DiscoveryFilterState(
     val selectedEquipmentCategory: EquipmentCategory? = null,
     val maxPriceUsd: Double = 1500.0,
     val onlyVerified: Boolean = false,
-    val onlyActiveSubscribed: Boolean = true
+    val onlyActiveSubscribed: Boolean = true,
+    val onlySaved: Boolean = false
 )
 
 /**
@@ -28,7 +29,8 @@ data class DiscoveryUiState(
     val isFilterSheetVisible: Boolean = false,
     val isMapViewActive: Boolean = false,
     val isLoading: Boolean = false,
-    val fcmAlerts: List<FCMAlert> = emptyList()
+    val fcmAlerts: List<FCMAlert> = emptyList(),
+    val savedSpaceIds: List<String> = emptyList()
 )
 
 /**

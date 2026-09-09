@@ -1421,6 +1421,30 @@ class ProHostRepository {
         return success
     }
 
+    /**
+     * Toggles [spaceId] in the current user's personal saved/favorites list. Not a
+     * protected field — any signed-in user may freely write their own savedSpaceIds,
+     * so a plain merge write of the recomputed list is enough (no rules change needed).
+     */
+    suspend fun toggleSavedSpace(spaceId: String): Boolean {
+        val current = _currentUser.value ?: return false
+        val updatedIds = if (current.savedSpaceIds.contains(spaceId)) {
+            current.savedSpaceIds - spaceId
+        } else {
+            current.savedSpaceIds + spaceId
+        }
+        val updated = current.copy(savedSpaceIds = updatedIds)
+        val success = firestoreService.updateUserProfileFields(
+            current.id,
+            mapOf("savedSpaceIds" to updatedIds)
+        )
+        if (success) {
+            _currentUser.value = updated
+            _users.value = _users.value.map { if (it.id == updated.id) updated else it }
+        }
+        return success
+    }
+
     /** Registers this device's FCM token against [uid]'s profile — see FirestoreService.saveFcmToken. */
     suspend fun registerFcmToken(uid: String, token: String): Boolean = firestoreService.saveFcmToken(uid, token)
 

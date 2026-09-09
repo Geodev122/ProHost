@@ -63,7 +63,12 @@ fun DiscoveryScreen(
         selectedGovernorate = uiState.filterState.selectedGovernorate,
         selectedSpaceType = uiState.filterState.selectedSpaceType,
         selectedFormulaType = uiState.filterState.selectedFormulaType,
+        selectedFacility = uiState.filterState.selectedFacility,
+        selectedEquipmentCategory = uiState.filterState.selectedEquipmentCategory,
         maxPriceUsd = uiState.filterState.maxPriceUsd,
+        onlyVerified = uiState.filterState.onlyVerified,
+        onlySaved = uiState.filterState.onlySaved,
+        savedSpaceIds = uiState.savedSpaceIds,
         selectedSpace = uiState.selectedSpace,
         isMapView = uiState.isMapViewActive,
         showFilterSheet = uiState.isFilterSheetVisible,
@@ -73,7 +78,12 @@ fun DiscoveryScreen(
         onSelectGovernorate = { discoveryViewModel.setGovernorateFilter(it) },
         onSelectSpaceType = { discoveryViewModel.setSpaceTypeFilter(it) },
         onSelectFormulaType = { discoveryViewModel.setFormulaFilter(it) },
+        onSelectFacility = { discoveryViewModel.setFacilityFilter(it) },
+        onSelectEquipmentCategory = { discoveryViewModel.setEquipmentCategoryFilter(it) },
         onSetMaxPrice = { discoveryViewModel.setMaxPrice(it) },
+        onToggleVerifiedOnly = { discoveryViewModel.toggleVerifiedOnly(it) },
+        onToggleSavedOnly = { discoveryViewModel.toggleSavedOnly(it) },
+        onToggleSavedSpace = { discoveryViewModel.toggleSavedSpace(it) },
         onResetFilters = { discoveryViewModel.resetFilters() },
         onSelectSpace = onSelectSpace,
         onQuickWhatsApp = { space ->
@@ -93,7 +103,12 @@ fun DiscoveryScreenContent(
     selectedGovernorate: Governorate?,
     selectedSpaceType: SpaceType?,
     selectedFormulaType: RentalFormulaType?,
+    selectedFacility: String?,
+    selectedEquipmentCategory: EquipmentCategory?,
     maxPriceUsd: Double,
+    onlyVerified: Boolean,
+    onlySaved: Boolean,
+    savedSpaceIds: List<String>,
     selectedSpace: SpaceListing?,
     isMapView: Boolean,
     showFilterSheet: Boolean,
@@ -103,7 +118,12 @@ fun DiscoveryScreenContent(
     onSelectGovernorate: (Governorate?) -> Unit,
     onSelectSpaceType: (SpaceType?) -> Unit,
     onSelectFormulaType: (RentalFormulaType?) -> Unit,
+    onSelectFacility: (String?) -> Unit,
+    onSelectEquipmentCategory: (EquipmentCategory?) -> Unit,
     onSetMaxPrice: (Double) -> Unit,
+    onToggleVerifiedOnly: (Boolean) -> Unit,
+    onToggleSavedOnly: (Boolean) -> Unit,
+    onToggleSavedSpace: (String) -> Unit,
     onResetFilters: () -> Unit,
     onSelectSpace: (SpaceListing) -> Unit,
     onQuickWhatsApp: (SpaceListing) -> Unit
@@ -182,6 +202,10 @@ fun DiscoveryScreenContent(
                         val hasActiveFilter = selectedGovernorate != null ||
                                 selectedSpaceType != null ||
                                 selectedFormulaType != null ||
+                                selectedFacility != null ||
+                                selectedEquipmentCategory != null ||
+                                onlyVerified ||
+                                onlySaved ||
                                 maxPriceUsd < 1500.0
                         BadgedBox(
                             badge = {
@@ -321,8 +345,10 @@ fun DiscoveryScreenContent(
                     items(spaces, key = { it.id }) { space ->
                         SpaceListingCard(
                             space = space,
+                            isSaved = savedSpaceIds.contains(space.id),
                             onClick = { onSelectSpace(space) },
-                            onQuickWhatsApp = { onQuickWhatsApp(space) }
+                            onQuickWhatsApp = { onQuickWhatsApp(space) },
+                            onToggleSave = { onToggleSavedSpace(space.id) }
                         )
                     }
                 }
@@ -381,6 +407,54 @@ fun DiscoveryScreenContent(
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
+                Text("Facility", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(FacilityCatalog.standard) { facility ->
+                        FilterChip(
+                            selected = selectedFacility == facility,
+                            onClick = { onSelectFacility(if (selectedFacility == facility) null else facility) },
+                            label = { Text(facility, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                Text("Equipment Category", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(EquipmentCategory.entries) { category ->
+                        FilterChip(
+                            selected = selectedEquipmentCategory == category,
+                            onClick = { onSelectEquipmentCategory(if (selectedEquipmentCategory == category) null else category) },
+                            label = { Text(category.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Verified listings only", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                    Switch(checked = onlyVerified, onCheckedChange = onToggleVerifiedOnly)
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.sm))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Saved workspaces only", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                    Switch(checked = onlySaved, onCheckedChange = onToggleSavedOnly)
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
                 Text(
                     text = "Maximum Monthly Rate: $${maxPriceUsd.toInt()} USD",
                     fontWeight = FontWeight.SemiBold,
@@ -413,7 +487,9 @@ fun DiscoveryScreenContent(
 fun SpaceListingCard(
     space: SpaceListing,
     onClick: () -> Unit,
-    onQuickWhatsApp: () -> Unit
+    onQuickWhatsApp: () -> Unit,
+    isSaved: Boolean = false,
+    onToggleSave: (() -> Unit)? = null
 ) {
     WorkspaceCard(
         title = space.title,
@@ -427,6 +503,8 @@ fun SpaceListingCard(
         isVerified = space.isVerified,
         bookedDoctorCount = space.residentPractitioners.size,
         facilities = space.essentialFacilities,
+        isSaved = isSaved,
+        onToggleSave = onToggleSave,
         onClick = onClick,
         onWhatsAppClick = onQuickWhatsApp
     )

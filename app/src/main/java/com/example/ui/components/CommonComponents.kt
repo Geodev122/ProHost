@@ -1101,6 +1101,8 @@ fun WorkspaceCard(
     facilities: List<String> = emptyList(),
     elevation: Dp = 3.dp,
     shape: CornerBasedShape = MaterialTheme.shapes.large,
+    isSaved: Boolean = false,
+    onToggleSave: (() -> Unit)? = null,
     onClick: () -> Unit,
     onWhatsAppClick: (() -> Unit)? = null
 ) {
@@ -1129,9 +1131,21 @@ fun WorkspaceCard(
         // filter/category label that didn't match how Explore actually works)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (onToggleSave != null) {
+                IconButton(onClick = onToggleSave, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = if (isSaved) "Remove from Saved" else "Save Workspace",
+                        tint = if (isSaved) CrimsonRed else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.width(1.dp))
+            }
             ProCurrencyTag(usdAmount = rateUsd)
         }
 

@@ -114,16 +114,7 @@ fun CreateListingDialog(
     var ownerPhone by remember { mutableStateOf(activeUser.phone) }
 
     // Facilities toggles
-    val standardFacilities = listOf(
-        "24/7 Generator Electricity",
-        "Continuous Water Supply",
-        "High-Speed Fiber Wi-Fi",
-        "HVAC Climate Control",
-        "Daily Professional Cleaning",
-        "Dedicated Underground Parking",
-        "Client Accessibility / Elevator",
-        "Reception & Admin Support"
-    )
+    val standardFacilities = FacilityCatalog.standard
     var selectedFacilities by remember { mutableStateOf(standardFacilities.take(5).toSet()) }
 
     // Equipment builder

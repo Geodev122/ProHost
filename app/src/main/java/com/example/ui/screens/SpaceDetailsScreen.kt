@@ -90,6 +90,8 @@ fun SpaceDetailsScreen(
             val shareText = "🏢 ProHost: ${liveSpace.title}\n📍 ${liveSpace.district}, ${liveSpace.governorate.displayName}\n💰 $${liveSpace.baseMonthlyRateUsd.toInt()}/mo • WhatsApp: ${liveSpace.ownerPhone}"
             viewModel.shareExportData(context, "Listing", shareText)
         },
+        isSaved = currentUser?.savedSpaceIds?.contains(liveSpace.id) == true,
+        onToggleSave = { viewModel.toggleSavedSpace(liveSpace.id) },
         onBack = onBack
     )
 }
@@ -108,6 +110,8 @@ fun SpaceDetailsScreenContent(
     onRequestRentClick: () -> Unit,
     onWhatsAppClick: () -> Unit,
     onShareClick: () -> Unit,
+    isSaved: Boolean = false,
+    onToggleSave: () -> Unit = {},
     onBack: () -> Unit
 ) {
     val liveSpace = space
@@ -122,6 +126,13 @@ fun SpaceDetailsScreenContent(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onToggleSave) {
+                        Icon(
+                            imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = if (isSaved) "Remove from Saved" else "Save Workspace",
+                            tint = if (isSaved) CrimsonRed else LocalContentColor.current
+                        )
+                    }
                     IconButton(onClick = onShareClick) {
                         Icon(Icons.Default.Share, contentDescription = "Share")
                     }
