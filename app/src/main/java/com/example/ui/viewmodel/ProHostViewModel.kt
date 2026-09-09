@@ -533,6 +533,16 @@ class ProHostViewModel(
         }
     }
 
+    /** "Mark as Paid" — record-keeping only; asHost decides which side's own flag gets set. */
+    fun acknowledgePayment(requestId: String, asHost: Boolean, context: Context) {
+        viewModelScope.launch {
+            val success = repository.acknowledgePayment(requestId, asHost)
+            if (!success) {
+                Toast.makeText(context, "Couldn't save that — please try again.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     /**
      * Saves whichever verification document the host just uploaded and requests
      * the Listing Verified badge (functions/src/admin/listings.ts's

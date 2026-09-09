@@ -83,6 +83,9 @@ fun OwnerRentingProgressScreen(
         },
         onCancelAcceptedBooking = { booking ->
             cancelTargetBooking = booking
+        },
+        onMarkPaid = { booking ->
+            viewModel.acknowledgePayment(booking.id, asHost = true, context)
         }
     )
 }
@@ -95,6 +98,7 @@ fun OwnerRentingProgressScreenContent(
     onWhatsAppPractitioner: (BookingRequest) -> Unit,
     onSendPaymentReminder: (BookingRequest) -> Unit,
     onCancelAcceptedBooking: (BookingRequest) -> Unit = {},
+    onMarkPaid: (BookingRequest) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // Generate Dynamic Reminders & Alerts
@@ -292,6 +296,25 @@ fun OwnerRentingProgressScreenContent(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                            }
+                        }
+
+                        // Mutual, independent "Mark as Paid" acknowledgment — record-keeping
+                        // only (rent settlement itself happens entirely outside the app).
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = if (booking.paymentAcknowledgedByHost) "✓ You marked this paid" else "Not marked paid yet",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (booking.paymentAcknowledgedByHost) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (!booking.paymentAcknowledgedByHost) {
+                                TextButton(onClick = { onMarkPaid(booking) }) {
+                                    Text("Mark as Paid", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
 

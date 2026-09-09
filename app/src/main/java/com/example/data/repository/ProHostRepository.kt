@@ -1123,6 +1123,24 @@ class ProHostRepository {
         return true
     }
 
+    /**
+     * Mutual, independent "Mark as Paid" acknowledgment — record-keeping only, since
+     * rent settlement happens entirely outside the app. Each side can only ever set
+     * their own flag (the caller decides which); this never touches the other side's.
+     */
+    suspend fun acknowledgePayment(requestId: String, asHost: Boolean): Boolean {
+        val field = if (asHost) "paymentAcknowledgedByHost" else "paymentAcknowledgedBySpecialist"
+        val success = firestoreService.updateBookingFields(requestId, mapOf(field to true))
+        if (success) {
+            _bookingRequests.value = _bookingRequests.value.map {
+                if (it.id == requestId) {
+                    if (asHost) it.copy(paymentAcknowledgedByHost = true) else it.copy(paymentAcknowledgedBySpecialist = true)
+                } else it
+            }
+        }
+        return success
+    }
+
     // --- Schedule & Blackout Slots Management ---
     // All five of these used to only mutate the in-memory _spaces StateFlow — never
     // calling Firestore at all. That's worse than just "no error handling": since

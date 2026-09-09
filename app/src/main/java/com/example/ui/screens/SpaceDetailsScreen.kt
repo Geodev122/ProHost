@@ -263,22 +263,6 @@ fun SpaceDetailsScreenContent(
                         color = Color(0xCCFFFFFF)
                     )
                 }
-
-                // 10-sec video tour badge
-                Surface(
-                    modifier = Modifier.align(Alignment.TopEnd),
-                    color = Color(0xCC000000),
-                    shape = MaterialTheme.shapes.large
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.Videocam, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("10s Video Tour", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
-                    }
-                }
             }
 
             Column(

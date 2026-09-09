@@ -464,6 +464,9 @@ fun MyBookingsScreen(
                         },
                         onCancelAcceptedBooking = {
                             cancelTargetBooking = booking
+                        },
+                        onMarkPaid = {
+                            viewModel.acknowledgePayment(booking.id, asHost = false, context)
                         }
                     )
                 }
@@ -633,6 +636,7 @@ fun BookingReservationCard(
     onContactWhatsApp: () -> Unit,
     onCancelRequest: () -> Unit,
     onCancelAcceptedBooking: () -> Unit = {},
+    onMarkPaid: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -796,6 +800,27 @@ fun BookingReservationCard(
                 if (booking.status == BookingRequestStatus.ACCEPTED && booking.agreementUrl != null) {
                     Surface(color = StatusSuccessContainer, shape = MaterialTheme.shapes.small) {
                         Text("Agreement On File", color = StatusOnSuccessContainer, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                    }
+                }
+            }
+
+            // Mutual, independent "Mark as Paid" acknowledgment — record-keeping
+            // only (rent settlement itself happens entirely outside the app).
+            if (booking.status == BookingRequestStatus.ACCEPTED) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = if (booking.paymentAcknowledgedBySpecialist) "✓ You marked this paid" else "Not marked paid yet",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (booking.paymentAcknowledgedBySpecialist) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (!booking.paymentAcknowledgedBySpecialist) {
+                        TextButton(onClick = onMarkPaid) {
+                            Text("Mark as Paid", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }

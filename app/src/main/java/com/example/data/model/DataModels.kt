@@ -179,7 +179,14 @@ data class BookingRequest(
     // needs neither). See ProHostRepository.cancelAcceptedBooking's doc comment.
     val cancellationReasonCode: String? = null,
     val cancellationNote: String? = null,
-    val cancelledByRole: String? = null
+    val cancelledByRole: String? = null,
+    // Record-keeping only — rent settlement happens entirely outside the app
+    // (cash/Whish-direct/wire transfer between host and specialist), so ProHost
+    // has no way to know whether or when it actually happened. A simple mutual
+    // acknowledgment closes that gap a little without reintroducing in-app
+    // payment processing: either side can mark their own flag, independently.
+    val paymentAcknowledgedByHost: Boolean = false,
+    val paymentAcknowledgedBySpecialist: Boolean = false
 ) {
     val isPending: Boolean get() = status == BookingRequestStatus.PENDING
     val isAccepted: Boolean get() = status == BookingRequestStatus.ACCEPTED
@@ -237,7 +244,9 @@ data class BookingRequest(
             "agreementUrl" to agreementUrl,
             "cancellationReasonCode" to cancellationReasonCode,
             "cancellationNote" to cancellationNote,
-            "cancelledByRole" to cancelledByRole
+            "cancelledByRole" to cancelledByRole,
+            "paymentAcknowledgedByHost" to paymentAcknowledgedByHost,
+            "paymentAcknowledgedBySpecialist" to paymentAcknowledgedBySpecialist
         )
     }
 
@@ -307,7 +316,9 @@ data class BookingRequest(
                 agreementUrl = data["agreementUrl"] as? String,
                 cancellationReasonCode = data["cancellationReasonCode"] as? String,
                 cancellationNote = data["cancellationNote"] as? String,
-                cancelledByRole = data["cancelledByRole"] as? String
+                cancelledByRole = data["cancelledByRole"] as? String,
+                paymentAcknowledgedByHost = data["paymentAcknowledgedByHost"] as? Boolean ?: false,
+                paymentAcknowledgedBySpecialist = data["paymentAcknowledgedBySpecialist"] as? Boolean ?: false
             )
         }
     }

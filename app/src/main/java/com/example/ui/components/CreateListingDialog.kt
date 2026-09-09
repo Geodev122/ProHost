@@ -157,7 +157,11 @@ fun CreateListingDialog(
 
     // Complementary specialties
     val commonSpecialties = listOf("Consultant", "Designer", "Architect", "Developer", "Lawyer", "Accountant", "Marketer", "Coach")
-    var selectedSpecialties by remember { mutableStateOf(setOf("Cardiologist", "Endocrinologist", "Dermatologist")) }
+    // Was {"Cardiologist","Endocrinologist","Dermatologist"} — leftover defaults
+    // from an earlier, medical-specific version of this chip list; none of them
+    // appear among commonSpecialties above, so a host would see a chip row with
+    // nothing pre-selected that actually matched. Starts empty instead.
+    var selectedSpecialties by remember { mutableStateOf(emptySet<String>()) }
 
     // Subdivision States (Level 2 Rooms & Desks)
     var subdivisionsList by remember { mutableStateOf(listOf<Subdivision>()) }

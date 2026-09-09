@@ -601,6 +601,26 @@ class FirestoreService(
         }
     }
 
+    /**
+     * A narrow merge-write for fields that aren't part of the status lifecycle
+     * (updateBookingStatus above always stamps status/reviewedAt, which isn't
+     * appropriate for something like a payment acknowledgment — see
+     * BookingRequest.paymentAcknowledgedByHost/paymentAcknowledgedBySpecialist).
+     */
+    suspend fun updateBookingFields(requestId: String, fields: Map<String, Any?>): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
+                .document(requestId)
+                .set(fields, SetOptions.merge())
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating booking fields: ${e.message}", e)
+            false
+        }
+    }
+
     // ==========================================
     // SPACE ARCHITECTURE SCHEMA (taxonomy)
     // ==========================================
