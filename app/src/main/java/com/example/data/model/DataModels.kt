@@ -324,6 +324,17 @@ data class PremisesRules(
     val sharedAmenities: List<String> = listOf("Receptionist Desk", "Client Waiting Lounge", "Kitchenette / Coffee Bar", "Restroom & High-Speed Wi-Fi")
 )
 
+/** Which of the two optional proofs a Pro Host uploaded to earn the Listing Verified
+ *  badge — see [SpaceListing.verificationDocUrl]'s doc comment. Neither is mandatory
+ *  to publish; both are mandatory only to earn the badge. */
+enum class ListingVerificationDocType { RERENTAL_AUTHORIZATION, SELF_OWNERSHIP_PROOF }
+
+/** A listing's own lifecycle state, independent of the owner's account status
+ *  ([SpaceListing.isOwnerSuspended]) or the owner's package/subscription status
+ *  ([SpaceListing.isActiveSubscription]) — this is the one the host controls
+ *  themselves (Save as Draft / Publish / Pause / Resume). */
+enum class ListingStatus { DRAFT, ACTIVE, PAUSED }
+
 data class SpaceListing(
     val id: String,
     val title: String,
@@ -349,8 +360,25 @@ data class SpaceListing(
     // Proof of ownership / right to rent this specific space out, uploaded by the
     // Pro Host at listing-creation time. Kept on file — nobody reviews/approves it,
     // there is no admin accreditation workflow anymore (see AppUser's doc comment).
+    // Required to publish; NOT the same thing as verificationDocUrl below, which is
+    // optional and earns the badge rather than gating anything.
     val ownershipProofUrl: String? = null,
-    val isVerified: Boolean = true,
+    // Earns the Listing Verified badge (isVerified below) — a sibling to
+    // ownershipProofUrl, deliberately not a reuse of it: ownershipProofUrl is
+    // required-but-unchecked at publish time, this is optional-but-checked
+    // (requestListingVerification only flips isVerified once this is non-null).
+    // Either RERENTAL_AUTHORIZATION (a statement signed by the real property owner
+    // granting this Pro Host permission to re-rent the space — see the downloadable
+    // template in legal/RerentalAuthorizationTemplate.kt) or SELF_OWNERSHIP_PROOF
+    // (the Pro Host is the real owner, not re-renting) qualifies.
+    val verificationDocUrl: String? = null,
+    val verificationDocType: ListingVerificationDocType? = null,
+    // Defaults false for newly-created listings — genuinely earned via
+    // requestListingVerification (Admin SDK only, gated on verificationDocUrl) or an
+    // Admin override, not set unconditionally true at creation like it used to be.
+    // Existing listings keep whatever value they already had; only the default for
+    // new creates changed.
+    val isVerified: Boolean = false,
     val isActiveSubscription: Boolean = true,
     // Mirrored by setAccountSuspended.ts (Admin SDK) onto every listing this owner
     // has when their account is suspended/reactivated — server-only, never in
@@ -363,7 +391,19 @@ data class SpaceListing(
     val baseMonthlyRateUsd: Double = 450.0,
     val avatarEngagementViews: Int = 0,
     val avatarInquiryClicks: Int = 0,
-    val subdivisions: List<Subdivision> = emptyList()
+    val subdivisions: List<Subdivision> = emptyList(),
+    // Denormalized from the owner's own AppUser.idDocumentUrl at listing-creation
+    // time — the ID-Verified badge is an account-level fact, but user_profiles' read
+    // rule only lets a user read their own profile, so a Specialist viewing this
+    // listing has no other way to see whether the host has ID Verified status.
+    // Mirrors the existing pattern of denormalizing ownerName/ownerPhone/etc. onto
+    // the listing for exactly the same cross-role-visibility reason.
+    val ownerIsIdVerified: Boolean = false,
+    // The host's own lifecycle control (Draft while building it, Active once
+    // published, Paused to take it off the market without deleting it) — distinct
+    // from isActiveSubscription (billing) and isOwnerSuspended (moderation), which
+    // the host doesn't control themselves.
+    val status: ListingStatus = ListingStatus.ACTIVE
 ) {
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
@@ -449,6 +489,8 @@ data class SpaceListing(
             "ownerPhone" to ownerPhone,
             "ownerEmail" to ownerEmail,
             "ownershipProofUrl" to ownershipProofUrl,
+            "verificationDocUrl" to verificationDocUrl,
+            "verificationDocType" to verificationDocType?.name,
             "isVerified" to isVerified,
             "isActiveSubscription" to isActiveSubscription,
             "subscriptionExpiryMillis" to subscriptionExpiryMillis,
@@ -457,6 +499,8 @@ data class SpaceListing(
             "baseMonthlyRateUsd" to baseMonthlyRateUsd,
             "avatarEngagementViews" to avatarEngagementViews,
             "avatarInquiryClicks" to avatarInquiryClicks,
+            "ownerIsIdVerified" to ownerIsIdVerified,
+            "status" to status.name,
             "updatedAt" to System.currentTimeMillis()
         )
     }
@@ -593,7 +637,16 @@ data class SpaceListing(
                 ownerPhone = data["ownerPhone"] as? String ?: "",
                 ownerEmail = data["ownerEmail"] as? String ?: "",
                 ownershipProofUrl = data["ownershipProofUrl"] as? String,
-                isVerified = data["isVerified"] as? Boolean ?: true,
+                verificationDocUrl = data["verificationDocUrl"] as? String,
+                verificationDocType = (data["verificationDocType"] as? String)?.let {
+                    runCatching { ListingVerificationDocType.valueOf(it) }.getOrNull()
+                },
+                // Existing documents predating this field have no isVerified key at all —
+                // fromFirestoreMap's `?: true` used to mean "assume verified"; that's
+                // wrong for a badge that must now be earned, so a missing key here reads
+                // as not-yet-verified rather than silently grandfathering every existing
+                // listing in as verified.
+                isVerified = data["isVerified"] as? Boolean ?: false,
                 isActiveSubscription = data["isActiveSubscription"] as? Boolean ?: true,
                 isOwnerSuspended = data["isOwnerSuspended"] as? Boolean ?: false,
                 subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong() ?: (System.currentTimeMillis() + 30L * 24 * 3600 * 1000),
@@ -602,6 +655,10 @@ data class SpaceListing(
                 baseMonthlyRateUsd = (data["baseMonthlyRateUsd"] as? Number)?.toDouble() ?: 450.0,
                 avatarEngagementViews = (data["avatarEngagementViews"] as? Number)?.toInt() ?: 0,
                 avatarInquiryClicks = (data["avatarInquiryClicks"] as? Number)?.toInt() ?: 0,
+                ownerIsIdVerified = data["ownerIsIdVerified"] as? Boolean ?: false,
+                status = (data["status"] as? String)?.let {
+                    runCatching { ListingStatus.valueOf(it) }.getOrNull()
+                } ?: ListingStatus.ACTIVE,
                 subdivisions = subsList
             )
         }

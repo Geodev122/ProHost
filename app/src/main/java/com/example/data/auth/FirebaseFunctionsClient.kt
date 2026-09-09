@@ -254,6 +254,25 @@ class FirebaseFunctionsClient {
         }
     }
 
+    /**
+     * Host-callable self-service verification (functions/src/admin/listings.ts) —
+     * the listing's own owner earns the Listing Verified badge once
+     * SpaceListing.verificationDocUrl is on file. Fails with a
+     * "failed-precondition" HttpsError (surfaced via the caught exception's
+     * message) if no qualifying document has been uploaded yet.
+     */
+    suspend fun requestListingVerification(spaceId: String): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("requestListingVerification")
+                .call(mapOf("spaceId" to spaceId))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "requestListingVerification failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     companion object {
         /**
          * Reads the role custom claim from the given user's current ID token,

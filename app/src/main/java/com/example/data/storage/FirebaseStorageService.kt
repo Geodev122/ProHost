@@ -90,6 +90,25 @@ class FirebaseStorageService(
     )
 
     /**
+     * Uploads the document a Pro Host chose to EARN the Listing Verified badge —
+     * either a signed re-rental authorization or proof of self-ownership (see
+     * SpaceListing.verificationDocUrl's doc comment). A separate, optional upload
+     * from uploadOwnershipProofDocument above, which is required-but-unchecked at
+     * publish time; this one is optional-but-checked by
+     * FirebaseFunctionsClient.requestListingVerification.
+     */
+    suspend fun uploadListingVerificationDocument(
+        spaceId: String,
+        fileUri: Uri,
+        fileExtension: String,
+        onProgress: (Float) -> Unit = {}
+    ): String? = uploadAndGetUrl(
+        ref = storage?.reference?.child("listing_verification_docs/$spaceId/verification_proof.$fileExtension"),
+        fileUri = fileUri,
+        onProgress = onProgress
+    )
+
+    /**
      * Uploads the signed leasing agreement a Pro Host attaches when finalizing
      * acceptance of a booking request, to `booking_agreements/{bookingId}/agreement.{ext}`
      * — see BookingRequest.agreementUrl's doc comment: this is the record that host

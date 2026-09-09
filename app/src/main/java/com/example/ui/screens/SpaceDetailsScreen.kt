@@ -342,6 +342,7 @@ fun SpaceDetailsScreenContent(
                             name = liveSpace.ownerName,
                             specialty = "Space Host • WhatsApp: ${liveSpace.ownerPhone}",
                             isVerified = liveSpace.isVerified,
+                            isIdVerified = liveSpace.ownerIsIdVerified,
                             size = 40.dp,
                             modifier = Modifier.weight(1f)
                         )

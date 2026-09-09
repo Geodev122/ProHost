@@ -422,6 +422,12 @@ fun ProMemberAvatar(
     name: String,
     specialty: String? = null,
     isVerified: Boolean = true,
+    // A second, distinct trust signal from isVerified (which means only "completed
+    // phone OTP") — true when the person actually has an ID document on file
+    // (AppUser.idDocumentUrl != null). Deliberately never reuses the green
+    // check-badge/Icons.Default.Verified styling isVerified already claims on this
+    // same avatar, so the two can't be visually confused for one another.
+    isIdVerified: Boolean = false,
     size: Dp = 40.dp,
     modifier: Modifier = Modifier
 ) {
@@ -472,6 +478,25 @@ fun ProMemberAvatar(
                         }
                     }
                 }
+                if (isIdVerified) {
+                    Surface(
+                        color = AmberWarning,
+                        shape = CircleShape,
+                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
+                        modifier = Modifier
+                            .size(size * 0.4f)
+                            .align(Alignment.TopEnd)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Badge,
+                                contentDescription = "ID Verified",
+                                tint = Color.White,
+                                modifier = Modifier.size(size * 0.24f)
+                            )
+                        }
+                    }
+                }
             }
 
             Column {
@@ -488,6 +513,15 @@ fun ProMemberAvatar(
                             Icons.Default.Verified,
                             contentDescription = "Verified",
                             tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    if (isIdVerified) {
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Icon(
+                            Icons.Default.Badge,
+                            contentDescription = "ID Verified",
+                            tint = AmberWarning,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -534,6 +568,25 @@ fun ProMemberAvatar(
                     }
                 }
             }
+            if (isIdVerified) {
+                Surface(
+                    color = AmberWarning,
+                    shape = CircleShape,
+                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
+                    modifier = Modifier
+                        .size(size * 0.4f)
+                        .align(Alignment.TopEnd)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.Badge,
+                            contentDescription = "ID Verified",
+                            tint = Color.White,
+                            modifier = Modifier.size(size * 0.24f)
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -546,10 +599,11 @@ fun ProDoctorAvatar(
     name: String,
     specialty: String? = null,
     isVerified: Boolean = true,
+    isIdVerified: Boolean = false,
     size: Dp = 40.dp,
     modifier: Modifier = Modifier
 ) {
-    ProMemberAvatar(name, specialty, isVerified, size, modifier)
+    ProMemberAvatar(name, specialty, isVerified, isIdVerified, size, modifier)
 }
 
 /**

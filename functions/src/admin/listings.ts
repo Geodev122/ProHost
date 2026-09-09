@@ -88,3 +88,59 @@ export const setListingSubscriptionActive = onCall<SetListingSubscriptionActiveD
 
   return { ok: true };
 });
+
+interface RequestListingVerificationData {
+  spaceId?: string;
+}
+
+/**
+ * Host-callable, self-service sibling to setListingVerification above — that one
+ * stays Admin-only for a manual override; this one lets the listing's own
+ * PRO_HOST owner earn the Listing Verified badge themselves, the moment a
+ * qualifying document is on file. Auto-granted, no manual review step, matching
+ * this codebase's established stance on ownershipProofUrl/idDocumentUrl ("kept
+ * on file, no review workflow") — see SpaceListing.verificationDocUrl's doc
+ * comment for what counts as qualifying (a signed re-rental authorization, or
+ * proof of self-ownership).
+ */
+export const requestListingVerification = onCall<RequestListingVerificationData>(async (request) => {
+  const auth = request.auth;
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Sign in required.");
+  }
+  if (auth.token.role !== "PRO_HOST" && auth.token.role !== "ADMIN") {
+    throw new HttpsError("permission-denied", "Only a Pro Host can request verification for their own listing.");
+  }
+
+  const { spaceId } = request.data ?? {};
+  if (!spaceId) {
+    throw new HttpsError("invalid-argument", "spaceId is required.");
+  }
+
+  const ref = getFirestore().collection("workspace_listings").doc(spaceId);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    throw new HttpsError("not-found", "Workspace listing not found.");
+  }
+
+  const data = snap.data() ?? {};
+  if (auth.token.role !== "ADMIN" && data.ownerId !== auth.uid) {
+    throw new HttpsError("permission-denied", "You can only request verification for your own listing.");
+  }
+  if (!data.verificationDocUrl) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Upload a re-rental authorization statement or proof of ownership first — see 'Get Listing Verified' on your listing."
+    );
+  }
+
+  await ref.set({ isVerified: true, updatedAt: Date.now() }, { merge: true });
+  await recordAuditLog({
+    actionType: "HOST_SELF_VERIFICATION",
+    details: `${auth.token.email ?? auth.uid} self-verified listing #${spaceId} (${data.verificationDocType ?? "unknown"} document on file).`,
+    actorEmail: auth.token.email ?? "system@prohost.app",
+    severity: "INFO",
+  });
+
+  return { ok: true };
+});

@@ -280,6 +280,55 @@ object LegalContent {
     )
 
     val all: List<LegalDocument> = listOf(privacyPolicy, termsOfUse, revocationPolicy)
+
+    // Deliberately NOT in [all] — this isn't a general policy shown in the Legal
+    // menu, it's a specific template a Pro Host downloads from "Get Listing
+    // Verified" (see OwnerHubScreen's listing card), gets signed by hand by the
+    // real property owner, and re-uploads as verificationDocUrl to earn the
+    // Listing Verified badge (RERENTAL_AUTHORIZATION path — see
+    // ListingVerificationDocType). The four identity lines are genuine blank
+    // placeholders, not pre-filled from either account, even though the Pro
+    // Host's own name is technically known — they're meant to be filled by hand
+    // before the document is printed and physically signed.
+    val rerentalAuthorizationTemplate = LegalDocument(
+        id = "rerental_authorization_template",
+        title = "Space Re-Rental Authorization Statement",
+        shortDescription = "A template the real property owner signs to authorize a Pro Host to re-rent their space through ProHost.",
+        effectiveDate = EFFECTIVE_DATE,
+        sections = listOf(
+            LegalSection(
+                "Parties",
+                listOf(
+                    "Property Owner Full Name: ______________________________",
+                    "Property Owner ID Number: ______________________________",
+                    "Pro Host (Authorized Renter) Full Name: ______________________________",
+                    "Pro Host (Authorized Renter) ID Number: ______________________________",
+                    "ProHost Listing Reference: ______________________________"
+                )
+            ),
+            LegalSection(
+                "1. Grant of Authorization",
+                listOf(
+                    "I, the Property Owner named above, am the lawful owner of, or otherwise hold the legal right to let, the property identified by the ProHost Listing Reference above (\"the Space\"). I authorize the Pro Host named above to list, offer, and re-rent the Space to third parties (\"Specialists\") through the ProHost platform, on an hourly, shift, daily, and/or monthly basis, at the Pro Host's own discretion as to pricing, scheduling, and choice of Specialist, for as long as this authorization remains in effect.",
+                    "This authorization may be withdrawn by the Property Owner at any time by written notice to the Pro Host; it does not, however, retroactively affect any booking already accepted by a Specialist before such notice, which remains the Pro Host's responsibility to honor or resolve directly with that Specialist."
+                )
+            ),
+            LegalSection(
+                "2. Release and Indemnification",
+                listOf(
+                    "The Property Owner agrees that ProHost (the platform operator) and the Pro Host named above are each held harmless from, and released from any liability arising out of, the Property Owner later objecting to, interfering with, or otherwise questioning the Pro Host's re-renting of the Space in a manner consistent with this authorization. ProHost is not a party to, and assumes no responsibility for, the arrangement between the Property Owner and the Pro Host — this statement exists solely so ProHost can confirm the Pro Host has the Property Owner's permission to list the Space, and is kept on file for that purpose only.",
+                    "Nothing in this statement transfers ownership of the Space, and it does not itself constitute a lease between the Property Owner and any Specialist — the Pro Host remains solely responsible for their own arrangements with, and obligations to, both the Property Owner and every Specialist they rent to."
+                )
+            ),
+            LegalSection(
+                "3. Signatures",
+                listOf(
+                    "Property Owner Signature: ______________________________     Date: ____________",
+                    "This is a template provided for convenience — it is not legal advice, and the parties are encouraged to have it reviewed by a licensed attorney before signing, and to keep their own copy of the signed original in addition to the one uploaded to ProHost."
+                )
+            )
+        )
+    )
 }
 
 /**

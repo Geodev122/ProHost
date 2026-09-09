@@ -547,7 +547,8 @@ class ProHostRepository {
                 ownerId = current.ownerId,
                 isVerified = current.isVerified,
                 isActiveSubscription = current.isActiveSubscription,
-                subscriptionExpiryMillis = current.subscriptionExpiryMillis
+                subscriptionExpiryMillis = current.subscriptionExpiryMillis,
+                ownerIsIdVerified = current.ownerIsIdVerified
             )
         } else {
             updated
@@ -830,6 +831,36 @@ class ProHostRepository {
                 actionType = "VERIFICATION_OVERRIDE",
                 details = "Workspace #${spaceId} verified status changed to $nextStatus by Super Admin",
                 severity = "SECURE"
+            )
+        }
+        return result.isSuccess
+    }
+
+    /**
+     * Saves whichever verification document the host just uploaded — a normal
+     * client write (verificationDocUrl/verificationDocType aren't rules-protected,
+     * only isVerified itself is) — then immediately calls the Cloud Function that
+     * actually earns the badge. Two steps because the function needs the document
+     * URL already on the Firestore doc before it can check for it.
+     */
+    suspend fun requestOwnListingVerification(
+        spaceId: String,
+        docUrl: String,
+        docType: ListingVerificationDocType
+    ): Boolean {
+        val target = _spaces.value.find { it.id == spaceId } ?: return false
+        val withDoc = target.copy(verificationDocUrl = docUrl, verificationDocType = docType)
+        if (!saveUpdatedSpace(withDoc)) return false
+
+        val result = functionsClient.requestListingVerification(spaceId)
+        if (result.isSuccess) {
+            _spaces.value = _spaces.value.map {
+                if (it.id == spaceId) it.copy(isVerified = true) else it
+            }
+            addAuditLog(
+                actionType = "HOST_SELF_VERIFICATION",
+                details = "Owner self-verified workspace #$spaceId ($docType document on file).",
+                severity = "INFO"
             )
         }
         return result.isSuccess
@@ -1119,7 +1150,8 @@ class ProHostRepository {
                 ownerId = current.ownerId,
                 isVerified = current.isVerified,
                 isActiveSubscription = current.isActiveSubscription,
-                subscriptionExpiryMillis = current.subscriptionExpiryMillis
+                subscriptionExpiryMillis = current.subscriptionExpiryMillis,
+                ownerIsIdVerified = current.ownerIsIdVerified
             )
         } else {
             updated

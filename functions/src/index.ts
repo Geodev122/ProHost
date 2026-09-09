@@ -23,7 +23,7 @@ export { whishWebhook } from "./payments/whishWebhook";
 export { checkWhishStatus } from "./payments/checkWhishStatus";
 
 export { updatePricing } from "./admin/pricing";
-export { setListingVerification, setListingSubscriptionActive } from "./admin/listings";
+export { setListingVerification, setListingSubscriptionActive, requestListingVerification } from "./admin/listings";
 
 export { recordClientAuditLog } from "./audit/recordClientAuditLog";
 

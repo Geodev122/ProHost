@@ -780,6 +780,7 @@ private fun AdminUsersDirectoryTab(
                                 name = user.fullName,
                                 specialty = user.specialty,
                                 isVerified = user.isVerified,
+                                isIdVerified = user.idDocumentUrl != null,
                                 size = 44.dp
                             )
                             Spacer(modifier = Modifier.width(10.dp))

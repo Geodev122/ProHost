@@ -533,6 +533,28 @@ class ProHostViewModel(
         }
     }
 
+    /**
+     * Saves whichever verification document the host just uploaded and requests
+     * the Listing Verified badge (functions/src/admin/listings.ts's
+     * requestListingVerification, auto-granted — no manual review). Optional;
+     * this is never called as part of publishing a listing.
+     */
+    fun requestListingVerification(
+        spaceId: String,
+        docUrl: String,
+        docType: ListingVerificationDocType,
+        context: Context
+    ) {
+        viewModelScope.launch {
+            val success = repository.requestOwnListingVerification(spaceId, docUrl, docType)
+            Toast.makeText(
+                context,
+                if (success) "Listing Verified badge earned!" else "Couldn't verify this listing — please try again.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
     // --- Schedule & Blackout Management ---
     fun addBlackoutSlot(spaceId: String, dayOfWeek: String, startTime: String, endTime: String, reason: String, context: Context) {
         // Id left to BlackoutSlot's own UUID default: the availability editor can

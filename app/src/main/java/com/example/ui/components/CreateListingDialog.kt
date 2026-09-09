@@ -951,11 +951,16 @@ fun CreateListingDialog(
                                     ownerPhone = ownerPhone,
                                     ownerEmail = activeUser.email,
                                     ownershipProofUrl = ownershipProofUrl,
-                                    isVerified = true,
+                                    // Genuinely earned now (see SpaceListing.isVerified's doc
+                                    // comment) — a new listing starts unverified; the host can
+                                    // optionally earn the badge afterward from the listing card
+                                    // ("Get Listing Verified").
+                                    isVerified = false,
                                     isActiveSubscription = true,
                                     baseMonthlyRateUsd = monthly,
                                     subdivisions = subdivisionsList,
-                                    imageUrls = uploadedPhotoUrls
+                                    imageUrls = uploadedPhotoUrls,
+                                    ownerIsIdVerified = activeUser.idDocumentUrl != null
                                 )
 
                                 onListingCreated(newListing)

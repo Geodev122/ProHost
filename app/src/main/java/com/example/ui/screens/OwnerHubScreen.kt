@@ -59,6 +59,7 @@ fun OwnerHubScreen(
     var showPackageSelectionDialog by remember { mutableStateOf(false) }
     var editingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var deletingSpace by remember { mutableStateOf<SpaceListing?>(null) }
+    var verifyingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
     // Checked once here (not inside the wizard) so a host who's already at their
@@ -88,8 +89,19 @@ fun OwnerHubScreen(
             }
         },
         onEditSpace = { space -> editingSpace = space },
-        onDeleteSpace = { space -> deletingSpace = space }
+        onDeleteSpace = { space -> deletingSpace = space },
+        onOpenListingVerification = { space -> verifyingSpace = space }
     )
+
+    // Get Listing Verified — optional, not part of the create/publish flow. See
+    // ListingVerificationDialog.kt.
+    verifyingSpace?.let { space ->
+        ListingVerificationDialog(
+            space = space,
+            viewModel = viewModel,
+            onDismiss = { verifyingSpace = null }
+        )
+    }
 
     // Package Selection Dialog
     if (showPackageSelectionDialog) {
@@ -409,6 +421,7 @@ fun OwnerHubScreenContent(
     atListingLimit: Boolean = false,
     onEditSpace: (SpaceListing) -> Unit = {},
     onDeleteSpace: (SpaceListing) -> Unit = {},
+    onOpenListingVerification: (SpaceListing) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -674,6 +687,37 @@ fun OwnerHubScreenContent(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+
+                        // Listing Verified is genuinely earned now — see
+                        // SpaceListing.isVerified's doc comment — so this is either a
+                        // static confirmation or a tappable entry point, never a badge
+                        // shown unconditionally.
+                        Surface(
+                            color = if (space.isVerified) StatusSuccessContainer else MaterialTheme.colorScheme.surfaceVariant,
+                            shape = MaterialTheme.shapes.small,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .let { if (space.isVerified) it else it.clickable { onOpenListingVerification(space) } }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    if (space.isVerified) Icons.Default.Verified else Icons.Default.GppMaybe,
+                                    contentDescription = null,
+                                    tint = if (space.isVerified) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (space.isVerified) "Listing Verified" else "Not Listing Verified — tap to earn this badge (optional)",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (space.isVerified) StatusOnSuccessContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
 
                         if (space.isOwnerSuspended) {

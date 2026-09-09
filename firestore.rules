@@ -97,7 +97,7 @@ service cloud.firestore {
         (
           (isAdmin() || (role() == "PRO_HOST" && resource.data.ownerId == request.auth.uid)) &&
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-            ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended"]
+            ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended", "ownerIsIdVerified"]
           )
         ) ||
         // Engagement counters are incremented by the Specialist viewing/

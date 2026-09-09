@@ -66,6 +66,30 @@ service firebase.storage {
       allow delete: if false;
     }
 
+    // Optional proof a Pro Host uploads to EARN the Listing Verified badge — either
+    // a re-rental authorization statement signed by the real property owner, or
+    // proof the Pro Host is the real owner (see SpaceListing.verificationDocUrl's
+    // doc comment). Not required to publish, unlike listing_ownership_docs above —
+    // this only feeds requestListingVerification (Cloud Function, Admin SDK),
+    // which checks verificationDocUrl is set before flipping isVerified. Same
+    // bootstrapping/read/write shape as listing_ownership_docs since a host may
+    // reasonably upload this before or after publishing.
+    match /listing_verification_docs/{spaceId}/{fileName} {
+      allow read: if isSignedIn() &&
+        (isAdmin() ||
+         (firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) &&
+          firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid));
+      allow write: if isSignedIn() &&
+        (isAdmin() ||
+         (role() == "PRO_HOST" &&
+          (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
+           firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid))) &&
+        withinSizeLimit() &&
+        (request.resource.contentType == 'application/pdf' ||
+         request.resource.contentType.matches('image/.*'));
+      allow delete: if false;
+    }
+
     // Signed leasing agreement a Pro Host uploads when finalizing acceptance of a
     // booking request (see BookingRequest.agreementUrl's doc comment) — the record
     // that host and specialist reached a real agreement; payment itself happens

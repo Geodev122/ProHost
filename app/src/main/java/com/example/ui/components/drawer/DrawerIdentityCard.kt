@@ -181,6 +181,30 @@ fun DrawerIdentityCard(
                                 }
                             }
                         }
+                        // Distinct from the phone-verified check above: this reflects
+                        // whether a real ID document is actually on file
+                        // (AppUser.idDocumentUrl), not just a completed SMS OTP. Kept
+                        // visually separate (gold, top corner) so the two can't be
+                        // mistaken for one another.
+                        if (user?.idDocumentUrl != null) {
+                            Surface(
+                                color = AmberWarning,
+                                shape = CircleShape,
+                                border = BorderStroke(2.dp, OxfordBlueDark),
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .align(Alignment.TopEnd)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.Badge,
+                                        contentDescription = "ID Verified",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
