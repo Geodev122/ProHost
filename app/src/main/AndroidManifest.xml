@@ -52,6 +52,22 @@
                     android:host="hopebearer-award.com"
                     android:pathPrefix="/payment" />
             </intent-filter>
+
+            <!-- Fallback for the same Whish redirect: a custom scheme needs no OS-level
+                 Digital Asset Links verification, so it still works when the App Link
+                 above silently fails to verify (stale cert fingerprint, a browser that
+                 doesn't honor App Links, "always open in browser" previously chosen).
+                 public/payment/success.html and failure.html link here. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="prohost"
+                    android:host="payment" />
+            </intent-filter>
         </activity>
 
         <meta-data

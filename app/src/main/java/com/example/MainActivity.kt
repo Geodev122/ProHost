@@ -77,15 +77,21 @@ class MainActivity : ComponentActivity() {
             targetBookingId = bookingId
         }
 
-        // App Link return from the Whish checkout page (hopebearer-award.com/payment/...).
-        // The specific transaction isn't carried in the URL — checkWhishStatus polling,
-        // already running since initiateWhishPayment was called, is what actually
-        // confirms the result. This just brings the right tab to the front; role-based
-        // resolution of "payment_return" happens in ProHostNavGraph.
+        // Return from the Whish checkout page, via either of two paths:
+        // 1. The https App Link (hopebearer-award.com/payment/...), which only reaches
+        //    us if Android's OS-level Digital Asset Links verification succeeded.
+        // 2. The prohost://payment fallback scheme, which needs no such verification —
+        //    it's what public/payment/success.html and failure.html link to when the
+        //    App Link above didn't intercept the redirect in the browser at all.
+        // Neither carries the specific transaction — checkWhishStatus polling, already
+        // running since initiateWhishPayment was called, is what actually confirms the
+        // result. This just brings the right tab to the front; role-based resolution of
+        // "payment_return" happens in ProHostNavGraph.
         val data = intent.data
-        if (data != null && data.scheme == "https" && data.host == "hopebearer-award.com" &&
-            data.path?.startsWith("/payment") == true
-        ) {
+        val isWhishAppLinkReturn = data != null && data.scheme == "https" &&
+            data.host == "hopebearer-award.com" && data.path?.startsWith("/payment") == true
+        val isWhishFallbackReturn = data != null && data.scheme == "prohost" && data.host == "payment"
+        if (isWhishAppLinkReturn || isWhishFallbackReturn) {
             targetTab = "payment_return"
         }
     }

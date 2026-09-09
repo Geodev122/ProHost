@@ -176,7 +176,13 @@ fun ProHostAppRoot(
             gesturesEnabled = detailedSpace == null,
             drawerContent = {
                 ModalDrawerSheet(
-                    modifier = Modifier.width(310.dp),
+                    // Was a hard 310.dp — on narrow phones that alone ate most of the
+                    // screen width and left the identity card's inner rows almost no
+                    // room to breathe. Scales with the screen instead, capped so it
+                    // doesn't get oversized on tablets.
+                    modifier = Modifier
+                        .fillMaxWidth(0.86f)
+                        .widthIn(max = 320.dp),
                     drawerContainerColor = MaterialTheme.colorScheme.surface,
                     drawerTonalElevation = 4.dp
                 ) {

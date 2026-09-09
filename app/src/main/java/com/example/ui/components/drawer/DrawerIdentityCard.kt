@@ -74,6 +74,10 @@ fun DrawerIdentityCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Surface(
+                        // Lets the pill shrink instead of forcing the row to overflow past
+                        // the fixed Sign Out button — without this, the Text's own
+                        // maxLines/overflow below has no width constraint to act on.
+                        modifier = Modifier.weight(1f, fill = false),
                         color = when (role) {
                             UserRole.ADMIN -> AmberWarning.copy(alpha = 0.25f)
                             UserRole.PRO_HOST -> CarnationOrange.copy(alpha = 0.25f)
