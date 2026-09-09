@@ -60,6 +60,7 @@ fun OwnerHubScreen(
     var editingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var deletingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var verifyingSpace by remember { mutableStateOf<SpaceListing?>(null) }
+    var draftToEdit by remember { mutableStateOf<SpaceListing?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
     // Checked once here (not inside the wizard) so a host who's already at their
@@ -90,7 +91,12 @@ fun OwnerHubScreen(
         },
         onEditSpace = { space -> editingSpace = space },
         onDeleteSpace = { space -> deletingSpace = space },
-        onOpenListingVerification = { space -> verifyingSpace = space }
+        onOpenListingVerification = { space -> verifyingSpace = space },
+        onContinueDraft = { space -> draftToEdit = space },
+        onToggleListingStatus = { space ->
+            val next = if (space.status == ListingStatus.PAUSED) ListingStatus.ACTIVE else ListingStatus.PAUSED
+            viewModel.setListingStatus(space.id, next, context)
+        }
     )
 
     // Get Listing Verified — optional, not part of the create/publish flow. See
@@ -228,16 +234,33 @@ fun OwnerHubScreen(
         )
     }
 
-    // Create Granular Space Listing Dialog
-    if (showCreateListingDialog) {
+    // Create Granular Space Listing Dialog — also reused for "Continue Editing" a
+    // Draft (draftToEdit), since both are the same multi-step wizard pre-populated
+    // from an existing SpaceListing or not.
+    if (showCreateListingDialog || draftToEdit != null) {
+        val draft = draftToEdit
         CreateListingDialog(
             currentUser = currentUser,
-            onDismiss = { showCreateListingDialog = false },
+            existingDraft = draft,
+            onDismiss = { showCreateListingDialog = false; draftToEdit = null },
+            onSaveDraft = { updatedDraft ->
+                coroutineScope.launch {
+                    val success = viewModel.saveListingDraft(updatedDraft)
+                    showCreateListingDialog = false
+                    draftToEdit = null
+                    android.widget.Toast.makeText(
+                        context,
+                        if (success) "Draft saved — continue it anytime from My Listings." else "Couldn't save this draft — please try again.",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            },
             onListingCreated = { newListing ->
                 coroutineScope.launch {
                     when (viewModel.createNewSpaceListing(newListing)) {
                         is ListingCreateResult.Success -> {
                             showCreateListingDialog = false
+                            draftToEdit = null
                             android.widget.Toast.makeText(context, "Workspace listing published successfully!", android.widget.Toast.LENGTH_SHORT).show()
                             // Straight into the real Availability Control editor (same one
                             // used to manage an existing listing) so the host sets operating
@@ -422,6 +445,8 @@ fun OwnerHubScreenContent(
     onEditSpace: (SpaceListing) -> Unit = {},
     onDeleteSpace: (SpaceListing) -> Unit = {},
     onOpenListingVerification: (SpaceListing) -> Unit = {},
+    onContinueDraft: (SpaceListing) -> Unit = {},
+    onToggleListingStatus: (SpaceListing) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -689,6 +714,36 @@ fun OwnerHubScreenContent(
                             )
                         }
 
+                        // The host's own lifecycle status — Active listings show no extra
+                        // badge here (the subscription badge above already covers that
+                        // case); Draft and Paused are the two states worth calling out.
+                        if (space.status != ListingStatus.ACTIVE) {
+                            Surface(
+                                color = if (space.status == ListingStatus.DRAFT) MaterialTheme.colorScheme.surfaceVariant else StatusWarningContainer,
+                                shape = MaterialTheme.shapes.small,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        if (space.status == ListingStatus.DRAFT) Icons.Default.EditNote else Icons.Default.PauseCircle,
+                                        contentDescription = null,
+                                        tint = if (space.status == ListingStatus.DRAFT) MaterialTheme.colorScheme.onSurfaceVariant else StatusOnWarningContainer,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = if (space.status == ListingStatus.DRAFT) "Draft — not published yet" else "Paused — hidden from Discovery",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (space.status == ListingStatus.DRAFT) MaterialTheme.colorScheme.onSurfaceVariant else StatusOnWarningContainer
+                                    )
+                                }
+                            }
+                        }
+
                         // Listing Verified is genuinely earned now — see
                         // SpaceListing.isVerified's doc comment — so this is either a
                         // static confirmation or a tappable entry point, never a badge
@@ -802,49 +857,97 @@ fun OwnerHubScreenContent(
                             }
                         }
 
-                        // Action buttons
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            // View Specs Button
-                            OutlinedButton(
-                                onClick = { onSelectSpace(space) },
-                                modifier = Modifier.weight(1f),
-                                shape = MaterialTheme.shapes.medium
+                        // Action buttons — a Draft has no live schedule to manage yet, so
+                        // its row leads with "Continue Editing" (the same wizard, pre-
+                        // populated) instead of Availability/Edit.
+                        if (space.status == ListingStatus.DRAFT) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("Details", style = MaterialTheme.typography.labelMedium)
-                            }
+                                OutlinedButton(
+                                    onClick = { onSelectSpace(space) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = MaterialTheme.shapes.medium
+                                ) {
+                                    Text("Details", style = MaterialTheme.typography.labelMedium)
+                                }
 
-                            // Availability & Schedule Control Button
-                            Button(
-                                onClick = { onOpenScheduleEditor(space) },
-                                modifier = Modifier.weight(1.5f),
-                                shape = MaterialTheme.shapes.medium
-                            ) {
-                                Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("Availability", style = MaterialTheme.typography.labelMedium)
-                            }
+                                Button(
+                                    onClick = { onContinueDraft(space) },
+                                    modifier = Modifier.weight(1.5f),
+                                    shape = MaterialTheme.shapes.medium
+                                ) {
+                                    Icon(Icons.Default.EditNote, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.xs))
+                                    Text("Continue Editing", style = MaterialTheme.typography.labelMedium)
+                                }
 
-                            // Edit Listing Button
-                            OutlinedButton(
-                                onClick = { onEditSpace(space) },
-                                modifier = Modifier.weight(0.9f),
-                                shape = MaterialTheme.shapes.medium,
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
-                            ) {
-                                Icon(Icons.Default.Edit, contentDescription = "Edit Listing", modifier = Modifier.size(14.dp))
+                                IconButton(
+                                    onClick = { onDeleteSpace(space) },
+                                    modifier = Modifier.weight(0.6f)
+                                ) {
+                                    Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Draft", tint = MaterialTheme.colorScheme.error)
+                                }
                             }
-
-                            // Delete Listing Button — weighted like the other 3 controls
-                            // so all four divide the row's width predictably instead of
-                            // this one's intrinsic size squeezing the rest.
-                            IconButton(
-                                onClick = { onDeleteSpace(space) },
-                                modifier = Modifier.weight(0.6f)
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Listing", tint = MaterialTheme.colorScheme.error)
+                                // View Specs Button
+                                OutlinedButton(
+                                    onClick = { onSelectSpace(space) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = MaterialTheme.shapes.medium
+                                ) {
+                                    Text("Details", style = MaterialTheme.typography.labelMedium)
+                                }
+
+                                // Availability & Schedule Control Button
+                                Button(
+                                    onClick = { onOpenScheduleEditor(space) },
+                                    modifier = Modifier.weight(1.5f),
+                                    shape = MaterialTheme.shapes.medium
+                                ) {
+                                    Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.xs))
+                                    Text("Availability", style = MaterialTheme.typography.labelMedium)
+                                }
+
+                                // Edit Listing Button
+                                OutlinedButton(
+                                    onClick = { onEditSpace(space) },
+                                    modifier = Modifier.weight(0.9f),
+                                    shape = MaterialTheme.shapes.medium,
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                                ) {
+                                    Icon(Icons.Default.Edit, contentDescription = "Edit Listing", modifier = Modifier.size(14.dp))
+                                }
+
+                                // Pause/Resume Button — the host's own lifecycle control,
+                                // distinct from isActiveSubscription (billing), which the
+                                // host doesn't control directly.
+                                IconButton(
+                                    onClick = { onToggleListingStatus(space) },
+                                    modifier = Modifier.weight(0.6f)
+                                ) {
+                                    Icon(
+                                        if (space.status == ListingStatus.PAUSED) Icons.Default.PlayCircle else Icons.Default.PauseCircle,
+                                        contentDescription = if (space.status == ListingStatus.PAUSED) "Resume Listing" else "Pause Listing",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                // Delete Listing Button — weighted like the other controls
+                                // so they all divide the row's width predictably instead of
+                                // this one's intrinsic size squeezing the rest.
+                                IconButton(
+                                    onClick = { onDeleteSpace(space) },
+                                    modifier = Modifier.weight(0.6f)
+                                ) {
+                                    Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Listing", tint = MaterialTheme.colorScheme.error)
+                                }
                             }
                         }
                     }

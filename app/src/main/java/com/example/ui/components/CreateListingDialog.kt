@@ -38,7 +38,9 @@ import java.util.UUID
 fun CreateListingDialog(
     currentUser: AppUser?,
     onDismiss: () -> Unit,
-    onListingCreated: (SpaceListing) -> Unit
+    onListingCreated: (SpaceListing) -> Unit,
+    existingDraft: SpaceListing? = null,
+    onSaveDraft: (SpaceListing) -> Unit = {}
 ) {
     if (currentUser == null) {
         Dialog(onDismissRequest = onDismiss) {
@@ -64,15 +66,18 @@ fun CreateListingDialog(
 
     // Generated up front (not just at submit time) so photos can upload to their final
     // listings/{listingId}/ path as soon as they're picked, instead of at the end.
-    val listingId = remember { "SPC-LB-" + UUID.randomUUID().toString().take(6).uppercase() }
-    var uploadedPhotoUrls by remember { mutableStateOf<List<String>>(emptyList()) }
+    // Reuses the draft's own id when continuing one, so "Save as Draft" -> "Continue
+    // Editing" -> "Publish" all write to the same document instead of forking a
+    // second listing.
+    val listingId = remember { existingDraft?.id ?: ("SPC-LB-" + UUID.randomUUID().toString().take(6).uppercase()) }
+    var uploadedPhotoUrls by remember { mutableStateOf(existingDraft?.imageUrls ?: emptyList()) }
     var isUploadingPhoto by remember { mutableStateOf(false) }
 
     // Proof of ownership / right to rent — required per listing (no admin review, just
     // kept on file; see SpaceListing.ownershipProofUrl's doc comment). Uploaded
     // immediately on pick, same pattern as cover photos above.
     var ownershipProofDoc by remember { mutableStateOf(DocumentPickerState()) }
-    var ownershipProofUrl by remember { mutableStateOf<String?>(null) }
+    var ownershipProofUrl by remember { mutableStateOf(existingDraft?.ownershipProofUrl) }
     var isUploadingOwnershipProof by remember { mutableStateOf(false) }
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
@@ -96,26 +101,31 @@ fun CreateListingDialog(
         }
     }
 
-    var title by remember { mutableStateOf("") }
-    var selectedSpaceType by remember { mutableStateOf(SpaceType.PRIVATE_OFFICE) }
-    var selectedGovernorate by remember { mutableStateOf(Governorate.BEIRUT) }
-    var district by remember { mutableStateOf("") }
-    var streetAddress by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf(existingDraft?.title ?: "") }
+    var selectedSpaceType by remember { mutableStateOf(existingDraft?.spaceType ?: SpaceType.PRIVATE_OFFICE) }
+    var selectedGovernorate by remember { mutableStateOf(existingDraft?.governorate ?: Governorate.BEIRUT) }
+    var district by remember { mutableStateOf(existingDraft?.district ?: "") }
+    var streetAddress by remember { mutableStateOf(existingDraft?.streetAddress ?: "") }
 
     // Real geolocation from the map picker below — required to publish. Distinct from
     // [district]/[streetAddress] above, which the host types freely; a picked address
     // can be applied into those fields with one tap, but never overwrites them silently.
+    // Always starts null even when continuing a Draft — a draft's stored lat/lng may
+    // just be the unpicked fallback jitter (see the geocoding fallback below), so the
+    // host re-confirms the pin on the map rather than Publish silently trusting it.
     var pickedLatLng by remember { mutableStateOf<LatLng?>(null) }
     var pickedAddressLine by remember { mutableStateOf<String?>(null) }
     var pickedDistrict by remember { mutableStateOf<String?>(null) }
-    var floorInfo by remember { mutableStateOf("Floor 3 (Elevator accessible)") }
-    var isShared by remember { mutableStateOf(true) }
-    var baseMonthlyRate by remember { mutableStateOf("500") }
-    var ownerPhone by remember { mutableStateOf(activeUser.phone) }
+    var floorInfo by remember { mutableStateOf(existingDraft?.floorInfo ?: "Floor 3 (Elevator accessible)") }
+    var isShared by remember { mutableStateOf(existingDraft?.isShared ?: true) }
+    var baseMonthlyRate by remember { mutableStateOf(existingDraft?.baseMonthlyRateUsd?.toInt()?.toString() ?: "500") }
+    var ownerPhone by remember { mutableStateOf(existingDraft?.ownerPhone ?: activeUser.phone) }
 
     // Facilities toggles
     val standardFacilities = FacilityCatalog.standard
-    var selectedFacilities by remember { mutableStateOf(standardFacilities.take(5).toSet()) }
+    var selectedFacilities by remember {
+        mutableStateOf(existingDraft?.essentialFacilities?.toSet() ?: standardFacilities.take(5).toSet())
+    }
 
     // Equipment builder
     val defaultEquipCatalog = listOf(
@@ -134,17 +144,20 @@ fun CreateListingDialog(
     )
 
     var chosenEquipment by remember {
-        mutableStateOf(listOf(defaultEquipCatalog[0], defaultEquipCatalog[3], defaultEquipCatalog[10]))
+        mutableStateOf(
+            existingDraft?.equipment?.takeIf { it.isNotEmpty() }
+                ?: listOf(defaultEquipCatalog[0], defaultEquipCatalog[3], defaultEquipCatalog[10])
+        )
     }
     var equipmentSearchQuery by remember { mutableStateOf("") }
 
     // Premises rules — real editable fields, replacing the previously-hardcoded
     // PremisesRules() default at listing construction.
-    var smokingAllowed by remember { mutableStateOf(false) }
-    var foodAllowed by remember { mutableStateOf(true) }
-    var petsAllowed by remember { mutableStateOf(false) }
-    var offHoursAccess by remember { mutableStateOf(true) }
-    var visitorPolicy by remember { mutableStateOf("Clients & visitors welcomed in reception lounge") }
+    var smokingAllowed by remember { mutableStateOf(existingDraft?.rules?.smokingAllowed ?: false) }
+    var foodAllowed by remember { mutableStateOf(existingDraft?.rules?.foodAllowed ?: true) }
+    var petsAllowed by remember { mutableStateOf(existingDraft?.rules?.petsAllowed ?: false) }
+    var offHoursAccess by remember { mutableStateOf(existingDraft?.rules?.offHoursAccess ?: true) }
+    var visitorPolicy by remember { mutableStateOf(existingDraft?.rules?.visitorPolicy ?: "Clients & visitors welcomed in reception lounge") }
 
     // Complementary specialties
     val commonSpecialties = listOf("Consultant", "Designer", "Architect", "Developer", "Lawyer", "Accountant", "Marketer", "Coach")
@@ -152,10 +165,10 @@ fun CreateListingDialog(
     // from an earlier, medical-specific version of this chip list; none of them
     // appear among commonSpecialties above, so a host would see a chip row with
     // nothing pre-selected that actually matched. Starts empty instead.
-    var selectedSpecialties by remember { mutableStateOf(emptySet<String>()) }
+    var selectedSpecialties by remember { mutableStateOf(existingDraft?.complementarySpecialties?.toSet() ?: emptySet()) }
 
     // Subdivision States (Level 2 Rooms & Desks)
-    var subdivisionsList by remember { mutableStateOf(listOf<Subdivision>()) }
+    var subdivisionsList by remember { mutableStateOf(existingDraft?.subdivisions ?: listOf<Subdivision>()) }
 
     // local states for adding/building subdivisions
     var subName by remember { mutableStateOf("") }
@@ -213,7 +226,7 @@ fun CreateListingDialog(
                 ) {
                     Column {
                         Text(
-                            text = "Publish Workspace Listing",
+                            text = if (existingDraft != null) "Continue Draft Listing" else "Publish Workspace Listing",
                             fontSize = MaterialTheme.typography.headlineSmall.fontSize,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -844,6 +857,108 @@ fun CreateListingDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
+                // Builds the SpaceListing from the wizard's current field state — shared
+                // by both "Publish Listing" (status ACTIVE) and "Save as Draft" (status
+                // DRAFT, no requiredness gating) so the two paths can never disagree on
+                // how a listing gets assembled.
+                fun buildListing(status: ListingStatus): SpaceListing {
+                    val formulas = mutableListOf<RentalFormula>()
+                    val monthly = if (hasSubdivisions) {
+                        subdivisionsList.flatMap { it.rentalStrategies }
+                            .filter { it.strategy == RentalStrategy.MONTHLY }
+                            .map { it.rateUsd }
+                            .minOrNull() ?: 450.0
+                    } else {
+                        baseMonthlyRate.toDoubleOrNull() ?: 500.0
+                    }
+
+                    // Always publish with a Full-Month formula so the listing
+                    // is never unbookable — Hourly/Shift/Day-per-Week formulas,
+                    // operating hours, and blackout slots are set right after
+                    // publishing in the same "Availability & Formula Control"
+                    // editor used for existing listings (see onListingCreated).
+                    if (!hasSubdivisions) {
+                        formulas.add(
+                            RentalFormula(
+                                type = RentalFormulaType.FULL_MONTH,
+                                rateUsd = monthly,
+                                scheduleDescription = "Dedicated Full Workspace Month (All operating days)",
+                                daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
+                                startHour = "08:00",
+                                endHour = "20:00",
+                                totalWeeklyHours = 72
+                            )
+                        )
+                    }
+
+                    // Prefer the real pin dropped on the map (recorded via
+                    // ListingLocationMapPicker above); only fall back to
+                    // string-geocoding the typed address if the host somehow
+                    // reached submit without one (shouldn't happen for a real
+                    // Publish — gated by the Publish button below; expected for
+                    // a Draft saved before the host ever opened the map step).
+                    var geocodedLat = selectedGovernorate.centerLat + ((-20..20).random() / 1000.0)
+                    var geocodedLng = selectedGovernorate.centerLng + ((-20..20).random() / 1000.0)
+                    val pinned = pickedLatLng
+                    if (pinned != null) {
+                        geocodedLat = pinned.latitude
+                        geocodedLng = pinned.longitude
+                    } else if (streetAddress.isNotBlank() || district.isNotBlank()) {
+                        try {
+                            val fullAddress = "${streetAddress}, ${district}, ${selectedGovernorate.displayName}, Lebanon"
+                            val geocoder = android.location.Geocoder(context, java.util.Locale.getDefault())
+                            val addresses = geocoder.getFromLocationName(fullAddress, 1)
+                            if (!addresses.isNullOrEmpty()) {
+                                geocodedLat = addresses[0].latitude
+                                geocodedLng = addresses[0].longitude
+                            }
+                        } catch (e: Exception) {
+                            // fallback to the jittered governorate center above
+                        }
+                    }
+
+                    return SpaceListing(
+                        id = listingId,
+                        title = if (title.isNotBlank()) title else "${selectedGovernorate.displayName} ${selectedSpaceType.displayName}",
+                        spaceType = selectedSpaceType,
+                        governorate = selectedGovernorate,
+                        district = if (district.isNotBlank()) district else "Central ${selectedGovernorate.displayName}",
+                        streetAddress = if (streetAddress.isNotBlank()) streetAddress else "Main Business Street",
+                        floorInfo = floorInfo,
+                        lat = geocodedLat,
+                        lng = geocodedLng,
+                        isShared = isShared,
+                        complementarySpecialties = selectedSpecialties.toList(),
+                        residentPractitioners = listOf("${activeUser.fullName} (${activeUser.specialty})"),
+                        essentialFacilities = selectedFacilities.toList(),
+                        equipment = chosenEquipment,
+                        rentalFormulas = formulas,
+                        rules = PremisesRules(
+                            smokingAllowed = smokingAllowed,
+                            foodAllowed = foodAllowed,
+                            petsAllowed = petsAllowed,
+                            visitorPolicy = visitorPolicy,
+                            offHoursAccess = offHoursAccess
+                        ),
+                        ownerId = activeUser.id,
+                        ownerName = activeUser.fullName,
+                        ownerPhone = ownerPhone,
+                        ownerEmail = activeUser.email,
+                        ownershipProofUrl = ownershipProofUrl,
+                        // Genuinely earned now (see SpaceListing.isVerified's doc
+                        // comment) — a new listing starts unverified; the host can
+                        // optionally earn the badge afterward from the listing card
+                        // ("Get Listing Verified").
+                        isVerified = false,
+                        isActiveSubscription = true,
+                        baseMonthlyRateUsd = monthly,
+                        subdivisions = subdivisionsList,
+                        imageUrls = uploadedPhotoUrls,
+                        ownerIsIdVerified = activeUser.idDocumentUrl != null,
+                        status = status
+                    )
+                }
+
                 // Bottom Navigation Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -857,108 +972,23 @@ fun CreateListingDialog(
                         )
                     }
 
+                    // Save as Draft — bypasses the Publish button's requiredness gate
+                    // below entirely (no pin/ownership-proof requirement); available at
+                    // any step so a host can save partial progress and come back later.
+                    // Not part of the wizard's step-by-step flow — an explicit opt-out.
+                    ProOutlinedButton(
+                        text = "Save as Draft",
+                        onClick = { onSaveDraft(buildListing(ListingStatus.DRAFT)) },
+                        modifier = Modifier.weight(1f)
+                    )
+
                     ProPrimaryButton(
                         text = if (currentStep < totalSteps - 1) "Next" else "Publish Listing",
                         onClick = {
                             if (currentStep < totalSteps - 1) {
                                 currentStep++
                             } else {
-                                // Finalize listing creation
-                                val formulas = mutableListOf<RentalFormula>()
-                                val monthly = if (hasSubdivisions) {
-                                    subdivisionsList.flatMap { it.rentalStrategies }
-                                        .filter { it.strategy == RentalStrategy.MONTHLY }
-                                        .map { it.rateUsd }
-                                        .minOrNull() ?: 450.0
-                                } else {
-                                    baseMonthlyRate.toDoubleOrNull() ?: 500.0
-                                }
-                                
-                                // Always publish with a Full-Month formula so the listing
-                                // is never unbookable — Hourly/Shift/Day-per-Week formulas,
-                                // operating hours, and blackout slots are set right after
-                                // publishing in the same "Availability & Formula Control"
-                                // editor used for existing listings (see onListingCreated).
-                                if (!hasSubdivisions) {
-                                    formulas.add(
-                                        RentalFormula(
-                                            type = RentalFormulaType.FULL_MONTH,
-                                            rateUsd = monthly,
-                                            scheduleDescription = "Dedicated Full Workspace Month (All operating days)",
-                                            daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
-                                            startHour = "08:00",
-                                            endHour = "20:00",
-                                            totalWeeklyHours = 72
-                                        )
-                                    )
-                                }
-
-                                // Prefer the real pin dropped on the map (recorded via
-                                // ListingLocationMapPicker above); only fall back to
-                                // string-geocoding the typed address if the host somehow
-                                // reached submit without one (shouldn't happen — gated by
-                                // the Publish button below).
-                                var geocodedLat = selectedGovernorate.centerLat + ((-20..20).random() / 1000.0)
-                                var geocodedLng = selectedGovernorate.centerLng + ((-20..20).random() / 1000.0)
-                                val pinned = pickedLatLng
-                                if (pinned != null) {
-                                    geocodedLat = pinned.latitude
-                                    geocodedLng = pinned.longitude
-                                } else {
-                                    try {
-                                        val fullAddress = "${streetAddress}, ${district}, ${selectedGovernorate.displayName}, Lebanon"
-                                        val geocoder = android.location.Geocoder(context, java.util.Locale.getDefault())
-                                        val addresses = geocoder.getFromLocationName(fullAddress, 1)
-                                        if (!addresses.isNullOrEmpty()) {
-                                            geocodedLat = addresses[0].latitude
-                                            geocodedLng = addresses[0].longitude
-                                        }
-                                    } catch (e: Exception) {
-                                        // fallback to the jittered governorate center above
-                                    }
-                                }
-
-                                val newListing = SpaceListing(
-                                    id = listingId,
-                                    title = if (title.isNotBlank()) title else "${selectedGovernorate.displayName} ${selectedSpaceType.displayName}",
-                                    spaceType = selectedSpaceType,
-                                    governorate = selectedGovernorate,
-                                    district = if (district.isNotBlank()) district else "Central ${selectedGovernorate.displayName}",
-                                    streetAddress = if (streetAddress.isNotBlank()) streetAddress else "Main Business Street",
-                                    floorInfo = floorInfo,
-                                    lat = geocodedLat,
-                                    lng = geocodedLng,
-                                    isShared = isShared,
-                                    complementarySpecialties = selectedSpecialties.toList(),
-                                    residentPractitioners = listOf("${activeUser.fullName} (${activeUser.specialty})"),
-                                    essentialFacilities = selectedFacilities.toList(),
-                                    equipment = chosenEquipment,
-                                    rentalFormulas = formulas,
-                                    rules = PremisesRules(
-                                        smokingAllowed = smokingAllowed,
-                                        foodAllowed = foodAllowed,
-                                        petsAllowed = petsAllowed,
-                                        visitorPolicy = visitorPolicy,
-                                        offHoursAccess = offHoursAccess
-                                    ),
-                                    ownerId = activeUser.id,
-                                    ownerName = activeUser.fullName,
-                                    ownerPhone = ownerPhone,
-                                    ownerEmail = activeUser.email,
-                                    ownershipProofUrl = ownershipProofUrl,
-                                    // Genuinely earned now (see SpaceListing.isVerified's doc
-                                    // comment) — a new listing starts unverified; the host can
-                                    // optionally earn the badge afterward from the listing card
-                                    // ("Get Listing Verified").
-                                    isVerified = false,
-                                    isActiveSubscription = true,
-                                    baseMonthlyRateUsd = monthly,
-                                    subdivisions = subdivisionsList,
-                                    imageUrls = uploadedPhotoUrls,
-                                    ownerIsIdVerified = activeUser.idDocumentUrl != null
-                                )
-
-                                onListingCreated(newListing)
+                                onListingCreated(buildListing(ListingStatus.ACTIVE))
                             }
                         },
                         modifier = Modifier.weight(1.5f),

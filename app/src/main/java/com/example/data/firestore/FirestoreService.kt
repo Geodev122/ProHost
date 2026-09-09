@@ -278,6 +278,26 @@ class FirestoreService(
     }
 
     /**
+     * A narrow merge write of only [fields] on a workspace_listings document — used
+     * for the host's own lifecycle actions (Pause/Resume, publishing a Draft) that
+     * change just `status`, without re-sending (and risking overwriting) the rest
+     * of the listing the way saveWorkspace()'s full-document write would.
+     */
+    suspend fun updateWorkspaceListingFields(spaceId: String, fields: Map<String, Any?>): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
+                .document(spaceId)
+                .set(fields + ("updatedAt" to System.currentTimeMillis()), SetOptions.merge())
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating workspace listing fields: ${e.message}", e)
+            false
+        }
+    }
+
+    /**
      * Atomically increments a single numeric field on a workspace_listings document
      * (used for the real "Views"/"Inquiries" engagement counters). Deliberately uses
      * Firestore's server-side FieldValue.increment rather than the read-modify-write

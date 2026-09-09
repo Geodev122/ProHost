@@ -572,6 +572,21 @@ class ProHostViewModel(
         }
     }
 
+    /** Saves (or re-saves) a Draft listing — never blocked by the package listing limit. */
+    suspend fun saveListingDraft(listing: SpaceListing): Boolean {
+        return repository.saveListingDraft(listing)
+    }
+
+    /** Pause/Resume a published listing, or publish a Draft — see setListingStatus's doc comment. */
+    fun setListingStatus(spaceId: String, status: ListingStatus, context: Context) {
+        viewModelScope.launch {
+            val success = repository.setListingStatus(spaceId, status)
+            if (!success) {
+                Toast.makeText(context, "Couldn't update this listing — please try again.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     // --- Schedule & Blackout Management ---
     fun addBlackoutSlot(spaceId: String, dayOfWeek: String, startTime: String, endTime: String, reason: String, context: Context) {
         // Id left to BlackoutSlot's own UUID default: the availability editor can

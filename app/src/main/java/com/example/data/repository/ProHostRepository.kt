@@ -517,12 +517,78 @@ class ProHostRepository {
      * and local state only commits once the write is confirmed.
      */
     suspend fun addSpaceListing(listing: SpaceListing): Boolean {
-        val success = firestoreService.saveWorkspace(listing)
+        // Publishing a Draft reuses the same listingId (see CreateListingDialog's
+        // buildListing), so this write may really be an update of an existing
+        // document rather than a brand-new one — same protected-field re-copy as
+        // updateSpaceListing, otherwise a freshly-constructed subscriptionExpiryMillis
+        // (computed from System.currentTimeMillis() at build time, not preserved
+        // across the wizard's steps) would diff against the stored value and get
+        // the whole write denied by firestore.rules' protected-fields check.
+        val current = _spaces.value.find { it.id == listing.id }
+        val safeListing = if (current != null) {
+            listing.copy(
+                isVerified = current.isVerified,
+                isActiveSubscription = current.isActiveSubscription,
+                subscriptionExpiryMillis = current.subscriptionExpiryMillis,
+                isOwnerSuspended = current.isOwnerSuspended,
+                ownerIsIdVerified = current.ownerIsIdVerified
+            )
+        } else {
+            listing
+        }
+        val success = firestoreService.saveWorkspace(safeListing)
         if (success) {
-            _spaces.value = listOf(listing) + _spaces.value
+            // Upserts rather than always prepending — see the comment above on why
+            // this id may already be in local state from saveListingDraft;
+            // prepending unconditionally would leave two entries for the same
+            // document instead of one updated one.
+            _spaces.value = if (current != null) {
+                _spaces.value.map { if (it.id == safeListing.id) safeListing else it }
+            } else {
+                listOf(safeListing) + _spaces.value
+            }
             addAuditLog(
                 actionType = "LISTING_CREATED",
-                details = "New space created: ${listing.title} (${listing.district}) by ${listing.ownerName}",
+                details = "New space created: ${safeListing.title} (${safeListing.district}) by ${safeListing.ownerName}",
+                severity = "INFO"
+            )
+        }
+        return success
+    }
+
+    /**
+     * Saves (or re-saves) a listing as a Draft — never gated by the host's active-
+     * listing quota (see ProHostViewModel.createNewSpaceListing's quota check, which
+     * this deliberately bypasses) since a Draft doesn't consume a slot until it's
+     * actually published. Upserts on listingId so repeatedly saving the same draft
+     * updates one document/local entry instead of creating duplicates. Preserves the
+     * same protected fields as addSpaceListing/updateSpaceListing — see their doc
+     * comments — since a re-save is really an update of the existing draft document.
+     */
+    suspend fun saveListingDraft(listing: SpaceListing): Boolean {
+        val current = _spaces.value.find { it.id == listing.id }
+        val draft = if (current != null) {
+            listing.copy(
+                status = ListingStatus.DRAFT,
+                isVerified = current.isVerified,
+                isActiveSubscription = current.isActiveSubscription,
+                subscriptionExpiryMillis = current.subscriptionExpiryMillis,
+                isOwnerSuspended = current.isOwnerSuspended,
+                ownerIsIdVerified = current.ownerIsIdVerified
+            )
+        } else {
+            listing.copy(status = ListingStatus.DRAFT)
+        }
+        val success = firestoreService.saveWorkspace(draft)
+        if (success) {
+            _spaces.value = if (current != null) {
+                _spaces.value.map { if (it.id == draft.id) draft else it }
+            } else {
+                listOf(draft) + _spaces.value
+            }
+            addAuditLog(
+                actionType = "LISTING_DRAFT_SAVED",
+                details = "Draft saved: ${draft.title} (${draft.district}) by ${draft.ownerName}",
                 severity = "INFO"
             )
         }
@@ -864,6 +930,23 @@ class ProHostRepository {
             )
         }
         return result.isSuccess
+    }
+
+    /**
+     * The host's own lifecycle control for a listing — Pause/Resume an Active
+     * listing, or publish a Draft (Draft -> Active). Not Admin-only: `status`
+     * isn't in firestore.rules' workspace_listings protected-fields list, so
+     * a narrow merge write is enough; listingCountTracker.ts's update trigger
+     * keeps activeListingCount in sync with the transition server-side.
+     */
+    suspend fun setListingStatus(spaceId: String, status: ListingStatus): Boolean {
+        val success = firestoreService.updateWorkspaceListingFields(spaceId, mapOf("status" to status.name))
+        if (success) {
+            _spaces.value = _spaces.value.map {
+                if (it.id == spaceId) it.copy(status = status) else it
+            }
+        }
+        return success
     }
 
     /** Same pattern as [toggleListingVerification] — see its doc comment. */

@@ -74,8 +74,14 @@ service cloud.firestore {
       // otherwise a suspended account could keep generating traffic and
       // inbound booking requests indefinitely. isOwnerSuspended is mirrored
       // onto each listing by setAccountSuspended.ts (Admin SDK) — see its
-      // doc comment.
-      allow read: if resource.data.get('isOwnerSuspended', false) == false ||
+      // doc comment. Same idea for status: a Draft being built or a listing
+      // the host has Paused is only visible to its own owner and Admin, not
+      // the public Discovery feed — missing status reads as ACTIVE (its own
+      // default) so listings written before this field existed stay visible.
+      allow read: if (
+        resource.data.get('isOwnerSuspended', false) == false &&
+        resource.data.get('status', 'ACTIVE') == 'ACTIVE'
+      ) ||
         isAdmin() ||
         (isSignedIn() && resource.data.ownerId == request.auth.uid);
 
@@ -83,7 +89,13 @@ service cloud.firestore {
         (liveRole(request.auth.uid) == "PRO_HOST" || isAdmin()) &&
         request.resource.data.ownerId == request.auth.uid &&
         !isSuspended() &&
-        (isAdmin() || withinListingLimit(request.auth.uid));
+        // A Draft doesn't consume the host's quota (see ListingStatus's doc
+        // comment) — only a create that lands directly as ACTIVE is gated by
+        // withinListingLimit(); saving a brand-new Draft is exempt the same
+        // way listingCountTracker.ts's create trigger only counts ACTIVE.
+        (isAdmin() ||
+          request.resource.data.get('status', 'ACTIVE') != 'ACTIVE' ||
+          withinListingLimit(request.auth.uid));
 
       // isVerified / isActiveSubscription / subscriptionExpiryMillis are
       // money- and verification-status fields — only setListingVerification /
@@ -98,7 +110,16 @@ service cloud.firestore {
           (isAdmin() || (role() == "PRO_HOST" && resource.data.ownerId == request.auth.uid)) &&
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(
             ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended", "ownerIsIdVerified"]
-          )
+          ) &&
+          // Publishing a Draft or resuming a Paused listing (status -> ACTIVE)
+          // is the moment it starts consuming the host's quota — gate that
+          // transition the same way create() gates a straight-to-ACTIVE
+          // create. Any other status change (staying Draft/Paused, or
+          // Active -> Paused) never needs the quota check.
+          (isAdmin() ||
+            resource.data.get('status', 'ACTIVE') == 'ACTIVE' ||
+            request.resource.data.get('status', 'ACTIVE') != 'ACTIVE' ||
+            withinListingLimit(request.auth.uid))
         ) ||
         // Engagement counters are incremented by the Specialist viewing/
         // contacting the listing, not the owner — the owner-only clause above
