@@ -858,7 +858,17 @@ data class AppUser(
     // (assignInitialRole.ts rejects it) and at write time (firestore.rules' isSuspended()
     // re-reads this field live, so a suspension takes effect on the very next attempt
     // rather than waiting for the caller's ID token to refresh).
-    val isSuspended: Boolean = false
+    val isSuspended: Boolean = false,
+    // Server-only, written exclusively by functions/src/listings/listingCountTracker.ts —
+    // a read-only projection of the same counter firestore.rules' withinListingLimit()
+    // already protects. Exists on this model purely so the client can fail fast (grey
+    // out "Add New Workspace Listing" once at the Package-2 cap) instead of only finding
+    // out after completing the whole create-listing wizard; the rule stays the real gate.
+    val activeListingCount: Int = 0,
+    // Client-writable — a personal shortlist, not a protected/server-only field, so it's
+    // simply absent from firestore.rules' user_profiles protected-key list and writable
+    // by the owner like any other profile field. See ProHostRepository.toggleSavedSpace.
+    val savedSpaceIds: List<String> = emptyList()
 ) {
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
@@ -878,6 +888,7 @@ data class AppUser(
             "ownerPackageTier" to ownerPackageTier.name,
             "ownerPackageExpiryMillis" to ownerPackageExpiryMillis,
             "paygListingsBoughtCount" to paygListingsBoughtCount,
+            "savedSpaceIds" to savedSpaceIds,
             "updatedAt" to System.currentTimeMillis()
         )
     }
@@ -911,7 +922,9 @@ data class AppUser(
                 paygListingsBoughtCount = (data["paygListingsBoughtCount"] as? Number)?.toInt() ?: 0,
                 createdAtMillis = (data["createdAtMillis"] as? Number)?.toLong(),
                 lastSignInAtMillis = (data["lastSignInAtMillis"] as? Number)?.toLong(),
-                isSuspended = data["isSuspended"] as? Boolean ?: false
+                isSuspended = data["isSuspended"] as? Boolean ?: false,
+                activeListingCount = (data["activeListingCount"] as? Number)?.toInt() ?: 0,
+                savedSpaceIds = (data["savedSpaceIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
             )
         }
     }

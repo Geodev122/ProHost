@@ -87,16 +87,30 @@ service cloud.firestore {
 
       // isVerified / isActiveSubscription / subscriptionExpiryMillis are
       // money- and verification-status fields — only setListingVerification /
-      // setListingSubscriptionActive / the Whish entitlement grant (all via
-      // the Admin SDK, which bypasses rules) can change them. ownerId can
-      // never be reassigned by a client write. isOwnerSuspended is likewise
-      // Admin-SDK-only (setAccountSuspended.ts) — an owner could otherwise
-      // just un-hide their own suspended listings by writing it back to false.
-      allow update: if isSignedIn() &&
-        (isAdmin() || (role() == "PRO_HOST" && resource.data.ownerId == request.auth.uid)) &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-          ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended"]
-        );
+      // requestListingVerification / setListingSubscriptionActive / the Whish
+      // entitlement grant (all via the Admin SDK, which bypasses rules) can
+      // change them. ownerId can never be reassigned by a client write.
+      // isOwnerSuspended is likewise Admin-SDK-only (setAccountSuspended.ts) —
+      // an owner could otherwise just un-hide their own suspended listings by
+      // writing it back to false.
+      allow update: if isSignedIn() && (
+        (
+          (isAdmin() || (role() == "PRO_HOST" && resource.data.ownerId == request.auth.uid)) &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(
+            ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended"]
+          )
+        ) ||
+        // Engagement counters are incremented by the Specialist viewing/
+        // contacting the listing, not the owner — the owner-only clause above
+        // denies every one of those writes on its own, which is exactly why
+        // avatarEngagementViews/avatarInquiryClicks read stuck at zero in
+        // production (see the architecture audit, finding 4.6). Scoped
+        // narrowly to just these two counters (plus updatedAt) so it can't be
+        // used to touch anything else.
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          ["avatarEngagementViews", "avatarInquiryClicks", "updatedAt"]
+        )
+      );
 
       allow delete: if isSignedIn() &&
         (isAdmin() || resource.data.ownerId == request.auth.uid);

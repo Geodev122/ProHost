@@ -61,6 +61,11 @@ fun OwnerHubScreen(
     var deletingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
+    // Checked once here (not inside the wizard) so a host who's already at their
+    // Package-2 cap sees that immediately on the "Add New Workspace Listing" card
+    // instead of only discovering it after completing the whole multi-step form.
+    val atListingLimit = remember(currentUser, pricingState) { viewModel.isAtListingLimit() }
+
     OwnerHubScreenContent(
         ownerSpaces = ownerSpaces,
         allSpaces = spaces,
@@ -70,6 +75,7 @@ fun OwnerHubScreen(
         // package (see ProHostNavGraph excluding OwnerSubscriptions from Admin's
         // allowed tabs) — so the package/renewal banner never shows for Admin.
         isAdminUnlimited = currentUser?.role == UserRole.ADMIN,
+        atListingLimit = atListingLimit,
         onSelectSpace = onSelectSpace,
         onOpenWhishRenewal = { space -> selectedSpaceForWhish = space },
         onOpenScheduleEditor = { space -> selectedSpaceForSchedule = space },
@@ -217,22 +223,31 @@ fun OwnerHubScreen(
             onDismiss = { showCreateListingDialog = false },
             onListingCreated = { newListing ->
                 coroutineScope.launch {
-                    val success = viewModel.createNewSpaceListing(newListing)
-                    if (success) {
-                        showCreateListingDialog = false
-                        android.widget.Toast.makeText(context, "Workspace listing published successfully!", android.widget.Toast.LENGTH_SHORT).show()
-                        // Straight into the real Availability Control editor (same one
-                        // used to manage an existing listing) so the host sets operating
-                        // hours, blackout slots, and any additional formulas right after
-                        // publishing. Only reached once the listing is really persisted,
-                        // since every save in that editor looks the space up first.
-                        selectedSpaceForSchedule = newListing
-                    } else {
-                        android.widget.Toast.makeText(
-                            context,
-                            "Couldn't publish this listing. Check your connection, or your package limit in Subscription & Packages.",
-                            android.widget.Toast.LENGTH_LONG
-                        ).show()
+                    when (viewModel.createNewSpaceListing(newListing)) {
+                        is ListingCreateResult.Success -> {
+                            showCreateListingDialog = false
+                            android.widget.Toast.makeText(context, "Workspace listing published successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                            // Straight into the real Availability Control editor (same one
+                            // used to manage an existing listing) so the host sets operating
+                            // hours, blackout slots, and any additional formulas right after
+                            // publishing. Only reached once the listing is really persisted,
+                            // since every save in that editor looks the space up first.
+                            selectedSpaceForSchedule = newListing
+                        }
+                        is ListingCreateResult.PackageLimitReached -> {
+                            android.widget.Toast.makeText(
+                                context,
+                                "You've reached your Package 2 listing limit. Upgrade to Package 3 for unlimited listings.",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        }
+                        is ListingCreateResult.Failed -> {
+                            android.widget.Toast.makeText(
+                                context,
+                                "Couldn't publish this listing — check your connection and try again.",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        }
                     }
                 }
             }
@@ -391,6 +406,7 @@ fun OwnerHubScreenContent(
     onOpenCreateListing: () -> Unit,
     onOpenPackageSelection: () -> Unit,
     isAdminUnlimited: Boolean = false,
+    atListingLimit: Boolean = false,
     onEditSpace: (SpaceListing) -> Unit = {},
     onDeleteSpace: (SpaceListing) -> Unit = {},
     modifier: Modifier = Modifier
@@ -548,14 +564,19 @@ fun OwnerHubScreenContent(
                     .padding(vertical = Spacing.xs),
                 contentAlignment = Alignment.Center
             ) {
+                // At the Package-2 cap, this becomes an upsell instead of opening a
+                // multi-step wizard that createNewSpaceListing will just reject at the
+                // end — the host finds out immediately, not after filling the whole form.
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .shadow(6.dp, MaterialTheme.shapes.large)
-                        .clickable { onOpenCreateListing() },
+                        .clickable { if (atListingLimit) onOpenPackageSelection() else onOpenCreateListing() },
                     shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                    border = BorderStroke(2.dp, FreshGreen)
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (atListingLimit) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    border = BorderStroke(2.dp, if (atListingLimit) AmberWarning else FreshGreen)
                 ) {
                     Row(
                         modifier = Modifier
@@ -565,24 +586,29 @@ fun OwnerHubScreenContent(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Surface(
-                            color = MaterialTheme.colorScheme.primary,
+                            color = if (atListingLimit) AmberWarning else MaterialTheme.colorScheme.primary,
                             shape = CircleShape,
                             modifier = Modifier.size(48.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.AddBusiness, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
+                                Icon(
+                                    if (atListingLimit) Icons.Default.Lock else Icons.Default.AddBusiness,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(24.dp)
+                                )
                             }
                         }
                         Spacer(modifier = Modifier.width(Spacing.lg))
                         Column {
                             Text(
-                                text = "Add New Workspace Listing",
+                                text = if (atListingLimit) "You've Reached Your 3-Listing Limit" else "Add New Workspace Listing",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Text(
-                                text = "Publish clinic, office, or studio space with smart pricing formulas",
+                                text = if (atListingLimit) "Tap to upgrade to Package 3 for unlimited listings" else "Publish clinic, office, or studio space with smart pricing formulas",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                             )

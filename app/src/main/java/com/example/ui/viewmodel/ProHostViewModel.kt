@@ -14,6 +14,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.net.URLEncoder
 
+/**
+ * Distinguishes *why* a listing-create attempt failed, so the caller can show a
+ * specific toast instead of one generic "check your connection or your package
+ * limit" sentence that reads the same for both causes.
+ */
+sealed class ListingCreateResult {
+    object Success : ListingCreateResult()
+    object PackageLimitReached : ListingCreateResult()
+    object Failed : ListingCreateResult()
+}
+
 class ProHostViewModel(
     val repository: ProHostRepository = ProHostRepository.getInstance()
 ) : ViewModel() {
@@ -188,23 +199,32 @@ class ProHostViewModel(
     // signed leasing agreement uploaded to Storage, not a payment flag.
 
     // --- Space Owner Listing Creation ---
-    suspend fun createNewSpaceListing(listing: SpaceListing): Boolean {
+    suspend fun createNewSpaceListing(listing: SpaceListing): ListingCreateResult {
         val user = currentUser.value
         val tier = user?.ownerPackageTier ?: OwnerPackageTier.PAY_AS_YOU_GO
-        val ownerSpaces = spaces.value.filter { it.ownerId == listing.ownerId || it.ownerEmail.equals(listing.ownerEmail, ignoreCase = true) }
+        val limit = pricingState.value.package2Limit
 
-        if (tier == OwnerPackageTier.LIMITED_3_TIER && ownerSpaces.size >= 3) {
+        if (tier == OwnerPackageTier.LIMITED_3_TIER && (user?.activeListingCount ?: 0) >= limit) {
             repository.addAuditLog(
                 actionType = "LISTING_BLOCKED_PACKAGE_LIMIT",
-                details = "Owner reached Package 2 limit (3 listings max). Upgrade to Package 3 Unlimited required.",
+                details = "Owner reached Package 2 limit ($limit listings max). Upgrade to Package 3 Unlimited required.",
                 severity = "WARN"
             )
-            return false
+            return ListingCreateResult.PackageLimitReached
         }
 
         // Reports the real Firestore result now — this used to return an
         // unconditional true for a listing that was never actually persisted.
-        return repository.addSpaceListing(listing)
+        return if (repository.addSpaceListing(listing)) ListingCreateResult.Success else ListingCreateResult.Failed
+    }
+
+    /** Fast, synchronous check for the "Add New Workspace Listing" card — lets
+     * OwnerHubScreen grey out/redirect that entry point before the host spends
+     * time on a multi-step wizard that [createNewSpaceListing] will just reject. */
+    fun isAtListingLimit(): Boolean {
+        val user = currentUser.value ?: return false
+        return user.ownerPackageTier == OwnerPackageTier.LIMITED_3_TIER &&
+            user.activeListingCount >= pricingState.value.package2Limit
     }
 
     // An owner had no in-app way to correct a mistake in, or take down, their own
