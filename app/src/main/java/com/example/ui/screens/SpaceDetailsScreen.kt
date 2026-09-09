@@ -358,7 +358,7 @@ fun SpaceDetailsScreenContent(
                 )
 
                 // Weekly Availability Matrix (Visitor Tap-to-Book Heatmap)
-                WeeklyAvailabilityMatrix(
+                SpaceAvailabilityMatrixView(
                     space = liveSpace,
                     acceptedBookings = acceptedBookings,
                     onCellClicked = { formula, day, shiftName ->

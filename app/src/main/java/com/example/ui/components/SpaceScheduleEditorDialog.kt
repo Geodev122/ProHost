@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.*
+import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
 
@@ -49,9 +50,11 @@ fun SpaceScheduleEditorDialog(
 
     // The rentable slots the host can switch on or off are derived from the space's
     // own formulas rather than typed by hand, so a blocked slot always lines up with
-    // something a specialist could actually have booked.
+    // something a specialist could actually have booked. Shared with
+    // SpaceAvailabilityMatrixView (the Specialist-facing side) via
+    // SpaceCalculationUtils.buildRentableSlots so both sides can never disagree.
     val derivedSlots = remember(liveSpace.rentalFormulas, schedule) {
-        buildRentableSlots(liveSpace.rentalFormulas, schedule)
+        SpaceCalculationUtils.buildRentableSlots(liveSpace.rentalFormulas, schedule)
     }
 
     // Formula creation state
@@ -677,86 +680,4 @@ fun SpaceScheduleEditorDialog(
             }
         }
     }
-}
-
-/** One rentable unit of time produced by a rental formula, used to drive the on/off switches. */
-private data class RentableSlot(
-    val groupLabel: String,
-    val day: String,
-    val startTime: String,
-    val endTime: String,
-    val label: String
-)
-
-private fun parseHour(value: String): Int? =
-    value.substringBefore(':').trim().toIntOrNull()?.takeIf { it in 0..24 }
-
-private fun hourLabel(hour: Int): String = "%02d:00".format(hour)
-
-/**
- * Expands a space's rental formulas into the individual slots a specialist could book,
- * restricted to the days the space actually operates. Hourly formulas expand to one
- * switch per hour, shift formulas to one switch per day for that shift's window, and
- * day-per-week / full-month formulas to one whole-day switch.
- *
- * Days are emitted in the same 3-letter form the rest of the app matches against
- * (SimpleDateFormat("EEE")), which the old hand-typed blackout form never did.
- */
-private fun buildRentableSlots(
-    formulas: List<RentalFormula>,
-    schedule: SpaceOperatingSchedule
-): List<RentableSlot> {
-    val operatingDays = schedule.operatingDays.toMutableList()
-    if (schedule.isSundayOperating && operatingDays.none { it.equals("Sun", ignoreCase = true) }) {
-        operatingDays.add("Sun")
-    }
-    if (operatingDays.isEmpty()) return emptyList()
-
-    val openHour = parseHour(schedule.openingHour) ?: 0
-    val closeHour = parseHour(schedule.closingHour) ?: 24
-
-    return formulas.flatMap { formula ->
-        val days = operatingDays.filter { day ->
-            formula.daysOfWeek.any { it.equals(day, ignoreCase = true) }
-        }
-        when (formula.type) {
-            RentalFormulaType.HOURLY -> {
-                val from = maxOf(parseHour(formula.startHour) ?: openHour, openHour)
-                val to = minOf(parseHour(formula.endHour) ?: closeHour, closeHour)
-                days.flatMap { day ->
-                    (from until to).map { hour ->
-                        RentableSlot(
-                            groupLabel = "Hourly • ${formula.scheduleDescription}",
-                            day = day,
-                            startTime = hourLabel(hour),
-                            endTime = hourLabel(hour + 1),
-                            label = "$day  ${hourLabel(hour)} - ${hourLabel(hour + 1)}"
-                        )
-                    }
-                }
-            }
-            RentalFormulaType.SHIFT -> days.map { day ->
-                RentableSlot(
-                    groupLabel = "Shift • ${formula.shiftName}",
-                    day = day,
-                    startTime = formula.startHour,
-                    endTime = formula.endHour,
-                    label = "$day  ${formula.startHour} - ${formula.endHour}"
-                )
-            }
-            RentalFormulaType.DAY_PER_WEEK, RentalFormulaType.FULL_MONTH -> days.map { day ->
-                RentableSlot(
-                    groupLabel = if (formula.type == RentalFormulaType.FULL_MONTH) {
-                        "Full Month"
-                    } else {
-                        "Day per Week"
-                    },
-                    day = day,
-                    startTime = schedule.openingHour,
-                    endTime = schedule.closingHour,
-                    label = "$day  full day (${schedule.openingHour} - ${schedule.closingHour})"
-                )
-            }
-        }
-    }.distinctBy { "${it.groupLabel}|${it.day}|${it.startTime}|${it.endTime}" }
 }
