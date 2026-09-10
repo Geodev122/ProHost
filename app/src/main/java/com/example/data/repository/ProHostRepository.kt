@@ -1318,6 +1318,42 @@ class ProHostRepository {
         return saveUpdatedSpace(updated)
     }
 
+    /**
+     * Rooms/desks were previously only editable at listing-creation time
+     * (CreateListingDialog's Step 2) — a host who published first and only later
+     * realized they needed another room, or wanted to remove one, had no in-app way
+     * to do it. These three funnel through the same saveUpdatedSpace protected-field
+     * guard as the blackout/formula functions above; subdivisions live nested inside
+     * the same workspace_listings document, so no firestore.rules change is needed.
+     */
+    suspend fun addSubdivision(spaceId: String, subdivision: Subdivision): Boolean {
+        val space = _spaces.value.find { it.id == spaceId } ?: return false
+        val updated = space.copy(subdivisions = space.subdivisions + subdivision)
+        val success = saveUpdatedSpace(updated)
+        if (success) {
+            addAuditLog(
+                actionType = "SUBDIVISION_ADDED",
+                details = "Added room/desk '${subdivision.name}' (${subdivision.type.displayName}) to space $spaceId",
+                severity = "INFO"
+            )
+        }
+        return success
+    }
+
+    suspend fun removeSubdivision(spaceId: String, subdivisionId: String): Boolean {
+        val space = _spaces.value.find { it.id == spaceId } ?: return false
+        val updated = space.copy(subdivisions = space.subdivisions.filter { it.id != subdivisionId })
+        val success = saveUpdatedSpace(updated)
+        if (success) {
+            addAuditLog(
+                actionType = "SUBDIVISION_REMOVED",
+                details = "Removed room/desk #$subdivisionId from space $spaceId",
+                severity = "INFO"
+            )
+        }
+        return success
+    }
+
     // Best-effort, fire-and-forget engagement counters (real "Views"/"Inquiries" data,
     // replacing the old fixed 850/14 placeholders). Not offline-queued — this is a
     // low-stakes analytics counter, not a transaction, so silently no-op-ing while

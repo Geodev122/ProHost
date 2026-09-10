@@ -669,6 +669,33 @@ fun SpaceScheduleEditorDialog(
                             }
                         }
                     }
+
+                    // 4. Rooms & Subdivisions — previously only editable at listing-creation
+                    // time (CreateListingDialog's Step 2); a host who published first and
+                    // only later needed another room had no in-app way to add one. Shown for
+                    // any space type that supports subdivisions, or one that already has any
+                    // (so a type change never strands existing rooms behind a hidden section).
+                    if (liveSpace.spaceType != SpaceType.PRIVATE_OFFICE || liveSpace.subdivisions.isNotEmpty()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            SubdivisionEditorSection(
+                                modifier = Modifier.padding(14.dp),
+                                subdivisionsList = liveSpace.subdivisions,
+                                onSubdivisionsChange = { newList ->
+                                    if (newList.size > liveSpace.subdivisions.size) {
+                                        val added = newList.find { new -> liveSpace.subdivisions.none { it.id == new.id } }
+                                        if (added != null) viewModel.addSubdivision(liveSpace.id, added, context)
+                                    } else if (newList.size < liveSpace.subdivisions.size) {
+                                        val removedId = liveSpace.subdivisions.find { old -> newList.none { it.id == old.id } }?.id
+                                        if (removedId != null) viewModel.removeSubdivision(liveSpace.id, removedId, context)
+                                    }
+                                }
+                            )
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))

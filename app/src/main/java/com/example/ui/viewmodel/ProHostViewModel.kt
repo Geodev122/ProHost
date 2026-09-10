@@ -697,6 +697,25 @@ class ProHostViewModel(
         }
     }
 
+    /** Adds one room/desk to an already-published listing — see SubdivisionEditorSection. */
+    fun addSubdivision(spaceId: String, subdivision: Subdivision, context: Context) {
+        viewModelScope.launch {
+            val success = repository.addSubdivision(spaceId, subdivision)
+            if (!success) {
+                Toast.makeText(context, "Couldn't add this room — please try again", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    fun removeSubdivision(spaceId: String, subdivisionId: String, context: Context) {
+        viewModelScope.launch {
+            val success = repository.removeSubdivision(spaceId, subdivisionId)
+            if (!success) {
+                Toast.makeText(context, "Couldn't remove this room — please try again", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     // Availability Analytics per Space
     fun getAcceptedBookingsForSpace(spaceId: String): List<RentalBookingRequest> {
         return bookingRequests.value.filter { it.spaceId == spaceId && it.status == BookingRequestStatus.ACCEPTED }
