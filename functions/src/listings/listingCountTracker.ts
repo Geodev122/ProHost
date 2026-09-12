@@ -1,5 +1,6 @@
 import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { alreadyProcessed } from "../lib/idempotency";
 
 /**
  * Maintains `user_profiles/{ownerId}.activeListingCount` — a denormalized
@@ -29,13 +30,23 @@ function isActiveStatus(status: unknown): boolean {
  * than going negative) if the owner isn't PAYG or already has zero credits for this
  * category — the client-side gate should have already blocked that case, but this is
  * the real enforcement, not the client check.
+ *
+ * [eventId] is the triggering CloudEvent's own id (stable across a Cloud
+ * Functions v2 at-least-once redelivery of the same event) — guards this
+ * transaction against actually spending a second credit if the same trigger
+ * invocation is ever retried by the platform. See lib/idempotency.ts.
  */
-async function consumePaygCreditIfNeeded(ownerId: string, listing: FirebaseFirestore.DocumentData | undefined) {
+async function consumePaygCreditIfNeeded(
+  ownerId: string,
+  listing: FirebaseFirestore.DocumentData | undefined,
+  eventId: string
+) {
   const categoryId = listing?.spaceCategoryId as string | undefined;
   if (!categoryId) return;
   const db = getFirestore();
   const profileRef = db.collection("user_profiles").doc(ownerId);
   await db.runTransaction(async (tx) => {
+    if (await alreadyProcessed(tx, db, eventId)) return;
     const snap = await tx.get(profileRef);
     const data = snap.data();
     if (data?.ownerPackageTier !== "PAY_AS_YOU_GO") return;
@@ -57,7 +68,7 @@ export const onWorkspaceListingCreated = onDocumentCreated(
       { activeListingCount: FieldValue.increment(1) },
       { merge: true }
     );
-    await consumePaygCreditIfNeeded(ownerId, listing);
+    await consumePaygCreditIfNeeded(ownerId, listing, event.id);
   }
 );
 
@@ -116,7 +127,7 @@ export const onWorkspaceListingStatusChanged = onDocumentUpdated(
       // could satisfy the rules' credit check once and then swap categories
       // indefinitely for free, since nothing would ever decrement it.
       if (before?.spaceCategoryId !== after?.spaceCategoryId) {
-        await consumePaygCreditIfNeeded(ownerId, after);
+        await consumePaygCreditIfNeeded(ownerId, after, event.id);
       }
       return;
     }
@@ -126,7 +137,7 @@ export const onWorkspaceListingStatusChanged = onDocumentUpdated(
     const profileRef = db.collection("user_profiles").doc(ownerId);
     if (isActive) {
       await profileRef.set({ activeListingCount: FieldValue.increment(1) }, { merge: true });
-      await consumePaygCreditIfNeeded(ownerId, after);
+      await consumePaygCreditIfNeeded(ownerId, after, event.id);
     } else {
       await db.runTransaction(async (tx) => {
         const snap = await tx.get(profileRef);

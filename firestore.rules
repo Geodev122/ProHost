@@ -359,6 +359,18 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------
+    // processed_trigger_events — server-only internal bookkeeping (see
+    // lib/idempotency.ts). One marker doc per Cloud Functions v2 trigger
+    // event id, used to detect an at-least-once redelivery of the same
+    // event before consumePaygCreditIfNeeded (listingCountTracker.ts) runs
+    // a second time for it. No client, including Admin, has any reason to
+    // read or write this.
+    // ---------------------------------------------------------------
+    match /processed_trigger_events/{eventId} {
+      allow read, write: if false;
+    }
+
+    // ---------------------------------------------------------------
     // system_metadata — server-only (updatePricing Cloud Function is the
     // only writer; FirestoreService.initializeSchema, which would have
     // written schema_info directly, has no call sites anywhere in the app).
