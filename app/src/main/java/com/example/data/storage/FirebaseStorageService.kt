@@ -146,6 +146,26 @@ class FirebaseStorageService(
         onProgress = onProgress
     )
 
+    /** Per-subdivision (room/desk) images — deliberately a flat filename under the
+     *  same listings/{spaceId}/{fileName} path uploadListingImage uses, not a nested
+     *  listings/{spaceId}/subdivisions/{subId}/{imageId} path: storage.rules'
+     *  {fileName} wildcard matches exactly one path segment, so a nested path would
+     *  fall through to the default-deny catch-all and silently fail every upload.
+     *  This flat "sub-{subdivisionId}-{imageId}" naming matches the existing rule
+     *  with zero rules changes needed. */
+    suspend fun uploadSubdivisionImage(
+        spaceId: String,
+        subdivisionId: String,
+        imageId: String,
+        fileUri: Uri,
+        fileExtension: String,
+        onProgress: (Float) -> Unit = {}
+    ): String? = uploadAndGetUrl(
+        ref = storage?.reference?.child("listings/$spaceId/sub-$subdivisionId-$imageId.$fileExtension"),
+        fileUri = fileUri,
+        onProgress = onProgress
+    )
+
     private suspend fun uploadAndGetUrl(
         ref: StorageReference?,
         fileUri: Uri,

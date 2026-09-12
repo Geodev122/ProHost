@@ -1,6 +1,10 @@
 package com.example.ui.components
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -10,18 +14,28 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.data.model.*
+import com.example.data.storage.FirebaseStorageService
 import com.example.ui.theme.Spacing
+import kotlinx.coroutines.launch
+import java.util.UUID
 
 /**
  * The room/desk ("subdivision") builder — add, list, and remove individually
  * rentable rooms or desks within a Center/Polyclinic/Co-working listing. Shared
- * by CreateListingDialog's Step 2 (at creation) and SpaceScheduleEditorDialog's
+ * by CreateListingDialog's Step 3 (at creation) and SpaceScheduleEditorDialog's
  * "Rooms & Subdivisions" section (post-publish), so a host is never stuck with
  * whatever subdivisions they happened to define during the original wizard.
+ *
+ * [operatingDays]/[openingHour]/[closingHour] come from the parent space's own
+ * [SpaceOperatingSchedule] — the per-division pricing editor keys its Hourly/Shift/
+ * Day-Based tables off these, so a division can never offer a slot outside hours
+ * the space itself doesn't operate in.
  *
  * Only [subdivisionsList] and [onSubdivisionsChange] are hoisted — the "add a
  * new room" form fields are transient, single-use input state that resets after
@@ -31,36 +45,65 @@ import com.example.ui.theme.Spacing
 fun SubdivisionEditorSection(
     subdivisionsList: List<Subdivision>,
     onSubdivisionsChange: (List<Subdivision>) -> Unit,
+    operatingDays: List<String> = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
+    openingHour: String = "08:00",
+    closingHour: String = "20:00",
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val storageService = remember { FirebaseStorageService.getInstance() }
+
     var subName by remember { mutableStateOf("") }
     var subType by remember { mutableStateOf(Level2Type.ROOMS) }
     var subAmenitiesSelected by remember { mutableStateOf(setOf<String>()) }
+    var subAmenitySearch by remember { mutableStateOf("") }
+    var subImageUrls by remember { mutableStateOf(listOf<String>()) }
+    var isUploadingSubImage by remember { mutableStateOf(false) }
+    var subPricing by remember { mutableStateOf(RentalPricingConfig.default()) }
 
-    var subHourlyRate by remember { mutableStateOf("15") }
-    var subHourlyEnabled by remember { mutableStateOf(false) }
+    // Pending id so images upload to their final path before the Subdivision object
+    // itself is created — same "generate the id up front" pattern CreateListingDialog
+    // uses for the parent listing's own photos. Regenerated after each successful Add
+    // (see the Button below) — a single remember{} here would give every room added
+    // in the same session the identical id, silently overwriting each other's images.
+    var pendingSubId by remember { mutableStateOf("SUB-" + UUID.randomUUID().toString().take(6).uppercase()) }
 
-    var subShiftRate by remember { mutableStateOf("60") }
-    var subShiftHours by remember { mutableStateOf("Morning Shift (8AM - 1PM)") }
-    var subShiftEnabled by remember { mutableStateOf(false) }
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris: List<Uri> ->
+        if (uris.isEmpty()) return@rememberLauncherForActivityResult
+        coroutineScope.launch {
+            isUploadingSubImage = true
+            uris.forEach { uri ->
+                val imageId = UUID.randomUUID().toString().take(8)
+                // spaceId isn't known here (a subdivision can be configured before the
+                // parent listing itself is ever saved) — pendingSubId doubles as both
+                // the eventual Subdivision.id and a unique enough path segment, since
+                // uploadSubdivisionImage's path is keyed by spaceId anyway once this
+                // moves under a real listing; using it here too keeps every image this
+                // section ever uploads under a name unique to this one room.
+                val url = storageService.uploadSubdivisionImage(
+                    spaceId = pendingSubId,
+                    subdivisionId = pendingSubId,
+                    imageId = imageId,
+                    fileUri = uri,
+                    fileExtension = "jpg"
+                )
+                if (url != null) subImageUrls = subImageUrls + url
+            }
+            isUploadingSubImage = false
+        }
+    }
 
-    var subDailyRate by remember { mutableStateOf("120") }
-    var subDailyEnabled by remember { mutableStateOf(false) }
-
-    var subMonthlyRate by remember { mutableStateOf("450") }
-    var subMonthlyEnabled by remember { mutableStateOf(false) }
-
-    val subAmenitiesPreset = listOf(
-        "A/C Climate Control",
-        "Dual-Monitor Workstation",
-        "Whiteboard / Presentation kit",
-        "High-Speed LAN/Wi-Fi",
-        "Professional Soundproofing",
-        "Patient Consultation Recliner",
-        "Medical Sterilization Tray",
-        "Keyless Lock / Access Control",
-        "Privacy Curtains / Drapes"
+    val amenityCatalog = listOf(
+        "A/C Climate Control", "Dual-Monitor Setup", "Whiteboard / Presentation Kit",
+        "High-Speed Wi-Fi", "Soundproofing", "Ergonomic Seating", "Storage Locker",
+        "Keyless Access Control", "Privacy Partition", "Natural Lighting", "Standing Desk"
     )
+    val filteredAmenities = amenityCatalog.filter {
+        subAmenitySearch.isBlank() || it.contains(subAmenitySearch, ignoreCase = true)
+    }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(
@@ -70,7 +113,7 @@ fun SubdivisionEditorSection(
             color = MaterialTheme.colorScheme.primary
         )
         Text(
-            "Add individual rooms, offices, clinical chambers, or shared desks that professionals can rent separately. Specify individual features and custom pricing strategies for each.",
+            "Add individual rooms, offices, or shared desks that professionals can rent separately. Each gets its own type, amenities, images, and renting strategy.",
             fontSize = MaterialTheme.typography.labelMedium.fontSize,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -93,12 +136,24 @@ fun SubdivisionEditorSection(
                                 Text(sub.name, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
                                 Text("Type: ${sub.type.displayName}", fontSize = MaterialTheme.typography.labelMedium.fontSize, color = MaterialTheme.colorScheme.primary)
                                 Text(
-                                    "Renting: " + sub.rentalStrategies.joinToString { "${it.strategy.displayName} ($${it.rateUsd})" },
+                                    "Strategy: ${sub.pricing.strategyType.displayName}",
                                     fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 if (sub.amenities.isNotEmpty()) {
                                     Text("Amenities: ${sub.amenities.joinToString()}", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                if (sub.imageUrls.isNotEmpty()) {
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        items(sub.imageUrls) { url ->
+                                            AsyncImage(
+                                                model = url,
+                                                contentDescription = null,
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.size(48.dp)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                             IconButton(onClick = { onSubdivisionsChange(subdivisionsList.filterIndexed { i, _ -> i != index }) }) {
@@ -126,7 +181,7 @@ fun SubdivisionEditorSection(
                     singleLine = true
                 )
 
-                Text("Room / Subdivision Type", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                Text("Type", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(Level2Type.values()) { type ->
                         FilterChip(
@@ -137,157 +192,89 @@ fun SubdivisionEditorSection(
                     }
                 }
 
-                Text("Room Amenities", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                Text("Amenities", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                OutlinedTextField(
+                    value = subAmenitySearch,
+                    onValueChange = { subAmenitySearch = it },
+                    placeholder = { Text("Search amenities...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    singleLine = true
+                )
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(subAmenitiesPreset) { amen ->
+                    items(filteredAmenities) { amen ->
                         val isSel = subAmenitiesSelected.contains(amen)
                         FilterChip(
                             selected = isSel,
                             onClick = {
                                 subAmenitiesSelected = if (isSel) subAmenitiesSelected - amen else subAmenitiesSelected + amen
                             },
-                            label = { Text(amen, fontSize = 10.sp) }
+                            label = { Text(amen, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                 }
 
-                Text("Renting Strategies & Rates for this Room", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = subHourlyEnabled, onCheckedChange = { subHourlyEnabled = it })
-                        Text("Hourly Basis", fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                    }
-                    if (subHourlyEnabled) {
-                        OutlinedTextField(
-                            value = subHourlyRate,
-                            onValueChange = { subHourlyRate = it },
-                            label = { Text("USD/hr") },
-                            modifier = Modifier.width(100.dp),
-                            singleLine = true
-                        )
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = subShiftEnabled, onCheckedChange = { subShiftEnabled = it })
-                            Text("Shift-Based", fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                        }
-                        if (subShiftEnabled) {
-                            OutlinedTextField(
-                                value = subShiftHours,
-                                onValueChange = { subShiftHours = it },
-                                label = { Text("Shift Details (e.g. 8AM-1PM)") },
-                                modifier = Modifier.fillMaxWidth(0.55f),
-                                singleLine = true
-                            )
+                Text("Images", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(subImageUrls) { url ->
+                        Box(modifier = Modifier.size(72.dp)) {
+                            AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                            IconButton(
+                                onClick = { subImageUrls = subImageUrls - url },
+                                modifier = Modifier.align(Alignment.TopEnd).size(20.dp)
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Remove image")
+                            }
                         }
                     }
-                    if (subShiftEnabled) {
-                        OutlinedTextField(
-                            value = subShiftRate,
-                            onValueChange = { subShiftRate = it },
-                            label = { Text("USD/shift") },
-                            modifier = Modifier.width(100.dp),
-                            singleLine = true
-                        )
+                    item {
+                        Surface(
+                            modifier = Modifier
+                                .size(72.dp)
+                                .clickable(enabled = !isUploadingSubImage) { imagePickerLauncher.launch("image/*") },
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                if (isUploadingSubImage) {
+                                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                                } else {
+                                    Icon(Icons.Default.AddAPhoto, contentDescription = "Add room image")
+                                }
+                            }
+                        }
                     }
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = subDailyEnabled, onCheckedChange = { subDailyEnabled = it })
-                        Text("Daily Basis", fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                    }
-                    if (subDailyEnabled) {
-                        OutlinedTextField(
-                            value = subDailyRate,
-                            onValueChange = { subDailyRate = it },
-                            label = { Text("USD/day") },
-                            modifier = Modifier.width(100.dp),
-                            singleLine = true
-                        )
-                    }
-                }
+                HorizontalDivider()
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = subMonthlyEnabled, onCheckedChange = { subMonthlyEnabled = it })
-                        Text("Monthly Basis", fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                    }
-                    if (subMonthlyEnabled) {
-                        OutlinedTextField(
-                            value = subMonthlyRate,
-                            onValueChange = { subMonthlyRate = it },
-                            label = { Text("USD/mo") },
-                            modifier = Modifier.width(100.dp),
-                            singleLine = true
-                        )
-                    }
-                }
+                RentalPricingConfigEditor(
+                    config = subPricing,
+                    operatingDays = operatingDays,
+                    openingHour = openingHour,
+                    closingHour = closingHour,
+                    onConfigChange = { subPricing = it }
+                )
 
                 Button(
                     onClick = {
-                        val subStrategies = mutableListOf<SubdivisionStrategy>()
-                        if (subHourlyEnabled) {
-                            subStrategies.add(SubdivisionStrategy(RentalStrategy.HOURLY, subHourlyRate.toDoubleOrNull() ?: 15.0))
-                        }
-                        if (subShiftEnabled) {
-                            subStrategies.add(SubdivisionStrategy(RentalStrategy.SHIFT_BASED, subShiftRate.toDoubleOrNull() ?: 60.0, availableHoursOrShifts = subShiftHours))
-                        }
-                        if (subDailyEnabled) {
-                            subStrategies.add(SubdivisionStrategy(RentalStrategy.DAILY, subDailyRate.toDoubleOrNull() ?: 120.0))
-                        }
-                        if (subMonthlyEnabled) {
-                            subStrategies.add(SubdivisionStrategy(RentalStrategy.MONTHLY, subMonthlyRate.toDoubleOrNull() ?: 450.0))
-                        }
-
-                        // No hardcoded stock photo per type anymore (was a fixed
-                        // Unsplash URL regardless of the actual room/desk). Rooms
-                        // and desks inherit the parent listing's real cover photos
-                        // visually; a dedicated per-subdivision photo picker is a
-                        // separate feature, not part of this fix.
                         val newSub = Subdivision(
+                            id = pendingSubId,
                             name = subName,
                             type = subType,
-                            imageUrls = emptyList(),
+                            imageUrls = subImageUrls,
                             amenities = subAmenitiesSelected.toList(),
-                            // Derived from the same subStrategies data eagerly, so a
-                            // freshly-created subdivision's real pricing is correct
-                            // from the moment it's first saved — not only once an
-                            // already-saved document is later re-read from Firestore
-                            // (fromFirestoreMap's own fallback covers that older case).
-                            pricing = RentalPricingConfig.fromLegacySubdivisionStrategy(subStrategies.firstOrNull()),
-                            rentalStrategies = subStrategies
+                            pricing = subPricing
                         )
                         onSubdivisionsChange(subdivisionsList + newSub)
                         subName = ""
                         subAmenitiesSelected = emptySet()
-                        subHourlyEnabled = false
-                        subShiftEnabled = false
-                        subDailyEnabled = false
-                        subMonthlyEnabled = false
+                        subImageUrls = emptyList()
+                        subPricing = RentalPricingConfig.default()
+                        pendingSubId = "SUB-" + UUID.randomUUID().toString().take(6).uppercase()
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = subName.isNotBlank() && (subHourlyEnabled || subShiftEnabled || subDailyEnabled || subMonthlyEnabled)
+                    enabled = subName.isNotBlank()
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(modifier = Modifier.width(Spacing.xs))

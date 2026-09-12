@@ -135,7 +135,6 @@ fun CreateListingDialog(
     // draft's last value (or true, matching the removed toggle's old default) so
     // nothing downstream that still reads SpaceListing.isShared silently changes.
     val isShared = existingDraft?.isShared ?: true
-    var baseMonthlyRate by remember { mutableStateOf(existingDraft?.baseMonthlyRateUsd?.toInt()?.toString() ?: "500") }
     var ownerPhone by remember { mutableStateOf(existingDraft?.ownerPhone ?: activeUser.phone) }
 
     // Target Disciplines (hashtags) — free-typed, not a fixed chip list; each publish
@@ -209,9 +208,22 @@ fun CreateListingDialog(
     // themselves now live inside SubdivisionEditorSection (see that file); this
     // dialog only hoists the resulting list, since buildListing() needs it.
     var subdivisionsList by remember { mutableStateOf(existingDraft?.subdivisions ?: listOf<Subdivision>()) }
+    // The listing's own pricing when it has no divisions — real structured config,
+    // not the old free-text-only "base monthly valuation" field (baseMonthlyRate
+    // stays as a legacy display-only derivative, computed from this in buildListing()).
+    var wholeSpacePricing by remember { mutableStateOf(existingDraft?.pricing ?: RentalPricingConfig.default()) }
 
     var currentStep by remember { mutableIntStateOf(0) }
-    val hasSubdivisions = selectedSpaceType != SpaceType.PRIVATE_OFFICE
+    // A genuine, independent choice now (spec Step 3's opening toggle) — replacing
+    // the previous inference from selectedSpaceType, which made a divided Private
+    // Office or an undivided Center impossible (the two facts have nothing to do
+    // with each other; a host might want either combination). Defaults from
+    // whether a resumed draft already has any subdivisions, or a sensible guess
+    // from the category otherwise, so a fresh wizard doesn't start on a jarring
+    // default.
+    var hasSubdivisions by remember {
+        mutableStateOf(existingDraft?.let { it.subdivisions.isNotEmpty() } ?: (selectedSpaceType != SpaceType.PRIVATE_OFFICE))
+    }
     // Always 3, matching the spec's fixed Step 1/2/3 structure — previously 4 for a
     // subdivided listing but only 3 for an undivided one, which meant the
     // "Contact, Premises Rules & Ownership Proof" step (index 3) was completely
@@ -702,33 +714,39 @@ fun CreateListingDialog(
                         }
 
                         2 -> {
-                            if (hasSubdivisions) {
-                                SubdivisionEditorSection(
-                                    subdivisionsList = subdivisionsList,
-                                    onSubdivisionsChange = { subdivisionsList = it }
-                                )
-                            } else {
-                                // Base pricing only — the full formula builder (Hourly,
-                                // Shift, Day-per-Week, Full-Month, each with real
-                                // per-formula customization) plus Operating Hours and
-                                // Blackout slots now live in the same "Availability &
-                                // Formula Control" editor used to manage an existing
-                                // listing (SpaceScheduleEditorDialog), opened
-                                // automatically right after this listing is published.
-                                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                    Text("Base Pricing", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
-                                    Text(
-                                        "Enter your base monthly valuation — this publishes with a Full-Month formula active immediately. You'll set operating hours, blackout slots, and any additional Hourly/Shift/Day-per-Week formulas right after publishing.",
-                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                            // Step 3: Availability Control Logic
+                            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                Text("Whole Space or Divisions?", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    listOf(false to "Whole Space", true to "Has Divisions").forEach { (value, label) ->
+                                        FilterChip(
+                                            selected = hasSubdivisions == value,
+                                            onClick = { hasSubdivisions = value },
+                                            label = { Text(label) },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
 
-                                    InputField(
-                                        value = baseMonthlyRate,
-                                        onValueChange = { baseMonthlyRate = it },
-                                        label = "Base Monthly Valuation (USD/mo)",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true
+                                if (hasSubdivisions) {
+                                    SubdivisionEditorSection(
+                                        subdivisionsList = subdivisionsList,
+                                        onSubdivisionsChange = { subdivisionsList = it },
+                                        operatingDays = operatingDays.toList(),
+                                        openingHour = openingHour,
+                                        closingHour = closingHour
+                                    )
+                                } else {
+                                    Text("Renting Formula", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                    RentalPricingConfigEditor(
+                                        config = wholeSpacePricing,
+                                        operatingDays = operatingDays.toList(),
+                                        openingHour = openingHour,
+                                        closingHour = closingHour,
+                                        onConfigChange = { wholeSpacePricing = it }
                                     )
                                 }
                             }
@@ -744,44 +762,78 @@ fun CreateListingDialog(
                 // DRAFT, no requiredness gating) so the two paths can never disagree on
                 // how a listing gets assembled.
                 fun buildListing(status: ListingStatus): SpaceListing {
+                    // The real source of truth for an undivided listing's pricing is
+                    // wholeSpacePricing (set via RentalPricingConfigEditor above) — no
+                    // longer a free-text "base monthly valuation" field. formulas below
+                    // is a synthesized legacy bridge, not a second source of truth: it
+                    // exists only so screens not yet migrated to RentalPricingConfig
+                    // (SpaceDetailsScreen's formula list, RentalBookingDialog's
+                    // non-subdivision branch — both deferred to a later phase) still
+                    // show something representative for a freshly-published listing,
+                    // rather than "no formulas" for a listing that genuinely has real
+                    // pricing configured.
                     val formulas = mutableListOf<RentalFormula>()
-                    val monthly = if (hasSubdivisions) {
-                        subdivisionsList.flatMap { it.rentalStrategies }
-                            .filter { it.strategy == RentalStrategy.MONTHLY }
-                            .map { it.rateUsd }
-                            .minOrNull() ?: 450.0
-                    } else {
-                        baseMonthlyRate.toDoubleOrNull() ?: 500.0
-                    }
-
-                    // Always publish with a Full-Month formula so the listing
-                    // is never unbookable — Hourly/Shift/Day-per-Week formulas,
-                    // operating hours, and blackout slots are set right after
-                    // publishing in the same "Availability & Formula Control"
-                    // editor used for existing listings (see onListingCreated).
+                    var monthly = existingDraft?.baseMonthlyRateUsd ?: 500.0
                     if (!hasSubdivisions) {
-                        formulas.add(
-                            RentalFormula(
-                                type = RentalFormulaType.FULL_MONTH,
-                                rateUsd = monthly,
-                                scheduleDescription = "Dedicated Full Workspace Month (All operating days)",
-                                daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
-                                startHour = "08:00",
-                                endHour = "20:00",
-                                totalWeeklyHours = 72
-                            )
-                        )
+                        val p = wholeSpacePricing
+                        when (p.strategyType) {
+                            RentalStrategyType.MONTHLY -> {
+                                val m = p.monthly ?: MonthlyConfig()
+                                monthly = m.rateUsd
+                                formulas.add(
+                                    RentalFormula(
+                                        type = RentalFormulaType.FULL_MONTH, rateUsd = m.rateUsd,
+                                        scheduleDescription = "Dedicated Full Workspace Month (All operating days)",
+                                        daysOfWeek = operatingDays.toList(), startHour = openingHour, endHour = closingHour
+                                    )
+                                )
+                            }
+                            RentalStrategyType.HOURLY -> {
+                                val prices = p.hourly?.cellPrices ?: emptyMap()
+                                val avgRate = prices.values.average().takeIf { !it.isNaN() } ?: 25.0
+                                monthly = avgRate * 8 * 22 // rough monthly-equivalent for the legacy display field only
+                                formulas.add(
+                                    RentalFormula(
+                                        type = RentalFormulaType.HOURLY, rateUsd = avgRate,
+                                        scheduleDescription = "Hourly Rental", daysOfWeek = operatingDays.toList(),
+                                        startHour = openingHour, endHour = closingHour
+                                    )
+                                )
+                            }
+                            RentalStrategyType.SHIFT_BASED -> {
+                                val activeShift = p.shiftBased?.shifts?.firstOrNull { !it.isUnavailable }
+                                val rate = activeShift?.pricing?.oneTimePrice ?: 60.0
+                                monthly = rate * 20
+                                formulas.add(
+                                    RentalFormula(
+                                        type = RentalFormulaType.SHIFT, rateUsd = rate,
+                                        scheduleDescription = "Shift Rental", daysOfWeek = operatingDays.toList(),
+                                        startHour = activeShift?.startHour?.let { "%02d:00".format(it) } ?: openingHour,
+                                        endHour = activeShift?.endHour?.let { "%02d:00".format(it) } ?: closingHour,
+                                        shiftName = activeShift?.name?.displayName ?: "Morning Shift"
+                                    )
+                                )
+                            }
+                            RentalStrategyType.DAY_BASED -> {
+                                val prices = p.dayBased?.distribution?.values?.mapNotNull { it.oneTimePrice } ?: emptyList()
+                                val rate = prices.average().takeIf { !it.isNaN() } ?: 120.0
+                                monthly = rate * (p.dayBased?.distribution?.size?.takeIf { it > 0 } ?: 4)
+                                formulas.add(
+                                    RentalFormula(
+                                        type = RentalFormulaType.DAY_PER_WEEK, rateUsd = rate,
+                                        scheduleDescription = "Day-Based Rental",
+                                        daysOfWeek = p.dayBased?.distribution?.keys?.toList() ?: operatingDays.toList(),
+                                        startHour = openingHour, endHour = closingHour,
+                                        daysCountRequired = (p.dayBased?.distribution?.size ?: 1).coerceAtLeast(1)
+                                    )
+                                )
+                            }
+                        }
                     }
-                    // Derived from the same formula eagerly, so this listing's real
-                    // pricing is correct from the moment it's first saved. When
-                    // hasSubdivisions is true, the listing itself carries no pricing
-                    // of its own — each Subdivision already got its own pricing set
-                    // eagerly in SubdivisionEditorSection's Add button.
-                    val pricingConfig = if (!hasSubdivisions) {
-                        RentalPricingConfig.fromLegacyFormula(formulas.firstOrNull())
-                    } else {
-                        RentalPricingConfig.default()
-                    }
+                    // Each Subdivision already got its own pricing set eagerly in
+                    // SubdivisionEditorSection's Add button — the listing itself
+                    // carries no pricing of its own when it has divisions.
+                    val pricingConfig = if (!hasSubdivisions) wholeSpacePricing else RentalPricingConfig.default()
 
                     // Prefer the real pin dropped on the map (recorded via
                     // ListingLocationMapPicker above); only fall back to

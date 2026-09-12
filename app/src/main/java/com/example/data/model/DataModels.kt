@@ -28,9 +28,15 @@ object FacilityCatalog {
 
 enum class Level2Type(val displayName: String, val iconName: String) {
     ROOMS("Room", "MeetingRoom"),
+    OFFICE("Office", "Business"),
     CONFERENCE_ROOM("Conference Room", "CoPresent"),
     THEATER_TRAINING("Theater / Training Room", "School"),
-    DESK_IN_SHARED_AREA("Desk in Shared Area", "Desk")
+    DESK_IN_SHARED_AREA("Desk in Shared Area", "Desk"),
+    GYM("Gym", "FitnessCenter"),
+    TRAINING_ROOM("Training Room", "Groups"),
+    SPORTS_AREA("Sports Area", "SportsSoccer"),
+    STUDIO("Studio", "Videocam"),
+    STORAGE("Storage", "Inventory2")
 }
 
 // Legacy pair, kept only so Firestore documents written before RentalPricingConfig

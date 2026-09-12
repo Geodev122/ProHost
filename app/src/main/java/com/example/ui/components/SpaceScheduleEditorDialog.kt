@@ -687,6 +687,9 @@ fun SpaceScheduleEditorDialog(
                             SubdivisionEditorSection(
                                 modifier = Modifier.padding(14.dp),
                                 subdivisionsList = liveSpace.subdivisions,
+                                operatingDays = liveSpace.schedule.operatingDays,
+                                openingHour = liveSpace.schedule.openingHour,
+                                closingHour = liveSpace.schedule.closingHour,
                                 onSubdivisionsChange = { newList ->
                                     if (newList.size > liveSpace.subdivisions.size) {
                                         val added = newList.find { new -> liveSpace.subdivisions.none { it.id == new.id } }
