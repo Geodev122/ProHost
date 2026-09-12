@@ -74,6 +74,11 @@ fun SubdivisionEditorSection(
     var subOverrideClosingHour by remember { mutableStateOf(closingHour) }
     var subOverrideDays by remember { mutableStateOf(operatingDays.toSet()) }
     var subOverrideSundayOperating by remember { mutableStateOf(false) }
+    var subOverrideBlackouts by remember { mutableStateOf(listOf<BlackoutSlot>()) }
+    var blackoutDay by remember { mutableStateOf(operatingDays.firstOrNull() ?: "Mon") }
+    var blackoutStart by remember { mutableStateOf("18:00") }
+    var blackoutEnd by remember { mutableStateOf("22:00") }
+    var blackoutReason by remember { mutableStateOf("") }
 
     // Pending id so images upload to their final path before the Subdivision object
     // itself is created — same "generate the id up front" pattern CreateListingDialog
@@ -109,6 +114,7 @@ fun SubdivisionEditorSection(
         }
     }
 
+    val weekDayOrder = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
     val amenityCatalog = listOf(
         "A/C Climate Control", "Dual-Monitor Setup", "Whiteboard / Presentation Kit",
         "High-Speed Wi-Fi", "Soundproofing", "Ergonomic Seating", "Storage Locker",
@@ -155,7 +161,8 @@ fun SubdivisionEditorSection(
                                 sub.scheduleOverride?.let { override ->
                                     Text(
                                         "Custom hours: ${override.openingHour}-${override.closingHour}, ${override.operatingDays.joinToString()}" +
-                                            if (override.isSundayOperating) " + Sun" else "",
+                                            (if (override.isSundayOperating) " + Sun" else "") +
+                                            (if (override.blackoutSlots.isNotEmpty()) ", ${override.blackoutSlots.size} blocked time(s)" else ""),
                                         fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -319,6 +326,97 @@ fun SubdivisionEditorSection(
                         Text("Open on Sundays", fontSize = MaterialTheme.typography.bodySmall.fontSize)
                         Switch(checked = subOverrideSundayOperating, onCheckedChange = { subOverrideSundayOperating = it })
                     }
+
+                    // Room-specific blocked time — e.g. a maintenance window just for
+                    // this room, independent of the whole space's own blocked hours
+                    // (SpaceScheduleEditorDialog's post-publish grid editor, which this
+                    // intentionally doesn't try to replicate: that one operates on an
+                    // already-persisted listing's live schedule; this room doesn't exist
+                    // in Firestore yet while the wizard is still open).
+                    Text(
+                        "Blocked Times (optional)",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize
+                    )
+                    if (subOverrideBlackouts.isNotEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            subOverrideBlackouts.forEach { slot ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        "${slot.dayOfWeek} ${slot.startTime}-${slot.endTime}" +
+                                            if (slot.reason.isNotBlank()) " (${slot.reason})" else "",
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize
+                                    )
+                                    IconButton(
+                                        onClick = { subOverrideBlackouts = subOverrideBlackouts.filterNot { it.id == slot.id } },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(Icons.Default.Close, contentDescription = "Remove blocked time")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    val blackoutDayOptions = (subOverrideDays + if (subOverrideSundayOperating) setOf("Sun") else emptySet())
+                        .let { days -> weekDayOrder.filter { it in days } }
+                    if (blackoutDayOptions.isNotEmpty()) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(blackoutDayOptions) { day ->
+                                FilterChip(
+                                    selected = blackoutDay == day,
+                                    onClick = { blackoutDay = day },
+                                    label = { Text(day, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                                )
+                            }
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = blackoutStart,
+                                onValueChange = { blackoutStart = it },
+                                label = { Text("From (HH:mm)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = blackoutEnd,
+                                onValueChange = { blackoutEnd = it },
+                                label = { Text("To (HH:mm)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                        }
+                        OutlinedTextField(
+                            value = blackoutReason,
+                            onValueChange = { blackoutReason = it },
+                            label = { Text("Reason (optional)") },
+                            placeholder = { Text("e.g. Weekly maintenance") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        OutlinedButton(
+                            onClick = {
+                                subOverrideBlackouts = subOverrideBlackouts + BlackoutSlot(
+                                    dayOfWeek = blackoutDay,
+                                    startTime = blackoutStart,
+                                    endTime = blackoutEnd,
+                                    reason = blackoutReason.ifBlank { "Blocked" }
+                                )
+                                blackoutReason = ""
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Add Blocked Time", fontSize = MaterialTheme.typography.labelSmall.fontSize)
+                        }
+                    }
                 }
 
                 HorizontalDivider()
@@ -349,7 +447,8 @@ fun SubdivisionEditorSection(
                                     openingHour = subOverrideOpeningHour,
                                     closingHour = subOverrideClosingHour,
                                     operatingDays = subOverrideDays.toList(),
-                                    isSundayOperating = subOverrideSundayOperating
+                                    isSundayOperating = subOverrideSundayOperating,
+                                    blackoutSlots = subOverrideBlackouts
                                 )
                             } else null
                         )
@@ -363,6 +462,11 @@ fun SubdivisionEditorSection(
                         subOverrideClosingHour = closingHour
                         subOverrideDays = operatingDays.toSet()
                         subOverrideSundayOperating = false
+                        subOverrideBlackouts = emptyList()
+                        blackoutDay = operatingDays.firstOrNull() ?: "Mon"
+                        blackoutStart = "18:00"
+                        blackoutEnd = "22:00"
+                        blackoutReason = ""
                         pendingSubId = "SUB-" + UUID.randomUUID().toString().take(6).uppercase()
                     },
                     modifier = Modifier.fillMaxWidth(),
