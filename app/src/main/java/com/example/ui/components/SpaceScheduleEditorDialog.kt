@@ -143,43 +143,15 @@ fun SpaceScheduleEditorDialog(
                                 color = MaterialTheme.colorScheme.primary
                             )
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                OutlinedTextField(
-                                    value = openingHour,
-                                    onValueChange = { openingHour = it },
-                                    label = { Text("Open (HH:mm)") },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true
-                                )
-                                OutlinedTextField(
-                                    value = closingHour,
-                                    onValueChange = { closingHour = it },
-                                    label = { Text("Close (HH:mm)") },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true
-                                )
-                            }
-
-                            Text("Operating Days:", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                weekDays.forEach { day ->
-                                    val isSelected = selectedDays.contains(day)
-                                    FilterChip(
-                                        selected = isSelected,
-                                        onClick = {
-                                            selectedDays = if (isSelected) selectedDays - day else selectedDays + day
-                                        },
-                                        label = { Text(day.take(1), fontSize = MaterialTheme.typography.bodyMedium.fontSize) },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                            }
+                            OperatingScheduleEditorSection(
+                                openingHour = openingHour,
+                                onOpeningHourChange = { openingHour = it },
+                                closingHour = closingHour,
+                                onClosingHourChange = { closingHour = it },
+                                selectedDays = selectedDays,
+                                onDaysChange = { selectedDays = it },
+                                weekDayOptions = weekDays
+                            )
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),

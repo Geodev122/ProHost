@@ -52,6 +52,15 @@ fun OwnerSubscriptionsScreen(
     var selectedTierToSubscribe by remember { mutableStateOf(OwnerPackageTier.LIMITED_3_TIER) }
     var showPaygBuyDialog by remember { mutableStateOf(false) }
     var selectedCategoryForPayg by remember(paygCategoryOptions) { mutableStateOf(paygCategoryOptions.firstOrNull()) }
+    // A category with no admin-set priceUsd that isn't one of the original 4
+    // (which the server still prices via its legacy fallback) can't be bought —
+    // initiateWhishPayment would reject it — so both purchase buttons grey out
+    // for it instead of sending the host to a payment error.
+    fun isCategoryUnpriced(category: SchemaItem): Boolean =
+        category.priceUsd == null &&
+            category.id !in setOf("ST-01", "ST-02", "ST-03", "ST-04") &&
+            SpaceType.values().none { it.name == category.id }
+    val selectedPaygIsUnpriced = selectedCategoryForPayg?.let { isCategoryUnpriced(it) } ?: false
 
     var payerName by remember { mutableStateOf(currentUser?.fullName ?: "") }
     var payerPhone by remember { mutableStateOf(currentUser?.phone ?: "+961 70 888 999") }
@@ -354,6 +363,7 @@ fun OwnerSubscriptionsScreen(
                         )
                         showSubscribeDialog = false
                     },
+                    enabled = !(selectedTierToSubscribe == OwnerPackageTier.PAY_AS_YOU_GO && selectedPaygIsUnpriced),
                     colors = ButtonDefaults.buttonColors(containerColor = FreshGreen)
                 ) {
                     Text("Go to Whish Pay", color = PureWhite, fontWeight = FontWeight.Bold)
@@ -387,6 +397,7 @@ fun OwnerSubscriptionsScreen(
                             else -> null
                         }
                         val fee = category.priceUsd ?: legacyType?.let { pricingState.getPaygFeeForType(it) } ?: 0.0
+                        val isUnpriced = category.priceUsd == null && legacyType == null
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -402,7 +413,11 @@ fun OwnerSubscriptionsScreen(
                                 )
                                 Text(category.name, fontWeight = FontWeight.Medium)
                             }
-                            Text("$${String.format(Locale.US, "%.2f", fee)}", fontWeight = FontWeight.Bold, color = CarnationOrange)
+                            Text(
+                                if (isUnpriced) "Not priced yet" else "$${String.format(Locale.US, "%.2f", fee)}",
+                                fontWeight = FontWeight.Bold,
+                                color = if (isUnpriced) StatusError else CarnationOrange
+                            )
                         }
                     }
 
@@ -430,10 +445,14 @@ fun OwnerSubscriptionsScreen(
                         }
                         showPaygBuyDialog = false
                     },
-                    enabled = selectedCategoryForPayg != null,
+                    enabled = selectedCategoryForPayg != null && !selectedPaygIsUnpriced,
                     colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                 ) {
-                    Text("Go to Whish Pay", color = PureWhite, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (selectedPaygIsUnpriced) "Category not priced yet" else "Go to Whish Pay",
+                        color = PureWhite,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             },
             dismissButton = {

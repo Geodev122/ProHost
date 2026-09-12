@@ -376,11 +376,18 @@ fun CreateListingDialog(
                                     val selectedItem = categoryOptions.firstOrNull { it.id == selectedCategoryId }
                                     val fee = selectedItem?.priceUsd
                                     val credits = selectedCategoryId?.let { paygCredits[it] } ?: 0
+                                    // The server's legacy fallback only prices the original 4 category
+                                    // ids/names (getPaygFeeForCategory) — anything else with no admin-set
+                                    // priceUsd can't be bought at all yet, so say so here instead of
+                                    // letting the host discover it as a payment error later.
+                                    val isLegacyPriced = selectedCategoryId in setOf("ST-01", "ST-02", "ST-03", "ST-04") ||
+                                        SpaceType.values().any { it.name == selectedCategoryId }
+                                    val isUnpriced = fee == null && !isLegacyPriced
                                     Text(
-                                        if (credits > 0) {
-                                            "You have $credits paid slot(s) for ${selectedItem?.name ?: "this category"}."
-                                        } else {
-                                            "No paid slot yet for ${selectedItem?.name ?: "this category"}" +
+                                        when {
+                                            credits > 0 -> "You have $credits paid slot(s) for ${selectedItem?.name ?: "this category"}."
+                                            isUnpriced -> "${selectedItem?.name ?: "This category"} has no PAYG price set yet — an admin must price it before a slot can be bought. You can still save this as a Draft."
+                                            else -> "No paid slot yet for ${selectedItem?.name ?: "this category"}" +
                                                 (fee?.let { " — buy one for $${String.format("%.2f", it)} from Subscriptions." } ?: " — buy one from Subscriptions to publish.")
                                         },
                                         fontSize = MaterialTheme.typography.labelSmall.fontSize,
@@ -640,38 +647,15 @@ fun CreateListingDialog(
                                     fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    OutlinedTextField(
-                                        value = openingHour,
-                                        onValueChange = { openingHour = it },
-                                        label = { Text("Opens (HH:mm)") },
-                                        modifier = Modifier.weight(1f),
-                                        singleLine = true
-                                    )
-                                    OutlinedTextField(
-                                        value = closingHour,
-                                        onValueChange = { closingHour = it },
-                                        label = { Text("Closes (HH:mm)") },
-                                        modifier = Modifier.weight(1f),
-                                        singleLine = true
-                                    )
-                                }
-                                Text("Selected Days", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(weekDayOptions) { day ->
-                                        val isSelected = operatingDays.contains(day)
-                                        FilterChip(
-                                            selected = isSelected,
-                                            onClick = {
-                                                operatingDays = if (isSelected) operatingDays - day else operatingDays + day
-                                            },
-                                            label = { Text(day, fontSize = MaterialTheme.typography.labelMedium.fontSize) }
-                                        )
-                                    }
-                                }
+                                OperatingScheduleEditorSection(
+                                    openingHour = openingHour,
+                                    onOpeningHourChange = { openingHour = it },
+                                    closingHour = closingHour,
+                                    onClosingHourChange = { closingHour = it },
+                                    selectedDays = operatingDays,
+                                    onDaysChange = { operatingDays = it },
+                                    weekDayOptions = weekDayOptions
+                                )
 
                                 HorizontalDivider()
 
