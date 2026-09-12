@@ -60,8 +60,17 @@ class DiscoveryViewModel(
             val matchesVerified = !filter.onlyVerified || space.isVerified
             val matchesSub = !filter.onlyActiveSubscribed || space.isActiveSubscription
             val matchesSaved = !filter.onlySaved || savedIds.contains(space.id)
+            // Explore/Discovery is the same shared tab for both roles — "a Pro Host
+            // is still a Specialist underneath" — so repository.spaces (which the
+            // owner-read carve-out in firestore.rules lets include their OWN
+            // Draft/Paused listings) must be narrowed here to real, live inventory:
+            // the same ACTIVE + not-owner-suspended bar public read access already
+            // enforces for every other viewer. Without this, a Pro Host browsing
+            // their own Explore tab sees their own unpublished listings mixed in
+            // among real ones, with no badge distinguishing them.
+            val isLiveListing = space.status == ListingStatus.ACTIVE && !space.isOwnerSuspended
 
-            matchesQuery && matchesGov && matchesType && matchesFormula && matchesFacility && matchesEquip && matchesPrice && matchesVerified && matchesSub && matchesSaved
+            isLiveListing && matchesQuery && matchesGov && matchesType && matchesFormula && matchesFacility && matchesEquip && matchesPrice && matchesVerified && matchesSub && matchesSaved
         }
 
         DiscoveryUiState(
