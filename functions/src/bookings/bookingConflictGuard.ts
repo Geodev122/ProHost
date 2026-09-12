@@ -106,25 +106,45 @@ export const onBookingAcceptConflictGuard = onDocumentWritten(
     if (!spaceId) return;
 
     const db = getFirestore();
-    const snap = await db
+    const conflictQuery = db
       .collection("booking_requests")
       .where("spaceId", "==", spaceId)
-      .where("status", "==", "ACCEPTED")
-      .get();
-    const others = snap.docs
-      .filter((d) => d.id !== event.params.bookingId)
-      .map((d) => ({ id: d.id, data: d.data() as BookingDoc }));
+      .where("status", "==", "ACCEPTED");
 
-    const conflict = findConflict(event.params.bookingId, data, others);
+    // A plain query-then-write here raced: two overlapping bookings accepted
+    // at nearly the same moment could each run their query snapshot before
+    // the other's ACCEPTED write had landed, so neither ever saw the other as
+    // a conflict and both stayed ACCEPTED — the exact double-booking this
+    // trigger exists to catch, just delayed past the query instead of
+    // prevented. Wrapping the read and the conditional revert in one Firestore
+    // transaction closes that: if this booking and a concurrently-accepted
+    // one both read the same query, Firestore serializes their commits and
+    // retries the loser with a fresh read, so the second one to actually
+    // commit always sees the first's ACCEPTED status. Side effects (audit
+    // log, push) run once after the transaction settles, not inside it —
+    // Firestore can retry a transaction's callback on contention, and neither
+    // of those is safe to fire more than once for the same revert.
+    const conflict = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(conflictQuery);
+      const others = snap.docs
+        .filter((d) => d.id !== event.params.bookingId)
+        .map((d) => ({ id: d.id, data: d.data() as BookingDoc }));
+
+      const found = findConflict(event.params.bookingId, data, others);
+      if (!found) return undefined;
+
+      // Reverted to PENDING, not REJECTED — this wasn't a real decision the
+      // host made about the request itself, just an accept that can't stand;
+      // PENDING puts it back in the host's queue needing a real decision.
+      tx.set(
+        after.ref,
+        { status: "PENDING", rejectionReason: `Auto-reverted: overlaps accepted booking ${found.id}.` },
+        { merge: true }
+      );
+      return found;
+    });
     if (!conflict) return;
 
-    // Reverted to PENDING, not REJECTED — this wasn't a real decision the host
-    // made about the request itself, just an accept that can't stand; PENDING
-    // puts it back in the host's queue needing a real decision.
-    await after.ref.set(
-      { status: "PENDING", rejectionReason: `Auto-reverted: overlaps accepted booking ${conflict.id}.` },
-      { merge: true }
-    );
     await recordAuditLog({
       actionType: "BOOKING_ACCEPT_REVERTED_CONFLICT",
       details:
