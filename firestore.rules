@@ -232,19 +232,33 @@ service cloud.firestore {
         request.resource.data.practitionerId == request.auth.uid &&
         !isSuspended();
 
-      // agreementUrl (the signed lease the host uploads when finalizing
-      // acceptance — see BookingRequest.agreementUrl's doc comment) can only
-      // ever be set by the space's owner — never the practitioner, and never
-      // as an incidental side effect of an admin editing some other field.
-      // There is no in-app payment settlement to protect anymore (both sides
-      // handle payment outside the app entirely — the old isExternalPaymentSettled
-      // field, and the Pay Whish flow that set it, are gone).
+      // The owner (or Admin) can write anything — accept/reject, agreementUrl (the
+      // signed lease uploaded when finalizing acceptance), etc. The practitioner is
+      // whitelisted to exactly two things they're actually allowed to do themselves:
+      // acknowledge their own outside-the-app payment, or cancel their own request —
+      // never accept or reject it. Before this, any signed-in practitioner could
+      // write status: ACCEPTED directly on their own PENDING request via a raw
+      // Firestore SDK call, skipping the host's review entirely AND skipping the
+      // accept-time double-booking check both the client
+      // (ProHostRepository.acceptBookingRequest) and the server
+      // (onBookingAcceptConflictGuard, functions/src/bookings/bookingConflictGuard.ts)
+      // only ever run on a transition into ACCEPTED — a self-accept would never pass
+      // through either. There is no in-app payment settlement to protect otherwise
+      // (both sides handle payment outside the app entirely — the old
+      // isExternalPaymentSettled field, and the Pay Whish flow that set it, are gone).
       allow update: if isSignedIn() &&
         (isAdmin() ||
          resource.data.practitionerId == request.auth.uid ||
          resource.data.ownerId == request.auth.uid) &&
-        (request.auth.uid == resource.data.ownerId || isAdmin() ||
-         !request.resource.data.diff(resource.data).affectedKeys().hasAny(["agreementUrl"]));
+        (
+          isAdmin() ||
+          request.auth.uid == resource.data.ownerId ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["paymentAcknowledgedBySpecialist"]) ||
+          (request.resource.data.status == "CANCELLED" &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+              ["status", "reviewedAt", "cancellationReasonCode", "cancellationNote", "cancelledByRole"]
+            ))
+        );
 
       allow delete: if isAdmin();
     }
