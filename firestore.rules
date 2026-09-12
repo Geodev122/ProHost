@@ -258,8 +258,22 @@ service cloud.firestore {
     // ---------------------------------------------------------------
     match /hashtag_usage/{tagId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() &&
-        request.resource.data.keys().hasOnly(["tag", "count", "lastUsedAtMillis", "governorate"]);
+      // Key-set-only used to be the entire check — it stopped a write from
+      // smuggling in unrelated fields, but not from setting count to any
+      // arbitrary number instead of the real client's FieldValue.increment(1).
+      // Split into create/update so the "first time this tag is ever used"
+      // and "every use after" cases can each require count be EXACTLY one
+      // more than what's already there (or exactly 1 for a brand-new tag),
+      // matching FirestoreService.recordHashtagUsage's own write shape and
+      // rejecting anything else.
+      allow create: if isSignedIn() &&
+        request.resource.data.keys().hasOnly(["tag", "count", "lastUsedAtMillis", "governorate"]) &&
+        request.resource.data.tag == tagId &&
+        request.resource.data.count == 1;
+      allow update: if isSignedIn() &&
+        request.resource.data.keys().hasOnly(["tag", "count", "lastUsedAtMillis", "governorate"]) &&
+        request.resource.data.tag == tagId &&
+        request.resource.data.count == resource.data.get('count', 0) + 1;
     }
 
     // ---------------------------------------------------------------
