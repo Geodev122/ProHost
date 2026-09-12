@@ -795,7 +795,6 @@ class ProHostRepository {
             "SUBCATEGORY" -> current.copy(subcategories = current.subcategories + item)
             "AMENITY" -> current.copy(amenities = current.amenities + item)
             "EQUIPMENT" -> current.copy(equipmentCategories = current.equipmentCategories + item)
-            "SPECIALTY" -> current.copy(specialties = current.specialties + item)
             "RENTAL_STRATEGY" -> current.copy(rentalStrategies = current.rentalStrategies + item)
             else -> current
         }
@@ -811,6 +810,30 @@ class ProHostRepository {
         return success
     }
 
+    /** Edits priceUsd/maxSubdivisions on an EXISTING SchemaItem — previously only settable
+     * once, at creation, via addSchemaItem. Only meaningful for category == "SPACE_TYPE"
+     * (both fields are ignored/no-ops for any other category, same as the fields' own
+     * doc comments on SchemaItem). */
+    suspend fun updateSchemaItemPricing(itemId: String, category: String, priceUsd: Double?, maxSubdivisions: Int?): Boolean {
+        val current = _spaceArchitectureSchema.value
+        fun updateList(items: List<SchemaItem>) =
+            items.map { if (it.id == itemId) it.copy(priceUsd = priceUsd, maxSubdivisions = maxSubdivisions) else it }
+        val updated = when (category) {
+            "SPACE_TYPE" -> current.copy(spaceTypes = updateList(current.spaceTypes))
+            else -> return false
+        }
+        val success = firestoreService.saveSchema(updated)
+        if (success) {
+            _spaceArchitectureSchema.value = updated
+            addAuditLog(
+                actionType = "SCHEMA_ITEM_PRICING_UPDATED",
+                details = "Admin updated pricing/max-subdivisions for schema item #$itemId",
+                severity = "SECURE"
+            )
+        }
+        return success
+    }
+
     suspend fun toggleSchemaItem(itemId: String): Boolean {
         val current = _spaceArchitectureSchema.value
         val updated = current.copy(
@@ -818,7 +841,6 @@ class ProHostRepository {
             subcategories = current.subcategories.map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it },
             amenities = current.amenities.map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it },
             equipmentCategories = current.equipmentCategories.map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it },
-            specialties = current.specialties.map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it },
             rentalStrategies = current.rentalStrategies.map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it }
         )
         val success = firestoreService.saveSchema(updated)
@@ -840,7 +862,6 @@ class ProHostRepository {
             subcategories = current.subcategories.filterNot { it.id == itemId },
             amenities = current.amenities.filterNot { it.id == itemId },
             equipmentCategories = current.equipmentCategories.filterNot { it.id == itemId },
-            specialties = current.specialties.filterNot { it.id == itemId },
             rentalStrategies = current.rentalStrategies.filterNot { it.id == itemId }
         )
         val success = firestoreService.saveSchema(updated)
@@ -901,16 +922,6 @@ class ProHostRepository {
                 SchemaItem("EQ-02", "IT, Tech & Presentation", "4K Smart TV displays, HDMI, Polycom video conference", "EQUIPMENT", "Tv"),
                 SchemaItem("EQ-03", "Office Amenities", "High-speed laser printer/scanner, paper shredder", "EQUIPMENT", "Print"),
                 SchemaItem("EQ-04", "Specialized Clinical Tools", "Examination beds, diagnostic lights, sterilization units", "EQUIPMENT", "MedicalInformation")
-            ),
-            specialties = listOf(
-                SchemaItem("SP-01", "Architecture & Interior Design", "Order of Engineers and Architects (OEA)", "SPECIALTY", "Architecture"),
-                SchemaItem("SP-02", "Law & Legal Counsel", "Beirut Bar Association (BBA)", "SPECIALTY", "Gavel"),
-                SchemaItem("SP-03", "Cardiology & Vascular Medicine", "Lebanese Order of Physicians (LOP)", "SPECIALTY", "Favorite"),
-                SchemaItem("SP-04", "Dentistry & Orthodontics", "Lebanese Dental Association", "SPECIALTY", "HealthAndSafety"),
-                SchemaItem("SP-05", "Financial & Investment Advisory", "Certified Financial Consultants", "SPECIALTY", "TrendingUp"),
-                SchemaItem("SP-06", "Software Engineering & Tech", "Syndicate of Technology Specialists", "SPECIALTY", "Code"),
-                SchemaItem("SP-07", "Psychotherapy & Clinical Psychology", "Lebanese Psychological Association", "SPECIALTY", "Psychology"),
-                SchemaItem("SP-08", "Physical Therapy & Rehabilitation", "Syndicate of Physiotherapists in Lebanon", "SPECIALTY", "FitnessCenter")
             ),
             rentalStrategies = listOf(
                 SchemaItem("RS-01", "Full Month (Exclusive)", "Continuous 30-day dedicated exclusive workspace lease", "RENTAL_STRATEGY", "CalendarMonth"),

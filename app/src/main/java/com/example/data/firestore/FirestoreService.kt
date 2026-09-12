@@ -192,7 +192,7 @@ class FirestoreService(
                 }
             activeListeners.add(transactionListener)
 
-            // Single-document taxonomy: space types/amenities/equipment/specialties/
+            // Single-document taxonomy: space types/subcategories/amenities/equipment/
             // rental strategies. Public read (firestore.rules), admin-only write — no
             // document exists until an admin makes their first edit, so a missing
             // snapshot here just means the caller keeps its local default schema.

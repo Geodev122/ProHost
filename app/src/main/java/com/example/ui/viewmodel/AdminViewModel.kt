@@ -414,12 +414,12 @@ class AdminViewModel(
         }
     }
 
-    fun openAddSchemaItemDialog() {
-        _uiState.update { it.copy(isAddSchemaItemDialogOpen = true) }
+    fun openAddSchemaItemDialog(presetCategory: String? = null) {
+        _uiState.update { it.copy(isAddSchemaItemDialogOpen = true, addSchemaItemPresetCategory = presetCategory) }
     }
 
     fun closeAddSchemaItemDialog() {
-        _uiState.update { it.copy(isAddSchemaItemDialogOpen = false) }
+        _uiState.update { it.copy(isAddSchemaItemDialogOpen = false, addSchemaItemPresetCategory = null) }
     }
 
     fun refreshHashtagAnalytics() {
@@ -434,9 +434,10 @@ class AdminViewModel(
         name: String,
         description: String = "",
         iconName: String = "Category",
-        priceUsd: Double? = null
+        priceUsd: Double? = null,
+        maxSubdivisions: Int? = null
     ) {
-        addNewSchemaItem(category, name, description, iconName, priceUsd)
+        addNewSchemaItem(category, name, description, iconName, priceUsd, maxSubdivisions)
     }
 
     fun addNewSchemaItem(
@@ -444,7 +445,8 @@ class AdminViewModel(
         name: String,
         description: String,
         iconName: String,
-        priceUsd: Double? = null
+        priceUsd: Double? = null,
+        maxSubdivisions: Int? = null
     ) {
         viewModelScope.launch {
             val newItem = SchemaItem(
@@ -455,13 +457,29 @@ class AdminViewModel(
                 iconName = iconName,
                 isEnabled = true,
                 isSystemDefault = false,
-                priceUsd = priceUsd
+                priceUsd = priceUsd,
+                maxSubdivisions = maxSubdivisions
             )
             val success = repository.addSchemaItem(newItem)
             closeAddSchemaItemDialog()
             _events.emit(
                 AdminUiEvent.ShowToast(
                     if (success) "New schema entry added: $name" else "Failed to add schema entry — please try again"
+                )
+            )
+        }
+    }
+
+    /** Buffer-locally-commit-on-Save price editor for an EXISTING SchemaItem (task #106's
+     * pattern) — SchemaItem.priceUsd used to only ever be set once, at creation, via
+     * AddSchemaItemDialog; the Packages Configuration list needs to edit it in place for
+     * every SPACE_TYPE category, old and new alike. */
+    fun updateSchemaItemPricing(itemId: String, category: String, priceUsd: Double?, maxSubdivisions: Int?) {
+        viewModelScope.launch {
+            val success = repository.updateSchemaItemPricing(itemId, category, priceUsd, maxSubdivisions)
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "Category pricing updated" else "Failed to update category pricing — please try again"
                 )
             )
         }
@@ -540,10 +558,19 @@ class AdminViewModel(
         openExportDialog("Workspace Hosts & Property Ownership Audit (CSV)", content, "CSV")
     }
 
-    /** Used by AdminRevenueScreen's own clipboard-copy export button (relocated from
+    /** Used by AdminRevenueScreen's own real-file export button (relocated from
      * ProHostViewModel — Admin-only functionality, no reason it lived on the shared
      * god object). */
     fun exportRevenueCsv(startDateMillis: Long?, endDateMillis: Long?): String {
         return repository.exportTransactionsToCsv(startDateMillis, endDateMillis)
+    }
+
+    /** Used by the Admin Console's own Security & Audit tab export button. The same
+     * CSV generator was previously only reachable via the unrelated drawer "Central
+     * Security Audits" dialog, which called straight into ProHostViewModel.repository —
+     * this gives the Admin Console tab its own proper entry point instead of reaching
+     * around AdminViewModel. */
+    fun exportAuditLogsCsv(startDateMillis: Long?, endDateMillis: Long?): String {
+        return repository.exportAuditLogsToCsv(startDateMillis, endDateMillis)
     }
 }

@@ -33,7 +33,7 @@ data class AdminUiState(
     val txSearchQuery: String = "",
     val selectedTxStatusFilter: String = "ALL", // "ALL", "SUCCESS", "PENDING", "FAILED"
 
-    val selectedSchemaCategoryFilter: String = "ALL", // "ALL", "SPACE_TYPE", "SUBCATEGORY", "AMENITY", "EQUIPMENT", "SPECIALTY", "RENTAL_STRATEGY"
+    val selectedSchemaCategoryFilter: String = "ALL", // "ALL", "SPACE_TYPE", "SUBCATEGORY", "AMENITY", "EQUIPMENT" (RENTAL_STRATEGY lives in its own independent section, not this filter)
 
     // Dialog and Modal states
     val isExportDialogOpen: Boolean = false,
@@ -63,6 +63,10 @@ data class AdminUiState(
     val revokingProHostUser: AppUser? = null,
 
     val isAddSchemaItemDialogOpen: Boolean = false,
+    // Lets a category-specific "Add" button (Renting Formulas section, Package
+    // Configuration's "Add Category Type") open the same dialog pre-selected on the
+    // right category, instead of every "Add" entry point defaulting to the same one.
+    val addSchemaItemPresetCategory: String? = null,
     val isResetSchemaDialogOpen: Boolean = false
 ) {
     val filteredUsers: List<AppUser>

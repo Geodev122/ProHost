@@ -196,12 +196,12 @@ fun AdminConsoleScreen(
                     Tab(
                         selected = uiState.selectedTab == 4,
                         onClick = { adminViewModel.setSelectedTab(4) },
-                        text = { Text("Schema Architecture", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                        text = { Text("Schema", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = uiState.selectedTab == 5,
                         onClick = { adminViewModel.setSelectedTab(5) },
-                        text = { Text("Security Audit", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                        text = { Text("Security", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = uiState.selectedTab == 6,
@@ -319,9 +319,10 @@ fun AdminConsoleScreen(
     // 6. Add Schema Node Dialog
     if (uiState.isAddSchemaItemDialogOpen) {
         AdminAddSchemaItemDialog(
+            initialCategory = uiState.addSchemaItemPresetCategory ?: "SUBCATEGORY",
             onDismiss = { adminViewModel.closeAddSchemaItemDialog() },
-            onAdd = { name, category, description, iconName, priceUsd ->
-                adminViewModel.addSchemaItem(category, name, description, iconName, priceUsd)
+            onAdd = { name, category, description, iconName, priceUsd, maxSubdivisions ->
+                adminViewModel.addSchemaItem(category, name, description, iconName, priceUsd, maxSubdivisions)
             }
         )
     }
@@ -1500,11 +1501,14 @@ private fun AdminSchemaArchitectureTab(
     adminViewModel: AdminViewModel
 ) {
     val schema = uiState.schema
-    val allItems = schema.allItems
+    // Rental Formulas get their own independent section below (they're decorative
+    // reference labels, not the real per-listing pricing config — see that section's own
+    // comment) — this list, its filter, and its stat tiles are scoped to everything else.
+    val mainSchemaItems = schema.spaceTypes + schema.subcategories + schema.amenities + schema.equipmentCategories
     val filteredItems = if (uiState.selectedSchemaCategoryFilter == "ALL") {
-        allItems
+        mainSchemaItems
     } else {
-        allItems.filter { it.category == uiState.selectedSchemaCategoryFilter }
+        mainSchemaItems.filter { it.category == uiState.selectedSchemaCategoryFilter }
     }
 
     LazyColumn(
@@ -1514,7 +1518,7 @@ private fun AdminSchemaArchitectureTab(
     ) {
         // Schema Header & Overview
         item {
-            ProSurfaceCard {
+            ProSurfaceCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1522,8 +1526,7 @@ private fun AdminSchemaArchitectureTab(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         ProSectionHeader(
-                            title = "Space Architecture Schema",
-                            subtitle = "Modify database taxonomies, categories, amenities, and rental strategies",
+                            title = "Architecture",
                             icon = Icons.Default.AccountTree
                         )
 
@@ -1551,73 +1554,41 @@ private fun AdminSchemaArchitectureTab(
                         }
                     }
 
-                    // Database Architecture Stats
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ProMetricTile(
-                            title = "Space Types",
-                            value = "${schema.spaceTypes.size}",
-                            subtitle = "Tier 1 Root",
-                            icon = Icons.Default.Apartment,
-                            modifier = Modifier.weight(1f)
+                    // Database Architecture Stats — one horizontally-scrollable row of 5
+                    // (Specialties removed — fully migrated to the free-text hashtag system,
+                    // see the Target Disciplines Usage card below), each showing real live
+                    // active-vs-disabled counts rather than just a bare total.
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val tiles = listOf(
+                            Triple("Space Types", schema.spaceTypes, Icons.Default.Apartment),
+                            Triple("Subcategories", schema.subcategories, Icons.Default.Category),
+                            Triple("Amenities", schema.amenities, Icons.Default.CheckCircle),
+                            Triple("Equipment", schema.equipmentCategories, Icons.Default.Biotech),
+                            Triple("Rental Formulas", schema.rentalStrategies, Icons.Default.Schedule)
                         )
-                        ProMetricTile(
-                            title = "Subcategories",
-                            value = "${schema.subcategories.size}",
-                            subtitle = "Level 2 Class",
-                            icon = Icons.Default.Category,
-                            modifier = Modifier.weight(1f)
-                        )
-                        ProMetricTile(
-                            title = "Amenities",
-                            value = "${schema.amenities.size}",
-                            subtitle = "Facilities",
-                            icon = Icons.Default.CheckCircle,
-                            iconTint = FreshGreen,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ProMetricTile(
-                            title = "Equipment",
-                            value = "${schema.equipmentCategories.size}",
-                            subtitle = "Hardware/Assets",
-                            icon = Icons.Default.Biotech,
-                            modifier = Modifier.weight(1f)
-                        )
-                        ProMetricTile(
-                            title = "Specialties",
-                            value = "${schema.specialties.size}",
-                            subtitle = "Orders & Syndicates",
-                            icon = Icons.Default.Badge,
-                            modifier = Modifier.weight(1f)
-                        )
-                        ProMetricTile(
-                            title = "Strategies",
-                            value = "${schema.rentalStrategies.size}",
-                            subtitle = "Time Formulas",
-                            icon = Icons.Default.Schedule,
-                            modifier = Modifier.weight(1f)
-                        )
+                        items(tiles) { (title, items, icon) ->
+                            val activeCount = items.count { it.isEnabled }
+                            val offCount = items.size - activeCount
+                            Box(modifier = Modifier.width(150.dp)) {
+                                ProMetricTile(
+                                    title = title,
+                                    value = "${items.size}",
+                                    subtitle = "$activeCount active · $offCount off",
+                                    icon = icon
+                                )
+                            }
+                        }
                     }
 
                     // Category Selector Filter Chips
                     Text("Filter Schema Category:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         val categories = listOf(
-                            "ALL" to "All Nodes (${allItems.size})",
+                            "ALL" to "All Nodes (${mainSchemaItems.size})",
                             "SPACE_TYPE" to "Space Types (${schema.spaceTypes.size})",
                             "SUBCATEGORY" to "Subcategories (${schema.subcategories.size})",
                             "AMENITY" to "Amenities (${schema.amenities.size})",
-                            "EQUIPMENT" to "Equipment (${schema.equipmentCategories.size})",
-                            "SPECIALTY" to "Specialties (${schema.specialties.size})",
-                            "RENTAL_STRATEGY" to "Rental Formulas (${schema.rentalStrategies.size})"
+                            "EQUIPMENT" to "Equipment (${schema.equipmentCategories.size})"
                         )
                         items(categories) { (catKey, catLabel) ->
                             FilterChip(
@@ -1710,7 +1681,6 @@ private fun AdminSchemaArchitectureTab(
                                         "SUBCATEGORY" -> Icons.Default.Category
                                         "AMENITY" -> Icons.Default.CheckCircle
                                         "EQUIPMENT" -> Icons.Default.Biotech
-                                        "SPECIALTY" -> Icons.Default.Badge
                                         "RENTAL_STRATEGY" -> Icons.Default.Schedule
                                         else -> Icons.Default.AccountTree
                                     },
@@ -1767,6 +1737,12 @@ private fun AdminSchemaArchitectureTab(
                                     fontWeight = FontWeight.Bold,
                                     color = if (item.priceUsd != null) MaterialTheme.colorScheme.primary else StatusError
                                 )
+                                Text(
+                                    text = "Max subdivisions: ${item.maxSubdivisions?.toString() ?: "Unlimited"}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
@@ -1782,6 +1758,72 @@ private fun AdminSchemaArchitectureTab(
                                 Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = StatusError, modifier = Modifier.size(18.dp))
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        // Renting Formulas — an independent section, deliberately separate from the
+        // category/subdivision/amenity/equipment list above: these are reference labels
+        // only (they mirror the 4 real RentalStrategyType values a host actually
+        // configures per-listing in the wizard's Step 3 pricing editors) — renaming or
+        // disabling one here doesn't change what a host can select or how a listing is
+        // priced. Kept for descriptive/reference purposes only.
+        item {
+            ProSurfaceCard {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ProSectionHeader(
+                            title = "Renting Formulas",
+                            subtitle = "Reference labels only — real per-listing pricing is configured in the listing wizard",
+                            icon = Icons.Default.Schedule
+                        )
+                        Button(
+                            onClick = { adminViewModel.openAddSchemaItemDialog(presetCategory = "RENTAL_STRATEGY") },
+                            shape = MaterialTheme.shapes.small,
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text("Add Formula", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+
+                    schema.rentalStrategies.forEach { item ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(item.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                if (item.description.isNotBlank()) {
+                                    Text(
+                                        item.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Switch(
+                                    checked = item.isEnabled,
+                                    onCheckedChange = { adminViewModel.toggleSchemaItemEnabled(item.id, item.category, item.isEnabled) }
+                                )
+                                if (!item.isSystemDefault) {
+                                    IconButton(onClick = { adminViewModel.deleteSchemaItem(item.id, item.category) }) {
+                                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = StatusError, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            }
+                        }
+                        HorizontalDivider(color = LightGray.copy(alpha = 0.4f))
                     }
                 }
             }
@@ -1836,38 +1878,43 @@ private fun AdminSecurityAuditTab(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        ProSectionHeader(
-                            title = "Security & Audit Event Stream",
-                            subtitle = "Tamper-proof event logs and compliance telemetry",
-                            icon = Icons.Default.Shield
-                        )
+            var auditExportFromMillis by remember { mutableStateOf<Long?>(null) }
+            var auditExportToMillis by remember { mutableStateOf<Long?>(null) }
+            val exportAuditCsvFile = rememberFileExportLauncher(mimeType = "text/csv")
 
-                        Button(
-                            onClick = { adminViewModel.exportAllAuditReport() },
-                            shape = MaterialTheme.shapes.small,
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
-                        ) {
-                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Export Audit", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
+            ProSurfaceCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ProSectionHeader(
+                        title = "Security & Audit",
+                        icon = Icons.Default.Shield
+                    )
 
                     Text(
-                        text = "• Protocol: SHA-256 Signed Payment Requests\n" +
-                                "• Access Clearance: Super Admin ${currentUser?.email ?: "Unknown admin"}\n" +
-                                "• Total Registered Logs: ${uiState.auditLogs.size}",
+                        text = "Total Registered Logs: ${uiState.auditLogs.size}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
+                    DateRangePickerRow(
+                        fromMillis = auditExportFromMillis,
+                        toMillis = auditExportToMillis,
+                        onFromChange = { auditExportFromMillis = it },
+                        onToChange = { auditExportToMillis = it }
+                    )
+
+                    Button(
+                        onClick = {
+                            val csv = adminViewModel.exportAuditLogsCsv(auditExportFromMillis, auditExportToMillis)
+                            exportAuditCsvFile("prohost_audit_logs.csv", csv)
+                        },
+                        shape = MaterialTheme.shapes.small,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
+                    ) {
+                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Text("Export Audit Logs (CSV)", style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             }
         }
@@ -2484,20 +2531,21 @@ private fun AdminDeleteListingDialog(
  */
 @Composable
 private fun AdminAddSchemaItemDialog(
+    initialCategory: String = "SUBCATEGORY",
     onDismiss: () -> Unit,
-    onAdd: (name: String, category: String, description: String, iconName: String, priceUsd: Double?) -> Unit
+    onAdd: (name: String, category: String, description: String, iconName: String, priceUsd: Double?, maxSubdivisions: Int?) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("SUBCATEGORY") }
+    var selectedCategory by remember { mutableStateOf(initialCategory) }
     var priceInput by remember { mutableStateOf("") }
+    var maxSubdivisionsInput by remember { mutableStateOf("") }
 
     val categories = listOf(
         "SPACE_TYPE" to "Space Type (Root)",
         "SUBCATEGORY" to "Subcategory (Level 2)",
         "AMENITY" to "Amenity / Facility",
         "EQUIPMENT" to "Equipment Category",
-        "SPECIALTY" to "Complementary Specialty",
         "RENTAL_STRATEGY" to "Rental Time Formula"
     )
 
@@ -2559,6 +2607,13 @@ private fun AdminAddSchemaItemDialog(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
+                    InputField(
+                        value = maxSubdivisionsInput,
+                        onValueChange = { maxSubdivisionsInput = it.filter { c -> c.isDigit() } },
+                        label = "Max subdivisions this category includes (optional)",
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -2571,7 +2626,8 @@ private fun AdminAddSchemaItemDialog(
                         onClick = {
                             if (name.isNotBlank()) {
                                 val price = if (selectedCategory == "SPACE_TYPE") priceInput.toDoubleOrNull() else null
-                                onAdd(name, selectedCategory, description, "Category", price)
+                                val maxSub = if (selectedCategory == "SPACE_TYPE") maxSubdivisionsInput.toIntOrNull() else null
+                                onAdd(name, selectedCategory, description, "Category", price, maxSub)
                             }
                         },
                         enabled = name.isNotBlank(),

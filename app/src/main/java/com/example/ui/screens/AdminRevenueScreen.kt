@@ -1,6 +1,5 @@
 package com.example.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,12 +11,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.data.model.TransactionStatus
 import com.example.data.model.WhishTransaction
+import com.example.ui.components.DateRangePickerRow
+import com.example.ui.components.rememberFileExportLauncher
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AdminViewModel
 import java.text.SimpleDateFormat
@@ -35,7 +36,6 @@ import java.util.*
 fun AdminRevenueScreen(
     adminViewModel: AdminViewModel = viewModel()
 ) {
-    val context = LocalContext.current
     val uiState by adminViewModel.uiState.collectAsState()
     val transactions = uiState.allTransactions
 
@@ -58,7 +58,16 @@ fun AdminRevenueScreen(
         matchesQuery && matchesStatus
     }
 
-    val totalVolume = filteredTransactions.sumOf { it.amountUsd }
+    // Deliberately independent of the search/status filter above — the current filter's
+    // default "ALL" branch matched every status including FAILED/PENDING, so "Total
+    // Settlement Volume" was silently counting money that never actually settled. This
+    // tile always reflects real settled (SUCCESS-only) volume, matching the "Whish
+    // Volume"/"Whish Settled" tiles shown elsewhere in the Admin Console.
+    val settledVolume = transactions.filter { it.status == TransactionStatus.SUCCESS }.sumOf { it.amountUsd }
+
+    var exportFromMillis by remember { mutableStateOf<Long?>(null) }
+    var exportToMillis by remember { mutableStateOf<Long?>(null) }
+    val exportCsvFile = rememberFileExportLauncher(mimeType = "text/csv")
 
     Column(
         modifier = Modifier
@@ -80,20 +89,12 @@ fun AdminRevenueScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(
-                            text = "Package Revenue & Performance",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Black,
-                            color = PureWhite
-                        )
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-                        Text(
-                            text = "Monitor package purchases, Whish verification transactions, and financial yields",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = LightGray
-                        )
-                    }
+                    Text(
+                        text = "Package Revenue & Performance",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = PureWhite
+                    )
                     Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = CarnationOrange, modifier = Modifier.size(36.dp))
                 }
             }
@@ -114,7 +115,7 @@ fun AdminRevenueScreen(
             ) {
                 Column {
                     Text(text = "Total Settlement Volume", style = MaterialTheme.typography.bodySmall, color = CoolGray)
-                    Text(text = "$${String.format(Locale.US, "%.2f", totalVolume)}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = FreshGreen)
+                    Text(text = "$${String.format(Locale.US, "%.2f", settledVolume)}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = FreshGreen)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(text = "Verified Transactions", style = MaterialTheme.typography.bodySmall, color = CoolGray)
@@ -123,14 +124,17 @@ fun AdminRevenueScreen(
             }
         }
 
-        // Export to Excel / CSV button
+        // Export date range + real CSV file export (Storage Access Framework "Save As")
+        DateRangePickerRow(
+            fromMillis = exportFromMillis,
+            toMillis = exportToMillis,
+            onFromChange = { exportFromMillis = it },
+            onToChange = { exportToMillis = it }
+        )
         Button(
             onClick = {
-                val csvContent = adminViewModel.exportRevenueCsv(null, null)
-                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                val clip = android.content.ClipData.newPlainText("ProHost Revenue CSV", csvContent)
-                clipboard.setPrimaryClip(clip)
-                Toast.makeText(context, "Revenue Data Exported to Excel/CSV & Copied to Clipboard!", Toast.LENGTH_LONG).show()
+                val csvContent = adminViewModel.exportRevenueCsv(exportFromMillis, exportToMillis)
+                exportCsvFile("prohost_revenue.csv", csvContent)
             },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = FreshGreen),
@@ -138,7 +142,7 @@ fun AdminRevenueScreen(
         ) {
             Icon(Icons.Default.Download, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(Spacing.sm))
-            Text("Export to Excel / CSV (Package ID, User ID, Price, Date, Expiration)", fontWeight = FontWeight.Bold, color = PureWhite)
+            Text("Export to CSV (Package ID, User ID, Price, Date, Expiration)", fontWeight = FontWeight.Bold, color = PureWhite)
         }
 
         // Search & Filter
