@@ -198,6 +198,15 @@ class ProHostViewModel(
     // acceptance (see acceptBookingRequest below) records the deal instead: a
     // signed leasing agreement uploaded to Storage, not a payment flag.
 
+    private val _topHashtags = MutableStateFlow<List<String>>(emptyList())
+    val topHashtags: StateFlow<List<String>> = _topHashtags.asStateFlow()
+
+    /** Called once by OwnerHubScreen right before opening CreateListingDialog — a
+     *  fixed snapshot for that session of the wizard, not a live subscription. */
+    fun refreshTopHashtags() {
+        viewModelScope.launch { _topHashtags.value = repository.fetchTopHashtags() }
+    }
+
     // --- Space Owner Listing Creation ---
     suspend fun createNewSpaceListing(listing: SpaceListing): ListingCreateResult {
         val user = currentUser.value

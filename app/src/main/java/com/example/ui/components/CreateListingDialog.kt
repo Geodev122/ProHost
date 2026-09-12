@@ -40,7 +40,11 @@ fun CreateListingDialog(
     onDismiss: () -> Unit,
     onListingCreated: (SpaceListing) -> Unit,
     existingDraft: SpaceListing? = null,
-    onSaveDraft: (SpaceListing) -> Unit = {}
+    onSaveDraft: (SpaceListing) -> Unit = {},
+    // Top-used hashtags across the platform, fetched once by the caller when the
+    // dialog opens (ProHostViewModel.topHashtags) — filtered client-side by prefix
+    // as the host types, so this needs no per-keystroke network query.
+    suggestedHashtags: List<String> = emptyList()
 ) {
     if (currentUser == null) {
         Dialog(onDismissRequest = onDismiss) {
@@ -103,23 +107,65 @@ fun CreateListingDialog(
 
     var title by remember { mutableStateOf(existingDraft?.title ?: "") }
     var selectedSpaceType by remember { mutableStateOf(existingDraft?.spaceType ?: SpaceType.PRIVATE_OFFICE) }
-    var selectedGovernorate by remember { mutableStateOf(existingDraft?.governorate ?: Governorate.BEIRUT) }
+    // No longer shown as its own picker — a governorate field alongside a real map
+    // pin only ever fought the map (see ListingLocationMapPicker's doc comment).
+    // Derived instead from the picked pin's nearest match in buildListing(), purely
+    // to keep the existing governorate-keyed fields (Discovery filters, address
+    // fallback text) working unchanged. Starts at the draft's last-known value so a
+    // resumed draft doesn't jump to Beirut before its pin is re-picked.
+    var derivedGovernorate by remember { mutableStateOf(existingDraft?.governorate ?: Governorate.BEIRUT) }
+    var description by remember { mutableStateOf(existingDraft?.description ?: "") }
     var district by remember { mutableStateOf(existingDraft?.district ?: "") }
     var streetAddress by remember { mutableStateOf(existingDraft?.streetAddress ?: "") }
 
     // Real geolocation from the map picker below — required to publish. Distinct from
     // [district]/[streetAddress] above, which the host types freely; a picked address
-    // can be applied into those fields with one tap, but never overwrites them silently.
+    // auto-applies into those fields the moment the pin is dropped/moved, but never
+    // overwrites text the host has already typed there themselves.
     // Always starts null even when continuing a Draft — a draft's stored lat/lng may
     // just be the unpicked fallback jitter (see the geocoding fallback below), so the
     // host re-confirms the pin on the map rather than Publish silently trusting it.
     var pickedLatLng by remember { mutableStateOf<LatLng?>(null) }
-    var pickedAddressLine by remember { mutableStateOf<String?>(null) }
-    var pickedDistrict by remember { mutableStateOf<String?>(null) }
-    var floorInfo by remember { mutableStateOf(existingDraft?.floorInfo ?: "Floor 3 (Elevator accessible)") }
-    var isShared by remember { mutableStateOf(existingDraft?.isShared ?: true) }
+    // Numeric floor, range -5..30 per spec (basement levels down to a high-rise's
+    // upper floors). Was a free-text "Floor & Accessibility" string; accessibility
+    // notes belong in the description/rules now, not smuggled into a number field.
+    var floorNumber by remember { mutableStateOf(existingDraft?.floorInfo?.filter { it.isDigit() || it == '-' }?.toIntOrNull() ?: 1) }
+    // isShared is no longer a Step 1 toggle — subdivision vs. whole-space is decided
+    // in Step 3 (Availability) instead. Kept as an inert field defaulting to the
+    // draft's last value (or true, matching the removed toggle's old default) so
+    // nothing downstream that still reads SpaceListing.isShared silently changes.
+    val isShared = existingDraft?.isShared ?: true
     var baseMonthlyRate by remember { mutableStateOf(existingDraft?.baseMonthlyRateUsd?.toInt()?.toString() ?: "500") }
     var ownerPhone by remember { mutableStateOf(existingDraft?.ownerPhone ?: activeUser.phone) }
+
+    // Target Disciplines (hashtags) — free-typed, not a fixed chip list; each publish
+    // records its tags centrally (ProHostViewModel.createNewSpaceListing) so future
+    // hosts see suggestions drawn from real prior usage. suggestedHashtags below is
+    // the caller-supplied top-used list (fetched once when the dialog opens), filtered
+    // client-side by prefix as the host types — no per-keystroke network query.
+    var hashtagInput by remember { mutableStateOf("") }
+    var selectedSpecialties by remember { mutableStateOf(existingDraft?.complementarySpecialties?.toSet() ?: emptySet()) }
+
+    // Operating hours & days — previously collected only post-publish
+    // (SpaceScheduleEditorDialog); now part of the wizard itself (spec 2.2/2.3) since
+    // Step 3's per-strategy availability tables need real operating hours/days to key
+    // off from the moment they're built.
+    val weekDayOptions = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    var operatingDays by remember { mutableStateOf(existingDraft?.schedule?.operatingDays?.toSet() ?: setOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat")) }
+    var openingHour by remember { mutableStateOf(existingDraft?.schedule?.openingHour ?: "08:00") }
+    var closingHour by remember { mutableStateOf(existingDraft?.schedule?.closingHour ?: "20:00") }
+
+    // Ownership / right-to-rent — moved from the wizard's last step to its first
+    // (spec 1.5): mandatory to advance past Step 1, not just to Publish, and gated
+    // behind an owner-vs-re-renter choice. Deliberately a DIFFERENT field
+    // (ownershipProofUrl) and a DIFFERENT, new dialog flow from the optional,
+    // post-publish "Get Listing Verified" badge system (verificationDocUrl /
+    // ListingVerificationDialog) — the two must never be conflated.
+    var ownershipRole by remember { mutableStateOf(existingDraft?.ownershipDocRole) }
+    var showOwnershipRolePrompt by remember { mutableStateOf(existingDraft?.ownershipProofUrl == null) }
+    var showRerentalTemplateDialog by remember { mutableStateOf(false) }
+    var showAuditDisclaimer by remember { mutableStateOf(false) }
+    var hasAcknowledgedAuditDisclaimer by remember { mutableStateOf(false) }
 
     // Facilities toggles
     val standardFacilities = FacilityCatalog.standard
@@ -159,14 +205,6 @@ fun CreateListingDialog(
     var offHoursAccess by remember { mutableStateOf(existingDraft?.rules?.offHoursAccess ?: true) }
     var visitorPolicy by remember { mutableStateOf(existingDraft?.rules?.visitorPolicy ?: "Clients & visitors welcomed in reception lounge") }
 
-    // Complementary specialties
-    val commonSpecialties = listOf("Consultant", "Designer", "Architect", "Developer", "Lawyer", "Accountant", "Marketer", "Coach")
-    // Was {"Cardiologist","Endocrinologist","Dermatologist"} — leftover defaults
-    // from an earlier, medical-specific version of this chip list; none of them
-    // appear among commonSpecialties above, so a host would see a chip row with
-    // nothing pre-selected that actually matched. Starts empty instead.
-    var selectedSpecialties by remember { mutableStateOf(existingDraft?.complementarySpecialties?.toSet() ?: emptySet()) }
-
     // Subdivision States (Level 2 Rooms & Desks) — the "add a room" form fields
     // themselves now live inside SubdivisionEditorSection (see that file); this
     // dialog only hoists the resulting list, since buildListing() needs it.
@@ -174,7 +212,16 @@ fun CreateListingDialog(
 
     var currentStep by remember { mutableIntStateOf(0) }
     val hasSubdivisions = selectedSpaceType != SpaceType.PRIVATE_OFFICE
-    val totalSteps = if (hasSubdivisions) 4 else 3
+    // Always 3, matching the spec's fixed Step 1/2/3 structure — previously 4 for a
+    // subdivided listing but only 3 for an undivided one, which meant the
+    // "Contact, Premises Rules & Ownership Proof" step (index 3) was completely
+    // UNREACHABLE for any Private Office listing (the default selectedSpaceType for
+    // every new listing): the Publish button's enabled check still required
+    // ownershipProofUrl != null, but no step in range 0..totalSteps-1 ever rendered
+    // the picker that could set it. A Private Office listing could never actually be
+    // published through this wizard. Moving ownership to Step 1 (always reachable)
+    // fixes this as a side effect of the restructuring, not as a separate patch.
+    val totalSteps = 3
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -224,17 +271,18 @@ fun CreateListingDialog(
                 ) {
                     when (currentStep) {
                         0 -> {
-                            // Step 0: Basics & Location
+                            // Step 1: Space Definition & Ownership Verification
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text("Space Identification", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
                                 InputField(
                                     value = title,
                                     onValueChange = { title = it },
-                                    label = "Space Title (e.g. Achrafieh Executive Suite)",
+                                    label = "Space Brand Name (e.g. Achrafieh Executive Suite)",
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true
                                 )
 
-                                Text("Space Category & Layout", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                Text("Space Category", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     items(SpaceType.values()) { type ->
                                         FilterChip(
@@ -245,45 +293,47 @@ fun CreateListingDialog(
                                     }
                                 }
 
-                                Text("Lebanon Governorate", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    items(Governorate.values()) { gov ->
-                                        FilterChip(
-                                            selected = selectedGovernorate == gov,
-                                            onClick = { selectedGovernorate = gov },
-                                            label = { Text(gov.displayName, fontSize = MaterialTheme.typography.labelMedium.fontSize) }
-                                        )
-                                    }
-                                }
+                                HorizontalDivider()
+
+                                Text("Location & Description", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+
+                                InputField(
+                                    value = description,
+                                    onValueChange = { if (it.length <= 100) description = it },
+                                    label = "Description (${description.length}/100)",
+                                    placeholder = "One or two lines a specialist sees before opening the listing",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = false,
+                                    maxLines = 3
+                                )
 
                                 Text("Pin the Exact Location", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 Text(
-                                    "Tap the map to record the real GPS coordinates specialists will see when searching nearby — required to publish.",
+                                    "Drop or drag the marker to the real GPS coordinates specialists will see when searching nearby — required to publish. The address fields below fill in automatically; edit them freely afterward.",
                                     fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 ListingLocationMapPicker(
-                                    initialCenter = LatLng(selectedGovernorate.centerLat, selectedGovernorate.centerLng),
+                                    initialCenter = LatLng(derivedGovernorate.centerLat, derivedGovernorate.centerLng),
                                     pickedLatLng = pickedLatLng,
                                     onLocationPicked = { picked ->
                                         pickedLatLng = LatLng(picked.lat, picked.lng)
-                                        pickedAddressLine = picked.addressLine
-                                        pickedDistrict = picked.district
+                                        // Auto-applies on every pin drop/drag — the
+                                        // spec's "geocoding reads marker position and
+                                        // auto-populates address fields" — instead of
+                                        // requiring a separate manual "Apply" tap.
+                                        // Still never overwrites text the host has
+                                        // already typed themselves.
+                                        if (streetAddress.isBlank()) picked.addressLine?.let { streetAddress = it }
+                                        if (district.isBlank()) picked.district?.let { district = it }
+                                        derivedGovernorate = Governorate.values().minByOrNull { gov ->
+                                            val dLat = gov.centerLat - picked.lat
+                                            val dLng = gov.centerLng - picked.lng
+                                            dLat * dLat + dLng * dLng
+                                        } ?: derivedGovernorate
                                     },
                                     modifier = Modifier.fillMaxWidth()
                                 )
-                                if ((pickedAddressLine != null || pickedDistrict != null) &&
-                                    (streetAddress.isBlank() || district.isBlank())
-                                ) {
-                                    TextButton(onClick = {
-                                        if (streetAddress.isBlank()) pickedAddressLine?.let { streetAddress = it }
-                                        if (district.isBlank()) pickedDistrict?.let { district = it }
-                                    }) {
-                                        Icon(Icons.Default.AutoFixHigh, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Apply detected address to fields below", fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                                    }
-                                }
 
                                 InputField(
                                     value = district,
@@ -301,25 +351,120 @@ fun CreateListingDialog(
                                     singleLine = true
                                 )
 
-                                InputField(
-                                    value = floorInfo,
-                                    onValueChange = { floorInfo = it },
-                                    label = "Floor & Accessibility",
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
-                                )
-
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Column {
-                                        Text("Co-Sharing Practice", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                                        Text("Shared with complementary doctors", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Floor", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    IconButton(onClick = { if (floorNumber > -5) floorNumber-- }) {
+                                        Icon(Icons.Default.Remove, contentDescription = "Decrease floor")
                                     }
-                                    Switch(checked = isShared, onCheckedChange = { isShared = it })
+                                    Text(
+                                        text = if (floorNumber == 0) "Ground Floor" else "Floor $floorNumber",
+                                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    IconButton(onClick = { if (floorNumber < 30) floorNumber++ }) {
+                                        Icon(Icons.Default.Add, contentDescription = "Increase floor")
+                                    }
                                 }
+
+                                HorizontalDivider()
+
+                                Text("Target Disciplines", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    "Hashtag the rentee backgrounds you'd prefer (e.g. #Cardiologist, #Architect).",
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedTextField(
+                                        value = hashtagInput,
+                                        onValueChange = { hashtagInput = it },
+                                        placeholder = { Text("#Discipline") },
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true,
+                                        shape = MaterialTheme.shapes.medium
+                                    )
+                                    TextButton(onClick = {
+                                        val tag = hashtagInput.trim().trimStart('#')
+                                        if (tag.isNotBlank()) {
+                                            selectedSpecialties = selectedSpecialties + tag
+                                            hashtagInput = ""
+                                        }
+                                    }) { Text("Add") }
+                                }
+                                val matchingSuggestions = suggestedHashtags.filter {
+                                    hashtagInput.isNotBlank() && it.contains(hashtagInput.trim().trimStart('#'), ignoreCase = true) &&
+                                        !selectedSpecialties.contains(it)
+                                }.take(6)
+                                if (matchingSuggestions.isNotEmpty()) {
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        items(matchingSuggestions) { suggestion ->
+                                            AssistChip(
+                                                onClick = { selectedSpecialties = selectedSpecialties + suggestion; hashtagInput = "" },
+                                                label = { Text("#$suggestion", fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                                            )
+                                        }
+                                    }
+                                }
+                                if (selectedSpecialties.isNotEmpty()) {
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        items(selectedSpecialties.toList()) { tag ->
+                                            InputChip(
+                                                selected = true,
+                                                onClick = { selectedSpecialties = selectedSpecialties - tag },
+                                                label = { Text("#$tag", fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+                                                trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp)) }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                HorizontalDivider()
+
+                                Text("Proof of Ownership / Right to Rent", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    "Required before continuing — a title deed, lease contract, or signed re-rental authorization showing you're entitled to rent this specific space out. Kept on file, no review needed.",
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (ownershipRole == OwnershipRole.RERENTER) {
+                                    OutlinedButton(onClick = { showRerentalTemplateDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                                        Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(Spacing.xs))
+                                        Text("Download Authorization Template")
+                                    }
+                                }
+                                if (ownershipRole != null || ownershipProofUrl != null) {
+                                    DocumentPickerField(
+                                        label = if (ownershipRole == OwnershipRole.RERENTER) "Signed Re-Rental Authorization" else "Ownership / Right-to-Rent Document",
+                                        helperText = "PDF, JPG, or PNG",
+                                        state = ownershipProofDoc,
+                                        onStateChanged = { newState ->
+                                            ownershipProofDoc = newState
+                                            val uri = newState.uri
+                                            if (uri != null) {
+                                                coroutineScope.launch {
+                                                    isUploadingOwnershipProof = true
+                                                    val ext = newState.fileName?.substringAfterLast('.', "pdf") ?: "pdf"
+                                                    ownershipProofUrl = storageService.uploadOwnershipProofDocument(listingId, uri, ext)
+                                                    isUploadingOwnershipProof = false
+                                                }
+                                            } else {
+                                                ownershipProofUrl = null
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        required = true
+                                    )
+                                    if (isUploadingOwnershipProof) {
+                                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                                    }
+                                } else {
+                                    OutlinedButton(onClick = { showOwnershipRolePrompt = true }, modifier = Modifier.fillMaxWidth()) {
+                                        Text("Confirm ownership status to continue")
+                                    }
+                                }
+
+                                HorizontalDivider()
 
                                 Text("Cover Photos", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 Text(
@@ -381,9 +526,61 @@ fun CreateListingDialog(
                         }
 
                         1 -> {
-                            // Step 1: Facilities & Equipment Catalog
+                            // Step 2: Operational Parameters & Facility Rules
                             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("Essential Facilities & Utilities", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                Text("Communication Setup", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                InputField(
+                                    value = ownerPhone,
+                                    onValueChange = { ownerPhone = it },
+                                    label = "WhatsApp Number for Booking Requests (+961 ...)",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+
+                                HorizontalDivider()
+
+                                Text("Facility Operating Hours & Days", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    "Controls the availability logic in Step 3 — the days and hours you select here are the only ones a rentable slot can ever be offered in.",
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = openingHour,
+                                        onValueChange = { openingHour = it },
+                                        label = { Text("Opens (HH:mm)") },
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true
+                                    )
+                                    OutlinedTextField(
+                                        value = closingHour,
+                                        onValueChange = { closingHour = it },
+                                        label = { Text("Closes (HH:mm)") },
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true
+                                    )
+                                }
+                                Text("Selected Days", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(weekDayOptions) { day ->
+                                        val isSelected = operatingDays.contains(day)
+                                        FilterChip(
+                                            selected = isSelected,
+                                            onClick = {
+                                                operatingDays = if (isSelected) operatingDays - day else operatingDays + day
+                                            },
+                                            label = { Text(day, fontSize = MaterialTheme.typography.labelMedium.fontSize) }
+                                        )
+                                    }
+                                }
+
+                                HorizontalDivider()
+
+                                Text("Shared Essential Facilities", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 standardFacilities.forEach { facility ->
                                     val isChecked = selectedFacilities.contains(facility)
                                     Row(
@@ -457,73 +654,10 @@ fun CreateListingDialog(
                                         }
                                     }
                                 }
-                            }
-                        }
-
-                        2 -> {
-                            if (hasSubdivisions) {
-                                SubdivisionEditorSection(
-                                    subdivisionsList = subdivisionsList,
-                                    onSubdivisionsChange = { subdivisionsList = it }
-                                )
-                            } else {
-                                // Base pricing only — the full formula builder (Hourly,
-                                // Shift, Day-per-Week, Full-Month, each with real
-                                // per-formula customization) plus Operating Hours and
-                                // Blackout slots now live in the same "Availability &
-                                // Formula Control" editor used to manage an existing
-                                // listing (SpaceScheduleEditorDialog), opened
-                                // automatically right after this listing is published.
-                                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                    Text("Base Pricing", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
-                                    Text(
-                                        "Enter your base monthly valuation — this publishes with a Full-Month formula active immediately. You'll set operating hours, blackout slots, and any additional Hourly/Shift/Day-per-Week formulas right after publishing.",
-                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-
-                                    InputField(
-                                        value = baseMonthlyRate,
-                                        onValueChange = { baseMonthlyRate = it },
-                                        label = "Base Monthly Valuation (USD/mo)",
-                                        modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true
-                                    )
-                                }
-                            }
-                        }
-
-                        3 -> {
-                            // Step 3: Contact, Premises Rules & Ownership Proof
-                            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("Contact & Premises Rules", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
-                                Text("Host contact details and the premises rules specialists will see before booking.", fontSize = MaterialTheme.typography.labelMedium.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                                Text("Complementary Specialist Disciplines", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(commonSpecialties) { spec ->
-                                        val isSel = selectedSpecialties.contains(spec)
-                                        FilterChip(
-                                            selected = isSel,
-                                            onClick = {
-                                                selectedSpecialties = if (isSel) selectedSpecialties - spec else selectedSpecialties + spec
-                                            },
-                                            label = { Text(spec, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
-                                        )
-                                    }
-                                }
-
-                                InputField(
-                                    value = ownerPhone,
-                                    onValueChange = { ownerPhone = it },
-                                    label = "Space Owner WhatsApp Phone (+961 ...)",
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
-                                )
 
                                 HorizontalDivider()
 
-                                Text("Premises Rules", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                Text("Premises Rules and Policy", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
 
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -564,41 +698,42 @@ fun CreateListingDialog(
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true
                                 )
+                            }
+                        }
 
-                                HorizontalDivider()
+                        2 -> {
+                            if (hasSubdivisions) {
+                                SubdivisionEditorSection(
+                                    subdivisionsList = subdivisionsList,
+                                    onSubdivisionsChange = { subdivisionsList = it }
+                                )
+                            } else {
+                                // Base pricing only — the full formula builder (Hourly,
+                                // Shift, Day-per-Week, Full-Month, each with real
+                                // per-formula customization) plus Operating Hours and
+                                // Blackout slots now live in the same "Availability &
+                                // Formula Control" editor used to manage an existing
+                                // listing (SpaceScheduleEditorDialog), opened
+                                // automatically right after this listing is published.
+                                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                    Text("Base Pricing", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                    Text(
+                                        "Enter your base monthly valuation — this publishes with a Full-Month formula active immediately. You'll set operating hours, blackout slots, and any additional Hourly/Shift/Day-per-Week formulas right after publishing.",
+                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
 
-                                Text("Proof of Ownership / Right to Rent", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                                Text(
-                                    "Required to publish — a title deed, lease contract, or other document showing you're entitled to rent this specific space out. Kept on file, no review needed.",
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                DocumentPickerField(
-                                    label = "Ownership / Right-to-Rent Document",
-                                    helperText = "PDF, JPG, or PNG",
-                                    state = ownershipProofDoc,
-                                    onStateChanged = { newState ->
-                                        ownershipProofDoc = newState
-                                        val uri = newState.uri
-                                        if (uri != null) {
-                                            coroutineScope.launch {
-                                                isUploadingOwnershipProof = true
-                                                val ext = newState.fileName?.substringAfterLast('.', "pdf") ?: "pdf"
-                                                ownershipProofUrl = storageService.uploadOwnershipProofDocument(listingId, uri, ext)
-                                                isUploadingOwnershipProof = false
-                                            }
-                                        } else {
-                                            ownershipProofUrl = null
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    required = true
-                                )
-                                if (isUploadingOwnershipProof) {
-                                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                                    InputField(
+                                        value = baseMonthlyRate,
+                                        onValueChange = { baseMonthlyRate = it },
+                                        label = "Base Monthly Valuation (USD/mo)",
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true
+                                    )
                                 }
                             }
                         }
+
                     }
                 }
 
@@ -654,15 +789,15 @@ fun CreateListingDialog(
                     // reached submit without one (shouldn't happen for a real
                     // Publish — gated by the Publish button below; expected for
                     // a Draft saved before the host ever opened the map step).
-                    var geocodedLat = selectedGovernorate.centerLat + ((-20..20).random() / 1000.0)
-                    var geocodedLng = selectedGovernorate.centerLng + ((-20..20).random() / 1000.0)
+                    var geocodedLat = derivedGovernorate.centerLat + ((-20..20).random() / 1000.0)
+                    var geocodedLng = derivedGovernorate.centerLng + ((-20..20).random() / 1000.0)
                     val pinned = pickedLatLng
                     if (pinned != null) {
                         geocodedLat = pinned.latitude
                         geocodedLng = pinned.longitude
                     } else if (streetAddress.isNotBlank() || district.isNotBlank()) {
                         try {
-                            val fullAddress = "${streetAddress}, ${district}, ${selectedGovernorate.displayName}, Lebanon"
+                            val fullAddress = "${streetAddress}, ${district}, ${derivedGovernorate.displayName}, Lebanon"
                             val geocoder = android.location.Geocoder(context, java.util.Locale.getDefault())
                             val addresses = geocoder.getFromLocationName(fullAddress, 1)
                             if (!addresses.isNullOrEmpty()) {
@@ -676,12 +811,13 @@ fun CreateListingDialog(
 
                     return SpaceListing(
                         id = listingId,
-                        title = if (title.isNotBlank()) title else "${selectedGovernorate.displayName} ${selectedSpaceType.displayName}",
+                        title = if (title.isNotBlank()) title else "${derivedGovernorate.displayName} ${selectedSpaceType.displayName}",
+                        description = description,
                         spaceType = selectedSpaceType,
-                        governorate = selectedGovernorate,
-                        district = if (district.isNotBlank()) district else "Central ${selectedGovernorate.displayName}",
+                        governorate = derivedGovernorate,
+                        district = if (district.isNotBlank()) district else "Central ${derivedGovernorate.displayName}",
                         streetAddress = if (streetAddress.isNotBlank()) streetAddress else "Main Business Street",
-                        floorInfo = floorInfo,
+                        floorInfo = if (floorNumber == 0) "Ground Floor" else "Floor $floorNumber",
                         lat = geocodedLat,
                         lng = geocodedLng,
                         isShared = isShared,
@@ -698,11 +834,17 @@ fun CreateListingDialog(
                             visitorPolicy = visitorPolicy,
                             offHoursAccess = offHoursAccess
                         ),
+                        schedule = SpaceOperatingSchedule(
+                            openingHour = openingHour,
+                            closingHour = closingHour,
+                            operatingDays = operatingDays.toList()
+                        ),
                         ownerId = activeUser.id,
                         ownerName = activeUser.fullName,
                         ownerPhone = ownerPhone,
                         ownerEmail = activeUser.email,
                         ownershipProofUrl = ownershipProofUrl,
+                        ownershipDocRole = ownershipRole,
                         // Genuinely earned now (see SpaceListing.isVerified's doc
                         // comment) — a new listing starts unverified; the host can
                         // optionally earn the badge afterward from the listing card
@@ -744,20 +886,90 @@ fun CreateListingDialog(
                         text = if (currentStep < totalSteps - 1) "Next" else "Publish Listing",
                         onClick = {
                             if (currentStep < totalSteps - 1) {
-                                currentStep++
+                                // Leaving Step 1 (Space Definition & Ownership
+                                // Verification) — the ownership doc is already
+                                // mandatory (see enabled= below); the one-time random-
+                                // audit disclaimer shows once per dialog session
+                                // before actually advancing, per spec 1.5.
+                                if (currentStep == 0 && !hasAcknowledgedAuditDisclaimer) {
+                                    showAuditDisclaimer = true
+                                } else {
+                                    currentStep++
+                                }
                             } else {
                                 onListingCreated(buildListing(ListingStatus.ACTIVE))
                             }
                         },
                         modifier = Modifier.weight(1.5f),
                         enabled = if (currentStep < totalSteps - 1) {
-                            currentStep != 0 || title.isNotBlank() || district.isNotBlank()
+                            if (currentStep == 0) {
+                                (title.isNotBlank() || district.isNotBlank()) && ownershipProofUrl != null && !isUploadingOwnershipProof
+                            } else {
+                                true
+                            }
                         } else {
                             pickedLatLng != null && ownershipProofUrl != null && !isUploadingOwnershipProof
                         }
                     )
                 }
             }
+        }
+
+        if (showOwnershipRolePrompt) {
+            AlertDialog(
+                onDismissRequest = { /* Not dismissible without a choice — the gate is mandatory. */ },
+                title = { Text("Are you the owner or a re-renter?") },
+                text = {
+                    Text(
+                        "This determines which document proves your right to list this space. " +
+                            "Owner: upload your own title deed or lease. Re-renter: download the " +
+                            "authorization template, have the property owner sign it, then upload the signed copy.",
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        ownershipRole = OwnershipRole.OWNER
+                        showOwnershipRolePrompt = false
+                    }) { Text("I'm the Owner") }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        ownershipRole = OwnershipRole.RERENTER
+                        showOwnershipRolePrompt = false
+                    }) { Text("I'm Re-Renting") }
+                }
+            )
+        }
+
+        if (showRerentalTemplateDialog) {
+            LegalDocumentDialog(
+                document = com.example.legal.LegalContent.rerentalAuthorizationTemplate,
+                onDismiss = { showRerentalTemplateDialog = false }
+            )
+        }
+
+        if (showAuditDisclaimer) {
+            AlertDialog(
+                onDismissRequest = { },
+                title = { Text("Right-to-Rent Verification Notice") },
+                text = {
+                    Text(
+                        "Admin performs random right-to-rent verifications on published listings. " +
+                            "Any misleading or fraudulent ownership document results in immediate " +
+                            "account suspension, reclaim of any payments received, and blacklisting " +
+                            "of the associated phone number.",
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        hasAcknowledgedAuditDisclaimer = true
+                        showAuditDisclaimer = false
+                        currentStep++
+                    }) { Text("I Understand, Continue") }
+                }
+            )
         }
     }
 }

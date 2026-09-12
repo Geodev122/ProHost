@@ -27,6 +27,10 @@ object FirestoreSchema {
         const val AUDIT_SECURITY_LOGS = "audit_security_logs"
         const val SYSTEM_METADATA = "system_metadata"
         const val SCHEMA_ARCHITECTURE = "schema_architecture"
+        // One document per hashtag (doc id = the lowercased tag text), incremented
+        // on every publish that carries it — feeds the Target Disciplines autosuggest
+        // in CreateListingDialog and an Admin analytics view, spec section 1.4.
+        const val HASHTAG_USAGE = "hashtag_usage"
     }
 
     // Document Fields Contracts

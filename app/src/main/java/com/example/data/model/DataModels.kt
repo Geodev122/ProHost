@@ -641,9 +641,20 @@ enum class ListingVerificationDocType { RERENTAL_AUTHORIZATION, SELF_OWNERSHIP_P
  *  themselves (Save as Draft / Publish / Pause / Resume). */
 enum class ListingStatus { DRAFT, ACTIVE, PAUSED }
 
+/** Which branch the host took at the mandatory pre-Step-1 ownership gate (spec 1.5)
+ *  — purely informational, recorded alongside [SpaceListing.ownershipProofUrl].
+ *  Distinct from [ListingVerificationDocType], which records the optional,
+ *  post-publish "Listing Verified" badge path instead; a listing can have both, one,
+ *  or neither set, and they're never derived from one another. */
+enum class OwnershipRole { OWNER, RERENTER }
+
 data class SpaceListing(
     val id: String,
     val title: String,
+    // Max 100 characters, enforced client-side (CreateListingDialog) — not a
+    // Firestore-rules-level constraint, matching how every other free-text field on
+    // this model (visitorPolicy, scheduleDescription, etc.) is validated.
+    val description: String = "",
     val spaceType: SpaceType,
     val governorate: Governorate,
     val district: String,
@@ -673,6 +684,9 @@ data class SpaceListing(
     // Required to publish; NOT the same thing as verificationDocUrl below, which is
     // optional and earns the badge rather than gating anything.
     val ownershipProofUrl: String? = null,
+    // Which branch (owner / re-renter) the host took at the mandatory pre-Step-1
+    // gate that produced ownershipProofUrl — purely informational.
+    val ownershipDocRole: OwnershipRole? = null,
     // Earns the Listing Verified badge (isVerified below) — a sibling to
     // ownershipProofUrl, deliberately not a reuse of it: ownershipProofUrl is
     // required-but-unchecked at publish time, this is optional-but-checked
@@ -719,6 +733,7 @@ data class SpaceListing(
         return mapOf(
             "id" to id,
             "title" to title,
+            "description" to description,
             "spaceType" to spaceType.name,
             "governorate" to governorate.name,
             "district" to district,
@@ -801,6 +816,7 @@ data class SpaceListing(
             "ownerPhone" to ownerPhone,
             "ownerEmail" to ownerEmail,
             "ownershipProofUrl" to ownershipProofUrl,
+            "ownershipDocRole" to ownershipDocRole?.name,
             "verificationDocUrl" to verificationDocUrl,
             "verificationDocType" to verificationDocType?.name,
             "isVerified" to isVerified,
@@ -933,6 +949,7 @@ data class SpaceListing(
             return SpaceListing(
                 id = docId,
                 title = data["title"] as? String ?: "Executive Workspace",
+                description = data["description"] as? String ?: "",
                 spaceType = spaceType,
                 governorate = gov,
                 district = data["district"] as? String ?: "Beirut",
@@ -955,6 +972,9 @@ data class SpaceListing(
                 ownerPhone = data["ownerPhone"] as? String ?: "",
                 ownerEmail = data["ownerEmail"] as? String ?: "",
                 ownershipProofUrl = data["ownershipProofUrl"] as? String,
+                ownershipDocRole = (data["ownershipDocRole"] as? String)?.let {
+                    runCatching { OwnershipRole.valueOf(it) }.getOrNull()
+                },
                 verificationDocUrl = data["verificationDocUrl"] as? String,
                 verificationDocType = (data["verificationDocType"] as? String)?.let {
                     runCatching { ListingVerificationDocType.valueOf(it) }.getOrNull()

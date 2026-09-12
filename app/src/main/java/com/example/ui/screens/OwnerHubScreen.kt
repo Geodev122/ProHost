@@ -81,7 +81,10 @@ fun OwnerHubScreen(
         onSelectSpace = onSelectSpace,
         onOpenWhishRenewal = { space -> selectedSpaceForWhish = space },
         onOpenScheduleEditor = { space -> selectedSpaceForSchedule = space },
-        onOpenCreateListing = { showCreateListingDialog = true },
+        onOpenCreateListing = {
+            viewModel.refreshTopHashtags()
+            showCreateListingDialog = true
+        },
         onOpenPackageSelection = {
             if (onOpenSubscriptions != null) {
                 onOpenSubscriptions()
@@ -92,7 +95,7 @@ fun OwnerHubScreen(
         onEditSpace = { space -> editingSpace = space },
         onDeleteSpace = { space -> deletingSpace = space },
         onOpenListingVerification = { space -> verifyingSpace = space },
-        onContinueDraft = { space -> draftToEdit = space },
+        onContinueDraft = { space -> viewModel.refreshTopHashtags(); draftToEdit = space },
         onToggleListingStatus = { space ->
             val next = if (space.status == ListingStatus.PAUSED) ListingStatus.ACTIVE else ListingStatus.PAUSED
             viewModel.setListingStatus(space.id, next, context)
@@ -239,9 +242,11 @@ fun OwnerHubScreen(
     // from an existing SpaceListing or not.
     if (showCreateListingDialog || draftToEdit != null) {
         val draft = draftToEdit
+        val topHashtags by viewModel.topHashtags.collectAsState()
         CreateListingDialog(
             currentUser = currentUser,
             existingDraft = draft,
+            suggestedHashtags = topHashtags,
             onDismiss = { showCreateListingDialog = false; draftToEdit = null },
             onSaveDraft = { updatedDraft ->
                 coroutineScope.launch {

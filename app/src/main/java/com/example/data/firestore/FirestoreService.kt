@@ -320,6 +320,56 @@ class FirestoreService(
         }
     }
 
+    /**
+     * One doc per hashtag (id = lowercased tag), created if absent and incremented if
+     * present — SetOptions.merge() lets "count" increment atomically on either path
+     * without a separate existence check. Fire-and-forget from the caller's
+     * perspective (a failure here shouldn't block a listing publish), so this simply
+     * returns whether it succeeded rather than throwing.
+     */
+    suspend fun recordHashtagUsage(tags: List<String>, governorate: String): Boolean {
+        val db = firestore ?: return false
+        return try {
+            tags.map { it.trim().lowercase() }.filter { it.isNotBlank() }.forEach { tag ->
+                db.collection(FirestoreSchema.Collections.HASHTAG_USAGE)
+                    .document(tag)
+                    .set(
+                        mapOf(
+                            "tag" to tag,
+                            "count" to FieldValue.increment(1),
+                            "lastUsedAtMillis" to System.currentTimeMillis(),
+                            "governorate" to governorate
+                        ),
+                        SetOptions.merge()
+                    )
+                    .await()
+            }
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error recording hashtag usage: ${e.message}", e)
+            false
+        }
+    }
+
+    /** Top-used hashtags overall, for CreateListingDialog's autosuggest — a fixed
+     *  top-N snapshot fetched once when the dialog opens, filtered client-side by
+     *  prefix as the host types, not a per-keystroke query. */
+    suspend fun getTopHashtags(limit: Long = 30): List<String> {
+        val db = firestore ?: return emptyList()
+        return try {
+            db.collection(FirestoreSchema.Collections.HASHTAG_USAGE)
+                .orderBy("count", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .limit(limit)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.getString("tag") }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching top hashtags: ${e.message}", e)
+            emptyList()
+        }
+    }
+
     fun observeWorkspaces(): Flow<List<Map<String, Any>>> = callbackFlow {
         val db = firestore
         if (db == null) {

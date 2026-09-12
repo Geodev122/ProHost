@@ -188,6 +188,20 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------
+    // hashtag_usage — one doc per hashtag, incremented on every listing publish
+    // that carries it (CreateListingDialog's Target Disciplines field, spec 1.4).
+    // Low-stakes aggregate counter, not per-user data — any signed-in user can
+    // read it for autosuggest and write to it on publish, scoped to only the
+    // fields this feature actually needs so it can't be used to smuggle arbitrary
+    // data into the collection.
+    // ---------------------------------------------------------------
+    match /hashtag_usage/{tagId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() &&
+        request.resource.data.keys().hasOnly(["tag", "count", "lastUsedAtMillis", "governorate"]);
+    }
+
+    // ---------------------------------------------------------------
     // booking_requests
     // ---------------------------------------------------------------
     match /booking_requests/{bookingId} {

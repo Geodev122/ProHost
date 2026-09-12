@@ -552,9 +552,21 @@ class ProHostRepository {
                 details = "New space created: ${safeListing.title} (${safeListing.district}) by ${safeListing.ownerName}",
                 severity = "INFO"
             )
+            // Recorded on publish, not on every draft save — a draft mid-typing
+            // shouldn't inflate usage counts for tags the host might still change.
+            if (safeListing.complementarySpecialties.isNotEmpty()) {
+                coroutineScope.launch {
+                    firestoreService.recordHashtagUsage(safeListing.complementarySpecialties, safeListing.governorate.name)
+                }
+            }
         }
         return success
     }
+
+    /** Fetched once per call site (CreateListingDialog opening), not cached
+     *  reactively — hashtag popularity changes slowly enough that a snapshot from
+     *  whenever the wizard was opened is accurate enough for autosuggest. */
+    suspend fun fetchTopHashtags(): List<String> = firestoreService.getTopHashtags()
 
     /**
      * Saves (or re-saves) a listing as a Draft — never gated by the host's active-
