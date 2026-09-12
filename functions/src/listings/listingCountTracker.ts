@@ -106,6 +106,20 @@ export const onWorkspaceListingStatusChanged = onDocumentUpdated(
 
     const wasActive = isActiveStatus(before?.status);
     const isActive = isActiveStatus(after?.status);
+
+    if (wasActive && isActive) {
+      // Still ACTIVE the whole time — activeListingCount doesn't change, but a
+      // spaceCategoryId swap on an already-live listing (firestore.rules only
+      // permits this write when the NEW category has a PAYG credit available)
+      // is exactly like a fresh publish under that category from the credit
+      // system's point of view: it must actually be consumed here, or a host
+      // could satisfy the rules' credit check once and then swap categories
+      // indefinitely for free, since nothing would ever decrement it.
+      if (before?.spaceCategoryId !== after?.spaceCategoryId) {
+        await consumePaygCreditIfNeeded(ownerId, after);
+      }
+      return;
+    }
     if (wasActive === isActive) return;
 
     const db = getFirestore();

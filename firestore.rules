@@ -111,7 +111,21 @@ service cloud.firestore {
         (isAdmin() ||
           request.resource.data.get('status', 'ACTIVE') != 'ACTIVE' ||
           (withinListingLimit(request.auth.uid) &&
-            hasPaygCredit(request.auth.uid, request.resource.data.get('spaceCategoryId', null))));
+            hasPaygCredit(request.auth.uid, request.resource.data.get('spaceCategoryId', null)))) &&
+        // The update rule below has always blocked isVerified/ownerIsIdVerified
+        // on an existing document, but create() is a separate rule block with no
+        // "before" document to diff against — without this, a brand-new listing
+        // could claim isVerified:true (the "genuinely earned" badge) or
+        // ownerIsIdVerified:true for free on its very first write. isVerified
+        // must start false (matches SpaceListing's own Kotlin default — never
+        // legitimately true at creation); ownerIsIdVerified must match the
+        // owner's REAL id-document status on their own profile, not whatever the
+        // client claims, so a host who hasn't actually uploaded an ID can't just
+        // assert the badge.
+        (isAdmin() ||
+          (request.resource.data.get('isVerified', false) == false &&
+            request.resource.data.get('ownerIsIdVerified', false) ==
+              (get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.get('idDocumentUrl', null) != null)));
 
       // isVerified / isActiveSubscription / subscriptionExpiryMillis are
       // money- and verification-status fields — only setListingVerification /
@@ -131,9 +145,17 @@ service cloud.firestore {
           // is the moment it starts consuming the host's quota — gate that
           // transition the same way create() gates a straight-to-ACTIVE
           // create. Any other status change (staying Draft/Paused, or
-          // Active -> Paused) never needs the quota check.
+          // Active -> Paused) never needs the quota check. The one case that
+          // ALSO needs re-checking despite status staying ACTIVE the whole
+          // time: rewriting spaceCategoryId on an already-live listing — left
+          // unguarded before, a PAYG host could publish cheaply under one
+          // category, then swap spaceCategoryId to any other category
+          // (including one they never bought a slot for) with zero
+          // enforcement. listingCountTracker.ts's onWorkspaceListingStatusChanged
+          // consumes the credit for this same case server-side.
           (isAdmin() ||
-            resource.data.get('status', 'ACTIVE') == 'ACTIVE' ||
+            (resource.data.get('status', 'ACTIVE') == 'ACTIVE' &&
+              resource.data.get('spaceCategoryId', null) == request.resource.data.get('spaceCategoryId', null)) ||
             request.resource.data.get('status', 'ACTIVE') != 'ACTIVE' ||
             (withinListingLimit(request.auth.uid) &&
               hasPaygCredit(request.auth.uid, request.resource.data.get('spaceCategoryId', null))))
@@ -170,7 +192,28 @@ service cloud.firestore {
       // update rule below.
       allow create: if isOwner(userId) &&
         request.resource.data.get('ownerPackageTier', 'PAY_AS_YOU_GO') == 'PAY_AS_YOU_GO' &&
-        request.resource.data.get('activeListingCount', 0) == 0;
+        request.resource.data.get('activeListingCount', 0) == 0 &&
+        // isVerified must match reality — the ID token's own phone_number claim
+        // (the same source of truth assignInitialRole.ts already uses
+        // server-side for the update path), never a bare client assertion.
+        // The legitimate registration flow (ProHostRepository.registerMember)
+        // does set this true at create time, but only because a real SMS-OTP
+        // verification genuinely just completed — this check makes that the
+        // ONLY way it can be true, not merely the app's current behavior.
+        request.resource.data.get('isVerified', false) == (request.auth.token.phone_number != null) &&
+        // Every one of these is either absent from AppUser.toFirestoreMap()
+        // entirely (paygCategoryCredits/paygListingsBoughtCount/isSuspended/
+        // createdAtMillis/lastSignInAtMillis) or null-by-default
+        // (ownerPackageExpiryMillis) on a legitimate first write — without this,
+        // a raw SDK create() could grant itself free PAYG credits, backdate the
+        // account, or start pre-suspended/pre-expired, none of which the update
+        // rule below would ever let a client set afterward.
+        request.resource.data.get('paygCategoryCredits', {}) == {} &&
+        request.resource.data.get('paygListingsBoughtCount', 0) == 0 &&
+        request.resource.data.get('ownerPackageExpiryMillis', null) == null &&
+        request.resource.data.get('isSuspended', false) == false &&
+        request.resource.data.get('createdAtMillis', null) == null &&
+        request.resource.data.get('lastSignInAtMillis', null) == null;
 
       // Once the profile exists, role/isVerified/createdAtMillis/lastSignInAtMillis/
       // isSuspended can never change via a direct client write, self or Admin —
