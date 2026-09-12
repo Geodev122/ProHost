@@ -266,10 +266,16 @@ class ProHostViewModel(
     // --- Space Owner Listing Creation ---
     suspend fun createNewSpaceListing(listing: SpaceListing): ListingCreateResult {
         val user = currentUser.value
+        // ADMIN never purchases/holds a real package or PAYG credits at all
+        // (grantAdminRole/bootstrapSuperAdmin only ever set role) — matching
+        // OwnerHubScreen's own unconditional "unlimited access" treatment for Admin
+        // rather than the two gates below, which exist to meter a real host's
+        // purchased quota/credits, not to block an account that never has any.
+        val isAdmin = user?.role == UserRole.ADMIN
         val tier = user?.ownerPackageTier ?: OwnerPackageTier.PAY_AS_YOU_GO
         val limit = pricingState.value.package2Limit
 
-        if (tier == OwnerPackageTier.LIMITED_3_TIER && (user?.activeListingCount ?: 0) >= limit) {
+        if (!isAdmin && tier == OwnerPackageTier.LIMITED_3_TIER && (user?.activeListingCount ?: 0) >= limit) {
             repository.addAuditLog(
                 actionType = "LISTING_BLOCKED_PACKAGE_LIMIT",
                 details = "Owner reached Package 2 limit ($limit listings max). Upgrade to Package 3 Unlimited required.",
@@ -281,7 +287,7 @@ class ProHostViewModel(
         // PAY_AS_YOU_GO is per-listing, per-category billing (spec: "PAYG-locked"
         // categories) — publishing straight to ACTIVE requires a purchased slot for
         // this exact category; saving as a Draft is exempt (nothing to consume yet).
-        if (tier == OwnerPackageTier.PAY_AS_YOU_GO && listing.status == ListingStatus.ACTIVE) {
+        if (!isAdmin && tier == OwnerPackageTier.PAY_AS_YOU_GO && listing.status == ListingStatus.ACTIVE) {
             val categoryId = listing.spaceCategoryId
             val hasCredit = categoryId != null && (user?.paygCategoryCredits?.get(categoryId) ?: 0) > 0
             if (!hasCredit) {

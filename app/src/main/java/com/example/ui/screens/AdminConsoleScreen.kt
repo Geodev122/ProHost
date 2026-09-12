@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
@@ -30,7 +29,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -298,12 +296,20 @@ fun AdminConsoleScreen(
         )
     }
 
-    // 4. Edit Listing Dialog
+    // 4. Edit Listing Dialog — the same full wizard used to create a listing
+    // (photos, subdivisions, pricing config, ownership doc, everything), prefilled
+    // from the existing listing and in its dedicated admin-edit mode (onListingUpdated)
+    // so saving updates the listing directly rather than re-running publish/quota
+    // gating meant for brand-new listings. Replaces the old AdminEditListingDialog,
+    // a bare ~9-field form with no photo/subdivision/pricing editing at all.
     if (uiState.isEditListingDialogOpen && uiState.editingListing != null) {
-        AdminEditListingDialog(
-            listing = uiState.editingListing!!,
+        CreateListingDialog(
+            currentUser = currentUser,
+            existingDraft = uiState.editingListing,
             onDismiss = { adminViewModel.closeEditListingDialog() },
-            onSave = { updatedListing -> adminViewModel.saveListing(updatedListing) }
+            onListingCreated = {},
+            onListingUpdated = { updatedListing -> adminViewModel.saveListing(updatedListing) },
+            spaceCategories = uiState.schema.spaceTypes
         )
     }
 
@@ -1031,8 +1037,7 @@ private fun AdminListingsCatalogTab(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         ProSectionHeader(
-                            title = "Listings Catalog & Governance",
-                            subtitle = "Modify, verify, activate subscriptions, or remove listings",
+                            title = "Listings Catalog",
                             icon = Icons.Default.Apartment
                         )
 
@@ -2337,167 +2342,6 @@ private fun AdminRevokeProHostDialog(
             }
         }
     )
-}
-
-/**
- * 4. Edit Listing Dialog
- */
-@Composable
-private fun AdminEditListingDialog(
-    listing: SpaceListing,
-    onDismiss: () -> Unit,
-    onSave: (SpaceListing) -> Unit
-) {
-    var title by remember { mutableStateOf(listing.title) }
-    var district by remember { mutableStateOf(listing.district) }
-    var streetAddress by remember { mutableStateOf(listing.streetAddress) }
-    var floorInfo by remember { mutableStateOf(listing.floorInfo) }
-    var priceText by remember { mutableStateOf(listing.baseMonthlyRateUsd.toInt().toString()) }
-    var ownerName by remember { mutableStateOf(listing.ownerName) }
-    var ownerPhone by remember { mutableStateOf(listing.ownerPhone) }
-    var selectedSpaceType by remember { mutableStateOf(listing.spaceType) }
-    var selectedGov by remember { mutableStateOf(listing.governorate) }
-    var isShared by remember { mutableStateOf(listing.isShared) }
-
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.9f)
-                .padding(Spacing.sm)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Edit Workspace: ${listing.id}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = "Close") }
-                }
-
-                InputField(value = title, onValueChange = { title = it }, label = "Workspace Title", modifier = Modifier.fillMaxWidth(), singleLine = true)
-                InputField(value = district, onValueChange = { district = it }, label = "District / Neighborhood", modifier = Modifier.fillMaxWidth(), singleLine = true)
-                InputField(value = streetAddress, onValueChange = { streetAddress = it }, label = "Street Address", modifier = Modifier.fillMaxWidth(), singleLine = true)
-                InputField(value = floorInfo, onValueChange = { floorInfo = it }, label = "Floor / Building Info", modifier = Modifier.fillMaxWidth(), singleLine = true)
-                InputField(
-                    value = priceText,
-                    onValueChange = { priceText = it },
-                    label = "Monthly Rate ($ USD/mo)",
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                InputField(value = ownerName, onValueChange = { ownerName = it }, label = "Host Name", modifier = Modifier.fillMaxWidth(), singleLine = true)
-                InputField(value = ownerPhone, onValueChange = { ownerPhone = it }, label = "Host Phone", modifier = Modifier.fillMaxWidth(), singleLine = true)
-
-                Text("Space Type Classification:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(SpaceType.entries) { type ->
-                        FilterChip(
-                            selected = selectedSpaceType == type,
-                            onClick = { selectedSpaceType = type },
-                            label = { Text(type.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
-                        )
-                    }
-                }
-
-                Text("Governorate:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(Governorate.entries) { gov ->
-                        FilterChip(
-                            selected = selectedGov == gov,
-                            onClick = { selectedGov = gov },
-                            label = { Text(gov.displayName.split(" ").first(), fontSize = MaterialTheme.typography.labelSmall.fontSize) }
-                        )
-                    }
-                }
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Shared Space Format:", style = MaterialTheme.typography.bodyMedium)
-                    Switch(checked = isShared, onCheckedChange = { isShared = it })
-                }
-
-                // isVerified / isActiveSubscription now go exclusively through the dedicated
-                // toggle buttons on the listing row (setListingVerification /
-                // setListingSubscriptionActive Cloud Functions) — Firestore rules deny a
-                // direct write to either from this generic edit form.
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                    shape = MaterialTheme.shapes.small,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        "${if (listing.isVerified) "Verified" else "Not Verified"}  •  Subscription: ${if (listing.isActiveSubscription) "Active" else "Inactive"}. Use the listing row's own toggle buttons to change these.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(10.dp)
-                    )
-                }
-
-                // ownershipDocRole/ownershipProofUrl round-tripped correctly since the
-                // mandatory pre-Step-1 ownership gate was added, but were never actually
-                // shown anywhere in Admin — the one place the "random right-to-rent
-                // verifications" disclaimer (shown to every host at listing creation)
-                // implies Admin can audit this. Read-only, same as the badge above.
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                    shape = MaterialTheme.shapes.small,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        "Ownership claim: " + when (listing.ownershipDocRole) {
-                            OwnershipRole.OWNER -> "Owner"
-                            OwnershipRole.RERENTER -> "Re-renter"
-                            null -> "Not recorded (published before this gate existed)"
-                        } + "  •  Document on file: ${if (listing.ownershipProofUrl != null) "Yes" else "No"}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(10.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = MaterialTheme.shapes.small) {
-                        Text("Cancel")
-                    }
-                    Button(
-                        onClick = {
-                            val price = priceText.toDoubleOrNull() ?: listing.baseMonthlyRateUsd
-                            val updated = listing.copy(
-                                title = title.trim(),
-                                district = district.trim(),
-                                streetAddress = streetAddress.trim(),
-                                floorInfo = floorInfo.trim(),
-                                baseMonthlyRateUsd = price,
-                                ownerName = ownerName.trim(),
-                                ownerPhone = ownerPhone.trim(),
-                                spaceType = selectedSpaceType,
-                                governorate = selectedGov,
-                                isShared = isShared
-                            )
-                            onSave(updated)
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.small,
-                        colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
-                    ) {
-                        Text("Save Changes")
-                    }
-                }
-            }
-        }
-    }
 }
 
 /**

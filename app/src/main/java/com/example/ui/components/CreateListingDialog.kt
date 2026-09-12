@@ -45,6 +45,17 @@ fun CreateListingDialog(
     onListingCreated: (SpaceListing) -> Unit,
     existingDraft: SpaceListing? = null,
     onSaveDraft: (SpaceListing) -> Unit = {},
+    // Admin-only "edit an already-existing (non-Draft) listing" mode — set only when
+    // this dialog is opened from the Listings Catalog admin tab's Edit action. When
+    // non-null: the final step's primary button reads "Save Changes" and calls THIS
+    // instead of onListingCreated (a straight repository update, not a new publish —
+    // it must not re-run the create-flow's PAYG-credit/quota gating, which exists to
+    // meter NEW listings, not edits to ones that already exist), "Save as Draft" is
+    // hidden (editing an existing ACTIVE/PAUSED listing should never silently demote
+    // it to Draft), and the listing's own current status is preserved rather than
+    // forced to ACTIVE. The ordinary create/continue-a-Draft flow (existingDraft set,
+    // this left null) is completely unaffected and still goes through onListingCreated.
+    onListingUpdated: ((SpaceListing) -> Unit)? = null,
     // Silent, periodic auto-save while the wizard is open — debounced, never
     // closes the dialog or shows a toast (unlike the explicit "Save as Draft"
     // button above, which does both, per its own onClick). Defaults to a no-op
@@ -168,8 +179,14 @@ fun CreateListingDialog(
     }
     // PAYG hosts can only Publish a category they've paid a slot for (spec: "PAYG-
     // locked" categories) — a subscription host (LIMITED_3_TIER/UNLIMITED_TIER) has
-    // no per-category lock, only the existing whole-listing quota.
-    val isPaygTier = activeUser.ownerPackageTier == OwnerPackageTier.PAY_AS_YOU_GO
+    // no per-category lock, only the existing whole-listing quota. ADMIN accounts
+    // never go through package purchase/entitlement at all (grantAdminRole/
+    // bootstrapSuperAdmin only ever set role — never ownerPackageTier/
+    // paygCategoryCredits), so an Admin's tier defaults to PAY_AS_YOU_GO with zero
+    // credits and every category locked forever unless explicitly bypassed here —
+    // matching OwnerHubScreen's own unconditional "Admin has unlimited access"
+    // treatment (isAdminUnlimited) rather than trying to fake a real tier for Admin.
+    val isPaygTier = activeUser.role != UserRole.ADMIN && activeUser.ownerPackageTier == OwnerPackageTier.PAY_AS_YOU_GO
     val paygCredits = activeUser.paygCategoryCredits
     // No longer shown as its own picker — a governorate field alongside a real map
     // pin only ever fought the map (see ListingLocationMapPicker's doc comment).
@@ -1145,14 +1162,19 @@ fun CreateListingDialog(
                     // below entirely (no pin/ownership-proof requirement); available at
                     // any step so a host can save partial progress and come back later.
                     // Not part of the wizard's step-by-step flow — an explicit opt-out.
-                    ProOutlinedButton(
-                        text = "Save as Draft",
-                        onClick = { onSaveDraft(buildListing(ListingStatus.DRAFT)) },
-                        modifier = Modifier.weight(1f)
-                    )
+                    // Hidden entirely in admin-edit mode (onListingUpdated != null):
+                    // demoting an already-existing ACTIVE/PAUSED listing to Draft is not
+                    // something "Edit" should ever do silently.
+                    if (onListingUpdated == null) {
+                        ProOutlinedButton(
+                            text = "Save as Draft",
+                            onClick = { onSaveDraft(buildListing(ListingStatus.DRAFT)) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
 
                     ProPrimaryButton(
-                        text = if (currentStep < totalSteps - 1) "Next" else "Publish Listing",
+                        text = if (currentStep < totalSteps - 1) "Next" else if (onListingUpdated != null) "Save Changes" else "Publish Listing",
                         onClick = {
                             if (currentStep < totalSteps - 1) {
                                 // Leaving Step 1 (Space Definition & Ownership
@@ -1165,6 +1187,8 @@ fun CreateListingDialog(
                                 } else {
                                     currentStep++
                                 }
+                            } else if (onListingUpdated != null) {
+                                onListingUpdated(buildListing(existingDraft?.status ?: ListingStatus.ACTIVE))
                             } else {
                                 onListingCreated(buildListing(ListingStatus.ACTIVE))
                             }
@@ -1179,7 +1203,7 @@ fun CreateListingDialog(
                         } else {
                             pickedLatLng != null && ownershipProofUrl != null && !isUploadingOwnershipProof &&
                                 uploadedPhotoUrls.isNotEmpty() &&
-                                (!isPaygTier || (selectedCategoryId?.let { paygCredits[it] } ?: 0) > 0)
+                                (onListingUpdated != null || !isPaygTier || (selectedCategoryId?.let { paygCredits[it] } ?: 0) > 0)
                         }
                     )
                 }

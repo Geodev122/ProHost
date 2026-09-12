@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import android.location.Geocoder
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -54,6 +55,21 @@ fun ListingLocationMapPicker(
     val coroutineScope = rememberCoroutineScope()
     var isResolving by remember { mutableStateOf(false) }
     var lastResolved by remember { mutableStateOf<PickedListingLocation?>(null) }
+
+    // A blank/placeholder Maps API key renders a silent blank grey map on a real
+    // device — no crash, no error, just nothing — which is indistinguishable from a
+    // real bug without checking this directly (same check AppSystemDebugger.kt's own
+    // diagnostic screen runs). Read once; the key can't change without a fresh
+    // process, so this doesn't need to be re-checked on every recomposition.
+    val mapsKeyConfigured = remember {
+        val configuredKey = runCatching {
+            context.packageManager
+                .getApplicationInfo(context.packageName, android.content.pm.PackageManager.GET_META_DATA)
+                .metaData
+                ?.getString("com.google.android.geo.API_KEY")
+        }.getOrNull()
+        !configuredKey.isNullOrBlank() && configuredKey != "YOUR_GOOGLE_MAPS_API_KEY"
+    }
 
     // Tracked separately from [pickedLatLng] (the parent's confirmed/resolved value,
     // which only updates once the async reverse-geocode call returns) so the pin and
@@ -111,6 +127,29 @@ fun ListingLocationMapPicker(
                 .height(220.dp)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
+                if (!mapsKeyConfigured) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.errorContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(Spacing.lg)
+                        ) {
+                            Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                            Spacer(modifier = Modifier.height(Spacing.xs))
+                            Text(
+                                "Map unavailable — no Google Maps API key is configured for this build.",
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+                }
                 GoogleMap(
                     modifier = Modifier.fillMaxSize(),
                     cameraPositionState = cameraPositionState,
