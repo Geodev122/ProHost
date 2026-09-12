@@ -97,6 +97,7 @@ fun MyBookingsScreen(
     var editSourceBooking by remember { mutableStateOf<BookingRequest?>(null) }
     var showDigitalPassBooking by remember { mutableStateOf<BookingRequest?>(null) }
     var cancelTargetBooking by remember { mutableStateOf<BookingRequest?>(null) }
+    var pendingCancelTarget by remember { mutableStateOf<BookingRequest?>(null) }
 
     // Filter current list
     val currentTabBookings = if (selectedMainTab == 0) upcomingAndActiveBookings else pastBookings
@@ -460,7 +461,7 @@ fun MyBookingsScreen(
                             }
                         },
                         onCancelRequest = {
-                            viewModel.cancelBookingRequest(booking.id, context)
+                            pendingCancelTarget = booking
                         },
                         onCancelAcceptedBooking = {
                             cancelTargetBooking = booking
@@ -520,6 +521,32 @@ fun MyBookingsScreen(
             onRequestSubmitted = {
                 editTargetSpace = null
                 editSourceBooking = null
+            }
+        )
+    }
+
+    // Cancel PENDING Request confirmation — this used to fire the moment the button
+    // was tapped, with no confirmation at all; a mis-tap silently withdrew a request
+    // still awaiting the host's response with no way to undo it.
+    if (pendingCancelTarget != null) {
+        val target = pendingCancelTarget!!
+        AlertDialog(
+            onDismissRequest = { pendingCancelTarget = null },
+            icon = { Icon(Icons.Default.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            title = { Text("Cancel this request?") },
+            text = { Text("Your rental request for \"${target.spaceTitle}\" will be withdrawn. The host will no longer be able to accept it.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.cancelBookingRequest(target.id, context)
+                    pendingCancelTarget = null
+                }) {
+                    Text("Cancel Request", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingCancelTarget = null }) {
+                    Text("Keep Request")
+                }
             }
         )
     }

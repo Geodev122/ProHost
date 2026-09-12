@@ -69,6 +69,7 @@ fun SpecialistProfileScreen(
     var selectedCountry by remember(user) { mutableStateOf(findCountryByName(user.country)) }
     var governorateArea by remember(user) { mutableStateOf(user.governorate) }
     var city by remember(user) { mutableStateOf(user.city) }
+    var pendingCancelRequest by remember { mutableStateOf<RentalBookingRequest?>(null) }
 
     Box(
         modifier = Modifier
@@ -480,7 +481,7 @@ fun SpecialistProfileScreen(
 
                                                 if (req.status == BookingRequestStatus.PENDING) {
                                                     OutlinedButton(
-                                                        onClick = { viewModel.cancelBookingRequest(req.id, context) },
+                                                        onClick = { pendingCancelRequest = req },
                                                         modifier = Modifier.weight(0.6f),
                                                         shape = MaterialTheme.shapes.small,
                                                         contentPadding = PaddingValues(vertical = 6.dp)
@@ -799,6 +800,29 @@ fun SpecialistProfileScreen(
                     dismissButton = {
                         TextButton(onClick = { showDeleteConfirmation = false }, enabled = !isDeletingAccount) {
                             Text("Cancel")
+                        }
+                    }
+                )
+            }
+
+            if (pendingCancelRequest != null) {
+                val target = pendingCancelRequest!!
+                AlertDialog(
+                    onDismissRequest = { pendingCancelRequest = null },
+                    icon = { Icon(Icons.Default.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                    title = { Text("Cancel this request?") },
+                    text = { Text("Your rental request for \"${target.spaceTitle}\" will be withdrawn. The host will no longer be able to accept it.") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.cancelBookingRequest(target.id, context)
+                            pendingCancelRequest = null
+                        }) {
+                            Text("Cancel Request", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { pendingCancelRequest = null }) {
+                            Text("Keep Request")
                         }
                     }
                 )
