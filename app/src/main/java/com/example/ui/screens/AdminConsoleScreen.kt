@@ -2390,6 +2390,28 @@ private fun AdminEditListingDialog(
                     )
                 }
 
+                // ownershipDocRole/ownershipProofUrl round-tripped correctly since the
+                // mandatory pre-Step-1 ownership gate was added, but were never actually
+                // shown anywhere in Admin — the one place the "random right-to-rent
+                // verifications" disclaimer (shown to every host at listing creation)
+                // implies Admin can audit this. Read-only, same as the badge above.
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "Ownership claim: " + when (listing.ownershipDocRole) {
+                            OwnershipRole.OWNER -> "Owner"
+                            OwnershipRole.RERENTER -> "Re-renter"
+                            null -> "Not recorded (published before this gate existed)"
+                        } + "  •  Document on file: ${if (listing.ownershipProofUrl != null) "Yes" else "No"}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(10.dp)
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
