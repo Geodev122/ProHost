@@ -73,6 +73,7 @@ fun OwnerRentingProgressScreen(
         ownerSpaces = ownerSpaces,
         activeBookings = activeBookings,
         monthlySubscriptionFeeUsd = pricingState.monthlySubscriptionFeeUsd,
+        hasLoadedBookingsOnce = hasLoadedBookingsOnce,
         onWhatsAppPractitioner = { booking ->
             viewModel.launchWhatsAppToPractitioner(context, booking)
         },
@@ -96,6 +97,7 @@ fun OwnerRentingProgressScreenContent(
     ownerSpaces: List<SpaceListing>,
     activeBookings: List<BookingRequest>,
     monthlySubscriptionFeeUsd: Double,
+    hasLoadedBookingsOnce: Boolean = true,
     onWhatsAppPractitioner: (BookingRequest) -> Unit,
     onSendPaymentReminder: (BookingRequest) -> Unit,
     onCancelAcceptedBooking: (BookingRequest) -> Unit = {},
