@@ -64,19 +64,29 @@ private val ADMIN_FULLSCREEN_TABS = listOf(
     AppNavTab.AdminProfile
 )
 
+/** Reachable via the drawer by every role — unlike PRO_HOST_FULLSCREEN_TABS
+ * (Pro-Host-and-Admin-only, except OwnerSubscriptions) and ADMIN_FULLSCREEN_TABS
+ * (Admin-only), My Favorites is a SPECIALIST-level feature every role keeps. */
+private val SHARED_FULLSCREEN_TABS = listOf(
+    AppNavTab.MyFavorites
+)
+
 private val FULLSCREEN_TAB_IDS: Set<String> =
-    (PRO_HOST_FULLSCREEN_TABS + ADMIN_FULLSCREEN_TABS).map { it.id }.toSet()
+    (PRO_HOST_FULLSCREEN_TABS + ADMIN_FULLSCREEN_TABS + SHARED_FULLSCREEN_TABS).map { it.id }.toSet()
 
 /**
  * The complete set of tab ids a given role may ever land on — bottom-nav tabs
  * plus drawer-only destinations. This is the single source of truth for
  * validating externally-supplied tab ids (see below).
  */
-private fun allowedTabIdsForRole(role: UserRole): Set<String> = when (role) {
-    UserRole.SPECIALIST -> SPECIALIST_BOTTOM_TABS.map { it.id }.toSet() + AppNavTab.OwnerSubscriptions.id
-    UserRole.PRO_HOST -> SPECIALIST_BOTTOM_TABS.map { it.id }.toSet() + PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet()
-    UserRole.ADMIN -> ADMIN_FULLSCREEN_TABS.map { it.id }.toSet() +
-        (PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() - AppNavTab.OwnerSubscriptions.id)
+private fun allowedTabIdsForRole(role: UserRole): Set<String> {
+    val shared = SHARED_FULLSCREEN_TABS.map { it.id }.toSet()
+    return when (role) {
+        UserRole.SPECIALIST -> SPECIALIST_BOTTOM_TABS.map { it.id }.toSet() + AppNavTab.OwnerSubscriptions.id + shared
+        UserRole.PRO_HOST -> SPECIALIST_BOTTOM_TABS.map { it.id }.toSet() + PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() + shared
+        UserRole.ADMIN -> ADMIN_FULLSCREEN_TABS.map { it.id }.toSet() +
+            (PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() - AppNavTab.OwnerSubscriptions.id) + shared
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -244,7 +254,7 @@ fun ProHostAppRoot(
                 topBar = {
                     if (detailedSpace == null) {
                         if (safeFullScreenDrawerTab != null) {
-                            val title = (PRO_HOST_FULLSCREEN_TABS + ADMIN_FULLSCREEN_TABS)
+                            val title = (PRO_HOST_FULLSCREEN_TABS + ADMIN_FULLSCREEN_TABS + SHARED_FULLSCREEN_TABS)
                                 .firstOrNull { it.id == safeFullScreenDrawerTab }?.title
                                 ?: "Pro Host"
                             ProHostFullScreenTopAppBar(
@@ -321,6 +331,10 @@ fun ProHostAppRoot(
                                         viewModel = viewModel,
                                         onSelectSpace = { detailedSpace = it },
                                         onOpenSubscriptions = { navigateTo(AppNavTab.OwnerSubscriptions.id) }
+                                    )
+                                    AppNavTab.MyFavorites.id -> MyFavoritesScreen(
+                                        viewModel = viewModel,
+                                        onSelectSpace = { detailedSpace = it }
                                     )
                                     AppNavTab.OwnerRentalRequests.id -> OwnerRentalRequestsScreen(
                                         viewModel = viewModel

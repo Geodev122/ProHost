@@ -32,6 +32,12 @@ sealed class AppNavTab(
     object Stats : AppNavTab("stats", "Stats", Icons.Filled.Analytics, Icons.Outlined.Analytics)
     object OwnerSubscriptions : AppNavTab("owner_subscriptions", "Subscription & Packages", Icons.Filled.Layers, Icons.Outlined.Layers)
 
+    // Shared between SPECIALIST and PRO_HOST — a Pro Host is still fundamentally a
+    // Specialist underneath and browses/saves spaces the same way. Drawer-only
+    // (not a bottom-nav tab), rendered full-screen like the Pro Host destinations
+    // above — see PRO_HOST_FULLSCREEN_TABS's own doc comment in ProHostNavGraph.kt.
+    object MyFavorites : AppNavTab("my_favorites", "My Favorites", Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder)
+
     // Admin's own side-menu destinations — reachable only via the drawer (no bottom
     // nav for Admin at all), rendered full-screen the same way Pro Host's are.
     // "Admin Console" is the single entry point; its own inner tabs (including the

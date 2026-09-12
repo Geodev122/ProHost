@@ -184,6 +184,13 @@ fun SpecialistDrawerContent(
         // shortcut to it added nothing. Removed rather than kept as a redundant
         // second path to the same screen.
         NavigationDrawerItem(
+            label = { Text("My Favorites", fontWeight = FontWeight.SemiBold) },
+            selected = activeProHostTabId == "my_favorites",
+            onClick = { onTabSelected("my_favorites") },
+            icon = { Icon(Icons.Default.Favorite, contentDescription = null, tint = OxfordBlue) }
+        )
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        NavigationDrawerItem(
             label = { Text("Lebanese Rent Laws", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { onDrawerAction("pro_laws") },
