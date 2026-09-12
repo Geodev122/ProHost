@@ -136,25 +136,41 @@ fun RentalBookingDialog(
         null -> emptyList()
     }
 
-    // Monthly is the only strategy whose real price scales with a duration commitment
-    // (SpaceCalculationUtils.calculateTotalRentalPrice) — Hourly/Shift/Day-Based prices
-    // already represent the full cost of the chosen recurrence, so a duration selector
-    // for them would just be lying about what the total actually is.
+    // Start Date — declared before the total because the occurrence count for a
+    // weekly recurrence depends on where the term actually starts.
+    val dateOptions = listOf("Immediate (Tomorrow)", "Next Monday", "1st of Next Month", "Custom Date")
+    var selectedDateOption by remember { mutableStateOf(dateOptions[0]) }
+    var customStartDate by remember { mutableStateOf("2026-09-01") }
+    val startDate = remember(selectedDateOption, customStartDate) {
+        SpaceCalculationUtils.resolveStartDate(selectedDateOption, customStartDate)
+    }
+
+    // The term applies to Monthly (rate x months) and to Shift/Day-Based (a
+    // recurrence price x the real number of occurrences inside the term, counted on
+    // the calendar from startDate — see countRecurrenceOccurrences). Hourly stays a
+    // one-off booking of the chosen cells, so it's the only strategy without a term.
     val durationOptions = listOf(1, 2, 3, 6, 12)
     var selectedDurationMonths by remember { mutableStateOf(1) }
+    val usesTerm = selectedStrategyType != null && selectedStrategyType != RentalStrategyType.HOURLY
     val effectiveRecurrence = when (selectedStrategyType) {
         RentalStrategyType.SHIFT_BASED -> shiftRecurrence
         RentalStrategyType.DAY_BASED -> dayBasedRecurrence
         else -> BookingRecurrence.FLAT
     }
-    val totalCalculatedUsd = remember(selectedSlotsForPricing, effectiveRecurrence, selectedDurationMonths, selectedStrategyType) {
-        SpaceCalculationUtils.calculateTotalRentalPrice(selectedSlotsForPricing, effectiveRecurrence, selectedDurationMonths)
+    val totalCalculatedUsd = remember(selectedSlotsForPricing, effectiveRecurrence, selectedDurationMonths, selectedStrategyType, startDate) {
+        SpaceCalculationUtils.calculateTotalRentalPrice(selectedSlotsForPricing, effectiveRecurrence, selectedDurationMonths, startDate)
     }
-
-    // Start Date
-    val dateOptions = listOf("Immediate (Tomorrow)", "Next Monday", "1st of Next Month", "Custom Date")
-    var selectedDateOption by remember { mutableStateOf(dateOptions[0]) }
-    var customStartDate by remember { mutableStateOf("2026-09-01") }
+    // Per-day "N occurrences x $price" breakdown so the whole-commitment total is
+    // explainable, not a number that appears from nowhere.
+    val occurrenceBreakdown = remember(selectedSlotsForPricing, effectiveRecurrence, selectedDurationMonths, selectedStrategyType, startDate) {
+        if (selectedStrategyType == RentalStrategyType.SHIFT_BASED || selectedStrategyType == RentalStrategyType.DAY_BASED) {
+            selectedSlotsForPricing.joinToString("\n") { slot ->
+                val n = SpaceCalculationUtils.countRecurrenceOccurrences(slot.day, effectiveRecurrence, startDate, selectedDurationMonths)
+                val price = slot.pricesByRecurrence[effectiveRecurrence] ?: 0.0
+                "${slot.day}: $n occurrence${if (n == 1) "" else "s"} × $${price.toInt()}"
+            }
+        } else ""
+    }
 
     var clinicalNotes by remember { mutableStateOf("") }
 
@@ -517,10 +533,9 @@ fun RentalBookingDialog(
                         }
                     }
 
-                    // 5. Rental Duration Term — Monthly only; every other strategy's
-                    // real price already represents the full cost of the chosen
-                    // recurrence (see effectiveRecurrence above).
-                    if (selectedStrategyType == RentalStrategyType.MONTHLY) {
+                    // 5. Rental Duration Term — every strategy except Hourly (see
+                    // usesTerm above for what the term means per strategy).
+                    if (usesTerm) {
                         Column {
                             Text(
                                 text = "Rental Duration Term",
@@ -652,6 +667,15 @@ fun RentalBookingDialog(
 
                             HorizontalDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
 
+                            if (occurrenceBreakdown.isNotBlank()) {
+                                Text(
+                                    text = "Over $selectedDurationMonths month${if (selectedDurationMonths > 1) "s" else ""} from ${selectedDateOption.lowercase()}:\n$occurrenceBreakdown",
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    lineHeight = 16.sp
+                                )
+                            }
+
                             Text(
                                 text = "📋 Selected Slot: $chosenSlotSummary",
                                 fontSize = MaterialTheme.typography.labelSmall.fontSize,
@@ -697,7 +721,7 @@ fun RentalBookingDialog(
                                 space = space,
                                 formula = formula,
                                 startDate = computedDate,
-                                durationMonths = if (selectedStrategyType == RentalStrategyType.MONTHLY) selectedDurationMonths else 1,
+                                durationMonths = if (usesTerm) selectedDurationMonths else 1,
                                 notes = clinicalNotes,
                                 context = context,
                                 alsoOpenWhatsApp = false,
@@ -729,7 +753,7 @@ fun RentalBookingDialog(
                                 space = space,
                                 formula = formula,
                                 startDate = computedDate,
-                                durationMonths = if (selectedStrategyType == RentalStrategyType.MONTHLY) selectedDurationMonths else 1,
+                                durationMonths = if (usesTerm) selectedDurationMonths else 1,
                                 notes = clinicalNotes,
                                 context = context,
                                 alsoOpenWhatsApp = true,

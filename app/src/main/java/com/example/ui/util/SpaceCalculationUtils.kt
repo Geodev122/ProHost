@@ -1,6 +1,7 @@
 package com.example.ui.util
 
 import com.example.data.model.*
+import java.util.Calendar
 
 /**
  * One rentable unit of time produced by a rental pricing strategy. Shared source of
@@ -273,7 +274,8 @@ object SpaceCalculationUtils {
     fun calculateTotalRentalPrice(
         selectedSlots: List<RentableSlot>,
         recurrence: BookingRecurrence,
-        durationMonths: Int
+        durationMonths: Int,
+        startDate: Calendar = Calendar.getInstance()
     ): Double {
         val strategy = selectedSlots.firstOrNull()?.strategyType
         val effectiveMonths = durationMonths.coerceAtLeast(1)
@@ -282,9 +284,83 @@ object SpaceCalculationUtils {
                 (selectedSlots.firstOrNull()?.pricesByRecurrence?.get(BookingRecurrence.FLAT) ?: 0.0) * effectiveMonths
             RentalStrategyType.HOURLY ->
                 selectedSlots.sumOf { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0 }
+            // Shift-Based / Day-Based: a recurrence price is per occurrence, and the
+            // whole-commitment total is that price times how many times the chosen
+            // weekday actually falls inside the term. Counted on the real calendar
+            // from the real start date — "same day every week for 3 months" is 12,
+            // 13 or 14 occurrences depending on where the term starts, never a flat
+            // constant (product decision, Phase 6 task #88).
             else ->
-                selectedSlots.sumOf { it.pricesByRecurrence[recurrence] ?: 0.0 }
+                selectedSlots.sumOf { slot ->
+                    (slot.pricesByRecurrence[recurrence] ?: 0.0) *
+                        countRecurrenceOccurrences(slot.day, recurrence, startDate, effectiveMonths)
+                }
         }
+    }
+
+    private val dayAbbreviationToCalendarDay = mapOf(
+        "Sun" to Calendar.SUNDAY, "Mon" to Calendar.MONDAY, "Tue" to Calendar.TUESDAY,
+        "Wed" to Calendar.WEDNESDAY, "Thu" to Calendar.THURSDAY, "Fri" to Calendar.FRIDAY,
+        "Sat" to Calendar.SATURDAY
+    )
+
+    /**
+     * How many times a slot on [day] is actually delivered under [recurrence] over a
+     * term of [durationMonths] months beginning on [startDate] (term window is
+     * [startDate, startDate + months), exclusive). ONE_TIME is exactly one delivery;
+     * SAME_DAY_EVERY_MONTH is one per month of the term; SAME_DAY_EVERY_WEEK walks
+     * the real calendar and counts that weekday inside the window. FLAT (Monthly/
+     * Hourly) is treated as a single unit — those strategies never call this.
+     */
+    fun countRecurrenceOccurrences(
+        day: String,
+        recurrence: BookingRecurrence,
+        startDate: Calendar,
+        durationMonths: Int
+    ): Int {
+        val months = durationMonths.coerceAtLeast(1)
+        return when (recurrence) {
+            BookingRecurrence.ONE_TIME, BookingRecurrence.FLAT -> 1
+            BookingRecurrence.SAME_DAY_EVERY_MONTH -> months
+            BookingRecurrence.SAME_DAY_EVERY_WEEK -> {
+                val target = dayAbbreviationToCalendarDay[day.take(3)] ?: return 0
+                val end = (startDate.clone() as Calendar).apply { add(Calendar.MONTH, months) }
+                val cursor = startDate.clone() as Calendar
+                var count = 0
+                while (cursor.before(end)) {
+                    if (cursor.get(Calendar.DAY_OF_WEEK) == target) count++
+                    cursor.add(Calendar.DAY_OF_MONTH, 1)
+                }
+                count
+            }
+        }
+    }
+
+    /**
+     * Turns RentalBookingDialog's start-date choice into a real calendar date (time
+     * cleared to midnight) — the same four presets the dialog offers, with the
+     * custom option parsed from "yyyy-MM-dd" and falling back to tomorrow if it
+     * can't be parsed, so the occurrence count above always has a real anchor.
+     */
+    fun resolveStartDate(option: String, customIsoDate: String): Calendar {
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
+        when (option) {
+            "Next Monday" -> do { cal.add(Calendar.DAY_OF_MONTH, 1) } while (cal.get(Calendar.DAY_OF_WEEK) != Calendar.MONDAY)
+            "1st of Next Month" -> { cal.add(Calendar.MONTH, 1); cal.set(Calendar.DAY_OF_MONTH, 1) }
+            "Custom Date" -> {
+                val parts = customIsoDate.trim().split("-").mapNotNull { it.toIntOrNull() }
+                if (parts.size == 3) {
+                    cal.set(parts[0], parts[1] - 1, parts[2])
+                } else {
+                    cal.add(Calendar.DAY_OF_MONTH, 1)
+                }
+            }
+            else -> cal.add(Calendar.DAY_OF_MONTH, 1)
+        }
+        return cal
     }
 
     // A buildWhatsAppInquiryUrl(...) helper used to live here, duplicating
