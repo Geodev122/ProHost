@@ -458,14 +458,41 @@ class ProHostRepository {
         return success
     }
 
+    /** This category's real admin-configured PAYG price if [listing] has one
+     * (spaceCategoryId resolved against the live schema — automatically covers any
+     * admin-added category with zero extra code), falling back to the legacy fixed
+     * 4-value lookup for a listing with no spaceCategoryId (created before that field
+     * existed) — the same fallback order functions/src/lib/pricing.ts's
+     * getPaygFeeForCategory uses server-side, kept in sync deliberately. */
+    private fun paygPriceForListing(listing: SpaceListing, schema: SpaceArchitectureSchema): Double {
+        val categoryPrice = listing.spaceCategoryId?.let { id -> schema.spaceTypes.find { it.id == id }?.priceUsd }
+        return categoryPrice ?: _pricingState.value.getPaygFeeForType(listing.spaceType)
+    }
+
+    /** A PAYG listing's cost is charged per-listing (its own category's price); a
+     * Package 2/3 listing's cost is its OWNER's flat monthly fee, charged once per
+     * owner regardless of how many listings they have — [dedupeByOwner] controls which
+     * shape applies. Shared by calculateActiveMrr (isActiveSubscription-filtered) and
+     * calculatePotentialCapacityMrr (every listing, active or not) so the two can't
+     * silently diverge in how they price a listing, only in which listings they include. */
+    private fun sumListingRevenue(listings: List<SpaceListing>): Double {
+        val schema = _spaceArchitectureSchema.value
+        val usersById = _users.value.associateBy { it.id }
+        fun tierFor(ownerId: String) = usersById[ownerId]?.ownerPackageTier ?: OwnerPackageTier.PAY_AS_YOU_GO
+
+        val (paygListings, tieredListings) = listings.partition { tierFor(it.ownerId) == OwnerPackageTier.PAY_AS_YOU_GO }
+        val paygTotal = paygListings.sumOf { paygPriceForListing(it, schema) }
+        val tieredTotal = tieredListings.distinctBy { it.ownerId }
+            .sumOf { _pricingState.value.getPackageFee(tierFor(it.ownerId)) }
+        return paygTotal + tieredTotal
+    }
+
     fun calculateActiveMrr(): Double {
-        val activeCount = _spaces.value.count { it.isActiveSubscription }
-        return activeCount * _pricingState.value.monthlySubscriptionFeeUsd
+        return sumListingRevenue(_spaces.value.filter { it.isActiveSubscription })
     }
 
     fun calculatePotentialCapacityMrr(): Double {
-        val totalSpaces = _spaces.value.size
-        return totalSpaces * _pricingState.value.monthlySubscriptionFeeUsd
+        return sumListingRevenue(_spaces.value)
     }
 
     fun calculateProjectedArr(): Double {

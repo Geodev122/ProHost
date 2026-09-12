@@ -339,6 +339,54 @@ fun AdminConsoleScreen(
 // =========================================================================
 // TAB 0: REVENUE & PRICING ENGINE
 // =========================================================================
+private data class CategoryRunRateRow(
+    val categoryName: String,
+    val thisMonthTotal: Double,
+    val lastMonthTotal: Double
+)
+
+/** One row per admin-configured SPACE_TYPE, so a newly-added category automatically
+ * gets its own row (at $0/$0) with zero extra code the moment it's created — no row
+ * is ever hand-wired to a specific category id. A transaction is attributed to a
+ * category via its space's real spaceCategoryId; a legacy space saved before that
+ * field existed falls back to matching the schema item's name against the space's
+ * legacy spaceType display name (the same bridge SpaceListing's own field comments
+ * describe). Only SUCCESS-status transactions count as "gross sales," matching the
+ * Transactions tab's own settled-volume fix. */
+private fun computeCategoryRunRateRows(
+    spaceTypes: List<SchemaItem>,
+    spaces: List<SpaceListing>,
+    transactions: List<WhishTransaction>
+): List<CategoryRunRateRow> {
+    if (spaceTypes.isEmpty()) return emptyList()
+
+    val cal = java.util.Calendar.getInstance()
+    cal.set(java.util.Calendar.DAY_OF_MONTH, 1)
+    cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+    cal.set(java.util.Calendar.MINUTE, 0)
+    cal.set(java.util.Calendar.SECOND, 0)
+    cal.set(java.util.Calendar.MILLISECOND, 0)
+    val thisMonthStart = cal.timeInMillis
+    cal.add(java.util.Calendar.MONTH, -1)
+    val lastMonthStart = cal.timeInMillis
+    val lastMonthEnd = thisMonthStart - 1
+
+    fun categoryIdForSpace(spaceId: String): String? {
+        val space = spaces.find { it.id == spaceId } ?: return null
+        return space.spaceCategoryId
+            ?: spaceTypes.find { it.name == space.spaceType.displayName }?.id
+    }
+
+    val settled = transactions.filter { it.status == TransactionStatus.SUCCESS }
+    return spaceTypes.map { category ->
+        val thisMonth = settled.filter { it.timestamp >= thisMonthStart && categoryIdForSpace(it.spaceId) == category.id }
+            .sumOf { it.amountUsd }
+        val lastMonth = settled.filter { it.timestamp in lastMonthStart..lastMonthEnd && categoryIdForSpace(it.spaceId) == category.id }
+            .sumOf { it.amountUsd }
+        CategoryRunRateRow(category.name, thisMonth, lastMonth)
+    }
+}
+
 @Composable
 private fun AdminRevenueTab(
     uiState: com.example.ui.state.AdminUiState,
@@ -354,8 +402,7 @@ private fun AdminRevenueTab(
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ProSectionHeader(
-                        title = "Financial Run-Rate Calculations",
-                        subtitle = "Real-time SaaS recurring metrics and Lebanese commercial projections",
+                        title = "Run-Rate",
                         icon = Icons.AutoMirrored.Filled.TrendingUp
                     )
 
@@ -407,106 +454,61 @@ private fun AdminRevenueTab(
             }
         }
 
-        // Dynamic Subscription Pricing Engine Controller
+        // Per-category gross sales, this month vs last — iterates schema.spaceTypes
+        // directly so any admin-added category automatically gets a row here with zero
+        // extra code, the moment it starts settling real transactions.
         item {
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "Dynamic Pricing Engine",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Space owner monthly subscription fee corridor",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        OutlinedButton(
-                            onClick = { adminViewModel.resetSubscriptionFeeBaseline() },
-                            shape = MaterialTheme.shapes.small,
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Reset $1.80", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-
-                    // Active Fee Hero Banner
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Active Subscription Fee:",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Text(
-                                text = "$${String.format(Locale.US, "%.2f", uiState.pricingState.monthlySubscriptionFeeUsd)} USD/mo",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    Text(
-                        text = "Customizable Preset Chips:",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ProSectionHeader(
+                        title = "Gross Sales by Category",
+                        subtitle = "This month vs. last month, settled (SUCCESS) transactions only",
+                        icon = Icons.Default.BarChart
                     )
 
-                    // Preset Chips
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(uiState.pricingState.presetOptions) { preset ->
-                            val isSelected = Math.abs(uiState.pricingState.monthlySubscriptionFeeUsd - preset) < 0.01
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { adminViewModel.setSubscriptionFee(preset) },
-                                label = {
+                    val rows = remember(uiState.schema.spaceTypes, uiState.allSpaces, uiState.allTransactions) {
+                        computeCategoryRunRateRows(uiState.schema.spaceTypes, uiState.allSpaces, uiState.allTransactions)
+                    }
+
+                    if (rows.isEmpty()) {
+                        Text(
+                            "No space categories configured yet.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        rows.forEach { row ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(row.categoryName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                                Column(horizontalAlignment = Alignment.End) {
                                     Text(
-                                        text = "$${String.format(Locale.US, "%.2f", preset)}",
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        style = MaterialTheme.typography.labelSmall
+                                        "$${String.format(Locale.US, "%.2f", row.thisMonthTotal)}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = FreshGreen
                                     )
-                                },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                    selectedLabelColor = Color.White
-                                )
-                            )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = if (row.thisMonthTotal >= row.lastMonthTotal) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                                            contentDescription = null,
+                                            tint = if (row.thisMonthTotal >= row.lastMonthTotal) FreshGreen else StatusError,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Text(
+                                            "vs $${String.format(Locale.US, "%.2f", row.lastMonthTotal)} last month",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                            HorizontalDivider(color = LightGray.copy(alpha = 0.4f))
                         }
                     }
-
-                    Text(
-                        text = "Fine-Tuning Slider ($0.50 - $15.00 USD):",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Slider(
-                        value = uiState.pricingState.monthlySubscriptionFeeUsd.toFloat(),
-                        onValueChange = { adminViewModel.setSubscriptionFee(Math.round(it * 100.0) / 100.0) },
-                        valueRange = 0.50f..15.00f,
-                        steps = 28
-                    )
                 }
             }
         }
@@ -516,7 +518,7 @@ private fun AdminRevenueTab(
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     ProSectionHeader(
-                        title = "ProHost Packages & Governance Hub",
+                        title = "Packages Configuration",
                         subtitle = "Configure Package Tiers, PAYG fees per workspace type, and Control Tag",
                         icon = Icons.Default.AdminPanelSettings
                     )
@@ -536,72 +538,72 @@ private fun AdminRevenueTab(
 
                     HorizontalDivider()
 
-                    Text(
-                        text = "Package 1: Pay As You Go (Per-Listing Fees by Type)",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    // Buffered locally and committed by the Save button below — same
-                    // pattern as the Package 2/3 fees two sections down. Each field used
-                    // to call adminViewModel.updatePaygFee directly from onValueChange,
-                    // firing a full updatePricing Cloud Function call AND an audit-log
-                    // write on every valid keystroke (typing "1.50" fired 3-4 separate
-                    // writes with intermediate junk values like "1", "1.5").
-                    var privateOfficeFeeInput by remember(uiState.pricingState.paygPrivateOfficeUsd) {
-                        mutableStateOf(uiState.pricingState.paygPrivateOfficeUsd.toString())
-                    }
-                    var centerFeeInput by remember(uiState.pricingState.paygCenterUsd) {
-                        mutableStateOf(uiState.pricingState.paygCenterUsd.toString())
-                    }
-                    var polyclinicFeeInput by remember(uiState.pricingState.paygPolyclinicUsd) {
-                        mutableStateOf(uiState.pricingState.paygPolyclinicUsd.toString())
-                    }
-                    var coworkingFeeInput by remember(uiState.pricingState.paygCoworkingUsd) {
-                        mutableStateOf(uiState.pricingState.paygCoworkingUsd.toString())
-                    }
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = privateOfficeFeeInput,
-                            onValueChange = { privateOfficeFeeInput = it },
-                            label = { Text("Private Office ($)") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = centerFeeInput,
-                            onValueChange = { centerFeeInput = it },
-                            label = { Text("Center ($)") },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = polyclinicFeeInput,
-                            onValueChange = { polyclinicFeeInput = it },
-                            label = { Text("Polyclinic ($)") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = coworkingFeeInput,
-                            onValueChange = { coworkingFeeInput = it },
-                            label = { Text("Coworking ($)") },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Button(
-                        onClick = {
-                            adminViewModel.updatePaygFees(
-                                privateOfficeFeeInput.toDoubleOrNull() ?: uiState.pricingState.paygPrivateOfficeUsd,
-                                centerFeeInput.toDoubleOrNull() ?: uiState.pricingState.paygCenterUsd,
-                                polyclinicFeeInput.toDoubleOrNull() ?: uiState.pricingState.paygPolyclinicUsd,
-                                coworkingFeeInput.toDoubleOrNull() ?: uiState.pricingState.paygCoworkingUsd
-                            )
-                        },
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.small
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Save PAYG Fees")
+                        Text(
+                            text = "Package 1: Pay As You Go (Per-Listing Fees by Type)",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Button(
+                            onClick = { adminViewModel.openAddSchemaItemDialog(presetCategory = "SPACE_TYPE") },
+                            shape = MaterialTheme.shapes.small,
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text("Add Category Type", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+
+                    // Reads every admin-configured SPACE_TYPE from the Schema tab directly
+                    // — previously this was 4 hardcoded fields tied to the legacy SpaceType
+                    // enum, so any category added since (or renamed/removed) never had a
+                    // way to have its price set here at all, only at creation time. Each
+                    // row is buffered locally and committed on its own Save (same
+                    // buffer-then-commit pattern as Package 2/3 below), not on keystroke.
+                    uiState.schema.spaceTypes.forEach { category ->
+                        var priceInput by remember(category.id, category.priceUsd) {
+                            mutableStateOf(category.priceUsd?.toString() ?: "")
+                        }
+                        var maxSubInput by remember(category.id, category.maxSubdivisions) {
+                            mutableStateOf(category.maxSubdivisions?.toString() ?: "")
+                        }
+                        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(category.name, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(
+                                    value = priceInput,
+                                    onValueChange = { priceInput = it.filter { c -> c.isDigit() || c == '.' } },
+                                    label = { Text("PAYG Fee ($)") },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
+                                OutlinedTextField(
+                                    value = maxSubInput,
+                                    onValueChange = { maxSubInput = it.filter { c -> c.isDigit() } },
+                                    label = { Text("Max subdivisions") },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
+                                IconButton(
+                                    onClick = {
+                                        adminViewModel.updateSchemaItemPricing(
+                                            category.id,
+                                            category.category,
+                                            priceInput.toDoubleOrNull(),
+                                            maxSubInput.toIntOrNull()
+                                        )
+                                    }
+                                ) {
+                                    Icon(Icons.Default.Check, contentDescription = "Save", tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
                     }
 
                     HorizontalDivider()
@@ -657,8 +659,12 @@ private fun AdminRevenueTab(
             }
         }
 
-        // Quick Export Hub Shortcuts
+        // Quick Export Hub Shortcuts — writes a real file (Storage Access Framework
+        // "Save As") instead of the old clipboard-copy/share-sheet-only dialog.
         item {
+            val exportTxtFile = rememberFileExportLauncher(mimeType = "text/plain")
+            val exportJsonFile = rememberFileExportLauncher(mimeType = "application/json")
+
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     ProSectionHeader(
@@ -672,7 +678,7 @@ private fun AdminRevenueTab(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Button(
-                            onClick = { adminViewModel.exportAllAuditReport() },
+                            onClick = { exportTxtFile("prohost_full_audit.txt", adminViewModel.getFullAuditReport()) },
                             modifier = Modifier.weight(1f),
                             shape = MaterialTheme.shapes.small,
                             colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
@@ -683,7 +689,7 @@ private fun AdminRevenueTab(
                         }
 
                         Button(
-                            onClick = { adminViewModel.exportAllJson() },
+                            onClick = { exportJsonFile("prohost_master_export.json", adminViewModel.getMasterJsonExport()) },
                             modifier = Modifier.weight(1f),
                             shape = MaterialTheme.shapes.small,
                             colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)

@@ -107,9 +107,9 @@ class ProHostViewModel(
     // Admin pricing/listing governance (setSubscriptionFee, resetSubscriptionFeeBaseline,
     // toggleListingVerification, toggleListingActive) used to be duplicated here — dead
     // leftovers from before AdminViewModel existed, still called from the "admin_forecast"
-    // drawer dialog (a fully unreachable duplicate of AdminConsoleScreen's already-correct
-    // Dynamic Pricing Engine tab), silently discarding the Boolean result with no success/
-    // failure feedback of any kind. Both the dialog and these wrappers are removed; use
+    // drawer dialog (a fully unreachable duplicate of AdminConsoleScreen's own Revenue &
+    // Run-Rate tab), silently discarding the Boolean result with no success/failure
+    // feedback of any kind. Both the dialog and these wrappers are removed; use
     // AdminViewModel's checked equivalents instead.
 
     // --- Whish Pay Settlement ---

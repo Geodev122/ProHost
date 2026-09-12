@@ -38,8 +38,23 @@ class AdminViewModel(
         // accurate enough for this analytics view. refreshHashtagAnalytics() below
         // can be called again to re-fetch on demand.
         refreshHashtagAnalytics()
+        // MRR depends on FOUR independent live sources (listings, pricing, the schema's
+        // per-category prices, and each owner's package tier) that resolve at different
+        // times on cold start — recomputing only from the `spaces` listener (as this
+        // used to) meant whichever of the other three hadn't arrived yet at that moment
+        // silently fed stale/default values into the calculation, with no later
+        // recompute once they did. This is exactly why Active/Capacity MRR could show a
+        // different number on every login — same real listings, different pricing/tier
+        // data available by the time the (single) recompute happened to fire. combine()
+        // re-runs the calculation whenever ANY of the four changes, so it's always
+        // computed from the latest of all of them.
         viewModelScope.launch {
-            repository.spaces.collect { spaces ->
+            combine(
+                repository.spaces,
+                repository.pricingState,
+                repository.spaceArchitectureSchema,
+                repository.users
+            ) { spaces, _, _, _ -> spaces }.collect { spaces ->
                 _uiState.update {
                     it.copy(
                         allSpaces = spaces,
@@ -528,16 +543,6 @@ class AdminViewModel(
         _uiState.update { it.copy(isExportDialogOpen = false, exportDataContent = "") }
     }
 
-    fun exportAllAuditReport() {
-        val content = repository.exportToAuditText()
-        openExportDialog("Full ProHost Audit & Revenue Report", content, "TXT")
-    }
-
-    fun exportAllJson() {
-        val content = repository.exportToJson()
-        openExportDialog("ProHost Platform JSON Export", content, "JSON")
-    }
-
     fun exportUsersDirectory(format: String = "CSV") {
         val content = if (format == "JSON") repository.exportUsersToJson() else repository.exportUsersToCsv()
         openExportDialog("ProHost Registered Users Directory (${format})", content, format)
@@ -573,4 +578,10 @@ class AdminViewModel(
     fun exportAuditLogsCsv(startDateMillis: Long?, endDateMillis: Long?): String {
         return repository.exportAuditLogsToCsv(startDateMillis, endDateMillis)
     }
+
+    /** "One-Click System Exports" content getters — the buttons write these to a real
+     * file (rememberFileExportLauncher) rather than opening the clipboard/share-only
+     * AdminExportDataDialog every other export button on this screen still uses. */
+    fun getFullAuditReport(): String = repository.exportToAuditText()
+    fun getMasterJsonExport(): String = repository.exportToJson()
 }
