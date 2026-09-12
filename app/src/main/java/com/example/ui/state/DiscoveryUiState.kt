@@ -8,7 +8,9 @@ import com.example.data.model.*
 data class DiscoveryFilterState(
     val query: String = "",
     val selectedGovernorate: Governorate? = null,
-    val selectedSpaceType: SpaceType? = null,
+    // A SchemaItem.id from the admin-defined Space Category catalog (or a legacy
+    // SpaceType name from the empty-schema fallback) — see SpaceListing.matchesCategory.
+    val selectedCategoryId: String? = null,
     val selectedFormulaType: RentalFormulaType? = null,
     val selectedFacility: String? = null,
     val selectedEquipmentCategory: EquipmentCategory? = null,

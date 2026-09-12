@@ -25,7 +25,9 @@ data class AdminUiState(
     val selectedUserRoleFilter: UserRole? = null,
 
     val listingSearchQuery: String = "",
-    val selectedListingTypeFilter: SpaceType? = null,
+    // A SchemaItem.id from the admin-defined Space Category catalog (or a legacy
+    // SpaceType name) — see SpaceListing.matchesCategory.
+    val selectedListingTypeFilter: String? = null,
     val selectedListingStatusFilter: String = "ALL", // "ALL", "ACTIVE_30D", "EXPIRED", "VERIFIED"
 
     val txSearchQuery: String = "",
@@ -88,7 +90,7 @@ data class AdminUiState(
                     space.ownerPhone.contains(listingSearchQuery, ignoreCase = true) ||
                     space.governorate.displayName.contains(listingSearchQuery, ignoreCase = true)
 
-            val matchesType = selectedListingTypeFilter == null || space.spaceType == selectedListingTypeFilter
+            val matchesType = space.matchesCategory(selectedListingTypeFilter)
             val matchesStatus = when (selectedListingStatusFilter) {
                 "ACTIVE_30D" -> space.isActiveSubscription
                 "EXPIRED" -> !space.isActiveSubscription

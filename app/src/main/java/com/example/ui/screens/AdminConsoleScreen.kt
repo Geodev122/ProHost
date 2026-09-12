@@ -1025,22 +1025,27 @@ private fun AdminListingsCatalogTab(
                         singleLine = true
                     )
 
-                    // Space Type Filter Chips
-                    Text("Filter by Workspace Type:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    // Space Category Filter Chips — from the admin-defined catalog
+                    // (the same one the host's Create wizard publishes under), so an
+                    // admin-added category is filterable here the moment it exists.
+                    val categoryFilterOptions = uiState.schema.spaceTypes.filter { it.isEnabled }.ifEmpty {
+                        SpaceType.values().map { SchemaItem(id = it.name, name = it.displayName, category = "SPACE_TYPE") }
+                    }
+                    Text("Filter by Space Category:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         item {
                             FilterChip(
                                 selected = uiState.selectedListingTypeFilter == null,
                                 onClick = { adminViewModel.setListingTypeFilter(null) },
-                                label = { Text("All Types (${uiState.allSpaces.size})", style = MaterialTheme.typography.labelSmall) }
+                                label = { Text("All Categories (${uiState.allSpaces.size})", style = MaterialTheme.typography.labelSmall) }
                             )
                         }
-                        items(SpaceType.entries) { type ->
-                            val count = uiState.allSpaces.count { it.spaceType == type }
+                        items(categoryFilterOptions) { category ->
+                            val count = uiState.allSpaces.count { it.matchesCategory(category.id) }
                             FilterChip(
-                                selected = uiState.selectedListingTypeFilter == type,
-                                onClick = { adminViewModel.setListingTypeFilter(type) },
-                                label = { Text("${type.displayName} ($count)", style = MaterialTheme.typography.labelSmall) }
+                                selected = uiState.selectedListingTypeFilter == category.id,
+                                onClick = { adminViewModel.setListingTypeFilter(category.id) },
+                                label = { Text("${category.name} ($count)", style = MaterialTheme.typography.labelSmall) }
                             )
                         }
                     }

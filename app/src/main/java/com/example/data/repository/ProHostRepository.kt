@@ -710,8 +710,7 @@ class ProHostRepository {
                 "city" to safeUpdate.city,
                 "profilePictureUrl" to safeUpdate.profilePictureUrl,
                 "idDocumentUrl" to safeUpdate.idDocumentUrl,
-                "subscriptionExpiryMillis" to safeUpdate.subscriptionExpiryMillis,
-                "paygListingsBoughtCount" to safeUpdate.paygListingsBoughtCount
+                "subscriptionExpiryMillis" to safeUpdate.subscriptionExpiryMillis
             )
         )
         if (success) {

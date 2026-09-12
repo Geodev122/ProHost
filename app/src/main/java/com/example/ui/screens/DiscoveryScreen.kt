@@ -61,12 +61,20 @@ fun DiscoveryScreen(
         architectureSchema.amenities.filter { it.isEnabled }.map { it.name }
             .ifEmpty { FacilityCatalog.standard }
     }
+    // Same catalog + empty-schema fallback CreateListingDialog's picker uses, so
+    // what a host could publish under and what a specialist can filter by agree.
+    val categoryOptions = remember(architectureSchema) {
+        architectureSchema.spaceTypes.filter { it.isEnabled }.ifEmpty {
+            SpaceType.values().map { SchemaItem(id = it.name, name = it.displayName, category = "SPACE_TYPE") }
+        }
+    }
 
     DiscoveryScreenContent(
         spaces = uiState.filteredSpaces,
         searchQuery = uiState.filterState.query,
         selectedGovernorate = uiState.filterState.selectedGovernorate,
-        selectedSpaceType = uiState.filterState.selectedSpaceType,
+        categoryOptions = categoryOptions,
+        selectedCategoryId = uiState.filterState.selectedCategoryId,
         selectedFormulaType = uiState.filterState.selectedFormulaType,
         availableFacilities = availableFacilities,
         selectedFacility = uiState.filterState.selectedFacility,
@@ -82,7 +90,7 @@ fun DiscoveryScreen(
         onToggleMapView = { discoveryViewModel.toggleMapView() },
         onSetFilterSheetVisible = { discoveryViewModel.setFilterSheetVisible(it) },
         onSelectGovernorate = { discoveryViewModel.setGovernorateFilter(it) },
-        onSelectSpaceType = { discoveryViewModel.setSpaceTypeFilter(it) },
+        onSelectCategory = { discoveryViewModel.setCategoryFilter(it) },
         onSelectFormulaType = { discoveryViewModel.setFormulaFilter(it) },
         onSelectFacility = { discoveryViewModel.setFacilityFilter(it) },
         onSelectEquipmentCategory = { discoveryViewModel.setEquipmentCategoryFilter(it) },
@@ -107,7 +115,11 @@ fun DiscoveryScreenContent(
     spaces: List<SpaceListing>,
     searchQuery: String,
     selectedGovernorate: Governorate?,
-    selectedSpaceType: SpaceType?,
+    // Admin-defined Space Category catalog (enabled SchemaItems, category
+    // "SPACE_TYPE"); defaults to the four legacy types for any caller not yet
+    // passing the live list.
+    categoryOptions: List<SchemaItem> = SpaceType.values().map { SchemaItem(id = it.name, name = it.displayName, category = "SPACE_TYPE") },
+    selectedCategoryId: String?,
     selectedFormulaType: RentalFormulaType?,
     selectedFacility: String?,
     // Admin-managed facility catalog (enabled SchemaItems, category "AMENITY") —
@@ -126,7 +138,7 @@ fun DiscoveryScreenContent(
     onToggleMapView: () -> Unit,
     onSetFilterSheetVisible: (Boolean) -> Unit,
     onSelectGovernorate: (Governorate?) -> Unit,
-    onSelectSpaceType: (SpaceType?) -> Unit,
+    onSelectCategory: (String?) -> Unit,
     onSelectFormulaType: (RentalFormulaType?) -> Unit,
     onSelectFacility: (String?) -> Unit,
     onSelectEquipmentCategory: (EquipmentCategory?) -> Unit,
@@ -210,7 +222,7 @@ fun DiscoveryScreenContent(
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         val hasActiveFilter = selectedGovernorate != null ||
-                                selectedSpaceType != null ||
+                                selectedCategoryId != null ||
                                 selectedFormulaType != null ||
                                 selectedFacility != null ||
                                 selectedEquipmentCategory != null ||
@@ -391,13 +403,13 @@ fun DiscoveryScreenContent(
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
-                Text("Space Type", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                Text("Space Category", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(SpaceType.entries) { type ->
+                    items(categoryOptions) { category ->
                         FilterChip(
-                            selected = selectedSpaceType == type,
-                            onClick = { onSelectSpaceType(if (selectedSpaceType == type) null else type) },
-                            label = { Text(type.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                            selected = selectedCategoryId == category.id,
+                            onClick = { onSelectCategory(if (selectedCategoryId == category.id) null else category.id) },
+                            label = { Text(category.name, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                 }

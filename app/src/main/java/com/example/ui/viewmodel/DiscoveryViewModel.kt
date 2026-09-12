@@ -52,7 +52,7 @@ class DiscoveryViewModel(
                     space.spaceType.displayName.contains(filter.query, ignoreCase = true)
 
             val matchesGov = filter.selectedGovernorate == null || space.governorate == filter.selectedGovernorate
-            val matchesType = filter.selectedSpaceType == null || space.spaceType == filter.selectedSpaceType
+            val matchesType = space.matchesCategory(filter.selectedCategoryId)
             val matchesFormula = filter.selectedFormulaType == null || space.rentalFormulas.any { it.type == filter.selectedFormulaType }
             val matchesFacility = filter.selectedFacility == null || space.essentialFacilities.contains(filter.selectedFacility)
             val matchesEquip = filter.selectedEquipmentCategory == null || space.equipment.any { it.category == filter.selectedEquipmentCategory }
@@ -87,8 +87,8 @@ class DiscoveryViewModel(
         _filterState.update { it.copy(selectedGovernorate = gov) }
     }
 
-    fun setSpaceTypeFilter(type: SpaceType?) {
-        _filterState.update { it.copy(selectedSpaceType = type) }
+    fun setCategoryFilter(categoryId: String?) {
+        _filterState.update { it.copy(selectedCategoryId = categoryId) }
     }
 
     fun setFormulaFilter(formula: RentalFormulaType?) {

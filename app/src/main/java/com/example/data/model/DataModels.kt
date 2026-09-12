@@ -10,6 +10,36 @@ enum class SpaceType(val displayName: String, val iconName: String) {
     COWORKING_SPACE("Co-working Space", "Groups")
 }
 
+/**
+ * The legacy enum value an admin-defined Space Category id maps onto, if any —
+ * the four seeded schema ids (ST-01..ST-04) and the bare enum names (what the
+ * pickers fall back to when the schema is empty). Null for any other category:
+ * an admin-added one has no legacy equivalent, which is exactly the case the
+ * closed-enum filters could never express.
+ */
+fun legacySpaceTypeForCategoryId(categoryId: String?): SpaceType? = when (categoryId) {
+    "ST-01", SpaceType.PRIVATE_OFFICE.name -> SpaceType.PRIVATE_OFFICE
+    "ST-02", SpaceType.CENTER.name -> SpaceType.CENTER
+    "ST-03", SpaceType.POLYCLINIC.name -> SpaceType.POLYCLINIC
+    "ST-04", SpaceType.COWORKING_SPACE.name -> SpaceType.COWORKING_SPACE
+    else -> null
+}
+
+/**
+ * Category-filter match for Discovery and the Admin listings table. A null
+ * [categoryId] means "all". Matches on the real spaceCategoryId first; for a
+ * listing written before spaceCategoryId existed (or whose id came from the
+ * empty-schema fallback list), falls back to comparing the legacy SpaceType both
+ * sides map onto, so the four original categories keep matching old data.
+ */
+fun SpaceListing.matchesCategory(categoryId: String?): Boolean {
+    if (categoryId == null) return true
+    if (spaceCategoryId == categoryId) return true
+    val legacy = legacySpaceTypeForCategoryId(categoryId) ?: return false
+    val ownId = spaceCategoryId
+    return if (ownId != null) legacySpaceTypeForCategoryId(ownId) == legacy else spaceType == legacy
+}
+
 // Shared with both the listing-creation facility toggles and the Discovery
 // filter sheet, so a facility a host offers is spelled identically to the
 // one a specialist filters by.
@@ -1323,7 +1353,6 @@ data class AppUser(
             "subscriptionExpiryMillis" to subscriptionExpiryMillis,
             "ownerPackageTier" to ownerPackageTier.name,
             "ownerPackageExpiryMillis" to ownerPackageExpiryMillis,
-            "paygListingsBoughtCount" to paygListingsBoughtCount,
             "savedSpaceIds" to savedSpaceIds,
             "updatedAt" to System.currentTimeMillis()
         )

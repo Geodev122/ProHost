@@ -283,12 +283,12 @@ class AdminViewModel(
         _uiState.update { it.copy(listingSearchQuery = query) }
     }
 
-    fun setSelectedListingTypeFilter(type: SpaceType?) {
-        _uiState.update { it.copy(selectedListingTypeFilter = type) }
+    fun setSelectedListingTypeFilter(categoryId: String?) {
+        _uiState.update { it.copy(selectedListingTypeFilter = categoryId) }
     }
 
-    fun setListingTypeFilter(type: SpaceType?) {
-        setSelectedListingTypeFilter(type)
+    fun setListingTypeFilter(categoryId: String?) {
+        setSelectedListingTypeFilter(categoryId)
     }
 
     fun setSelectedListingStatusFilter(status: String) {

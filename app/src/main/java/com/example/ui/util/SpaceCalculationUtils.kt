@@ -237,6 +237,17 @@ object SpaceCalculationUtils {
             RentalStrategyType.HOURLY -> slots.sumOf { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0 }
             else -> slots.sumOf { it.pricesByRecurrence[recurrence] ?: 0.0 }
         }
+        // Real weekly hours from the slots themselves — this feeds the host's
+        // utilization stat (OwnerHubScreen), the "hrs/wk deducted" note
+        // (OwnerIncomingRequestsView) and the booked-hours sum
+        // (SpaceAvailabilityCalendarView), all of which read
+        // RentalFormula.totalWeeklyHours and were showing its hardcoded default
+        // of 30 for every booking before this was computed.
+        val weeklyHours = slots.sumOf { slot ->
+            val from = parseHour(slot.startTime) ?: 0
+            val to = parseHour(slot.endTime) ?: from
+            (to - from).coerceAtLeast(0)
+        }
         return RentalFormula(
             id = first.sourceFormulaId,
             type = legacyFormulaType(strategy),
@@ -245,6 +256,7 @@ object SpaceCalculationUtils {
             daysOfWeek = days,
             startHour = slots.minByOrNull { it.startTime }?.startTime ?: first.startTime,
             endHour = slots.maxByOrNull { it.endTime }?.endTime ?: first.endTime,
+            totalWeeklyHours = weeklyHours,
             daysCountRequired = days.size.coerceAtLeast(1),
             shiftName = if (strategy == RentalStrategyType.SHIFT_BASED) first.groupLabel.substringAfter("• ") else "Morning Shift"
         )
