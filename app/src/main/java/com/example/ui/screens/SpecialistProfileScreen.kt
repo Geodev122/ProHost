@@ -79,6 +79,8 @@ fun SpecialistProfileScreen(
     var city by remember(user) { mutableStateOf(user.city) }
     var pendingCancelRequest by remember { mutableStateOf<RentalBookingRequest?>(null) }
     var isSavingProfile by remember { mutableStateOf(false) }
+    var idDocState by remember { mutableStateOf(com.example.ui.components.DocumentPickerState()) }
+    var isUploadingIdDoc by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -616,6 +618,39 @@ fun SpecialistProfileScreen(
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
+                    }
+
+                    // Real upload control — idDocumentUrl used to only ever be set once,
+                    // by the registration Cloud Function; there was no way for any
+                    // account to set/replace it afterward, which permanently stuck any
+                    // account that skips registration (most notably an Admin created via
+                    // bootstrapSuperAdmin/grantAdminRole) at "No ID document on file"
+                    // with no recourse. firestore.rules already permits this self-write.
+                    com.example.ui.components.DocumentPickerField(
+                        label = if (user.idDocumentUrl != null) "Replace ID Document" else "Upload ID Document",
+                        helperText = "PDF, JPG, or PNG",
+                        state = idDocState,
+                        onStateChanged = { newState ->
+                            idDocState = newState
+                            val uri = newState.uri
+                            if (uri != null) {
+                                coroutineScope.launch {
+                                    isUploadingIdDoc = true
+                                    val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
+                                    val ext = newState.fileName?.substringAfterLast('.', "pdf") ?: "pdf"
+                                    val url = storageService.uploadIdDocument(user.id, uri, ext)
+                                    if (url != null) {
+                                        viewModel.updateIdDocument(url)
+                                    }
+                                    isUploadingIdDoc = false
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        required = false
+                    )
+                    if (isUploadingIdDoc) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     }
 
                     Spacer(modifier = Modifier.height(Spacing.xs))

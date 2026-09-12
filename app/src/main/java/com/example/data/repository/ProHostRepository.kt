@@ -1674,6 +1674,33 @@ class ProHostRepository {
     }
 
     /**
+     * Sets/replaces the signed-in user's own ID document (Storage upload already
+     * done by the caller — this just records the resulting URL). idDocumentUrl was
+     * previously only ever written once, by the registration Cloud Function
+     * (assignInitialRole.ts) — any account that never went through registration
+     * (most notably an Admin created via bootstrapSuperAdmin/grantAdminRole, which
+     * only ever set role) had this field permanently null with no way to ever set
+     * it. firestore.rules' user_profiles update rule already permits a self-write
+     * to this field (it's not in the protected-fields list — unlike role/
+     * isVerified/etc., ID-document-on-file isn't an entitlement or a
+     * server-computed fact), so this is a direct client write, the same pattern
+     * updateCurrentUserProfile uses for its own targeted fields.
+     */
+    suspend fun updateIdDocument(idDocumentUrl: String): Boolean {
+        val current = _currentUser.value ?: return false
+        val success = firestoreService.updateUserProfileFields(
+            current.id,
+            mapOf("idDocumentUrl" to idDocumentUrl)
+        )
+        if (success) {
+            val updated = current.copy(idDocumentUrl = idDocumentUrl)
+            _currentUser.value = updated
+            _users.value = _users.value.map { if (it.id == updated.id) updated else it }
+        }
+        return success
+    }
+
+    /**
      * Toggles [spaceId] in the current user's personal saved/favorites list. Not a
      * protected field — any signed-in user may freely write their own savedSpaceIds,
      * so a plain merge write of the recomputed list is enough (no rules change needed).

@@ -420,6 +420,13 @@ class ProHostViewModel(
         return repository.updateCurrentUserProfile(name, specialty, phone, country, governorate, city, profilePictureUrl)
     }
 
+    /** Sets/replaces the signed-in user's own ID document — see
+     * ProHostRepository.updateIdDocument's doc comment for why this needed to
+     * exist at all (previously only ever settable once, at registration). */
+    suspend fun updateIdDocument(idDocumentUrl: String): Boolean {
+        return repository.updateIdDocument(idDocumentUrl)
+    }
+
     // Fires exactly once per space-detail view (call from a LaunchedEffect(space.id),
     // not on every recomposition) — real engagement data replacing the old fixed 850
     // placeholder.
