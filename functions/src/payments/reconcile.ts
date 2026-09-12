@@ -13,6 +13,14 @@ import { recordAuditLog } from "../lib/auditLog";
  *
  * Idempotent: once a transaction is SUCCESS or FAILED, calling this again is a no-op
  * that just returns the stored status — entitlements are never granted twice.
+ *
+ * This function is reached from two independent triggers by design — the client
+ * polling checkWhishStatus AND Whish's own webhook — so it's routine for two calls
+ * to be in flight for the same txId at once. The status-transition write below is
+ * wrapped in a Firestore transaction specifically so only one of them ever "wins"
+ * the PENDING -> SUCCESS/FAILED claim and calls grantEntitlement; without that, both
+ * could independently observe PENDING, both get "success" back from Whish, and both
+ * grant the entitlement (double PAYG credit, double subscription renewal, etc).
  */
 export async function reconcileTransaction(
   txId: string,
@@ -36,22 +44,36 @@ export async function reconcileTransaction(
     return "PENDING";
   }
 
-  if (result.status === "success") {
-    await ref.set({ status: "SUCCESS" }, { merge: true });
+  if (result.status !== "success" && result.status !== "failed") {
+    return "PENDING";
+  }
+  const newStatus: "SUCCESS" | "FAILED" = result.status === "success" ? "SUCCESS" : "FAILED";
+
+  // Atomically claim the PENDING -> newStatus transition. If a concurrent call
+  // already claimed it (between our plain read above and now), this one backs off
+  // instead of also granting the entitlement / recording a second failure log.
+  const claimed = await db.runTransaction(async (t) => {
+    const freshSnap = await t.get(ref);
+    if (freshSnap.data()?.status !== "PENDING") return false;
+    t.set(ref, { status: newStatus }, { merge: true });
+    return true;
+  });
+
+  if (!claimed) {
+    const finalSnap = await ref.get();
+    return (finalSnap.data()?.status as "SUCCESS" | "FAILED" | undefined) ?? "PENDING";
+  }
+
+  if (newStatus === "SUCCESS") {
     await grantEntitlement({ ...tx, status: "SUCCESS" });
     return "SUCCESS";
   }
 
-  if (result.status === "failed") {
-    await ref.set({ status: "FAILED" }, { merge: true });
-    await recordAuditLog({
-      actionType: "WHISH_PAYMENT_FAILED",
-      details: `Order ${tx.orderId} for purpose ${tx.purpose} (target ${tx.targetId}) did not settle.`,
-      actorEmail: tx.payerName,
-      severity: "WARN",
-    });
-    return "FAILED";
-  }
-
-  return "PENDING";
+  await recordAuditLog({
+    actionType: "WHISH_PAYMENT_FAILED",
+    details: `Order ${tx.orderId} for purpose ${tx.purpose} (target ${tx.targetId}) did not settle.`,
+    actorEmail: tx.payerName,
+    severity: "WARN",
+  });
+  return "FAILED";
 }
