@@ -39,6 +39,7 @@ fun OwnerSubscriptionsScreen(
     // autoPublishDraftIfNeeded), so surface that clearly rather than leaving the
     // host wondering what buying a slot here actually does for them right now.
     val pendingAutoPublishDraftId by viewModel.pendingAutoPublishDraftId.collectAsState()
+    val isCheckoutInFlight by viewModel.isWhishCheckoutInFlight.collectAsState()
     // Admin-defined Space Category catalog — same fallback-to-legacy-4 pattern as
     // CreateListingDialog's picker, so the Buy dialog and the wizard never disagree
     // about what categories exist.
@@ -363,10 +364,10 @@ fun OwnerSubscriptionsScreen(
                         )
                         showSubscribeDialog = false
                     },
-                    enabled = !(selectedTierToSubscribe == OwnerPackageTier.PAY_AS_YOU_GO && selectedPaygIsUnpriced),
+                    enabled = !(selectedTierToSubscribe == OwnerPackageTier.PAY_AS_YOU_GO && selectedPaygIsUnpriced) && !isCheckoutInFlight,
                     colors = ButtonDefaults.buttonColors(containerColor = FreshGreen)
                 ) {
-                    Text("Go to Whish Pay", color = PureWhite, fontWeight = FontWeight.Bold)
+                    Text(if (isCheckoutInFlight) "Starting payment..." else "Go to Whish Pay", color = PureWhite, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -445,11 +446,15 @@ fun OwnerSubscriptionsScreen(
                         }
                         showPaygBuyDialog = false
                     },
-                    enabled = selectedCategoryForPayg != null && !selectedPaygIsUnpriced,
+                    enabled = selectedCategoryForPayg != null && !selectedPaygIsUnpriced && !isCheckoutInFlight,
                     colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                 ) {
                     Text(
-                        if (selectedPaygIsUnpriced) "Category not priced yet" else "Go to Whish Pay",
+                        when {
+                            selectedPaygIsUnpriced -> "Category not priced yet"
+                            isCheckoutInFlight -> "Starting payment..."
+                            else -> "Go to Whish Pay"
+                        },
                         color = PureWhite,
                         fontWeight = FontWeight.Bold
                     )

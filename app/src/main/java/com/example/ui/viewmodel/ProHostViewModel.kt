@@ -120,6 +120,15 @@ class ProHostViewModel(
     // independently confirms success with Whish itself. See
     // functions/src/payments/initiateWhishPayment.ts.
 
+    // Guards against a double-submit launching two separate Whish transactions for
+    // the same purchase (e.g. a rapid double-tap on "Go to Whish Pay" before the
+    // confirmation dialog closes) — each would be a real, independently-charged
+    // order server-side, not a harmless duplicate click. Exposed so the buttons
+    // that call payOwnerPackageViaWhish/payPaygListingViaWhish can grey out while
+    // one is already in flight, on top of the hard guard below.
+    private val _isWhishCheckoutInFlight = MutableStateFlow(false)
+    val isWhishCheckoutInFlight: StateFlow<Boolean> = _isWhishCheckoutInFlight.asStateFlow()
+
     private fun launchWhishCheckout(
         purpose: String,
         targetId: String,
@@ -128,8 +137,14 @@ class ProHostViewModel(
         context: Context,
         draftListingId: String? = null
     ) {
+        if (_isWhishCheckoutInFlight.value) return
+        _isWhishCheckoutInFlight.value = true
         viewModelScope.launch {
-            val result = functionsClient.initiateWhishPayment(purpose, targetId, payerName, payerPhone, draftListingId)
+            val result = try {
+                functionsClient.initiateWhishPayment(purpose, targetId, payerName, payerPhone, draftListingId)
+            } finally {
+                _isWhishCheckoutInFlight.value = false
+            }
             result.onSuccess { init ->
                 try {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(init.collectUrl)))

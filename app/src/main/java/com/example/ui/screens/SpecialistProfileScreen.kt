@@ -70,6 +70,7 @@ fun SpecialistProfileScreen(
     var governorateArea by remember(user) { mutableStateOf(user.governorate) }
     var city by remember(user) { mutableStateOf(user.city) }
     var pendingCancelRequest by remember { mutableStateOf<RentalBookingRequest?>(null) }
+    var isSavingProfile by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -612,8 +613,11 @@ fun SpecialistProfileScreen(
                     Spacer(modifier = Modifier.height(Spacing.xs))
 
                     ProPrimaryButton(
-                        text = "Save Profile Changes",
+                        text = if (isSavingProfile) "Saving..." else "Save Profile Changes",
+                        enabled = !isSavingProfile,
+                        isLoading = isSavingProfile,
                         onClick = {
+                            isSavingProfile = true
                             coroutineScope.launch {
                                 var profilePictureUrl: String? = null
                                 val localPicUri = pendingProfilePicUri
@@ -628,6 +632,7 @@ fun SpecialistProfileScreen(
                                     selectedCountry.name, governorateArea, city,
                                     profilePictureUrl
                                 )
+                                isSavingProfile = false
                                 Toast.makeText(
                                     context,
                                     if (success) "Profile Updated Successfully!" else "Failed to update profile — please try again",
