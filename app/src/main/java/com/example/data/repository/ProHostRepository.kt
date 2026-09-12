@@ -1028,7 +1028,6 @@ class ProHostRepository {
         calculatedTotalUsd: Double = 0.0,
         subdivisionId: String? = null,
         subdivisionName: String? = null,
-        selectedStrategy: String? = null,
         replacesBookingId: String? = null
     ): RentalBookingRequest {
         val requestId = "REQ-LB-" + (1000..9999).random()
@@ -1069,7 +1068,6 @@ class ProHostRepository {
             createdAt = System.currentTimeMillis(),
             subdivisionId = subdivisionId,
             subdivisionName = subdivisionName,
-            selectedStrategy = selectedStrategy,
             replacesBookingId = replacesBookingId
         )
 

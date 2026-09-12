@@ -481,7 +481,6 @@ class ProHostViewModel(
         calculatedTotalUsd: Double = 0.0,
         subdivisionId: String? = null,
         subdivisionName: String? = null,
-        selectedStrategy: String? = null,
         replacesBookingId: String? = null
     ): RentalBookingRequest? {
         val user = currentUser.value
@@ -504,7 +503,6 @@ class ProHostViewModel(
             calculatedTotalUsd = calculatedTotalUsd,
             subdivisionId = subdivisionId,
             subdivisionName = subdivisionName,
-            selectedStrategy = selectedStrategy,
             replacesBookingId = replacesBookingId
         )
 

@@ -755,7 +755,6 @@ fun RentalBookingDialog(
                                 calculatedTotalUsd = totalCalculatedUsd,
                                 subdivisionId = selectedSubdivision?.id,
                                 subdivisionName = selectedSubdivision?.name,
-                                selectedStrategy = selectedStrategyType?.name,
                                 replacesBookingId = replacesBookingId
                             )
                             onRequestSubmitted()
@@ -787,7 +786,6 @@ fun RentalBookingDialog(
                                 calculatedTotalUsd = totalCalculatedUsd,
                                 subdivisionId = selectedSubdivision?.id,
                                 subdivisionName = selectedSubdivision?.name,
-                                selectedStrategy = selectedStrategyType?.name,
                                 replacesBookingId = replacesBookingId
                             )
                             onRequestSubmitted()

@@ -540,7 +540,6 @@ data class BookingRequest(
     val rejectionReason: String? = null,
     val subdivisionId: String? = null,
     val subdivisionName: String? = null,
-    val selectedStrategy: String? = null,
     // Set by the practitioner when submitting an edit to an already-ACCEPTED
     // booking (see MyBookingsScreen's "Edit Booking" action) — this new request
     // goes through the normal PENDING -> host-review cycle like any other, but if
@@ -619,7 +618,6 @@ data class BookingRequest(
             "rejectionReason" to rejectionReason,
             "subdivisionId" to subdivisionId,
             "subdivisionName" to subdivisionName,
-            "selectedStrategy" to selectedStrategy,
             "replacesBookingId" to replacesBookingId,
             "agreementUrl" to agreementUrl,
             "cancellationReasonCode" to cancellationReasonCode,
@@ -691,7 +689,6 @@ data class BookingRequest(
                 rejectionReason = data["rejectionReason"] as? String,
                 subdivisionId = data["subdivisionId"] as? String,
                 subdivisionName = data["subdivisionName"] as? String,
-                selectedStrategy = data["selectedStrategy"] as? String,
                 replacesBookingId = data["replacesBookingId"] as? String,
                 agreementUrl = data["agreementUrl"] as? String,
                 cancellationReasonCode = data["cancellationReasonCode"] as? String,
