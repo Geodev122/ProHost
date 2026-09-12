@@ -28,6 +28,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
+import com.example.ui.viewmodel.ListingCreateResult
 import com.example.ui.viewmodel.ProHostViewModel
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -329,6 +330,13 @@ fun OwnerHubScreen(
                                 "Saved as a Draft — buy a paid slot for this category to publish it automatically.",
                                 "Couldn't save this as a Draft — check your connection and try Publish again once you've bought a slot."
                             )
+                        }
+                        else -> {
+                            android.widget.Toast.makeText(
+                                context,
+                                "Couldn't publish this listing — check your connection and try again.",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
                         }
                     }
                 }

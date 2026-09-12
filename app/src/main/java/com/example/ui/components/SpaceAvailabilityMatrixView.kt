@@ -40,6 +40,7 @@ import com.example.ui.util.SpaceCalculationUtils
  * editor uses for its on/off toggles, grouped by day, so what a Specialist sees
  * here and what the host actually configured can never disagree.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SpaceAvailabilityMatrixView(
     space: SpaceListing,

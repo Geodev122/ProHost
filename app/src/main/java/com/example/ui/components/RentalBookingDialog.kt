@@ -45,7 +45,7 @@ private fun recurrenceLabel(recurrence: BookingRecurrence): String = when (recur
     BookingRecurrence.SAME_DAY_EVERY_MONTH -> "Same day, every month"
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun RentalBookingDialog(
     space: SpaceListing,
