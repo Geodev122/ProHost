@@ -1,6 +1,7 @@
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { recordAuditLog } from "./auditLog";
+import { validateListingForPublish } from "../listings/publishValidation";
 
 export type WhishPurpose = "SUBSCRIPTION" | "OWNER_PACKAGE" | "PAYG_LISTING";
 
@@ -75,6 +76,17 @@ async function grantProHostRoleIfNeeded(uid: string): Promise<void> {
  * Deliberately conservative: only ever touches a Draft this same user owns, and does
  * nothing if it's already left the Draft state (already published or deleted) or
  * doesn't exist — never resurrects or hijacks a listing.
+ *
+ * Validates BEFORE flipping the Draft to ACTIVE. listingCountTracker.ts's
+ * onWorkspaceListingStatusChanged only actually consumes the PAYG/quota credit
+ * this payment just purchased when a real Draft -> ACTIVE transition happens —
+ * flipping an incomplete Draft to ACTIVE used to burn that credit immediately,
+ * and a moment later onWorkspaceListingPublishValidation would demote it
+ * straight back to Draft (the listing was never actually live), leaving the
+ * host having paid for a credit they no longer had anything to show for. Skip
+ * the transition entirely when the Draft still fails validation instead — the
+ * credit stays unspent, and the host can finish the listing and publish it for
+ * real (consuming the credit exactly once) without paying again.
  */
 async function autoPublishDraftIfNeeded(tx: WhishTransactionDoc): Promise<void> {
   if (!tx.draftListingId) return;
@@ -84,6 +96,18 @@ async function autoPublishDraftIfNeeded(tx: WhishTransactionDoc): Promise<void> 
   if (!snap.exists) return;
   const draft = snap.data();
   if (draft?.ownerId !== tx.userId || draft?.status !== "DRAFT") return;
+
+  const problems = validateListingForPublish(draft as any);
+  if (problems.length > 0) {
+    await draftRef.set({ publishBlockedReasons: problems, updatedAt: Date.now() }, { merge: true });
+    await recordAuditLog({
+      actionType: "LISTING_AUTO_PUBLISH_SKIPPED_INCOMPLETE",
+      details: `Draft ${tx.draftListingId} NOT auto-published after ${tx.purpose} payment (order ${tx.orderId}) settled — still missing: ${problems.join(" ")}. Credit preserved for a later publish.`,
+      actorEmail: tx.payerName,
+      severity: "WARN",
+    });
+    return;
+  }
 
   await draftRef.set({ status: "ACTIVE", updatedAt: Date.now() }, { merge: true });
   await recordAuditLog({
