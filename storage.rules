@@ -26,7 +26,13 @@ service firebase.storage {
     // read for reference, never write.
     match /id_documents/{uid}/{fileName} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
-      allow write: if isSignedIn() && request.auth.uid == uid &&
+      // create/update, not the "write" shorthand — write includes delete, which
+      // would make the "allow delete: if false" below a dead no-op (Storage
+      // rules OR every matching allow block for a method; a true delete below
+      // can't override a write rule that already permits it). Splitting these
+      // is what actually makes this file permanently non-deletable, matching
+      // the stated intent that a registrant's ID document is kept on file.
+      allow create, update: if isSignedIn() && request.auth.uid == uid &&
         withinSizeLimit() &&
         (request.resource.contentType == 'application/pdf' ||
          request.resource.contentType.matches('image/.*'));
@@ -38,7 +44,10 @@ service firebase.storage {
     // account owner or an Admin.
     match /profile_pictures/{uid}/{fileName} {
       allow read: if true;
-      allow write: if isSignedIn() && (request.auth.uid == uid || isAdmin()) &&
+      // See id_documents above for why this is "create, update" rather than
+      // "write" — write already includes delete, which would make the
+      // "allow delete: if false" below dead.
+      allow create, update: if isSignedIn() && (request.auth.uid == uid || isAdmin()) &&
         withinSizeLimit() &&
         request.resource.contentType.matches('image/.*');
       allow delete: if false;
@@ -55,9 +64,22 @@ service firebase.storage {
         (isAdmin() ||
          (firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) &&
           firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid));
-      allow write: if isSignedIn() &&
+      // The "!exists()" branch is a real, accepted gap, not an oversight: while
+      // the wizard's Firestore doc doesn't exist yet (uploads happen before
+      // Publish), Storage has no way to check WHICH PRO_HOST is entitled to
+      // this not-yet-created spaceId, so any signed-in, non-suspended PRO_HOST
+      // can write here for that brief pre-publish window. Practically bounded
+      // by spaceId being a random client-generated id (see CreateListingDialog's
+      // listingId) an attacker would have to both guess and race — closing it
+      // completely needs a client-side "reserve the Draft doc up front" change,
+      // deliberately not done here (see the follow-up task tracked for it: it
+      // needs a delete-draft affordance too, or an abandoned dialog open would
+      // leave an orphaned, undeletable Draft behind). The suspended check below
+      // is new — previously a suspended host could still write here even though
+      // they're blocked from creating the listing itself.
+      allow create, update: if isSignedIn() &&
         (isAdmin() ||
-         (role() == "PRO_HOST" &&
+         (role() == "PRO_HOST" && request.auth.token.suspended != true &&
           (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
            firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid))) &&
         withinSizeLimit() &&
@@ -79,9 +101,11 @@ service firebase.storage {
         (isAdmin() ||
          (firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) &&
           firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid));
-      allow write: if isSignedIn() &&
+      // See listing_ownership_docs above for why the "!exists()" bootstrap
+      // branch is a real, accepted, narrow gap rather than an oversight.
+      allow create, update: if isSignedIn() &&
         (isAdmin() ||
-         (role() == "PRO_HOST" &&
+         (role() == "PRO_HOST" && request.auth.token.suspended != true &&
           (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
            firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid))) &&
         withinSizeLimit() &&
@@ -105,7 +129,10 @@ service firebase.storage {
          (firestore.exists(/databases/(default)/documents/booking_requests/$(bookingId)) &&
           (firestore.get(/databases/(default)/documents/booking_requests/$(bookingId)).data.ownerId == request.auth.uid ||
            firestore.get(/databases/(default)/documents/booking_requests/$(bookingId)).data.practitionerId == request.auth.uid)));
-      allow write: if isSignedIn() &&
+      // See id_documents above for why this is "create, update" rather than
+      // "write" — write already includes delete, which would make the
+      // "allow delete: if false" below dead.
+      allow create, update: if isSignedIn() &&
         (isAdmin() ||
          (firestore.exists(/databases/(default)/documents/booking_requests/$(bookingId)) &&
           firestore.get(/databases/(default)/documents/booking_requests/$(bookingId)).data.ownerId == request.auth.uid)) &&
@@ -119,12 +146,14 @@ service firebase.storage {
     // details are browsable), writable by the listing's actual owner once the
     // Firestore doc exists — or by any PRO_HOST while it doesn't yet, since
     // photos are picked and uploaded before "Publish Listing" is tapped and the
-    // Firestore document is created.
+    // Firestore document is created. See listing_ownership_docs above for why
+    // the "!exists()" branch is a real, accepted, narrow gap (not an
+    // oversight) and why the suspended check below was added to it.
     match /listings/{spaceId}/{fileName} {
       allow read: if true;
       allow write: if isSignedIn() &&
         (isAdmin() ||
-         (role() == "PRO_HOST" &&
+         (role() == "PRO_HOST" && request.auth.token.suspended != true &&
           (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
            firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid))) &&
         withinSizeLimit() &&
