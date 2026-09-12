@@ -5,22 +5,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.example.ui.navigation.ProHostAppRoot
-import com.example.ui.screens.SplashScreen
 import com.example.ui.theme.ProHostTheme
 import com.example.util.InAppUpdateManager
-import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     private var targetTab by mutableStateOf<String?>(null)
     private var targetBookingId by mutableStateOf<String?>(null)
     private var inAppUpdateManager: InAppUpdateManager? = null
-    private var showSplash by mutableStateOf(true)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,23 +32,12 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val showSplashState = remember { mutableStateOf(showSplash) }
-
-            LaunchedEffect(Unit) {
-                delay(2000L)
-                showSplashState.value = false
-            }
-
             ProHostTheme {
-                if (showSplashState.value) {
-                    SplashScreen()
-                } else {
-                    ProHostAppRoot(
-                        deepLinkTab = targetTab,
-                        deepLinkBookingId = targetBookingId,
-                        inAppUpdateManager = inAppUpdateManager
-                    )
-                }
+                ProHostAppRoot(
+                    deepLinkTab = targetTab,
+                    deepLinkBookingId = targetBookingId,
+                    inAppUpdateManager = inAppUpdateManager
+                )
             }
         }
     }

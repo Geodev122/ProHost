@@ -2,8 +2,10 @@
 <resources>
 
     <style name="Theme.MyApplication" parent="android:Theme.DeviceDefault.NoActionBar">
-        <!-- Android 12+ splash screen background (solid color only) -->
+        <!-- API 31+ only (ignored below): matches the in-app SplashScreen's ground so
+             the system splash doesn't flash white before Compose takes over. The
+             animated-icon slot is deliberately left unset — it renders a small centered
+             icon, not a full-bleed image, so the launcher icon is the right default. -->
         <item name="android:windowSplashScreenBackground">@color/splash_background</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash</item>
     </style>
 </resources>
