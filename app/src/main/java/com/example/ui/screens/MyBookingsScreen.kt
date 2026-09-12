@@ -49,6 +49,7 @@ fun MyBookingsScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val allSpaces by viewModel.spaces.collectAsState()
     val allBookingRequests by viewModel.bookingRequests.collectAsState()
+    val hasLoadedBookingsOnce by viewModel.hasLoadedBookingsOnce.collectAsState()
     val isOffline by viewModel.isOfflineMode.collectAsState()
     val pendingOfflineTx by viewModel.pendingOfflineTransactions.collectAsState()
 
@@ -377,7 +378,14 @@ fun MyBookingsScreen(
         }
 
         // Main Bookings Content List
-        if (filteredBookings.isEmpty()) {
+        if (!hasLoadedBookingsOnce) {
+            // The first Firestore snapshot hasn't arrived yet — without this, an
+            // account with real bookings briefly showed "No bookings" before the
+            // real list streamed in, indistinguishable from actually having none.
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (filteredBookings.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

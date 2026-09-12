@@ -34,6 +34,7 @@ fun OwnerRentingProgressScreen(
     val spaces by viewModel.spaces.collectAsState()
     val allBookingRequests by viewModel.bookingRequests.collectAsState()
     val pricingState by viewModel.pricingState.collectAsState()
+    val hasLoadedBookingsOnce by viewModel.hasLoadedBookingsOnce.collectAsState()
 
     val ownerSpaces = remember(spaces, currentUser) {
         val user = currentUser
@@ -223,7 +224,19 @@ fun OwnerRentingProgressScreenContent(
             )
         }
 
-        if (activeBookings.isEmpty()) {
+        if (!hasLoadedBookingsOnce) {
+            // The first Firestore snapshot hasn't arrived yet — without this, a
+            // host with real active tenancies briefly saw "No Active Tenancies"
+            // before the real list streamed in.
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.lg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+        } else if (activeBookings.isEmpty()) {
             item {
                 ProEmptyState(
                     title = "No Active Tenancies Yet",

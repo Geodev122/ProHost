@@ -54,6 +54,7 @@ class ProHostViewModel(
     val currentUser: StateFlow<AppUser?> = repository.currentUser
     val auditLogs: StateFlow<List<AuditSecurityLog>> = repository.auditLogs
     val bookingRequests: StateFlow<List<RentalBookingRequest>> = repository.bookingRequests
+    val hasLoadedBookingsOnce: StateFlow<Boolean> = repository.hasLoadedBookingsOnce
     val fcmAlerts: StateFlow<List<FCMAlert>> = repository.fcmAlerts
     val isOfflineMode: StateFlow<Boolean> = repository.isOfflineMode
     val syncStatusMessage: StateFlow<String?> = repository.syncStatusMessage

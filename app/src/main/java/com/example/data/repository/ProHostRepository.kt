@@ -98,6 +98,16 @@ class ProHostRepository {
     private val _bookingRequests = MutableStateFlow<List<RentalBookingRequest>>(emptyList())
     val bookingRequests: StateFlow<List<RentalBookingRequest>> = _bookingRequests.asStateFlow()
 
+    // Flips true the moment the first real Firestore snapshot for bookings arrives
+    // (see onBookingsUpdated below) — distinct from bookingRequests simply being
+    // empty, which is indistinguishable from "still loading" without this. Screens
+    // reading practitionerBookings/ownerIncomingRequests (MyBookingsScreen,
+    // OwnerIncomingRequestsView, OwnerRentingProgressScreen) used to render their
+    // "No bookings yet" empty state instantly on open, even for an account with real
+    // bookings, for however long the first snapshot took to arrive.
+    private val _hasLoadedBookingsOnce = MutableStateFlow(false)
+    val hasLoadedBookingsOnce: StateFlow<Boolean> = _hasLoadedBookingsOnce.asStateFlow()
+
     private val _spaceArchitectureSchema = MutableStateFlow<SpaceArchitectureSchema>(createDefaultSchema())
     val spaceArchitectureSchema: StateFlow<SpaceArchitectureSchema> = _spaceArchitectureSchema.asStateFlow()
 
@@ -151,6 +161,7 @@ class ProHostRepository {
                 },
                 onBookingsUpdated = { updatedBookings ->
                     _bookingRequests.value = updatedBookings
+                    _hasLoadedBookingsOnce.value = true
                     _isCloudConnected.value = true
                 },
                 onFormulasUpdated = { updatedFormulas ->

@@ -41,6 +41,7 @@ fun OwnerIncomingRequestsView(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val hasLoadedBookingsOnce by viewModel.hasLoadedBookingsOnce.collectAsState()
     var selectedFilter by remember { mutableStateOf("ALL") } // ALL, PENDING, ACCEPTED, REJECTED
     var rejectingRequestId by remember { mutableStateOf<String?>(null) }
     var rejectionReasonInput by remember { mutableStateOf("") }
@@ -107,7 +108,17 @@ fun OwnerIncomingRequestsView(
                 }
             }
 
-            if (filteredRequests.isEmpty()) {
+            if (!hasLoadedBookingsOnce) {
+                // The first Firestore snapshot hasn't arrived yet — without this,
+                // an owner with real incoming requests briefly saw "No Requests"
+                // before the real list streamed in.
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.lg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (filteredRequests.isEmpty()) {
                 ProEmptyState(
                     title = "No ${selectedFilter.lowercase().replaceFirstChar { it.uppercase() }} Requests",
                     description = if (selectedFilter == "PENDING") {
