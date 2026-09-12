@@ -31,3 +31,4 @@ export { onBookingRequestCreated, onBookingRequestStatusChanged } from "./notifi
 export { sendPaymentReminder } from "./notifications/sendPaymentReminder";
 
 export { onWorkspaceListingCreated, onWorkspaceListingDeleted, onWorkspaceListingStatusChanged } from "./listings/listingCountTracker";
+export { onWorkspaceListingPublishValidation } from "./listings/publishValidation";

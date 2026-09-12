@@ -786,7 +786,15 @@ data class SpaceListing(
     // published, Paused to take it off the market without deleting it) — distinct
     // from isActiveSubscription (billing) and isOwnerSuspended (moderation), which
     // the host doesn't control themselves.
-    val status: ListingStatus = ListingStatus.ACTIVE
+    val status: ListingStatus = ListingStatus.ACTIVE,
+    // Set only by the server (onWorkspaceListingPublishValidation, functions/src/
+    // listings/publishValidation.ts) the moment it demotes an invalid ACTIVE
+    // listing back to Draft — e.g. a Draft auto-published by a settled payment
+    // that never actually had real pricing configured. Purely a UI hint, not a
+    // gate: the host's own next save always writes this back to emptyList()
+    // (see toFirestoreMap below), and the server re-populates it truthfully if
+    // the listing is still genuinely invalid.
+    val publishBlockedReasons: List<String> = emptyList()
 ) {
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
@@ -890,6 +898,7 @@ data class SpaceListing(
             "avatarInquiryClicks" to avatarInquiryClicks,
             "ownerIsIdVerified" to ownerIsIdVerified,
             "status" to status.name,
+            "publishBlockedReasons" to publishBlockedReasons,
             "updatedAt" to System.currentTimeMillis()
         )
     }
@@ -1060,6 +1069,7 @@ data class SpaceListing(
                 status = (data["status"] as? String)?.let {
                     runCatching { ListingStatus.valueOf(it) }.getOrNull()
                 } ?: ListingStatus.ACTIVE,
+                publishBlockedReasons = (data["publishBlockedReasons"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                 subdivisions = subsList
             )
         }

@@ -776,12 +776,26 @@ fun OwnerHubScreenContent(
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = if (space.status == ListingStatus.DRAFT) "Draft — not published yet" else "Paused — hidden from Discovery",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = if (space.status == ListingStatus.DRAFT) MaterialTheme.colorScheme.onSurfaceVariant else StatusOnWarningContainer
-                                    )
+                                    Column {
+                                        Text(
+                                            text = if (space.status == ListingStatus.DRAFT) "Draft — not published yet" else "Paused — hidden from Discovery",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = if (space.status == ListingStatus.DRAFT) MaterialTheme.colorScheme.onSurfaceVariant else StatusOnWarningContainer
+                                        )
+                                        // Set only when the server moved this back to Draft on its
+                                        // own (onWorkspaceListingPublishValidation) — e.g. it was
+                                        // auto-published after payment but never actually had real
+                                        // pricing configured. Cleared automatically the next time
+                                        // this listing is saved.
+                                        if (space.status == ListingStatus.DRAFT && space.publishBlockedReasons.isNotEmpty()) {
+                                            Text(
+                                                text = "Reverted from Active — " + space.publishBlockedReasons.joinToString(" "),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.error
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
