@@ -2,6 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { recordAuditLog } from "../lib/auditLog";
+import { setClaimsThenFirestore } from "../lib/roles";
 import "../lib/admin";
 
 interface RevokeProHostRoleData {
@@ -54,37 +55,58 @@ export const revokeProHostRole = onCall<RevokeProHostRoleData>(async (request) =
     throw new HttpsError("failed-precondition", "This account does not currently hold the Pro Host role.");
   }
 
-  await adminAuth.setCustomUserClaims(targetUid, { ...targetUser.customClaims, role: "SPECIALIST" });
-  // Forces this account's existing sessions to re-authenticate and pick up the
-  // fresh SPECIALIST claim sooner than the token's natural expiry — same
-  // mechanism setAccountSuspended.ts uses.
-  await adminAuth.revokeRefreshTokens(targetUid);
-
   const db = getFirestore();
-  await db.collection("user_profiles").doc(targetUid).set(
-    {
-      role: "SPECIALIST",
-      ownerPackageTier: "PAY_AS_YOU_GO",
-      ownerPackageExpiryMillis: null,
-      updatedAt: Date.now(),
-    },
-    { merge: true }
-  );
+  let ownedListingsCount = 0;
+  try {
+    await setClaimsThenFirestore(
+      adminAuth,
+      targetUid,
+      targetUser.customClaims,
+      { ...targetUser.customClaims, role: "SPECIALIST" },
+      async () => {
+        await db.collection("user_profiles").doc(targetUid).set(
+          {
+            role: "SPECIALIST",
+            ownerPackageTier: "PAY_AS_YOU_GO",
+            ownerPackageExpiryMillis: null,
+            updatedAt: Date.now(),
+          },
+          { merge: true }
+        );
 
-  // bulkWriter, not a plain batch() — see setAccountSuspended.ts's identical
-  // comment (a single WriteBatch is capped at 500 operations).
-  const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", targetUid).get();
-  if (!ownedListings.empty) {
-    const bulkWriter = db.bulkWriter();
-    ownedListings.docs.forEach((doc) => {
-      bulkWriter.set(doc.ref, { isActiveSubscription: false }, { merge: true });
-    });
-    await bulkWriter.close();
+        // bulkWriter, not a plain batch() — see setAccountSuspended.ts's
+        // identical comment (a single WriteBatch is capped at 500 operations).
+        const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", targetUid).get();
+        ownedListingsCount = ownedListings.size;
+        if (!ownedListings.empty) {
+          const bulkWriter = db.bulkWriter();
+          ownedListings.docs.forEach((doc) => {
+            bulkWriter.set(doc.ref, { isActiveSubscription: false }, { merge: true });
+          });
+          await bulkWriter.close();
+        }
+      }
+    );
+  } catch (err) {
+    throw new HttpsError("internal", err instanceof Error ? err.message : "Failed to revoke Pro Host role.");
+  }
+
+  // Best-effort, done only after the claim + Firestore change both landed —
+  // forces this account's existing sessions to re-authenticate and pick up
+  // the fresh SPECIALIST claim sooner than the token's natural expiry. Not
+  // wrapped into the rollback above: if this fails, the role change itself
+  // already succeeded and is real, so there's nothing to roll back — the
+  // account just keeps its old token a little longer, same as it would if
+  // this call were never made at all.
+  try {
+    await adminAuth.revokeRefreshTokens(targetUid);
+  } catch (err) {
+    console.warn(`revokeProHostRole: revokeRefreshTokens failed for ${targetUid}`, err);
   }
 
   await recordAuditLog({
     actionType: "PRO_HOST_ROLE_REVOKED",
-    details: `Pro Host role revoked from ${targetUid} (${targetUser.email ?? "no email"}) by admin ${auth.token.email ?? auth.uid}; ${ownedListings.size} listing(s) deactivated.`,
+    details: `Pro Host role revoked from ${targetUid} (${targetUser.email ?? "no email"}) by admin ${auth.token.email ?? auth.uid}; ${ownedListingsCount} listing(s) deactivated.`,
     actorEmail: auth.token.email ?? "system@prohost.app",
     severity: "SECURE",
   });

@@ -2,6 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { recordAuditLog } from "../lib/auditLog";
+import { setClaimsThenFirestore } from "../lib/roles";
 import "../lib/admin";
 
 interface GrantAdminRoleData {
@@ -33,13 +34,23 @@ export const grantAdminRole = onCall<GrantAdminRoleData>(async (request) => {
     ? await adminAuth.getUser(targetUid)
     : await adminAuth.getUserByEmail(targetEmail!);
 
-  await adminAuth.setCustomUserClaims(targetUser.uid, { role: "ADMIN" });
-
   const db = getFirestore();
-  await db.collection("user_profiles").doc(targetUser.uid).set(
-    { role: "ADMIN", updatedAt: Date.now() },
-    { merge: true }
-  );
+  try {
+    await setClaimsThenFirestore(
+      adminAuth,
+      targetUser.uid,
+      targetUser.customClaims,
+      { ...targetUser.customClaims, role: "ADMIN" },
+      async () => {
+        await db.collection("user_profiles").doc(targetUser.uid).set(
+          { role: "ADMIN", updatedAt: Date.now() },
+          { merge: true }
+        );
+      }
+    );
+  } catch (err) {
+    throw new HttpsError("internal", err instanceof Error ? err.message : "Failed to grant Admin role.");
+  }
 
   await recordAuditLog({
     actionType: "ADMIN_ROLE_GRANTED",

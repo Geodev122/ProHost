@@ -17,3 +17,50 @@ export const DEFAULT_ROLE: AppRole = "SPECIALIST";
 export function isAppRole(value: unknown): value is AppRole {
   return value === "SPECIALIST" || value === "PRO_HOST" || value === "ADMIN";
 }
+
+/**
+ * Every role-management function (grantAdminRole, revokeProHostRole,
+ * setAccountSuspended, bootstrapSuperAdmin) changes an account's state in two
+ * separate systems that have no shared transaction: the Auth custom claim and
+ * the user_profiles Firestore document. They used to set the claim first and
+ * write Firestore after with no error handling in between — a transient
+ * Firestore failure (timeout, quota, network blip) after a successful claims
+ * write left the two silently out of sync: the Auth token says one role/
+ * suspension state, the Firestore doc (which firestore.rules' own live checks
+ * like isSuspended()/liveRole() treat as authoritative for several gates)
+ * says another, with no error surfaced to the admin who made the call.
+ *
+ * This makes the pair fail-safe instead of fully atomic (true cross-system
+ * atomicity isn't available): set the claim, attempt the Firestore write, and
+ * if that throws, roll the claim back to its previous value before rethrowing
+ * — so the caller either sees the whole change land, or a clean error with
+ * nothing changed, never a silent half-applied state. If the rollback itself
+ * fails (rare — Auth already accepted one write moments earlier), that is
+ * surfaced explicitly as needing manual review rather than swallowed.
+ */
+export async function setClaimsThenFirestore(
+  auth: import("firebase-admin/auth").Auth,
+  uid: string,
+  previousClaims: Record<string, unknown> | undefined,
+  nextClaims: Record<string, unknown>,
+  applyFirestoreWrite: () => Promise<void>
+): Promise<void> {
+  await auth.setCustomUserClaims(uid, nextClaims);
+  try {
+    await applyFirestoreWrite();
+  } catch (err) {
+    try {
+      await auth.setCustomUserClaims(uid, previousClaims ?? null);
+    } catch (rollbackErr) {
+      throw new Error(
+        `Role change for ${uid} failed while writing Firestore AND could not be rolled back — ` +
+          `Auth claim and Firestore are now out of sync and need manual review. ` +
+          `Original error: ${err}. Rollback error: ${rollbackErr}`
+      );
+    }
+    throw new Error(
+      `Role change for ${uid} failed while writing Firestore; the Auth claim change was rolled back. ` +
+        `Original error: ${err}`
+    );
+  }
+}

@@ -2,6 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { recordAuditLog } from "../lib/auditLog";
+import { setClaimsThenFirestore } from "../lib/roles";
 import "../lib/admin";
 
 interface SetAccountSuspendedData {
@@ -43,48 +44,70 @@ export const setAccountSuspended = onCall<SetAccountSuspendedData>(async (reques
     throw new HttpsError("failed-precondition", "An Admin account cannot be suspended.");
   }
 
-  await adminAuth.setCustomUserClaims(targetUid, { ...targetUser.customClaims, suspended });
-  if (suspended) {
-    // Invalidates any refresh token this account currently holds, so a
-    // suspended user can't silently keep minting fresh ID tokens forever —
-    // their next API call that verifies the token (checkRevoked) fails, and
-    // any client trying to sign in again is rejected outright.
-    await adminAuth.revokeRefreshTokens(targetUid);
+  const db = getFirestore();
+  let ownedListingsCount = 0;
+  try {
+    await setClaimsThenFirestore(
+      adminAuth,
+      targetUid,
+      targetUser.customClaims,
+      { ...targetUser.customClaims, suspended },
+      async () => {
+        await db.collection("user_profiles").doc(targetUid).set(
+          { isSuspended: suspended, updatedAt: Date.now() },
+          { merge: true }
+        );
+
+        // Suspending a host used to only block *new* actions (creating a
+        // listing or booking request) — every listing they'd already
+        // published stayed fully visible and bookable in Discovery, so a
+        // suspended host could keep generating traffic and inbound requests
+        // indefinitely. Mirror the suspension onto each of their listings (a
+        // denormalized flag, same reasoning as activeListingCount in
+        // listingCountTracker.ts — Firestore rules can't join across
+        // collections at read time) so firestore.rules can hide them from
+        // public discovery while the owner and Admin can still see them (a
+        // suspended host should be able to see their own listings are
+        // hidden, not have them vanish from their own view). bulkWriter (not
+        // a plain batch()) since a single WriteBatch is capped at 500
+        // operations — a host with more listings than that would otherwise
+        // throw on commit(), leaving the account-level suspension applied
+        // but the per-listing mirror only partially done. bulkWriter chunks/
+        // paces automatically with no such cap and retries transient
+        // failures on its own.
+        const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", targetUid).get();
+        ownedListingsCount = ownedListings.size;
+        if (!ownedListings.empty) {
+          const bulkWriter = db.bulkWriter();
+          ownedListings.docs.forEach((doc) => {
+            bulkWriter.set(doc.ref, { isOwnerSuspended: suspended }, { merge: true });
+          });
+          await bulkWriter.close();
+        }
+      }
+    );
+  } catch (err) {
+    throw new HttpsError("internal", err instanceof Error ? err.message : "Failed to update account suspension.");
   }
 
-  const db = getFirestore();
-  await db.collection("user_profiles").doc(targetUid).set(
-    { isSuspended: suspended, updatedAt: Date.now() },
-    { merge: true }
-  );
-
-  // Suspending a host used to only block *new* actions (creating a listing or
-  // booking request) — every listing they'd already published stayed fully
-  // visible and bookable in Discovery, so a suspended host could keep
-  // generating traffic and inbound requests indefinitely. Mirror the
-  // suspension onto each of their listings (a denormalized flag, same
-  // reasoning as activeListingCount in listingCountTracker.ts — Firestore
-  // rules can't join across collections at read time) so
-  // firestore.rules can hide them from public discovery while the owner and
-  // Admin can still see them (a suspended host should be able to see their
-  // own listings are hidden, not have them vanish from their own view).
-  // bulkWriter (not a plain batch()) since a single WriteBatch is capped at 500
-  // operations — a host with more listings than that would otherwise throw on
-  // commit(), leaving the account-level suspension applied but the per-listing
-  // mirror only partially done. bulkWriter chunks/paces automatically with no
-  // such cap and retries transient failures on its own.
-  const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", targetUid).get();
-  if (!ownedListings.empty) {
-    const bulkWriter = db.bulkWriter();
-    ownedListings.docs.forEach((doc) => {
-      bulkWriter.set(doc.ref, { isOwnerSuspended: suspended }, { merge: true });
-    });
-    await bulkWriter.close();
+  // Best-effort, done only after the claim + Firestore change both landed —
+  // see revokeProHostRole.ts's identical reasoning for why this isn't part
+  // of the rollback above. Invalidates any refresh token this account
+  // currently holds, so a suspended user can't silently keep minting fresh
+  // ID tokens forever — their next API call that verifies the token
+  // (checkRevoked) fails, and any client trying to sign in again is
+  // rejected outright.
+  if (suspended) {
+    try {
+      await adminAuth.revokeRefreshTokens(targetUid);
+    } catch (err) {
+      console.warn(`setAccountSuspended: revokeRefreshTokens failed for ${targetUid}`, err);
+    }
   }
 
   await recordAuditLog({
     actionType: suspended ? "ACCOUNT_SUSPENDED" : "ACCOUNT_REACTIVATED",
-    details: `Account ${targetUid} (${targetUser.email ?? "no email"}) ${suspended ? "suspended" : "reactivated"} by admin ${auth.token.email ?? auth.uid}.`,
+    details: `Account ${targetUid} (${targetUser.email ?? "no email"}) ${suspended ? "suspended" : "reactivated"} by admin ${auth.token.email ?? auth.uid}; ${ownedListingsCount} listing(s) mirrored.`,
     actorEmail: auth.token.email ?? "system@prohost.app",
     severity: "SECURE",
   });
