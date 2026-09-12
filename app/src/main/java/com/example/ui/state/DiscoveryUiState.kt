@@ -24,22 +24,10 @@ data class DiscoveryFilterState(
  * Immutable UI State for the Discovery & Search Screen.
  */
 data class DiscoveryUiState(
-    val allSpaces: List<SpaceListing> = emptyList(),
     val filteredSpaces: List<SpaceListing> = emptyList(),
     val filterState: DiscoveryFilterState = DiscoveryFilterState(),
-    val selectedSpace: SpaceListing? = null,
     val isFilterSheetVisible: Boolean = false,
     val isMapViewActive: Boolean = false,
     val isLoading: Boolean = false,
-    val fcmAlerts: List<FCMAlert> = emptyList(),
     val savedSpaceIds: List<String> = emptyList()
 )
-
-/**
- * Events/Actions emitted by the Discovery UI.
- */
-sealed interface DiscoveryUiEvent {
-    data class SpaceSelected(val space: SpaceListing) : DiscoveryUiEvent
-    data class ShowToast(val message: String) : DiscoveryUiEvent
-    data class OpenWhatsApp(val url: String) : DiscoveryUiEvent
-}

@@ -83,7 +83,6 @@ fun DiscoveryScreen(
         onlyVerified = uiState.filterState.onlyVerified,
         onlySaved = uiState.filterState.onlySaved,
         savedSpaceIds = uiState.savedSpaceIds,
-        selectedSpace = uiState.selectedSpace,
         isMapView = uiState.isMapViewActive,
         showFilterSheet = uiState.isFilterSheetVisible,
         onSearchQueryChange = { discoveryViewModel.updateSearchQuery(it) },
@@ -131,7 +130,6 @@ fun DiscoveryScreenContent(
     onlyVerified: Boolean,
     onlySaved: Boolean,
     savedSpaceIds: List<String>,
-    selectedSpace: SpaceListing?,
     isMapView: Boolean,
     showFilterSheet: Boolean,
     onSearchQueryChange: (String) -> Unit,
@@ -270,7 +268,6 @@ fun DiscoveryScreenContent(
         if (isMapView) {
             LebanonMapCanvas(
                 spaces = spaces,
-                selectedSpace = selectedSpace,
                 onSpaceSelected = { space -> if (space != null) onSelectSpace(space) },
                 onNavigateToDetails = { onSelectSpace(it) },
                 modifier = Modifier.fillMaxSize()

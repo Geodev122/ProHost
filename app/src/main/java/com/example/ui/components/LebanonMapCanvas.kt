@@ -64,7 +64,6 @@ import java.util.Locale
 @Composable
 fun LebanonMapCanvas(
     spaces: List<SpaceListing>,
-    selectedSpace: SpaceListing?,
     onSpaceSelected: (SpaceListing?) -> Unit,
     onNavigateToDetails: (SpaceListing) -> Unit,
     modifier: Modifier = Modifier
@@ -134,11 +133,12 @@ fun LebanonMapCanvas(
         }
     }
 
-    var activePinSpace by remember { mutableStateOf<SpaceListing?>(selectedSpace) }
-
-    LaunchedEffect(selectedSpace) {
-        activePinSpace = selectedSpace
-    }
+    // Purely local — this composable used to also accept a `selectedSpace` param
+    // from the caller's own ViewModel state, re-synced via a LaunchedEffect, but
+    // nothing ever actually drove that value (DiscoveryViewModel.selectSpace() had
+    // zero call sites), so it always resolved to null and the effect never did
+    // anything useful. Map pin selection is entirely local state now.
+    var activePinSpace by remember { mutableStateOf<SpaceListing?>(null) }
 
     val defaultCenter = LatLng(33.8886, 35.5184)
     val cameraPositionState = rememberCameraPositionState {
