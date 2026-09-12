@@ -9,6 +9,20 @@
 -keep class com.example.data.model.** { *; }
 -keepclassmembers class com.example.data.model.** { *; }
 
+# Every model in com.example.data.model round-trips Firestore data through
+# hand-written fromFirestoreMap/toFirestoreMap functions that store enums as
+# their .name string and decode them back via `SomeEnum.valueOf(str)` — R8's
+# default optimization can otherwise rewrite a small enum into plain ints,
+# which breaks valueOf()/name entirely at runtime with no compile-time
+# warning. This is the standard, broadly-recommended R8 safety net for that
+# exact pattern, applied to every enum in the app (not just the model
+# package, since UserRole/OwnerPackageTier/etc. are also switched on by
+# string name elsewhere, e.g. Cloud Functions purpose/role checks).
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
 # Room Database rules
 -keep class androidx.room.** { *; }
 -dontwarn androidx.room.**

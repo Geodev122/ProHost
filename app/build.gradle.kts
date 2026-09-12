@@ -67,7 +67,18 @@ android {
   buildTypes {
     release {
       isCrunchPngs = false
-      isMinifyEnabled = false
+      // Was false with proguardFiles(...) already configured below — dead
+      // configuration that shipped every release build fully unobfuscated and
+      // unshrunk. proguard-rules.pro's enum-safety rules below specifically
+      // protect this app's heavy reliance on Enum.valueOf(String) round-
+      // tripping every Firestore-stored field (SpaceListing/AppUser/BookingRequest
+      // etc. all decode via `runCatching { SomeEnum.valueOf(str) }` in their
+      // fromFirestoreMap functions) — R8 can otherwise optimize small enums into
+      // plain ints, breaking that lookup silently at runtime. A real on-device
+      // release build + full manual smoke test (registration, listing publish,
+      // booking request/accept, Whish payment, Admin Console) is required before
+      // this is trusted — this environment has no Android SDK to run R8 itself.
+      isMinifyEnabled = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
     }
