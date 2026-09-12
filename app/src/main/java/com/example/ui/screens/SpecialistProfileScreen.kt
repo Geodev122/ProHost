@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -37,6 +39,12 @@ import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.InAppUpdateManager
 import com.example.util.UpdateState
 import kotlinx.coroutines.launch
+
+// Published as ProHost's real support/data-privacy contact on the public
+// privacy page (public/privacy.html) — kept here as the single source of
+// truth for the in-app "Contact Support" action below, rather than a second
+// hardcoded copy that could drift from the published one.
+private const val SUPPORT_EMAIL = "geo.elnajjar@gmail.com"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -724,7 +732,45 @@ fun SpecialistProfileScreen(
             }
 
             // =========================================================================
-            // 8. DANGER ZONE — PERMANENT ACCOUNT DELETION
+            // 8. CONTACT SUPPORT — the in-app support channel this screen's own Legal
+            // documents (Privacy Policy Section 11) already claim exists. Opens the
+            // device's own email app addressed to ProHost's published support contact
+            // (the same geo.elnajjar@gmail.com address already listed as "ProHost Data
+            // Privacy & Support" on the public privacy page) — this app has no backend
+            // ticketing/chat system, so a real mail composer is the honest channel to
+            // offer rather than inventing one that doesn't exist.
+            // =========================================================================
+            ProSurfaceCard {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ProSectionHeader(
+                        title = "Contact Support",
+                        subtitle = "Questions, a data request, or something not working right",
+                        icon = Icons.AutoMirrored.Filled.Help
+                    )
+                    OutlinedButton(
+                        onClick = {
+                            val subject = Uri.encode("ProHost Support — ${user.role.name} account")
+                            val body = Uri.encode("Account: ${user.fullName} (${user.email})\nUser ID: ${user.id}\n\nDescribe your question or issue below:\n")
+                            val intent = Intent(Intent.ACTION_SENDTO).apply {
+                                data = Uri.parse("mailto:$SUPPORT_EMAIL?subject=$subject&body=$body")
+                            }
+                            try {
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "No email app found — you can also reach us at $SUPPORT_EMAIL", Toast.LENGTH_LONG).show()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Email Support ($SUPPORT_EMAIL)")
+                    }
+                }
+            }
+
+            // =========================================================================
+            // 9. DANGER ZONE — PERMANENT ACCOUNT DELETION
             // =========================================================================
             var showDeleteConfirmation by remember { mutableStateOf(false) }
             var isDeletingAccount by remember { mutableStateOf(false) }
