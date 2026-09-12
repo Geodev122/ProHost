@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.*
@@ -283,12 +284,16 @@ fun SpaceDetailsScreenContent(
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
-                        lineHeight = 24.sp
+                        lineHeight = 24.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = "📍 ${liveSpace.district}, ${liveSpace.governorate.displayName} • ${liveSpace.floorInfo}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xCCFFFFFF)
+                        color = Color(0xCCFFFFFF),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
