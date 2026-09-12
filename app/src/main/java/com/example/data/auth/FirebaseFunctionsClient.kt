@@ -116,23 +116,28 @@ class FirebaseFunctionsClient {
      * never sends an amount, and the client can't influence what gets charged.
      *
      * @param purpose one of SUBSCRIPTION, OWNER_PACKAGE, PAYG_LISTING, BOOKING
-     * @param targetId spaceId / OwnerPackageTier name / SpaceType name / bookingId, matching [purpose]
+     * @param targetId spaceId / OwnerPackageTier name / Space Category id / bookingId, matching [purpose]
+     * @param draftListingId set only when this payment is resolving a quota/PAYG-credit
+     *  block that CreateListingDialog's Publish hit — the specific Draft to
+     *  auto-publish once this settles (see entitlements.ts's autoPublishDraftIfNeeded)
      */
     suspend fun initiateWhishPayment(
         purpose: String,
         targetId: String,
         payerName: String,
-        payerPhone: String
+        payerPhone: String,
+        draftListingId: String? = null
     ): Result<WhishPaymentInit> {
         return try {
             val result = functions.getHttpsCallable("initiateWhishPayment")
                 .call(
-                    mapOf(
-                        "purpose" to purpose,
-                        "targetId" to targetId,
-                        "payerName" to payerName,
-                        "payerPhone" to payerPhone
-                    )
+                    buildMap {
+                        put("purpose", purpose)
+                        put("targetId", targetId)
+                        put("payerName", payerName)
+                        put("payerPhone", payerPhone)
+                        if (draftListingId != null) put("draftListingId", draftListingId)
+                    }
                 )
                 .await()
             @Suppress("UNCHECKED_CAST")

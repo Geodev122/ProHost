@@ -151,7 +151,8 @@ fun OwnerHubScreen(
                                 tier = OwnerPackageTier.PAY_AS_YOU_GO,
                                 payerName = currentUser?.fullName ?: "Space Owner",
                                 payerPhone = currentUser?.phone ?: "+961 70 888 999",
-                                spaceTypeForPayg = SpaceType.PRIVATE_OFFICE,
+                                paygCategoryId = architectureSchema.spaceTypes.firstOrNull { it.isEnabled }?.id
+                                    ?: SpaceType.PRIVATE_OFFICE.name,
                                 context = context
                             )
                             showPackageSelectionDialog = false
@@ -171,7 +172,7 @@ fun OwnerHubScreen(
                                 tier = OwnerPackageTier.LIMITED_3_TIER,
                                 payerName = currentUser?.fullName ?: "Space Owner",
                                 payerPhone = currentUser?.phone ?: "+961 70 888 999",
-                                spaceTypeForPayg = null,
+                                paygCategoryId = null,
                                 context = context
                             )
                             showPackageSelectionDialog = false
@@ -191,7 +192,7 @@ fun OwnerHubScreen(
                                 tier = OwnerPackageTier.UNLIMITED_TIER,
                                 payerName = currentUser?.fullName ?: "Space Owner",
                                 payerPhone = currentUser?.phone ?: "+961 70 888 999",
-                                spaceTypeForPayg = null,
+                                paygCategoryId = null,
                                 context = context
                             )
                             showPackageSelectionDialog = false
@@ -245,6 +246,25 @@ fun OwnerHubScreen(
         )
     }
 
+    // Shared by both quota/PAYG-credit rejection branches below: save exactly what
+    // the host built as a Draft (reusing the same listingId Publish would have used)
+    // instead of losing the whole wizard, then send them straight to whatever
+    // purchase unblocks it — entitlements.ts auto-publishes this same Draft the
+    // moment that payment settles (see ProHostViewModel.pendingAutoPublishDraftId).
+    // Only actually redirects/arms the correlation once the Draft save is confirmed
+    // persisted — a failed save here would otherwise point the correlation at a
+    // Draft that doesn't exist yet.
+    suspend fun redirectBlockedListingToPayment(newListing: SpaceListing, successMessage: String, failureMessage: String) {
+        val saved = viewModel.saveListingDraft(newListing.copy(status = ListingStatus.DRAFT))
+        showCreateListingDialog = false
+        draftToEdit = null
+        android.widget.Toast.makeText(context, if (saved) successMessage else failureMessage, android.widget.Toast.LENGTH_LONG).show()
+        if (saved) {
+            viewModel.setPendingAutoPublishDraft(newListing.id)
+            if (onOpenSubscriptions != null) onOpenSubscriptions() else showPackageSelectionDialog = true
+        }
+    }
+
     // Create Granular Space Listing Dialog — also reused for "Continue Editing" a
     // Draft (draftToEdit), since both are the same multi-step wizard pre-populated
     // from an existing SpaceListing or not.
@@ -256,6 +276,7 @@ fun OwnerHubScreen(
             existingDraft = draft,
             suggestedHashtags = topHashtags,
             availableFacilities = availableFacilities,
+            spaceCategories = architectureSchema.spaceTypes,
             onDismiss = { showCreateListingDialog = false; draftToEdit = null },
             onSaveDraft = { updatedDraft ->
                 coroutineScope.launch {
@@ -284,11 +305,11 @@ fun OwnerHubScreen(
                             selectedSpaceForSchedule = newListing
                         }
                         is ListingCreateResult.PackageLimitReached -> {
-                            android.widget.Toast.makeText(
-                                context,
-                                "You've reached your Package 2 listing limit. Upgrade to Package 3 for unlimited listings.",
-                                android.widget.Toast.LENGTH_LONG
-                            ).show()
+                            redirectBlockedListingToPayment(
+                                newListing,
+                                "Saved as a Draft — you've reached your listing limit. Upgrade your package to publish it automatically.",
+                                "Couldn't save this as a Draft — check your connection and try Publish again once you've upgraded."
+                            )
                         }
                         is ListingCreateResult.Failed -> {
                             android.widget.Toast.makeText(
@@ -296,6 +317,13 @@ fun OwnerHubScreen(
                                 "Couldn't publish this listing — check your connection and try again.",
                                 android.widget.Toast.LENGTH_LONG
                             ).show()
+                        }
+                        is ListingCreateResult.PaygCategoryCreditRequired -> {
+                            redirectBlockedListingToPayment(
+                                newListing,
+                                "Saved as a Draft — buy a paid slot for this category to publish it automatically.",
+                                "Couldn't save this as a Draft — check your connection and try Publish again once you've bought a slot."
+                            )
                         }
                     }
                 }

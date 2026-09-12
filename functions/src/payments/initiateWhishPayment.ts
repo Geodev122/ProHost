@@ -2,7 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { getFirestore } from "firebase-admin/firestore";
 import { initiatePayment, generateSignature, WHISH_CHANNEL_ID } from "../lib/whishClient";
-import { getPricingState, getPaygFeeForType, getPackageFee, PaygSpaceType, OwnerPackageTier } from "../lib/pricing";
+import { getPricingState, getPaygFeeForCategory, getPackageFee, OwnerPackageTier } from "../lib/pricing";
 import { WhishPurpose } from "../lib/entitlements";
 import "../lib/admin";
 
@@ -20,6 +20,9 @@ interface InitiateWhishPaymentData {
   payerPhone?: string;
   successRedirectUrl?: string;
   failureRedirectUrl?: string;
+  // Set only when this payment is resolving a quota/PAYG-credit block on a specific
+  // Draft — see entitlements.ts's autoPublishDraftIfNeeded.
+  draftListingId?: string;
 }
 
 /**
@@ -36,7 +39,7 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
       throw new HttpsError("unauthenticated", "Sign in required.");
     }
 
-    const { purpose, targetId, payerName, payerPhone } = request.data ?? {};
+    const { purpose, targetId, payerName, payerPhone, draftListingId } = request.data ?? {};
     if (!purpose || !targetId || !payerName || !payerPhone) {
       throw new HttpsError("invalid-argument", "purpose, targetId, payerName, and payerPhone are required.");
     }
@@ -76,12 +79,18 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
         break;
       }
       case "PAYG_LISTING": {
-        const validTypes = ["PRIVATE_OFFICE", "CENTER", "POLYCLINIC", "COWORKING_SPACE"];
-        if (!validTypes.includes(targetId)) {
-          throw new HttpsError("invalid-argument", `targetId must be one of: ${validTypes.join(", ")}`);
-        }
+        // targetId is now a Space Category id (a SchemaItem.id under
+        // schema_architecture/main's spaceTypes, "ST-01" etc. — or, for backward
+        // compatibility, one of the original 4 legacy SpaceType names). Real
+        // per-category pricing lives on the admin schema now, not a closed switch —
+        // see getPaygFeeForCategory. An unrecognized/unpriced category throws rather
+        // than falling back to any default charge.
         const pricing = await getPricingState();
-        amountUsd = getPaygFeeForType(pricing, targetId as PaygSpaceType);
+        try {
+          amountUsd = await getPaygFeeForCategory(pricing, targetId);
+        } catch (e) {
+          throw new HttpsError("invalid-argument", e instanceof Error ? e.message : "Invalid PAYG category.");
+        }
         invoiceLabel = `PAYG listing slot: ${targetId}`;
         spaceIdForRecord = `PAYG-SLOT-${targetId}`;
         spaceTitleForRecord = `PAYG Listing Slot (${targetId})`;
@@ -130,6 +139,7 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
       purpose,
       targetId,
       externalId,
+      ...(draftListingId ? { draftListingId } : {}),
     });
 
     return { collectUrl, txId, orderId };

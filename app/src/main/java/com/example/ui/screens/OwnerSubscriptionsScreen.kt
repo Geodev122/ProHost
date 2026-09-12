@@ -32,11 +32,26 @@ fun OwnerSubscriptionsScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val pricingState by viewModel.pricingState.collectAsState()
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
+    val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
+    // Set by OwnerHubScreen when a Publish attempt hit the listing limit or a
+    // missing PAYG credit and got saved as a Draft instead — whichever purchase the
+    // host makes next auto-publishes this exact Draft (see entitlements.ts's
+    // autoPublishDraftIfNeeded), so surface that clearly rather than leaving the
+    // host wondering what buying a slot here actually does for them right now.
+    val pendingAutoPublishDraftId by viewModel.pendingAutoPublishDraftId.collectAsState()
+    // Admin-defined Space Category catalog — same fallback-to-legacy-4 pattern as
+    // CreateListingDialog's picker, so the Buy dialog and the wizard never disagree
+    // about what categories exist.
+    val paygCategoryOptions = remember(architectureSchema) {
+        architectureSchema.spaceTypes.filter { it.isEnabled }.ifEmpty {
+            SpaceType.values().map { legacy -> SchemaItem(id = legacy.name, name = legacy.displayName, category = "SPACE_TYPE") }
+        }
+    }
 
     var showSubscribeDialog by remember { mutableStateOf(false) }
     var selectedTierToSubscribe by remember { mutableStateOf(OwnerPackageTier.LIMITED_3_TIER) }
     var showPaygBuyDialog by remember { mutableStateOf(false) }
-    var selectedSpaceTypeForPayg by remember { mutableStateOf(SpaceType.PRIVATE_OFFICE) }
+    var selectedCategoryForPayg by remember(paygCategoryOptions) { mutableStateOf(paygCategoryOptions.firstOrNull()) }
 
     var payerName by remember { mutableStateOf(currentUser?.fullName ?: "") }
     var payerPhone by remember { mutableStateOf(currentUser?.phone ?: "+961 70 888 999") }
@@ -56,6 +71,27 @@ fun OwnerSubscriptionsScreen(
             .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        if (pendingAutoPublishDraftId != null) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = CarnationOrangeContainer
+            ) {
+                Row(
+                    modifier = Modifier.padding(Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = CarnationOrange)
+                    Spacer(modifier = Modifier.width(Spacing.sm))
+                    Text(
+                        "You have a saved Draft waiting on a purchase. Buy the plan or slot it needs below and it will publish automatically.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = OxfordBlue
+                    )
+                }
+            }
+        }
+
         // Header
         Surface(
             modifier = Modifier.fillMaxWidth(),
@@ -163,6 +199,39 @@ fun OwnerSubscriptionsScreen(
                             val maxLimit = if (activeTier == OwnerPackageTier.LIMITED_3_TIER) 3 else Int.MAX_VALUE
                             val used = ownerSpaces.size
                             Text(text = "$used / ${if (maxLimit == Int.MAX_VALUE) "Unlimited" else maxLimit}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = OxfordBlue)
+                        }
+                    }
+                }
+
+                if (activeTier == OwnerPackageTier.PAY_AS_YOU_GO) {
+                    val unspentCredits = (currentUser?.paygCategoryCredits ?: emptyMap()).filter { it.value > 0 }
+                    if (unspentCredits.isNotEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("Unused paid slots by category:", style = MaterialTheme.typography.bodySmall, color = CoolGray)
+                            unspentCredits.forEach { (categoryId, count) ->
+                                val name = paygCategoryOptions.firstOrNull { it.id == categoryId }?.name ?: categoryId
+                                Text("• $name: $count", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = OxfordBlue)
+                            }
+                        }
+                    }
+                } else {
+                    // Per-category quota display (spec): the overall cap is still
+                    // whole-listing, not per-category — this breaks down how much of
+                    // that shared cap each category is already using, it doesn't
+                    // imply an independent limit per category.
+                    val maxLimit = if (activeTier == OwnerPackageTier.LIMITED_3_TIER) 3 else Int.MAX_VALUE
+                    val byCategory = ownerSpaces.groupingBy { it.spaceCategoryName ?: it.spaceType.displayName }.eachCount()
+                    if (byCategory.isNotEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("Listings by category:", style = MaterialTheme.typography.bodySmall, color = CoolGray)
+                            byCategory.forEach { (name, count) ->
+                                Text(
+                                    "• $name: $count${if (maxLimit == Int.MAX_VALUE) "" else " / $maxLimit shared"}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = OxfordBlue
+                                )
+                            }
                         }
                     }
                 }
@@ -279,8 +348,9 @@ fun OwnerSubscriptionsScreen(
                             tier = selectedTierToSubscribe,
                             payerName = payerName,
                             payerPhone = payerPhone,
-                            spaceTypeForPayg = if (selectedTierToSubscribe == OwnerPackageTier.PAY_AS_YOU_GO) selectedSpaceTypeForPayg else null,
-                            context = context
+                            paygCategoryId = if (selectedTierToSubscribe == OwnerPackageTier.PAY_AS_YOU_GO) selectedCategoryForPayg?.id else null,
+                            context = context,
+                            draftListingId = pendingAutoPublishDraftId
                         )
                         showSubscribeDialog = false
                     },
@@ -304,23 +374,33 @@ fun OwnerSubscriptionsScreen(
             title = { Text("Buy New Listing Slot (PAYG)", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Select Workspace Type for Per-Listing Pricing:")
-                    SpaceType.values().forEach { st ->
-                        val fee = pricingState.getPaygFeeForType(st)
+                    Text("Select Workspace Category for Per-Listing Pricing:")
+                    paygCategoryOptions.forEach { category ->
+                        // Falls back to the legacy 4-value fee switch only for a
+                        // category the admin hasn't set a price on yet (shouldn't
+                        // happen post-seed, but keeps this dialog from showing $0).
+                        val legacyType = when (category.id) {
+                            "ST-01", SpaceType.PRIVATE_OFFICE.name -> SpaceType.PRIVATE_OFFICE
+                            "ST-02", SpaceType.CENTER.name -> SpaceType.CENTER
+                            "ST-03", SpaceType.POLYCLINIC.name -> SpaceType.POLYCLINIC
+                            "ST-04", SpaceType.COWORKING_SPACE.name -> SpaceType.COWORKING_SPACE
+                            else -> null
+                        }
+                        val fee = category.priceUsd ?: legacyType?.let { pricingState.getPaygFeeForType(it) } ?: 0.0
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(if (selectedSpaceTypeForPayg == st) OxfordBlue.copy(alpha = 0.1f) else Color.Transparent, MaterialTheme.shapes.small)
+                                .background(if (selectedCategoryForPayg?.id == category.id) OxfordBlue.copy(alpha = 0.1f) else Color.Transparent, MaterialTheme.shapes.small)
                                 .padding(Spacing.sm),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 RadioButton(
-                                    selected = selectedSpaceTypeForPayg == st,
-                                    onClick = { selectedSpaceTypeForPayg = st }
+                                    selected = selectedCategoryForPayg?.id == category.id,
+                                    onClick = { selectedCategoryForPayg = category }
                                 )
-                                Text(st.displayName, fontWeight = FontWeight.Medium)
+                                Text(category.name, fontWeight = FontWeight.Medium)
                             }
                             Text("$${String.format(Locale.US, "%.2f", fee)}", fontWeight = FontWeight.Bold, color = CarnationOrange)
                         }
@@ -338,14 +418,19 @@ fun OwnerSubscriptionsScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.payPaygListingViaWhish(
-                            spaceType = selectedSpaceTypeForPayg,
-                            payerName = payerName,
-                            payerPhone = payerPhone,
-                            context = context
-                        )
+                        val categoryId = selectedCategoryForPayg?.id
+                        if (categoryId != null) {
+                            viewModel.payPaygListingViaWhish(
+                                categoryId = categoryId,
+                                payerName = payerName,
+                                payerPhone = payerPhone,
+                                context = context,
+                                draftListingId = pendingAutoPublishDraftId
+                            )
+                        }
                         showPaygBuyDialog = false
                     },
+                    enabled = selectedCategoryForPayg != null,
                     colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                 ) {
                     Text("Go to Whish Pay", color = PureWhite, fontWeight = FontWeight.Bold)

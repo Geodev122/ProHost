@@ -320,8 +320,8 @@ fun AdminConsoleScreen(
     if (uiState.isAddSchemaItemDialogOpen) {
         AdminAddSchemaItemDialog(
             onDismiss = { adminViewModel.closeAddSchemaItemDialog() },
-            onAdd = { name, category, description, iconName ->
-                adminViewModel.addSchemaItem(name, category, description, iconName)
+            onAdd = { name, category, description, iconName, priceUsd ->
+                adminViewModel.addSchemaItem(category, name, description, iconName, priceUsd)
             }
         )
     }
@@ -1708,6 +1708,16 @@ private fun AdminSchemaArchitectureTab(
                                     fontSize = MaterialTheme.typography.labelSmall.fontSize
                                 )
                             }
+                            if (item.category == "SPACE_TYPE") {
+                                Text(
+                                    text = item.priceUsd?.let { "PAYG fee: $${String.format(java.util.Locale.US, "%.2f", it)}" }
+                                        ?: "PAYG fee: not set",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (item.priceUsd != null) MaterialTheme.colorScheme.primary else StatusError
+                                )
+                            }
                         }
                     }
 
@@ -2400,11 +2410,12 @@ private fun AdminDeleteListingDialog(
 @Composable
 private fun AdminAddSchemaItemDialog(
     onDismiss: () -> Unit,
-    onAdd: (name: String, category: String, description: String, iconName: String) -> Unit
+    onAdd: (name: String, category: String, description: String, iconName: String, priceUsd: Double?) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("SUBCATEGORY") }
+    var priceInput by remember { mutableStateOf("") }
 
     val categories = listOf(
         "SPACE_TYPE" to "Space Type (Root)",
@@ -2465,6 +2476,16 @@ private fun AdminAddSchemaItemDialog(
                     singleLine = false
                 )
 
+                if (selectedCategory == "SPACE_TYPE") {
+                    InputField(
+                        value = priceInput,
+                        onValueChange = { priceInput = it.filter { c -> c.isDigit() || c == '.' } },
+                        label = "PAYG Fee (USD) for this category",
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -2474,7 +2495,8 @@ private fun AdminAddSchemaItemDialog(
                     Button(
                         onClick = {
                             if (name.isNotBlank()) {
-                                onAdd(name, selectedCategory, description, "Category")
+                                val price = if (selectedCategory == "SPACE_TYPE") priceInput.toDoubleOrNull() else null
+                                onAdd(name, selectedCategory, description, "Category", price)
                             }
                         },
                         enabled = name.isNotBlank(),

@@ -19,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -48,7 +49,12 @@ fun CreateListingDialog(
     // Admin-managed facility catalog (enabled SchemaItems, category "AMENITY") —
     // defaults to the old hardcoded FacilityCatalog.standard only so a caller that
     // hasn't been updated to pass the live list doesn't lose facilities entirely.
-    availableFacilities: List<String> = FacilityCatalog.standard
+    availableFacilities: List<String> = FacilityCatalog.standard,
+    // Admin-managed Space Category catalog (enabled SchemaItems, category
+    // "SPACE_TYPE") — replaces the old closed SpaceType.values() picker. Empty
+    // falls back to the 4 legacy types below so a caller that hasn't been updated
+    // yet doesn't lose the category picker entirely.
+    spaceCategories: List<SchemaItem> = emptyList()
 ) {
     if (currentUser == null) {
         Dialog(onDismissRequest = onDismiss) {
@@ -111,6 +117,48 @@ fun CreateListingDialog(
 
     var title by remember { mutableStateOf(existingDraft?.title ?: "") }
     var selectedSpaceType by remember { mutableStateOf(existingDraft?.spaceType ?: SpaceType.PRIVATE_OFFICE) }
+
+    // Admin-defined Space Category catalog (spec 1.1) — replaces the closed 4-value
+    // picker. Falls back to a synthetic list mirroring the 4 legacy SpaceType values
+    // when the admin schema is empty, so the picker is never blank.
+    val categoryOptions = remember(spaceCategories) {
+        spaceCategories.filter { it.isEnabled }.ifEmpty {
+            SpaceType.values().map { legacy ->
+                SchemaItem(id = legacy.name, name = legacy.displayName, category = "SPACE_TYPE")
+            }
+        }
+    }
+    // Best-effort mapping onto the closed legacy enum, purely for readers that still
+    // key off SpaceListing.spaceType (Discovery filters, badges, the original 4-value
+    // PAYG fee switch) — a category with no obvious match (a brand-new admin
+    // category, or one of the two schema-only categories with no legacy equivalent)
+    // falls back to PRIVATE_OFFICE rather than crashing on a missing branch.
+    fun legacyTypeFor(categoryId: String?): SpaceType = when (categoryId) {
+        "ST-01", SpaceType.PRIVATE_OFFICE.name -> SpaceType.PRIVATE_OFFICE
+        "ST-02", SpaceType.CENTER.name -> SpaceType.CENTER
+        "ST-03", SpaceType.POLYCLINIC.name -> SpaceType.POLYCLINIC
+        "ST-04", SpaceType.COWORKING_SPACE.name -> SpaceType.COWORKING_SPACE
+        else -> SpaceType.PRIVATE_OFFICE
+    }
+    // Real category identity — a SchemaItem.id/name from the admin-defined catalog.
+    // selectedSpaceType above is kept in sync purely for legacy readers. Defaults to
+    // whichever category maps onto the draft's (or a fresh listing's) legacy type so
+    // the picker never starts with nothing selected.
+    var selectedCategoryId by remember {
+        mutableStateOf(
+            existingDraft?.spaceCategoryId
+                ?: categoryOptions.firstOrNull { legacyTypeFor(it.id) == selectedSpaceType }?.id
+                ?: categoryOptions.firstOrNull()?.id
+        )
+    }
+    var selectedCategoryName by remember {
+        mutableStateOf(existingDraft?.spaceCategoryName ?: categoryOptions.firstOrNull { it.id == selectedCategoryId }?.name)
+    }
+    // PAYG hosts can only Publish a category they've paid a slot for (spec: "PAYG-
+    // locked" categories) — a subscription host (LIMITED_3_TIER/UNLIMITED_TIER) has
+    // no per-category lock, only the existing whole-listing quota.
+    val isPaygTier = activeUser.ownerPackageTier == OwnerPackageTier.PAY_AS_YOU_GO
+    val paygCredits = activeUser.paygCategoryCredits
     // No longer shown as its own picker — a governorate field alongside a real map
     // pin only ever fought the map (see ListingLocationMapPicker's doc comment).
     // Derived instead from the picked pin's nearest match in buildListing(), purely
@@ -300,13 +348,44 @@ fun CreateListingDialog(
 
                                 Text("Space Category", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    items(SpaceType.values()) { type ->
+                                    items(categoryOptions) { category ->
+                                        // A PAYG host with zero purchased slots for this category
+                                        // can still browse/select it (to save a Draft or see
+                                        // pricing), but Publish stays blocked until a matching
+                                        // slot is bought — see createNewSpaceListing. Dimmed here
+                                        // only as a visual cue, never disabled outright.
+                                        val hasCreditOrUnlocked = !isPaygTier || (paygCredits[category.id] ?: 0) > 0
                                         FilterChip(
-                                            selected = selectedSpaceType == type,
-                                            onClick = { selectedSpaceType = type },
-                                            label = { Text(type.displayName, fontSize = MaterialTheme.typography.labelMedium.fontSize) }
+                                            selected = selectedCategoryId == category.id,
+                                            onClick = {
+                                                selectedCategoryId = category.id
+                                                selectedCategoryName = category.name
+                                                selectedSpaceType = legacyTypeFor(category.id)
+                                            },
+                                            label = {
+                                                Text(
+                                                    if (hasCreditOrUnlocked) category.name else "🔒 ${category.name}",
+                                                    fontSize = MaterialTheme.typography.labelMedium.fontSize
+                                                )
+                                            },
+                                            modifier = if (hasCreditOrUnlocked) Modifier else Modifier.alpha(0.55f)
                                         )
                                     }
+                                }
+                                if (isPaygTier) {
+                                    val selectedItem = categoryOptions.firstOrNull { it.id == selectedCategoryId }
+                                    val fee = selectedItem?.priceUsd
+                                    val credits = selectedCategoryId?.let { paygCredits[it] } ?: 0
+                                    Text(
+                                        if (credits > 0) {
+                                            "You have $credits paid slot(s) for ${selectedItem?.name ?: "this category"}."
+                                        } else {
+                                            "No paid slot yet for ${selectedItem?.name ?: "this category"}" +
+                                                (fee?.let { " — buy one for $${String.format("%.2f", it)} from Subscriptions." } ?: " — buy one from Subscriptions to publish.")
+                                        },
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                        color = if (credits > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                    )
                                 }
 
                                 HorizontalDivider()
@@ -867,9 +946,11 @@ fun CreateListingDialog(
 
                     return SpaceListing(
                         id = listingId,
-                        title = if (title.isNotBlank()) title else "${derivedGovernorate.displayName} ${selectedSpaceType.displayName}",
+                        title = if (title.isNotBlank()) title else "${derivedGovernorate.displayName} ${selectedCategoryName ?: selectedSpaceType.displayName}",
                         description = description,
                         spaceType = selectedSpaceType,
+                        spaceCategoryId = selectedCategoryId,
+                        spaceCategoryName = selectedCategoryName,
                         governorate = derivedGovernorate,
                         district = if (district.isNotBlank()) district else "Central ${derivedGovernorate.displayName}",
                         streetAddress = if (streetAddress.isNotBlank()) streetAddress else "Main Business Street",
@@ -964,7 +1045,8 @@ fun CreateListingDialog(
                                 true
                             }
                         } else {
-                            pickedLatLng != null && ownershipProofUrl != null && !isUploadingOwnershipProof
+                            pickedLatLng != null && ownershipProofUrl != null && !isUploadingOwnershipProof &&
+                                (!isPaygTier || (selectedCategoryId?.let { paygCredits[it] } ?: 0) > 0)
                         }
                     )
                 }

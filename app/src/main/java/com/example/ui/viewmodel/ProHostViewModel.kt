@@ -23,6 +23,11 @@ sealed class ListingCreateResult {
     object Success : ListingCreateResult()
     object PackageLimitReached : ListingCreateResult()
     object Failed : ListingCreateResult()
+    // PAY_AS_YOU_GO tier only: no purchased slot exists for this listing's category —
+    // CreateListingDialog's Publish button already greys out for this case, but the
+    // check is repeated here since it's the real gate (client UI is a convenience,
+    // not the source of truth).
+    data class PaygCategoryCreditRequired(val categoryId: String?) : ListingCreateResult()
 }
 
 class ProHostViewModel(
@@ -120,10 +125,11 @@ class ProHostViewModel(
         targetId: String,
         payerName: String,
         payerPhone: String,
-        context: Context
+        context: Context,
+        draftListingId: String? = null
     ) {
         viewModelScope.launch {
-            val result = functionsClient.initiateWhishPayment(purpose, targetId, payerName, payerPhone)
+            val result = functionsClient.initiateWhishPayment(purpose, targetId, payerName, payerPhone, draftListingId)
             result.onSuccess { init ->
                 try {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(init.collectUrl)))
@@ -132,14 +138,42 @@ class ProHostViewModel(
                 }
                 Toast.makeText(
                     context,
-                    "Complete your payment in the browser. We'll confirm automatically once Whish settles it.",
+                    if (draftListingId != null) {
+                        "Complete your payment in the browser. Your pending Draft will publish automatically once Whish settles it."
+                    } else {
+                        "Complete your payment in the browser. We'll confirm automatically once Whish settles it."
+                    },
                     Toast.LENGTH_LONG
                 ).show()
+                // The correlation is now recorded server-side on the transaction
+                // itself (see entitlements.ts's autoPublishDraftIfNeeded) — clearing
+                // it here just stops OwnerSubscriptionsScreen's banner from re-firing
+                // a second, unrelated purchase against the same draft.
+                if (draftListingId != null) clearPendingAutoPublishDraft()
                 pollWhishPaymentStatus(init.txId, purpose, context)
             }.onFailure { e ->
                 Toast.makeText(context, "Could not start payment: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
+    }
+
+    // Set by OwnerHubScreen right before redirecting to Subscriptions after a
+    // PackageLimitReached/PaygCategoryCreditRequired Publish rejection — the id of
+    // the Draft that was just saved in place of the blocked Publish attempt.
+    // OwnerSubscriptionsScreen reads this (same shared ViewModel instance across
+    // both screens) to surface a banner and thread the id into whichever purchase
+    // the host makes next, so it auto-publishes without a second trip through the
+    // wizard. Purely a client-side UX convenience — the real correlation once a
+    // payment is launched lives server-side on the Whish transaction itself.
+    private val _pendingAutoPublishDraftId = MutableStateFlow<String?>(null)
+    val pendingAutoPublishDraftId: StateFlow<String?> = _pendingAutoPublishDraftId.asStateFlow()
+
+    fun setPendingAutoPublishDraft(draftId: String?) {
+        _pendingAutoPublishDraftId.value = draftId
+    }
+
+    private fun clearPendingAutoPublishDraft() {
+        _pendingAutoPublishDraftId.value = null
     }
 
     /**
@@ -228,8 +262,29 @@ class ProHostViewModel(
             return ListingCreateResult.PackageLimitReached
         }
 
+        // PAY_AS_YOU_GO is per-listing, per-category billing (spec: "PAYG-locked"
+        // categories) — publishing straight to ACTIVE requires a purchased slot for
+        // this exact category; saving as a Draft is exempt (nothing to consume yet).
+        if (tier == OwnerPackageTier.PAY_AS_YOU_GO && listing.status == ListingStatus.ACTIVE) {
+            val categoryId = listing.spaceCategoryId
+            val hasCredit = categoryId != null && (user?.paygCategoryCredits?.get(categoryId) ?: 0) > 0
+            if (!hasCredit) {
+                repository.addAuditLog(
+                    actionType = "LISTING_BLOCKED_PAYG_CREDIT",
+                    details = "Owner attempted to publish category '${listing.spaceCategoryName ?: categoryId}' with no purchased PAYG slot.",
+                    severity = "WARN"
+                )
+                return ListingCreateResult.PaygCategoryCreditRequired(categoryId)
+            }
+        }
+
         // Reports the real Firestore result now — this used to return an
         // unconditional true for a listing that was never actually persisted.
+        // paygCategoryCredits is server-protected (firestore.rules), the same way
+        // activeListingCount is — the client can't decrement it directly. Consuming
+        // the credit happens server-side, in the same Firestore trigger that already
+        // maintains activeListingCount on this exact create (see
+        // functions/src/listings/listingCountTracker.ts's consumePaygCreditIfNeeded).
         return if (repository.addSpaceListing(listing)) ListingCreateResult.Success else ListingCreateResult.Failed
     }
 
@@ -260,24 +315,32 @@ class ProHostViewModel(
         tier: OwnerPackageTier,
         payerName: String,
         payerPhone: String,
-        spaceTypeForPayg: SpaceType?,
-        context: Context
+        // A SchemaItem.id from the admin-defined Space Category catalog (or a legacy
+        // SpaceType name as fallback) — only meaningful when tier == PAY_AS_YOU_GO.
+        paygCategoryId: String?,
+        context: Context,
+        draftListingId: String? = null
     ) {
         if (tier == OwnerPackageTier.PAY_AS_YOU_GO) {
-            val type = spaceTypeForPayg ?: SpaceType.PRIVATE_OFFICE
-            launchWhishCheckout("PAYG_LISTING", type.name, payerName, payerPhone, context)
+            val categoryId = paygCategoryId ?: SpaceType.PRIVATE_OFFICE.name
+            launchWhishCheckout("PAYG_LISTING", categoryId, payerName, payerPhone, context, draftListingId)
         } else {
-            launchWhishCheckout("OWNER_PACKAGE", tier.name, payerName, payerPhone, context)
+            launchWhishCheckout("OWNER_PACKAGE", tier.name, payerName, payerPhone, context, draftListingId)
         }
     }
 
+    // categoryId is a SchemaItem.id from spaceArchitectureSchema.spaceTypes (or, for
+    // the fallback synthetic list when the schema is empty, a legacy SpaceType name)
+    // — the server looks up its real price via getPaygFeeForCategory rather than
+    // trusting a client-supplied amount.
     fun payPaygListingViaWhish(
-        spaceType: SpaceType,
+        categoryId: String,
         payerName: String,
         payerPhone: String,
-        context: Context
+        context: Context,
+        draftListingId: String? = null
     ) {
-        launchWhishCheckout("PAYG_LISTING", spaceType.name, payerName, payerPhone, context)
+        launchWhishCheckout("PAYG_LISTING", categoryId, payerName, payerPhone, context, draftListingId)
     }
 
     // Sign-in/registration (phone OTP + Google Sign-In) moved to AuthViewModel —

@@ -19,6 +19,33 @@ function isActiveStatus(status: unknown): boolean {
   return status === undefined || status === null || status === "ACTIVE";
 }
 
+/**
+ * Consumes one PAYG slot the moment a listing actually starts occupying a category
+ * (straight-to-ACTIVE create, or a Draft/Paused -> ACTIVE transition — see both call
+ * sites below). paygCategoryCredits is server-protected (firestore.rules), the same
+ * reasoning as activeListingCount: a client-writable credit counter would make
+ * ProHostViewModel.createNewSpaceListing's PAYG gate trivially bypassable. Runs in a
+ * transaction since it's a read-modify-write on a map field, and does nothing (rather
+ * than going negative) if the owner isn't PAYG or already has zero credits for this
+ * category — the client-side gate should have already blocked that case, but this is
+ * the real enforcement, not the client check.
+ */
+async function consumePaygCreditIfNeeded(ownerId: string, listing: FirebaseFirestore.DocumentData | undefined) {
+  const categoryId = listing?.spaceCategoryId as string | undefined;
+  if (!categoryId) return;
+  const db = getFirestore();
+  const profileRef = db.collection("user_profiles").doc(ownerId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(profileRef);
+    const data = snap.data();
+    if (data?.ownerPackageTier !== "PAY_AS_YOU_GO") return;
+    const credits = (data?.paygCategoryCredits as Record<string, number> | undefined) ?? {};
+    const current = credits[categoryId] ?? 0;
+    if (current <= 0) return;
+    tx.set(profileRef, { paygCategoryCredits: { ...credits, [categoryId]: current - 1 } }, { merge: true });
+  });
+}
+
 export const onWorkspaceListingCreated = onDocumentCreated(
   "workspace_listings/{spaceId}",
   async (event) => {
@@ -30,6 +57,7 @@ export const onWorkspaceListingCreated = onDocumentCreated(
       { activeListingCount: FieldValue.increment(1) },
       { merge: true }
     );
+    await consumePaygCreditIfNeeded(ownerId, listing);
   }
 );
 
@@ -84,6 +112,7 @@ export const onWorkspaceListingStatusChanged = onDocumentUpdated(
     const profileRef = db.collection("user_profiles").doc(ownerId);
     if (isActive) {
       await profileRef.set({ activeListingCount: FieldValue.increment(1) }, { merge: true });
+      await consumePaygCreditIfNeeded(ownerId, after);
     } else {
       await db.runTransaction(async (tx) => {
         const snap = await tx.get(profileRef);

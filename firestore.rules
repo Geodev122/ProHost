@@ -64,6 +64,21 @@ service cloud.firestore {
       return tier != 'LIMITED_3_TIER' || count < limit;
     }
 
+    // Same reasoning as withinListingLimit() above, for PAY_AS_YOU_GO's per-category
+    // slots instead of LIMITED_3_TIER's whole-listing cap: without this, a raw
+    // Firestore SDK write could publish a PAYG category with zero purchased credit,
+    // bypassing both CreateListingDialog's disabled Publish button and
+    // ProHostViewModel.createNewSpaceListing's check. paygCategoryCredits is
+    // maintained only by listingCountTracker.ts's consumePaygCreditIfNeeded (this
+    // function only reads it, never writes it — see user_profiles' protected-fields
+    // list below for the write-side of that guarantee).
+    function hasPaygCredit(uid, categoryId) {
+      let profile = get(/databases/$(database)/documents/user_profiles/$(uid)).data;
+      let tier = profile.get('ownerPackageTier', 'PAY_AS_YOU_GO');
+      let credits = profile.get('paygCategoryCredits', {});
+      return tier != 'PAY_AS_YOU_GO' || (categoryId != null && credits.get(categoryId, 0) > 0);
+    }
+
     // ---------------------------------------------------------------
     // workspace_listings — public discovery, owner-managed
     // ---------------------------------------------------------------
@@ -91,11 +106,12 @@ service cloud.firestore {
         !isSuspended() &&
         // A Draft doesn't consume the host's quota (see ListingStatus's doc
         // comment) — only a create that lands directly as ACTIVE is gated by
-        // withinListingLimit(); saving a brand-new Draft is exempt the same
-        // way listingCountTracker.ts's create trigger only counts ACTIVE.
+        // withinListingLimit()/hasPaygCredit(); saving a brand-new Draft is exempt
+        // the same way listingCountTracker.ts's create trigger only counts ACTIVE.
         (isAdmin() ||
           request.resource.data.get('status', 'ACTIVE') != 'ACTIVE' ||
-          withinListingLimit(request.auth.uid));
+          (withinListingLimit(request.auth.uid) &&
+            hasPaygCredit(request.auth.uid, request.resource.data.get('spaceCategoryId', null))));
 
       // isVerified / isActiveSubscription / subscriptionExpiryMillis are
       // money- and verification-status fields — only setListingVerification /
@@ -119,7 +135,8 @@ service cloud.firestore {
           (isAdmin() ||
             resource.data.get('status', 'ACTIVE') == 'ACTIVE' ||
             request.resource.data.get('status', 'ACTIVE') != 'ACTIVE' ||
-            withinListingLimit(request.auth.uid))
+            (withinListingLimit(request.auth.uid) &&
+              hasPaygCredit(request.auth.uid, request.resource.data.get('spaceCategoryId', null))))
         ) ||
         // Engagement counters are incremented by the Specialist viewing/
         // contacting the listing, not the owner — the owner-only clause above
@@ -173,7 +190,8 @@ service cloud.firestore {
       allow update: if (isOwner(userId) || isAdmin()) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
           ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
-           "ownerPackageTier", "ownerPackageExpiryMillis", "activeListingCount"]
+           "ownerPackageTier", "ownerPackageExpiryMillis", "activeListingCount",
+           "paygCategoryCredits"]
         );
 
       allow delete: if isAdmin();

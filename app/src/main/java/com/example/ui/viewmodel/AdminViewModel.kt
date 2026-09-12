@@ -444,16 +444,18 @@ class AdminViewModel(
         category: String,
         name: String,
         description: String = "",
-        iconName: String = "Category"
+        iconName: String = "Category",
+        priceUsd: Double? = null
     ) {
-        addNewSchemaItem(category, name, description, iconName)
+        addNewSchemaItem(category, name, description, iconName, priceUsd)
     }
 
     fun addNewSchemaItem(
         category: String,
         name: String,
         description: String,
-        iconName: String
+        iconName: String,
+        priceUsd: Double? = null
     ) {
         viewModelScope.launch {
             val newItem = SchemaItem(
@@ -463,7 +465,8 @@ class AdminViewModel(
                 category = category,
                 iconName = iconName,
                 isEnabled = true,
-                isSystemDefault = false
+                isSystemDefault = false,
+                priceUsd = priceUsd
             )
             val success = repository.addSchemaItem(newItem)
             closeAddSchemaItemDialog()

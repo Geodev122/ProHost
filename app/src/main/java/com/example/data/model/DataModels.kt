@@ -671,6 +671,20 @@ data class SpaceListing(
     // this model (visitorPolicy, scheduleDescription, etc.) is validated.
     val description: String = "",
     val spaceType: SpaceType,
+    // Real category identity once the admin-defined Space Category system is in use —
+    // a SchemaItem.id from SpaceArchitectureSchema.spaceTypes (category == "SPACE_TYPE").
+    // Null for listings created before this field existed, or if the schema was empty
+    // at creation time and the wizard fell back to the legacy 4-value picker. [spaceType]
+    // above is kept in sync (best-effort mapping, see CreateListingDialog.buildListing)
+    // purely so every existing legacy reader (Discovery filters, badges, PAYG fee lookup
+    // for the original 4 types) keeps working unchanged; it is no longer the source of
+    // truth for display name/icon/pricing once [spaceCategoryId] is set.
+    val spaceCategoryId: String? = null,
+    // Denormalized snapshot of the SchemaItem's name at the moment this listing was
+    // created/saved — survives the admin later renaming or deleting that SchemaItem,
+    // the same reasoning as ownerName/ownerPhone being denormalized elsewhere on this
+    // model rather than re-joined live.
+    val spaceCategoryName: String? = null,
     val governorate: Governorate,
     val district: String,
     val streetAddress: String,
@@ -750,6 +764,8 @@ data class SpaceListing(
             "title" to title,
             "description" to description,
             "spaceType" to spaceType.name,
+            "spaceCategoryId" to spaceCategoryId,
+            "spaceCategoryName" to spaceCategoryName,
             "governorate" to governorate.name,
             "district" to district,
             "streetAddress" to streetAddress,
@@ -966,6 +982,8 @@ data class SpaceListing(
                 title = data["title"] as? String ?: "Executive Workspace",
                 description = data["description"] as? String ?: "",
                 spaceType = spaceType,
+                spaceCategoryId = data["spaceCategoryId"] as? String,
+                spaceCategoryName = data["spaceCategoryName"] as? String,
                 governorate = gov,
                 district = data["district"] as? String ?: "Beirut",
                 streetAddress = data["streetAddress"] as? String ?: "Beirut Central District",
@@ -1257,6 +1275,14 @@ data class AppUser(
     val ownerPackageTier: OwnerPackageTier = OwnerPackageTier.PAY_AS_YOU_GO,
     val ownerPackageExpiryMillis: Long? = null,
     val paygListingsBoughtCount: Int = 0,
+    // Server-only, written exclusively by grantEntitlement() (functions/src/lib/
+    // entitlements.ts) the moment a PAYG_LISTING payment for a specific SchemaItem
+    // category settles — keyed by SchemaItem.id, value = how many unpublished slots
+    // remain for that category. createNewSpaceListing consumes one credit for the
+    // listing's spaceCategoryId on a successful PAYG-tier publish; paygListingsBoughtCount
+    // above stays a separate lifetime display counter, never decremented, unrelated to
+    // gating. A category with zero or no entry here has no purchased slot.
+    val paygCategoryCredits: Map<String, Int> = emptyMap(),
     // Server-only, written exclusively by assignInitialRole.ts — createdAtMillis is set
     // once, the first time this uid ever gets a role claim; lastSignInAtMillis is
     // refreshed on every subsequent call (every sign-in). Never included in
@@ -1334,6 +1360,9 @@ data class AppUser(
                 lastSignInAtMillis = (data["lastSignInAtMillis"] as? Number)?.toLong(),
                 isSuspended = data["isSuspended"] as? Boolean ?: false,
                 activeListingCount = (data["activeListingCount"] as? Number)?.toInt() ?: 0,
+                paygCategoryCredits = (data["paygCategoryCredits"] as? Map<*, *>)?.entries
+                    ?.mapNotNull { (k, v) -> (k as? String)?.let { key -> (v as? Number)?.toInt()?.let { key to it } } }
+                    ?.toMap() ?: emptyMap(),
                 savedSpaceIds = (data["savedSpaceIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
             )
         }
@@ -1485,7 +1514,12 @@ data class SchemaItem(
     val category: String, // "SPACE_TYPE", "SUBCATEGORY", "AMENITY", "EQUIPMENT", "SPECIALTY", "RENTAL_STRATEGY"
     val iconName: String = "Category",
     val isEnabled: Boolean = true,
-    val isSystemDefault: Boolean = true
+    val isSystemDefault: Boolean = true,
+    // Only meaningful for category == "SPACE_TYPE": the PAYG per-listing fee for this
+    // category, admin-set. Null means "not priced yet" — CreateListingDialog and the
+    // PAYG buy flow fall back to a fixed default rather than letting a category be
+    // bought for $0. Ignored for every other category.
+    val priceUsd: Double? = null
 ) {
     fun toFirestoreMap(): Map<String, Any?> = mapOf(
         "id" to id,
@@ -1494,7 +1528,8 @@ data class SchemaItem(
         "category" to category,
         "iconName" to iconName,
         "isEnabled" to isEnabled,
-        "isSystemDefault" to isSystemDefault
+        "isSystemDefault" to isSystemDefault,
+        "priceUsd" to priceUsd
     )
 
     companion object {
@@ -1505,7 +1540,8 @@ data class SchemaItem(
             category = data["category"] as? String ?: "",
             iconName = data["iconName"] as? String ?: "Category",
             isEnabled = data["isEnabled"] as? Boolean ?: true,
-            isSystemDefault = data["isSystemDefault"] as? Boolean ?: true
+            isSystemDefault = data["isSystemDefault"] as? Boolean ?: true,
+            priceUsd = (data["priceUsd"] as? Number)?.toDouble()
         )
     }
 }
