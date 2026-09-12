@@ -35,6 +35,39 @@ function headers(secret: string): WhishHeaders {
   };
 }
 
+// Neither outbound call to Whish had a timeout — a hung Whish API left the
+// Cloud Function itself hanging until its own execution deadline, which for
+// initiatePayment means the specialist/host staring at a spinner in the app
+// for up to a minute with no way to know anything is wrong. AbortController
+// turns that into a clear, fast, loggable timeout error instead.
+const WHISH_REQUEST_TIMEOUT_MS = 15000;
+
+async function fetchWhish(url: string, init: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), WHISH_REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new Error(`Whish request to ${url} timed out after ${WHISH_REQUEST_TIMEOUT_MS}ms`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Whish returning a non-JSON body (an HTML error page, an empty body on a
+// gateway timeout) used to surface as a raw, confusing JSON.parse
+// SyntaxError. This gives callers a message that actually names what failed.
+async function parseWhishJson<T>(res: Response, context: string): Promise<T> {
+  try {
+    return (await res.json()) as T;
+  } catch (e) {
+    throw new Error(`Whish ${context} returned an unreadable response (HTTP ${res.status})`);
+  }
+}
+
 export function generateSignature(amount: number, currency: string, orderId: string, secret: string): string {
   const formattedAmount = amount.toFixed(2);
   const raw = `${WHISH_CHANNEL_ID}|${formattedAmount}|${currency}|${orderId}|${secret}`;
@@ -56,7 +89,7 @@ export async function initiatePayment(
   params: InitiatePaymentParams,
   secret: string
 ): Promise<{ collectUrl: string }> {
-  const res = await fetch(`${WHISH_BASE_URL}payment/whish`, {
+  const res = await fetchWhish(`${WHISH_BASE_URL}payment/whish`, {
     method: "POST",
     headers: headers(secret) as unknown as HeadersInit,
     body: JSON.stringify({
@@ -70,11 +103,11 @@ export async function initiatePayment(
       failureRedirectUrl: params.failureRedirectUrl,
     }),
   });
-  const body = (await res.json()) as {
+  const body = await parseWhishJson<{
     status: boolean;
     dialog?: { message?: string };
     data?: { collectUrl?: string };
-  };
+  }>(res, "payment initiation");
   if (!res.ok || !body.status || !body.data?.collectUrl) {
     // The one place this specific HTTP/API-level detail (status code, Whish's own
     // rejection message, the externalId it was rejected for) ever exists — the
@@ -98,16 +131,16 @@ export async function getCollectStatus(
   externalId: number,
   secret: string
 ): Promise<{ status: WhishCollectStatus; payerPhoneNumber?: string }> {
-  const res = await fetch(`${WHISH_BASE_URL}payment/collect/status`, {
+  const res = await fetchWhish(`${WHISH_BASE_URL}payment/collect/status`, {
     method: "POST",
     headers: headers(secret) as unknown as HeadersInit,
     body: JSON.stringify({ currency, externalId }),
   });
-  const body = (await res.json()) as {
+  const body = await parseWhishJson<{
     status: boolean;
     dialog?: { message?: string };
     data?: { collectStatus?: string; payerPhoneNumber?: string };
-  };
+  }>(res, "status check");
   if (!res.ok || !body.status || !body.data?.collectStatus) {
     logger.warn("whish_client_get_status_failed", {
       externalId,
