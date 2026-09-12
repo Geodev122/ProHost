@@ -4,6 +4,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { initiatePayment, generateSignature, WHISH_CHANNEL_ID } from "../lib/whishClient";
 import { getPricingState, getPaygFeeForCategory, getPackageFee, OwnerPackageTier } from "../lib/pricing";
 import { WhishPurpose } from "../lib/entitlements";
+import * as logger from "firebase-functions/logger";
 import "../lib/admin";
 
 export const whishSecret = defineSecret("WHISH_SECRET_KEY");
@@ -89,6 +90,11 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
         try {
           amountUsd = await getPaygFeeForCategory(pricing, targetId);
         } catch (e) {
+          logger.warn("whish_initiate_invalid_payg_category", {
+            uid: auth.uid,
+            targetId,
+            error: e instanceof Error ? e.message : String(e),
+          });
           throw new HttpsError("invalid-argument", e instanceof Error ? e.message : "Invalid PAYG category.");
         }
         invoiceLabel = `PAYG listing slot: ${targetId}`;
@@ -106,19 +112,36 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
 
     const callbackUrl = `${WEBHOOK_URL}?externalId=${externalId}`;
 
-    const { collectUrl } = await initiatePayment(
-      {
-        amount: amountUsd,
-        currency: "USD",
-        invoice: invoiceLabel,
-        externalId,
-        successCallbackUrl: callbackUrl,
-        failureCallbackUrl: callbackUrl,
-        successRedirectUrl: request.data.successRedirectUrl ?? "https://hopebearer-award.com/payment/success",
-        failureRedirectUrl: request.data.failureRedirectUrl ?? "https://hopebearer-award.com/payment/failure",
-      },
-      secret
-    );
+    let collectUrl: string;
+    try {
+      ({ collectUrl } = await initiatePayment(
+        {
+          amount: amountUsd,
+          currency: "USD",
+          invoice: invoiceLabel,
+          externalId,
+          successCallbackUrl: callbackUrl,
+          failureCallbackUrl: callbackUrl,
+          successRedirectUrl: request.data.successRedirectUrl ?? "https://hopebearer-award.com/payment/success",
+          failureRedirectUrl: request.data.failureRedirectUrl ?? "https://hopebearer-award.com/payment/failure",
+        },
+        secret
+      ));
+    } catch (e) {
+      // whishClient already logged the HTTP/API-level detail; this ties it to
+      // the business context (who, for what, how much) before it's lost —
+      // no whish_transactions doc is ever created for a failed initiation, so
+      // this log is the only record this attempt ever happened.
+      logger.error("whish_initiate_payment_request_failed", {
+        uid: auth.uid,
+        purpose,
+        targetId,
+        amountUsd,
+        orderId,
+        error: e instanceof Error ? e.message : String(e),
+      });
+      throw new HttpsError("unavailable", e instanceof Error ? e.message : "Could not start the payment with Whish.");
+    }
 
     await db.collection("whish_transactions").doc(txId).set({
       id: txId,
@@ -140,6 +163,15 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
       targetId,
       externalId,
       ...(draftListingId ? { draftListingId } : {}),
+    });
+
+    logger.info("whish_payment_initiated", {
+      txId,
+      orderId,
+      uid: auth.uid,
+      purpose,
+      targetId,
+      amountUsd,
     });
 
     return { collectUrl, txId, orderId };

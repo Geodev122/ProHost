@@ -2,6 +2,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { getCollectStatus } from "../lib/whishClient";
 import { grantEntitlement, WhishTransactionDoc } from "../lib/entitlements";
 import { recordAuditLog } from "../lib/auditLog";
+import * as logger from "firebase-functions/logger";
 
 /**
  * The single place that decides whether a Whish payment actually succeeded. Always
@@ -29,10 +30,15 @@ export async function reconcileTransaction(
   const db = getFirestore();
   const ref = db.collection("whish_transactions").doc(txId);
   const snap = await ref.get();
-  if (!snap.exists) return "NOT_FOUND";
+  if (!snap.exists) {
+    logger.warn("whish_reconcile_transaction_not_found", { txId });
+    return "NOT_FOUND";
+  }
 
   const tx = snap.data() as WhishTransactionDoc;
   if (tx.status !== "PENDING") {
+    // Not logged — this is the routine, expected path for every poll/webhook hit
+    // after a transaction already settled, which would otherwise flood logs.
     return tx.status;
   }
 
@@ -41,6 +47,14 @@ export async function reconcileTransaction(
     result = await getCollectStatus(tx.currency, tx.externalId, secret);
   } catch (e) {
     // Transient Whish API error — leave PENDING, caller can retry later.
+    // whishClient's own log already captured the HTTP/API-level detail; this
+    // ties it back to the specific transaction for anyone searching by txId.
+    logger.warn("whish_reconcile_status_check_failed", {
+      txId,
+      orderId: tx.orderId,
+      purpose: tx.purpose,
+      error: e instanceof Error ? e.message : String(e),
+    });
     return "PENDING";
   }
 
@@ -60,15 +74,52 @@ export async function reconcileTransaction(
   });
 
   if (!claimed) {
+    logger.info("whish_reconcile_claim_lost", { txId });
     const finalSnap = await ref.get();
     return (finalSnap.data()?.status as "SUCCESS" | "FAILED" | undefined) ?? "PENDING";
   }
 
   if (newStatus === "SUCCESS") {
-    await grantEntitlement({ ...tx, status: "SUCCESS" });
+    try {
+      await grantEntitlement({ ...tx, status: "SUCCESS" });
+    } catch (e) {
+      // The transaction doc is already marked SUCCESS at this point — the
+      // payment genuinely settled — but the entitlement grant itself threw
+      // (a bug, a Firestore blip, an Auth SDK error). This is the single most
+      // important line in this whole file to have logged: without it, a
+      // customer who paid and got nothing looks identical, from the outside,
+      // to a customer who never paid, and support has no way to find the
+      // stuck transaction by txId/orderId/uid. Rethrown unchanged — this adds
+      // visibility, it doesn't change what happens next.
+      logger.error("whish_reconcile_entitlement_grant_failed", {
+        txId,
+        orderId: tx.orderId,
+        purpose: tx.purpose,
+        targetId: tx.targetId,
+        userId: tx.userId,
+        amountUsd: tx.amountUsd,
+        error: e instanceof Error ? e.message : String(e),
+      });
+      throw e;
+    }
+    logger.info("whish_reconcile_success", {
+      txId,
+      orderId: tx.orderId,
+      purpose: tx.purpose,
+      targetId: tx.targetId,
+      userId: tx.userId,
+      amountUsd: tx.amountUsd,
+    });
     return "SUCCESS";
   }
 
+  logger.info("whish_reconcile_payment_failed", {
+    txId,
+    orderId: tx.orderId,
+    purpose: tx.purpose,
+    targetId: tx.targetId,
+    userId: tx.userId,
+  });
   await recordAuditLog({
     actionType: "WHISH_PAYMENT_FAILED",
     details: `Order ${tx.orderId} for purpose ${tx.purpose} (target ${tx.targetId}) did not settle.`,

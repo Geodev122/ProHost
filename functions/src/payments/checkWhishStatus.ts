@@ -2,6 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import { reconcileTransaction } from "./reconcile";
 import { whishSecret } from "./initiateWhishPayment";
+import * as logger from "firebase-functions/logger";
 import "../lib/admin";
 
 interface CheckWhishStatusData {
@@ -34,6 +35,7 @@ export const checkWhishStatus = onCall<CheckWhishStatusData>(
     }
     const tx = snap.data()!;
     if (tx.userId !== auth.uid && auth.token.role !== "ADMIN") {
+      logger.warn("whish_check_status_permission_denied", { txId, requestedBy: auth.uid, ownedBy: tx.userId });
       throw new HttpsError("permission-denied", "You can only check your own transactions.");
     }
 

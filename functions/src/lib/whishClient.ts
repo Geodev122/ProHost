@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import * as logger from "firebase-functions/logger";
 
 // Production host. This is the ONLY place in the whole system, client included,
 // that talks to Whish's API directly as of Phase 5 — the app no longer calls
@@ -75,6 +76,16 @@ export async function initiatePayment(
     data?: { collectUrl?: string };
   };
   if (!res.ok || !body.status || !body.data?.collectUrl) {
+    // The one place this specific HTTP/API-level detail (status code, Whish's own
+    // rejection message, the externalId it was rejected for) ever exists — the
+    // callers above only ever see the thrown Error's message, so without this a
+    // rejected payment initiation is nearly undebuggable after the fact.
+    logger.warn("whish_client_initiate_payment_failed", {
+      externalId: params.externalId,
+      httpStatus: res.status,
+      apiStatus: body.status,
+      dialogMessage: body.dialog?.message ?? null,
+    });
     throw new Error(body.dialog?.message ?? `Whish payment initiation failed (HTTP ${res.status})`);
   }
   return { collectUrl: body.data.collectUrl };
@@ -98,6 +109,12 @@ export async function getCollectStatus(
     data?: { collectStatus?: string; payerPhoneNumber?: string };
   };
   if (!res.ok || !body.status || !body.data?.collectStatus) {
+    logger.warn("whish_client_get_status_failed", {
+      externalId,
+      httpStatus: res.status,
+      apiStatus: body.status,
+      dialogMessage: body.dialog?.message ?? null,
+    });
     throw new Error(body.dialog?.message ?? `Whish status check failed (HTTP ${res.status})`);
   }
   const raw = body.data.collectStatus.toLowerCase();
