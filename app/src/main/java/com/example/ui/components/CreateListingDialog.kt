@@ -570,9 +570,9 @@ fun CreateListingDialog(
 
                                 Text("Cover Photos", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 Text(
-                                    "Real photos of the space — shown first in search results. Optional, but listings without any get a plain placeholder.",
+                                    "Real photos of the space — shown first in search results. At least one is required to publish (Save as Draft never needs one).",
                                     fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (uploadedPhotoUrls.isEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     items(uploadedPhotoUrls) { url ->
@@ -1030,6 +1030,7 @@ fun CreateListingDialog(
                             }
                         } else {
                             pickedLatLng != null && ownershipProofUrl != null && !isUploadingOwnershipProof &&
+                                uploadedPhotoUrls.isNotEmpty() &&
                                 (!isPaygTier || (selectedCategoryId?.let { paygCredits[it] } ?: 0) > 0)
                         }
                     )
