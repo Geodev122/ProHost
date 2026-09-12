@@ -189,6 +189,70 @@ object SpaceCalculationUtils {
         }
     }
 
+    private fun hoursOverlap(aStart: String, aEnd: String, bStart: String, bEnd: String): Boolean {
+        val s1 = parseHour(aStart) ?: return false
+        val e1 = parseHour(aEnd) ?: return false
+        val s2 = parseHour(bStart) ?: return false
+        val e2 = parseHour(bEnd) ?: return false
+        return s1 < e2 && s2 < e1
+    }
+
+    private fun bookingScope(booking: RentalBookingRequest, spaceId: String): String =
+        booking.subdivisionId ?: spaceId
+
+    private fun bookingDays(booking: RentalBookingRequest): List<String> =
+        if (booking.selectedDays.isNotEmpty()) booking.selectedDays else booking.formula.daysOfWeek
+
+    /**
+     * Whether an ACCEPTED booking already locks [slot]. The one conflict rule every
+     * screen shares — the specialist's availability matrix, the booking dialog (which
+     * hides locked slots), and the host's accept path (see [findAcceptConflict]) —
+     * so a slot can't read as open in one place and taken in another.
+     *
+     * Scoped to the slot's own subdivision (or the whole space when it has none): a
+     * full-month booking of Room A locks Room A's slots, not Room B's. A FULL_MONTH
+     * booking locks every slot in its scope; anything else locks slots on a day it
+     * covers whose hours overlap its start/end. Since a booking's start/end is the
+     * min/max over the slots it chose, non-contiguous hourly picks lock the hours in
+     * between too — conservative on purpose. [ignoreBookingId] lets an edit of an
+     * accepted booking not be blocked by itself.
+     */
+    fun isSlotLocked(
+        slot: RentableSlot,
+        spaceId: String,
+        acceptedBookings: List<RentalBookingRequest>,
+        ignoreBookingId: String? = null
+    ): Boolean = acceptedBookings.any { req ->
+        req.status == BookingRequestStatus.ACCEPTED &&
+            req.id != ignoreBookingId &&
+            req.spaceId == spaceId &&
+            bookingScope(req, spaceId) == slot.sourceFormulaId &&
+            (req.formula.type == RentalFormulaType.FULL_MONTH ||
+                (bookingDays(req).contains(slot.day) &&
+                    hoursOverlap(req.formula.startHour, req.formula.endHour, slot.startTime, slot.endTime)))
+    }
+
+    /**
+     * The ACCEPTED booking [candidate] would collide with if it were accepted now,
+     * or null when it's clear — same scoping and overlap rule as [isSlotLocked],
+     * applied booking-to-booking. The booking [candidate] is an edit of
+     * (replacesBookingId) is released on acceptance, so it never counts.
+     */
+    fun findAcceptConflict(
+        candidate: RentalBookingRequest,
+        allBookings: List<RentalBookingRequest>
+    ): RentalBookingRequest? = allBookings.firstOrNull { other ->
+        other.id != candidate.id &&
+            other.id != candidate.replacesBookingId &&
+            other.status == BookingRequestStatus.ACCEPTED &&
+            other.spaceId == candidate.spaceId &&
+            bookingScope(other, candidate.spaceId) == bookingScope(candidate, candidate.spaceId) &&
+            (other.formula.type == RentalFormulaType.FULL_MONTH ||
+                candidate.formula.type == RentalFormulaType.FULL_MONTH ||
+                (bookingDays(other).any { it in bookingDays(candidate) } &&
+                    hoursOverlap(other.formula.startHour, other.formula.endHour, candidate.formula.startHour, candidate.formula.endHour)))
+    }
+
     /**
      * The unit a formula's [RentalFormula.rateUsd] is actually denominated in, so a
      * rate can be labelled honestly instead of being stamped "/mo" regardless of type.

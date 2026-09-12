@@ -69,12 +69,24 @@ fun RentalBookingDialog(
     // .buildAllSlotsForSpace), so this dialog can never show/charge a different number
     // than what the specialist already saw before tapping "Request."
     val allSlots = remember(space) { SpaceCalculationUtils.buildAllSlotsForSpace(space) }
-    val scopedSlots = remember(allSlots, hasSubdivisions, selectedSubdivision) {
+    // Slots an ACCEPTED booking already locks are hidden rather than offered — the
+    // same rule the availability matrix greys them out with, so nothing the
+    // specialist could see as taken there is bookable here. An edit of an accepted
+    // booking (replacesBookingId) isn't blocked by the booking it's replacing.
+    val allBookings by viewModel.bookingRequests.collectAsState()
+    val acceptedForSpace = remember(allBookings, space.id) {
+        allBookings.filter { it.spaceId == space.id && it.status == BookingRequestStatus.ACCEPTED }
+    }
+    val openSlots = remember(allSlots, acceptedForSpace, replacesBookingId) {
+        allSlots.filterNot { SpaceCalculationUtils.isSlotLocked(it, space.id, acceptedForSpace, ignoreBookingId = replacesBookingId) }
+    }
+    val hiddenLockedCount = allSlots.size - openSlots.size
+    val scopedSlots = remember(openSlots, hasSubdivisions, selectedSubdivision) {
         if (hasSubdivisions) {
             val subId = selectedSubdivision?.id
-            if (subId != null) allSlots.filter { it.sourceFormulaId == subId } else emptyList()
+            if (subId != null) openSlots.filter { it.sourceFormulaId == subId } else emptyList()
         } else {
-            allSlots
+            openSlots
         }
     }
     val availableStrategyTypes = remember(scopedSlots) {
@@ -322,9 +334,20 @@ fun RentalBookingDialog(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
+                        if (hiddenLockedCount > 0) {
+                            Text(
+                                text = "$hiddenLockedCount slot${if (hiddenLockedCount == 1) " is" else "s are"} already booked by another professional and not shown.",
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         if (availableStrategyTypes.isEmpty()) {
                             Text(
-                                text = "This ${if (hasSubdivisions) "room" else "space"} has no bookable availability configured yet.",
+                                text = if (allSlots.isEmpty()) {
+                                    "This ${if (hasSubdivisions) "room" else "space"} has no bookable availability configured yet."
+                                } else {
+                                    "Every slot for this ${if (hasSubdivisions) "room" else "space"} is already booked."
+                                },
                                 fontSize = MaterialTheme.typography.labelMedium.fontSize,
                                 color = MaterialTheme.colorScheme.error
                             )

@@ -536,6 +536,16 @@ class ProHostViewModel(
      */
     fun acceptBookingRequest(context: Context, requestId: String, agreementUri: Uri) {
         viewModelScope.launch {
+            // Refuse before the upload: accepting this would double-book a slot an
+            // ACCEPTED booking already holds. Named so the host knows which one.
+            repository.findAcceptConflict(requestId)?.let { clash ->
+                Toast.makeText(
+                    context,
+                    "Can't accept #$requestId — it overlaps accepted booking #${clash.id} (${clash.practitionerName}, ${clash.selectedDateTimeRange}).",
+                    Toast.LENGTH_LONG
+                ).show()
+                return@launch
+            }
             val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
             val ext = guessFileExtension(context, agreementUri, "pdf")
             val agreementUrl = storageService.uploadBookingAgreement(requestId, agreementUri, ext)

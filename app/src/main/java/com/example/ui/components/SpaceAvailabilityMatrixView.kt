@@ -49,9 +49,6 @@ fun SpaceAvailabilityMatrixView(
 ) {
     var selectedSlotInfo by remember { mutableStateOf<Pair<RentableSlot, Boolean>?>(null) } // (slot, isBooked)
 
-    val isFullMonthBooked = acceptedBookings.any {
-        it.status == BookingRequestStatus.ACCEPTED && it.formula.type == RentalFormulaType.FULL_MONTH
-    }
 
     // buildAllSlotsForSpace expands the space's own pricing when it has no
     // subdivisions, or every subdivision's pricing when it does — fixing the bug
@@ -72,6 +69,15 @@ fun SpaceAvailabilityMatrixView(
                 it.dayOfWeek.equals(slot.day, ignoreCase = true) &&
                     it.startTime == slot.startTime && it.endTime == slot.endTime
             }
+        }
+    }
+
+    // "Fully Occupied" now means every offered slot is locked by an accepted
+    // booking under the shared rule — not "someone booked a full month of any
+    // room", which greyed out the whole card for multi-room spaces.
+    val isFullyBooked = remember(offeredSlots, acceptedBookings, space.id) {
+        offeredSlots.isNotEmpty() && offeredSlots.all {
+            SpaceCalculationUtils.isSlotLocked(it, space.id, acceptedBookings)
         }
     }
 
@@ -129,7 +135,7 @@ fun SpaceAvailabilityMatrixView(
                         )
                     }
                 }
-                if (isFullMonthBooked) {
+                if (isFullyBooked) {
                     Surface(
                         color = StatusErrorContainer,
                         shape = MaterialTheme.shapes.small
@@ -180,12 +186,11 @@ fun SpaceAvailabilityMatrixView(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             slotsForDay.forEach { slot ->
-                                val isBooked = isFullMonthBooked || acceptedBookings.any { req ->
-                                    req.status == BookingRequestStatus.ACCEPTED &&
-                                        (req.selectedDays.contains(slot.day) || req.formula.daysOfWeek.contains(slot.day)) &&
-                                        (req.formula.type == RentalFormulaType.FULL_MONTH ||
-                                            (req.formula.startHour == slot.startTime && req.formula.endHour == slot.endTime))
-                                }
+                                // One shared lock rule with RentalBookingDialog and the host's
+                                // accept check (SpaceCalculationUtils.isSlotLocked) — scoped to
+                                // the slot's own room, so a full-month booking of Room A no longer
+                                // greys out Room B here.
+                                val isBooked = SpaceCalculationUtils.isSlotLocked(slot, space.id, acceptedBookings)
                                 val cellColor = if (isBooked) StatusErrorContainer else StatusSuccessContainer
                                 val borderColor = if (isBooked) StatusError.copy(alpha = 0.5f) else StatusSuccess.copy(alpha = 0.5f)
                                 val textColor = if (isBooked) StatusOnErrorContainer else StatusOnSuccessContainer

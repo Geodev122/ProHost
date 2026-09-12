@@ -1059,6 +1059,17 @@ class ProHostRepository {
     }
 
     /**
+     * The already-ACCEPTED booking that [requestId] would collide with if accepted
+     * now, or null when it's clear. Checked by the ViewModel before the agreement
+     * upload (so a host isn't asked to upload a lease for a booking that can't be
+     * accepted) and again inside [acceptBookingRequest] as the real guard.
+     */
+    fun findAcceptConflict(requestId: String): RentalBookingRequest? {
+        val request = _bookingRequests.value.find { it.id == requestId } ?: return null
+        return com.example.ui.util.SpaceCalculationUtils.findAcceptConflict(request, _bookingRequests.value)
+    }
+
+    /**
      * Owner accepting a booking means they've reached and evidenced a real agreement
      * with the specialist — [agreementUrl] is the signed lease they just uploaded to
      * Storage (see OwnerRentalRequestsScreen's Accept flow), kept on file as the
@@ -1073,9 +1084,16 @@ class ProHostRepository {
      * the same operation, so exactly one of the two is ever ACCEPTED and
      * availability — always derived live from ACCEPTED bookings + the space's
      * schedule, never a separately stored count — recalculates immediately.
+     *
+     * Never double-books: refuses (returns false) when [findAcceptConflict] finds an
+     * ACCEPTED booking already holding the same room/space, day and hours.
      */
     suspend fun acceptBookingRequest(requestId: String, agreementUrl: String): Boolean {
         val request = _bookingRequests.value.find { it.id == requestId } ?: return false
+        // Never double-book: two ACCEPTED bookings can't overlap on the same room/space,
+        // day and hours (SpaceCalculationUtils.findAcceptConflict — the same rule the
+        // specialist-facing screens hide locked slots with).
+        if (findAcceptConflict(requestId) != null) return false
         val now = System.currentTimeMillis()
 
         val success = firestoreService.updateBookingStatus(
