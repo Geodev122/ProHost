@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -18,6 +19,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
@@ -57,7 +59,8 @@ fun SubdivisionEditorSection(
     var subName by remember { mutableStateOf("") }
     var subType by remember { mutableStateOf(Level2Type.ROOMS) }
     var subAmenitiesSelected by remember { mutableStateOf(setOf<String>()) }
-    var subAmenitySearch by remember { mutableStateOf("") }
+    var showTypePicker by remember { mutableStateOf(false) }
+    var showAmenityPicker by remember { mutableStateOf(false) }
     var subImageUrls by remember { mutableStateOf(listOf<String>()) }
     var isUploadingSubImage by remember { mutableStateOf(false) }
     var subPricing by remember { mutableStateOf(RentalPricingConfig.default()) }
@@ -101,10 +104,6 @@ fun SubdivisionEditorSection(
         "High-Speed Wi-Fi", "Soundproofing", "Ergonomic Seating", "Storage Locker",
         "Keyless Access Control", "Privacy Partition", "Natural Lighting", "Standing Desk"
     )
-    val filteredAmenities = amenityCatalog.filter {
-        subAmenitySearch.isBlank() || it.contains(subAmenitySearch, ignoreCase = true)
-    }
-
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(
             "Configure Rooms & Workspace Subdivisions",
@@ -181,38 +180,48 @@ fun SubdivisionEditorSection(
                     singleLine = true
                 )
 
+                // Type and Amenities are chosen through real searchable popup pickers
+                // (spec Step 3: "Type via multiselect popup", "Amenities via multiselect
+                // popup") — the inline chip rows they replaced couldn't scale past a
+                // handful of options and had no search for Type at all.
                 Text("Type", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(Level2Type.values()) { type ->
-                        FilterChip(
-                            selected = subType == type,
-                            onClick = { subType = type },
-                            label = { Text(type.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
-                        )
-                    }
-                }
+                PickerTriggerRow(
+                    summary = subType.displayName,
+                    placeholder = "Choose a room type",
+                    onClick = { showTypePicker = true }
+                )
 
                 Text("Amenities", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                OutlinedTextField(
-                    value = subAmenitySearch,
-                    onValueChange = { subAmenitySearch = it },
-                    placeholder = { Text("Search amenities...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    singleLine = true
+                PickerTriggerRow(
+                    summary = subAmenitiesSelected.joinToString(),
+                    placeholder = "Choose amenities",
+                    onClick = { showAmenityPicker = true }
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(filteredAmenities) { amen ->
-                        val isSel = subAmenitiesSelected.contains(amen)
-                        FilterChip(
-                            selected = isSel,
-                            onClick = {
-                                subAmenitiesSelected = if (isSel) subAmenitiesSelected - amen else subAmenitiesSelected + amen
-                            },
-                            label = { Text(amen, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
-                        )
-                    }
+
+                if (showTypePicker) {
+                    SearchablePickerDialog(
+                        title = "Room / Unit Type",
+                        options = Level2Type.values().map { it.displayName },
+                        selected = setOf(subType.displayName),
+                        multiSelect = false,
+                        onToggle = { label ->
+                            Level2Type.values().firstOrNull { it.displayName == label }?.let { subType = it }
+                            showTypePicker = false
+                        },
+                        onDismiss = { showTypePicker = false }
+                    )
+                }
+                if (showAmenityPicker) {
+                    SearchablePickerDialog(
+                        title = "Room Amenities",
+                        options = amenityCatalog,
+                        selected = subAmenitiesSelected,
+                        multiSelect = true,
+                        onToggle = { amen ->
+                            subAmenitiesSelected = if (amen in subAmenitiesSelected) subAmenitiesSelected - amen else subAmenitiesSelected + amen
+                        },
+                        onDismiss = { showAmenityPicker = false }
+                    )
                 }
 
                 Text("Images", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
@@ -279,6 +288,122 @@ fun SubdivisionEditorSection(
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text("Add Room / Desk to Listing", fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                }
+            }
+        }
+    }
+}
+
+/** The tappable "current selection" row that opens a [SearchablePickerDialog]. */
+@Composable
+private fun PickerTriggerRow(
+    summary: String,
+    placeholder: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = summary.ifBlank { placeholder },
+                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                color = if (summary.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(Icons.Default.Search, contentDescription = "Open picker", tint = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+/**
+ * A searchable popup picker. Single-select ([multiSelect] = false) reports the tap
+ * through [onToggle] and expects the caller to close it; multi-select keeps the
+ * dialog open so several options can be toggled, and closes on Done/outside tap.
+ * Owns its own search text so it always opens with a clean filter.
+ */
+@Composable
+private fun SearchablePickerDialog(
+    title: String,
+    options: List<String>,
+    selected: Set<String>,
+    multiSelect: Boolean,
+    onToggle: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+    val filtered = options.filter { query.isBlank() || it.contains(query, ignoreCase = true) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(title, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.titleMedium.fontSize)
+                    IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = "Close") }
+                }
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = { Text("Search...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    singleLine = true
+                )
+                if (filtered.isEmpty()) {
+                    Text(
+                        "No matches.",
+                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
+                    items(filtered) { option ->
+                        val isSelected = option in selected
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onToggle(option) }
+                                .padding(vertical = Spacing.xs),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (multiSelect) {
+                                Checkbox(checked = isSelected, onCheckedChange = { onToggle(option) })
+                            } else {
+                                RadioButton(selected = isSelected, onClick = { onToggle(option) })
+                            }
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text(option, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                        }
+                    }
+                }
+                if (multiSelect) {
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text("Done (${selected.size} selected)")
+                    }
                 }
             }
         }
