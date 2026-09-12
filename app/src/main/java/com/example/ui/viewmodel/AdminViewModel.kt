@@ -97,12 +97,12 @@ class AdminViewModel(
         }
     }
 
-    fun updatePaygFee(spaceType: SpaceType, fee: Double) {
+    fun updatePaygFees(privateOfficeFee: Double, centerFee: Double, polyclinicFee: Double, coworkingFee: Double) {
         viewModelScope.launch {
-            val success = repository.updatePaygFee(spaceType, fee)
+            val success = repository.updatePaygFees(privateOfficeFee, centerFee, polyclinicFee, coworkingFee)
             _events.emit(
                 AdminUiEvent.ShowToast(
-                    if (success) "PAYG fee updated for ${spaceType.displayName}" else "Failed to update PAYG fee for ${spaceType.displayName}"
+                    if (success) "PAYG fees updated" else "Failed to update PAYG fees"
                 )
             )
         }

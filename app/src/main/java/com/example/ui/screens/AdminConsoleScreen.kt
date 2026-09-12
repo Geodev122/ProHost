@@ -541,33 +541,66 @@ private fun AdminRevenueTab(
                         fontWeight = FontWeight.Bold
                     )
 
+                    // Buffered locally and committed by the Save button below — same
+                    // pattern as the Package 2/3 fees two sections down. Each field used
+                    // to call adminViewModel.updatePaygFee directly from onValueChange,
+                    // firing a full updatePricing Cloud Function call AND an audit-log
+                    // write on every valid keystroke (typing "1.50" fired 3-4 separate
+                    // writes with intermediate junk values like "1", "1.5").
+                    var privateOfficeFeeInput by remember(uiState.pricingState.paygPrivateOfficeUsd) {
+                        mutableStateOf(uiState.pricingState.paygPrivateOfficeUsd.toString())
+                    }
+                    var centerFeeInput by remember(uiState.pricingState.paygCenterUsd) {
+                        mutableStateOf(uiState.pricingState.paygCenterUsd.toString())
+                    }
+                    var polyclinicFeeInput by remember(uiState.pricingState.paygPolyclinicUsd) {
+                        mutableStateOf(uiState.pricingState.paygPolyclinicUsd.toString())
+                    }
+                    var coworkingFeeInput by remember(uiState.pricingState.paygCoworkingUsd) {
+                        mutableStateOf(uiState.pricingState.paygCoworkingUsd.toString())
+                    }
+
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
-                            value = uiState.pricingState.paygPrivateOfficeUsd.toString(),
-                            onValueChange = { val d = it.toDoubleOrNull(); if (d != null) adminViewModel.updatePaygFee(SpaceType.PRIVATE_OFFICE, d) },
+                            value = privateOfficeFeeInput,
+                            onValueChange = { privateOfficeFeeInput = it },
                             label = { Text("Private Office ($)") },
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
-                            value = uiState.pricingState.paygCenterUsd.toString(),
-                            onValueChange = { val d = it.toDoubleOrNull(); if (d != null) adminViewModel.updatePaygFee(SpaceType.CENTER, d) },
+                            value = centerFeeInput,
+                            onValueChange = { centerFeeInput = it },
                             label = { Text("Center ($)") },
                             modifier = Modifier.weight(1f)
                         )
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
-                            value = uiState.pricingState.paygPolyclinicUsd.toString(),
-                            onValueChange = { val d = it.toDoubleOrNull(); if (d != null) adminViewModel.updatePaygFee(SpaceType.POLYCLINIC, d) },
+                            value = polyclinicFeeInput,
+                            onValueChange = { polyclinicFeeInput = it },
                             label = { Text("Polyclinic ($)") },
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
-                            value = uiState.pricingState.paygCoworkingUsd.toString(),
-                            onValueChange = { val d = it.toDoubleOrNull(); if (d != null) adminViewModel.updatePaygFee(SpaceType.COWORKING_SPACE, d) },
+                            value = coworkingFeeInput,
+                            onValueChange = { coworkingFeeInput = it },
                             label = { Text("Coworking ($)") },
                             modifier = Modifier.weight(1f)
                         )
+                    }
+                    Button(
+                        onClick = {
+                            adminViewModel.updatePaygFees(
+                                privateOfficeFeeInput.toDoubleOrNull() ?: uiState.pricingState.paygPrivateOfficeUsd,
+                                centerFeeInput.toDoubleOrNull() ?: uiState.pricingState.paygCenterUsd,
+                                polyclinicFeeInput.toDoubleOrNull() ?: uiState.pricingState.paygPolyclinicUsd,
+                                coworkingFeeInput.toDoubleOrNull() ?: uiState.pricingState.paygCoworkingUsd
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text("Save PAYG Fees")
                     }
 
                     HorizontalDivider()

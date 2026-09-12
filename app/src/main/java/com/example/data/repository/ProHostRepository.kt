@@ -357,26 +357,41 @@ class ProHostRepository {
         return success
     }
 
-    suspend fun updatePaygFee(spaceType: SpaceType, fee: Double): Boolean {
-        val current = _pricingState.value
-        val updated = when (spaceType) {
-            SpaceType.PRIVATE_OFFICE -> current.copy(paygPrivateOfficeUsd = fee)
-            SpaceType.CENTER -> current.copy(paygCenterUsd = fee)
-            SpaceType.POLYCLINIC -> current.copy(paygPolyclinicUsd = fee)
-            SpaceType.COWORKING_SPACE -> current.copy(paygCoworkingUsd = fee)
-        }
-        val field = when (spaceType) {
-            SpaceType.PRIVATE_OFFICE -> "paygPrivateOfficeUsd"
-            SpaceType.CENTER -> "paygCenterUsd"
-            SpaceType.POLYCLINIC -> "paygPolyclinicUsd"
-            SpaceType.COWORKING_SPACE -> "paygCoworkingUsd"
-        }
-        val success = persistPricingState(mapOf(field to fee))
+    /**
+     * Commits all 4 legacy PAYG fees in one Cloud Function call + one audit entry —
+     * replaces the old per-field updatePaygFee(spaceType, fee), which AdminConsoleScreen
+     * used to call directly from each OutlinedTextField's onValueChange, firing a full
+     * updatePricing round-trip (and an audit-log write) on every valid keystroke. The
+     * UI now buffers all 4 fields locally and calls this once from a Save button,
+     * matching updatePackageFees' own pattern below.
+     */
+    suspend fun updatePaygFees(
+        privateOfficeFee: Double,
+        centerFee: Double,
+        polyclinicFee: Double,
+        coworkingFee: Double
+    ): Boolean {
+        val success = persistPricingState(
+            mapOf(
+                "paygPrivateOfficeUsd" to privateOfficeFee,
+                "paygCenterUsd" to centerFee,
+                "paygPolyclinicUsd" to polyclinicFee,
+                "paygCoworkingUsd" to coworkingFee
+            )
+        )
         if (success) {
-            _pricingState.value = updated
+            _pricingState.value = _pricingState.value.copy(
+                paygPrivateOfficeUsd = privateOfficeFee,
+                paygCenterUsd = centerFee,
+                paygPolyclinicUsd = polyclinicFee,
+                paygCoworkingUsd = coworkingFee
+            )
             addLocalAuditLogEntry(
                 actionType = "PAYG_PRICING_UPDATED",
-                details = "PAYG fee for ${spaceType.displayName} updated to $${String.format(Locale.US, "%.2f", fee)} USD",
+                details = "PAYG fees updated — Private Office $${String.format(Locale.US, "%.2f", privateOfficeFee)}, " +
+                    "Center $${String.format(Locale.US, "%.2f", centerFee)}, " +
+                    "Polyclinic $${String.format(Locale.US, "%.2f", polyclinicFee)}, " +
+                    "Coworking $${String.format(Locale.US, "%.2f", coworkingFee)} USD",
                 severity = "INFO"
             )
         }
