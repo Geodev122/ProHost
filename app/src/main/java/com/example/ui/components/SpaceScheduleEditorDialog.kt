@@ -650,7 +650,17 @@ fun SpaceScheduleEditorDialog(
                     // only later needed another room had no in-app way to add one. Shown for
                     // any space type that supports subdivisions, or one that already has any
                     // (so a type change never strands existing rooms behind a hidden section).
-                    if (liveSpace.spaceType != SpaceType.PRIVATE_OFFICE || liveSpace.subdivisions.isNotEmpty()) {
+                    //
+                    // spaceType alone isn't enough once admin-defined categories exist:
+                    // legacyTypeFor() (CreateListingDialog) maps every genuinely-new admin
+                    // category with no legacy equivalent to SpaceType.PRIVATE_OFFICE, so a
+                    // listing published under such a category — with no subdivisions yet —
+                    // would otherwise fail this check and have no in-app way to ever add a
+                    // first one. legacySpaceTypeForCategoryId returning null is exactly that
+                    // case: a real admin category, not actually a Private Office.
+                    val isGenuinelyNewCategory = liveSpace.spaceCategoryId != null &&
+                        legacySpaceTypeForCategoryId(liveSpace.spaceCategoryId) == null
+                    if (liveSpace.spaceType != SpaceType.PRIVATE_OFFICE || liveSpace.subdivisions.isNotEmpty() || isGenuinelyNewCategory) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp),
