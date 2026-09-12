@@ -368,7 +368,15 @@ data class Subdivision(
     // RentalPricingConfig existed and never re-saved since. New saves always leave
     // this empty — pricing lives in [pricing] instead. Kept only so
     // toFirestoreMap()/older-client compatibility isn't silently broken.
-    val rentalStrategies: List<SubdivisionStrategy> = emptyList()
+    val rentalStrategies: List<SubdivisionStrategy> = emptyList(),
+    // Null (the common case) means this division follows the whole space's own
+    // SpaceOperatingSchedule (SpaceListing.schedule) — e.g. a single exam room that
+    // closes earlier than the rest of a Polyclinic, or a room open Sunday when the
+    // building otherwise isn't. Non-null overrides operating days/hours/blackouts
+    // for this division only; SpaceCalculationUtils.buildAllSlotsForSpace is the one
+    // place that resolves this (scheduleOverride ?: space.schedule) into real slots,
+    // so every screen that reads slots automatically respects it.
+    val scheduleOverride: SpaceOperatingSchedule? = null
 )
 
 enum class Governorate(val displayName: String, val centerLat: Double, val centerLng: Double) {
@@ -430,7 +438,48 @@ data class SpaceOperatingSchedule(
     val operatingDays: List<String> = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
     val blackoutSlots: List<BlackoutSlot> = emptyList(),
     val isSundayOperating: Boolean = false
-)
+) {
+    fun toFirestoreMap(): Map<String, Any?> = mapOf(
+        "openingHour" to openingHour,
+        "closingHour" to closingHour,
+        "operatingDays" to operatingDays,
+        "isSundayOperating" to isSundayOperating,
+        "blackoutSlots" to blackoutSlots.map {
+            mapOf(
+                "id" to it.id, "dayOfWeek" to it.dayOfWeek,
+                "startTime" to it.startTime, "endTime" to it.endTime, "reason" to it.reason
+            )
+        }
+    )
+
+    companion object {
+        // Shared by both SpaceListing.schedule (top-level, defaults to
+        // SpaceOperatingSchedule() when absent) and Subdivision.scheduleOverride
+        // (nullable — absent genuinely means "no override", not "use defaults").
+        fun fromFirestoreMap(map: Map<*, *>?): SpaceOperatingSchedule? {
+            if (map == null) return null
+            val blackoutList = (map["blackoutSlots"] as? List<*>)?.mapNotNull { bItem ->
+                (bItem as? Map<*, *>)?.let { bMap ->
+                    BlackoutSlot(
+                        id = bMap["id"] as? String ?: UUID.randomUUID().toString(),
+                        dayOfWeek = bMap["dayOfWeek"] as? String ?: "Sunday",
+                        startTime = bMap["startTime"] as? String ?: "18:00",
+                        endTime = bMap["endTime"] as? String ?: "22:00",
+                        reason = bMap["reason"] as? String ?: "Maintenance"
+                    )
+                }
+            } ?: emptyList()
+            return SpaceOperatingSchedule(
+                openingHour = map["openingHour"] as? String ?: "08:00",
+                closingHour = map["closingHour"] as? String ?: "20:00",
+                operatingDays = (map["operatingDays"] as? List<*>)?.mapNotNull { it as? String }
+                    ?: listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
+                blackoutSlots = blackoutList,
+                isSundayOperating = map["isSundayOperating"] as? Boolean ?: false
+            )
+        }
+    }
+}
 
 enum class BookingRequestStatus(val displayName: String) {
     PENDING("Pending Owner Approval"),
@@ -854,7 +903,8 @@ data class SpaceListing(
                             "minDuration" to strat.minDuration,
                             "availableHoursOrShifts" to strat.availableHoursOrShifts
                         )
-                    }
+                    },
+                    "scheduleOverride" to sub.scheduleOverride?.toFirestoreMap()
                 )
             },
             "rules" to mapOf(
@@ -865,21 +915,7 @@ data class SpaceListing(
                 "offHoursAccess" to rules.offHoursAccess,
                 "sharedAmenities" to rules.sharedAmenities
             ),
-            "schedule" to mapOf(
-                "openingHour" to schedule.openingHour,
-                "closingHour" to schedule.closingHour,
-                "operatingDays" to schedule.operatingDays,
-                "isSundayOperating" to schedule.isSundayOperating,
-                "blackoutSlots" to schedule.blackoutSlots.map {
-                    mapOf(
-                        "id" to it.id,
-                        "dayOfWeek" to it.dayOfWeek,
-                        "startTime" to it.startTime,
-                        "endTime" to it.endTime,
-                        "reason" to it.reason
-                    )
-                }
-            ),
+            "schedule" to schedule.toFirestoreMap(),
             "ownerId" to ownerId,
             "ownerName" to ownerName,
             "ownerPhone" to ownerPhone,
@@ -960,29 +996,7 @@ data class SpaceListing(
                 )
             } else PremisesRules()
 
-            val scheduleMap = data["schedule"] as? Map<*, *>
-            val schedule = if (scheduleMap != null) {
-                val blackoutList = (scheduleMap["blackoutSlots"] as? List<*>)?.mapNotNull { bItem ->
-                    (bItem as? Map<*, *>)?.let { bMap ->
-                        BlackoutSlot(
-                            id = bMap["id"] as? String ?: UUID.randomUUID().toString(),
-                            dayOfWeek = bMap["dayOfWeek"] as? String ?: "Sunday",
-                            startTime = bMap["startTime"] as? String ?: "18:00",
-                            endTime = bMap["endTime"] as? String ?: "22:00",
-                            reason = bMap["reason"] as? String ?: "Maintenance"
-                        )
-                    }
-                } ?: emptyList()
-
-                SpaceOperatingSchedule(
-                    openingHour = scheduleMap["openingHour"] as? String ?: "08:00",
-                    closingHour = scheduleMap["closingHour"] as? String ?: "20:00",
-                    operatingDays = (scheduleMap["operatingDays"] as? List<*>)?.mapNotNull { it as? String }
-                        ?: listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
-                    blackoutSlots = blackoutList,
-                    isSundayOperating = scheduleMap["isSundayOperating"] as? Boolean ?: false
-                )
-            } else SpaceOperatingSchedule()
+            val schedule = SpaceOperatingSchedule.fromFirestoreMap(data["schedule"] as? Map<*, *>) ?: SpaceOperatingSchedule()
 
             val subsList = (data["subdivisions"] as? List<*>)?.mapNotNull { sItem ->
                 (sItem as? Map<*, *>)?.let { sMap ->
@@ -1011,7 +1025,8 @@ data class SpaceListing(
                         imageUrls = (sMap["imageUrls"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                         amenities = (sMap["amenities"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                         pricing = subPricing,
-                        rentalStrategies = stratsList
+                        rentalStrategies = stratsList,
+                        scheduleOverride = SpaceOperatingSchedule.fromFirestoreMap(sMap["scheduleOverride"] as? Map<*, *>)
                     )
                 }
             } ?: emptyList()

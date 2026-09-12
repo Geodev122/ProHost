@@ -184,7 +184,13 @@ object SpaceCalculationUtils {
             buildBookableSlots(space.pricing, space.schedule, sourceId = space.id, sourceLabel = space.title)
         } else {
             space.subdivisions.flatMap { sub ->
-                buildBookableSlots(sub.pricing, space.schedule, sourceId = sub.id, sourceLabel = sub.name)
+                // A division with its own scheduleOverride (different hours/days/
+                // blackouts than the rest of the space — e.g. one exam room closing
+                // earlier) expands against that instead of the whole space's schedule.
+                // Every screen that reads slots (host's editor, the specialist's
+                // availability matrix, RentalBookingDialog) goes through this one
+                // function, so they can never disagree about which schedule applies.
+                buildBookableSlots(sub.pricing, sub.scheduleOverride ?: space.schedule, sourceId = sub.id, sourceLabel = sub.name)
             }
         }
     }

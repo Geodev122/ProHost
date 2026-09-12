@@ -65,6 +65,16 @@ fun SubdivisionEditorSection(
     var isUploadingSubImage by remember { mutableStateOf(false) }
     var subPricing by remember { mutableStateOf(RentalPricingConfig.default()) }
 
+    // Per-division operating-schedule override — off by default, meaning this room
+    // just follows the whole space's own SpaceOperatingSchedule (the common case).
+    // Turning it on seeds from the space's current hours/days so the host is editing
+    // a delta (e.g. "this exam room closes at 17:00, not 20:00"), not starting blank.
+    var subScheduleOverrideEnabled by remember { mutableStateOf(false) }
+    var subOverrideOpeningHour by remember { mutableStateOf(openingHour) }
+    var subOverrideClosingHour by remember { mutableStateOf(closingHour) }
+    var subOverrideDays by remember { mutableStateOf(operatingDays.toSet()) }
+    var subOverrideSundayOperating by remember { mutableStateOf(false) }
+
     // Pending id so images upload to their final path before the Subdivision object
     // itself is created — same "generate the id up front" pattern CreateListingDialog
     // uses for the parent listing's own photos. Regenerated after each successful Add
@@ -141,6 +151,14 @@ fun SubdivisionEditorSection(
                                 )
                                 if (sub.amenities.isNotEmpty()) {
                                     Text("Amenities: ${sub.amenities.joinToString()}", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                sub.scheduleOverride?.let { override ->
+                                    Text(
+                                        "Custom hours: ${override.openingHour}-${override.closingHour}, ${override.operatingDays.joinToString()}" +
+                                            if (override.isSundayOperating) " + Sun" else "",
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                                 if (sub.imageUrls.isNotEmpty()) {
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -257,11 +275,63 @@ fun SubdivisionEditorSection(
 
                 HorizontalDivider()
 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Custom Operating Hours", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                        Text(
+                            "Off by default — this room follows the space's own hours/days.",
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = subScheduleOverrideEnabled,
+                        onCheckedChange = { enabled ->
+                            subScheduleOverrideEnabled = enabled
+                            if (enabled) {
+                                // Seed from the space's current hours — the host edits a
+                                // delta (e.g. this room closes earlier), not a blank slate.
+                                subOverrideOpeningHour = openingHour
+                                subOverrideClosingHour = closingHour
+                                subOverrideDays = operatingDays.toSet()
+                            }
+                        }
+                    )
+                }
+                if (subScheduleOverrideEnabled) {
+                    OperatingScheduleEditorSection(
+                        openingHour = subOverrideOpeningHour,
+                        onOpeningHourChange = { subOverrideOpeningHour = it },
+                        closingHour = subOverrideClosingHour,
+                        onClosingHourChange = { subOverrideClosingHour = it },
+                        selectedDays = subOverrideDays,
+                        onDaysChange = { subOverrideDays = it }
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Open on Sundays", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                        Switch(checked = subOverrideSundayOperating, onCheckedChange = { subOverrideSundayOperating = it })
+                    }
+                }
+
+                HorizontalDivider()
+
+                // Once a custom schedule is on, the pricing tables below key off this
+                // room's own hours/days instead of the whole space's — a hard override
+                // that also lets prices be configured only for the hours it's actually
+                // open, matching what SpaceCalculationUtils.buildAllSlotsForSpace expands.
                 RentalPricingConfigEditor(
                     config = subPricing,
-                    operatingDays = operatingDays,
-                    openingHour = openingHour,
-                    closingHour = closingHour,
+                    operatingDays = if (subScheduleOverrideEnabled) subOverrideDays.toList() else operatingDays,
+                    openingHour = if (subScheduleOverrideEnabled) subOverrideOpeningHour else openingHour,
+                    closingHour = if (subScheduleOverrideEnabled) subOverrideClosingHour else closingHour,
                     onConfigChange = { subPricing = it }
                 )
 
@@ -273,13 +343,26 @@ fun SubdivisionEditorSection(
                             type = subType,
                             imageUrls = subImageUrls,
                             amenities = subAmenitiesSelected.toList(),
-                            pricing = subPricing
+                            pricing = subPricing,
+                            scheduleOverride = if (subScheduleOverrideEnabled) {
+                                SpaceOperatingSchedule(
+                                    openingHour = subOverrideOpeningHour,
+                                    closingHour = subOverrideClosingHour,
+                                    operatingDays = subOverrideDays.toList(),
+                                    isSundayOperating = subOverrideSundayOperating
+                                )
+                            } else null
                         )
                         onSubdivisionsChange(subdivisionsList + newSub)
                         subName = ""
                         subAmenitiesSelected = emptySet()
                         subImageUrls = emptyList()
                         subPricing = RentalPricingConfig.default()
+                        subScheduleOverrideEnabled = false
+                        subOverrideOpeningHour = openingHour
+                        subOverrideClosingHour = closingHour
+                        subOverrideDays = operatingDays.toSet()
+                        subOverrideSundayOperating = false
                         pendingSubId = "SUB-" + UUID.randomUUID().toString().take(6).uppercase()
                     },
                     modifier = Modifier.fillMaxWidth(),
