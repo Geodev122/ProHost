@@ -27,6 +27,7 @@ import com.example.ui.theme.StatusOnErrorContainer
 import com.example.ui.theme.StatusOnSuccessContainer
 import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.StatusSuccessContainer
+import com.example.ui.util.BookingRecurrence
 import com.example.ui.util.RentableSlot
 import com.example.ui.util.SpaceCalculationUtils
 
@@ -197,29 +198,24 @@ fun SpaceAvailabilityMatrixView(
                                         .clickable {
                                             selectedSlotInfo = slot to isBooked
                                             if (!isBooked) {
-                                                // A slot whose sourceFormulaId is a subdivision id (space has
-                                                // subdivisions) never matches space.rentalFormulas — that's
-                                                // expected, not a bug: RentalBookingDialog resolves the real
-                                                // subdivision/strategy itself whenever space.subdivisions is
-                                                // non-empty and ignores the formula passed in here. This
-                                                // placeholder only needs to be non-null to open that dialog.
-                                                val matchingFormula = space.rentalFormulas.find { it.id == slot.sourceFormulaId }
-                                                    ?: RentalFormula(
-                                                        id = slot.sourceFormulaId,
-                                                        type = slot.strategyType?.let {
-                                                            when (it) {
-                                                                RentalStrategyType.HOURLY -> RentalFormulaType.HOURLY
-                                                                RentalStrategyType.SHIFT_BASED -> RentalFormulaType.SHIFT
-                                                                RentalStrategyType.DAY_BASED -> RentalFormulaType.DAY_PER_WEEK
-                                                                RentalStrategyType.MONTHLY -> RentalFormulaType.FULL_MONTH
-                                                            }
-                                                        } ?: RentalFormulaType.FULL_MONTH,
-                                                        rateUsd = slot.pricesByRecurrence.values.firstOrNull() ?: 0.0,
-                                                        scheduleDescription = slot.label,
-                                                        daysOfWeek = listOf(slot.day),
-                                                        startHour = slot.startTime,
-                                                        endHour = slot.endTime
-                                                    )
+                                                // Real subdivision/strategy resolution happens inside
+                                                // RentalBookingDialog itself whenever space.subdivisions is
+                                                // non-empty — this only needs to be a real, non-null,
+                                                // approximately-right formula to open that dialog on the
+                                                // right strategy/day. Same shared synthesis SpaceDetailsScreen's
+                                                // preview and RentalBookingDialog's own submission use, so a
+                                                // tapped cell's price always matches the same slot everywhere.
+                                                val matchingFormula = SpaceCalculationUtils.representativeFormula(
+                                                    listOf(slot), BookingRecurrence.FLAT
+                                                ) ?: RentalFormula(
+                                                    id = slot.sourceFormulaId,
+                                                    type = RentalFormulaType.FULL_MONTH,
+                                                    rateUsd = 0.0,
+                                                    scheduleDescription = slot.label,
+                                                    daysOfWeek = listOf(slot.day),
+                                                    startHour = slot.startTime,
+                                                    endHour = slot.endTime
+                                                )
                                                 onCellClicked(matchingFormula, slot.day, matchingFormula.shiftName)
                                             }
                                         }

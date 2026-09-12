@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
+import com.example.ui.util.BookingRecurrence
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
 
@@ -61,7 +62,23 @@ fun SpaceDetailsScreen(
         }
     }
 
-    var selectedFormula by remember { mutableStateOf<RentalFormula?>(liveSpace.rentalFormulas.firstOrNull()) }
+    // Seeded from the real, live pricing config (SpaceCalculationUtils.buildAllSlotsForSpace)
+    // instead of the legacy rentalFormulas list — see SpaceDetailsScreenContent's
+    // "Choose Renting Option" card, which drives this same selection with real slots.
+    var selectedFormula by remember(liveSpace.id) {
+        mutableStateOf<RentalFormula?>(
+            SpaceCalculationUtils.buildAllSlotsForSpace(liveSpace).firstOrNull()?.let { slot ->
+                // Same recurrence preference as the "Choose Renting Option" cards
+                // below (prefer weekly if the strategy offers it) — a Shift/Day-Based
+                // slot has no FLAT price, so defaulting to FLAT here would seed a
+                // misleading $0 before the specialist taps anything.
+                val recurrence = slot.pricesByRecurrence.keys.let { keys ->
+                    if (BookingRecurrence.SAME_DAY_EVERY_WEEK in keys) BookingRecurrence.SAME_DAY_EVERY_WEEK else keys.firstOrNull()
+                } ?: BookingRecurrence.FLAT
+                SpaceCalculationUtils.representativeFormula(listOf(slot), recurrence)
+            }
+        )
+    }
     var showBookingDialog by remember { mutableStateOf(false) }
 
     if (showBookingDialog) {
@@ -362,18 +379,38 @@ fun SpaceDetailsScreenContent(
                     }
                 )
 
-                // Flexible Renting Formulas Selector (with Attached Defined Hours)
+                // Renting Options Preview — built from the space's real live pricing
+                // config (SpaceCalculationUtils.buildAllSlotsForSpace), not the legacy
+                // rentalFormulas list, which only ever held one flattened, lossy
+                // snapshot from publish time. One card per strategy actually
+                // configured (a strategy nobody set up never shows as a fake option);
+                // tapping picks a representative rate for the bottom bar/booking
+                // dialog hint — the specialist chooses the exact real slot inside
+                // RentalBookingDialog itself.
+                val availableSlots = remember(liveSpace) { SpaceCalculationUtils.buildAllSlotsForSpace(liveSpace) }
+                val strategyPreviewGroups = remember(availableSlots) {
+                    availableSlots.filter { it.strategyType != null }
+                        .groupBy { it.strategyType!! }
+                        .toList()
+                        .sortedBy { (type, _) -> type.ordinal }
+                }
                 ProSurfaceCard {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         ProSectionHeader(
-                            title = "Choose Renting Formula",
-                            subtitle = "Select desired time commitment with defined schedule slots",
+                            title = "Choose Renting Option",
+                            subtitle = "Real availability & pricing configured by the host",
                             icon = Icons.Default.Tune
                         )
 
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            liveSpace.rentalFormulas.forEach { formula ->
-                                val isSelected = selectedFormula?.id == formula.id || selectedFormula?.type == formula.type
+                            strategyPreviewGroups.forEach { (strategyType, slots) ->
+                                val representativeSlot = slots.first()
+                                val previewRecurrence = representativeSlot.pricesByRecurrence.keys.let { keys ->
+                                    if (BookingRecurrence.SAME_DAY_EVERY_WEEK in keys) BookingRecurrence.SAME_DAY_EVERY_WEEK else keys.firstOrNull()
+                                } ?: BookingRecurrence.FLAT
+                                val formula = SpaceCalculationUtils.representativeFormula(listOf(representativeSlot), previewRecurrence)
+                                    ?: return@forEach
+                                val isSelected = selectedFormula?.type == formula.type
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -432,7 +469,7 @@ fun SpaceDetailsScreenContent(
                                                     )
                                                     Spacer(modifier = Modifier.width(Spacing.xs))
                                                     Text(
-                                                        text = "${formula.daysOfWeek.joinToString()} • ${formula.startHour} - ${formula.endHour} (${formula.totalWeeklyHours} hrs/wk)",
+                                                        text = "${formula.daysOfWeek.joinToString()} • ${formula.startHour} - ${formula.endHour}",
                                                         style = MaterialTheme.typography.labelSmall,
                                                         fontWeight = FontWeight.SemiBold,
                                                         color = MaterialTheme.colorScheme.primary

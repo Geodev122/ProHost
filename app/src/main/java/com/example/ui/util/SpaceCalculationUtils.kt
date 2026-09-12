@@ -206,6 +206,51 @@ object SpaceCalculationUtils {
     }
 
     /**
+     * Maps a real [RentalStrategyType] onto the legacy [RentalFormulaType] that
+     * [RentalBookingRequest]/the host's Accept-Reject screens/the Digital Key Pass/
+     * WhatsApp templates still key off downstream — a deliberately thin, honest
+     * mapping, not a data-model migration (see [representativeFormula]'s doc comment).
+     */
+    fun legacyFormulaType(strategy: RentalStrategyType): RentalFormulaType = when (strategy) {
+        RentalStrategyType.MONTHLY -> RentalFormulaType.FULL_MONTH
+        RentalStrategyType.HOURLY -> RentalFormulaType.HOURLY
+        RentalStrategyType.SHIFT_BASED -> RentalFormulaType.SHIFT
+        RentalStrategyType.DAY_BASED -> RentalFormulaType.DAY_PER_WEEK
+    }
+
+    /**
+     * Synthesizes a legacy [RentalFormula] from real [RentableSlot]s — the single
+     * shared construction every screen that still has to hand a [RentalFormula] to
+     * [RentalBookingRequest]/downstream legacy readers uses (SpaceDetailsScreen's
+     * renting-option preview, SpaceAvailabilityMatrixView's tap-to-book cells,
+     * RentalBookingDialog's final submission), so all three describe the exact same
+     * real price/schedule instead of three independent approximations that could
+     * silently disagree. [recurrence] only matters for Shift-Based/Day-Based slots
+     * (Monthly/Hourly always price under FLAT). Returns null for an empty slot list.
+     */
+    fun representativeFormula(slots: List<RentableSlot>, recurrence: BookingRecurrence): RentalFormula? {
+        val first = slots.firstOrNull() ?: return null
+        val strategy = first.strategyType ?: return null
+        val days = slots.map { it.day }.distinct()
+        val rate = when (strategy) {
+            RentalStrategyType.MONTHLY -> first.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0
+            RentalStrategyType.HOURLY -> slots.sumOf { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0 }
+            else -> slots.sumOf { it.pricesByRecurrence[recurrence] ?: 0.0 }
+        }
+        return RentalFormula(
+            id = first.sourceFormulaId,
+            type = legacyFormulaType(strategy),
+            rateUsd = rate,
+            scheduleDescription = first.label,
+            daysOfWeek = days,
+            startHour = slots.minByOrNull { it.startTime }?.startTime ?: first.startTime,
+            endHour = slots.maxByOrNull { it.endTime }?.endTime ?: first.endTime,
+            daysCountRequired = days.size.coerceAtLeast(1),
+            shiftName = if (strategy == RentalStrategyType.SHIFT_BASED) first.groupLabel.substringAfter("• ") else "Morning Shift"
+        )
+    }
+
+    /**
      * Sums real, independently-set per-slot prices for the given recurrence — never
      * a proration of some other price. Replaces a same-named, fully dead
      * calculateTotalRentalPrice(baseMonthlyRate, formula, subdivision,

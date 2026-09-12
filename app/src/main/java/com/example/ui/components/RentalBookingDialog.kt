@@ -31,10 +31,19 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.R
 import com.example.data.model.*
 import com.example.ui.theme.*
+import com.example.ui.util.BookingRecurrence
+import com.example.ui.util.RentableSlot
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
 import java.text.NumberFormat
 import java.util.*
+
+private fun recurrenceLabel(recurrence: BookingRecurrence): String = when (recurrence) {
+    BookingRecurrence.FLAT -> "Flat"
+    BookingRecurrence.ONE_TIME -> "One-time"
+    BookingRecurrence.SAME_DAY_EVERY_WEEK -> "Same day, every week"
+    BookingRecurrence.SAME_DAY_EVERY_MONTH -> "Same day, every month"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,161 +56,129 @@ fun RentalBookingDialog(
     replacesBookingId: String? = null
 ) {
     val context = LocalContext.current
-
-    val allWeekDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+    val allWeekDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
     val hasSubdivisions = space.subdivisions.isNotEmpty()
     var selectedSubdivision by remember {
         mutableStateOf(space.subdivisions.firstOrNull())
     }
-    var selectedSubStrategy by remember(selectedSubdivision) {
-        mutableStateOf(selectedSubdivision?.rentalStrategies?.firstOrNull())
-    }
 
-    var innerSelectedFormula by remember {
-        mutableStateOf(initialFormula ?: space.rentalFormulas.firstOrNull() ?: RentalFormula(
-            type = RentalFormulaType.FULL_MONTH,
-            rateUsd = space.baseMonthlyRateUsd,
-            scheduleDescription = "Full Dedicated Month",
-            daysOfWeek = space.schedule.operatingDays.ifEmpty { listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat") },
-            startHour = space.schedule.openingHour,
-            endHour = space.schedule.closingHour,
-            totalWeeklyHours = 72
-        ))
-    }
-
-    val selectedFormula = remember(hasSubdivisions, selectedSubdivision, selectedSubStrategy, innerSelectedFormula) {
-        if (hasSubdivisions && selectedSubdivision != null && selectedSubStrategy != null) {
-            val formulaType = when (selectedSubStrategy!!.strategy) {
-                RentalStrategy.HOURLY -> RentalFormulaType.HOURLY
-                RentalStrategy.SHIFT_BASED -> RentalFormulaType.SHIFT
-                RentalStrategy.DAILY -> RentalFormulaType.DAY_PER_WEEK
-                RentalStrategy.MONTHLY -> RentalFormulaType.FULL_MONTH
-            }
-            val desc = when (selectedSubStrategy!!.strategy) {
-                RentalStrategy.HOURLY -> "Hourly Rental of ${selectedSubdivision!!.name}"
-                RentalStrategy.SHIFT_BASED -> "Shift Rental of ${selectedSubdivision!!.name} (${selectedSubStrategy!!.availableHoursOrShifts})"
-                RentalStrategy.DAILY -> "Daily Rental of ${selectedSubdivision!!.name}"
-                RentalStrategy.MONTHLY -> "Monthly Rental of ${selectedSubdivision!!.name}"
-            }
-            // Reads real hours from selectedSubdivision.pricing (always populated —
-            // either genuinely structured, or synthesized once, centrally, in
-            // RentalPricingConfig.fromLegacySubdivisionStrategy) instead of each
-            // caller re-parsing the free-text availableHoursOrShifts string itself,
-            // which used to silently produce wrong hours on any format it didn't
-            // expect (e.g. "Morning Shift (8AM - 1PM)" — a hyphen inside the label,
-            // not a range separator).
-            val firstActiveShift = selectedSubdivision!!.pricing.shiftBased?.shifts?.firstOrNull { !it.isUnavailable }
-            RentalFormula(
-                id = "SUB-FRM-" + selectedSubdivision!!.id.take(4) + "-" + selectedSubStrategy!!.strategy.name.take(3),
-                type = formulaType,
-                rateUsd = selectedSubStrategy!!.rateUsd,
-                scheduleDescription = desc,
-                daysOfWeek = space.schedule.operatingDays.ifEmpty { listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat") },
-                startHour = firstActiveShift?.let { "%02d:00".format(it.startHour) } ?: "08:00",
-                endHour = firstActiveShift?.let { "%02d:00".format(it.endHour) } ?: "18:00",
-                totalWeeklyHours = 40,
-                daysCountRequired = 1,
-                shiftName = firstActiveShift?.name?.displayName ?: ""
-            )
+    // The single source of truth for what's actually bookable and at what real price —
+    // the exact same expansion the host's Availability Control editor and the
+    // specialist's own Availability Matrix already use (SpaceCalculationUtils
+    // .buildAllSlotsForSpace), so this dialog can never show/charge a different number
+    // than what the specialist already saw before tapping "Request."
+    val allSlots = remember(space) { SpaceCalculationUtils.buildAllSlotsForSpace(space) }
+    val scopedSlots = remember(allSlots, hasSubdivisions, selectedSubdivision) {
+        if (hasSubdivisions) {
+            val subId = selectedSubdivision?.id
+            if (subId != null) allSlots.filter { it.sourceFormulaId == subId } else emptyList()
         } else {
-            innerSelectedFormula
+            allSlots
         }
     }
-
-    // Availability selection state based on formula
-    // For DAY_PER_WEEK:
-    var chosenDaysForDayPerWeek by remember(selectedFormula) {
+    val availableStrategyTypes = remember(scopedSlots) {
+        scopedSlots.mapNotNull { it.strategyType }.distinct()
+    }
+    var selectedStrategyType by remember(availableStrategyTypes) {
         mutableStateOf(
-            if (selectedFormula.type == RentalFormulaType.DAY_PER_WEEK) {
-                selectedFormula.daysOfWeek.take(selectedFormula.daysCountRequired.coerceAtLeast(1)).toSet()
-            } else {
-                selectedFormula.daysOfWeek.toSet()
-            }
+            // Best-effort: land on the strategy matching a rebook/edit's prior formula
+            // when it's still actually offered; otherwise just the first real option.
+            initialFormula?.type?.let { legacyType ->
+                availableStrategyTypes.firstOrNull { SpaceCalculationUtils.legacyFormulaType(it) == legacyType }
+            } ?: availableStrategyTypes.firstOrNull()
         )
     }
+    val strategySlots = remember(scopedSlots, selectedStrategyType) {
+        scopedSlots.filter { it.strategyType == selectedStrategyType }
+    }
 
-    // For SHIFT:
-    var selectedShiftPreset by remember(selectedFormula) {
+    // --- Hourly: pick a day, then one or more real priced cells for that day ---
+    var hourlyDay by remember(strategySlots) {
+        mutableStateOf(strategySlots.firstOrNull()?.day ?: allWeekDays.first())
+    }
+    val hourlyDayOptions = remember(strategySlots) { strategySlots.map { it.day }.distinct() }
+    val hourlyCellsForDay = remember(strategySlots, hourlyDay) {
+        strategySlots.filter { it.day == hourlyDay }.sortedBy { it.startTime }
+    }
+    var selectedHourlyCells by remember(hourlyDay) { mutableStateOf(setOf<RentableSlot>()) }
+
+    // --- Shift-Based: pick a day, a real shift offered that day, and a recurrence ---
+    var shiftDay by remember(strategySlots) {
+        mutableStateOf(strategySlots.firstOrNull()?.day ?: allWeekDays.first())
+    }
+    val shiftDayOptions = remember(strategySlots) { strategySlots.map { it.day }.distinct() }
+    val shiftsForDay = remember(strategySlots, shiftDay) { strategySlots.filter { it.day == shiftDay } }
+    var selectedShiftSlot by remember(shiftsForDay) { mutableStateOf(shiftsForDay.firstOrNull()) }
+    var shiftRecurrence by remember(selectedShiftSlot) {
+        mutableStateOf(selectedShiftSlot?.pricesByRecurrence?.keys?.firstOrNull() ?: BookingRecurrence.SAME_DAY_EVERY_WEEK)
+    }
+
+    // --- Day-Based: pick a recurrence, then one or more real priced days for it ---
+    var dayBasedRecurrence by remember(strategySlots) {
         mutableStateOf(
-            if (selectedFormula.startHour >= "13:00") "Afternoon Shift" else "Morning Shift"
+            strategySlots.flatMap { it.pricesByRecurrence.keys }.distinct().firstOrNull()
+                ?: BookingRecurrence.SAME_DAY_EVERY_WEEK
         )
     }
-    var shiftStartHour by remember(selectedFormula) { mutableStateOf(selectedFormula.startHour) }
-    var shiftEndHour by remember(selectedFormula) { mutableStateOf(selectedFormula.endHour) }
-    var chosenDaysForShift by remember(selectedFormula) {
-        mutableStateOf(selectedFormula.daysOfWeek.toSet())
+    val dayBasedDayOptions = remember(strategySlots, dayBasedRecurrence) {
+        strategySlots.filter { it.pricesByRecurrence.containsKey(dayBasedRecurrence) }
+    }
+    var selectedDayBasedDays by remember(dayBasedRecurrence) { mutableStateOf(setOf<String>()) }
+
+    // The real, non-fabricated selection driving both price and what gets submitted —
+    // one branch per strategy, each sourced from real RentableSlots above.
+    val selectedSlotsForPricing: List<RentableSlot> = when (selectedStrategyType) {
+        RentalStrategyType.MONTHLY -> strategySlots
+        RentalStrategyType.HOURLY -> selectedHourlyCells.toList()
+        RentalStrategyType.SHIFT_BASED -> listOfNotNull(selectedShiftSlot)
+        RentalStrategyType.DAY_BASED -> dayBasedDayOptions.filter { it.day in selectedDayBasedDays }
+        null -> emptyList()
     }
 
-    // For HOURLY:
-    var chosenDaysForHourly by remember(selectedFormula) {
-        mutableStateOf(setOf(selectedFormula.daysOfWeek.firstOrNull() ?: "Mon"))
+    // Monthly is the only strategy whose real price scales with a duration commitment
+    // (SpaceCalculationUtils.calculateTotalRentalPrice) — Hourly/Shift/Day-Based prices
+    // already represent the full cost of the chosen recurrence, so a duration selector
+    // for them would just be lying about what the total actually is.
+    val durationOptions = listOf(1, 2, 3, 6, 12)
+    var selectedDurationMonths by remember { mutableStateOf(1) }
+    val effectiveRecurrence = when (selectedStrategyType) {
+        RentalStrategyType.SHIFT_BASED -> shiftRecurrence
+        RentalStrategyType.DAY_BASED -> dayBasedRecurrence
+        else -> BookingRecurrence.FLAT
     }
-    var hourlyStartHour by remember(selectedFormula) { mutableStateOf("09:00") }
-    var hourlyEndHour by remember(selectedFormula) { mutableStateOf("13:00") }
+    val totalCalculatedUsd = remember(selectedSlotsForPricing, effectiveRecurrence, selectedDurationMonths, selectedStrategyType) {
+        SpaceCalculationUtils.calculateTotalRentalPrice(selectedSlotsForPricing, effectiveRecurrence, selectedDurationMonths)
+    }
 
-    // Start Date & Duration
-    val dateOptions = listOf(
-        "Immediate (Tomorrow)",
-        "Next Monday",
-        "1st of Next Month",
-        "Custom Date"
-    )
+    // Start Date
+    val dateOptions = listOf("Immediate (Tomorrow)", "Next Monday", "1st of Next Month", "Custom Date")
     var selectedDateOption by remember { mutableStateOf(dateOptions[0]) }
     var customStartDate by remember { mutableStateOf("2026-09-01") }
 
-    val durationOptions = listOf(1, 2, 3, 6, 12)
-    var selectedDurationMonths by remember { mutableStateOf(1) }
-
     var clinicalNotes by remember { mutableStateOf("") }
 
-    // Dynamic Financial Calculation
-    val dynamicMonthlyRate = remember(selectedFormula, chosenDaysForDayPerWeek, chosenDaysForShift, chosenDaysForHourly, hourlyStartHour, hourlyEndHour) {
-        when (selectedFormula.type) {
-            RentalFormulaType.FULL_MONTH -> selectedFormula.rateUsd
-            RentalFormulaType.DAY_PER_WEEK -> {
-                // Base rate covers formula's daysCountRequired; if user selects more days, scale proportionally
-                val baseDays = selectedFormula.daysCountRequired.coerceAtLeast(1)
-                val selectedCount = chosenDaysForDayPerWeek.size.coerceAtLeast(1)
-                val perDayRate = selectedFormula.rateUsd / baseDays
-                perDayRate * selectedCount
+    val chosenSlotSummary = remember(selectedStrategyType, selectedSlotsForPricing, effectiveRecurrence) {
+        when (selectedStrategyType) {
+            RentalStrategyType.MONTHLY -> {
+                val m = if (hasSubdivisions) selectedSubdivision?.pricing?.monthly else space.pricing.monthly
+                if (m?.isIndefinite == true) "Full month, indefinite" else "Full month"
             }
-            RentalFormulaType.SHIFT -> {
-                val baseDays = selectedFormula.daysOfWeek.size.coerceAtLeast(1)
-                val selectedCount = chosenDaysForShift.size.coerceAtLeast(1)
-                (selectedFormula.rateUsd / baseDays) * selectedCount
+            RentalStrategyType.HOURLY -> {
+                if (selectedSlotsForPricing.isEmpty()) "No hours selected yet"
+                else selectedSlotsForPricing.sortedBy { it.startTime }
+                    .joinToString(", ") { "${it.day} ${it.startTime}-${it.endTime}" }
             }
-            RentalFormulaType.HOURLY -> {
-                val startH = hourlyStartHour.substringBefore(":").toIntOrNull() ?: 9
-                val endH = hourlyEndHour.substringBefore(":").toIntOrNull() ?: 13
-                val dailyHrs = (endH - startH).coerceAtLeast(1)
-                val daysPerWeek = chosenDaysForHourly.size.coerceAtLeast(1)
-                val hourlyRate = if (selectedFormula.rateUsd < 100) selectedFormula.rateUsd else 25.0
-                hourlyRate * dailyHrs * daysPerWeek * 4 // 4 weeks in a month
+            RentalStrategyType.SHIFT_BASED -> {
+                val slot = selectedSlotsForPricing.firstOrNull()
+                if (slot == null) "No shift selected yet"
+                else "${slot.label} • ${recurrenceLabel(effectiveRecurrence)}"
             }
-        }
-    }
-
-    val totalCalculatedUsd = dynamicMonthlyRate * selectedDurationMonths
-
-    // Computed Slot Description
-    val chosenSlotSummary = remember(selectedFormula, chosenDaysForDayPerWeek, chosenDaysForShift, chosenDaysForHourly, hourlyStartHour, hourlyEndHour, shiftStartHour, shiftEndHour, selectedShiftPreset) {
-        when (selectedFormula.type) {
-            RentalFormulaType.DAY_PER_WEEK -> {
-                val days = chosenDaysForDayPerWeek.toList().sorted()
-                "Every ${days.joinToString(", ")} (${selectedFormula.startHour} - ${selectedFormula.endHour})"
+            RentalStrategyType.DAY_BASED -> {
+                if (selectedSlotsForPricing.isEmpty()) "No days selected yet"
+                else "${selectedSlotsForPricing.joinToString(", ") { it.day }} • ${recurrenceLabel(effectiveRecurrence)}"
             }
-            RentalFormulaType.SHIFT -> {
-                val days = chosenDaysForShift.toList().sorted()
-                "$selectedShiftPreset ($shiftStartHour - $shiftEndHour) on ${days.joinToString(", ")}"
-            }
-            RentalFormulaType.HOURLY -> {
-                val days = chosenDaysForHourly.toList().sorted()
-                "Hourly Slot: ${days.joinToString(", ")} from $hourlyStartHour to $hourlyEndHour"
-            }
-            RentalFormulaType.FULL_MONTH -> {
-                "Full Practice Month (${selectedFormula.daysOfWeek.joinToString()} • ${selectedFormula.startHour} - ${selectedFormula.endHour})"
-            }
+            null -> "No availability configured for this ${if (hasSubdivisions) "room" else "space"} yet"
         }
     }
 
@@ -237,7 +214,7 @@ fun RentalBookingDialog(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.width(Spacing.sm))
-                            ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = "Formula-Based")
+                            ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = "Real-Time Availability")
                         }
                         Text(
                             text = "${space.title} • ${space.district}, ${space.governorate.displayName}",
@@ -256,14 +233,13 @@ fun RentalBookingDialog(
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.sm), color = MaterialTheme.colorScheme.outlineVariant)
 
-                // Step-by-step formula configuration (scrollable form content)
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // 1. Choose Formula or Subdivision & Strategy
+                    // 1. Choose Subdivision (if any)
                     if (hasSubdivisions) {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(
@@ -284,433 +260,231 @@ fun RentalBookingDialog(
                                     ),
                                     border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
                                 ) {
-                                    Column(modifier = Modifier.padding(Spacing.md)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                                RadioButton(
-                                                    selected = isSelected,
-                                                    onClick = { selectedSubdivision = sub },
-                                                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
-                                                )
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Column {
-                                                    Text(
-                                                        text = sub.name,
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-                                                    )
-                                                    Text(
-                                                        text = "Type: ${sub.type.displayName}",
-                                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                    if (sub.amenities.isNotEmpty()) {
-                                                        Text(
-                                                            text = "Amenities: ${sub.amenities.joinToString()}",
-                                                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "2. Select Renting Strategy",
-                                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            selectedSubdivision?.rentalStrategies?.forEach { strat ->
-                                val isSelected = strat.strategy == selectedSubStrategy?.strategy
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { selectedSubStrategy = strat },
-                                    shape = MaterialTheme.shapes.medium,
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant
-                                    ),
-                                    border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary) else null
-                                ) {
                                     Row(
                                         modifier = Modifier.padding(Spacing.md).fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            RadioButton(
-                                                selected = isSelected,
-                                                onClick = { selectedSubStrategy = strat },
-                                                colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.secondary)
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Column {
-                                                Text(
-                                                    text = strat.strategy.displayName,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                                                    color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
-                                                )
-                                                if (strat.availableHoursOrShifts.isNotBlank()) {
-                                                    Text(
-                                                        text = "Schedule: ${strat.availableHoursOrShifts}",
-                                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        Text(
-                                            text = "$${strat.rateUsd.toInt()} USD",
-                                            fontWeight = FontWeight.ExtraBold,
-                                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                                            color = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
+                                        RadioButton(
+                                            selected = isSelected,
+                                            onClick = { selectedSubdivision = sub },
+                                            colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
                                         )
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "1. Select Rental Formula",
-                                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = "${space.rentalFormulas.size} Owner Formulas Offered",
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            space.rentalFormulas.forEach { formula ->
-                                val isSelected = formula.id == selectedFormula.id
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { innerSelectedFormula = formula },
-                                    shape = MaterialTheme.shapes.medium,
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-                                    ),
-                                    border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
-                                ) {
-                                    Column(modifier = Modifier.padding(Spacing.md)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                RadioButton(
-                                                    selected = isSelected,
-                                                    onClick = { innerSelectedFormula = formula },
-                                                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
-                                                )
-                                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                                Column {
-                                                    Text(
-                                                        text = formula.type.displayName,
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-                                                    )
-                                                    Text(
-                                                        text = formula.scheduleDescription,
-                                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                }
-                                            }
-
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Column {
                                             Text(
-                                                text = "$${formula.rateUsd.toInt()} USD${SpaceCalculationUtils.rateUnitLabel(formula.type)}",
-                                                fontWeight = FontWeight.ExtraBold,
-                                                fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
-
-                                        // Owner Availability Offered Tag
-                                        Spacer(modifier = Modifier.height(Spacing.xs))
-                                        Surface(
-                                            color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
-                                            shape = MaterialTheme.shapes.small
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Icon(
-                                                    Icons.Default.EventAvailable,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(12.dp),
-                                                    tint = MaterialTheme.colorScheme.primary
-                                                )
-                                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                                Text(
-                                                    text = "Owner Availability: ${formula.daysOfWeek.joinToString()} • ${formula.startHour} - ${formula.endHour}",
-                                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = MaterialTheme.colorScheme.primary
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // 2. Dynamic Availability Slot Selection (Conditioned on Formula Type)
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.DateRange,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(Spacing.sm))
-                                Text(
-                                    text = "2. Customize Your Required Availability",
-                                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-
-                            when (selectedFormula.type) {
-                                RentalFormulaType.DAY_PER_WEEK -> {
-                                    Text(
-                                        text = "The owner offers availability on: ${selectedFormula.daysOfWeek.joinToString(", ")}.\n" +
-                                               "Please choose which day(s) (${selectedFormula.daysCountRequired} day(s) included in base rate) you want to rent:",
-                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        lineHeight = 16.sp
-                                    )
-
-                                    // Interactive Day Picker Chips (Filter only by owner's available days)
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        allWeekDays.forEach { day ->
-                                            val isOfferedByOwner = selectedFormula.daysOfWeek.contains(day)
-                                            val isSelected = chosenDaysForDayPerWeek.contains(day)
-
-                                            FilterChip(
-                                                selected = isSelected && isOfferedByOwner,
-                                                enabled = isOfferedByOwner,
-                                                onClick = {
-                                                    if (isOfferedByOwner) {
-                                                        chosenDaysForDayPerWeek = if (isSelected) {
-                                                            if (chosenDaysForDayPerWeek.size > 1) chosenDaysForDayPerWeek - day else chosenDaysForDayPerWeek
-                                                        } else {
-                                                            chosenDaysForDayPerWeek + day
-                                                        }
-                                                    }
-                                                },
-                                                label = {
-                                                    Text(
-                                                        text = day.take(1),
-                                                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                                    )
-                                                },
-                                                leadingIcon = if (isSelected && isOfferedByOwner) {
-                                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
-                                                } else null,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                        }
-                                    }
-
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                                        shape = MaterialTheme.shapes.small,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(Spacing.sm),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = LebaneseCedarGreen, modifier = Modifier.size(14.dp))
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = "Your Chosen Practice Days: ${chosenDaysForDayPerWeek.joinToString(", ")} (${selectedFormula.startHour} - ${selectedFormula.endHour})",
-                                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                text = sub.name,
                                                 fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                                             )
+                                            Text(
+                                                text = "Type: ${sub.type.displayName}",
+                                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            if (sub.amenities.isNotEmpty()) {
+                                                Text(
+                                                    text = "Amenities: ${sub.amenities.joinToString()}",
+                                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
                                         }
                                     }
                                 }
+                            }
+                        }
+                    }
 
-                                RentalFormulaType.SHIFT -> {
-                                    Text(
-                                        text = "Shift timing: ${selectedFormula.startHour} - ${selectedFormula.endHour}. Owner offers this shift on: ${selectedFormula.daysOfWeek.joinToString(", ")}.\n" +
-                                               "Choose your shift preference and practice days:",
-                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        lineHeight = 16.sp
-                                    )
-
-                                    // Shift Preset Selector
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        listOf("Morning Shift (8 AM - 1 PM)", "Afternoon Shift (1:30 PM - 6:30 PM)", "Full Shift Window").forEach { preset ->
-                                            val isSel = selectedShiftPreset.startsWith(preset.take(7))
-                                            FilterChip(
-                                                selected = isSel,
-                                                onClick = {
-                                                    selectedShiftPreset = preset
-                                                    if (preset.startsWith("Morning")) {
-                                                        shiftStartHour = "08:00"
-                                                        shiftEndHour = "13:00"
-                                                    } else if (preset.startsWith("Afternoon")) {
-                                                        shiftStartHour = "13:30"
-                                                        shiftEndHour = "18:30"
-                                                    } else {
-                                                        shiftStartHour = selectedFormula.startHour
-                                                        shiftEndHour = selectedFormula.endHour
-                                                    }
-                                                },
-                                                label = { Text(preset, fontSize = 10.sp) },
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                        }
-                                    }
-
-                                    Text("Select Shift Days from Owner's Availability:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        allWeekDays.forEach { day ->
-                                            val isOffered = selectedFormula.daysOfWeek.contains(day)
-                                            val isSelected = chosenDaysForShift.contains(day)
-
-                                            FilterChip(
-                                                selected = isSelected && isOffered,
-                                                enabled = isOffered,
-                                                onClick = {
-                                                    if (isOffered) {
-                                                        chosenDaysForShift = if (isSelected) {
-                                                            if (chosenDaysForShift.size > 1) chosenDaysForShift - day else chosenDaysForShift
-                                                        } else {
-                                                            chosenDaysForShift + day
-                                                        }
-                                                    }
-                                                },
-                                                label = { Text(day.take(1), fontSize = MaterialTheme.typography.bodyMedium.fontSize) },
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                        }
-                                    }
-                                }
-
-                                RentalFormulaType.HOURLY -> {
-                                    Text(
-                                        text = "Hourly Booking: Space open from ${selectedFormula.startHour} to ${selectedFormula.endHour} on: ${selectedFormula.daysOfWeek.joinToString(", ")}.\n" +
-                                               "Choose your required days & precise practice hours:",
-                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        lineHeight = 16.sp
-                                    )
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        OutlinedTextField(
-                                            value = hourlyStartHour,
-                                            onValueChange = { hourlyStartHour = it },
-                                            label = { Text("Start Time (e.g. 09:00)") },
-                                            modifier = Modifier.weight(1f),
-                                            singleLine = true
-                                        )
-                                        OutlinedTextField(
-                                            value = hourlyEndHour,
-                                            onValueChange = { hourlyEndHour = it },
-                                            label = { Text("End Time (e.g. 13:00)") },
-                                            modifier = Modifier.weight(1f),
-                                            singleLine = true
-                                        )
-                                    }
-
-                                    Text("Select practice days:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        allWeekDays.forEach { day ->
-                                            val isOffered = selectedFormula.daysOfWeek.contains(day)
-                                            val isSelected = chosenDaysForHourly.contains(day)
-
-                                            FilterChip(
-                                                selected = isSelected && isOffered,
-                                                enabled = isOffered,
-                                                onClick = {
-                                                    if (isOffered) {
-                                                        chosenDaysForHourly = if (isSelected) {
-                                                            if (chosenDaysForHourly.size > 1) chosenDaysForHourly - day else chosenDaysForHourly
-                                                        } else {
-                                                            chosenDaysForHourly + day
-                                                        }
-                                                    }
-                                                },
-                                                label = { Text(day.take(1), fontSize = MaterialTheme.typography.bodyMedium.fontSize) },
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                        }
-                                    }
-                                }
-
-                                RentalFormulaType.FULL_MONTH -> {
-                                    Text(
-                                        text = "Exclusive Full-Month Access: The clinic space is reserved exclusively for your practice during all facility operating days (${space.schedule.operatingDays.joinToString(", ")}) from ${space.schedule.openingHour} to ${space.schedule.closingHour}.",
-                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        lineHeight = 16.sp
+                    // 2. Choose Renting Strategy — only strategies with real, priced
+                    // availability actually appear (a strategy the host never
+                    // configured never shows up as a fake option).
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = "${if (hasSubdivisions) "2" else "1"}. Select Renting Strategy",
+                            fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        if (availableStrategyTypes.isEmpty()) {
+                            Text(
+                                text = "This ${if (hasSubdivisions) "room" else "space"} has no bookable availability configured yet.",
+                                fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        } else {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                availableStrategyTypes.forEach { strategy ->
+                                    FilterChip(
+                                        selected = selectedStrategyType == strategy,
+                                        onClick = { selectedStrategyType = strategy },
+                                        label = { Text(strategy.displayName, fontSize = MaterialTheme.typography.labelMedium.fontSize) }
                                     )
                                 }
                             }
                         }
                     }
 
-                    // 3. Start Date Selector
+                    // 3. Customize Your Required Availability — driven entirely by the
+                    // real RentableSlots for the chosen strategy, never a hardcoded
+                    // preset list disconnected from what the host actually configured.
+                    if (selectedStrategyType != null) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.DateRange,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(Spacing.sm))
+                                    Text(
+                                        text = "Customize Your Required Availability",
+                                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                when (selectedStrategyType) {
+                                    RentalStrategyType.MONTHLY -> {
+                                        val rate = strategySlots.firstOrNull()?.pricesByRecurrence?.get(BookingRecurrence.FLAT) ?: 0.0
+                                        Text(
+                                            text = "Exclusive full-space access on all operating days (${strategySlots.map { it.day }.distinct().joinToString(", ")}), " +
+                                                "billed at $${rate.toInt()} USD per month.",
+                                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            lineHeight = 16.sp
+                                        )
+                                    }
+
+                                    RentalStrategyType.HOURLY -> {
+                                        Text("Choose a day:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            hourlyDayOptions.forEach { day ->
+                                                FilterChip(
+                                                    selected = hourlyDay == day,
+                                                    onClick = { hourlyDay = day },
+                                                    label = { Text(day, fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+                                        }
+                                        Text("Choose one or more priced hours:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
+                                        if (hourlyCellsForDay.isEmpty()) {
+                                            Text("No priced hours on $hourlyDay.", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.error)
+                                        }
+                                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            hourlyCellsForDay.forEach { cell ->
+                                                val isSelected = cell in selectedHourlyCells
+                                                val price = cell.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0
+                                                FilterChip(
+                                                    selected = isSelected,
+                                                    onClick = {
+                                                        selectedHourlyCells = if (isSelected) selectedHourlyCells - cell else selectedHourlyCells + cell
+                                                    },
+                                                    label = { Text("${cell.startTime} · $${price.toInt()}", fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    RentalStrategyType.SHIFT_BASED -> {
+                                        Text("Choose a day:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            shiftDayOptions.forEach { day ->
+                                                FilterChip(
+                                                    selected = shiftDay == day,
+                                                    onClick = { shiftDay = day },
+                                                    label = { Text(day, fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+                                        }
+                                        Text("Choose a shift:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
+                                        if (shiftsForDay.isEmpty()) {
+                                            Text("No shifts offered on $shiftDay.", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.error)
+                                        }
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            shiftsForDay.forEach { slot ->
+                                                FilterChip(
+                                                    selected = selectedShiftSlot == slot,
+                                                    onClick = { selectedShiftSlot = slot },
+                                                    label = { Text(slot.groupLabel.substringAfter("• "), fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+                                        }
+                                        val shiftRecurrenceOptions = selectedShiftSlot?.pricesByRecurrence?.keys?.toList().orEmpty()
+                                        if (shiftRecurrenceOptions.isNotEmpty()) {
+                                            Text("Choose a commitment:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                shiftRecurrenceOptions.forEach { rec ->
+                                                    val price = selectedShiftSlot?.pricesByRecurrence?.get(rec) ?: 0.0
+                                                    FilterChip(
+                                                        selected = shiftRecurrence == rec,
+                                                        onClick = { shiftRecurrence = rec },
+                                                        label = { Text("${recurrenceLabel(rec)} · $${price.toInt()}", fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    RentalStrategyType.DAY_BASED -> {
+                                        val dayBasedRecurrenceOptions = strategySlots.flatMap { it.pricesByRecurrence.keys }.distinct()
+                                        if (dayBasedRecurrenceOptions.isNotEmpty()) {
+                                            Text("Choose a commitment:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                dayBasedRecurrenceOptions.forEach { rec ->
+                                                    FilterChip(
+                                                        selected = dayBasedRecurrence == rec,
+                                                        onClick = { dayBasedRecurrence = rec },
+                                                        label = { Text(recurrenceLabel(rec), fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        Text("Choose one or more priced days:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
+                                        if (dayBasedDayOptions.isEmpty()) {
+                                            Text("No days priced for this commitment.", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.error)
+                                        }
+                                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            dayBasedDayOptions.forEach { slot ->
+                                                val isSelected = slot.day in selectedDayBasedDays
+                                                val price = slot.pricesByRecurrence[dayBasedRecurrence] ?: 0.0
+                                                FilterChip(
+                                                    selected = isSelected,
+                                                    onClick = {
+                                                        selectedDayBasedDays = if (isSelected) selectedDayBasedDays - slot.day else selectedDayBasedDays + slot.day
+                                                    },
+                                                    label = { Text("${slot.day} · $${price.toInt()}", fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    null -> {}
+                                }
+                            }
+                        }
+                    }
+
+                    // 4. Start Date Selector
                     Column {
                         Text(
-                            text = "3. Select Starting Date",
+                            text = "Select Starting Date",
                             fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -743,49 +517,53 @@ fun RentalBookingDialog(
                         }
                     }
 
-                    // 4. Rental Duration Term
-                    Column {
-                        Text(
-                            text = "4. Rental Duration Term",
-                            fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(Spacing.sm))
+                    // 5. Rental Duration Term — Monthly only; every other strategy's
+                    // real price already represents the full cost of the chosen
+                    // recurrence (see effectiveRecurrence above).
+                    if (selectedStrategyType == RentalStrategyType.MONTHLY) {
+                        Column {
+                            Text(
+                                text = "Rental Duration Term",
+                                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(Spacing.sm))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            durationOptions.forEach { months ->
-                                val isSelected = selectedDurationMonths == months
-                                Surface(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clickable { selectedDurationMonths = months },
-                                    shape = MaterialTheme.shapes.medium,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-                                ) {
-                                    Box(
-                                        modifier = Modifier.padding(vertical = 10.dp),
-                                        contentAlignment = Alignment.Center
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                durationOptions.forEach { months ->
+                                    val isSelected = selectedDurationMonths == months
+                                    Surface(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { selectedDurationMonths = months },
+                                        shape = MaterialTheme.shapes.medium,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
                                     ) {
-                                        Text(
-                                            text = "$months mo",
-                                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                        Box(
+                                            modifier = Modifier.padding(vertical = 10.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "$months mo",
+                                                fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
 
-                    // 5. Notes & Scope
+                    // 6. Notes & Scope
                     Column {
                         Text(
-                            text = "5. Requirements & Notes",
+                            text = "Requirements & Notes",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -852,7 +630,7 @@ fun RentalBookingDialog(
                             ) {
                                 Column {
                                     Text(
-                                        text = "To pay per month",
+                                        text = "Total for this request",
                                         fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                     )
@@ -864,30 +642,11 @@ fun RentalBookingDialog(
                                     )
                                 }
 
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        text = "$${dynamicMonthlyRate.toInt()} USD/mo",
-                                        fontSize = 20.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = "Full term ($selectedDurationMonths month${if (selectedDurationMonths > 1) "s" else ""})",
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                                )
                                 Text(
                                     text = "$${totalCalculatedUsd.toInt()} USD",
-                                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
 
@@ -911,43 +670,45 @@ fun RentalBookingDialog(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     val computedDate = if (selectedDateOption == "Custom Date") customStartDate else selectedDateOption
-                    val chosenDaysList = when (selectedFormula.type) {
-                        RentalFormulaType.DAY_PER_WEEK -> chosenDaysForDayPerWeek.toList()
-                        RentalFormulaType.SHIFT -> chosenDaysForShift.toList()
-                        RentalFormulaType.HOURLY -> chosenDaysForHourly.toList()
-                        RentalFormulaType.FULL_MONTH -> selectedFormula.daysOfWeek
-                    }
-                    val startH = when (selectedFormula.type) {
-                        RentalFormulaType.SHIFT -> shiftStartHour
-                        RentalFormulaType.HOURLY -> hourlyStartHour
-                        else -> selectedFormula.startHour
-                    }
-                    val endH = when (selectedFormula.type) {
-                        RentalFormulaType.SHIFT -> shiftEndHour
-                        RentalFormulaType.HOURLY -> hourlyEndHour
-                        else -> selectedFormula.endHour
+                    val canSubmit = selectedStrategyType != null && selectedSlotsForPricing.isNotEmpty()
+
+                    fun buildFormulaForSubmission(): RentalFormula? {
+                        // Same synthesis SpaceDetailsScreen's preview and
+                        // SpaceAvailabilityMatrixView's tap-to-book cells use — see its
+                        // doc comment for why this is shared rather than three
+                        // independent approximations. Only the description is
+                        // overridden here, since this dialog already has a more
+                        // specific, live-updating summary than the shared helper's
+                        // generic slot label.
+                        return SpaceCalculationUtils.representativeFormula(selectedSlotsForPricing, effectiveRecurrence)
+                            ?.copy(scheduleDescription = chosenSlotSummary)
                     }
 
                     // In-App Only Request Button
                     ProOutlinedButton(
                         text = "Request",
                         onClick = {
+                            val formula = buildFormulaForSubmission()
+                            if (formula == null) {
+                                Toast.makeText(context, "Please select an available slot first.", Toast.LENGTH_SHORT).show()
+                                return@ProOutlinedButton
+                            }
                             viewModel.submitBookingRequest(
                                 space = space,
-                                formula = selectedFormula,
+                                formula = formula,
                                 startDate = computedDate,
-                                durationMonths = selectedDurationMonths,
+                                durationMonths = if (selectedStrategyType == RentalStrategyType.MONTHLY) selectedDurationMonths else 1,
                                 notes = clinicalNotes,
                                 context = context,
                                 alsoOpenWhatsApp = false,
-                                selectedDays = chosenDaysList,
-                                selectedStartHour = startH,
-                                selectedEndHour = endH,
-                                selectedShift = if (selectedFormula.type == RentalFormulaType.SHIFT) selectedShiftPreset else "",
+                                selectedDays = formula.daysOfWeek,
+                                selectedStartHour = formula.startHour,
+                                selectedEndHour = formula.endHour,
+                                selectedShift = if (selectedStrategyType == RentalStrategyType.SHIFT_BASED) formula.shiftName else "",
                                 calculatedTotalUsd = totalCalculatedUsd,
                                 subdivisionId = selectedSubdivision?.id,
                                 subdivisionName = selectedSubdivision?.name,
-                                selectedStrategy = selectedSubStrategy?.strategy?.name,
+                                selectedStrategy = selectedStrategyType?.name,
                                 replacesBookingId = replacesBookingId
                             )
                             onRequestSubmitted()
@@ -955,6 +716,7 @@ fun RentalBookingDialog(
                         },
                         icon = Icons.AutoMirrored.Filled.Send,
                         compact = true,
+                        enabled = canSubmit,
                         modifier = Modifier.weight(1f)
                     )
 
@@ -962,22 +724,23 @@ fun RentalBookingDialog(
                     CustomButton(
                         text = "Request and contact",
                         onClick = {
+                            val formula = buildFormulaForSubmission() ?: return@CustomButton
                             viewModel.submitBookingRequest(
                                 space = space,
-                                formula = selectedFormula,
+                                formula = formula,
                                 startDate = computedDate,
-                                durationMonths = selectedDurationMonths,
+                                durationMonths = if (selectedStrategyType == RentalStrategyType.MONTHLY) selectedDurationMonths else 1,
                                 notes = clinicalNotes,
                                 context = context,
                                 alsoOpenWhatsApp = true,
-                                selectedDays = chosenDaysList,
-                                selectedStartHour = startH,
-                                selectedEndHour = endH,
-                                selectedShift = if (selectedFormula.type == RentalFormulaType.SHIFT) selectedShiftPreset else "",
+                                selectedDays = formula.daysOfWeek,
+                                selectedStartHour = formula.startHour,
+                                selectedEndHour = formula.endHour,
+                                selectedShift = if (selectedStrategyType == RentalStrategyType.SHIFT_BASED) formula.shiftName else "",
                                 calculatedTotalUsd = totalCalculatedUsd,
                                 subdivisionId = selectedSubdivision?.id,
                                 subdivisionName = selectedSubdivision?.name,
-                                selectedStrategy = selectedSubStrategy?.strategy?.name,
+                                selectedStrategy = selectedStrategyType?.name,
                                 replacesBookingId = replacesBookingId
                             )
                             onRequestSubmitted()
@@ -986,10 +749,11 @@ fun RentalBookingDialog(
                         variant = CustomButtonVariant.WHATSAPP,
                         iconPainter = painterResource(id = R.drawable.ic_whatsapp),
                         compact = true,
+                        enabled = canSubmit,
                         modifier = Modifier.weight(1.3f)
                     )
                 }
+            }
         }
     }
-}
 }
