@@ -206,9 +206,14 @@ fun LebanonMapCanvas(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
 
-            // Current Coordinates & Info HUD
+            // Current Coordinates & Info HUD — a fixed-contrast chip floating over the
+            // live map (whose own tiles don't follow the app's light/dark setting), so
+            // it deliberately uses inverseSurface/inverseOnSurface (the same
+            // always-contrasting pairing ExportDataDialog uses) rather than
+            // surface/onSurface, which would flip with the app theme and risk poor
+            // contrast against the map underneath it.
             Surface(
-                color = Color(0xEE1E293B),
+                color = MaterialTheme.colorScheme.inverseSurface,
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.padding(horizontal = Spacing.lg)
             ) {
@@ -220,7 +225,7 @@ fun LebanonMapCanvas(
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = Color(0xFF06B6D4),
+                        tint = MaterialTheme.colorScheme.inverseOnSurface,
                         modifier = Modifier.size(16.dp)
                     )
                     
@@ -237,7 +242,7 @@ fun LebanonMapCanvas(
                     
                     Text(
                         text = coordinatesText,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.inverseOnSurface,
                         fontSize = MaterialTheme.typography.labelSmall.fontSize,
                         fontWeight = FontWeight.Medium
                     )
