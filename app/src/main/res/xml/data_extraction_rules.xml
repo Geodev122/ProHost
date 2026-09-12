@@ -1,19 +1,27 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Governs Android 12+ cloud backup and device-to-device transfer
+   (android:allowBackup="true" in AndroidManifest.xml keeps both enabled).
+
+   This app is a marketplace where a signed-in device's local cache is not
+   just the user's own data — Firestore's offline persistence layer mirrors
+   listings, booking requests, and profile fields belonging to OTHER users
+   (names, phone numbers, ID-verification status) into a local SQLite
+   database purely as a performance cache, since the server is always the
+   real source of truth and a fresh install re-syncs everything the moment
+   the user signs back in. There is no product reason to carry that cache
+   into a cloud backup or a new device, and every reason not to. The
+   `database` domain covers every SQLite file under the app's private
+   databases/ directory, which is exactly where Firestore's persistence
+   cache lives, whatever its exact internal filename in the currently
+   pinned SDK version (this app defines no Room database of its own to
+   worry about excluding separately).
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <exclude domain="database" path="."/>
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <exclude domain="database" path="."/>
     </device-transfer>
-    -->
 </data-extraction-rules>

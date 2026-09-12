@@ -1,13 +1,14 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Full-backup-content rules for devices below Android 12 (ignored on 12+,
+   which uses data_extraction_rules.xml instead — kept in sync with it here
+   for the same reason: see that file's comment). Excludes every SQLite
+   database under this app's private databases/ directory, which is where
+   Firestore's offline persistence cache lives — a local mirror of other
+   users' data (names, phone numbers, verification status) that exists
+   purely as a performance cache and has no business leaving the device via
+   backup or restore.
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <exclude domain="database" path="."/>
 </full-backup-content>
