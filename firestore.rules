@@ -273,7 +273,15 @@ service cloud.firestore {
 
       allow create: if isSignedIn() &&
         request.resource.data.practitionerId == request.auth.uid &&
-        !isSuspended();
+        !isSuspended() &&
+        // ownerId must be the REAL owner of spaceId — otherwise a Specialist
+        // could create a BookingRequest naming an arbitrary ownerId with a
+        // fabricated totalAmountUsd, and since the read rule above allows
+        // resource.data.ownerId == request.auth.uid, it would surface in that
+        // host's own OwnerIncomingRequestsView/OwnerRentingProgressScreen queue
+        // as if it were a genuine request for their own listing.
+        request.resource.data.ownerId ==
+          get(/databases/$(database)/documents/workspace_listings/$(request.resource.data.spaceId)).data.ownerId;
 
       // The owner (or Admin) can write anything — accept/reject, agreementUrl (the
       // signed lease uploaded when finalizing acceptance), etc. The practitioner is
