@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -227,26 +229,50 @@ fun SpaceDetailsScreenContent(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Hero Visual Card
+            // Hero Visual Card — swipeable through every photo, not just the first
+            // (this used to hard-drop imageUrls[1..], the only place the rest of a
+            // listing's photos were ever shown).
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
             ) {
-                val firstImage = liveSpace.imageUrls.firstOrNull()
-                if (firstImage != null) {
-                    coil.compose.AsyncImage(
-                        model = firstImage,
-                        contentDescription = liveSpace.title,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                    )
+                if (liveSpace.imageUrls.isNotEmpty()) {
+                    val pagerState = rememberPagerState(pageCount = { liveSpace.imageUrls.size })
+                    HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+                        coil.compose.AsyncImage(
+                            model = liveSpace.imageUrls[page],
+                            contentDescription = liveSpace.title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    }
                     // Semi-transparent overlay to ensure text is fully legible
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(Color.Black.copy(alpha = 0.45f))
                     )
+                    if (liveSpace.imageUrls.size > 1) {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = Spacing.sm),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            repeat(liveSpace.imageUrls.size) { index ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (index == pagerState.currentPage) Color.White
+                                            else Color.White.copy(alpha = 0.4f)
+                                        )
+                                )
+                            }
+                        }
+                    }
                 } else {
                     Box(
                         modifier = Modifier
@@ -271,7 +297,7 @@ fun SpaceDetailsScreenContent(
                         shape = MaterialTheme.shapes.small
                     ) {
                         Text(
-                            text = "${liveSpace.spaceType.displayName} • ${if (liveSpace.isShared) "Shared Co-Working Space" else "Private Studio / Office"}",
+                            text = "${liveSpace.spaceCategoryName ?: liveSpace.spaceType.displayName} • ${if (liveSpace.isShared) "Shared Co-Working Space" else "Private Studio / Office"}",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
@@ -365,6 +391,24 @@ fun SpaceDetailsScreenContent(
                         )
 
                         ProStatusBadge(ProBadgeType.ACTIVE_30D)
+                    }
+                }
+
+                // Description — exists on SpaceListing since Phase 2 but was never
+                // rendered anywhere on this screen.
+                if (liveSpace.description.isNotBlank()) {
+                    ProSurfaceCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            ProSectionHeader(
+                                title = "Description",
+                                icon = Icons.Default.Description
+                            )
+                            Text(
+                                text = liveSpace.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
 
@@ -483,6 +527,120 @@ fun SpaceDetailsScreenContent(
                                             }
                                         }
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Dedicated Availability section — one sub-view per configured renting
+                // formula, each showing real rented-vs-available counts from the exact
+                // same shared slot data (SpaceCalculationUtils.buildAllSlotsForSpace/
+                // isSlotLocked) the generic calendar/matrix views above already use, but
+                // grouped and rendered per formula type instead of one identical grid
+                // for every strategy.
+                if (strategyPreviewGroups.isNotEmpty()) {
+                    ProSurfaceCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            ProSectionHeader(
+                                title = "Availability",
+                                subtitle = "Real rented vs. available slots per renting formula",
+                                icon = Icons.Default.EventAvailable
+                            )
+                            strategyPreviewGroups.forEachIndexed { groupIndex, (strategyType, slots) ->
+                                val lockedCount = slots.count { SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
+                                val availableCount = slots.size - lockedCount
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(strategyType.displayName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            "$availableCount available • $lockedCount rented",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = if (availableCount > 0) LebaneseCedarGreen else StatusError
+                                        )
+                                    }
+
+                                    when (strategyType) {
+                                        RentalStrategyType.MONTHLY -> {
+                                            val slot = slots.first()
+                                            val isLocked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
+                                            Text(
+                                                "Full-month exclusive lease • $${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}/mo",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            ProStatusBadge(
+                                                if (isLocked) ProBadgeType.CUSTOM_ERROR else ProBadgeType.CUSTOM_INFO,
+                                                customText = if (isLocked) "Currently Rented" else "Available Now"
+                                            )
+                                        }
+                                        RentalStrategyType.HOURLY -> {
+                                            slots.groupBy { it.day }.toList().sortedBy { it.first }.forEach { (day, daySlots) ->
+                                                Text(day, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                                                LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    items(daySlots.sortedBy { it.startTime }) { slot ->
+                                                        val locked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
+                                                        Surface(
+                                                            color = if (locked) StatusErrorContainer else StatusSuccessContainer,
+                                                            shape = MaterialTheme.shapes.extraSmall
+                                                        ) {
+                                                            Text(
+                                                                slot.startTime,
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                color = if (locked) StatusError else StatusSuccess,
+                                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        RentalStrategyType.SHIFT_BASED -> {
+                                            slots.groupBy { it.day }.toList().sortedBy { it.first }.forEach { (day, daySlots) ->
+                                                Text(day, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                                                daySlots.forEach { slot ->
+                                                    val locked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween
+                                                    ) {
+                                                        Text(slot.label, style = MaterialTheme.typography.bodySmall)
+                                                        Text(
+                                                            if (locked) "Rented" else "Available",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = if (locked) StatusError else StatusSuccess
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        RentalStrategyType.DAY_BASED -> {
+                                            slots.sortedBy { it.day }.forEach { slot ->
+                                                val locked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(slot.day, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                                    Text(
+                                                        if (locked) "Rented" else "Available",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = if (locked) StatusError else StatusSuccess
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                if (groupIndex < strategyPreviewGroups.lastIndex) {
+                                    HorizontalDivider(color = LightGray.copy(alpha = 0.4f))
                                 }
                             }
                         }
