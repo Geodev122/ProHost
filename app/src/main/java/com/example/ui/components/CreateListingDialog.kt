@@ -637,6 +637,16 @@ fun CreateListingDialog(
                             )
                         )
                     }
+                    // Derived from the same formula eagerly, so this listing's real
+                    // pricing is correct from the moment it's first saved. When
+                    // hasSubdivisions is true, the listing itself carries no pricing
+                    // of its own — each Subdivision already got its own pricing set
+                    // eagerly in SubdivisionEditorSection's Add button.
+                    val pricingConfig = if (!hasSubdivisions) {
+                        RentalPricingConfig.fromLegacyFormula(formulas.firstOrNull())
+                    } else {
+                        RentalPricingConfig.default()
+                    }
 
                     // Prefer the real pin dropped on the map (recorded via
                     // ListingLocationMapPicker above); only fall back to
@@ -679,6 +689,7 @@ fun CreateListingDialog(
                         residentPractitioners = listOf("${activeUser.fullName} (${activeUser.specialty})"),
                         essentialFacilities = selectedFacilities.toList(),
                         equipment = chosenEquipment,
+                        pricing = pricingConfig,
                         rentalFormulas = formulas,
                         rules = PremisesRules(
                             smokingAllowed = smokingAllowed,

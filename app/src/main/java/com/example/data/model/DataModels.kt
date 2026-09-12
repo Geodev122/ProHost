@@ -33,6 +33,10 @@ enum class Level2Type(val displayName: String, val iconName: String) {
     DESK_IN_SHARED_AREA("Desk in Shared Area", "Desk")
 }
 
+// Legacy pair, kept only so Firestore documents written before RentalPricingConfig
+// existed still deserialize (see Subdivision.fromLegacyMap / SpaceListing's own
+// legacy-formula synthesis). Never written by new saves — RentalStrategyType is the
+// live enum for every new SubdivisionStrategy/RentalFormula equivalent.
 enum class RentalStrategy(val displayName: String) {
     HOURLY("Hourly"),
     SHIFT_BASED("Shift-based"),
@@ -47,12 +51,287 @@ data class SubdivisionStrategy(
     val availableHoursOrShifts: String = "" // e.g. "08:00 - 13:00" or "Full Day"
 )
 
+/** The one rental-pricing-strategy enum, replacing the formerly-duplicated
+ *  RentalStrategy (subdivision-level) and RentalFormulaType (listing-level) — both
+ *  modeled the same four real-world concepts under different names, with
+ *  RentalBookingDialog previously hand-mapping one to the other on every use. */
+enum class RentalStrategyType(val displayName: String) {
+    MONTHLY("Monthly"),
+    HOURLY("Per-Hour"),
+    SHIFT_BASED("Shift-Based"),
+    DAY_BASED("Day-Based")
+}
+
+data class MonthYearRange(val fromMonth: Int, val fromYear: Int, val toMonth: Int, val toYear: Int)
+
+data class MonthlyConfig(
+    val rateUsd: Double = 0.0,
+    val fromMonth: Int = 1,
+    val fromYear: Int = 2026,
+    val isIndefinite: Boolean = true,
+    val toMonth: Int? = null,
+    val toYear: Int? = null,
+    val excludedRanges: List<MonthYearRange> = emptyList()
+)
+
+/** Key format "<3-letter-day>|<hour-of-day-int>", e.g. "Mon|9" -> 25.0. A day/hour
+ *  combination absent from this map is blank/unavailable — deliberately the only
+ *  source of truth; a "select all hours for a day at one price" bulk-fill action in
+ *  the host editor writes N identical entries into this same map rather than storing
+ *  a second, parallel representation of the same fact. */
+data class HourlyConfig(val cellPrices: Map<String, Double> = emptyMap())
+
+enum class ShiftName(val displayName: String) {
+    MORNING("Morning"), MID("Mid"), EVENING("Evening"), NIGHT("Night")
+}
+
+data class ShiftRecurrencePricing(
+    val oneTimePrice: Double = 0.0,
+    val sameDayEveryWeekPrice: Double = 0.0,
+    val monthlyRecurrencePrice: Double = 0.0
+)
+
+data class ShiftDefinition(
+    val name: ShiftName,
+    val startHour: Int = 8,
+    val endHour: Int = 12,
+    val isUnavailable: Boolean = false,
+    val pricing: ShiftRecurrencePricing = ShiftRecurrencePricing()
+)
+
+data class ShiftBasedConfig(
+    val shifts: List<ShiftDefinition> = ShiftName.values().map { ShiftDefinition(name = it) },
+    // day (3-letter) -> which shift names are offered that day, e.g. "Mon" -> ["MORNING", "EVENING"]
+    val distribution: Map<String, List<String>> = emptyMap()
+)
+
+data class DayPricing(
+    val oneTimePrice: Double? = null,
+    val sameDayEachMonthPrice: Double? = null,
+    val sameDayEachWeekPrice: Double? = null
+)
+
+data class DayBasedConfig(
+    val useFacilityHours: Boolean = true,
+    val customStartHour: Int? = null,
+    val customEndHour: Int? = null,
+    // day (3-letter) -> its 3 independent prices. A day absent here is "Not Available".
+    val distribution: Map<String, DayPricing> = emptyMap()
+)
+
+/** Exactly one of [monthly]/[hourly]/[shiftBased]/[dayBased] is non-null, selected by
+ *  [strategyType] — an explicit type-tag, not sealed-class polymorphism, so this
+ *  round-trips through toFirestoreMap()/fromFirestoreMap() as one flat map with one
+ *  active nested sub-map, mechanically, like every other nested object in this file. */
+data class RentalPricingConfig(
+    val strategyType: RentalStrategyType,
+    val monthly: MonthlyConfig? = null,
+    val hourly: HourlyConfig? = null,
+    val shiftBased: ShiftBasedConfig? = null,
+    val dayBased: DayBasedConfig? = null
+) {
+    fun toFirestoreMap(): Map<String, Any?> = mapOf(
+        "strategyType" to strategyType.name,
+        "monthly" to monthly?.let {
+            mapOf(
+                "rateUsd" to it.rateUsd, "fromMonth" to it.fromMonth, "fromYear" to it.fromYear,
+                "isIndefinite" to it.isIndefinite, "toMonth" to it.toMonth, "toYear" to it.toYear,
+                "excludedRanges" to it.excludedRanges.map { r ->
+                    mapOf("fromMonth" to r.fromMonth, "fromYear" to r.fromYear, "toMonth" to r.toMonth, "toYear" to r.toYear)
+                }
+            )
+        },
+        "hourly" to hourly?.let { mapOf("cellPrices" to it.cellPrices) },
+        "shiftBased" to shiftBased?.let { sbc ->
+            mapOf(
+                "shifts" to sbc.shifts.map { s ->
+                    mapOf(
+                        "name" to s.name.name, "startHour" to s.startHour, "endHour" to s.endHour,
+                        "isUnavailable" to s.isUnavailable,
+                        "pricing" to mapOf(
+                            "oneTimePrice" to s.pricing.oneTimePrice,
+                            "sameDayEveryWeekPrice" to s.pricing.sameDayEveryWeekPrice,
+                            "monthlyRecurrencePrice" to s.pricing.monthlyRecurrencePrice
+                        )
+                    )
+                },
+                "distribution" to sbc.distribution
+            )
+        },
+        "dayBased" to dayBased?.let { dbc ->
+            mapOf(
+                "useFacilityHours" to dbc.useFacilityHours, "customStartHour" to dbc.customStartHour,
+                "customEndHour" to dbc.customEndHour,
+                "distribution" to dbc.distribution.mapValues { (_, v) ->
+                    mapOf(
+                        "oneTimePrice" to v.oneTimePrice,
+                        "sameDayEachMonthPrice" to v.sameDayEachMonthPrice,
+                        "sameDayEachWeekPrice" to v.sameDayEachWeekPrice
+                    )
+                }
+            )
+        }
+    )
+
+    companion object {
+        fun default(): RentalPricingConfig = RentalPricingConfig(RentalStrategyType.MONTHLY, monthly = MonthlyConfig())
+
+        fun fromFirestoreMap(data: Map<*, *>): RentalPricingConfig {
+            val typeStr = data["strategyType"] as? String ?: RentalStrategyType.MONTHLY.name
+            val type = runCatching { RentalStrategyType.valueOf(typeStr) }.getOrDefault(RentalStrategyType.MONTHLY)
+            val monthly = (data["monthly"] as? Map<*, *>)?.let { m ->
+                MonthlyConfig(
+                    rateUsd = (m["rateUsd"] as? Number)?.toDouble() ?: 0.0,
+                    fromMonth = (m["fromMonth"] as? Number)?.toInt() ?: 1,
+                    fromYear = (m["fromYear"] as? Number)?.toInt() ?: 2026,
+                    isIndefinite = m["isIndefinite"] as? Boolean ?: true,
+                    toMonth = (m["toMonth"] as? Number)?.toInt(),
+                    toYear = (m["toYear"] as? Number)?.toInt(),
+                    excludedRanges = (m["excludedRanges"] as? List<*>)?.mapNotNull { r ->
+                        (r as? Map<*, *>)?.let {
+                            MonthYearRange(
+                                fromMonth = (it["fromMonth"] as? Number)?.toInt() ?: 1,
+                                fromYear = (it["fromYear"] as? Number)?.toInt() ?: 2026,
+                                toMonth = (it["toMonth"] as? Number)?.toInt() ?: 1,
+                                toYear = (it["toYear"] as? Number)?.toInt() ?: 2026
+                            )
+                        }
+                    } ?: emptyList()
+                )
+            }
+            val hourly = (data["hourly"] as? Map<*, *>)?.let { h ->
+                val prices = (h["cellPrices"] as? Map<*, *>)?.mapNotNull { (k, v) ->
+                    (k as? String)?.let { key -> (v as? Number)?.toDouble()?.let { key to it } }
+                }?.toMap() ?: emptyMap()
+                HourlyConfig(cellPrices = prices)
+            }
+            val shiftBased = (data["shiftBased"] as? Map<*, *>)?.let { sb ->
+                val shifts = (sb["shifts"] as? List<*>)?.mapNotNull { s ->
+                    (s as? Map<*, *>)?.let {
+                        val nameStr = it["name"] as? String ?: ShiftName.MORNING.name
+                        val name = runCatching { ShiftName.valueOf(nameStr) }.getOrDefault(ShiftName.MORNING)
+                        val pricingMap = it["pricing"] as? Map<*, *>
+                        ShiftDefinition(
+                            name = name,
+                            startHour = (it["startHour"] as? Number)?.toInt() ?: 8,
+                            endHour = (it["endHour"] as? Number)?.toInt() ?: 12,
+                            isUnavailable = it["isUnavailable"] as? Boolean ?: false,
+                            pricing = ShiftRecurrencePricing(
+                                oneTimePrice = (pricingMap?.get("oneTimePrice") as? Number)?.toDouble() ?: 0.0,
+                                sameDayEveryWeekPrice = (pricingMap?.get("sameDayEveryWeekPrice") as? Number)?.toDouble() ?: 0.0,
+                                monthlyRecurrencePrice = (pricingMap?.get("monthlyRecurrencePrice") as? Number)?.toDouble() ?: 0.0
+                            )
+                        )
+                    }
+                } ?: ShiftName.values().map { ShiftDefinition(name = it) }
+                val distribution = (sb["distribution"] as? Map<*, *>)?.mapNotNull { (k, v) ->
+                    (k as? String)?.let { key -> (v as? List<*>)?.mapNotNull { it as? String }?.let { key to it } }
+                }?.toMap() ?: emptyMap()
+                ShiftBasedConfig(shifts = shifts, distribution = distribution)
+            }
+            val dayBased = (data["dayBased"] as? Map<*, *>)?.let { db ->
+                val distribution = (db["distribution"] as? Map<*, *>)?.mapNotNull { (k, v) ->
+                    (k as? String)?.let { key ->
+                        (v as? Map<*, *>)?.let {
+                            key to DayPricing(
+                                oneTimePrice = (it["oneTimePrice"] as? Number)?.toDouble(),
+                                sameDayEachMonthPrice = (it["sameDayEachMonthPrice"] as? Number)?.toDouble(),
+                                sameDayEachWeekPrice = (it["sameDayEachWeekPrice"] as? Number)?.toDouble()
+                            )
+                        }
+                    }
+                }?.toMap() ?: emptyMap()
+                DayBasedConfig(
+                    useFacilityHours = db["useFacilityHours"] as? Boolean ?: true,
+                    customStartHour = (db["customStartHour"] as? Number)?.toInt(),
+                    customEndHour = (db["customEndHour"] as? Number)?.toInt(),
+                    distribution = distribution
+                )
+            }
+            return RentalPricingConfig(type, monthly, hourly, shiftBased, dayBased)
+        }
+
+        /** Old model allowed a LIST of formulas/strategies; new model is exactly one
+         *  strategy per division, so this takes the first — documented, intentional
+         *  narrowing. A listing that offered e.g. both Hourly and Full-Month shows
+         *  only its first formula until the host re-opens the pricing editor and
+         *  explicitly re-picks; it never crashes and never silently drops the listing.
+         *  Called both from fromFirestoreMap (a document with no "pricing" key at
+         *  all) and eagerly from every write path that still constructs a
+         *  RentalFormula/SubdivisionStrategy directly (CreateListingDialog,
+         *  SubdivisionEditorSection, SpaceScheduleEditorDialog), so "pricing" is
+         *  always correct the moment it's first written, not only on a later read of
+         *  a genuinely old pre-existing document. */
+        fun fromLegacyFormula(formula: RentalFormula?): RentalPricingConfig {
+            if (formula == null) return default()
+            val oldTypeStr = formula.type.name
+            val startHour = formula.startHour.substringBefore(':').trim().toIntOrNull() ?: 8
+            val endHour = formula.endHour.substringBefore(':').trim().toIntOrNull() ?: 18
+            return fromLegacyShape(oldTypeStr, formula.rateUsd, formula.daysOfWeek, startHour, endHour)
+        }
+
+        fun fromLegacySubdivisionStrategy(strategy: SubdivisionStrategy?): RentalPricingConfig {
+            if (strategy == null) return default()
+            val hoursOrShifts = strategy.availableHoursOrShifts
+            val startHour = hoursOrShifts.substringBefore('-').trim().substringBefore(':').trim().toIntOrNull() ?: 8
+            val endHour = hoursOrShifts.substringAfter('-', "").trim().substringBefore(':').trim().toIntOrNull() ?: 18
+            val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri")
+            val mappedType = when (strategy.strategy) {
+                RentalStrategy.HOURLY -> "HOURLY"
+                RentalStrategy.SHIFT_BASED -> "SHIFT"
+                RentalStrategy.DAILY -> "DAY_PER_WEEK"
+                RentalStrategy.MONTHLY -> "FULL_MONTH"
+            }
+            return fromLegacyShape(mappedType, strategy.rateUsd, days, startHour, endHour)
+        }
+
+        private fun fromLegacyShape(oldTypeStr: String, rate: Double, days: List<String>, startHour: Int, endHour: Int): RentalPricingConfig =
+            when (oldTypeStr) {
+                "HOURLY" -> RentalPricingConfig(
+                    strategyType = RentalStrategyType.HOURLY,
+                    hourly = HourlyConfig(cellPrices = days.flatMap { day ->
+                        (startHour until endHour).map { "$day|$it" to rate }
+                    }.toMap())
+                )
+                "SHIFT" -> RentalPricingConfig(
+                    strategyType = RentalStrategyType.SHIFT_BASED,
+                    shiftBased = ShiftBasedConfig(
+                        shifts = ShiftName.values().map {
+                            ShiftDefinition(
+                                name = it, startHour = startHour, endHour = endHour,
+                                isUnavailable = it != ShiftName.MORNING,
+                                pricing = ShiftRecurrencePricing(rate, rate, rate)
+                            )
+                        },
+                        distribution = days.associateWith { listOf(ShiftName.MORNING.name) }
+                    )
+                )
+                "DAY_PER_WEEK" -> RentalPricingConfig(
+                    strategyType = RentalStrategyType.DAY_BASED,
+                    dayBased = DayBasedConfig(
+                        useFacilityHours = false, customStartHour = startHour, customEndHour = endHour,
+                        distribution = days.associateWith { DayPricing(rate, rate, rate) }
+                    )
+                )
+                else -> RentalPricingConfig(
+                    strategyType = RentalStrategyType.MONTHLY,
+                    monthly = MonthlyConfig(rateUsd = rate, isIndefinite = true)
+                )
+            }
+    }
+}
+
 data class Subdivision(
     val id: String = "SUB-" + java.util.UUID.randomUUID().toString().take(6).uppercase(),
     val name: String,
     val type: Level2Type,
     val imageUrls: List<String> = emptyList(),
     val amenities: List<String> = emptyList(),
+    val pricing: RentalPricingConfig = RentalPricingConfig.default(),
+    // Legacy, read-only: populated only when deserializing a document saved before
+    // RentalPricingConfig existed and never re-saved since. New saves always leave
+    // this empty — pricing lives in [pricing] instead. Kept only so
+    // toFirestoreMap()/older-client compatibility isn't silently broken.
     val rentalStrategies: List<SubdivisionStrategy> = emptyList()
 )
 
@@ -377,7 +656,11 @@ data class SpaceListing(
     val residentPractitioners: List<String>,
     val essentialFacilities: List<String>,
     val equipment: List<EquipmentItem>,
-    val rentalFormulas: List<RentalFormula>,
+    val pricing: RentalPricingConfig = RentalPricingConfig.default(),
+    // Legacy, read-only: populated only when deserializing a document saved before
+    // RentalPricingConfig existed and never re-saved since. New saves always leave
+    // this empty — pricing lives in [pricing] instead.
+    val rentalFormulas: List<RentalFormula> = emptyList(),
     val rules: PremisesRules,
     val schedule: SpaceOperatingSchedule = SpaceOperatingSchedule(),
     val ownerId: String,
@@ -456,6 +739,7 @@ data class SpaceListing(
                     "description" to it.description
                 )
             },
+            "pricing" to pricing.toFirestoreMap(),
             "rentalFormulas" to rentalFormulas.map {
                 mapOf(
                     "id" to it.id,
@@ -478,6 +762,7 @@ data class SpaceListing(
                     "type" to sub.type.name,
                     "imageUrls" to sub.imageUrls,
                     "amenities" to sub.amenities,
+                    "pricing" to sub.pricing.toFirestoreMap(),
                     "rentalStrategies" to sub.rentalStrategies.map { strat ->
                         mapOf(
                             "strategy" to strat.strategy.name,
@@ -630,12 +915,16 @@ data class SpaceListing(
                         }
                     } ?: emptyList()
 
+                    val subPricing = (sMap["pricing"] as? Map<*, *>)?.let { RentalPricingConfig.fromFirestoreMap(it) }
+                        ?: RentalPricingConfig.fromLegacySubdivisionStrategy(stratsList.firstOrNull())
+
                     Subdivision(
                         id = sMap["id"] as? String ?: ("SUB-" + UUID.randomUUID().toString().take(6)),
                         name = sMap["name"] as? String ?: "Subdivision Unit",
                         type = lvlType,
                         imageUrls = (sMap["imageUrls"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                         amenities = (sMap["amenities"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                        pricing = subPricing,
                         rentalStrategies = stratsList
                     )
                 }
@@ -656,6 +945,8 @@ data class SpaceListing(
                 residentPractitioners = (data["residentPractitioners"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                 essentialFacilities = (data["essentialFacilities"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                 equipment = equipList,
+                pricing = (data["pricing"] as? Map<*, *>)?.let { RentalPricingConfig.fromFirestoreMap(it) }
+                    ?: RentalPricingConfig.fromLegacyFormula(formulasList.firstOrNull()),
                 rentalFormulas = formulasList,
                 rules = rules,
                 schedule = schedule,

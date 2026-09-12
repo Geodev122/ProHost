@@ -84,21 +84,25 @@ fun RentalBookingDialog(
                 RentalStrategy.DAILY -> "Daily Rental of ${selectedSubdivision!!.name}"
                 RentalStrategy.MONTHLY -> "Monthly Rental of ${selectedSubdivision!!.name}"
             }
+            // Reads real hours from selectedSubdivision.pricing (always populated —
+            // either genuinely structured, or synthesized once, centrally, in
+            // RentalPricingConfig.fromLegacySubdivisionStrategy) instead of each
+            // caller re-parsing the free-text availableHoursOrShifts string itself,
+            // which used to silently produce wrong hours on any format it didn't
+            // expect (e.g. "Morning Shift (8AM - 1PM)" — a hyphen inside the label,
+            // not a range separator).
+            val firstActiveShift = selectedSubdivision!!.pricing.shiftBased?.shifts?.firstOrNull { !it.isUnavailable }
             RentalFormula(
                 id = "SUB-FRM-" + selectedSubdivision!!.id.take(4) + "-" + selectedSubStrategy!!.strategy.name.take(3),
                 type = formulaType,
                 rateUsd = selectedSubStrategy!!.rateUsd,
                 scheduleDescription = desc,
                 daysOfWeek = space.schedule.operatingDays.ifEmpty { listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat") },
-                startHour = if (selectedSubStrategy!!.strategy == RentalStrategy.SHIFT_BASED && selectedSubStrategy!!.availableHoursOrShifts.contains("-")) {
-                    selectedSubStrategy!!.availableHoursOrShifts.substringBefore("-").trim()
-                } else "08:00",
-                endHour = if (selectedSubStrategy!!.strategy == RentalStrategy.SHIFT_BASED && selectedSubStrategy!!.availableHoursOrShifts.contains("-")) {
-                    selectedSubStrategy!!.availableHoursOrShifts.substringAfter("-").trim()
-                } else "18:00",
+                startHour = firstActiveShift?.let { "%02d:00".format(it.startHour) } ?: "08:00",
+                endHour = firstActiveShift?.let { "%02d:00".format(it.endHour) } ?: "18:00",
                 totalWeeklyHours = 40,
                 daysCountRequired = 1,
-                shiftName = if (selectedSubStrategy!!.strategy == RentalStrategy.SHIFT_BASED) selectedSubStrategy!!.availableHoursOrShifts else ""
+                shiftName = firstActiveShift?.name?.displayName ?: ""
             )
         } else {
             innerSelectedFormula

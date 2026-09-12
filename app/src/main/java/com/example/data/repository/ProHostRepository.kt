@@ -1300,7 +1300,16 @@ class ProHostRepository {
 
     suspend fun addRentalFormula(spaceId: String, formula: RentalFormula): Boolean {
         val space = _spaces.value.find { it.id == spaceId } ?: return false
-        val updated = space.copy(rentalFormulas = space.rentalFormulas + formula)
+        val newFormulas = space.rentalFormulas + formula
+        // pricing must be kept in sync with rentalFormulas at every write site, not
+        // only derived once on a fresh Firestore read — once this document has ever
+        // been saved with a "pricing" key at all, fromFirestoreMap's legacy fallback
+        // never runs again for it, so a write that touches rentalFormulas without
+        // also updating pricing would silently leave pricing stale forever.
+        val updated = space.copy(
+            rentalFormulas = newFormulas,
+            pricing = if (space.subdivisions.isEmpty()) RentalPricingConfig.fromLegacyFormula(newFormulas.firstOrNull()) else space.pricing
+        )
         val success = saveUpdatedSpace(updated)
         if (success) {
             addAuditLog(
@@ -1314,7 +1323,11 @@ class ProHostRepository {
 
     suspend fun deleteRentalFormula(spaceId: String, formulaId: String): Boolean {
         val space = _spaces.value.find { it.id == spaceId } ?: return false
-        val updated = space.copy(rentalFormulas = space.rentalFormulas.filter { it.id != formulaId })
+        val newFormulas = space.rentalFormulas.filter { it.id != formulaId }
+        val updated = space.copy(
+            rentalFormulas = newFormulas,
+            pricing = if (space.subdivisions.isEmpty()) RentalPricingConfig.fromLegacyFormula(newFormulas.firstOrNull()) else space.pricing
+        )
         return saveUpdatedSpace(updated)
     }
 

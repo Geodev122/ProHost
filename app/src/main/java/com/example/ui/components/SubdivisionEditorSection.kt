@@ -270,6 +270,12 @@ fun SubdivisionEditorSection(
                             type = subType,
                             imageUrls = emptyList(),
                             amenities = subAmenitiesSelected.toList(),
+                            // Derived from the same subStrategies data eagerly, so a
+                            // freshly-created subdivision's real pricing is correct
+                            // from the moment it's first saved — not only once an
+                            // already-saved document is later re-read from Firestore
+                            // (fromFirestoreMap's own fallback covers that older case).
+                            pricing = RentalPricingConfig.fromLegacySubdivisionStrategy(subStrategies.firstOrNull()),
                             rentalStrategies = subStrategies
                         )
                         onSubdivisionsChange(subdivisionsList + newSub)

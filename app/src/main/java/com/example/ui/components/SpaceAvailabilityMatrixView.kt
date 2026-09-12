@@ -52,8 +52,14 @@ fun SpaceAvailabilityMatrixView(
         it.status == BookingRequestStatus.ACCEPTED && it.formula.type == RentalFormulaType.FULL_MONTH
     }
 
-    val derivedSlots = remember(space.rentalFormulas, space.schedule) {
-        SpaceCalculationUtils.buildRentableSlots(space.rentalFormulas, space.schedule)
+    // buildAllSlotsForSpace expands the space's own pricing when it has no
+    // subdivisions, or every subdivision's pricing when it does — fixing the bug
+    // where this view (and SpaceScheduleEditorDialog) only ever read
+    // space.rentalFormulas and so showed "no rentable slots" for every
+    // Center/Polyclinic/Co-working listing, regardless of what was actually
+    // configured on its subdivisions.
+    val derivedSlots = remember(space) {
+        SpaceCalculationUtils.buildAllSlotsForSpace(space)
     }
 
     // A slot the host switched off in Availability Control (SpaceScheduleEditorDialog)
@@ -191,10 +197,30 @@ fun SpaceAvailabilityMatrixView(
                                         .clickable {
                                             selectedSlotInfo = slot to isBooked
                                             if (!isBooked) {
+                                                // A slot whose sourceFormulaId is a subdivision id (space has
+                                                // subdivisions) never matches space.rentalFormulas — that's
+                                                // expected, not a bug: RentalBookingDialog resolves the real
+                                                // subdivision/strategy itself whenever space.subdivisions is
+                                                // non-empty and ignores the formula passed in here. This
+                                                // placeholder only needs to be non-null to open that dialog.
                                                 val matchingFormula = space.rentalFormulas.find { it.id == slot.sourceFormulaId }
-                                                if (matchingFormula != null) {
-                                                    onCellClicked(matchingFormula, slot.day, matchingFormula.shiftName)
-                                                }
+                                                    ?: RentalFormula(
+                                                        id = slot.sourceFormulaId,
+                                                        type = slot.strategyType?.let {
+                                                            when (it) {
+                                                                RentalStrategyType.HOURLY -> RentalFormulaType.HOURLY
+                                                                RentalStrategyType.SHIFT_BASED -> RentalFormulaType.SHIFT
+                                                                RentalStrategyType.DAY_BASED -> RentalFormulaType.DAY_PER_WEEK
+                                                                RentalStrategyType.MONTHLY -> RentalFormulaType.FULL_MONTH
+                                                            }
+                                                        } ?: RentalFormulaType.FULL_MONTH,
+                                                        rateUsd = slot.pricesByRecurrence.values.firstOrNull() ?: 0.0,
+                                                        scheduleDescription = slot.label,
+                                                        daysOfWeek = listOf(slot.day),
+                                                        startHour = slot.startTime,
+                                                        endHour = slot.endTime
+                                                    )
+                                                onCellClicked(matchingFormula, slot.day, matchingFormula.shiftName)
                                             }
                                         }
                                         .padding(horizontal = 10.dp, vertical = 8.dp)

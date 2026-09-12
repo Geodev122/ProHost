@@ -49,12 +49,15 @@ fun SpaceScheduleEditorDialog(
     var selectedDays by remember(schedule) { mutableStateOf(schedule.operatingDays.toSet()) }
 
     // The rentable slots the host can switch on or off are derived from the space's
-    // own formulas rather than typed by hand, so a blocked slot always lines up with
-    // something a specialist could actually have booked. Shared with
-    // SpaceAvailabilityMatrixView (the Specialist-facing side) via
-    // SpaceCalculationUtils.buildRentableSlots so both sides can never disagree.
-    val derivedSlots = remember(liveSpace.rentalFormulas, schedule) {
-        SpaceCalculationUtils.buildRentableSlots(liveSpace.rentalFormulas, schedule)
+    // own pricing (or each subdivision's) rather than typed by hand, so a blocked
+    // slot always lines up with something a specialist could actually have booked.
+    // Shared with SpaceAvailabilityMatrixView (the Specialist-facing side) via
+    // SpaceCalculationUtils.buildAllSlotsForSpace so both sides can never disagree —
+    // and, unlike the old buildRentableSlots(liveSpace.rentalFormulas, ...) call this
+    // replaces, this actually expands subdivision pricing too, instead of silently
+    // returning nothing for every subdivided listing.
+    val derivedSlots = remember(liveSpace) {
+        SpaceCalculationUtils.buildAllSlotsForSpace(liveSpace)
     }
 
     // Formula creation state
