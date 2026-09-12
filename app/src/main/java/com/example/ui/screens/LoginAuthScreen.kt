@@ -153,30 +153,12 @@ fun LoginAuthScreen(
     ) {
         Spacer(modifier = Modifier.height(Spacing.lg))
 
-        // ProHost mark - the pin carries its own background/gradient, no box needed
+        // ProHost login lockup (checkmark + wordmark)
         Image(
-            painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
-            contentDescription = "ProHost Logo",
+            painter = painterResource(id = com.example.R.drawable.prohost_login_lockup),
+            contentDescription = "ProHost Login",
             contentScale = ContentScale.Fit,
-            modifier = Modifier.size(width = 110.dp, height = 133.dp)
-        )
-
-        Spacer(modifier = Modifier.height(Spacing.md))
-
-        Text(
-            text = buildAnnotatedString {
-                withStyle(SpanStyle(color = OxfordBlueDark)) { append("Pro") }
-                withStyle(SpanStyle(color = VibrantBlue)) { append("Host") }
-            },
-            fontFamily = ManropeDisplay,
-            fontSize = MaterialTheme.typography.headlineLarge.fontSize,
-            fontWeight = FontWeight.ExtraBold
-        )
-
-        Text(
-            text = "Specialist Workspace & Office Rental Exchange",
-            fontSize = MaterialTheme.typography.bodySmall.fontSize,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            modifier = Modifier.size(width = 220.dp, height = 144.dp)
         )
 
         Spacer(modifier = Modifier.height(20.dp))
