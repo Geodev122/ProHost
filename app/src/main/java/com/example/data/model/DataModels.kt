@@ -1341,6 +1341,18 @@ data class AppUser(
     // [toFirestoreMap] so a client write can never touch either field, even by accident.
     val createdAtMillis: Long? = null,
     val lastSignInAtMillis: Long? = null,
+    // Server-only, written exclusively by assignInitialRole.ts on the same
+    // account-creation branch that stamps createdAtMillis — the record that this
+    // account actually accepted the Terms of Use/Privacy Policy at registration,
+    // not just that a checkbox rendered on the screen. consentVersion is the
+    // LegalContent.EFFECTIVE_DATE string in effect at the moment of acceptance
+    // (Cloud Functions can't import the Kotlin LegalContent object directly, so
+    // this is a small manually-kept-in-sync literal there, same reasoning as
+    // functions/src/lib/roles.ts's AppRole mirroring UserRole) — kept so a future
+    // material change to the legal documents can tell which users accepted which
+    // version, without needing to re-prompt everyone retroactively.
+    val tosAcceptedAtMillis: Long? = null,
+    val consentVersion: String? = null,
     // Server-only, written exclusively by setAccountSuspended.ts — the state between
     // "exists" and "deleted" Admin never had before. Enforced both at sign-in
     // (assignInitialRole.ts rejects it) and at write time (firestore.rules' isSuspended()
@@ -1409,6 +1421,8 @@ data class AppUser(
                 paygListingsBoughtCount = (data["paygListingsBoughtCount"] as? Number)?.toInt() ?: 0,
                 createdAtMillis = (data["createdAtMillis"] as? Number)?.toLong(),
                 lastSignInAtMillis = (data["lastSignInAtMillis"] as? Number)?.toLong(),
+                tosAcceptedAtMillis = (data["tosAcceptedAtMillis"] as? Number)?.toLong(),
+                consentVersion = data["consentVersion"] as? String,
                 isSuspended = data["isSuspended"] as? Boolean ?: false,
                 activeListingCount = (data["activeListingCount"] as? Number)?.toInt() ?: 0,
                 paygCategoryCredits = (data["paygCategoryCredits"] as? Map<*, *>)?.entries

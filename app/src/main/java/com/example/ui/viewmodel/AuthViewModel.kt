@@ -61,7 +61,12 @@ class AuthViewModel(
         val governorate: String,
         val city: String,
         val profilePictureUri: Uri?,
-        val idDocumentUri: Uri?
+        val idDocumentUri: Uri?,
+        // The registration form's Terms of Use / Privacy Policy checkbox must have
+        // actually been checked before this reaches here — enforced client-side by
+        // the form's own submit gate, and again server-side by assignInitialRole.ts,
+        // which rejects registration outright if this isn't literally true.
+        val tosAccepted: Boolean
     )
 
     private var pendingVerificationId: String? = null
@@ -222,7 +227,8 @@ class AuthViewModel(
                     idDocumentUrl = idDocumentUrl,
                     country = registration.country,
                     governorate = registration.governorate,
-                    city = registration.city
+                    city = registration.city,
+                    tosAccepted = registration.tosAccepted
                 )
                 _isAuthenticating.value = false
                 registerFcmTokenForCurrentUser(user.id)

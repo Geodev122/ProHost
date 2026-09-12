@@ -49,9 +49,18 @@ interface RegistrationDraft {
   fullName?: unknown;
   email?: unknown;
   idDocumentUrl?: unknown;
+  tosAccepted?: unknown;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Mirrors LegalContent.EFFECTIVE_DATE (Kotlin) at the moment this was written —
+// Cloud Functions can't import the Kotlin object directly, so this is a small,
+// manually-kept-in-sync literal, same reasoning as lib/roles.ts's AppRole
+// mirroring UserRole. Bump this alongside EFFECTIVE_DATE on any material legal
+// document change so newly recorded acceptances reflect the version actually
+// shown.
+const CURRENT_CONSENT_VERSION = "September 6, 2026";
 
 function validateRegistrationDraft(draft: RegistrationDraft): void {
   const fullName = typeof draft.fullName === "string" ? draft.fullName.trim() : "";
@@ -72,6 +81,14 @@ function validateRegistrationDraft(draft: RegistrationDraft): void {
     if (!/^https:\/\/firebasestorage\.googleapis\.com\//.test(idDocumentUrl)) {
       throw new HttpsError("invalid-argument", "ID document must be a real uploaded file.");
     }
+  }
+
+  // The registration screen's Terms of Use / Privacy Policy checkbox used to be
+  // purely cosmetic — nothing recorded whether it was ever actually checked, or
+  // enforced that it was. Required now: a real explicit `true`, not merely
+  // "not false" (a missing/undefined field must fail closed, not pass).
+  if (draft.tosAccepted !== true) {
+    throw new HttpsError("invalid-argument", "You must accept the Terms of Use and Privacy Policy to register.");
   }
 }
 
@@ -112,6 +129,11 @@ export const assignInitialRole = onCall(async (request) => {
       isVerified,
       createdAtMillis: now,
       lastSignInAtMillis: now,
+      // Only stamped when a registration draft actually arrived (and, by this
+      // point, already passed validateRegistrationDraft's tosAccepted check) —
+      // left unset rather than fabricated for the rare path where an account
+      // gets its first role claim with no registration payload at all.
+      ...(registration ? { tosAcceptedAtMillis: now, consentVersion: CURRENT_CONSENT_VERSION } : {}),
       updatedAt: now,
     },
     { merge: true }

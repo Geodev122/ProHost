@@ -121,6 +121,7 @@ fun LoginAuthScreen(
     var regCountry by remember { mutableStateOf(findCountryByName("Lebanon")) }
     var regGovernorateArea by remember { mutableStateOf("") }
     var regCity by remember { mutableStateOf("") }
+    var tosAccepted by remember { mutableStateOf(false) }
 
     val isAuthenticating by authViewModel.isAuthenticating.collectAsState()
     val authErrorMessage by authViewModel.authErrorMessage.collectAsState()
@@ -494,35 +495,45 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
+                // A real, required acknowledgement — this used to be a passive line of
+                // text under the button with no checkbox and nothing recorded, so
+                // "agreement" was never actually collected or gated on anything. Now a
+                // genuine tap is required to proceed, and that acceptance is recorded
+                // server-side (assignInitialRole.ts stamps tosAcceptedAtMillis/
+                // consentVersion on the account — see AppUser's doc comment).
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { tosAccepted = !tosAccepted },
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "By continuing you agree to our",
-                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "Terms of Use",
-                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.termsOfUse }
-                    )
-                    Text(text = " and ", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        text = "Privacy Policy",
-                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.privacyPolicy }
-                    )
+                    Checkbox(checked = tosAccepted, onCheckedChange = { tosAccepted = it })
+                    Column {
+                        Row {
+                            Text(
+                                text = "I agree to the ",
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Terms of Use",
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.termsOfUse }
+                            )
+                        }
+                        Row {
+                            Text(text = "and ", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                text = "Privacy Policy",
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.privacyPolicy }
+                            )
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -555,6 +566,10 @@ fun LoginAuthScreen(
                             localErrorMessage = "Please enter your city"
                             return@ProPrimaryButton
                         }
+                        if (!tosAccepted) {
+                            localErrorMessage = "Please agree to the Terms of Use and Privacy Policy to continue"
+                            return@ProPrimaryButton
+                        }
                         authViewModel.completePendingRegistration(
                             activity = currentActivity,
                             registration = AuthViewModel.PendingPhoneRegistration(
@@ -566,7 +581,8 @@ fun LoginAuthScreen(
                                 governorate = regGovernorateArea,
                                 city = regCity,
                                 profilePictureUri = regProfilePicUri,
-                                idDocumentUri = regIdDocState.uri
+                                idDocumentUri = regIdDocState.uri,
+                                tosAccepted = tosAccepted
                             ),
                             onSuccess = onLoginSuccess
                         )

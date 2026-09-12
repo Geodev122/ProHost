@@ -58,13 +58,15 @@ suspend fun completeVerifiedRegistration(
     idDocumentUrl: String?,
     country: String,
     governorate: String,
-    city: String
+    city: String,
+    tosAccepted: Boolean
 ): AppUser {
     functionsClient.ensureInitialRole(
         registrationDraft = mapOf(
             "fullName" to fullName,
             "email" to email,
-            "idDocumentUrl" to idDocumentUrl
+            "idDocumentUrl" to idDocumentUrl,
+            "tosAccepted" to tosAccepted
         )
     ).getOrThrow()
     val role = resolveVerifiedRole(functionsClient, firebaseUser)
