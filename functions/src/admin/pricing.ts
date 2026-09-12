@@ -11,6 +11,7 @@ interface UpdatePricingData {
   paygCoworkingUsd?: number;
   package2MonthlyFeeUsd?: number;
   package3MonthlyFeeUsd?: number;
+  package2Limit?: number;
   governanceTag?: string;
   isPackagingGovernanceActive?: boolean;
 }
@@ -53,6 +54,20 @@ export const updatePricing = onCall<UpdatePricingData>(async (request) => {
     }
     patch[field] = value;
     changes.push(`${field}=${value}`);
+  }
+
+  if (data.package2Limit !== undefined) {
+    // Not folded into NUMERIC_FIELDS above (which only checks "non-negative") —
+    // a listing cap needs its own stricter bound: an integer, and at least 1
+    // (0 would make LIMITED_3_TIER an unusable tier, not a real limit).
+    // firestore.rules' withinListingLimit() has always claimed this was
+    // "Admin-configurable (updatePricing)" — this was the missing wiring for
+    // that comment to actually be true.
+    if (typeof data.package2Limit !== "number" || !Number.isInteger(data.package2Limit) || data.package2Limit < 1) {
+      throw new HttpsError("invalid-argument", "package2Limit must be a positive integer.");
+    }
+    patch.package2Limit = data.package2Limit;
+    changes.push(`package2Limit=${data.package2Limit}`);
   }
 
   if (data.governanceTag !== undefined) {

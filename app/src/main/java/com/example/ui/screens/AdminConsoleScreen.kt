@@ -606,13 +606,18 @@ private fun AdminRevenueTab(
                     HorizontalDivider()
 
                     Text(
-                        text = "Package 2 (3 Listings Limit) & Package 3 (Unlimited)",
+                        text = "Package 2 (Limited) & Package 3 (Unlimited)",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
 
                     var pkg2Fee by remember(uiState.pricingState.package2MonthlyFeeUsd) { mutableStateOf(uiState.pricingState.package2MonthlyFeeUsd.toString()) }
                     var pkg3Fee by remember(uiState.pricingState.package3MonthlyFeeUsd) { mutableStateOf(uiState.pricingState.package3MonthlyFeeUsd.toString()) }
+                    // Previously display-only text ("3 Listings Limit" above) — the
+                    // actual cap firestore.rules' withinListingLimit() enforces was
+                    // never wired to an admin control, despite the rules file's own
+                    // comment claiming it was "Admin-configurable (updatePricing)."
+                    var pkg2Limit by remember(uiState.pricingState.package2Limit) { mutableStateOf(uiState.pricingState.package2Limit.toString()) }
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
@@ -628,17 +633,24 @@ private fun AdminRevenueTab(
                             modifier = Modifier.weight(1f)
                         )
                     }
+                    OutlinedTextField(
+                        value = pkg2Limit,
+                        onValueChange = { pkg2Limit = it },
+                        label = { Text("Pkg 2 Listing Limit") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
                     Button(
                         onClick = {
                             val f2 = pkg2Fee.toDoubleOrNull() ?: 3.99
                             val f3 = pkg3Fee.toDoubleOrNull() ?: 8.99
-                            adminViewModel.updatePackageFees(f2, f3)
+                            val limit2 = pkg2Limit.toIntOrNull()?.takeIf { it >= 1 } ?: uiState.pricingState.package2Limit
+                            adminViewModel.updatePackageFees(f2, f3, limit2)
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.small
                     ) {
-                        Text("Save Package Bundle Fees")
+                        Text("Save Package Bundle Fees & Limit")
                     }
                 }
             }

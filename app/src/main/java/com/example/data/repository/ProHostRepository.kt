@@ -398,18 +398,35 @@ class ProHostRepository {
         return success
     }
 
-    suspend fun updatePackageFees(package2Fee: Double, package3Fee: Double): Boolean {
+    /**
+     * [package2Limit] defaults to the current value so existing call sites that
+     * don't pass it (none currently — AdminConsoleScreen always sends its own
+     * buffered input) leave the cap untouched rather than silently resetting it.
+     * Wires up firestore.rules' withinListingLimit() comment, which has always
+     * claimed this was "Admin-configurable (updatePricing)" despite no field or
+     * UI control ever having actually supported changing it.
+     */
+    suspend fun updatePackageFees(
+        package2Fee: Double,
+        package3Fee: Double,
+        package2Limit: Int = _pricingState.value.package2Limit
+    ): Boolean {
         val success = persistPricingState(
-            mapOf("package2MonthlyFeeUsd" to package2Fee, "package3MonthlyFeeUsd" to package3Fee)
+            mapOf(
+                "package2MonthlyFeeUsd" to package2Fee,
+                "package3MonthlyFeeUsd" to package3Fee,
+                "package2Limit" to package2Limit
+            )
         )
         if (success) {
             _pricingState.value = _pricingState.value.copy(
                 package2MonthlyFeeUsd = package2Fee,
-                package3MonthlyFeeUsd = package3Fee
+                package3MonthlyFeeUsd = package3Fee,
+                package2Limit = package2Limit
             )
             addLocalAuditLogEntry(
                 actionType = "PACKAGE_FEES_UPDATED",
-                details = "Package 2 (3-limit) fee updated to $${String.format(Locale.US, "%.2f", package2Fee)}, Package 3 (Unlimited) fee updated to $${String.format(Locale.US, "%.2f", package3Fee)}",
+                details = "Package 2 (limit $package2Limit) fee updated to $${String.format(Locale.US, "%.2f", package2Fee)}, Package 3 (Unlimited) fee updated to $${String.format(Locale.US, "%.2f", package3Fee)}",
                 severity = "INFO"
             )
         }

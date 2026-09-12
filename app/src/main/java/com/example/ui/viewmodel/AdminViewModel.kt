@@ -108,9 +108,9 @@ class AdminViewModel(
         }
     }
 
-    fun updatePackageFees(package2Fee: Double, package3Fee: Double) {
+    fun updatePackageFees(package2Fee: Double, package3Fee: Double, package2Limit: Int) {
         viewModelScope.launch {
-            val success = repository.updatePackageFees(package2Fee, package3Fee)
+            val success = repository.updatePackageFees(package2Fee, package3Fee, package2Limit)
             _events.emit(
                 AdminUiEvent.ShowToast(
                     if (success) "ProHost package pricing updated successfully" else "Failed to update ProHost package pricing"
