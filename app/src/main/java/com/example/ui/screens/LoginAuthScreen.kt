@@ -149,7 +149,7 @@ fun LoginAuthScreen(
             .testTag("login_auth_screen"),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(Spacing.lg))
+        Spacer(modifier = Modifier.height(40.dp))
 
         // ProHost login lockup (checkmark + wordmark)
         Image(
@@ -159,7 +159,7 @@ fun LoginAuthScreen(
             modifier = Modifier.size(width = 220.dp, height = 144.dp)
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
         AuthStepIndicator(step = step)
 
@@ -230,7 +230,7 @@ fun LoginAuthScreen(
             ) {
                 AuthStepHeader(
                     icon = Icons.Default.Phone,
-                    title = "Use your Phone Number",
+                    title = "Login/Signup",
                     subtitle = null,
                     isBusy = isAuthenticating
                 )

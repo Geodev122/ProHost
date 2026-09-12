@@ -2,10 +2,14 @@
 <resources>
 
     <style name="Theme.MyApplication" parent="android:Theme.DeviceDefault.NoActionBar">
-        <!-- API 31+ only (ignored below): matches the in-app SplashScreen's ground so
-             the system splash doesn't flash white before Compose takes over. The
-             animated-icon slot is deliberately left unset — it renders a small centered
-             icon, not a full-bleed image, so the launcher icon is the right default. -->
+        <!-- API 31+ only (ignored below): a brief, solid-color system splash — the
+             SplashScreen API has no full-bleed-image slot, only this background color
+             plus the launcher's own adaptive icon, shown automatically. Compose's own
+             SplashScreen.kt takes over immediately after with the real splash.png image;
+             this color is picked to match that image's backdrop so the handoff has no
+             visible seam. The animated-icon slot is deliberately left unset — it renders
+             a small centered icon, not a full-bleed image, so the launcher icon (already
+             the real ProHost icon) is the right default. -->
         <item name="android:windowSplashScreenBackground">@color/splash_background</item>
     </style>
 </resources>

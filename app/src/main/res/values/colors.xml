@@ -7,8 +7,10 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <!-- Matches PureWhite, the first stop of PremiumBackgroundGradient (Color.kt),
-         which SplashScreen paints — so the API 31+ system splash hands over to Compose
-         without a visible seam. -->
-    <color name="splash_background">#FFFFFF</color>
+    <!-- Sampled from splash.png's own grey backdrop (drawable-*/splash.png) — the
+         Android 12+ system SplashScreen API only supports a solid color, never a custom
+         image (see splash-screen/README.txt in the brand-assets source), so this is the
+         closest a solid color can get to matching the image SplashScreen.kt shows
+         immediately after, keeping the handoff seamless instead of flashing white. -->
+    <color name="splash_background">#ECEDF0</color>
 </resources>

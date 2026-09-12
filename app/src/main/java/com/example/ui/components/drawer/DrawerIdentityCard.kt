@@ -5,14 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -30,17 +25,15 @@ import com.example.ui.theme.*
  * and location/ID/phone-status meta — that used to live at the top of
  * SpecialistProfileScreen. It's now the single identity card shown at the top
  * of every role's side drawer (Specialist, Pro Host, Admin) so the same user
- * summary + Sign Out action isn't duplicated in two different visual styles
- * across the app.
+ * summary isn't duplicated in two different visual styles across the app.
+ * Sign Out lives separately, as the last item in the drawer (DrawerSignOutButton
+ * in AppDrawerContent.kt) — not on this card.
  */
 @Composable
 fun DrawerIdentityCard(
     user: AppUser?,
-    onSignOut: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showSignOutConfirmDialog by remember { mutableStateOf(false) }
-
     val role = user?.role ?: UserRole.SPECIALIST
     val primaryAccent = when (role) {
         UserRole.ADMIN -> AmberWarning
@@ -67,17 +60,13 @@ fun DrawerIdentityCard(
                 .padding(20.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // Top row: Role Pill + Sign Out
+                // Top row: Role Pill
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.Start,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Surface(
-                        // Lets the pill shrink instead of forcing the row to overflow past
-                        // the fixed Sign Out button — without this, the Text's own
-                        // maxLines/overflow below has no width constraint to act on.
-                        modifier = Modifier.weight(1f, fill = false),
                         color = when (role) {
                             UserRole.ADMIN -> AmberWarning.copy(alpha = 0.25f)
                             UserRole.PRO_HOST -> CarnationOrange.copy(alpha = 0.25f)
@@ -118,20 +107,6 @@ fun DrawerIdentityCard(
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                    }
-
-                    FilledTonalButton(
-                        onClick = { showSignOutConfirmDialog = true },
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = Color.White.copy(alpha = 0.15f),
-                            contentColor = Color.White
-                        ),
-                        shape = MaterialTheme.shapes.medium,
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("Sign Out", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                     }
                 }
 
@@ -309,29 +284,5 @@ fun DrawerIdentityCard(
                 }
             }
         }
-    }
-
-    if (showSignOutConfirmDialog) {
-        AlertDialog(
-            onDismissRequest = { showSignOutConfirmDialog = false },
-            title = { Text("Sign Out of ProHost", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to sign out of your account${user?.email?.let { " ($it)" } ?: ""}?") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showSignOutConfirmDialog = false
-                        onSignOut()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = CrimsonRed)
-                ) {
-                    Text("Sign Out", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSignOutConfirmDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
     }
 }

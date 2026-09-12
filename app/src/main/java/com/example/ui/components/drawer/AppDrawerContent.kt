@@ -9,6 +9,10 @@ import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -66,7 +70,6 @@ fun SpecialistDrawerContent(
     ) {
         DrawerIdentityCard(
             user = currentUser,
-            onSignOut = onSignOut,
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
@@ -236,6 +239,10 @@ fun SpecialistDrawerContent(
         )
 
         ProHostDrawerFooter()
+
+        // Always the last element in the drawer — see DrawerSignOutButton's own doc
+        // comment for why it lives here instead of on DrawerIdentityCard.
+        DrawerSignOutButton(userEmail = currentUser?.email, onSignOut = onSignOut)
     }
 }
 
@@ -255,7 +262,6 @@ fun AdminDrawerContent(
     ) {
         DrawerIdentityCard(
             user = currentUser,
-            onSignOut = onSignOut,
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
@@ -367,6 +373,10 @@ fun AdminDrawerContent(
         )
 
         ProHostDrawerFooter()
+
+        // Always the last element in the drawer — see DrawerSignOutButton's own doc
+        // comment for why it lives here instead of on DrawerIdentityCard.
+        DrawerSignOutButton(userEmail = currentUser?.email, onSignOut = onSignOut)
     }
 }
 
@@ -405,6 +415,59 @@ fun ProHostDrawerFooter() {
                 )
             }
         }
+    }
+}
+
+/**
+ * The drawer's Sign Out action — deliberately the very last element of both
+ * SpecialistDrawerContent and AdminDrawerContent, below ProHostDrawerFooter, rather
+ * than a button on DrawerIdentityCard at the top. A destructive, account-wide action
+ * sitting right next to the role pill read as too easy to hit by accident while
+ * reaching for something else in the identity card; putting it alone at the bottom,
+ * full-width and outlined in the destructive color, both matches where a "leave this
+ * screen" action usually lives in a drawer and keeps it deliberate to reach.
+ */
+@Composable
+fun DrawerSignOutButton(userEmail: String?, onSignOut: () -> Unit) {
+    var showConfirmDialog by remember { mutableStateOf(false) }
+
+    HorizontalDivider(modifier = Modifier.padding(top = 4.dp, bottom = 16.dp), color = LightGray)
+
+    OutlinedButton(
+        onClick = { showConfirmDialog = true },
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = CrimsonRed),
+        border = BorderStroke(1.dp, CrimsonRed.copy(alpha = 0.5f)),
+        contentPadding = PaddingValues(vertical = 12.dp)
+    ) {
+        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(modifier = Modifier.width(Spacing.sm))
+        Text("Sign Out", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+    }
+
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("Sign Out of ProHost", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to sign out of your account${userEmail?.let { " ($it)" } ?: ""}?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showConfirmDialog = false
+                        onSignOut()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = CrimsonRed)
+                ) {
+                    Text("Sign Out", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
