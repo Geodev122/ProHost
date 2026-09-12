@@ -1802,10 +1802,13 @@ private fun AdminSchemaArchitectureTab(
                     }
 
                     Text(
-                        text = "• Collection: 'spaces' (Documents: SpaceListing)\n" +
-                                "• Collection: 'users' (Documents: AppUser)\n" +
-                                "• Collection: 'bookings' (Documents: RentalBookingRequest)\n" +
-                                "• Collection: 'transactions' (Documents: WhishTransaction)\n" +
+                        text = "• Collection: 'workspace_listings' (Documents: SpaceListing)\n" +
+                                "• Collection: 'user_profiles' (Documents: AppUser)\n" +
+                                "• Collection: 'booking_requests' (Documents: RentalBookingRequest)\n" +
+                                "• Collection: 'whish_transactions' (Documents: WhishTransaction)\n" +
+                                "• Collection: 'audit_security_logs' (Documents: AuditSecurityLog)\n" +
+                                "• Collection: 'system_metadata' (Documents: AdminPricingState)\n" +
+                                "• Collection: 'hashtag_usage' (Documents: HashtagUsageEntry)\n" +
                                 "• Collection: 'schema_architecture' (Documents: SpaceArchitectureSchema)",
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = FontFamily.Monospace,

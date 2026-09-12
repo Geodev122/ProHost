@@ -1454,7 +1454,6 @@ data class AdminPricingState(
     val monthlySubscriptionFeeUsd: Double = 1.80,
     val baselineFeeUsd: Double = 1.80,
     val presetOptions: List<Double> = listOf(1.00, 1.50, 1.80, 2.50, 3.00, 5.00, 10.00),
-    val isPackagingGovernanceActive: Boolean = true,
     val governanceTag: String = "HOST-PACKAGING-TIERS-V2-ACTIVE",
     val paygPrivateOfficeUsd: Double = 1.50,
     val paygCenterUsd: Double = 3.50,
@@ -1462,10 +1461,7 @@ data class AdminPricingState(
     val paygCoworkingUsd: Double = 1.80,
     val package2Limit: Int = 3,
     val package2MonthlyFeeUsd: Double = 3.99,
-    val package3MonthlyFeeUsd: Double = 8.99,
-    val merchantChannelId: String = MerchantConfig.WHISH_CHANNEL_ID,
-    val merchantSource: String = MerchantConfig.WHISH_MERCHANT_EMAIL,
-    val merchantSecretKeyMasked: String = "whish_sec_994a****87x"
+    val package3MonthlyFeeUsd: Double = 8.99
 ) {
     fun getPaygFeeForType(type: SpaceType): Double {
         return when (type) {
@@ -1495,7 +1491,6 @@ data class AdminPricingState(
             "monthlySubscriptionFeeUsd" to monthlySubscriptionFeeUsd,
             "baselineFeeUsd" to baselineFeeUsd,
             "presetOptions" to presetOptions,
-            "isPackagingGovernanceActive" to isPackagingGovernanceActive,
             "governanceTag" to governanceTag,
             "paygPrivateOfficeUsd" to paygPrivateOfficeUsd,
             "paygCenterUsd" to paygCenterUsd,
@@ -1504,9 +1499,6 @@ data class AdminPricingState(
             "package2Limit" to package2Limit,
             "package2MonthlyFeeUsd" to package2MonthlyFeeUsd,
             "package3MonthlyFeeUsd" to package3MonthlyFeeUsd,
-            "merchantChannelId" to merchantChannelId,
-            "merchantSource" to merchantSource,
-            "merchantSecretKeyMasked" to merchantSecretKeyMasked,
             "updatedAt" to System.currentTimeMillis()
         )
     }
@@ -1521,7 +1513,6 @@ data class AdminPricingState(
                 monthlySubscriptionFeeUsd = (data["monthlySubscriptionFeeUsd"] as? Number)?.toDouble() ?: defaults.monthlySubscriptionFeeUsd,
                 baselineFeeUsd = (data["baselineFeeUsd"] as? Number)?.toDouble() ?: defaults.baselineFeeUsd,
                 presetOptions = (data["presetOptions"] as? List<*>)?.mapNotNull { (it as? Number)?.toDouble() } ?: defaults.presetOptions,
-                isPackagingGovernanceActive = data["isPackagingGovernanceActive"] as? Boolean ?: defaults.isPackagingGovernanceActive,
                 governanceTag = data["governanceTag"] as? String ?: defaults.governanceTag,
                 paygPrivateOfficeUsd = (data["paygPrivateOfficeUsd"] as? Number)?.toDouble() ?: defaults.paygPrivateOfficeUsd,
                 paygCenterUsd = (data["paygCenterUsd"] as? Number)?.toDouble() ?: defaults.paygCenterUsd,
@@ -1529,10 +1520,7 @@ data class AdminPricingState(
                 paygCoworkingUsd = (data["paygCoworkingUsd"] as? Number)?.toDouble() ?: defaults.paygCoworkingUsd,
                 package2Limit = (data["package2Limit"] as? Number)?.toInt() ?: defaults.package2Limit,
                 package2MonthlyFeeUsd = (data["package2MonthlyFeeUsd"] as? Number)?.toDouble() ?: defaults.package2MonthlyFeeUsd,
-                package3MonthlyFeeUsd = (data["package3MonthlyFeeUsd"] as? Number)?.toDouble() ?: defaults.package3MonthlyFeeUsd,
-                merchantChannelId = data["merchantChannelId"] as? String ?: defaults.merchantChannelId,
-                merchantSource = data["merchantSource"] as? String ?: defaults.merchantSource,
-                merchantSecretKeyMasked = data["merchantSecretKeyMasked"] as? String ?: defaults.merchantSecretKeyMasked
+                package3MonthlyFeeUsd = (data["package3MonthlyFeeUsd"] as? Number)?.toDouble() ?: defaults.package3MonthlyFeeUsd
             )
         }
     }

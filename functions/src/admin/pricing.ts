@@ -13,7 +13,6 @@ interface UpdatePricingData {
   package3MonthlyFeeUsd?: number;
   package2Limit?: number;
   governanceTag?: string;
-  isPackagingGovernanceActive?: boolean;
 }
 
 const NUMERIC_FIELDS: (keyof UpdatePricingData)[] = [
@@ -76,14 +75,6 @@ export const updatePricing = onCall<UpdatePricingData>(async (request) => {
     }
     patch.governanceTag = data.governanceTag;
     changes.push(`governanceTag=${data.governanceTag}`);
-  }
-
-  if (data.isPackagingGovernanceActive !== undefined) {
-    if (typeof data.isPackagingGovernanceActive !== "boolean") {
-      throw new HttpsError("invalid-argument", "isPackagingGovernanceActive must be a boolean.");
-    }
-    patch.isPackagingGovernanceActive = data.isPackagingGovernanceActive;
-    changes.push(`isPackagingGovernanceActive=${data.isPackagingGovernanceActive}`);
   }
 
   if (Object.keys(patch).length === 0) {

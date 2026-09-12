@@ -113,7 +113,6 @@ object FirestoreSchema {
     object SystemMetadataFields {
         const val SCHEMA_VERSION = "schemaVersion"
         const val UPDATED_AT = "updatedAt"
-        const val IS_PACKAGING_GOVERNANCE_ACTIVE = "isPackagingGovernanceActive"
         const val GOVERNANCE_TAG = "governanceTag"
         const val MONTHLY_SUBSCRIPTION_FEE_USD = "monthlySubscriptionFeeUsd"
         const val PAYG_PRIVATE_OFFICE_USD = "paygPrivateOfficeUsd"
@@ -123,8 +122,6 @@ object FirestoreSchema {
         const val PACKAGE_2_LIMIT = "package2Limit"
         const val PACKAGE_2_MONTHLY_FEE_USD = "package2MonthlyFeeUsd"
         const val PACKAGE_3_MONTHLY_FEE_USD = "package3MonthlyFeeUsd"
-        const val MERCHANT_CHANNEL_ID = "merchantChannelId"
-        const val MERCHANT_SOURCE = "merchantSource"
     }
 
     object CredentialFields {

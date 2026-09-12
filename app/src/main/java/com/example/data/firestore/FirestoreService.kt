@@ -514,21 +514,10 @@ class FirestoreService(
     // ADMIN PRICING STATE
     // ==========================================
     // The initiateWhishPayment Cloud Function reads this same document server-side to
-    // compute real charge amounts — see AdminPricingState.toFirestoreMap().
-
-    suspend fun savePricingState(pricing: AdminPricingState): Boolean {
-        return try {
-            val db = firestore ?: return false
-            db.collection(AdminPricingState.COLLECTION_PATH)
-                .document(AdminPricingState.DOCUMENT_ID)
-                .set(pricing.toFirestoreMap(), SetOptions.merge())
-                .await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error saving pricing state: ${e.message}", e)
-            false
-        }
-    }
+    // compute real charge amounts — see AdminPricingState.toFirestoreMap(). The only
+    // way to WRITE it is the updatePricing Cloud Function (ProHostRepository.
+    // persistPricingState) — firestore.rules denies every direct client write to
+    // system_metadata, so a save*State function here would only ever fail.
 
     suspend fun getPricingState(): AdminPricingState? {
         return try {

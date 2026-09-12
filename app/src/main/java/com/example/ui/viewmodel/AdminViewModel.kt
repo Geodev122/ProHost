@@ -383,17 +383,6 @@ class AdminViewModel(
         setSelectedTxStatusFilter(status)
     }
 
-    fun simulateManualWhishSync() {
-        viewModelScope.launch {
-            repository.addAuditLog(
-                actionType = "WHISH_MANUAL_RECONCILIATION",
-                details = "Admin initiated manual ledger sync with Whish Money gateway API (Channel 15462415)",
-                severity = "INFO"
-            )
-            _events.emit(AdminUiEvent.ShowToast("Whish Money transactions synchronized successfully"))
-        }
-    }
-
     // --- Dynamic Space Architecture Schema Management ---
     fun setSelectedSchemaCategoryFilter(category: String) {
         _uiState.update { it.copy(selectedSchemaCategoryFilter = category) }
