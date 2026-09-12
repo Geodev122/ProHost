@@ -31,6 +31,9 @@ import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
 import com.example.ui.theme.Spacing
 import com.google.android.gms.maps.model.LatLng
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -42,6 +45,12 @@ fun CreateListingDialog(
     onListingCreated: (SpaceListing) -> Unit,
     existingDraft: SpaceListing? = null,
     onSaveDraft: (SpaceListing) -> Unit = {},
+    // Silent, periodic auto-save while the wizard is open — debounced, never
+    // closes the dialog or shows a toast (unlike the explicit "Save as Draft"
+    // button above, which does both, per its own onClick). Defaults to a no-op
+    // so a caller that hasn't been updated to pass it yet just doesn't get
+    // auto-save, rather than crashing.
+    onAutoSaveDraft: (SpaceListing) -> Unit = {},
     // Top-used hashtags across the platform, fetched once by the caller when the
     // dialog opens (ProHostViewModel.topHashtags) — filtered client-side by prefix
     // as the host types, so this needs no per-keystroke network query.
@@ -84,6 +93,9 @@ fun CreateListingDialog(
     // Editing" -> "Publish" all write to the same document instead of forking a
     // second listing.
     val listingId = remember { existingDraft?.id ?: ("SPC-LB-" + UUID.randomUUID().toString().take(6).uppercase()) }
+    // Drives the small "Draft auto-saved" caption in the header — set once the
+    // auto-save LaunchedEffect below has actually fired at least once.
+    var lastAutoSavedAtMillis by remember { mutableStateOf<Long?>(null) }
     var uploadedPhotoUrls by remember { mutableStateOf(existingDraft?.imageUrls ?: emptyList()) }
     var isUploadingPhoto by remember { mutableStateOf(false) }
 
@@ -318,6 +330,15 @@ fun CreateListingDialog(
                             fontSize = MaterialTheme.typography.labelMedium.fontSize,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        // Only ever true once the auto-save LaunchedEffect below has
+                        // actually fired — never claims a save that didn't happen.
+                        if (lastAutoSavedAtMillis != null) {
+                            Text(
+                                text = "Draft auto-saved",
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
 
                     IconButton(onClick = onDismiss) {
@@ -978,6 +999,28 @@ fun CreateListingDialog(
                         ownerIsIdVerified = activeUser.idDocumentUrl != null,
                         status = status
                     )
+                }
+
+                // Silent draft auto-save — debounced 3s after the last field change, and
+                // only once there's something worth keeping (title or district non-blank,
+                // the same minimal-progress bar Step 1's own "Next" gate already uses).
+                // Distinct from the "Save as Draft" button below, whose onClick (at the
+                // OwnerHubScreen call site) closes the dialog and shows a toast — reusing
+                // that here would kick the host out mid-typing. onAutoSaveDraft defaults to
+                // a no-op, so a caller that hasn't wired it up just doesn't get this.
+                // drop(1) skips the initial snapshot (reopening an existing Draft shouldn't
+                // immediately re-save it before anything actually changed).
+                LaunchedEffect(Unit) {
+                    snapshotFlow { buildListing(ListingStatus.DRAFT) }
+                        .drop(1)
+                        .debounce(3000)
+                        .distinctUntilChanged()
+                        .collect { draft ->
+                            if (draft.title.isNotBlank() || draft.district.isNotBlank()) {
+                                onAutoSaveDraft(draft)
+                                lastAutoSavedAtMillis = System.currentTimeMillis()
+                            }
+                        }
                 }
 
                 // Bottom Navigation Buttons
