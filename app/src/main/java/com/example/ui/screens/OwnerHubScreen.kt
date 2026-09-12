@@ -43,6 +43,14 @@ fun OwnerHubScreen(
     val pricingState by viewModel.pricingState.collectAsState()
     val spaces by viewModel.spaces.collectAsState()
     val allBookingRequests by viewModel.bookingRequests.collectAsState()
+    val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
+    val availableFacilities = remember(architectureSchema) {
+        // Falls back to the old hardcoded catalog only if Firestore hasn't delivered
+        // a real schema yet (or an admin has disabled every amenity) — never leaves
+        // the facility picker with zero options.
+        architectureSchema.amenities.filter { it.isEnabled }.map { it.name }
+            .ifEmpty { FacilityCatalog.standard }
+    }
 
     val ownerSpaces = remember(spaces, currentUser) {
         val user = currentUser
@@ -247,6 +255,7 @@ fun OwnerHubScreen(
             currentUser = currentUser,
             existingDraft = draft,
             suggestedHashtags = topHashtags,
+            availableFacilities = availableFacilities,
             onDismiss = { showCreateListingDialog = false; draftToEdit = null },
             onSaveDraft = { updatedDraft ->
                 coroutineScope.launch {

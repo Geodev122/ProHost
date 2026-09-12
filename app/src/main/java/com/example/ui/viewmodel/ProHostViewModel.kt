@@ -38,6 +38,12 @@ class ProHostViewModel(
     val spaces: StateFlow<List<SpaceListing>> = repository.spaces
     val subscriptionFormulas: StateFlow<List<SubscriptionFormula>> = repository.subscriptionFormulas
     val isCloudConnected: StateFlow<Boolean> = repository.isCloudConnected
+    // Admin-managed facility/category catalog — previously read only by AdminConsoleScreen
+    // itself, so an admin's additions in "Schema Architecture" never reached the
+    // create-listing wizard or Discovery's filter sheet, both of which used a
+    // hardcoded FacilityCatalog.standard object instead. Exposed here so both can
+    // read the same live, admin-editable list.
+    val spaceArchitectureSchema: StateFlow<SpaceArchitectureSchema> = repository.spaceArchitectureSchema
     val transactions: StateFlow<List<WhishTransaction>> = repository.transactions
     val users: StateFlow<List<AppUser>> = repository.users
     val currentUser: StateFlow<AppUser?> = repository.currentUser

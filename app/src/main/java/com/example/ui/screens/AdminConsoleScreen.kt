@@ -1581,6 +1581,53 @@ private fun AdminSchemaArchitectureTab(
             }
         }
 
+        // Target Disciplines (Hashtag) usage analytics — spec 1.4's admin analytics
+        // requirement. governorate here is whichever listing most recently used the
+        // tag, not a full per-governorate breakdown; this is a single-country
+        // deployment today, so a fuller breakdown wasn't worth the added complexity.
+        item {
+            ProSurfaceCard {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ProSectionHeader(
+                            title = "Target Disciplines Usage",
+                            subtitle = "Hashtags hosts use to describe preferred rentee backgrounds",
+                            icon = Icons.Default.Info
+                        )
+                        IconButton(onClick = { adminViewModel.refreshHashtagAnalytics() }) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        }
+                    }
+                    if (uiState.hashtagAnalytics.isEmpty()) {
+                        Text(
+                            "No hashtags recorded yet.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        uiState.hashtagAnalytics.forEach { entry ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("#${entry.tag}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "${entry.count} uses • ${entry.governorate}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Schema Items List
         item {
             Text(

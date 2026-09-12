@@ -33,6 +33,11 @@ class AdminViewModel(
                 _uiState.update { it.copy(pricingState = pricing) }
             }
         }
+        // One-shot fetch (not a live listener) — hashtag popularity changes slowly
+        // enough that a snapshot from whenever the Admin Console tab was opened is
+        // accurate enough for this analytics view. refreshHashtagAnalytics() below
+        // can be called again to re-fetch on demand.
+        refreshHashtagAnalytics()
         viewModelScope.launch {
             repository.spaces.collect { spaces ->
                 _uiState.update {
@@ -426,6 +431,13 @@ class AdminViewModel(
 
     fun closeAddSchemaItemDialog() {
         _uiState.update { it.copy(isAddSchemaItemDialogOpen = false) }
+    }
+
+    fun refreshHashtagAnalytics() {
+        viewModelScope.launch {
+            val entries = repository.fetchHashtagAnalytics()
+            _uiState.update { it.copy(hashtagAnalytics = entries) }
+        }
     }
 
     fun addSchemaItem(

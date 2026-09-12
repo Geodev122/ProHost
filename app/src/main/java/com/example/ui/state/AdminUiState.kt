@@ -13,6 +13,7 @@ data class AdminUiState(
     val allBookings: List<RentalBookingRequest> = emptyList(),
     val auditLogs: List<AuditSecurityLog> = emptyList(),
     val schema: SpaceArchitectureSchema = SpaceArchitectureSchema(),
+    val hashtagAnalytics: List<HashtagUsageEntry> = emptyList(),
     val activeMrr: Double = 0.0,
     val potentialMrr: Double = 0.0,
     val projectedArr: Double = 0.0,

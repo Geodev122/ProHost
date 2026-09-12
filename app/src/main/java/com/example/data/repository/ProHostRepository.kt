@@ -568,6 +568,9 @@ class ProHostRepository {
      *  whenever the wizard was opened is accurate enough for autosuggest. */
     suspend fun fetchTopHashtags(): List<String> = firestoreService.getTopHashtags()
 
+    /** Full analytics rows for the Admin Console's hashtag usage view. */
+    suspend fun fetchHashtagAnalytics(): List<HashtagUsageEntry> = firestoreService.getHashtagAnalytics()
+
     /**
      * Saves (or re-saves) a listing as a Draft — never gated by the host's active-
      * listing quota (see ProHostViewModel.createNewSpaceListing's quota check, which

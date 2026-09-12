@@ -56,6 +56,11 @@ fun DiscoveryScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val uiState by discoveryViewModel.uiState.collectAsState()
+    val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
+    val availableFacilities = remember(architectureSchema) {
+        architectureSchema.amenities.filter { it.isEnabled }.map { it.name }
+            .ifEmpty { FacilityCatalog.standard }
+    }
 
     DiscoveryScreenContent(
         spaces = uiState.filteredSpaces,
@@ -63,6 +68,7 @@ fun DiscoveryScreen(
         selectedGovernorate = uiState.filterState.selectedGovernorate,
         selectedSpaceType = uiState.filterState.selectedSpaceType,
         selectedFormulaType = uiState.filterState.selectedFormulaType,
+        availableFacilities = availableFacilities,
         selectedFacility = uiState.filterState.selectedFacility,
         selectedEquipmentCategory = uiState.filterState.selectedEquipmentCategory,
         maxPriceUsd = uiState.filterState.maxPriceUsd,
@@ -104,6 +110,10 @@ fun DiscoveryScreenContent(
     selectedSpaceType: SpaceType?,
     selectedFormulaType: RentalFormulaType?,
     selectedFacility: String?,
+    // Admin-managed facility catalog (enabled SchemaItems, category "AMENITY") —
+    // defaults to the old hardcoded FacilityCatalog.standard only so a caller that
+    // hasn't been updated to pass the live list doesn't lose facilities entirely.
+    availableFacilities: List<String> = FacilityCatalog.standard,
     selectedEquipmentCategory: EquipmentCategory?,
     maxPriceUsd: Double,
     onlyVerified: Boolean,
@@ -409,7 +419,7 @@ fun DiscoveryScreenContent(
 
                 Text("Facility", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(FacilityCatalog.standard) { facility ->
+                    items(availableFacilities) { facility ->
                         FilterChip(
                             selected = selectedFacility == facility,
                             onClick = { onSelectFacility(if (selectedFacility == facility) null else facility) },

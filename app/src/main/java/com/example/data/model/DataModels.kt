@@ -647,6 +647,15 @@ enum class ListingVerificationDocType { RERENTAL_AUTHORIZATION, SELF_OWNERSHIP_P
  *  themselves (Save as Draft / Publish / Pause / Resume). */
 enum class ListingStatus { DRAFT, ACTIVE, PAUSED }
 
+/** One row of the Admin Console's hashtag usage analytics (spec 1.4) — read-only,
+ *  never round-tripped back to Firestore, so no toFirestoreMap/fromFirestoreMap pair. */
+data class HashtagUsageEntry(
+    val tag: String,
+    val count: Int,
+    val governorate: String,
+    val lastUsedAtMillis: Long
+)
+
 /** Which branch the host took at the mandatory pre-Step-1 ownership gate (spec 1.5)
  *  — purely informational, recorded alongside [SpaceListing.ownershipProofUrl].
  *  Distinct from [ListingVerificationDocType], which records the optional,

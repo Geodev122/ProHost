@@ -370,6 +370,35 @@ class FirestoreService(
         }
     }
 
+    /** Full analytics rows (tag, count, most-recent governorate/timestamp) for the
+     *  Admin Console's hashtag usage view — spec 1.4's "display analytics of
+     *  hashtags used" requirement. governorate here is whichever listing most
+     *  recently used the tag, not a full per-governorate breakdown — a reasonable
+     *  first cut given this is a single-country deployment today. */
+    suspend fun getHashtagAnalytics(limit: Long = 50): List<HashtagUsageEntry> {
+        val db = firestore ?: return emptyList()
+        return try {
+            db.collection(FirestoreSchema.Collections.HASHTAG_USAGE)
+                .orderBy("count", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .limit(limit)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { doc ->
+                    val tag = doc.getString("tag") ?: return@mapNotNull null
+                    HashtagUsageEntry(
+                        tag = tag,
+                        count = (doc.getLong("count") ?: 0L).toInt(),
+                        governorate = doc.getString("governorate") ?: "",
+                        lastUsedAtMillis = doc.getLong("lastUsedAtMillis") ?: 0L
+                    )
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching hashtag analytics: ${e.message}", e)
+            emptyList()
+        }
+    }
+
     fun observeWorkspaces(): Flow<List<Map<String, Any>>> = callbackFlow {
         val db = firestore
         if (db == null) {

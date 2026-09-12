@@ -44,7 +44,11 @@ fun CreateListingDialog(
     // Top-used hashtags across the platform, fetched once by the caller when the
     // dialog opens (ProHostViewModel.topHashtags) — filtered client-side by prefix
     // as the host types, so this needs no per-keystroke network query.
-    suggestedHashtags: List<String> = emptyList()
+    suggestedHashtags: List<String> = emptyList(),
+    // Admin-managed facility catalog (enabled SchemaItems, category "AMENITY") —
+    // defaults to the old hardcoded FacilityCatalog.standard only so a caller that
+    // hasn't been updated to pass the live list doesn't lose facilities entirely.
+    availableFacilities: List<String> = FacilityCatalog.standard
 ) {
     if (currentUser == null) {
         Dialog(onDismissRequest = onDismiss) {
@@ -167,7 +171,7 @@ fun CreateListingDialog(
     var hasAcknowledgedAuditDisclaimer by remember { mutableStateOf(false) }
 
     // Facilities toggles
-    val standardFacilities = FacilityCatalog.standard
+    val standardFacilities = availableFacilities
     var selectedFacilities by remember {
         mutableStateOf(existingDraft?.essentialFacilities?.toSet() ?: standardFacilities.take(5).toSet())
     }
