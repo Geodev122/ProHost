@@ -483,6 +483,17 @@ class ProHostViewModel(
     }
 
     // --- In-App Rental Request Engine ---
+    /**
+     * Fire-and-forget from the caller's point of view (RentalBookingDialog calls this
+     * from a plain onClick and dismisses immediately), but the actual Firestore write
+     * is now awaited internally rather than launched fire-and-forget — this used to
+     * show "Rental Request Sent!" unconditionally the instant the local, in-memory
+     * copy was created, whatever the real sync outcome. A specialist on a bad
+     * connection saw confirmed success for a request that never reached Firestore —
+     * and therefore never reached the host — with no indication anything was wrong.
+     * Now the toast reflects the real result: a synced request says so plainly; an
+     * unsynced one is flagged as still pending and not yet visible to the host.
+     */
     fun submitBookingRequest(
         space: SpaceListing,
         formula: RentalFormula,
@@ -499,45 +510,49 @@ class ProHostViewModel(
         subdivisionId: String? = null,
         subdivisionName: String? = null,
         replacesBookingId: String? = null
-    ): RentalBookingRequest? {
+    ) {
         val user = currentUser.value
         if (user == null) {
             Toast.makeText(context, "Please log in to submit a rental request", Toast.LENGTH_SHORT).show()
-            return null
+            return
         }
 
-        val request = repository.createBookingRequest(
-            space = space,
-            formula = formula,
-            practitioner = user,
-            startDate = startDate,
-            durationMonths = durationMonths,
-            notes = notes,
-            selectedDays = selectedDays,
-            selectedStartHour = selectedStartHour,
-            selectedEndHour = selectedEndHour,
-            selectedShift = selectedShift,
-            calculatedTotalUsd = calculatedTotalUsd,
-            subdivisionId = subdivisionId,
-            subdivisionName = subdivisionName,
-            replacesBookingId = replacesBookingId
-        )
+        viewModelScope.launch {
+            val (request, synced) = repository.createBookingRequest(
+                space = space,
+                formula = formula,
+                practitioner = user,
+                startDate = startDate,
+                durationMonths = durationMonths,
+                notes = notes,
+                selectedDays = selectedDays,
+                selectedStartHour = selectedStartHour,
+                selectedEndHour = selectedEndHour,
+                selectedShift = selectedShift,
+                calculatedTotalUsd = calculatedTotalUsd,
+                subdivisionId = subdivisionId,
+                subdivisionName = subdivisionName,
+                replacesBookingId = replacesBookingId
+            )
 
-        Toast.makeText(
-            context,
-            if (replacesBookingId != null) {
-                "Edit Request #${request.id} Sent! Your current booking stays active until the host approves this change."
-            } else {
-                "Rental Request #${request.id} Sent! Space hours remain open until owner approval."
-            },
-            Toast.LENGTH_LONG
-        ).show()
+            Toast.makeText(
+                context,
+                if (synced) {
+                    if (replacesBookingId != null) {
+                        "Edit Request #${request.id} Sent! Your current booking stays active until the host approves this change."
+                    } else {
+                        "Rental Request #${request.id} Sent! Space hours remain open until owner approval."
+                    }
+                } else {
+                    "Couldn't reach the server to send your request — check your connection and try again. The host has not been notified."
+                },
+                Toast.LENGTH_LONG
+            ).show()
 
-        if (alsoOpenWhatsApp) {
-            launchWhatsAppInquiry(context, space, formula, request)
+            if (alsoOpenWhatsApp) {
+                launchWhatsAppInquiry(context, space, formula, request)
+            }
         }
-
-        return request
     }
 
     /**

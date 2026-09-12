@@ -204,19 +204,6 @@ class ProHostRepository {
         }
     }
 
-    fun syncNewBookingToFirestore(request: RentalBookingRequest) {
-        coroutineScope.launch {
-            val success = firestoreService.saveBookingRequest(request)
-            if (success) {
-                _isOfflineMode.value = false
-                _syncStatusMessage.value = "Booking Synced with Firebase Cloud"
-            } else {
-                _isOfflineMode.value = true
-                _syncStatusMessage.value = "Offline: Booking Stored in Local Cache"
-            }
-        }
-    }
-
     fun queueOfflineTransaction(tx: WhishTransaction) {
         _pendingOfflineTransactions.value = _pendingOfflineTransactions.value + tx
         _syncStatusMessage.value = "Transaction stored in resilient offline queue"
@@ -1014,7 +1001,20 @@ class ProHostRepository {
     }
 
     // --- Smart Booking & In-App Rental Request Engine ---
-    fun createBookingRequest(
+    /**
+     * Awaits the real Firestore write instead of firing it off in the
+     * background — the caller (ProHostViewModel.submitBookingRequest) used to
+     * show "Rental Request Sent!" the instant this returned, whatever the
+     * actual sync outcome, since the write itself ran fire-and-forget via
+     * syncNewBookingToFirestore. A specialist on a bad connection saw
+     * confirmed success for a request that never reached Firestore — and
+     * therefore never reached the host — with nothing telling them to retry.
+     * The request is still added to local state optimistically (so it shows
+     * up immediately in "My Bookings" even mid-sync), but [synced] in the
+     * returned pair tells the caller whether that actually landed, so it can
+     * show a truthful toast instead of an unconditional one.
+     */
+    suspend fun createBookingRequest(
         space: SpaceListing,
         formula: RentalFormula,
         practitioner: AppUser,
@@ -1029,7 +1029,7 @@ class ProHostRepository {
         subdivisionId: String? = null,
         subdivisionName: String? = null,
         replacesBookingId: String? = null
-    ): RentalBookingRequest {
+    ): Pair<RentalBookingRequest, Boolean> {
         val requestId = "REQ-LB-" + (1000..9999).random()
         val totalUsd = if (calculatedTotalUsd > 0) calculatedTotalUsd else (formula.rateUsd * durationMonths)
 
@@ -1072,20 +1072,29 @@ class ProHostRepository {
         )
 
         _bookingRequests.value = listOf(request) + _bookingRequests.value
-        syncNewBookingToFirestore(request)
+        val synced = firestoreService.saveBookingRequest(request)
+        if (synced) {
+            _isOfflineMode.value = false
+            _syncStatusMessage.value = "Booking Synced with Firebase Cloud"
+        } else {
+            _isOfflineMode.value = true
+            _syncStatusMessage.value = "Offline: Booking Stored in Local Cache"
+        }
 
         addAuditLog(
             actionType = if (replacesBookingId != null) "RENTAL_REQUEST_EDIT_SUBMITTED" else "RENTAL_REQUEST_SUBMITTED",
             details = if (replacesBookingId != null) {
-                "Edit request $requestId sent by ${practitioner.fullName} for '${space.title}', proposing to replace accepted booking #$replacesBookingId. New slot: $rangeString. Awaiting owner approval."
+                "Edit request $requestId sent by ${practitioner.fullName} for '${space.title}', proposing to replace accepted booking #$replacesBookingId. New slot: $rangeString. Awaiting owner approval." +
+                    (if (!synced) " [NOT YET SYNCED TO CLOUD]" else "")
             } else {
-                "Request $requestId sent by ${practitioner.fullName} for '${space.title}' (${formula.type.displayName}, $${totalUsd.toInt()} USD). Selected Slot: $rangeString. Awaiting owner WhatsApp/In-app approval."
+                "Request $requestId sent by ${practitioner.fullName} for '${space.title}' (${formula.type.displayName}, $${totalUsd.toInt()} USD). Selected Slot: $rangeString. Awaiting owner WhatsApp/In-app approval." +
+                    (if (!synced) " [NOT YET SYNCED TO CLOUD]" else "")
             },
-            severity = "INFO",
+            severity = if (synced) "INFO" else "WARN",
             actorEmail = practitioner.email
         )
 
-        return request
+        return request to synced
     }
 
     /**
