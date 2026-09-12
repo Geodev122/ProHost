@@ -124,9 +124,8 @@ data class AdminUiState(
 
     // "Owner"/"Host" here means the account holds the PRO_HOST role (i.e. has listed
     // at least one workspace) — every PRO_HOST account is still also fundamentally a
-    // Specialist underneath (can book workspaces exactly like a SPECIALIST account;
-    // see AdminConsoleScreen's "Workspace Hosts & Property Ownership" section, which
-    // this backs), not a separate, mutually-exclusive user category.
+    // Specialist underneath (can book workspaces exactly like a SPECIALIST account),
+    // not a separate, mutually-exclusive user category.
     val ownerUsers: List<AppUser>
         get() = allUsers.filter { it.role == UserRole.PRO_HOST }
 }

@@ -63,6 +63,11 @@ export const onWorkspaceListingCreated = onDocumentCreated(
     const listing = event.data?.data();
     const ownerId = listing?.ownerId;
     if (!ownerId) return;
+    // Stamped unconditionally (even for a Draft) — the client never writes this
+    // field (DataModels.kt's SpaceListing.toFirestoreMap deliberately omits it,
+    // same convention as isOwnerSuspended), so it can't be backdated/spoofed.
+    // Feeds the Admin Console's "listings published by date" chart.
+    await event.data?.ref.set({ createdAtMillis: Date.now() }, { merge: true });
     if (!isActiveStatus(listing?.status)) return;
     await getFirestore().collection("user_profiles").doc(ownerId).set(
       { activeListingCount: FieldValue.increment(1) },

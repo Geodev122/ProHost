@@ -1275,6 +1275,62 @@ private fun AdminListingsCatalogTab(
 // =========================================================================
 // TAB 3: OWNERS & PAYMENTS (WHISH MONEY LEDGER)
 // =========================================================================
+/** Three cumulative-count/total lines for the Hosts & Properties chart, each bucketed
+ * by day within the optional [fromMillis]/[toMillis] range (null = unbounded, same
+ * "Any" semantics as DateRangePickerRow). Pro Host upgrades come from the one
+ * reliable dated record of that event — audit log entries with
+ * actionType == "ROLE_PROMOTED_PRO_HOST" — the promotion write itself only stamps a
+ * generic updatedAt that many other things overwrite too. Properties-listed uses the
+ * new server-stamped SpaceListing.createdAtMillis (null/missing for any listing
+ * created before that field existed — simply excluded, not backfilled). Whish
+ * settlements only count SUCCESS transactions, matching the settled-volume fix
+ * elsewhere in this tab. */
+private fun computeHostsAndPropertiesSeries(
+    auditLogs: List<AuditSecurityLog>,
+    spaces: List<SpaceListing>,
+    transactions: List<WhishTransaction>,
+    fromMillis: Long?,
+    toMillis: Long?
+): List<ChartSeries> {
+    fun inRange(millis: Long) = (fromMillis == null || millis >= fromMillis) && (toMillis == null || millis <= toMillis)
+
+    fun dayBucket(millis: Long): Long {
+        val cal = java.util.Calendar.getInstance()
+        cal.timeInMillis = millis
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        cal.set(java.util.Calendar.MINUTE, 0)
+        cal.set(java.util.Calendar.SECOND, 0)
+        cal.set(java.util.Calendar.MILLISECOND, 0)
+        return cal.timeInMillis
+    }
+
+    fun cumulative(events: List<Pair<Long, Double>>): List<Pair<Long, Double>> {
+        val byDay = events.groupBy { dayBucket(it.first) }.mapValues { (_, v) -> v.sumOf { it.second } }
+        var running = 0.0
+        return byDay.toSortedMap().map { (day, dayTotal) ->
+            running += dayTotal
+            day to running
+        }
+    }
+
+    val upgrades = auditLogs
+        .filter { it.actionType == "ROLE_PROMOTED_PRO_HOST" && inRange(it.timestamp) }
+        .map { it.timestamp to 1.0 }
+    val listed = spaces
+        .mapNotNull { it.createdAtMillis }
+        .filter { inRange(it) }
+        .map { it to 1.0 }
+    val settled = transactions
+        .filter { it.status == TransactionStatus.SUCCESS && inRange(it.timestamp) }
+        .map { it.timestamp to it.amountUsd }
+
+    return listOf(
+        ChartSeries("Pro Host Upgrades", FreshGreen, cumulative(upgrades)),
+        ChartSeries("Properties Listed", VibrantBlue, cumulative(listed)),
+        ChartSeries("Whish Settlements ($)", CarnationOrange, cumulative(settled))
+    )
+}
+
 @Composable
 private fun AdminOwnersAndPaymentsTab(
     uiState: com.example.ui.state.AdminUiState,
@@ -1287,7 +1343,7 @@ private fun AdminOwnersAndPaymentsTab(
     ) {
         // Space Hosts Summary
         item {
-            ProSurfaceCard {
+            ProSurfaceCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1295,8 +1351,7 @@ private fun AdminOwnersAndPaymentsTab(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         ProSectionHeader(
-                            title = "Workspace Hosts & Property Ownership",
-                            subtitle = "Accounts with the Pro Host role — every one can also book workspaces as a Specialist",
+                            title = "Hosts & Properties",
                             icon = Icons.Default.HomeWork
                         )
 
@@ -1312,34 +1367,19 @@ private fun AdminOwnersAndPaymentsTab(
                         }
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ProMetricTile(
-                            title = "Total Hosts",
-                            value = "${uiState.ownerUsers.size}",
-                            subtitle = "Registered Owners",
-                            icon = Icons.Default.Person,
-                            modifier = Modifier.weight(1f)
-                        )
-                        ProMetricTile(
-                            title = "Active Units",
-                            value = "${uiState.allSpaces.count { it.isActiveSubscription }}",
-                            subtitle = "Active Listings",
-                            icon = Icons.Default.CheckCircle,
-                            iconTint = FreshGreen,
-                            modifier = Modifier.weight(1f)
-                        )
-                        ProMetricTile(
-                            title = "Whish Settled",
-                            value = "$${String.format(Locale.US, "%.0f", uiState.totalSettlementVolume)}",
-                            subtitle = "Gross Volume",
-                            icon = Icons.Default.Paid,
-                            iconTint = WhishRed,
-                            modifier = Modifier.weight(1f)
-                        )
+                    var chartFromMillis by remember { mutableStateOf<Long?>(null) }
+                    var chartToMillis by remember { mutableStateOf<Long?>(null) }
+                    DateRangePickerRow(
+                        fromMillis = chartFromMillis,
+                        toMillis = chartToMillis,
+                        onFromChange = { chartFromMillis = it },
+                        onToChange = { chartToMillis = it }
+                    )
+
+                    val series = remember(uiState.auditLogs, uiState.allSpaces, uiState.allTransactions, chartFromMillis, chartToMillis) {
+                        computeHostsAndPropertiesSeries(uiState.auditLogs, uiState.allSpaces, uiState.allTransactions, chartFromMillis, chartToMillis)
                     }
+                    MultiSeriesLineChart(series = series)
                 }
             }
         }

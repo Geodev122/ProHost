@@ -840,7 +840,14 @@ data class SpaceListing(
     // gate: the host's own next save always writes this back to emptyList()
     // (see toFirestoreMap below), and the server re-populates it truthfully if
     // the listing is still genuinely invalid.
-    val publishBlockedReasons: List<String> = emptyList()
+    val publishBlockedReasons: List<String> = emptyList(),
+    // Server-stamped once, at creation, by onWorkspaceListingCreated
+    // (functions/src/listings/listingCountTracker.ts) — never written by the
+    // client (absent from toFirestoreMap below, same convention as
+    // isOwnerSuspended) so it can't be backdated/spoofed. Null for any listing
+    // created before this field existed; it is not backfilled retroactively.
+    // Feeds the Owners & Payments tab's "listings published by date" chart.
+    val createdAtMillis: Long? = null
 ) {
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
@@ -1082,7 +1089,8 @@ data class SpaceListing(
                     runCatching { ListingStatus.valueOf(it) }.getOrNull()
                 } ?: ListingStatus.ACTIVE,
                 publishBlockedReasons = (data["publishBlockedReasons"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
-                subdivisions = subsList
+                subdivisions = subsList,
+                createdAtMillis = (data["createdAtMillis"] as? Number)?.toLong()
             )
         }
     }
