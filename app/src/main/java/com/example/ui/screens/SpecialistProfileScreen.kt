@@ -716,6 +716,93 @@ fun SpecialistProfileScreen(
                     }
                 }
             }
+
+            // =========================================================================
+            // 8. DANGER ZONE — PERMANENT ACCOUNT DELETION
+            // =========================================================================
+            var showDeleteConfirmation by remember { mutableStateOf(false) }
+            var isDeletingAccount by remember { mutableStateOf(false) }
+
+            ProSurfaceCard(
+                modifier = Modifier.border(
+                    BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)),
+                    MaterialTheme.shapes.large
+                )
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ProSectionHeader(
+                        title = "Delete Account",
+                        subtitle = if (user.role == UserRole.PRO_HOST)
+                            "Permanently removes your profile, uploaded documents, and every listing you own"
+                        else
+                            "Permanently removes your profile and uploaded documents",
+                        icon = Icons.Default.DeleteForever
+                    )
+                    Text(
+                        text = "This cannot be undone. Your booking history stays on file for the other party's records, but you will no longer be able to sign back in.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedButton(
+                        onClick = { showDeleteConfirmation = true },
+                        enabled = !isDeletingAccount,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(if (isDeletingAccount) "Deleting..." else "Delete My Account")
+                    }
+                }
+            }
+
+            if (showDeleteConfirmation) {
+                AlertDialog(
+                    onDismissRequest = { if (!isDeletingAccount) showDeleteConfirmation = false },
+                    icon = { Icon(Icons.Default.DeleteForever, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                    title = { Text("Delete your account?") },
+                    text = {
+                        Text(
+                            if (user.role == UserRole.PRO_HOST)
+                                "This permanently deletes your profile, uploaded ID document, and every listing you own. This cannot be undone."
+                            else
+                                "This permanently deletes your profile and uploaded ID document. This cannot be undone."
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            enabled = !isDeletingAccount,
+                            onClick = {
+                                isDeletingAccount = true
+                                coroutineScope.launch {
+                                    val result = viewModel.deleteAccount()
+                                    isDeletingAccount = false
+                                    showDeleteConfirmation = false
+                                    if (result.isFailure) {
+                                        Toast.makeText(
+                                            context,
+                                            "Couldn't delete your account — please check your connection and try again.",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                    // On success the screen unmounts on its own: currentUser
+                                    // becomes null once repository.logout() runs inside
+                                    // viewModel.deleteAccount(), and ProHostNavGraph renders
+                                    // LoginAuthScreen for a null currentUser.
+                                }
+                            }
+                        ) {
+                            Text("Delete Permanently", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteConfirmation = false }, enabled = !isDeletingAccount) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
         }
     }
 }

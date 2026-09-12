@@ -17,6 +17,7 @@ export { grantAdminRole } from "./roles/grantAdminRole";
 export { setAccountSuspended } from "./roles/setAccountSuspended";
 export { revokeProHostRole } from "./roles/revokeProHostRole";
 export { bootstrapSuperAdmin } from "./roles/bootstrapSuperAdmin";
+export { deleteOwnAccount } from "./roles/deleteOwnAccount";
 
 export { initiateWhishPayment } from "./payments/initiateWhishPayment";
 export { whishWebhook } from "./payments/whishWebhook";

@@ -365,6 +365,23 @@ class ProHostViewModel(
         repository.logout()
     }
 
+    /**
+     * Permanently deletes the signed-in user's own account (functions/src/roles/
+     * deleteOwnAccount.ts) — their owned listings, uploaded documents, Firestore
+     * profile, and Firebase Auth account itself. Only signs the client out
+     * locally once the server confirms the account is actually gone; on failure
+     * the caller is still signed in and nothing has changed, so it's safe to
+     * show an error and let the user retry.
+     */
+    suspend fun deleteAccount(): Result<Unit> {
+        val result = functionsClient.deleteOwnAccount()
+        if (result.isSuccess) {
+            com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+            repository.logout()
+        }
+        return result
+    }
+
     fun logSecurityAction(actionType: String, details: String, severity: String = "INFO") {
         repository.addAuditLog(actionType, details, severity)
     }

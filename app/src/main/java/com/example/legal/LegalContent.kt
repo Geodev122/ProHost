@@ -113,7 +113,7 @@ object LegalContent {
                 listOf(
                     "You may access, correct, or update most of your profile information directly in the app's Profile screen at any time.",
                     "You may request a copy of the personal data we hold about you, request its deletion, or object to a specific processing activity, by contacting us using the details in Section 11. We will respond within a reasonable time, and in any case no later than 30 days, except where a longer period is justified by the complexity of the request.",
-                    "Deleting your account is available in-app (Profile → Account Settings) and takes effect subject to the retention exceptions described in Section 5.",
+                    "Deleting your account is available in-app (Profile → Delete Account) and takes effect subject to the retention exceptions described in Section 5.",
                     "If you believe your data has been mishandled, you may also raise a complaint with the competent Lebanese authority responsible for electronic transactions and data matters under Law No. 81/2018, in addition to contacting us directly."
                 )
             ),
@@ -259,7 +259,7 @@ object LegalContent {
             LegalSection(
                 "4. Account Deletion",
                 listOf(
-                    "You may delete your own account at any time (Profile → Account Settings). ProHost Administrators may also delete an account, typically reserved for severe or repeated violations, a valid legal deletion request, or at your own explicit request submitted through the in-app support channel.",
+                    "You may delete your own account at any time (Profile → Delete Account). ProHost Administrators may also delete an account, typically reserved for severe or repeated violations, a valid legal deletion request, or at your own explicit request submitted through the in-app support channel.",
                     "Effect of deletion: unlike suspension or revocation, deletion is intended to be permanent and removes your profile and published Listings from the Platform, subject to the retention exceptions described in the Privacy Policy (Section 5) — principally, records already embedded in another user's booking or audit history, and data ProHost must retain to satisfy a legal, accounting, or dispute-resolution obligation."
                 )
             ),

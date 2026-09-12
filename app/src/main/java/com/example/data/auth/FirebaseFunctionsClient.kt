@@ -278,6 +278,22 @@ class FirebaseFunctionsClient {
         }
     }
 
+    /**
+     * Self-service account deletion (functions/src/roles/deleteOwnAccount.ts) —
+     * always targets the CALLER's own account server-side; this call never takes
+     * a target uid. Purges the caller's owned listings, ID/profile-picture
+     * uploads, Firestore profile, and finally their Firebase Auth account itself.
+     */
+    suspend fun deleteOwnAccount(): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("deleteOwnAccount").call().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "deleteOwnAccount failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     companion object {
         /**
          * Reads the role custom claim from the given user's current ID token,
