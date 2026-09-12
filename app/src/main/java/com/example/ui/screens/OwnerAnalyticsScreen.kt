@@ -265,7 +265,12 @@ fun ListingHealthCard(space: SpaceListing) {
                 shape = MaterialTheme.shapes.small
             ) {
                 Text(
-                    text = space.spaceType.displayName,
+                    // spaceType is no longer the source of truth once spaceCategoryId is
+                    // set (see SpaceListing's own doc comment) — a listing under a
+                    // genuinely new admin category has no legacy equivalent and would
+                    // otherwise always show as "Private Office" here. Same fallback
+                    // OwnerSubscriptionsScreen already uses.
+                    text = space.spaceCategoryName ?: space.spaceType.displayName,
                     modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
