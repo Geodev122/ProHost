@@ -47,14 +47,32 @@ export const bootstrapSuperAdmin = onRequest(
       return;
     }
 
-    // Claim the flag first (transactionally) so a race between two calls
-    // can't both succeed.
+    // Resolve the target account BEFORE claiming the one-time flag. This used
+    // to claim the flag first and look the user up after — a typo in
+    // targetEmail made getUserByEmail throw (unhandled, since nothing here
+    // caught it), but the flag was already marked used, permanently closing
+    // this bootstrap path with no admin ever actually granted. There is no
+    // way to reopen it afterward short of a human editing Firestore directly
+    // — exactly the kind of footgun this function exists to avoid needing.
+    const adminAuth = getAuth();
+    let targetUser;
+    try {
+      targetUser = await adminAuth.getUserByEmail(targetEmail);
+    } catch (e) {
+      res.status(404).json({
+        error: `No account exists for ${targetEmail}. Nothing was changed — the bootstrap flag is still unused, so this can be retried with the correct email.`,
+      });
+      return;
+    }
+
+    // Claim the flag transactionally, now that the target is confirmed real,
+    // so a race between two concurrent valid calls still can't both succeed.
     const claimed = await db.runTransaction(async (tx) => {
       const snap = await tx.get(flagRef);
       if (snap.exists && snap.data()?.used === true) {
         return false;
       }
-      tx.set(flagRef, { used: true, usedAt: Date.now(), targetEmail });
+      tx.set(flagRef, { used: true, usedAt: Date.now(), targetEmail, targetUid: targetUser.uid });
       return true;
     });
 
@@ -63,15 +81,12 @@ export const bootstrapSuperAdmin = onRequest(
       return;
     }
 
-    const adminAuth = getAuth();
-    const targetUser = await adminAuth.getUserByEmail(targetEmail);
     await adminAuth.setCustomUserClaims(targetUser.uid, { role: "ADMIN" });
 
     await db.collection("user_profiles").doc(targetUser.uid).set(
       { role: "ADMIN", updatedAt: Date.now() },
       { merge: true }
     );
-    await flagRef.set({ targetUid: targetUser.uid }, { merge: true });
 
     await recordAuditLog({
       actionType: "SUPER_ADMIN_BOOTSTRAPPED",
