@@ -155,7 +155,7 @@ object LegalContent {
             LegalSection(
                 "2. Eligibility and Account Registration",
                 listOf(
-                    "You must be at least 18 years old and legally capable of entering into a binding contract under Lebanese law to register. You must provide accurate registration information and a real, working phone number, which you verify by SMS one-time code — this is currently the only sign-in method the Platform offers, alongside optional Google Sign-In linked to the same verified phone number.",
+                    "You must be at least 18 years old and legally capable of entering into a binding contract under Lebanese law to register. You must provide accurate registration information and a real, working phone number, which you verify by SMS one-time code — this is currently the only sign-in method the Platform offers.",
                     "Every new account is registered with the standard \"Specialist\" role. The \"Pro Host\" role — which allows publishing workspace Listings — is granted automatically and exclusively upon your successful payment of a Pro Host subscription/package fee through Whish Money; there is no other way to obtain it, and ProHost Administrators do not grant it manually or for free except in the ordinary operation of that payment flow.",
                     "You are responsible for maintaining the confidentiality of your account and for all activity that occurs under it. Notify us immediately if you suspect unauthorized access."
                 )
