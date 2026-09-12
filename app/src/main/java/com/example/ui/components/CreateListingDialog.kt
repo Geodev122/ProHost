@@ -259,6 +259,13 @@ fun CreateListingDialog(
         )
     }
     var equipmentSearchQuery by remember { mutableStateOf("") }
+    // Custom equipment entry — the fixed catalog above (defaultEquipCatalog) is a
+    // representative starting list, not exhaustive; a host whose space has
+    // something not on it (a piece of clinical gear, a specific tool) can add it
+    // by name instead of being stuck picking the closest fixed match.
+    var showAddCustomEquipment by remember { mutableStateOf(false) }
+    var customEquipmentName by remember { mutableStateOf("") }
+    var customEquipmentCategory by remember { mutableStateOf(EquipmentCategory.WORKSPACES) }
 
     // Premises rules — real editable fields, replacing the previously-hardcoded
     // PremisesRules() default at listing construction.
@@ -752,6 +759,104 @@ fun CreateListingDialog(
                                                 )
                                             }
                                         }
+                                    }
+                                }
+
+                                // Host-added equipment not in defaultEquipCatalog above —
+                                // shown separately since it never matches that list's own
+                                // search/toggle rows.
+                                val customChosenEquipment = remember(chosenEquipment) {
+                                    chosenEquipment.filterNot { chosen -> defaultEquipCatalog.any { it.name == chosen.name } }
+                                }
+                                if (customChosenEquipment.isNotEmpty()) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        customChosenEquipment.forEach { item ->
+                                            Surface(
+                                                color = MaterialTheme.colorScheme.primaryContainer,
+                                                shape = MaterialTheme.shapes.small,
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(10.dp),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(item.name, fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.SemiBold)
+                                                        Text(
+                                                            "${item.category.displayName} • Added by you",
+                                                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                    IconButton(onClick = { chosenEquipment = chosenEquipment.filterNot { it.id == item.id } }) {
+                                                        Icon(Icons.Default.Close, contentDescription = "Remove ${item.name}")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (showAddCustomEquipment) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(MaterialTheme.shapes.medium)
+                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                            .padding(10.dp)
+                                    ) {
+                                        OutlinedTextField(
+                                            value = customEquipmentName,
+                                            onValueChange = { customEquipmentName = it },
+                                            label = { Text("Equipment name") },
+                                            placeholder = { Text("e.g. Portable Ultrasound Unit") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            singleLine = true
+                                        )
+                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            EquipmentCategory.values().forEach { cat ->
+                                                FilterChip(
+                                                    selected = customEquipmentCategory == cat,
+                                                    onClick = { customEquipmentCategory = cat },
+                                                    label = { Text(cat.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                                                )
+                                            }
+                                        }
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            ProOutlinedButton(
+                                                text = "Cancel",
+                                                onClick = { showAddCustomEquipment = false; customEquipmentName = "" },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            ProPrimaryButton(
+                                                text = "Add",
+                                                onClick = {
+                                                    val trimmed = customEquipmentName.trim()
+                                                    if (trimmed.isNotEmpty() && chosenEquipment.none { it.name.equals(trimmed, ignoreCase = true) }) {
+                                                        chosenEquipment = chosenEquipment + EquipmentItem(
+                                                            id = "EQ-CUSTOM-" + UUID.randomUUID().toString().take(6).uppercase(),
+                                                            name = trimmed,
+                                                            category = customEquipmentCategory
+                                                        )
+                                                    }
+                                                    customEquipmentName = ""
+                                                    showAddCustomEquipment = false
+                                                },
+                                                modifier = Modifier.weight(1f),
+                                                enabled = customEquipmentName.isNotBlank()
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    OutlinedButton(
+                                        onClick = { showAddCustomEquipment = true },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Add custom equipment not listed above")
                                     }
                                 }
 
