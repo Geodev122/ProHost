@@ -1374,7 +1374,7 @@ private fun AdminOwnersAndPaymentsTab(
                     Text(
                         text = "• Channel ID: ${WhishSecurity.CHANNEL_ID}\n" +
                                 "• Website / Source: ${WhishSecurity.SOURCE_EMAIL}\n" +
-                                "• Hash Signature: MD5(channel|amount|currency|orderId|secretKey)",
+                                "• Hash Signature: SHA-256(channel|amount|currency|orderId|secretKey)",
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = FontFamily.Monospace,
                         lineHeight = 16.sp,
@@ -1407,7 +1407,7 @@ private fun AdminOwnersAndPaymentsTab(
         item {
             ProSectionHeader(
                 title = "Live Audit Transactions (${uiState.filteredTransactions.size})",
-                subtitle = "Cryptographically signed checkout events with MD5 signatures",
+                subtitle = "Cryptographically signed checkout events with SHA-256 signatures",
                 icon = Icons.AutoMirrored.Filled.ReceiptLong
             )
         }
@@ -1859,7 +1859,7 @@ private fun AdminSecurityAuditTab(
                     }
 
                     Text(
-                        text = "• Protocol: SHA-256 / MD5 Dual Security Layer\n" +
+                        text = "• Protocol: SHA-256 Signed Payment Requests\n" +
                                 "• Access Clearance: Super Admin ${currentUser?.email ?: "Unknown admin"}\n" +
                                 "• Total Registered Logs: ${uiState.auditLogs.size}",
                         style = MaterialTheme.typography.bodySmall,
