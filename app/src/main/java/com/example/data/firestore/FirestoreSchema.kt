@@ -120,8 +120,6 @@ object FirestoreSchema {
         const val PAYG_CENTER_USD = "paygCenterUsd"
         const val PAYG_POLYCLINIC_USD = "paygPolyclinicUsd"
         const val PAYG_COWORKING_USD = "paygCoworkingUsd"
-        const val PAYG_EXECUTIVE_BOARDROOM_USD = "paygExecutiveBoardroomUsd"
-        const val PAYG_CONSULTATION_SUITE_USD = "paygConsultationSuiteUsd"
         const val PACKAGE_2_LIMIT = "package2Limit"
         const val PACKAGE_2_MONTHLY_FEE_USD = "package2MonthlyFeeUsd"
         const val PACKAGE_3_MONTHLY_FEE_USD = "package3MonthlyFeeUsd"
