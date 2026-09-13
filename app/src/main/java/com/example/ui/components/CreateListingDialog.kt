@@ -30,7 +30,7 @@ import coil.compose.AsyncImage
 import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
 import com.example.ui.theme.Spacing
-import com.google.android.gms.maps.model.LatLng
+import org.osmdroid.util.GeoPoint
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -206,7 +206,7 @@ fun CreateListingDialog(
     // Always starts null even when continuing a Draft — a draft's stored lat/lng may
     // just be the unpicked fallback jitter (see the geocoding fallback below), so the
     // host re-confirms the pin on the map rather than Publish silently trusting it.
-    var pickedLatLng by remember { mutableStateOf<LatLng?>(null) }
+    var pickedLatLng by remember { mutableStateOf<GeoPoint?>(null) }
     // Numeric floor, range -5..30 per spec (basement levels down to a high-rise's
     // upper floors). Was a free-text "Floor & Accessibility" string; accessibility
     // notes belong in the description/rules now, not smuggled into a number field.
@@ -461,10 +461,10 @@ fun CreateListingDialog(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 ListingLocationMapPicker(
-                                    initialCenter = LatLng(derivedGovernorate.centerLat, derivedGovernorate.centerLng),
+                                    initialCenter = GeoPoint(derivedGovernorate.centerLat, derivedGovernorate.centerLng),
                                     pickedLatLng = pickedLatLng,
                                     onLocationPicked = { picked ->
-                                        pickedLatLng = LatLng(picked.lat, picked.lng)
+                                        pickedLatLng = GeoPoint(picked.lat, picked.lng)
                                         // Auto-applies on every pin drop/drag — the
                                         // spec's "geocoding reads marker position and
                                         // auto-populates address fields" — instead of

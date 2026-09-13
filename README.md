@@ -11,8 +11,8 @@ ProHost is a modern Android application built with Jetpack Compose and Material 
 - **Architecture**: MVVM with Kotlin Coroutines & Flow
 - **Backend / Cloud Services**:
   - Firebase Authentication, Firestore, Storage, Messaging, Cloud Functions
-- **Maps & Location**: Google Maps SDK for Android (`maps-compose`) & Play Services Location
-- **Build System**: Gradle with Version Catalog (`gradle/libs.versions.toml`) and Secrets Gradle Plugin
+- **Maps & Location**: OpenStreetMap (`osmdroid`) & Play Services Location
+- **Build System**: Gradle with Version Catalog (`gradle/libs.versions.toml`)
 
 ---
 
@@ -22,24 +22,6 @@ ProHost is a modern Android application built with Jetpack Compose and Material 
 2. **Android SDK**: `compileSdk = 35`, `minSdk = 24`, `targetSdk = 35`
 3. **Android Studio**: Android Studio Ladybug (2024.2+) or newer
 4. **Firebase Configuration**: Ensure `app/google-services.json` is present in the `app/` directory.
-
----
-
-## 🔑 Environment & Secrets Setup
-
-The project uses the **Secrets Gradle Plugin** to manage sensitive keys via environment files.
-
-1. Copy `.env.example` to `.env` in the root project directory:
-   ```bash
-   cp .env.example .env
-   ```
-2. Configure your keys inside `.env`:
-   ```env
-   MAPS_API_KEY=YOUR_ACTUAL_GOOGLE_MAPS_API_KEY
-   GEMINI_API_KEY=YOUR_GEMINI_API_KEY  # Optional
-   ```
-
-> ⚠️ **Note**: Never commit `.env` or sensitive API keys to Git. The `.env` file is excluded in `.gitignore`.
 
 ---
 

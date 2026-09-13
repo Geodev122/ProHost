@@ -56,7 +56,6 @@
     volatile <fields>;
 }
 
-# Google Play Services & Maps
--keep class com.google.android.gms.maps.** { *; }
--keep interface com.google.android.gms.maps.** { *; }
--dontwarn com.google.android.gms.maps.**
+# osmdroid (OpenStreetMap)
+-keep class org.osmdroid.** { *; }
+-dontwarn org.osmdroid.**

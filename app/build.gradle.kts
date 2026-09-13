@@ -7,7 +7,6 @@ plugins {
   alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.google.devtools.ksp)
   alias(libs.plugins.roborazzi)
-  alias(libs.plugins.secrets)
   alias(libs.plugins.google.services)
 }
 
@@ -22,26 +21,6 @@ android {
     versionCode = 1
     versionName = "1.0.0"
 
-    // MAPS_API_KEY is supplied automatically by the Secrets Gradle Plugin (see the
-    // `secrets { ... }` block below) from a git-ignored .env file, falling back to
-    // .env.example's placeholder when .env doesn't exist — that's the whole point of
-    // that plugin, and AndroidManifest.xml already references it as ${MAPS_API_KEY}.
-    // DO NOT hardcode a literal value here — it silently shadows the plugin's real
-    // key with a fake one regardless of what's in .env, and it did exactly that
-    // again for a full day (see the "map is blank" audit): CI has no .env file (it's
-    // git-ignored, never committed) and no MAPS_API_KEY env var was ever set in
-    // .github/workflows/android-firebase-distribution.yml, so a hardcoded fallback like
-    // the one below was engaging on every single CI build, baking in this project's Firebase-auto-generated
-    // API key instead of a real Maps-enabled one — and since that key looks nothing
-    // like the obvious ".env.example" placeholder, it also silently defeated
-    // AppSystemDebugger's own "is a real Maps key configured?" check. Every build
-    // testers actually installed via Firebase App Distribution shipped a key that
-    // isn't restricted for Maps SDK for Android, hence the blank map.
-    //   manifestPlaceholders["MAPS_API_KEY"] = System.getenv("MAPS_API_KEY") ?: "<any literal>"
-    // For CI to get a REAL key, write one into a git-ignored .env file as a build
-    // step from a repo secret (see the workflow's "Write .env for Maps API key"
-    // step) — the Secrets Gradle Plugin already reads that file, no manual
-    // manifestPlaceholders override is needed or should be added here again.
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
@@ -112,14 +91,6 @@ android {
   }
 }
 
-// Configure the Secrets Gradle Plugin to use .env and .env.example files
-// to match the convention used in Web projects.
-secrets {
-  propertiesFileName = ".env"
-  defaultPropertiesFileName = ".env.example"
-  ignoreList.add("FIREBASE_APPCHECK_DEBUG_TOKEN")
-}
-
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
 
 // Some unused dependencies are commented out below instead of being removed.
@@ -166,8 +137,10 @@ dependencies {
   implementation(libs.play.app.update)
   implementation(libs.play.app.update.ktx)
   implementation(libs.play.services.location)
-  implementation(libs.play.services.maps)
-  implementation(libs.maps.compose)
+  // OpenStreetMap (osmdroid) — replaced Google Maps entirely (see LebanonMapCanvas.kt/
+  // ListingLocationMapPicker.kt doc comments). No API key, no billing account, no
+  // Cloud Console configuration to get wrong — the class of bug that motivated this.
+  implementation(libs.osmdroid.android)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)

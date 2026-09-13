@@ -218,28 +218,15 @@ object AppSystemDebugger {
                 )
             )
 
-            // Real check: is a real Google Maps API key actually configured, or still the
-            // placeholder from .env.example? Read directly from the manifest meta-data at
-            // runtime (the same value the Maps SDK itself reads), rather than assuming the
-            // Secrets Gradle Plugin's codegen — a blank/placeholder key renders a blank grey
-            // map on a real device with no crash, so this is the only way to catch it.
-            val configuredMapsKey = runCatching {
-                context.packageManager
-                    .getApplicationInfo(context.packageName, android.content.pm.PackageManager.GET_META_DATA)
-                    .metaData
-                    ?.getString("com.google.android.geo.API_KEY")
-            }.getOrNull()
-            val mapsKeyConfigured = !configuredMapsKey.isNullOrBlank() &&
-                configuredMapsKey != "YOUR_GOOGLE_MAPS_API_KEY"
+            // Maps run on OpenStreetMap (osmdroid) now, not Google Maps — no API key,
+            // billing account, or Cloud Console configuration to get wrong, so there's
+            // no live key/billing/restriction state left to diagnose here.
             results.add(
                 DiagnosticItem(
                     category = "Discovery & Geo-Spatial",
                     featureName = "Interactive Vector Map & GPS Pins",
-                    status = if (mapsKeyConfigured) DiagnosticStatus.PASSED else DiagnosticStatus.FAILED,
-                    details = if (mapsKeyConfigured)
-                        "Real Google Maps API key configured; LebanonMapCanvas plotting ${spaces.size} active listings."
-                    else
-                        "No real Google Maps API key configured (still the .env.example placeholder) — the map will render blank on a real device. Set MAPS_API_KEY in a git-ignored .env file."
+                    status = DiagnosticStatus.PASSED,
+                    details = "Running on OpenStreetMap (osmdroid) tiles — no API key required; LebanonMapCanvas plotting ${spaces.size} active listings."
                 )
             )
 
