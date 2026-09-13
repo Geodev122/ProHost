@@ -41,7 +41,11 @@ fun rememberFileExportLauncher(mimeType: String): (fileName: String, content: St
             }
             Toast.makeText(context, "Saved.", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(context, "Couldn't save file: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                context,
+                com.example.util.friendlyErrorMessage(e, "Couldn't save file. Please try again."),
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 

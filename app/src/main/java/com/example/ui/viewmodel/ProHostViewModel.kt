@@ -272,7 +272,11 @@ class ProHostViewModel(
                 if (draftListingId != null) clearPendingAutoPublishDraft()
                 pollWhishPaymentStatus(init.txId, purpose, context)
             }.onFailure { e ->
-                Toast.makeText(context, "Could not start payment: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    context,
+                    com.example.util.friendlyErrorMessage(e, "Could not start payment. Please check your connection and try again."),
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
