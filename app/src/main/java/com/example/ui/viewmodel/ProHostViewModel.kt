@@ -28,6 +28,14 @@ sealed class ListingCreateResult {
     object Failed : ListingCreateResult()
 }
 
+/**
+ * Bounds cold-start session restoration (see ProHostViewModel's init block) so a
+ * slow — not fully offline — connection can't leave the splash screen up for
+ * however long the underlying network call takes (the Firebase Functions SDK's
+ * own default timeout is up to 70s, which reads as "hung" on a splash screen).
+ */
+private const val SESSION_RESTORE_TIMEOUT_MS = 15_000L
+
 class ProHostViewModel(
     val repository: ProHostRepository = ProHostRepository.getInstance()
 ) : ViewModel() {
@@ -71,7 +79,17 @@ class ProHostViewModel(
         if (firebaseUser != null) {
             viewModelScope.launch {
                 try {
-                    val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
+                    // Bounded so a slow (not fully offline) connection can't leave the
+                    // splash screen up indefinitely — completeVerifiedLogin's own
+                    // network call (assignInitialRole) had no timeout of its own
+                    // beyond the Firebase Functions SDK's default (up to 70s), which
+                    // reads as "hung" to anyone watching a splash screen. A timeout
+                    // here is handled identically to any other restoration failure
+                    // below: currentUser stays null and the user just signs in again,
+                    // rather than waiting indefinitely for a slow round-trip.
+                    val user = kotlinx.coroutines.withTimeout(SESSION_RESTORE_TIMEOUT_MS) {
+                        com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
+                    }
                     // A real, previously-completed account always has a real phone on
                     // file (registerMember always writes one) — ADMIN is the one
                     // legitimate exception, created via bootstrapSuperAdmin/
@@ -90,8 +108,11 @@ class ProHostViewModel(
                 } catch (e: Exception) {
                     // Most likely offline with no prior custom claim to fall back on
                     // (resolveVerifiedRole's own tolerance already covers "offline but a
-                    // claim already exists"). repository.currentUser stays null either way,
-                    // so ProHostNavGraph correctly falls through to LoginAuthScreen.
+                    // claim already exists"), or the timeout above firing
+                    // (kotlinx.coroutines.TimeoutCancellationException — also an
+                    // Exception, caught here same as any other failure). repository.
+                    // currentUser stays null either way, so ProHostNavGraph correctly
+                    // falls through to LoginAuthScreen.
                 } finally {
                     _isRestoringSession.value = false
                 }

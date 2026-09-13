@@ -89,7 +89,20 @@ private suspend fun resolveVerifiedRole(
     functionsClient: FirebaseFunctionsClient,
     firebaseUser: FirebaseUser
 ): UserRole {
-    val existingClaim = FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true)
+    // forceRefresh=true makes this a real network round-trip to Firebase's token
+    // endpoint — offline, that throws outright, before this function's own
+    // documented "offline but a claim already exists" fallback below ever gets a
+    // chance to run (the throw happens on this very first line, well before the
+    // exceptionOrNull() tolerance check). A plain, non-forced read serves the ID
+    // token's already-cached claims with no network call at all — exactly the
+    // "existing claim" this function's fallback logic wants. Wrapped in
+    // runCatching as well, purely defensive: even a non-forced read touches the
+    // token cache and there's no reason a truly corrupt/missing cache should be
+    // allowed to bring down session restoration when the real fallback (network
+    // ensureInitialRole call, below) might still succeed.
+    val existingClaim = runCatching {
+        FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = false)
+    }.getOrNull()
     // Always call assignInitialRole, not just when there's no claim yet — it's the only
     // place lastSignInAtMillis (and isVerified) get refreshed, and that needs to happen
     // on every sign-in, not just account creation. Idempotent server-side; a transient
