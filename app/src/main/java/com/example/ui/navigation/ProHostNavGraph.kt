@@ -361,6 +361,8 @@ fun ProHostAppRoot(
             ) { innerPadding ->
                 val updateState by (inAppUpdateManager?.updateState?.collectAsState() ?: remember { mutableStateOf(UpdateState.IDLE) })
                 val downloadProgress by (inAppUpdateManager?.downloadProgress?.collectAsState() ?: remember { mutableStateOf(0f) })
+                val isOfflineMode by viewModel.isOfflineMode.collectAsState()
+                val syncStatusMessage by viewModel.syncStatusMessage.collectAsState()
 
                 Box(
                     modifier = Modifier
@@ -373,6 +375,10 @@ fun ProHostAppRoot(
                             updateState = updateState,
                             downloadProgress = downloadProgress,
                             onCompleteUpdate = { inAppUpdateManager?.completeUpdate() }
+                        )
+                        OfflineStatusBanner(
+                            isOffline = isOfflineMode,
+                            syncStatusMessage = syncStatusMessage
                         )
 
                         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
