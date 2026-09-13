@@ -26,6 +26,7 @@ import com.example.ui.viewmodel.ProHostViewModel
  * AppDrawerContent.kt and its routing in ProHostNavGraph.kt) — a Pro Host is still
  * a Specialist underneath and can save/browse spaces the same way.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyFavoritesScreen(
     viewModel: ProHostViewModel,
