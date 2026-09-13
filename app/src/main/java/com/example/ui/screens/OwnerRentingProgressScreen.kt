@@ -35,10 +35,13 @@ fun OwnerRentingProgressScreen(
     val packagePlans by viewModel.packagePlans.collectAsState()
     val hasLoadedBookingsOnce by viewModel.hasLoadedBookingsOnce.collectAsState()
 
+    // ownerId is the sole, authoritative match — see ProHostViewModel.ownerSpaces'
+    // doc comment for why the "ownerName contains fullName" fallback that used to
+    // sit here was a real cross-tenant privacy bug.
     val ownerSpaces = remember(spaces, currentUser) {
         val user = currentUser
         if (user != null) {
-            spaces.filter { it.ownerId == user.id || it.ownerEmail.equals(user.email, ignoreCase = true) || it.ownerName.contains(user.fullName, ignoreCase = true) || user.role == UserRole.ADMIN }
+            spaces.filter { it.ownerId == user.id || user.role == UserRole.ADMIN }
         } else {
             emptyList()
         }
@@ -47,7 +50,7 @@ fun OwnerRentingProgressScreen(
     val activeBookings = remember(allBookingRequests, currentUser) {
         val user = currentUser
         val list = if (user != null) {
-            allBookingRequests.filter { it.ownerId == user.id || it.ownerName.contains(user.fullName, ignoreCase = true) || user.role == UserRole.ADMIN }
+            allBookingRequests.filter { it.ownerId == user.id || user.role == UserRole.ADMIN }
         } else {
             emptyList()
         }

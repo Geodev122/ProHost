@@ -194,10 +194,14 @@ fun CreateListingDialog(
     // [district]/[streetAddress] above, which the host types freely; a picked address
     // auto-applies into those fields the moment the pin is dropped/moved, but never
     // overwrites text the host has already typed there themselves.
-    // Always starts null even when continuing a Draft — a draft's stored lat/lng may
-    // just be the unpicked fallback jitter (see the geocoding fallback below), so the
-    // host re-confirms the pin on the map rather than Publish silently trusting it.
-    var pickedLatLng by remember { mutableStateOf<GeoPoint?>(null) }
+    // Prefilled from a resumed Draft's last saved lat/lng (a host used to have to
+    // re-find and re-drop the exact same pin from scratch every time they continued
+    // one). Worst case for a very old Draft saved before the pin was ever set, this
+    // is the jittered governorate-center fallback rather than a real pin — still a
+    // far better starting point on the map than the generic default center, and the
+    // host still explicitly confirms/moves it before Publish unlocks (see the Step 1
+    // gate below).
+    var pickedLatLng by remember { mutableStateOf(existingDraft?.let { GeoPoint(it.lat, it.lng) }) }
     // Numeric floor, range -5..30 per spec (basement levels down to a high-rise's
     // upper floors). Was a free-text "Floor & Accessibility" string; accessibility
     // notes belong in the description/rules now, not smuggled into a number field.
@@ -208,6 +212,22 @@ fun CreateListingDialog(
     // nothing downstream that still reads SpaceListing.isShared silently changes.
     val isShared = existingDraft?.isShared ?: true
     var ownerPhone by remember { mutableStateOf(existingDraft?.ownerPhone ?: activeUser.phone) }
+    // Split into a real country-code picker + local digits (spec 2.1) — this used
+    // to be a bare text field with just a "+961 ..." placeholder hint, despite
+    // PhoneNumberField/CountryPickerDialog already existing and being used for
+    // exactly this purpose at login/registration. Best-effort split of whatever
+    // combined string a resumed Draft already carries: match its longest known
+    // dial-code prefix, defaulting to Lebanon for a brand-new listing.
+    var ownerPhoneCountry by remember {
+        mutableStateOf(
+            COUNTRIES.filter { ownerPhone.trim().startsWith(it.dialCode) }
+                .maxByOrNull { it.dialCode.length }
+                ?: COUNTRIES.first { it.isoCode == "LB" }
+        )
+    }
+    var ownerPhoneLocal by remember {
+        mutableStateOf(ownerPhone.trim().removePrefix(ownerPhoneCountry.dialCode).trim())
+    }
 
     // Target Disciplines (hashtags) — free-typed, not a fixed chip list; each publish
     // records its tags centrally (ProHostViewModel.createNewSpaceListing) so future
@@ -647,12 +667,19 @@ fun CreateListingDialog(
                             // Step 2: Operational Parameters & Facility Rules
                             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                                 Text("Communication Setup", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
-                                InputField(
-                                    value = ownerPhone,
-                                    onValueChange = { ownerPhone = it },
-                                    label = "WhatsApp Number for Booking Requests (+961 ...)",
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
+                                PhoneNumberField(
+                                    country = ownerPhoneCountry,
+                                    onCountryChange = {
+                                        ownerPhoneCountry = it
+                                        ownerPhone = "${it.dialCode} $ownerPhoneLocal"
+                                    },
+                                    number = ownerPhoneLocal,
+                                    onNumberChange = {
+                                        ownerPhoneLocal = it
+                                        ownerPhone = "${ownerPhoneCountry.dialCode} $it"
+                                    },
+                                    label = "WhatsApp Number for Booking Requests",
+                                    modifier = Modifier.fillMaxWidth()
                                 )
 
                                 HorizontalDivider()
@@ -1087,7 +1114,15 @@ fun CreateListingDialog(
                         isVerified = false,
                         isActiveSubscription = true,
                         baseMonthlyRateUsd = monthly,
-                        subdivisions = subdivisionsList,
+                        // Gated on the live hasSubdivisions toggle, not just whatever
+                        // subdivisionsList still holds — a host who added a room, then
+                        // switched back to "whole space," used to still publish with
+                        // that room's (likely blank/zero) pricing underneath, since
+                        // buildAllSlotsForSpace picks whole-space vs. per-subdivision
+                        // pricing purely from whether subdivisions is empty. This is
+                        // the actual source of truth for that decision, so it must
+                        // agree with what the host currently sees on screen.
+                        subdivisions = if (hasSubdivisions) subdivisionsList else emptyList(),
                         imageUrls = uploadedPhotoUrls,
                         ownerIsIdVerified = activeUser.idDocumentUrl != null,
                         status = status
@@ -1167,13 +1202,30 @@ fun CreateListingDialog(
                         modifier = Modifier.weight(1.5f),
                         enabled = if (currentStep < totalSteps - 1) {
                             if (currentStep == 0) {
-                                (title.isNotBlank() || district.isNotBlank()) && ownershipProofUrl != null && !isUploadingOwnershipProof
+                                // pickedLatLng is required here too now, not just at the
+                                // final Publish gate — a host used to be able to fully
+                                // configure every later step and pricing detail, then
+                                // find Publish permanently disabled with no indication
+                                // the missing piece was all the way back on Step 1.
+                                (title.isNotBlank() || district.isNotBlank()) && ownershipProofUrl != null &&
+                                    !isUploadingOwnershipProof && pickedLatLng != null
                             } else {
                                 true
                             }
                         } else {
+                            // hasRealPrice() mirrors publishValidation.ts's own check
+                            // exactly — Publish used to only verify the pin/ownership-
+                            // doc/photo were present, never that any actual price was
+                            // configured, so a listing could flip live with a
+                            // "published successfully" toast and then get silently
+                            // demoted back to Draft moments later by the server.
+                            val hasRealPricing = if (hasSubdivisions) {
+                                subdivisionsList.isNotEmpty() && subdivisionsList.any { it.pricing.hasRealPrice() }
+                            } else {
+                                wholeSpacePricing.hasRealPrice()
+                            }
                             pickedLatLng != null && ownershipProofUrl != null && !isUploadingOwnershipProof &&
-                                uploadedPhotoUrls.isNotEmpty()
+                                uploadedPhotoUrls.isNotEmpty() && hasRealPricing
                         }
                     )
                 }

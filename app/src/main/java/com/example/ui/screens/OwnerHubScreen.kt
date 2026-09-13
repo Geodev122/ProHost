@@ -53,10 +53,15 @@ fun OwnerHubScreen(
             .ifEmpty { FacilityCatalog.standard }
     }
 
+    // ownerId is the sole, authoritative match — a substring "ownerName contains
+    // fullName" fallback used to sit here too, which is a real cross-tenant
+    // privacy bug: any host whose name is a substring of another host's listed
+    // owner name (e.g. "Sara" inside "Sara Khalil Clinic") would see that other
+    // host's real listings merged into their own dashboard.
     val ownerSpaces = remember(spaces, currentUser) {
         val user = currentUser
         if (user != null) {
-            spaces.filter { it.ownerId == user.id || it.ownerEmail.equals(user.email, ignoreCase = true) || it.ownerName.contains(user.fullName, ignoreCase = true) || user.role == UserRole.ADMIN }
+            spaces.filter { it.ownerId == user.id || user.role == UserRole.ADMIN }
         } else {
             emptyList()
         }

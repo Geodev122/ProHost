@@ -470,7 +470,10 @@ fun SubdivisionEditorSection(
                         pendingSubId = "SUB-" + UUID.randomUUID().toString().take(6).uppercase()
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = subName.isNotBlank()
+                    // Requiring real pricing here too, not just a name — a room used
+                    // to be addable with its $0 default price left completely
+                    // untouched, publishing a division with no real rate configured.
+                    enabled = subName.isNotBlank() && subPricing.hasRealPrice()
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(modifier = Modifier.width(Spacing.xs))

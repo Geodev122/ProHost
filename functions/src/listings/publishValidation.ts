@@ -6,7 +6,7 @@ import { recordAuditLog } from "../lib/auditLog";
  * full Kotlin model. */
 interface RentalPricingConfigDoc {
   strategyType?: string;
-  monthly?: { rateUsd?: number } | null;
+  monthly?: { rateUsd?: number; isIndefinite?: boolean; toMonth?: number | null; toYear?: number | null } | null;
   hourly?: { cellPrices?: Record<string, number> } | null;
   shiftBased?: {
     shifts?: Array<{
@@ -34,13 +34,23 @@ interface WorkspaceListingDoc {
   pricing?: RentalPricingConfigDoc;
   rentalFormulas?: unknown[];
   subdivisions?: SubdivisionDoc[];
+  imageUrls?: string[];
 }
 
 function structuredConfigHasRealPrice(config: RentalPricingConfigDoc | undefined | null): boolean {
   if (!config) return false;
   switch (config.strategyType) {
-    case "MONTHLY":
-      return (config.monthly?.rateUsd ?? 0) > 0;
+    case "MONTHLY": {
+      const m = config.monthly;
+      if ((m?.rateUsd ?? 0) <= 0) return false;
+      // A real rate alone isn't enough: turning "Indefinite" off without ever
+      // picking an end month leaves a range the slot-builder's own date check
+      // treats as already-ended — the listing would stay live forever with
+      // permanently zero bookable availability, never demoted since a rate
+      // genuinely was configured.
+      if (m?.isIndefinite === false && (m?.toMonth == null || m?.toYear == null)) return false;
+      return true;
+    }
     case "HOURLY":
       return Object.values(config.hourly?.cellPrices ?? {}).some((v) => (v ?? 0) > 0);
     case "SHIFT_BASED": {
@@ -104,6 +114,14 @@ export function validateListingForPublish(listing: WorkspaceListingDoc): string[
 
   if (!listing.lat || !listing.lng) {
     problems.push("Missing pinned map location.");
+  }
+
+  // "At least one photo" was previously enforced only by CreateListingDialog's
+  // own Publish gate — a photo-less Draft could still auto-publish through the
+  // quota/payment redirect path (autoPublishDraftIfNeeded) and go live with
+  // zero images, since nothing server-side ever checked for one.
+  if (!Array.isArray(listing.imageUrls) || listing.imageUrls.length === 0) {
+    problems.push("Missing at least one listing photo.");
   }
 
   const subdivisions = listing.subdivisions ?? [];

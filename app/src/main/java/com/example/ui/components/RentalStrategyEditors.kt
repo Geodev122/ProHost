@@ -124,7 +124,24 @@ fun MonthlyStrategyEditor(
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             Text("Indefinite (no end date)", fontSize = MaterialTheme.typography.bodySmall.fontSize)
-            Switch(checked = config.isIndefinite, onCheckedChange = { onConfigChange(config.copy(isIndefinite = it)) })
+            Switch(
+                checked = config.isIndefinite,
+                onCheckedChange = { indefinite ->
+                    // Default toMonth/toYear the moment "Indefinite" is turned off,
+                    // instead of leaving them null until the host happens to tap a
+                    // month chip below — a listing could otherwise publish with
+                    // isIndefinite=false and no real end date, which the slot-builder's
+                    // own date-range check treats as an already-ended range, so it
+                    // stays live forever with permanently zero bookable availability.
+                    onConfigChange(
+                        if (!indefinite && config.toMonth == null) {
+                            config.copy(isIndefinite = false, toMonth = config.fromMonth, toYear = config.fromYear + 1)
+                        } else {
+                            config.copy(isIndefinite = indefinite)
+                        }
+                    )
+                }
+            )
         }
 
         if (!config.isIndefinite) {

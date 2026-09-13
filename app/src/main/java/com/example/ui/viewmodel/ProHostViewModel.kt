@@ -106,10 +106,16 @@ class ProHostViewModel(
         repository.markAlertAsRead(alertId)
     }
 
-    // Owner spaces
+    // Owner spaces — ownerId is the real, authoritative identity match (stamped at
+    // create time and rules-enforced to equal the creating uid). This used to also
+    // match on "ownerName contains fullName" as a fallback, which is a genuine
+    // cross-tenant privacy bug: any host whose name is a substring of another
+    // host's listed owner name (e.g. "Sara" inside "Sara Khalil Clinic") would see
+    // that other host's real listings merged into their own dashboard.
     val ownerSpaces: StateFlow<List<SpaceListing>> = combine(spaces, currentUser) { list, user ->
         if (user == null) emptyList()
-        else list.filter { it.ownerName.contains(user.fullName, ignoreCase = true) || it.ownerPhone == user.phone || user.role == UserRole.ADMIN }
+        else if (user.role == UserRole.ADMIN) list
+        else list.filter { it.ownerId == user.id }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Practitioner active & past bookings
@@ -118,12 +124,14 @@ class ProHostViewModel(
         else list.filter { it.practitionerId == user.id || it.practitionerEmail.equals(user.email, ignoreCase = true) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Owner incoming booking requests
+    // Owner incoming booking requests — same ownerId-only fix as ownerSpaces above;
+    // mySpaceIds no longer needs the substring/phone fallback since it now only
+    // ever contains listings this exact user genuinely owns.
     val ownerIncomingRequests: StateFlow<List<RentalBookingRequest>> = combine(bookingRequests, currentUser, spaces) { requests, user, allSpaces ->
         if (user == null) emptyList()
         else if (user.role == UserRole.ADMIN) requests
         else {
-            val mySpaceIds = allSpaces.filter { it.ownerName.contains(user.fullName, ignoreCase = true) || it.ownerPhone == user.phone }.map { it.id }.toSet()
+            val mySpaceIds = allSpaces.filter { it.ownerId == user.id }.map { it.id }.toSet()
             requests.filter { it.ownerId == user.id || mySpaceIds.contains(it.spaceId) }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

@@ -1964,7 +1964,7 @@ ${_spaces.value.joinToString("\n") { sp ->
         sb.appendLine()
         sb.appendLine("User ID,Full Name,Email,Phone,Country,Governorate,City,Properties Count,Active Subscribed Count,Is Verified")
         owners.forEach { o ->
-            val ownedSpaces = _spaces.value.filter { it.ownerName.contains(o.fullName, ignoreCase = true) || it.ownerPhone == o.phone }
+            val ownedSpaces = _spaces.value.filter { it.ownerId == o.id }
             val activeSpaces = ownedSpaces.count { it.isActiveSubscription }
             sb.appendLine("\"${o.id}\",\"${o.fullName.replace("\"", "\"\"")}\",\"${o.email}\",\"${o.phone}\",\"${o.country}\",\"${o.governorate}\",\"${o.city}\",${ownedSpaces.size},$activeSpaces,${o.isVerified}")
         }

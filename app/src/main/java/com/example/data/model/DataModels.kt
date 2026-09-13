@@ -209,6 +209,32 @@ data class RentalPricingConfig(
         }
     )
 
+    /** Whether this config carries at least one real, non-zero price — mirrors
+     *  functions/src/listings/publishValidation.ts's structuredConfigHasRealPrice
+     *  exactly, so the client's Publish gate can never disagree with the server-side
+     *  re-check that demotes an underpriced listing straight back to Draft. Used to
+     *  close a real gap: Publish used to only check the pin/ownership-doc/photo were
+     *  present, never that any actual price was configured, so a listing could flip
+     *  live with a "published successfully" toast and then get silently demoted
+     *  moments later. */
+    fun hasRealPrice(): Boolean = when (strategyType) {
+        RentalStrategyType.MONTHLY -> (monthly?.rateUsd ?: 0.0) > 0.0
+        RentalStrategyType.HOURLY -> hourly?.cellPrices?.values?.any { it > 0.0 } ?: false
+        RentalStrategyType.SHIFT_BASED -> {
+            val shiftsByName = shiftBased?.shifts?.associateBy { it.name.name } ?: emptyMap()
+            shiftBased?.distribution?.values?.any { shiftNames ->
+                shiftNames.any { name ->
+                    val shift = shiftsByName[name]
+                    shift != null && !shift.isUnavailable &&
+                        (shift.pricing.oneTimePrice > 0.0 || shift.pricing.sameDayEveryWeekPrice > 0.0 || shift.pricing.monthlyRecurrencePrice > 0.0)
+                }
+            } ?: false
+        }
+        RentalStrategyType.DAY_BASED -> dayBased?.distribution?.values?.any {
+            (it.oneTimePrice ?: 0.0) > 0.0 || (it.sameDayEachMonthPrice ?: 0.0) > 0.0 || (it.sameDayEachWeekPrice ?: 0.0) > 0.0
+        } ?: false
+    }
+
     companion object {
         fun default(): RentalPricingConfig = RentalPricingConfig(RentalStrategyType.MONTHLY, monthly = MonthlyConfig())
 
