@@ -60,7 +60,7 @@ fun DrawerIdentityCard(
                 .padding(20.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // Top row: Role Pill
+                // Top row: Role Pill (+ active subscription tag for a Pro Host)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Start,
@@ -105,6 +105,24 @@ fun DrawerIdentityCard(
                                 color = Color.White,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    if (role == UserRole.PRO_HOST && user != null) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Surface(
+                            color = Color.White.copy(alpha = 0.15f),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Text(
+                                text = user.ownerPackageTier.badgeName,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                             )
                         }
                     }
