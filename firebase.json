@@ -33,6 +33,10 @@
         "destination": "/terms.html"
       },
       {
+        "source": "/delete-account",
+        "destination": "/delete-account.html"
+      },
+      {
         "source": "/payment/success",
         "destination": "/payment/success.html"
       },
