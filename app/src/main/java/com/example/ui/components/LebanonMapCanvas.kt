@@ -21,6 +21,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -34,6 +35,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.example.data.model.SpaceListing
 import com.example.ui.theme.Spacing
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -67,42 +70,56 @@ fun LebanonMapCanvas(
     var sortedSpaces by remember { mutableStateOf(spaces) }
     var isLocating by remember { mutableStateOf(false) }
 
-    // Fused Location Provider client
     val fusedLocationClient = remember {
         LocationServices.getFusedLocationProviderClient(context)
     }
 
-    // Request location permissions launcher
+    fun requestHighAccuracyLocation() {
+        val finePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+        val coarsePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (finePerm == PackageManager.PERMISSION_GRANTED || coarsePerm == PackageManager.PERMISSION_GRANTED) {
+            isLocating = true
+            val cancelToken = CancellationTokenSource()
+            fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cancelToken.token)
+                .addOnSuccessListener { location: Location? ->
+                    isLocating = false
+                    if (location != null) {
+                        userLocation = GeoPoint(location.latitude, location.longitude)
+                        Toast.makeText(context, "High-accuracy GPS location locked!", Toast.LENGTH_SHORT).show()
+                    } else {
+                        // Fallback to last known location
+                        fusedLocationClient.lastLocation.addOnSuccessListener { lastLoc ->
+                            if (lastLoc != null) {
+                                userLocation = GeoPoint(lastLoc.latitude, lastLoc.longitude)
+                                Toast.makeText(context, "Location updated from GPS cache.", Toast.LENGTH_SHORT).show()
+                            } else {
+                                userLocation = GeoPoint(33.8886, 35.5184)
+                                Toast.makeText(context, "GPS active. Position locked on Beirut.", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }
+                .addOnFailureListener {
+                    isLocating = false
+                    Toast.makeText(context, "GPS signal unavailable", Toast.LENGTH_SHORT).show()
+                }
+        }
+    }
+
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
         val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
         if (fineGranted || coarseGranted) {
-            isLocating = true
-            try {
-                fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
-                    isLocating = false
-                    if (location != null) {
-                        userLocation = GeoPoint(location.latitude, location.longitude)
-                        Toast.makeText(context, "Location updated successfully!", Toast.LENGTH_SHORT).show()
-                    } else {
-                        // Fallback to Beirut centre if GPS signal is mock/unavailable in container
-                        userLocation = GeoPoint(33.8886, 35.5184)
-                        Toast.makeText(context, "GPS active. Position locked on Beirut.", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            } catch (e: SecurityException) {
-                isLocating = false
-            }
+            requestHighAccuracyLocation()
         } else {
             Toast.makeText(context, "Location permission declined. Nearby features unavailable.", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // Distance calculator helper
     fun calculateDistanceKm(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Double {
-        val r = 6371.0 // Earth's radius in kilometers
+        val r = 6371.0
         val dLat = Math.toRadians(lat2 - lat1)
         val dLng = Math.toRadians(lng2 - lng1)
         val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -112,7 +129,6 @@ fun LebanonMapCanvas(
         return r * c
     }
 
-    // Sort listings automatically whenever spaces or user coordinates change
     LaunchedEffect(spaces, userLocation) {
         val userLoc = userLocation
         if (userLoc != null) {
@@ -124,13 +140,7 @@ fun LebanonMapCanvas(
         }
     }
 
-    // Purely local — this composable used to also accept a `selectedSpace` param
-    // from the caller's own ViewModel state, re-synced via a LaunchedEffect, but
-    // nothing ever actually drove that value (DiscoveryViewModel.selectSpace() had
-    // zero call sites), so it always resolved to null and the effect never did
-    // anything useful. Map pin selection is entirely local state now.
     var activePinSpace by remember { mutableStateOf<SpaceListing?>(null) }
-
     val defaultCenter = GeoPoint(33.8886, 35.5184)
 
     val mapView = remember {
@@ -138,7 +148,7 @@ fun LebanonMapCanvas(
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
             setBuiltInZoomControls(true)
-            controller.setZoom(9.0)
+            controller.setZoom(10.0)
             controller.setCenter(defaultCenter)
         }
     }
@@ -174,13 +184,13 @@ fun LebanonMapCanvas(
 
     LaunchedEffect(userLocation) {
         userLocation?.let { uLoc ->
-            mapView.controller.setZoom(11.0)
+            mapView.controller.setZoom(13.0)
             mapView.controller.animateTo(uLoc)
         }
     }
 
     Box(
-        modifier = modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize().clipToBounds()
     ) {
         AndroidView(
             factory = { mapView },
@@ -235,21 +245,14 @@ fun LebanonMapCanvas(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .padding(Spacing.lg),
+                .padding(Spacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-
-            // Current Coordinates & Info HUD — a fixed-contrast chip floating over the
-            // live map (whose own tiles don't follow the app's light/dark setting), so
-            // it deliberately uses inverseSurface/inverseOnSurface (the same
-            // always-contrasting pairing ExportDataDialog uses) rather than
-            // surface/onSurface, which would flip with the app theme and risk poor
-            // contrast against the map underneath it.
             Surface(
                 color = MaterialTheme.colorScheme.inverseSurface,
                 shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.padding(horizontal = Spacing.lg)
+                modifier = Modifier.padding(horizontal = Spacing.md)
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
@@ -284,43 +287,31 @@ fun LebanonMapCanvas(
             }
         }
 
-        // Required by OpenStreetMap's tile-usage policy for apps using its
-        // default tile servers directly.
-        Surface(
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
-            shape = MaterialTheme.shapes.extraSmall,
+        // Joystick Gear Stick Navigation Controller (Bottom Left)
+        MapJoystickNavigator(
+            onPan = { dx, dy ->
+                val center = mapView.mapCenter
+                val curLat = center.latitude
+                val curLng = center.longitude
+                val zoomLevel = mapView.zoomLevelDouble.coerceAtLeast(1.0)
+                val panStep = 0.00018 * (15.0 / zoomLevel)
+                val newLat = curLat - (dy * panStep)
+                val newLng = curLng + (dx * panStep)
+                mapView.controller.setCenter(GeoPoint(newLat, newLng))
+                mapView.invalidate()
+            },
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(4.dp)
-        ) {
-            Text(
-                "© OpenStreetMap contributors",
-                fontSize = 8.sp,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-            )
-        }
+                .padding(start = 16.dp, bottom = if (activePinSpace != null) 340.dp else 24.dp)
+        )
 
-        // FLOATING GPS SEARCH CONTROLLER (Bottom Right)
+        // FLOATING HIGH-ACCURACY GPS CONTROLLER (Bottom Right)
         FloatingActionButton(
             onClick = {
                 val finePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
                 val coarsePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
                 if (finePerm == PackageManager.PERMISSION_GRANTED || coarsePerm == PackageManager.PERMISSION_GRANTED) {
-                    isLocating = true
-                    try {
-                        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
-                            isLocating = false
-                            if (location != null) {
-                                userLocation = GeoPoint(location.latitude, location.longitude)
-                                Toast.makeText(context, "Location updated successfully!", Toast.LENGTH_SHORT).show()
-                            } else {
-                                userLocation = GeoPoint(33.8886, 35.5184)
-                                Toast.makeText(context, "GPS locked on Beirut center", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    } catch (e: SecurityException) {
-                        isLocating = false
-                    }
+                    requestHighAccuracyLocation()
                 } else {
                     requestPermissionLauncher.launch(
                         arrayOf(
@@ -332,7 +323,7 @@ fun LebanonMapCanvas(
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = if (activePinSpace != null) 340.dp else 100.dp)
+                .padding(end = 16.dp, bottom = if (activePinSpace != null) 340.dp else 24.dp)
                 .shadow(8.dp, CircleShape),
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -341,8 +332,23 @@ fun LebanonMapCanvas(
             if (isLocating) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
             } else {
-                Icon(Icons.Default.MyLocation, contentDescription = "Find Spaces Near Me")
+                Icon(Icons.Default.MyLocation, contentDescription = "High-Accuracy GPS Locate")
             }
+        }
+
+        // Required by OpenStreetMap's tile-usage policy
+        Surface(
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+            shape = MaterialTheme.shapes.extraSmall,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 4.dp)
+        ) {
+            Text(
+                "© OpenStreetMap contributors",
+                fontSize = 8.sp,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+            )
         }
 
         // FLOATING SELECTED WORKSPACE CARD PREVIEW (Slide-up menu)
@@ -401,7 +407,6 @@ fun LebanonMapCanvas(
 
                         Spacer(modifier = Modifier.height(Spacing.sm))
 
-                        // Distance badge if GPS is loaded
                         userLocation?.let { uLoc ->
                             val dist = calculateDistanceKm(uLoc.latitude, uLoc.longitude, space.lat, space.lng)
                             Surface(
@@ -435,7 +440,6 @@ fun LebanonMapCanvas(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Fast Highlights Chips
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.fillMaxWidth()
