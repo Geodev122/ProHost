@@ -17,6 +17,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -38,6 +41,65 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
+
+// Savers for rememberSaveable — process death mid-wizard would otherwise lose all
+// in-progress state. The debounced 3s Draft auto-save already covers a kill that
+// happens after that window fires; these close the narrower "killed within the
+// first few seconds" gap for the fields cheap enough to make Bundle-safe.
+private val CategoryEnumSaver = Saver<SpaceType, String>(
+    save = { it.name },
+    restore = { runCatching { SpaceType.valueOf(it) }.getOrDefault(SpaceType.PRIVATE_OFFICE) }
+)
+
+private val GovernorateSaver = Saver<Governorate, String>(
+    save = { it.name },
+    restore = { runCatching { Governorate.valueOf(it) }.getOrDefault(Governorate.BEIRUT) }
+)
+
+private val EquipmentCategorySaver = Saver<EquipmentCategory, String>(
+    save = { it.name },
+    restore = { runCatching { EquipmentCategory.valueOf(it) }.getOrDefault(EquipmentCategory.WORKSPACES) }
+)
+
+private val OwnershipRoleSaver = Saver<OwnershipRole?, String>(
+    save = { it?.name ?: "" },
+    restore = { name -> name.takeIf { it.isNotEmpty() }?.let { runCatching { OwnershipRole.valueOf(it) }.getOrNull() } }
+)
+
+private val PhoneCountrySaver = Saver<Country, String>(
+    save = { it.name },
+    restore = { findCountryByName(it) }
+)
+
+private val DocumentPickerStateSaver = Saver<DocumentPickerState, List<String?>>(
+    save = { listOf(it.uri?.toString(), it.fileName) },
+    restore = { DocumentPickerState(it.getOrNull(0)?.let(Uri::parse), it.getOrNull(1)) }
+)
+
+private val StringSetSaver = listSaver<Set<String>, String>(
+    save = { it.toList() },
+    restore = { it.toSet() }
+)
+
+private val StringListSaver = listSaver<List<String>, String>(
+    save = { it },
+    restore = { it }
+)
+
+private val EquipmentListSaver = listSaver<List<EquipmentItem>, Any?>(
+    save = { list -> list.flatMap { listOf(it.id, it.name, it.category.name, it.quantity, it.description) } },
+    restore = { flat ->
+        flat.chunked(5).map {
+            EquipmentItem(
+                id = it[0] as String,
+                name = it[1] as String,
+                category = runCatching { EquipmentCategory.valueOf(it[2] as String) }.getOrDefault(EquipmentCategory.WORKSPACES),
+                quantity = it[3] as Int,
+                description = it[4] as String
+            )
+        }
+    }
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,16 +170,16 @@ fun CreateListingDialog(
     val listingId = remember { existingDraft?.id ?: ("SPC-LB-" + UUID.randomUUID().toString().take(6).uppercase()) }
     // Drives the small "Draft auto-saved" caption in the header — set once the
     // auto-save LaunchedEffect below has actually fired at least once.
-    var lastAutoSavedAtMillis by remember { mutableStateOf<Long?>(null) }
-    var uploadedPhotoUrls by remember { mutableStateOf(existingDraft?.imageUrls ?: emptyList()) }
-    var isUploadingPhoto by remember { mutableStateOf(false) }
+    var lastAutoSavedAtMillis by rememberSaveable { mutableStateOf<Long?>(null) }
+    var uploadedPhotoUrls by rememberSaveable(stateSaver = StringListSaver) { mutableStateOf(existingDraft?.imageUrls ?: emptyList()) }
+    var isUploadingPhoto by rememberSaveable { mutableStateOf(false) }
 
     // Proof of ownership / right to rent — required per listing (no admin review, just
     // kept on file; see SpaceListing.ownershipProofUrl's doc comment). Uploaded
     // immediately on pick, same pattern as cover photos above.
-    var ownershipProofDoc by remember { mutableStateOf(DocumentPickerState()) }
-    var ownershipProofUrl by remember { mutableStateOf(existingDraft?.ownershipProofUrl) }
-    var isUploadingOwnershipProof by remember { mutableStateOf(false) }
+    var ownershipProofDoc by rememberSaveable(stateSaver = DocumentPickerStateSaver) { mutableStateOf(DocumentPickerState()) }
+    var ownershipProofUrl by rememberSaveable { mutableStateOf(existingDraft?.ownershipProofUrl) }
+    var isUploadingOwnershipProof by rememberSaveable { mutableStateOf(false) }
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris: List<Uri> ->
@@ -140,8 +202,8 @@ fun CreateListingDialog(
         }
     }
 
-    var title by remember { mutableStateOf(existingDraft?.title ?: "") }
-    var selectedSpaceType by remember { mutableStateOf(existingDraft?.spaceType ?: SpaceType.PRIVATE_OFFICE) }
+    var title by rememberSaveable { mutableStateOf(existingDraft?.title ?: "") }
+    var selectedSpaceType by rememberSaveable(stateSaver = CategoryEnumSaver) { mutableStateOf(existingDraft?.spaceType ?: SpaceType.PRIVATE_OFFICE) }
 
     // Admin-defined Space Category catalog (spec 1.1) — replaces the closed 4-value
     // picker. Falls back to a synthetic list mirroring the 4 legacy SpaceType values
@@ -169,14 +231,14 @@ fun CreateListingDialog(
     // selectedSpaceType above is kept in sync purely for legacy readers. Defaults to
     // whichever category maps onto the draft's (or a fresh listing's) legacy type so
     // the picker never starts with nothing selected.
-    var selectedCategoryId by remember {
+    var selectedCategoryId by rememberSaveable {
         mutableStateOf(
             existingDraft?.spaceCategoryId
                 ?: categoryOptions.firstOrNull { legacyTypeFor(it.id) == selectedSpaceType }?.id
                 ?: categoryOptions.firstOrNull()?.id
         )
     }
-    var selectedCategoryName by remember {
+    var selectedCategoryName by rememberSaveable {
         mutableStateOf(existingDraft?.spaceCategoryName ?: categoryOptions.firstOrNull { it.id == selectedCategoryId }?.name)
     }
     // No longer shown as its own picker — a governorate field alongside a real map
@@ -185,12 +247,12 @@ fun CreateListingDialog(
     // to keep the existing governorate-keyed fields (Discovery filters, address
     // fallback text) working unchanged. Starts at the draft's last-known value so a
     // resumed draft doesn't jump to Beirut before its pin is re-picked.
-    var derivedGovernorate by remember { mutableStateOf(existingDraft?.governorate ?: Governorate.BEIRUT) }
-    var description by remember { mutableStateOf(existingDraft?.description ?: "") }
-    var country by remember { mutableStateOf("Lebanon") }
-    var city by remember { mutableStateOf("") }
-    var district by remember { mutableStateOf(existingDraft?.district ?: "") }
-    var streetAddress by remember { mutableStateOf(existingDraft?.streetAddress ?: "") }
+    var derivedGovernorate by rememberSaveable(stateSaver = GovernorateSaver) { mutableStateOf(existingDraft?.governorate ?: Governorate.BEIRUT) }
+    var description by rememberSaveable { mutableStateOf(existingDraft?.description ?: "") }
+    var country by rememberSaveable { mutableStateOf("Lebanon") }
+    var city by rememberSaveable { mutableStateOf("") }
+    var district by rememberSaveable { mutableStateOf(existingDraft?.district ?: "") }
+    var streetAddress by rememberSaveable { mutableStateOf(existingDraft?.streetAddress ?: "") }
 
     // Real geolocation from the map picker below — required to publish. Distinct from
     // [district]/[streetAddress] above, which the host types freely; a picked address
@@ -203,31 +265,33 @@ fun CreateListingDialog(
     // far better starting point on the map than the generic default center, and the
     // host still explicitly confirms/moves it before Publish unlocks (see the Step 1
     // gate below).
-    var pickedLatLng by remember { mutableStateOf(existingDraft?.let { GeoPoint(it.lat, it.lng) }) }
+    // GeoPoint implements Parcelable/Serializable, so it's Bundle-safe with the
+    // default saver directly — no custom Saver needed.
+    var pickedLatLng by rememberSaveable { mutableStateOf(existingDraft?.let { GeoPoint(it.lat, it.lng) }) }
     // Numeric floor, range -5..30 per spec (basement levels down to a high-rise's
     // upper floors). Was a free-text "Floor & Accessibility" string; accessibility
     // notes belong in the description/rules now, not smuggled into a number field.
-    var floorNumber by remember { mutableStateOf(existingDraft?.floorInfo?.filter { it.isDigit() || it == '-' }?.toIntOrNull() ?: 1) }
+    var floorNumber by rememberSaveable { mutableStateOf(existingDraft?.floorInfo?.filter { it.isDigit() || it == '-' }?.toIntOrNull() ?: 1) }
     // isShared is no longer a Step 1 toggle — subdivision vs. whole-space is decided
     // in Step 3 (Availability) instead. Kept as an inert field defaulting to the
     // draft's last value (or true, matching the removed toggle's old default) so
     // nothing downstream that still reads SpaceListing.isShared silently changes.
     val isShared = existingDraft?.isShared ?: true
-    var ownerPhone by remember { mutableStateOf(existingDraft?.ownerPhone ?: activeUser.phone) }
+    var ownerPhone by rememberSaveable { mutableStateOf(existingDraft?.ownerPhone ?: activeUser.phone) }
     // Split into a real country-code picker + local digits (spec 2.1) — this used
     // to be a bare text field with just a "+961 ..." placeholder hint, despite
     // PhoneNumberField/CountryPickerDialog already existing and being used for
     // exactly this purpose at login/registration. Best-effort split of whatever
     // combined string a resumed Draft already carries: match its longest known
     // dial-code prefix, defaulting to Lebanon for a brand-new listing.
-    var ownerPhoneCountry by remember {
+    var ownerPhoneCountry by rememberSaveable(stateSaver = PhoneCountrySaver) {
         mutableStateOf(
             COUNTRIES.filter { ownerPhone.trim().startsWith(it.dialCode) }
                 .maxByOrNull { it.dialCode.length }
                 ?: COUNTRIES.first { it.isoCode == "LB" }
         )
     }
-    var ownerPhoneLocal by remember {
+    var ownerPhoneLocal by rememberSaveable {
         mutableStateOf(ownerPhone.trim().removePrefix(ownerPhoneCountry.dialCode).trim())
     }
 
@@ -236,17 +300,17 @@ fun CreateListingDialog(
     // hosts see suggestions drawn from real prior usage. suggestedHashtags below is
     // the caller-supplied top-used list (fetched once when the dialog opens), filtered
     // client-side by prefix as the host types — no per-keystroke network query.
-    var hashtagInput by remember { mutableStateOf("") }
-    var selectedSpecialties by remember { mutableStateOf(existingDraft?.complementarySpecialties?.toSet() ?: emptySet()) }
+    var hashtagInput by rememberSaveable { mutableStateOf("") }
+    var selectedSpecialties by rememberSaveable(stateSaver = StringSetSaver) { mutableStateOf(existingDraft?.complementarySpecialties?.toSet() ?: emptySet()) }
 
     // Operating hours & days — previously collected only post-publish
     // (SpaceScheduleEditorDialog); now part of the wizard itself (spec 2.2/2.3) since
     // Step 3's per-strategy availability tables need real operating hours/days to key
     // off from the moment they're built.
     val weekDayOptions = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    var operatingDays by remember { mutableStateOf(existingDraft?.schedule?.operatingDays?.toSet() ?: setOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat")) }
-    var openingHour by remember { mutableStateOf(existingDraft?.schedule?.openingHour ?: "08:00") }
-    var closingHour by remember { mutableStateOf(existingDraft?.schedule?.closingHour ?: "20:00") }
+    var operatingDays by rememberSaveable(stateSaver = StringSetSaver) { mutableStateOf(existingDraft?.schedule?.operatingDays?.toSet() ?: setOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat")) }
+    var openingHour by rememberSaveable { mutableStateOf(existingDraft?.schedule?.openingHour ?: "08:00") }
+    var closingHour by rememberSaveable { mutableStateOf(existingDraft?.schedule?.closingHour ?: "20:00") }
 
     // Ownership / right-to-rent — moved from the wizard's last step to its first
     // (spec 1.5): mandatory to advance past Step 1, not just to Publish, and gated
@@ -254,15 +318,18 @@ fun CreateListingDialog(
     // (ownershipProofUrl) and a DIFFERENT, new dialog flow from the optional,
     // post-publish "Get Listing Verified" badge system (verificationDocUrl /
     // ListingVerificationDialog) — the two must never be conflated.
-    var ownershipRole by remember { mutableStateOf(existingDraft?.ownershipDocRole) }
+    var ownershipRole by rememberSaveable(stateSaver = OwnershipRoleSaver) { mutableStateOf(existingDraft?.ownershipDocRole) }
+    // Dialog-visibility booleans stay plain remember — losing them on process death
+    // just closes a dialog, harmless. hasAcknowledgedAuditDisclaimer is converted since
+    // it's a real progress flag, not a transient dialog state.
     var showOwnershipRolePrompt by remember { mutableStateOf(existingDraft?.ownershipProofUrl == null) }
     var showRerentalTemplateDialog by remember { mutableStateOf(false) }
     var showAuditDisclaimer by remember { mutableStateOf(false) }
-    var hasAcknowledgedAuditDisclaimer by remember { mutableStateOf(false) }
+    var hasAcknowledgedAuditDisclaimer by rememberSaveable { mutableStateOf(false) }
 
     // Facilities toggles
     val standardFacilities = availableFacilities
-    var selectedFacilities by remember {
+    var selectedFacilities by rememberSaveable(stateSaver = StringSetSaver) {
         mutableStateOf(existingDraft?.essentialFacilities?.toSet() ?: standardFacilities.take(5).toSet())
     }
 
@@ -282,39 +349,46 @@ fun CreateListingDialog(
         EquipmentItem("EQ-T12", "Magnetic Glass Presentation Whiteboard", EquipmentCategory.OFFICE_AMENITIES, 2)
     )
 
-    var chosenEquipment by remember {
+    var chosenEquipment by rememberSaveable(stateSaver = EquipmentListSaver) {
         mutableStateOf(
             existingDraft?.equipment?.takeIf { it.isNotEmpty() }
                 ?: listOf(defaultEquipCatalog[0], defaultEquipCatalog[3], defaultEquipCatalog[10])
         )
     }
-    var equipmentSearchQuery by remember { mutableStateOf("") }
+    var equipmentSearchQuery by rememberSaveable { mutableStateOf("") }
     // Custom equipment entry — the fixed catalog above (defaultEquipCatalog) is a
     // representative starting list, not exhaustive; a host whose space has
     // something not on it (a piece of clinical gear, a specific tool) can add it
     // by name instead of being stuck picking the closest fixed match.
     var showAddCustomEquipment by remember { mutableStateOf(false) }
-    var customEquipmentName by remember { mutableStateOf("") }
-    var customEquipmentCategory by remember { mutableStateOf(EquipmentCategory.WORKSPACES) }
+    var customEquipmentName by rememberSaveable { mutableStateOf("") }
+    var customEquipmentCategory by rememberSaveable(stateSaver = EquipmentCategorySaver) { mutableStateOf(EquipmentCategory.WORKSPACES) }
 
     // Premises rules — real editable fields, replacing the previously-hardcoded
     // PremisesRules() default at listing construction.
-    var smokingAllowed by remember { mutableStateOf(existingDraft?.rules?.smokingAllowed ?: false) }
-    var foodAllowed by remember { mutableStateOf(existingDraft?.rules?.foodAllowed ?: true) }
-    var petsAllowed by remember { mutableStateOf(existingDraft?.rules?.petsAllowed ?: false) }
-    var offHoursAccess by remember { mutableStateOf(existingDraft?.rules?.offHoursAccess ?: true) }
-    var visitorPolicy by remember { mutableStateOf(existingDraft?.rules?.visitorPolicy ?: "Clients & visitors welcomed in reception lounge") }
+    var smokingAllowed by rememberSaveable { mutableStateOf(existingDraft?.rules?.smokingAllowed ?: false) }
+    var foodAllowed by rememberSaveable { mutableStateOf(existingDraft?.rules?.foodAllowed ?: true) }
+    var petsAllowed by rememberSaveable { mutableStateOf(existingDraft?.rules?.petsAllowed ?: false) }
+    var offHoursAccess by rememberSaveable { mutableStateOf(existingDraft?.rules?.offHoursAccess ?: true) }
+    var visitorPolicy by rememberSaveable { mutableStateOf(existingDraft?.rules?.visitorPolicy ?: "Clients & visitors welcomed in reception lounge") }
 
     // Subdivision States (Level 2 Rooms & Desks) — the "add a room" form fields
     // themselves now live inside SubdivisionEditorSection (see that file); this
     // dialog only hoists the resulting list, since buildListing() needs it.
+    // Deliberately excluded from the rememberSaveable retrofit — a complex nested data
+    // class list with no natural flat representation; the existing 3s Draft auto-save
+    // already covers a process death beyond that narrow window, and a custom Saver here
+    // would mean hand-maintaining a third serialization format (Firestore map, in-memory
+    // object, now Bundle) for one of the wizard's most complex config types.
     var subdivisionsList by remember { mutableStateOf(existingDraft?.subdivisions ?: listOf<Subdivision>()) }
     // The listing's own pricing when it has no divisions — real structured config,
     // not the old free-text-only "base monthly valuation" field (baseMonthlyRate
     // stays as a legacy display-only derivative, computed from this in buildListing()).
+    // Deliberately excluded — same reasoning as subdivisionsList above; this is the
+    // single most complex config type in the wizard.
     var wholeSpacePricing by remember { mutableStateOf(existingDraft?.pricing ?: RentalPricingConfig.default()) }
 
-    var currentStep by remember { mutableIntStateOf(0) }
+    var currentStep by rememberSaveable { mutableIntStateOf(0) }
     // A genuine, independent choice now (spec Step 3's opening toggle) — replacing
     // the previous inference from selectedSpaceType, which made a divided Private
     // Office or an undivided Center impossible (the two facts have nothing to do
@@ -322,7 +396,7 @@ fun CreateListingDialog(
     // whether a resumed draft already has any subdivisions, or a sensible guess
     // from the category otherwise, so a fresh wizard doesn't start on a jarring
     // default.
-    var hasSubdivisions by remember {
+    var hasSubdivisions by rememberSaveable {
         mutableStateOf(existingDraft?.let { it.subdivisions.isNotEmpty() } ?: (selectedSpaceType != SpaceType.PRIVATE_OFFICE))
     }
     // Always 3, matching the spec's fixed Step 1/2/3 structure — previously 4 for a
