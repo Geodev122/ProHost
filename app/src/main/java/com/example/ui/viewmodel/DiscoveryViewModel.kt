@@ -31,8 +31,16 @@ class DiscoveryViewModel(
         _filterState,
         _isFilterSheetVisible,
         _isMapViewActive,
-        repository.currentUser
-    ) { spaces: List<SpaceListing>, filter: DiscoveryFilterState, sheetVisible: Boolean, mapActive: Boolean, user: AppUser? ->
+        repository.currentUser,
+        repository.hasLoadedSpacesOnce
+    ) { values ->
+        @Suppress("UNCHECKED_CAST")
+        val spaces = values[0] as List<SpaceListing>
+        val filter = values[1] as DiscoveryFilterState
+        val sheetVisible = values[2] as Boolean
+        val mapActive = values[3] as Boolean
+        val user = values[4] as AppUser?
+        val hasLoadedOnce = values[5] as Boolean
         val savedIds = user?.savedSpaceIds ?: emptyList()
         val filtered = spaces.filter { space ->
             val matchesQuery = filter.query.isBlank() ||
@@ -75,7 +83,7 @@ class DiscoveryViewModel(
             filterState = filter,
             isFilterSheetVisible = sheetVisible,
             isMapViewActive = mapActive,
-            isLoading = false,
+            isLoading = !hasLoadedOnce,
             savedSpaceIds = savedIds
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DiscoveryUiState())

@@ -86,6 +86,7 @@ fun DiscoveryScreen(
         savedSpaceIds = uiState.savedSpaceIds,
         isMapView = uiState.isMapViewActive,
         showFilterSheet = uiState.isFilterSheetVisible,
+        isLoading = uiState.isLoading,
         onSearchQueryChange = { discoveryViewModel.updateSearchQuery(it) },
         onToggleMapView = { discoveryViewModel.toggleMapView() },
         onSetFilterSheetVisible = { discoveryViewModel.setFilterSheetVisible(it) },
@@ -133,6 +134,7 @@ fun DiscoveryScreenContent(
     savedSpaceIds: List<String>,
     isMapView: Boolean,
     showFilterSheet: Boolean,
+    isLoading: Boolean = false,
     onSearchQueryChange: (String) -> Unit,
     onToggleMapView: () -> Unit,
     onSetFilterSheetVisible: (Boolean) -> Unit,
@@ -279,7 +281,16 @@ fun DiscoveryScreenContent(
             }
         } else {
             // List View
-            if (spaces.isEmpty()) {
+            if (isLoading) {
+                // The first workspace_listings snapshot hasn't arrived yet —
+                // without this, isLoading was hardcoded false and an account
+                // with real matching listings briefly showed "No Workspaces
+                // Found" before the real list streamed in, indistinguishable
+                // from a search that genuinely matched nothing.
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (spaces.isEmpty()) {
                 ProEmptyState(
                     title = "No Workspaces Found",
                     description = "Try adjusting your search query, governorate, or pricing filter.",

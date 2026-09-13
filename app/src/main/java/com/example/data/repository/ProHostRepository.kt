@@ -119,6 +119,14 @@ class ProHostRepository {
     private val _hasLoadedBookingsOnce = MutableStateFlow(false)
     val hasLoadedBookingsOnce: StateFlow<Boolean> = _hasLoadedBookingsOnce.asStateFlow()
 
+    // Same reasoning as hasLoadedBookingsOnce above, for Discovery: isLoading was
+    // hardcoded false in DiscoveryViewModel, so the "no listings match your
+    // filters" empty state rendered instantly on open, before the first real
+    // workspace_listings snapshot ever arrived — indistinguishable from an
+    // account that genuinely has no matches.
+    private val _hasLoadedSpacesOnce = MutableStateFlow(false)
+    val hasLoadedSpacesOnce: StateFlow<Boolean> = _hasLoadedSpacesOnce.asStateFlow()
+
     private val _spaceArchitectureSchema = MutableStateFlow<SpaceArchitectureSchema>(createDefaultSchema())
     val spaceArchitectureSchema: StateFlow<SpaceArchitectureSchema> = _spaceArchitectureSchema.asStateFlow()
 
@@ -167,6 +175,7 @@ class ProHostRepository {
             firestoreService.attachLiveListeners(
                 onWorkspacesUpdated = { updatedSpaces ->
                     _spaces.value = updatedSpaces
+                    _hasLoadedSpacesOnce.value = true
                     _isCloudConnected.value = true
                     _isOfflineMode.value = false
                     _syncStatusMessage.value = "Real-time Cloud Sync Active"
