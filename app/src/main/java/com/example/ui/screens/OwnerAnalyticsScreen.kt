@@ -29,7 +29,6 @@ fun OwnerAnalyticsScreen(
 ) {
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
     val bookingRequests by viewModel.bookingRequests.collectAsState()
-    val pricingState by viewModel.pricingState.collectAsState()
 
     // Used to silently fall back to up to 3 arbitrary OTHER owners' listings when this
     // owner had none of their own — a real data leak (their pricing/occupancy shown
@@ -39,6 +38,7 @@ fun OwnerAnalyticsScreen(
     val displayListings = ownerSpaces
     val totalRevenuePotential = displayListings.sumOf { it.baseMonthlyRateUsd }
     val totalInquiries = displayListings.sumOf { it.avatarInquiryClicks }
+    val totalFavorites = displayListings.sumOf { it.favoriteCount }
 
     val ownerSpaceIds = remember(displayListings) { displayListings.map { it.id }.toSet() }
     val specialtyDemand = remember(bookingRequests, ownerSpaceIds) {
@@ -113,12 +113,18 @@ fun OwnerAnalyticsScreen(
                             iconTint = StatusSuccess,
                             modifier = Modifier.weight(1f)
                         )
+                        // Replaces a stale "Whish Fee" tile that showed the flat legacy
+                        // monthlySubscriptionFeeUsd — pricing is per-category/per-package
+                        // now (see Phase 12), and that figure no longer reflects what any
+                        // given listing actually costs. "Saved" is the concrete answer to
+                        // "prohost sees listing performance" for the heart-icon toggle —
+                        // see SpaceListing.favoriteCount / favoritesSync.ts.
                         ProMetricTile(
-                            title = "Whish Fee",
-                            value = "$${pricingState.monthlySubscriptionFeeUsd}",
-                            subtitle = "Per Space / Month",
-                            icon = Icons.Default.Payment,
-                            iconTint = WhishRed,
+                            title = "Saved",
+                            value = "$totalFavorites",
+                            subtitle = "By Specialists",
+                            icon = Icons.Default.Favorite,
+                            iconTint = CrimsonRed,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -260,22 +266,32 @@ fun ListingHealthCard(space: SpaceListing) {
 
             Spacer(modifier = Modifier.width(Spacing.sm))
 
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = MaterialTheme.shapes.small
-            ) {
-                Text(
-                    // spaceType is no longer the source of truth once spaceCategoryId is
-                    // set (see SpaceListing's own doc comment) — a listing under a
-                    // genuinely new admin category has no legacy equivalent and would
-                    // otherwise always show as "Private Office" here. Same fallback
-                    // OwnerSubscriptionsScreen already uses.
-                    text = space.spaceCategoryName ?: space.spaceType.displayName,
-                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        // spaceType is no longer the source of truth once spaceCategoryId is
+                        // set (see SpaceListing's own doc comment) — a listing under a
+                        // genuinely new admin category has no legacy equivalent and would
+                        // otherwise always show as "Private Office" here. Same fallback
+                        // OwnerSubscriptionsScreen already uses.
+                        text = space.spaceCategoryName ?: space.spaceType.displayName,
+                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Icon(Icons.Default.Favorite, contentDescription = null, tint = CrimsonRed, modifier = Modifier.size(12.dp))
+                    Text(
+                        text = "${space.favoriteCount} saved",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

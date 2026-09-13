@@ -125,7 +125,10 @@ service cloud.firestore {
         (isAdmin() ||
           (request.resource.data.get('isVerified', false) == false &&
             request.resource.data.get('ownerIsIdVerified', false) ==
-              (get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.get('idDocumentUrl', null) != null)));
+              (get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.get('idDocumentUrl', null) != null))) &&
+        // Same "can't start inflated" reasoning as isVerified above —
+        // favoriteCount only ever grows via the onUserFavoritesChanged trigger.
+        (isAdmin() || request.resource.data.get('favoriteCount', 0) == 0);
 
       // isVerified / isActiveSubscription / subscriptionExpiryMillis are
       // money- and verification-status fields — only setListingVerification /
@@ -134,12 +137,15 @@ service cloud.firestore {
       // change them. ownerId can never be reassigned by a client write.
       // isOwnerSuspended is likewise Admin-SDK-only (setAccountSuspended.ts) —
       // an owner could otherwise just un-hide their own suspended listings by
-      // writing it back to false.
+      // writing it back to false. favoriteCount is Admin-SDK-only too
+      // (favoritesSync.ts, the onUserFavoritesChanged trigger) — without this,
+      // a host could inflate their own listing's "times favorited" count on
+      // any ordinary edit.
       allow update: if isSignedIn() && (
         (
           (isAdmin() || (role() == "PRO_HOST" && resource.data.ownerId == request.auth.uid)) &&
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-            ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended", "ownerIsIdVerified"]
+            ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended", "ownerIsIdVerified", "favoriteCount"]
           ) &&
           // Publishing a Draft or resuming a Paused listing (status -> ACTIVE)
           // is the moment it starts consuming the host's quota — gate that

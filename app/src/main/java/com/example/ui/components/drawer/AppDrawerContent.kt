@@ -189,13 +189,23 @@ fun SpecialistDrawerContent(
             onClick = { onTabSelected("my_favorites") },
             icon = { Icon(Icons.Default.Favorite, contentDescription = null, tint = OxfordBlue) }
         )
-        Spacer(modifier = Modifier.height(Spacing.xs))
-        NavigationDrawerItem(
-            label = { Text("Lebanese Rent Laws", fontWeight = FontWeight.SemiBold) },
-            selected = false,
-            onClick = { onDrawerAction("pro_laws") },
-            icon = { Icon(Icons.Default.MenuBook, contentDescription = null, tint = OxfordBlue) }
-        )
+
+        if (isProHost) {
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            NavigationDrawerItem(
+                label = { Text("Explore Workspaces", fontWeight = FontWeight.SemiBold) },
+                selected = false,
+                onClick = { onTabSelected("search_map") },
+                icon = { Icon(Icons.Default.TravelExplore, contentDescription = null, tint = OxfordBlue) }
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            NavigationDrawerItem(
+                label = { Text("My Bookings", fontWeight = FontWeight.SemiBold) },
+                selected = false,
+                onClick = { onTabSelected("pro_rentals") },
+                icon = { Icon(Icons.Default.EventAvailable, contentDescription = null, tint = OxfordBlue) }
+            )
+        }
 
         if (isProHost) {
             HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
@@ -219,13 +229,6 @@ fun SpecialistDrawerContent(
             // destination) with a second, stale copy of the tier pricing — hardcoded
             // "$49/mo"/"$120/mo" figures that didn't even track the real admin-configurable
             // pricing the actual Subscription & Packages screen shows. Removed outright.
-            Spacer(modifier = Modifier.height(Spacing.xs))
-            NavigationDrawerItem(
-                label = { Text("Practice Guidelines", fontWeight = FontWeight.SemiBold) },
-                selected = false,
-                onClick = { onDrawerAction("owner_guidelines") },
-                icon = { Icon(Icons.Default.MenuBook, contentDescription = null, tint = OxfordBlue) }
-            )
         }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
@@ -475,28 +478,5 @@ fun DrawerSignOutButton(userEmail: String?, onSignOut: () -> Unit) {
                 }
             }
         )
-    }
-}
-
-@Composable
-fun LawBulletinCard(number: String, title: String, content: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = LightGray.copy(alpha = 0.5f)),
-        border = BorderStroke(1.dp, LightGrayCardBorder)
-    ) {
-        Column(modifier = Modifier.padding(Spacing.md)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    color = OxfordBlue,
-                    shape = MaterialTheme.shapes.extraSmall
-                ) {
-                    Text(number, color = PureWhite, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
-                }
-                Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = OxfordBlue)
-            }
-            Spacer(modifier = Modifier.height(Spacing.xs))
-            Text(content, style = MaterialTheme.typography.bodySmall, color = CoolGray)
-        }
     }
 }

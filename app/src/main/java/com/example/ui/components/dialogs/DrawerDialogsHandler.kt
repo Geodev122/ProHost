@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.*
-import com.example.ui.components.drawer.LawBulletinCard
 import com.example.ui.theme.LebaneseCedarGreen
 import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.WhatsAppGreen
@@ -92,9 +91,7 @@ fun DrawerDialogsHandler(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val title = when (dialogId) {
-                        "pro_laws" -> "Lebanese Rent Laws"
                         "owner_whish" -> "Whish Money Transactions"
-                        "owner_guidelines" -> "Practice Guidelines"
                         "admin_audit" -> "Central Security Audits"
                         "admin_gov" -> "Governorate Node Status"
                         "admin_app_updates" -> "App Version & In-App Updates"
@@ -129,35 +126,6 @@ fun DrawerDialogsHandler(
                         // "Send Payment Reminder" that was Toast-only fakery, a WhatsApp
                         // button with no cancellation option, etc.). All four now route
                         // straight to the real screen instead (see AppDrawerContent.kt).
-                        "pro_laws" -> {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .verticalScroll(rememberScrollState()),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = "Workspace renting in Lebanon operates under specialized civil codes that bypass commercial subleasing complications:",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                LawBulletinCard(
-                                    number = "Decree 159/92",
-                                    title = "Specialist Practice Spaces",
-                                    content = "Guarantees professionals the right to rent dedicated shared offices without creating standard full-lease tenant property titles, facilitating flexible multi-day shifts."
-                                )
-                                LawBulletinCard(
-                                    number = "Sublease Safety",
-                                    title = "Host Verification Protection",
-                                    content = "All hosts on ProHost are legally bound to verify they own or hold exclusive rights to sublease workspace hours, protecting renters from arbitrary closures."
-                                )
-                                LawBulletinCard(
-                                    number = "Whish Pay Receipts",
-                                    title = "Digital Transaction Stability",
-                                    content = "Any financial deposit routed through Whish Money is backed by standard audit logs, serving as official legal proof of rental settlement."
-                                )
-                            }
-                        }
                         "owner_whish" -> {
                             val hostTxs = transactions.filter {
                                 val user = currentUser
@@ -192,19 +160,6 @@ fun DrawerDialogsHandler(
                                         }
                                     }
                                 }
-                            }
-                        }
-                        "owner_guidelines" -> {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .verticalScroll(rememberScrollState()),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text("Guidelines to follow as a verified workspace host on ProHost:", style = MaterialTheme.typography.bodySmall)
-                                Text("• Hygiene and Sanitization: Workspace suites must be sanitized daily between tenant practitioner shifts.", style = MaterialTheme.typography.labelMedium)
-                                Text("• Access and Front-desk: Inform receptionist desk of practitioner scheduled patients list for easy welcoming.", style = MaterialTheme.typography.labelMedium)
-                                Text("• Lockers & Shared IT: High-speed Wi-Fi network and printing capabilities must remain functional.", style = MaterialTheme.typography.labelMedium)
                             }
                         }
                         "admin_audit" -> {

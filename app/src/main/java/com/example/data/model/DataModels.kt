@@ -847,7 +847,13 @@ data class SpaceListing(
     // isOwnerSuspended) so it can't be backdated/spoofed. Null for any listing
     // created before this field existed; it is not backfilled retroactively.
     // Feeds the Owners & Payments tab's "listings published by date" chart.
-    val createdAtMillis: Long? = null
+    val createdAtMillis: Long? = null,
+    // Server-stamped only (functions/src/users/favoritesSync.ts, a Firestore trigger
+    // diffing AppUser.savedSpaceIds on every change) — never written by the client
+    // (absent from toFirestoreMap below), so a host can't inflate their own count.
+    // Surfaced on OwnerAnalyticsScreen as the concrete "listing performance" signal
+    // behind a specialist pressing/unpressing the heart icon.
+    val favoriteCount: Int = 0
 ) {
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
@@ -1090,7 +1096,8 @@ data class SpaceListing(
                 } ?: ListingStatus.ACTIVE,
                 publishBlockedReasons = (data["publishBlockedReasons"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                 subdivisions = subsList,
-                createdAtMillis = (data["createdAtMillis"] as? Number)?.toLong()
+                createdAtMillis = (data["createdAtMillis"] as? Number)?.toLong(),
+                favoriteCount = (data["favoriteCount"] as? Number)?.toInt() ?: 0
             )
         }
     }
