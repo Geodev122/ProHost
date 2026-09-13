@@ -51,12 +51,37 @@ class ProHostViewModel(
     )
     val isRestoringSession: StateFlow<Boolean> = _isRestoringSession.asStateFlow()
 
+    // Set when cold-start restoration finds a Firebase-Auth-verified session whose
+    // registration was never actually completed (app killed between OTP
+    // verification and submitting the registration form) — see the init block
+    // below and ProHostRepository.discardIncompleteSession's doc comment for the
+    // full story. ProHostAppRoot routes to LoginAuthScreen's registration form
+    // directly (skipping phone/OTP entry, since this session is already verified)
+    // instead of either silently completing a broken "login" or bouncing the user
+    // to a plain phone-entry screen with no memory of which number this was.
+    private val _pendingRegistrationPhone = MutableStateFlow<String?>(null)
+    val pendingRegistrationPhone: StateFlow<String?> = _pendingRegistrationPhone.asStateFlow()
+
+    fun clearPendingRegistrationPhone() {
+        _pendingRegistrationPhone.value = null
+    }
+
     init {
         val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
         if (firebaseUser != null) {
             viewModelScope.launch {
                 try {
-                    com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
+                    val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
+                    // A real, previously-completed account always has a real phone on
+                    // file (registerMember always writes one) — ADMIN is the one
+                    // legitimate exception, created via bootstrapSuperAdmin/
+                    // grantAdminRole, which never goes through registerMember at all.
+                    // Anything else with a blank phone here is exactly the stranded
+                    // mid-registration case, not a coincidence.
+                    if (user.role != UserRole.ADMIN && user.phone.isBlank()) {
+                        repository.discardIncompleteSession()
+                        _pendingRegistrationPhone.value = firebaseUser.phoneNumber
+                    }
                 } catch (e: com.example.data.auth.AccountSuspendedException) {
                     // Same handling the explicit sign-in flow uses for this exception — the
                     // account is server-confirmed suspended, so don't leave a locally-valid

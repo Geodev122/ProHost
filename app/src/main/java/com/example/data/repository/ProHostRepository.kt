@@ -1666,6 +1666,24 @@ class ProHostRepository {
         )
     }
 
+    /**
+     * Undoes completeVerifiedLogin's currentUser assignment for one specific
+     * case: a phone number that's Firebase-Auth-verified but whose registration
+     * was interrupted before the profile form was ever submitted (app killed
+     * between OTP verification and completeVerifiedRegistration). completeVerifiedLogin
+     * always treats a returning uid as a normal login and sets currentUser
+     * unconditionally — the caller (ProHostViewModel's cold-start check /
+     * AuthViewModel.finishPhoneVerification) detects the bare profile
+     * afterward and calls this to put the app back in "signed out" state for
+     * routing purposes, without touching the still-valid Firebase Auth
+     * session itself (unlike [logout], this is not a real sign-out — the
+     * caller is about to route into the registration form, which needs that
+     * session to stay alive).
+     */
+    fun discardIncompleteSession() {
+        _currentUser.value = null
+    }
+
     // setCurrentUser() and switchRole() were removed here — both let any caller (or,
     // for switchRole specifically, any already-logged-in user) instantly become ADMIN
     // with no server check at all. A role change now only ever happens through the

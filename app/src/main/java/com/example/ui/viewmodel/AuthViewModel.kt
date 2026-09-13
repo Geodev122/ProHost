@@ -164,9 +164,23 @@ class AuthViewModel(
                     // straight into it, no registration form, nothing to overwrite.
                     try {
                         val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
-                        registerFcmTokenForCurrentUser(user.id)
-                        _authSuccessMessage.value = "Welcome back, ${user.fullName}!"
-                        onVerified(false)
+                        // isNewUser only reflects whether the Firebase Auth ACCOUNT is
+                        // new, not whether registration was ever finished — an app kill
+                        // between OTP verification and submitting the registration form
+                        // leaves a real account with a blank phone (registerMember always
+                        // writes one for a real registration; ADMIN accounts, created via
+                        // bootstrapSuperAdmin/grantAdminRole, are the one legitimate
+                        // exception). isNewUser will read false on every future re-verify
+                        // of this same number too, so this check is the only remaining
+                        // way to route a stranded account back to the registration form.
+                        if (user.role != com.example.data.model.UserRole.ADMIN && user.phone.isBlank()) {
+                            repository.discardIncompleteSession()
+                            onVerified(true)
+                        } else {
+                            registerFcmTokenForCurrentUser(user.id)
+                            _authSuccessMessage.value = "Welcome back, ${user.fullName}!"
+                            onVerified(false)
+                        }
                     } catch (e: com.example.data.auth.AccountSuspendedException) {
                         authService.signOut()
                         _authErrorMessage.value = e.message

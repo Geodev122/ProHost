@@ -69,12 +69,27 @@ private fun android.content.Context.findActivity(): Activity? {
 @Composable
 fun LoginAuthScreen(
     onLoginSuccess: () -> Unit,
+    // Set when a prior registration attempt got interrupted after phone
+    // verification but before the profile form was ever submitted (app killed
+    // mid-registration) — Firebase already has a valid signed-in session for
+    // [resumePhoneE164], and since Firebase's own isNewUser signal reads false
+    // on every future re-verify of that same number, the normal phone/OTP
+    // steps could never route this account back to REGISTRATION_FORM on their
+    // own. See ProHostViewModel's cold-start check and
+    // ProHostAppRoot/pendingRegistrationPhone.
+    resumeAtRegistration: Boolean = false,
+    resumePhoneE164: String? = null,
+    // Invoked when the user backs out of a resumed registration via "Start
+    // over with a different number" — lets the caller clear whatever
+    // resume-state it was tracking (see ProHostViewModel.pendingRegistrationPhone)
+    // so a later recomposition doesn't try to resume the same stale number again.
+    onCancelResume: (() -> Unit)? = null,
     authViewModel: AuthViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
     val coroutineScope = rememberCoroutineScope()
-    var step by remember { mutableStateOf(AuthStep.PHONE_ENTRY) }
+    var step by remember { mutableStateOf(if (resumeAtRegistration) AuthStep.REGISTRATION_FORM else AuthStep.PHONE_ENTRY) }
 
     // --- Step 1: phone entry ---
     var phoneCountry by remember { mutableStateOf(findCountryByName("Lebanon")) }
@@ -130,7 +145,10 @@ fun LoginAuthScreen(
     var localErrorMessage by remember { mutableStateOf<String?>(null) }
     var showLegalDocument by remember { mutableStateOf<com.example.legal.LegalDocument?>(null) }
 
-    val verifiedPhoneE164 = com.example.data.model.formatToE164(phoneCountry, phoneNumber)
+    // resumePhoneE164 stands in for the phone/OTP steps' own computed value when
+    // those steps were skipped entirely (the resume-at-registration case) —
+    // phoneCountry/phoneNumber were never populated from user input in that case.
+    val verifiedPhoneE164 = resumePhoneE164 ?: com.example.data.model.formatToE164(phoneCountry, phoneNumber)
 
     fun goToRegistrationForm() {
         localErrorMessage = null
@@ -593,6 +611,30 @@ fun LoginAuthScreen(
                         .fillMaxWidth()
                         .testTag("submit_registration_button")
                 )
+
+                Spacer(modifier = Modifier.height(Spacing.sm))
+
+                // Previously the only way out of this step — including recovering
+                // from a "your verified session expired" error — was force-killing
+                // and restarting the whole app, which risked landing right back in
+                // this same stuck state. Signs out of the stale/interrupted Firebase
+                // session entirely so a fresh phone-entry attempt starts clean.
+                TextButton(
+                    onClick = {
+                        com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                        phoneNumber = ""
+                        otpCode = ""
+                        localErrorMessage = null
+                        authViewModel.clearAuthMessages()
+                        step = AuthStep.PHONE_ENTRY
+                        onCancelResume?.invoke()
+                    },
+                    enabled = !isAuthenticating
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text("Start over with a different number", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
 

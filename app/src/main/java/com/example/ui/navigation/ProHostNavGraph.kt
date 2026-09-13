@@ -170,8 +170,17 @@ fun ProHostAppRoot(
             }
         )
     } else if (currentUser == null) {
+        // Non-null only for a stranded mid-registration account found during
+        // cold-start restoration (see ProHostViewModel's init block) — routes
+        // straight to the registration form, skipping phone/OTP entry, since
+        // Firebase Auth already has a valid verified session for this number.
+        val pendingRegistrationPhone by viewModel.pendingRegistrationPhone.collectAsState()
         LoginAuthScreen(
+            resumeAtRegistration = pendingRegistrationPhone != null,
+            resumePhoneE164 = pendingRegistrationPhone,
+            onCancelResume = { viewModel.clearPendingRegistrationPhone() },
             onLoginSuccess = {
+                viewModel.clearPendingRegistrationPhone()
                 // Handled via LaunchedEffect
             }
         )
