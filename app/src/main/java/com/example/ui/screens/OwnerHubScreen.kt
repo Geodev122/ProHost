@@ -65,7 +65,6 @@ fun OwnerHubScreen(
     var showRenewalDialog by remember { mutableStateOf(false) }
     var selectedSpaceForSchedule by remember { mutableStateOf<SpaceListing?>(null) }
     var showCreateListingDialog by remember { mutableStateOf(false) }
-    var showPackageSelectionDialog by remember { mutableStateOf(false) }
     var editingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var deletingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var verifyingSpace by remember { mutableStateOf<SpaceListing?>(null) }
@@ -95,13 +94,7 @@ fun OwnerHubScreen(
             viewModel.refreshTopHashtags()
             showCreateListingDialog = true
         },
-        onOpenPackageSelection = {
-            if (onOpenSubscriptions != null) {
-                onOpenSubscriptions()
-            } else {
-                showPackageSelectionDialog = true
-            }
-        },
+        onOpenPackageSelection = { onOpenSubscriptions?.invoke() },
         onEditSpace = { space -> editingSpace = space },
         onDeleteSpace = { space -> deletingSpace = space },
         onOpenListingVerification = { space -> verifyingSpace = space },
@@ -120,103 +113,6 @@ fun OwnerHubScreen(
             viewModel = viewModel,
             onDismiss = { verifyingSpace = null }
         )
-    }
-
-    // Package Selection Dialog
-    if (showPackageSelectionDialog) {
-        Dialog(onDismissRequest = { showPackageSelectionDialog = false }) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Spacing.lg),
-                shape = MaterialTheme.shapes.extraLarge,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Text(
-                        text = "ProHost Package Tiers & Governance",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Current Package: ${currentUser?.ownerPackageTier?.title ?: "Pay As You Go"} (${pricingState.governanceTag})",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    OutlinedCard(
-                        onClick = {
-                            viewModel.payOwnerPackageViaWhish(
-                                tier = OwnerPackageTier.PAY_AS_YOU_GO,
-                                payerName = currentUser?.fullName ?: "Space Owner",
-                                payerPhone = currentUser?.phone ?: "+961 70 888 999",
-                                paygCategoryId = architectureSchema.spaceTypes.firstOrNull { it.isEnabled }?.id
-                                    ?: SpaceType.PRIVATE_OFFICE.name,
-                                context = context
-                            )
-                            showPackageSelectionDialog = false
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(OwnerPackageTier.PAY_AS_YOU_GO.title, fontWeight = FontWeight.Bold)
-                            Text(OwnerPackageTier.PAY_AS_YOU_GO.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("PAYG fee per listing type", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-
-                    OutlinedCard(
-                        onClick = {
-                            viewModel.payOwnerPackageViaWhish(
-                                tier = OwnerPackageTier.LIMITED_3_TIER,
-                                payerName = currentUser?.fullName ?: "Space Owner",
-                                payerPhone = currentUser?.phone ?: "+961 70 888 999",
-                                paygCategoryId = null,
-                                context = context
-                            )
-                            showPackageSelectionDialog = false
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(OwnerPackageTier.LIMITED_3_TIER.title, fontWeight = FontWeight.Bold)
-                            Text(OwnerPackageTier.LIMITED_3_TIER.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("$${pricingState.package2MonthlyFeeUsd} / month • Up to 3 active listings", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-
-                    OutlinedCard(
-                        onClick = {
-                            viewModel.payOwnerPackageViaWhish(
-                                tier = OwnerPackageTier.UNLIMITED_TIER,
-                                payerName = currentUser?.fullName ?: "Space Owner",
-                                payerPhone = currentUser?.phone ?: "+961 70 888 999",
-                                paygCategoryId = null,
-                                context = context
-                            )
-                            showPackageSelectionDialog = false
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(OwnerPackageTier.UNLIMITED_TIER.title, fontWeight = FontWeight.Bold)
-                            Text(OwnerPackageTier.UNLIMITED_TIER.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("$${pricingState.package3MonthlyFeeUsd} / month • Unlimited active listings", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-
-                    Button(
-                        onClick = { showPackageSelectionDialog = false },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Close")
-                    }
-                }
-            }
-        }
     }
 
     // Owner-level entitlement renewal — a real PAYG cart or tiered-package renewal,
@@ -255,7 +151,7 @@ fun OwnerHubScreen(
         android.widget.Toast.makeText(context, if (saved) successMessage else failureMessage, android.widget.Toast.LENGTH_LONG).show()
         if (saved) {
             viewModel.setPendingAutoPublishDraft(newListing.id)
-            if (onOpenSubscriptions != null) onOpenSubscriptions() else showPackageSelectionDialog = true
+            onOpenSubscriptions?.invoke()
         }
     }
 

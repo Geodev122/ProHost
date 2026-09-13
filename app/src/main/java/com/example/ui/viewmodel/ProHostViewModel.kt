@@ -125,7 +125,7 @@ class ProHostViewModel(
     // the same purchase (e.g. a rapid double-tap on "Go to Whish Pay" before the
     // confirmation dialog closes) — each would be a real, independently-charged
     // order server-side, not a harmless duplicate click. Exposed so the buttons
-    // that call payOwnerPackageViaWhish/payPaygListingViaWhish can grey out while
+    // that call payOwnerPackageViaWhish/payPaygCartViaWhish can grey out while
     // one is already in flight, on top of the hard guard below.
     private val _isWhishCheckoutInFlight = MutableStateFlow(false)
     val isWhishCheckoutInFlight: StateFlow<Boolean> = _isWhishCheckoutInFlight.asStateFlow()
@@ -346,20 +346,6 @@ class ProHostViewModel(
         } else {
             launchWhishCheckout("OWNER_PACKAGE", tier.name, payerName, payerPhone, context, draftListingId)
         }
-    }
-
-    // categoryId is a SchemaItem.id from spaceArchitectureSchema.spaceTypes (or, for
-    // the fallback synthetic list when the schema is empty, a legacy SpaceType name)
-    // — the server looks up its real price via getPaygFeeForCategory rather than
-    // trusting a client-supplied amount.
-    fun payPaygListingViaWhish(
-        categoryId: String,
-        payerName: String,
-        payerPhone: String,
-        context: Context,
-        draftListingId: String? = null
-    ) {
-        launchWhishCheckout("PAYG_LISTING", categoryId, payerName, payerPhone, context, draftListingId)
     }
 
     // Renew popup (OwnerHubScreen) / Buy PAYG (OwnerSubscriptionsScreen) — one

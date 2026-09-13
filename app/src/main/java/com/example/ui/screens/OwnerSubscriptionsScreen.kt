@@ -1,9 +1,9 @@
 package com.example.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -12,16 +12,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.model.*
+import com.example.ui.components.PaygCartSection
+import com.example.ui.components.paygCartItems
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
-import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,17 +50,8 @@ fun OwnerSubscriptionsScreen(
 
     var showSubscribeDialog by remember { mutableStateOf(false) }
     var selectedTierToSubscribe by remember { mutableStateOf(OwnerPackageTier.LIMITED_3_TIER) }
-    var showPaygBuyDialog by remember { mutableStateOf(false) }
-    var selectedCategoryForPayg by remember(paygCategoryOptions) { mutableStateOf(paygCategoryOptions.firstOrNull()) }
-    // A category with no admin-set priceUsd that isn't one of the original 4
-    // (which the server still prices via its legacy fallback) can't be bought —
-    // initiateWhishPayment would reject it — so both purchase buttons grey out
-    // for it instead of sending the host to a payment error.
-    fun isCategoryUnpriced(category: SchemaItem): Boolean =
-        category.priceUsd == null &&
-            category.id !in setOf("ST-01", "ST-02", "ST-03", "ST-04") &&
-            SpaceType.values().none { it.name == category.id }
-    val selectedPaygIsUnpriced = selectedCategoryForPayg?.let { isCategoryUnpriced(it) } ?: false
+    var showPaygCartDialog by remember { mutableStateOf(false) }
+    var cartQuantities by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
 
     var payerName by remember { mutableStateOf(currentUser?.fullName ?: "") }
     var payerPhone by remember { mutableStateOf(currentUser?.phone ?: "+961 70 888 999") }
@@ -102,69 +92,22 @@ fun OwnerSubscriptionsScreen(
             }
         }
 
-        // Header
+        // Hero: the currently-active package, replacing what used to be a plain
+        // "Subscription & Packages Hub" title/subtitle banner with no real data in
+        // it, sitting above a separate status card repeating the same information.
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
             color = OxfordBlue,
             shadowElevation = 4.dp
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(
-                            text = "Subscription & Packages Hub",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Black,
-                            color = PureWhite
-                        )
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-                        Text(
-                            text = "Manage your ProHost hosting tiers, PAYG listings, and Whish billing",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = LightGray
-                        )
-                    }
-                    Icon(Icons.Default.Layers, contentDescription = null, tint = CarnationOrange, modifier = Modifier.size(36.dp))
-                }
-            }
-        }
-
-        // Active Package Status Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(2.dp)
-        ) {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            color = FreshGreen.copy(alpha = 0.15f),
-                            shape = MaterialTheme.shapes.small
-                        ) {
-                            Icon(Icons.Default.Verified, contentDescription = null, tint = FreshGreen, modifier = Modifier.padding(6.dp).size(20.dp))
-                        }
-                        Text(
-                            text = "Active Hosting Subscription",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = OxfordBlue
-                        )
-                    }
-                    Surface(
-                        color = CarnationOrange,
-                        shape = MaterialTheme.shapes.small
-                    ) {
+                    Surface(color = CarnationOrange, shape = MaterialTheme.shapes.small) {
                         Text(
                             text = activeTier.badgeName,
                             style = MaterialTheme.typography.labelSmall,
@@ -173,103 +116,65 @@ fun OwnerSubscriptionsScreen(
                             modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                         )
                     }
+                    Icon(Icons.Default.Verified, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(24.dp))
                 }
 
-                HorizontalDivider(color = LightGray.copy(alpha = 0.5f))
+                Text(activeTier.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = PureWhite)
+                Text(activeTier.subtitle, style = MaterialTheme.typography.bodyMedium, color = LightGray)
 
-                Text(
-                    text = activeTier.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Black,
-                    color = OxfordBlue
-                )
-                Text(
-                    text = activeTier.subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = CoolGray
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(text = "Remaining Duration:", style = MaterialTheme.typography.bodySmall, color = CoolGray)
-                        Text(text = "$remainingDays Days Remaining", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = FreshGreen)
-                    }
-                    if (activeTier == OwnerPackageTier.PAY_AS_YOU_GO) {
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(text = "PAYG Listings Bought:", style = MaterialTheme.typography.bodySmall, color = CoolGray)
-                            Text(text = "${currentUser?.paygListingsBoughtCount ?: 0} Slots", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = OxfordBlue)
-                        }
-                    } else {
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(text = "Listings Consumed:", style = MaterialTheme.typography.bodySmall, color = CoolGray)
-                            val maxLimit = if (activeTier == OwnerPackageTier.LIMITED_3_TIER) 3 else Int.MAX_VALUE
-                            val used = ownerSpaces.size
-                            Text(text = "$used / ${if (maxLimit == Int.MAX_VALUE) "Unlimited" else maxLimit}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = OxfordBlue)
-                        }
-                    }
-                }
+                HorizontalDivider(color = LightGray.copy(alpha = 0.3f))
 
                 if (activeTier == OwnerPackageTier.PAY_AS_YOU_GO) {
                     val unspentCredits = (currentUser?.paygCategoryCredits ?: emptyMap()).filter { it.value > 0 }
+                    Text(
+                        text = "${currentUser?.paygListingsBoughtCount ?: 0} slots bought in total",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = PureWhite
+                    )
                     if (unspentCredits.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("Unused paid slots by category:", style = MaterialTheme.typography.bodySmall, color = CoolGray)
+                            Text("Unused paid slots by category:", style = MaterialTheme.typography.bodySmall, color = LightGray)
                             unspentCredits.forEach { (categoryId, count) ->
                                 val name = paygCategoryOptions.firstOrNull { it.id == categoryId }?.name ?: categoryId
-                                Text("• $name: $count", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = OxfordBlue)
+                                Text("• $name: $count", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = PureWhite)
                             }
                         }
                     }
                 } else {
-                    // Per-category quota display (spec): the overall cap is still
-                    // whole-listing, not per-category — this breaks down how much of
-                    // that shared cap each category is already using, it doesn't
-                    // imply an independent limit per category.
-                    val maxLimit = if (activeTier == OwnerPackageTier.LIMITED_3_TIER) 3 else Int.MAX_VALUE
-                    val byCategory = ownerSpaces.groupingBy { it.spaceCategoryName ?: it.spaceType.displayName }.eachCount()
-                    if (byCategory.isNotEmpty()) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("Listings by category:", style = MaterialTheme.typography.bodySmall, color = CoolGray)
-                            byCategory.forEach { (name, count) ->
-                                Text(
-                                    "• $name: $count${if (maxLimit == Int.MAX_VALUE) "" else " / $maxLimit shared"}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = OxfordBlue
-                                )
-                            }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column {
+                            Text("Remaining Duration", style = MaterialTheme.typography.bodySmall, color = LightGray)
+                            Text("$remainingDays Days", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = PureWhite)
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("Listings Consumed", style = MaterialTheme.typography.bodySmall, color = LightGray)
+                            val maxLimit = if (activeTier == OwnerPackageTier.LIMITED_3_TIER) 3 else Int.MAX_VALUE
+                            Text(
+                                "${ownerSpaces.size} / ${if (maxLimit == Int.MAX_VALUE) "Unlimited" else maxLimit}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = PureWhite
+                            )
                         }
                     }
                 }
 
-                if (activeTier == OwnerPackageTier.PAY_AS_YOU_GO) {
+                val maxLimit = if (activeTier == OwnerPackageTier.LIMITED_3_TIER) 3 else Int.MAX_VALUE
+                if (activeTier == OwnerPackageTier.PAY_AS_YOU_GO || ownerSpaces.size >= maxLimit) {
                     Button(
-                        onClick = { showPaygBuyDialog = true },
+                        onClick = { showPaygCartDialog = true },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange),
                         shape = MaterialTheme.shapes.medium
                     ) {
                         Icon(Icons.Default.AddCircle, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text("Buy New Listing Slot (PAYG)", fontWeight = FontWeight.Bold, color = PureWhite)
-                    }
-                } else {
-                    val maxLimit = if (activeTier == OwnerPackageTier.LIMITED_3_TIER) 3 else Int.MAX_VALUE
-                    if (ownerSpaces.size >= maxLimit) {
-                        Button(
-                            onClick = { showPaygBuyDialog = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange),
-                            shape = MaterialTheme.shapes.medium
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(Spacing.sm))
-                            Text("Package Limit Reached — Buy Additional Listing Slot", fontWeight = FontWeight.Bold, color = PureWhite)
-                        }
+                        Text(
+                            if (activeTier == OwnerPackageTier.PAY_AS_YOU_GO) "Buy Listing Slots" else "Package Limit Reached — Buy Additional Slot",
+                            fontWeight = FontWeight.Bold,
+                            color = PureWhite
+                        )
                     }
                 }
             }
@@ -283,21 +188,12 @@ fun OwnerSubscriptionsScreen(
             modifier = Modifier.padding(start = 4.dp, top = 8.dp)
         )
 
-        // Package 1: PAYG
-        PackageOptionCard(
-            tier = OwnerPackageTier.PAY_AS_YOU_GO,
-            priceDisplay = "$${String.format(Locale.US, "%.2f", pricingState.monthlySubscriptionFeeUsd)} base / per-listing type",
-            benefits = listOf(
-                "No monthly recurring commitment",
-                "Pay per listing based on workspace type configured by admin",
-                "Instant activation via Whish Pay API",
-                "Full access to owner analytics & requests"
-            ),
+        // Package 1: PAYG — visually distinct from the two flat-fee tiers below
+        // (no single price figure, since one doesn't apply — see PaygPackageCard).
+        PaygPackageCard(
+            categories = paygCategoryOptions,
             isCurrent = activeTier == OwnerPackageTier.PAY_AS_YOU_GO,
-            onSelect = {
-                selectedTierToSubscribe = OwnerPackageTier.PAY_AS_YOU_GO
-                showSubscribeDialog = true
-            }
+            onSelect = { showPaygCartDialog = true }
         )
 
         // Package 2: Limited 3 Tier
@@ -305,10 +201,8 @@ fun OwnerSubscriptionsScreen(
             tier = OwnerPackageTier.LIMITED_3_TIER,
             priceDisplay = "$${String.format(Locale.US, "%.2f", pricingState.package2MonthlyFeeUsd)} / month",
             benefits = listOf(
-                "Host & operate up to 3 active workspaces",
-                "Bundled monthly fee with significant savings",
-                "Verified host badge & priority placement in search",
-                "Automatic monthly renewal via Whish Pay"
+                "Host up to 3 active workspaces",
+                "Verified host badge & priority placement"
             ),
             isCurrent = activeTier == OwnerPackageTier.LIMITED_3_TIER,
             onSelect = {
@@ -322,10 +216,8 @@ fun OwnerSubscriptionsScreen(
             tier = OwnerPackageTier.UNLIMITED_TIER,
             priceDisplay = "$${String.format(Locale.US, "%.2f", pricingState.package3MonthlyFeeUsd)} / month",
             benefits = listOf(
-                "Publish unlimited active workspace listings",
-                "Featured placement on ProHost explorer hero banners",
-                "VIP commercial host support & verified badge",
-                "Advanced analytics, campaign tools & direct inquiries"
+                "Unlimited active workspace listings",
+                "Featured placement & VIP host support"
             ),
             isCurrent = activeTier == OwnerPackageTier.UNLIMITED_TIER,
             onSelect = {
@@ -335,7 +227,9 @@ fun OwnerSubscriptionsScreen(
         )
     }
 
-    // Subscribe Dialog with Whish Pay
+    // Subscribe Dialog with Whish Pay — tiered packages only now (Package 2/3);
+    // PAYG activates purely through the cart dialog below, since "subscribing" to
+    // PAYG has no single price to confirm here.
     if (showSubscribeDialog) {
         AlertDialog(
             onDismissRequest = { showSubscribeDialog = false },
@@ -358,13 +252,13 @@ fun OwnerSubscriptionsScreen(
                             tier = selectedTierToSubscribe,
                             payerName = payerName,
                             payerPhone = payerPhone,
-                            paygCategoryId = if (selectedTierToSubscribe == OwnerPackageTier.PAY_AS_YOU_GO) selectedCategoryForPayg?.id else null,
+                            paygCategoryId = null,
                             context = context,
                             draftListingId = pendingAutoPublishDraftId
                         )
                         showSubscribeDialog = false
                     },
-                    enabled = !(selectedTierToSubscribe == OwnerPackageTier.PAY_AS_YOU_GO && selectedPaygIsUnpriced) && !isCheckoutInFlight,
+                    enabled = !isCheckoutInFlight,
                     colors = ButtonDefaults.buttonColors(containerColor = FreshGreen)
                 ) {
                     Text(if (isCheckoutInFlight) "Starting payment..." else "Go to Whish Pay", color = PureWhite, fontWeight = FontWeight.Bold)
@@ -378,50 +272,24 @@ fun OwnerSubscriptionsScreen(
         )
     }
 
-    // Buy PAYG Listing Slot Dialog
-    if (showPaygBuyDialog) {
+    // Buy PAYG Listing Credits — a real multi-category quantity cart (see the
+    // Renew popup on My Listings, which shares this exact same PaygCartSection),
+    // replacing what used to be a single-category radio picker here.
+    if (showPaygCartDialog) {
         AlertDialog(
-            onDismissRequest = { showPaygBuyDialog = false },
-            title = { Text("Buy New Listing Slot (PAYG)", fontWeight = FontWeight.Bold) },
+            onDismissRequest = { showPaygCartDialog = false },
+            title = { Text("Buy Listing Credits (PAYG)", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Select Workspace Category for Per-Listing Pricing:")
-                    paygCategoryOptions.forEach { category ->
-                        // Falls back to the legacy 4-value fee switch only for a
-                        // category the admin hasn't set a price on yet (shouldn't
-                        // happen post-seed, but keeps this dialog from showing $0).
-                        val legacyType = when (category.id) {
-                            "ST-01", SpaceType.PRIVATE_OFFICE.name -> SpaceType.PRIVATE_OFFICE
-                            "ST-02", SpaceType.CENTER.name -> SpaceType.CENTER
-                            "ST-03", SpaceType.POLYCLINIC.name -> SpaceType.POLYCLINIC
-                            "ST-04", SpaceType.COWORKING_SPACE.name -> SpaceType.COWORKING_SPACE
-                            else -> null
-                        }
-                        val fee = category.priceUsd ?: legacyType?.let { pricingState.getPaygFeeForType(it) } ?: 0.0
-                        val isUnpriced = category.priceUsd == null && legacyType == null
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(if (selectedCategoryForPayg?.id == category.id) OxfordBlue.copy(alpha = 0.1f) else Color.Transparent, MaterialTheme.shapes.small)
-                                .padding(Spacing.sm),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(
-                                    selected = selectedCategoryForPayg?.id == category.id,
-                                    onClick = { selectedCategoryForPayg = category }
-                                )
-                                Text(category.name, fontWeight = FontWeight.Medium)
+                    PaygCartSection(
+                        categories = paygCategoryOptions,
+                        quantities = cartQuantities,
+                        onQuantityChange = { categoryId, newQty ->
+                            cartQuantities = cartQuantities.toMutableMap().apply {
+                                if (newQty <= 0) remove(categoryId) else put(categoryId, newQty)
                             }
-                            Text(
-                                if (isUnpriced) "Not priced yet" else "$${String.format(Locale.US, "%.2f", fee)}",
-                                fontWeight = FontWeight.Bold,
-                                color = if (isUnpriced) StatusError else CarnationOrange
-                            )
                         }
-                    }
-
+                    )
                     Spacer(modifier = Modifier.height(Spacing.sm))
                     OutlinedTextField(
                         value = payerName,
@@ -432,36 +300,25 @@ fun OwnerSubscriptionsScreen(
                 }
             },
             confirmButton = {
+                val cartItems = paygCartItems(cartQuantities)
                 Button(
                     onClick = {
-                        val categoryId = selectedCategoryForPayg?.id
-                        if (categoryId != null) {
-                            viewModel.payPaygListingViaWhish(
-                                categoryId = categoryId,
-                                payerName = payerName,
-                                payerPhone = payerPhone,
-                                context = context,
-                                draftListingId = pendingAutoPublishDraftId
-                            )
-                        }
-                        showPaygBuyDialog = false
+                        viewModel.payPaygCartViaWhish(cartItems, payerName, payerPhone, context)
+                        cartQuantities = emptyMap()
+                        showPaygCartDialog = false
                     },
-                    enabled = selectedCategoryForPayg != null && !selectedPaygIsUnpriced && !isCheckoutInFlight,
+                    enabled = cartItems.isNotEmpty() && !isCheckoutInFlight,
                     colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                 ) {
                     Text(
-                        when {
-                            selectedPaygIsUnpriced -> "Category not priced yet"
-                            isCheckoutInFlight -> "Starting payment..."
-                            else -> "Go to Whish Pay"
-                        },
+                        if (isCheckoutInFlight) "Starting payment..." else "Go to Whish Pay",
                         color = PureWhite,
                         fontWeight = FontWeight.Bold
                     )
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showPaygBuyDialog = false }) {
+                TextButton(onClick = { showPaygCartDialog = false }) {
                     Text("Cancel")
                 }
             }
@@ -534,6 +391,91 @@ fun PackageOptionCard(
             ) {
                 Text(
                     text = if (isCurrent) "Current Active Package" else "Subscribe / Activate Package",
+                    fontWeight = FontWeight.Bold,
+                    color = PureWhite
+                )
+            }
+        }
+    }
+}
+
+/**
+ * PAYG's card, deliberately shaped differently from [PackageOptionCard] — it never
+ * had one real flat price to show next to a title the way Package 2/3 do (the old
+ * design showed monthlySubscriptionFeeUsd there, wrongly implying PAYG has the same
+ * kind of flat base fee the other two tiers do). Instead: a dashed border read as
+ * "flexible," and a live preview of the real admin-set per-category prices this
+ * plan actually charges.
+ */
+@Composable
+fun PaygPackageCard(
+    categories: List<SchemaItem>,
+    isCurrent: Boolean,
+    onSelect: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = if (isCurrent) OxfordBlue.copy(alpha = 0.04f) else MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(if (isCurrent) 2.dp else 1.dp, if (isCurrent) CarnationOrange else CoolGray.copy(alpha = 0.4f)),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.Tune, contentDescription = null, tint = CarnationOrange, modifier = Modifier.size(20.dp))
+                Text(
+                    text = OwnerPackageTier.PAY_AS_YOU_GO.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = OxfordBlue
+                )
+            }
+
+            Text(
+                text = "Priced per listing type — no monthly commitment.",
+                style = MaterialTheme.typography.bodySmall,
+                color = CoolGray
+            )
+
+            HorizontalDivider(color = LightGray.copy(alpha = 0.5f))
+
+            if (categories.isEmpty()) {
+                Text("No admin-published categories yet.", style = MaterialTheme.typography.bodySmall, color = CoolGray)
+            } else {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(categories) { category ->
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)) {
+                                Text(category.name, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    category.priceUsd?.let { "$${String.format(Locale.US, "%.2f", it)}" } ?: "—",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = CarnationOrange
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.xs))
+
+            Button(
+                onClick = onSelect,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isCurrent) CoolGray else OxfordBlue
+                ),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text(
+                    text = if (isCurrent) "Buy More Listing Slots" else "Activate Pay-As-You-Go",
                     fontWeight = FontWeight.Bold,
                     color = PureWhite
                 )
