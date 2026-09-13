@@ -41,6 +41,17 @@ fun SpaceScheduleEditorDialog(
     val liveSpace = allSpaces.find { it.id == space.id } ?: space
     val schedule = liveSpace.schedule
 
+    // Only the specialist-facing SpaceAvailabilityMatrixView used to show which
+    // slots an accepted booking already locks — a host editing their own
+    // availability here saw every slot as a plain on/off toggle with no sign that
+    // some were already occupied, and could switch one off (or on) with no idea it
+    // was actually booked. Same shared lock rule (SpaceCalculationUtils.isSlotLocked)
+    // every other screen already uses.
+    val allBookingRequests by viewModel.bookingRequests.collectAsState()
+    val acceptedBookings = remember(allBookingRequests, liveSpace.id) {
+        allBookingRequests.filter { it.spaceId == liveSpace.id && it.status == BookingRequestStatus.ACCEPTED }
+    }
+
     var openingHour by remember(schedule) { mutableStateOf(schedule.openingHour) }
     var closingHour by remember(schedule) { mutableStateOf(schedule.closingHour) }
     var isSundayOperating by remember(schedule) { mutableStateOf(schedule.isSundayOperating) }
@@ -231,8 +242,9 @@ fun SpaceScheduleEditorDialog(
                                                 it.endTime == slot.endTime
                                         }
                                         val isOffered = blocking == null
+                                        val isBooked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
                                         Surface(
-                                            color = MaterialTheme.colorScheme.surface,
+                                            color = if (isBooked) StatusErrorContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surface,
                                             shape = MaterialTheme.shapes.small,
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
@@ -242,20 +254,39 @@ fun SpaceScheduleEditorDialog(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Column(modifier = Modifier.weight(1f)) {
-                                                    Text(
-                                                        text = slot.label,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                                                        color = if (isOffered) {
-                                                            MaterialTheme.colorScheme.onSurface
-                                                        } else {
-                                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        if (isBooked) {
+                                                            Icon(
+                                                                Icons.Default.Lock,
+                                                                contentDescription = null,
+                                                                tint = StatusError,
+                                                                modifier = Modifier.size(12.dp)
+                                                            )
+                                                            Spacer(modifier = Modifier.width(4.dp))
                                                         }
-                                                    )
+                                                        Text(
+                                                            text = slot.label,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                                            color = if (isOffered) {
+                                                                MaterialTheme.colorScheme.onSurface
+                                                            } else {
+                                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                                            }
+                                                        )
+                                                    }
                                                     Text(
-                                                        text = if (isOffered) "Available to rent" else "Hidden — not offered",
+                                                        text = when {
+                                                            isBooked -> "Occupied — accepted by a specialist"
+                                                            isOffered -> "Available to rent"
+                                                            else -> "Hidden — not offered"
+                                                        },
                                                         fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                                        color = if (isOffered) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant
+                                                        color = when {
+                                                            isBooked -> StatusError
+                                                            isOffered -> StatusSuccess
+                                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                                        }
                                                     )
                                                 }
 
