@@ -673,16 +673,24 @@ class ProHostViewModel(
     }
 
     fun rejectBookingRequest(requestId: String, note: String? = null, context: Context) {
-        val success = repository.rejectBookingRequest(requestId, note)
-        if (success) {
-            Toast.makeText(context, "Booking Request #${requestId} Declined. Space hours remain available.", Toast.LENGTH_SHORT).show()
+        viewModelScope.launch {
+            val success = repository.rejectBookingRequest(requestId, note)
+            if (success) {
+                Toast.makeText(context, "Booking Request #${requestId} Declined. Space hours remain available.", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Could not decline the request — check your connection and try again.", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
     fun cancelBookingRequest(requestId: String, context: Context) {
-        val success = repository.cancelBookingRequest(requestId)
-        if (success) {
-            Toast.makeText(context, "Booking Request #${requestId} Cancelled", Toast.LENGTH_SHORT).show()
+        viewModelScope.launch {
+            val success = repository.cancelBookingRequest(requestId)
+            if (success) {
+                Toast.makeText(context, "Booking Request #${requestId} Cancelled", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Could not cancel the request — check your connection and try again.", Toast.LENGTH_LONG).show()
+            }
         }
     }
 

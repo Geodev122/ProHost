@@ -299,7 +299,17 @@ service cloud.firestore {
         // host's own OwnerIncomingRequestsView/OwnerRentingProgressScreen queue
         // as if it were a genuine request for their own listing.
         request.resource.data.ownerId ==
-          get(/databases/$(database)/documents/workspace_listings/$(request.resource.data.spaceId)).data.ownerId;
+          get(/databases/$(database)/documents/workspace_listings/$(request.resource.data.spaceId)).data.ownerId &&
+        // totalAmountUsd itself was still unbounded — the ownerId check above
+        // only stops it from being attributed to the wrong host, not from
+        // being an arbitrary number. Rules can't re-derive the real price
+        // (it depends on the chosen strategy/duration/recurrence — client-side
+        // logic, not something feasible to re-run here), so this is a sanity
+        // bound, not a recomputed price: never negative, never an absurd
+        // figure no real Lebanon workspace rental would ever reach.
+        request.resource.data.totalAmountUsd is number &&
+        request.resource.data.totalAmountUsd >= 0 &&
+        request.resource.data.totalAmountUsd <= 500000;
 
       // The owner (or Admin) can write anything — accept/reject, agreementUrl (the
       // signed lease uploaded when finalizing acceptance), etc. The practitioner is

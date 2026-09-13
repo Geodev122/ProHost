@@ -236,19 +236,6 @@ class ProHostRepository {
         }
     }
 
-    fun syncBookingStatusToFirestore(requestId: String, status: BookingRequestStatus, note: String? = null) {
-        coroutineScope.launch {
-            val success = firestoreService.updateBookingStatus(requestId, status, note)
-            if (success) {
-                _isOfflineMode.value = false
-                _syncStatusMessage.value = "Live Cloud Sync: $requestId ➔ ${status.name}"
-            } else {
-                _isOfflineMode.value = true
-                _syncStatusMessage.value = "Offline: Status change cached locally"
-            }
-        }
-    }
-
     fun queueOfflineTransaction(tx: WhishTransaction) {
         _pendingOfflineTransactions.value = _pendingOfflineTransactions.value + tx
         _syncStatusMessage.value = "Transaction stored in resilient offline queue"
@@ -1250,25 +1237,35 @@ class ProHostRepository {
         return true
     }
 
-    fun rejectBookingRequest(requestId: String, note: String? = null): Boolean {
+    /**
+     * Used to fire syncBookingStatusToFirestore (a detached coroutine.launch,
+     * never awaited) and unconditionally return true — the same
+     * fire-and-forget shape submitBookingRequest had before it was fixed
+     * (see that function's own doc comment). A host declining a request saw
+     * "Declined" toast success, and the local list flipped to REJECTED,
+     * whether or not the Firestore write actually landed; a flaky connection
+     * left the request still PENDING server-side while the host's own UI
+     * insisted it was handled. Now suspend and await the real write, mirroring
+     * acceptBookingRequest's own shape, and only report/apply success when it
+     * genuinely succeeded.
+     */
+    suspend fun rejectBookingRequest(requestId: String, note: String? = null): Boolean {
         val request = _bookingRequests.value.find { it.id == requestId } ?: return false
         val now = System.currentTimeMillis()
+        val reason = note ?: "Declined by space owner"
+
+        val success = firestoreService.updateBookingStatus(requestId, BookingRequestStatus.REJECTED, reason)
+        if (!success) return false
 
         _bookingRequests.value = _bookingRequests.value.map {
             if (it.id == requestId) {
-                it.copy(
-                    status = BookingRequestStatus.REJECTED,
-                    reviewedAt = now,
-                    rejectionReason = note ?: "Declined by space owner"
-                )
+                it.copy(status = BookingRequestStatus.REJECTED, reviewedAt = now, rejectionReason = reason)
             } else it
         }
 
-        syncBookingStatusToFirestore(requestId, BookingRequestStatus.REJECTED, note)
-
         addAuditLog(
             actionType = "RENTAL_REQUEST_DECLINED",
-            details = "Request $requestId declined by owner ${request.ownerName} (Reason: ${note ?: "None provided"}). Hours remain available to the public.",
+            details = "Request $requestId declined by owner ${request.ownerName} (Reason: $reason). Hours remain available to the public.",
             severity = "WARN",
             actorEmail = request.ownerName
         )
@@ -1276,12 +1273,16 @@ class ProHostRepository {
         return true
     }
 
-    fun cancelBookingRequest(requestId: String): Boolean {
+    /** See rejectBookingRequest's doc comment — same fire-and-forget bug, same fix. */
+    suspend fun cancelBookingRequest(requestId: String): Boolean {
         val request = _bookingRequests.value.find { it.id == requestId } ?: return false
+
+        val success = firestoreService.updateBookingStatus(requestId, BookingRequestStatus.CANCELLED)
+        if (!success) return false
+
         _bookingRequests.value = _bookingRequests.value.map {
             if (it.id == requestId) it.copy(status = BookingRequestStatus.CANCELLED) else it
         }
-        syncBookingStatusToFirestore(requestId, BookingRequestStatus.CANCELLED)
 
         addAuditLog(
             actionType = "RENTAL_REQUEST_CANCELLED",
