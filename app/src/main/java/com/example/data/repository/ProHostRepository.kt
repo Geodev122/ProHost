@@ -1088,7 +1088,14 @@ class ProHostRepository {
         subdivisionName: String? = null,
         replacesBookingId: String? = null
     ): Pair<RentalBookingRequest, Boolean> {
-        val requestId = "REQ-LB-" + (1000..9999).random()
+        // Was "REQ-LB-" + (1000..9999).random() — only ~9,000 distinct values,
+        // no collision check, and saveBookingRequest below does a
+        // .document(requestId).set(..., merge=true) — a collision wouldn't even
+        // fail loudly, it would silently merge two unrelated bookings' fields
+        // into one Firestore document. A UUID-derived id makes a collision
+        // practically impossible (16^10 space) without losing the readable
+        // "REQ-XXXXXXXXXX" shape the toasts/audit log already display.
+        val requestId = "REQ-" + UUID.randomUUID().toString().replace("-", "").take(10).uppercase()
         val totalUsd = if (calculatedTotalUsd > 0) calculatedTotalUsd else (formula.rateUsd * durationMonths)
 
         val daysChosen = if (selectedDays.isNotEmpty()) selectedDays else formula.daysOfWeek
