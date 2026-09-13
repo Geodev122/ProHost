@@ -99,8 +99,33 @@ class FirestoreService(
      * Attaches real-time snapshot listeners for the collections that need live cross-device
      * sync (workspaces, users, subscription formulas, bookings). Returns nothing; call
      * [clearListeners] to detach everything this has registered.
+     *
+     * [currentUid]/[isAdminCaller] scope the four collections whose firestore.rules read
+     * rule is content-conditional (workspace_listings, user_profiles, booking_requests,
+     * whish_transactions) — an unconstrained `.collection().addSnapshotListener()` with no
+     * `where()` filter can never satisfy those rules for a non-admin caller: Firestore only
+     * allows a LIST query when the query's own filters provably guarantee every possible
+     * result satisfies the rule, and "no filter at all" proves nothing except for the
+     * content-independent `isAdmin()` branch. The old unconstrained listeners here simply
+     * failed outright (PERMISSION_DENIED, silently logged and dropped) for every
+     * non-admin — this is the fix for that. ADMIN keeps the exact same unconstrained
+     * listeners as before (isAdmin() is trivially provable, independent of any document's
+     * content). A non-admin gets real, rule-satisfying queries instead: the public
+     * Discovery set plus their own docs for workspace_listings/booking_requests (merged
+     * client-side, since a single query can't match two different OR-branches), their own
+     * single document for user_profiles, and their own transactions for whish_transactions.
+     * [currentUid] null (signed out) attaches none of these four — nothing to show.
+     *
+     * The old `if (list.isNotEmpty()) callback(list)` gating on every one of these is also
+     * gone: a genuinely empty result (no listings match, no bookings exist) now reaches the
+     * caller like any other real snapshot, instead of being silently dropped — which used to
+     * leave whatever stale/placeholder data was already on screen (e.g. seedInitialData()'s
+     * hardcoded "Achrafieh Executive Medical Suite" listing) displayed indefinitely whenever
+     * the real result happened to be empty.
      */
     fun attachLiveListeners(
+        currentUid: String?,
+        isAdminCaller: Boolean,
         onWorkspacesUpdated: (List<SpaceListing>) -> Unit,
         onUsersUpdated: (List<AppUser>) -> Unit,
         onBookingsUpdated: (List<RentalBookingRequest>) -> Unit,
@@ -113,35 +138,102 @@ class FirestoreService(
         val db = firestore ?: return
 
         try {
-            val spaceListener = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.w(TAG, "Workspaces sync note: ${error.message}")
-                        return@addSnapshotListener
-                    }
-                    if (snapshot != null && !snapshot.isEmpty) {
-                        val spaces = snapshot.documents.mapNotNull { doc ->
-                            doc.data?.let { data -> SpaceListing.fromFirestoreMap(doc.id, data) }
+            // --- workspace_listings ---
+            if (isAdminCaller) {
+                val spaceListener = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Workspaces sync note: ${error.message}")
+                            return@addSnapshotListener
                         }
-                        if (spaces.isNotEmpty()) onWorkspacesUpdated(spaces)
+                        if (snapshot != null) {
+                            val spaces = snapshot.documents.mapNotNull { doc ->
+                                doc.data?.let { data -> SpaceListing.fromFirestoreMap(doc.id, data) }
+                            }
+                            onWorkspacesUpdated(spaces)
+                        }
                     }
+                activeListeners.add(spaceListener)
+            } else if (currentUid != null) {
+                val publicById = mutableMapOf<String, SpaceListing>()
+                val ownById = mutableMapOf<String, SpaceListing>()
+                // ownById is published last (see below) so a host's own copy always wins
+                // over the public one for the same id — the only case they'd ever
+                // disagree is a status/field the owner just changed, where the owner's
+                // own read is the freshest.
+                fun publishSpaces() {
+                    val merged = LinkedHashMap<String, SpaceListing>()
+                    publicById.values.forEach { merged[it.id] = it }
+                    ownById.values.forEach { merged[it.id] = it }
+                    onWorkspacesUpdated(merged.values.toList())
                 }
-            activeListeners.add(spaceListener)
+                val publicListener = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
+                    .whereEqualTo("status", "ACTIVE")
+                    .whereEqualTo("isOwnerSuspended", false)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Public workspaces sync note: ${error.message}")
+                            return@addSnapshotListener
+                        }
+                        if (snapshot != null) {
+                            publicById.clear()
+                            snapshot.documents.forEach { doc ->
+                                doc.data?.let { SpaceListing.fromFirestoreMap(doc.id, it) }?.let { publicById[it.id] = it }
+                            }
+                            publishSpaces()
+                        }
+                    }
+                activeListeners.add(publicListener)
+                val ownListener = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
+                    .whereEqualTo("ownerId", currentUid)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Own workspaces sync note: ${error.message}")
+                            return@addSnapshotListener
+                        }
+                        if (snapshot != null) {
+                            ownById.clear()
+                            snapshot.documents.forEach { doc ->
+                                doc.data?.let { SpaceListing.fromFirestoreMap(doc.id, it) }?.let { ownById[it.id] = it }
+                            }
+                            publishSpaces()
+                        }
+                    }
+                activeListeners.add(ownListener)
+            }
 
-            val userListener = db.collection(FirestoreSchema.Collections.USER_PROFILES)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.w(TAG, "Users sync note: ${error.message}")
-                        return@addSnapshotListener
-                    }
-                    if (snapshot != null && !snapshot.isEmpty) {
-                        val users = snapshot.documents.mapNotNull { doc ->
-                            doc.data?.let { data -> AppUser.fromFirestoreMap(doc.id, data) }
+            // --- user_profiles ---
+            if (isAdminCaller) {
+                val userListener = db.collection(FirestoreSchema.Collections.USER_PROFILES)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Users sync note: ${error.message}")
+                            return@addSnapshotListener
                         }
-                        if (users.isNotEmpty()) onUsersUpdated(users)
+                        if (snapshot != null) {
+                            val users = snapshot.documents.mapNotNull { doc ->
+                                doc.data?.let { data -> AppUser.fromFirestoreMap(doc.id, data) }
+                            }
+                            onUsersUpdated(users)
+                        }
                     }
-                }
-            activeListeners.add(userListener)
+                activeListeners.add(userListener)
+            } else if (currentUid != null) {
+                // Non-admin read rule only ever allows the caller's own document — a
+                // collection-wide listener can't be scoped any other way here, so this
+                // is a single-document listener, not a query.
+                val ownProfileListener = db.collection(FirestoreSchema.Collections.USER_PROFILES)
+                    .document(currentUid)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Own profile sync note: ${error.message}")
+                            return@addSnapshotListener
+                        }
+                        val data = snapshot?.data
+                        onUsersUpdated(if (data != null) listOf(AppUser.fromFirestoreMap(snapshot.id, data)) else emptyList())
+                    }
+                activeListeners.add(ownProfileListener)
+            }
 
             val formulaListener = db.collection(FirestoreSchema.Collections.SUBSCRIPTION_FORMULAS)
                 .addSnapshotListener { snapshot, error ->
@@ -149,49 +241,110 @@ class FirestoreService(
                         Log.w(TAG, "Formulas sync note: ${error.message}")
                         return@addSnapshotListener
                     }
-                    if (snapshot != null && !snapshot.isEmpty) {
+                    if (snapshot != null) {
                         val formulas = snapshot.documents.mapNotNull { doc ->
                             doc.data?.let { data -> SubscriptionFormula.fromFirestoreMap(doc.id, data) }
                         }
-                        if (formulas.isNotEmpty()) onFormulasUpdated(formulas)
+                        onFormulasUpdated(formulas)
                     }
                 }
             activeListeners.add(formulaListener)
 
-            // Booking requests listener — the single collection ("booking_requests") that both
+            // --- booking_requests --- the single collection ("booking_requests") that both
             // reads and writes must agree on. See ProHostRepository for the write side.
-            val bookingListener = db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.w(TAG, "Bookings sync note: ${error.message}")
-                        return@addSnapshotListener
-                    }
-                    if (snapshot != null && !snapshot.isEmpty) {
-                        val bookings = snapshot.documents.mapNotNull { doc ->
-                            doc.data?.let { data -> BookingRequest.fromFirestoreMap(doc.id, data) }
+            if (isAdminCaller) {
+                val bookingListener = db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Bookings sync note: ${error.message}")
+                            return@addSnapshotListener
                         }
-                        if (bookings.isNotEmpty()) onBookingsUpdated(bookings)
+                        if (snapshot != null) {
+                            val bookings = snapshot.documents.mapNotNull { doc ->
+                                doc.data?.let { data -> BookingRequest.fromFirestoreMap(doc.id, data) }
+                            }
+                            onBookingsUpdated(bookings)
+                        }
                     }
+                activeListeners.add(bookingListener)
+            } else if (currentUid != null) {
+                val asOwner = mutableMapOf<String, RentalBookingRequest>()
+                val asPractitioner = mutableMapOf<String, RentalBookingRequest>()
+                fun publishBookings() {
+                    val merged = LinkedHashMap<String, RentalBookingRequest>()
+                    asOwner.values.forEach { merged[it.id] = it }
+                    asPractitioner.values.forEach { merged[it.id] = it }
+                    onBookingsUpdated(merged.values.toList())
                 }
-            activeListeners.add(bookingListener)
+                val ownerBookingsListener = db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
+                    .whereEqualTo("ownerId", currentUid)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Owner bookings sync note: ${error.message}")
+                            return@addSnapshotListener
+                        }
+                        if (snapshot != null) {
+                            asOwner.clear()
+                            snapshot.documents.forEach { doc ->
+                                doc.data?.let { BookingRequest.fromFirestoreMap(doc.id, it) }?.let { asOwner[it.id] = it }
+                            }
+                            publishBookings()
+                        }
+                    }
+                activeListeners.add(ownerBookingsListener)
+                val practitionerBookingsListener = db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
+                    .whereEqualTo("practitionerId", currentUid)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Practitioner bookings sync note: ${error.message}")
+                            return@addSnapshotListener
+                        }
+                        if (snapshot != null) {
+                            asPractitioner.clear()
+                            snapshot.documents.forEach { doc ->
+                                doc.data?.let { BookingRequest.fromFirestoreMap(doc.id, it) }?.let { asPractitioner[it.id] = it }
+                            }
+                            publishBookings()
+                        }
+                    }
+                activeListeners.add(practitionerBookingsListener)
+            }
 
-            // Transactions are now created/settled server-side by the Whish payment Cloud
-            // Functions (initiateWhishPayment/whishWebhook/checkWhishStatus) via Admin SDK —
-            // this listener is how the client ever finds out about them at all.
-            val transactionListener = db.collection(FirestoreSchema.Collections.WHISH_TRANSACTIONS)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.w(TAG, "Transactions sync note: ${error.message}")
-                        return@addSnapshotListener
-                    }
-                    if (snapshot != null && !snapshot.isEmpty) {
-                        val transactions = snapshot.documents.mapNotNull { doc ->
-                            doc.data?.let { data -> WhishTransaction.fromFirestoreMap(doc.id, data) }
+            // --- whish_transactions --- created/settled server-side by the Whish payment
+            // Cloud Functions (initiateWhishPayment/whishWebhook/checkWhishStatus) via
+            // Admin SDK — this listener is how the client ever finds out about them at all.
+            if (isAdminCaller) {
+                val transactionListener = db.collection(FirestoreSchema.Collections.WHISH_TRANSACTIONS)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Transactions sync note: ${error.message}")
+                            return@addSnapshotListener
                         }
-                        if (transactions.isNotEmpty()) onTransactionsUpdated(transactions)
+                        if (snapshot != null) {
+                            val transactions = snapshot.documents.mapNotNull { doc ->
+                                doc.data?.let { data -> WhishTransaction.fromFirestoreMap(doc.id, data) }
+                            }
+                            onTransactionsUpdated(transactions)
+                        }
                     }
-                }
-            activeListeners.add(transactionListener)
+                activeListeners.add(transactionListener)
+            } else if (currentUid != null) {
+                val ownTransactionListener = db.collection(FirestoreSchema.Collections.WHISH_TRANSACTIONS)
+                    .whereEqualTo("userId", currentUid)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Own transactions sync note: ${error.message}")
+                            return@addSnapshotListener
+                        }
+                        if (snapshot != null) {
+                            val transactions = snapshot.documents.mapNotNull { doc ->
+                                doc.data?.let { data -> WhishTransaction.fromFirestoreMap(doc.id, data) }
+                            }
+                            onTransactionsUpdated(transactions)
+                        }
+                    }
+                activeListeners.add(ownTransactionListener)
+            }
 
             // Single-document taxonomy: space types/subcategories/amenities/equipment/
             // rental strategies. Public read (firestore.rules), admin-only write — no
@@ -233,29 +386,32 @@ class FirestoreService(
                 }
             activeListeners.add(packagePlansListener)
 
-            // Admin-only read (firestore.rules) — every non-admin session simply gets a
-            // permission-denied here and never populates audit logs, which is fine, they
-            // don't need to see it. Before this listener existed, Admin's "System Audit
-            // Logs" panel only ever showed entries added locally on the SAME device via
-            // addLocalAuditLogEntry — real server-written entries (other admins' actions,
-            // Cloud-Function-only events like role grants or account suspensions) never
-            // reached it at all. This is what makes that panel actually show everything.
-            val auditLogListener = db.collection(FirestoreSchema.Collections.AUDIT_SECURITY_LOGS)
-                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
-                .limit(500)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.w(TAG, "Audit logs sync note: ${error.message}")
-                        return@addSnapshotListener
-                    }
-                    if (snapshot != null) {
-                        val logs = snapshot.documents.mapNotNull { doc ->
-                            doc.data?.let { data -> AuditSecurityLog.fromFirestoreMap(doc.id, data) }
+            // Admin-only read (firestore.rules) — only ever attached for an admin caller
+            // now, rather than unconditionally attempting it and eating a guaranteed
+            // PERMISSION_DENIED for every non-admin sign-in. Before this listener
+            // existed at all, Admin's "System Audit Logs" panel only ever showed entries
+            // added locally on the SAME device via addLocalAuditLogEntry — real
+            // server-written entries (other admins' actions, Cloud-Function-only events
+            // like role grants or account suspensions) never reached it at all. This is
+            // what makes that panel actually show everything.
+            if (isAdminCaller) {
+                val auditLogListener = db.collection(FirestoreSchema.Collections.AUDIT_SECURITY_LOGS)
+                    .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .limit(500)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Audit logs sync note: ${error.message}")
+                            return@addSnapshotListener
                         }
-                        onAuditLogsUpdated(logs)
+                        if (snapshot != null) {
+                            val logs = snapshot.documents.mapNotNull { doc ->
+                                doc.data?.let { data -> AuditSecurityLog.fromFirestoreMap(doc.id, data) }
+                            }
+                            onAuditLogsUpdated(logs)
+                        }
                     }
-                }
-            activeListeners.add(auditLogListener)
+                activeListeners.add(auditLogListener)
+            }
         } catch (e: Exception) {
             Log.w(TAG, "Live listeners attachment warning: ${e.message}")
         }

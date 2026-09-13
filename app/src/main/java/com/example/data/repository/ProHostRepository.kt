@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -151,13 +152,34 @@ class ProHostRepository {
 
     init {
         seedInitialData()
-        startRealtimeSync()
+        // Watches _currentUser and (re)attaches the live listeners whenever the
+        // signed-in user's identity or admin status changes — including the very
+        // first attach, since this collector fires immediately with _currentUser's
+        // initial null value ("not signed in yet," correctly attaching only the
+        // public, role-independent listeners at that point). Before this,
+        // startRealtimeSync() only ever ran once, in this init block, before any
+        // user was ever signed in — so the four role-conditional collections
+        // (workspace_listings, user_profiles, booking_requests, whish_transactions
+        // — see FirestoreService.attachLiveListeners's own doc comment) were
+        // always scoped to "signed out" and never re-scoped on sign-in, sign-out,
+        // account switch, or an Admin promotion/demotion mid-session.
+        coroutineScope.launch {
+            var lastScopeKey: Pair<String?, Boolean>? = null
+            _currentUser.collect { user ->
+                val scopeKey = user?.id to (user?.role == UserRole.ADMIN)
+                if (scopeKey != lastScopeKey) {
+                    lastScopeKey = scopeKey
+                    startRealtimeSync()
+                }
+            }
+        }
     }
 
     fun startRealtimeSync() {
         try {
-            // Safe to call again (e.g. on manual retry) — detach any previous listeners first
-            // so they don't stack up and fire duplicate updates.
+            // Safe to call again (e.g. on manual retry, or a role/uid rescope) —
+            // detach any previous listeners first so they don't stack up and fire
+            // duplicate/stale-scoped updates.
             firestoreService.clearListeners()
 
             // Seed default/starter structures (merge writes — safe to repeat).
@@ -167,12 +189,16 @@ class ProHostRepository {
                 initialFormulas = _subscriptionFormulas.value
             )
 
+            val scopeUser = _currentUser.value
+
             // Attach the single set of real-time listeners. Bookings are read from and
             // written to the same collection (FirestoreSchema.Collections.BOOKING_REQUESTS) —
             // there used to be a second, separate "prospace_bookings" collection that writes
             // went to while this listener read from "booking_requests", so a booking from one
             // device never reached another device's listener. That split is now gone.
             firestoreService.attachLiveListeners(
+                currentUid = scopeUser?.id,
+                isAdminCaller = scopeUser?.role == UserRole.ADMIN,
                 onWorkspacesUpdated = { updatedSpaces ->
                     _spaces.value = updatedSpaces
                     _hasLoadedSpacesOnce.value = true
