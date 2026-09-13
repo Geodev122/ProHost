@@ -31,10 +31,12 @@ import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
 import com.example.ui.theme.Spacing
 import org.osmdroid.util.GeoPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -969,7 +971,7 @@ fun CreateListingDialog(
                 // by both "Publish Listing" (status ACTIVE) and "Save as Draft" (status
                 // DRAFT, no requiredness gating) so the two paths can never disagree on
                 // how a listing gets assembled.
-                fun buildListing(status: ListingStatus): SpaceListing {
+                fun buildListing(status: ListingStatus, fallbackLatLng: GeoPoint? = null): SpaceListing {
                     // The real source of truth for an undivided listing's pricing is
                     // wholeSpacePricing (set via RentalPricingConfigEditor above) — no
                     // longer a free-text "base monthly valuation" field. formulas below
@@ -1044,29 +1046,18 @@ fun CreateListingDialog(
                     val pricingConfig = if (!hasSubdivisions) wholeSpacePricing else RentalPricingConfig.default()
 
                     // Prefer the real pin dropped on the map (recorded via
-                    // ListingLocationMapPicker above); only fall back to
-                    // string-geocoding the typed address if the host somehow
-                    // reached submit without one (shouldn't happen for a real
-                    // Publish — gated by the Publish button below; expected for
-                    // a Draft saved before the host ever opened the map step).
-                    var geocodedLat = derivedGovernorate.centerLat + ((-20..20).random() / 1000.0)
-                    var geocodedLng = derivedGovernorate.centerLng + ((-20..20).random() / 1000.0)
+                    // ListingLocationMapPicker above); otherwise use whatever fallback
+                    // the caller already resolved (see resolveFallbackGeocode() below —
+                    // this function itself never geocodes, so it stays main-thread-safe
+                    // even when called synchronously from snapshotFlow's auto-save).
+                    var geocodedLat = fallbackLatLng?.latitude
+                        ?: (derivedGovernorate.centerLat + ((-20..20).random() / 1000.0))
+                    var geocodedLng = fallbackLatLng?.longitude
+                        ?: (derivedGovernorate.centerLng + ((-20..20).random() / 1000.0))
                     val pinned = pickedLatLng
                     if (pinned != null) {
                         geocodedLat = pinned.latitude
                         geocodedLng = pinned.longitude
-                    } else if (streetAddress.isNotBlank() || district.isNotBlank()) {
-                        try {
-                            val fullAddress = "${streetAddress}, ${district}, ${derivedGovernorate.displayName}, Lebanon"
-                            val geocoder = android.location.Geocoder(context, java.util.Locale.getDefault())
-                            val addresses = geocoder.getFromLocationName(fullAddress, 1)
-                            if (!addresses.isNullOrEmpty()) {
-                                geocodedLat = addresses[0].latitude
-                                geocodedLng = addresses[0].longitude
-                            }
-                        } catch (e: Exception) {
-                            // fallback to the jittered governorate center above
-                        }
                     }
 
                     return SpaceListing(
@@ -1129,6 +1120,29 @@ fun CreateListingDialog(
                     )
                 }
 
+                // Resolves a fallback pin for buildListing() when the host typed an
+                // address but never dropped a map pin, off the main thread (Geocoder's
+                // synchronous lookup used to run directly on the composition thread here
+                // — moved out into its own suspend function, called from a coroutine at
+                // each button's onClick, so buildListing() itself never blocks). Returns
+                // null (falling back to buildListing()'s own jittered-governorate-center
+                // default) whenever a pin already exists or there's nothing to geocode —
+                // matches ListingLocationMapPicker.resolveAndEmit()'s exact pattern.
+                suspend fun resolveFallbackGeocode(): GeoPoint? {
+                    if (pickedLatLng != null) return null
+                    if (streetAddress.isBlank() && district.isBlank()) return null
+                    return withContext(Dispatchers.IO) {
+                        try {
+                            val fullAddress = "${streetAddress}, ${district}, ${derivedGovernorate.displayName}, Lebanon"
+                            val geocoder = android.location.Geocoder(context, java.util.Locale.getDefault())
+                            val addresses = geocoder.getFromLocationName(fullAddress, 1)
+                            addresses?.firstOrNull()?.let { GeoPoint(it.latitude, it.longitude) }
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                }
+
                 // Silent draft auto-save — debounced 3s after the last field change, and
                 // only once there's something worth keeping (title or district non-blank,
                 // the same minimal-progress bar Step 1's own "Next" gate already uses).
@@ -1174,7 +1188,12 @@ fun CreateListingDialog(
                     if (onListingUpdated == null) {
                         ProOutlinedButton(
                             text = "Save as Draft",
-                            onClick = { onSaveDraft(buildListing(ListingStatus.DRAFT)) },
+                            onClick = {
+                                coroutineScope.launch {
+                                    val fallback = resolveFallbackGeocode()
+                                    onSaveDraft(buildListing(ListingStatus.DRAFT, fallback))
+                                }
+                            },
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -1194,9 +1213,21 @@ fun CreateListingDialog(
                                     currentStep++
                                 }
                             } else if (onListingUpdated != null) {
-                                onListingUpdated(buildListing(existingDraft?.status ?: ListingStatus.ACTIVE))
+                                coroutineScope.launch {
+                                    // pickedLatLng is already mandatory to reach this step
+                                    // (see the Step 1 gate above and the enabled= gate
+                                    // below), so resolveFallbackGeocode() is a guaranteed
+                                    // no-op here in practice — kept for the same call
+                                    // shape as the other two buttons rather than
+                                    // special-casing this one out.
+                                    val fallback = resolveFallbackGeocode()
+                                    onListingUpdated(buildListing(existingDraft?.status ?: ListingStatus.ACTIVE, fallback))
+                                }
                             } else {
-                                onListingCreated(buildListing(ListingStatus.ACTIVE))
+                                coroutineScope.launch {
+                                    val fallback = resolveFallbackGeocode()
+                                    onListingCreated(buildListing(ListingStatus.ACTIVE, fallback))
+                                }
                             }
                         },
                         modifier = Modifier.weight(1.5f),
