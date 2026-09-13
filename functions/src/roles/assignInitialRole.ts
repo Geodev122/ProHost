@@ -3,6 +3,7 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { DEFAULT_ROLE, isAppRole } from "../lib/roles";
 import { recordAuditLog } from "../lib/auditLog";
+import { checkPlayIntegrityLogOnly } from "../lib/playIntegrity";
 import "../lib/admin";
 
 /**
@@ -44,6 +45,10 @@ import "../lib/admin";
  * malformed submission after the fact, so this is the one real gate. Only
  * cheap format checks (never uniqueness/business rules, which would need a
  * read this function has no reason to do on every plain sign-in call too).
+ *
+ * `integrityToken`, when present, is checked against Google Play Integrity —
+ * see checkPlayIntegrityLogOnly's own doc comment for why this is strictly
+ * log-only (never a gate on sign-in) for this initial rollout.
  */
 interface RegistrationDraft {
   fullName?: unknown;
@@ -98,9 +103,20 @@ export const assignInitialRole = onCall(async (request) => {
     throw new HttpsError("unauthenticated", "Sign in required.");
   }
 
-  const registration = (request.data as { registration?: RegistrationDraft } | undefined)?.registration;
+  const data = request.data as { registration?: RegistrationDraft; integrityToken?: unknown } | undefined;
+  const registration = data?.registration;
   if (registration) {
     validateRegistrationDraft(registration);
+  }
+
+  // Awaited (not fire-and-forget — a Cloud Functions instance can freeze right
+  // after this handler returns, which would silently drop an un-awaited async
+  // call before its log line ever writes) but never allowed to throw or block
+  // sign-in — see checkPlayIntegrityLogOnly's own doc comment for the
+  // log-only design.
+  const integrityToken = typeof data?.integrityToken === "string" ? data.integrityToken : undefined;
+  if (integrityToken) {
+    await checkPlayIntegrityLogOnly(integrityToken, auth.uid);
   }
 
   const db = getFirestore();

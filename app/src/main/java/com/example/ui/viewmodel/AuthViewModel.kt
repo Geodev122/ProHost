@@ -163,7 +163,12 @@ class AuthViewModel(
                     // This exact phone number already had an account — sign the caller
                     // straight into it, no registration form, nothing to overwrite.
                     try {
-                        val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
+                        // Best-effort — PlayIntegrityManager already catches its own
+                        // failures and never throws; a missing/failed token must never
+                        // block sign-in (see assignInitialRole.ts's log-only handling).
+                        val integrityToken = com.example.util.PlayIntegrityManager(activity)
+                            .requestIntegrityToken().getOrNull()
+                        val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser, integrityToken)
                         // isNewUser only reflects whether the Firebase Auth ACCOUNT is
                         // new, not whether registration was ever finished — an app kill
                         // between OTP verification and submitting the registration form
@@ -229,6 +234,9 @@ class AuthViewModel(
                 val idDocumentUrl = registration.idDocumentUri?.let { uri ->
                     storageService.uploadIdDocument(firebaseUser.uid, uri, guessFileExtension(activity, uri, "pdf"))
                 }
+                // Best-effort — see the matching comment in finishPhoneVerification.
+                val integrityToken = com.example.util.PlayIntegrityManager(activity)
+                    .requestIntegrityToken().getOrNull()
                 val user = com.example.data.auth.completeVerifiedRegistration(
                     repository = repository,
                     functionsClient = functionsClient,
@@ -242,7 +250,8 @@ class AuthViewModel(
                     country = registration.country,
                     governorate = registration.governorate,
                     city = registration.city,
-                    tosAccepted = registration.tosAccepted
+                    tosAccepted = registration.tosAccepted,
+                    integrityToken = integrityToken
                 )
                 _isAuthenticating.value = false
                 registerFcmTokenForCurrentUser(user.id)

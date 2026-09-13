@@ -22,9 +22,10 @@ class AccountSuspendedException(message: String) : Exception(message)
 suspend fun completeVerifiedLogin(
     repository: ProHostRepository,
     functionsClient: FirebaseFunctionsClient,
-    firebaseUser: FirebaseUser
+    firebaseUser: FirebaseUser,
+    integrityToken: String? = null
 ): AppUser {
-    val role = resolveVerifiedRole(functionsClient, firebaseUser)
+    val role = resolveVerifiedRole(functionsClient, firebaseUser, integrityToken)
     return repository.login(
         uid = firebaseUser.uid,
         email = firebaseUser.email ?: "",
@@ -59,7 +60,8 @@ suspend fun completeVerifiedRegistration(
     country: String,
     governorate: String,
     city: String,
-    tosAccepted: Boolean
+    tosAccepted: Boolean,
+    integrityToken: String? = null
 ): AppUser {
     functionsClient.ensureInitialRole(
         registrationDraft = mapOf(
@@ -67,9 +69,10 @@ suspend fun completeVerifiedRegistration(
             "email" to email,
             "idDocumentUrl" to idDocumentUrl,
             "tosAccepted" to tosAccepted
-        )
+        ),
+        integrityToken = integrityToken
     ).getOrThrow()
-    val role = resolveVerifiedRole(functionsClient, firebaseUser)
+    val role = resolveVerifiedRole(functionsClient, firebaseUser, integrityToken)
     return repository.registerMember(
         uid = firebaseUser.uid,
         fullName = fullName,
@@ -87,7 +90,8 @@ suspend fun completeVerifiedRegistration(
 
 private suspend fun resolveVerifiedRole(
     functionsClient: FirebaseFunctionsClient,
-    firebaseUser: FirebaseUser
+    firebaseUser: FirebaseUser,
+    integrityToken: String? = null
 ): UserRole {
     // forceRefresh=true makes this a real network round-trip to Firebase's token
     // endpoint — offline, that throws outright, before this function's own
@@ -109,7 +113,7 @@ private suspend fun resolveVerifiedRole(
     // failure here shouldn't block sign-in for a returning user who already has a valid
     // claim — EXCEPT an account-suspended rejection, which must always block sign-in
     // regardless of whether a claim already existed (see setAccountSuspended.ts).
-    val result = functionsClient.ensureInitialRole()
+    val result = functionsClient.ensureInitialRole(integrityToken = integrityToken)
     result.exceptionOrNull()?.let { error ->
         if (error is AccountSuspendedException || existingClaim == null) throw error
     }

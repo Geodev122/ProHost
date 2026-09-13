@@ -31,10 +31,18 @@ class FirebaseFunctionsClient {
      * Storage URL for the ID document if one is present) before this call
      * succeeds — see assignInitialRole.ts. Pass it only when completing a
      * brand-new registration; a plain sign-in never has one.
+     *
+     * [integrityToken], when present, is verified server-side against Google Play
+     * Integrity in a log-only capacity (see assignInitialRole.ts) — a missing or
+     * failed verdict never blocks this call from succeeding.
      */
-    suspend fun ensureInitialRole(registrationDraft: Map<String, Any?>? = null): Result<String> {
+    suspend fun ensureInitialRole(registrationDraft: Map<String, Any?>? = null, integrityToken: String? = null): Result<String> {
         return try {
-            val payload: Map<String, Any?>? = registrationDraft?.let { mapOf("registration" to it) }
+            val payload: Map<String, Any?>? = if (registrationDraft != null || integrityToken != null) {
+                mapOf("registration" to registrationDraft, "integrityToken" to integrityToken)
+            } else {
+                null
+            }
             val result = functions.getHttpsCallable("assignInitialRole").call(payload).await()
             @Suppress("UNCHECKED_CAST")
             val data = result.data as? Map<String, Any?>

@@ -32,13 +32,5 @@ class ProHostApplication : Application() {
         } catch (e: Exception) {
             Log.e("ProHostApplication", "Failed to configure osmdroid: ${e.message}", e)
         }
-
-        // Google Play Integrity API setup
-        try {
-            com.example.util.PlayIntegrityManager(this)
-            Log.d("ProHostApplication", "Google Play Integrity API initialized for project 646730915838")
-        } catch (e: Exception) {
-            Log.w("ProHostApplication", "Google Play Integrity initialization warning: ${e.message}")
-        }
     }
 }
