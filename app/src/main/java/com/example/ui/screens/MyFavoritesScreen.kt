@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -38,13 +39,19 @@ fun MyFavoritesScreen(
 
     val savedIds = currentUser?.savedSpaceIds.orEmpty().toSet()
     val savedSpaces = allSpaces.filter { it.id in savedIds }
+    // A saved listing that's since gone Paused/Draft, or been deleted, simply
+    // has no matching entry in allSpaces — this used to silently drop it from
+    // the list with no explanation, and the stale id stayed in savedSpaceIds
+    // forever with no way to clean it up. Surfaced explicitly below instead,
+    // with a Remove action that actually clears the stale id.
+    val unavailableIds = savedIds - savedSpaces.map { it.id }.toSet()
 
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("My Favorites", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold) })
         }
     ) { innerPadding ->
-        if (savedSpaces.isEmpty()) {
+        if (savedSpaces.isEmpty() && unavailableIds.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                 ProEmptyState(
                     title = "No Favorites Yet",
@@ -69,6 +76,45 @@ fun MyFavoritesScreen(
                         onToggleSave = { viewModel.toggleSavedSpace(space.id) }
                     )
                 }
+                items(unavailableIds.toList(), key = { it }) { spaceId ->
+                    UnavailableFavoriteCard(
+                        onRemove = { viewModel.toggleSavedSpace(spaceId) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UnavailableFavoriteCard(onRemove: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.lg),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "No longer available",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "This saved listing was paused, unpublished, or removed by its host.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            TextButton(onClick = onRemove) {
+                Text("Remove")
             }
         }
     }
