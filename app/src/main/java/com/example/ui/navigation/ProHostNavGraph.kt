@@ -2,14 +2,17 @@ package com.example.ui.navigation
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -170,6 +173,21 @@ fun ProHostAppRoot(
         LoginAuthScreen(
             onLoginSuccess = {
                 // Handled via LaunchedEffect
+            }
+        )
+    } else if (currentUser?.isSuspended == true) {
+        // Before this, nothing reacted to a mid-session suspension at all —
+        // _currentUser (ProHostRepository's onUsersUpdated) already syncs
+        // isSuspended live from Firestore the instant an Admin flips it, but
+        // with no gate here the app just kept rendering as normal until the
+        // suspended user's next write hit firestore.rules' isSuspended()
+        // check and failed with whatever generic "check your connection"
+        // message that particular screen happened to show — nothing told
+        // them their account itself was the reason.
+        SuspendedAccountScreen(
+            onSignOut = {
+                viewModel.logout()
+                activeTabId = "auth"
             }
         )
     } else {
@@ -427,6 +445,55 @@ fun ProHostAppRoot(
                 collectUrl = url,
                 onDismiss = { viewModel.clearPendingCheckoutUrl() }
             )
+        }
+    }
+}
+
+/**
+ * Blocking, full-screen — a suspended account has no partial access to the
+ * app; every write it could attempt is denied server-side anyway
+ * (firestore.rules' isSuspended()), so showing the normal UI underneath
+ * would just be a maze of dead-end actions. The only way out is Sign Out;
+ * reactivation is an Admin action on another device, which the live
+ * currentUser sync (ProHostRepository's onUsersUpdated) picks up
+ * automatically on this user's next sign-in.
+ */
+@Composable
+private fun SuspendedAccountScreen(onSignOut: () -> Unit) {
+    Scaffold { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Block,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(56.dp)
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+            Text(
+                text = "Account Suspended",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Your account has been suspended by ProHost. You can't book, publish, " +
+                    "or manage listings while suspended. Contact support if you believe this is a mistake.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(28.dp))
+            Button(onClick = onSignOut) {
+                Text("Sign Out")
+            }
         }
     }
 }
