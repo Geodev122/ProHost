@@ -3,6 +3,7 @@ package com.example.ui.navigation
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
@@ -111,6 +112,26 @@ fun ProHostAppRoot(
     // menu icon) since they live outside the unified Specialist/Pro Host bottom nav —
     // see FULLSCREEN_TAB_IDS.
     var fullScreenDrawerTab by remember { mutableStateOf<String?>(null) }
+
+    // Becoming a Pro Host used to be completely silent — grantProHostRoleIfNeeded
+    // (functions/src/lib/entitlements.ts) fires the moment a package/PAYG payment
+    // settles, and the live currentUser sync (ProHostRepository's onUsersUpdated)
+    // picks the new role up automatically, but nothing ever told the user their
+    // role actually changed — the drawer/nav just started quietly showing new
+    // items. Only fires for a transition observed WITHIN this session (a
+    // returning Pro Host whose role is already PRO_HOST on cold start correctly
+    // sees nothing) — set once the previous role is known, so the very first
+    // composition (previousRole still null) never counts as a transition.
+    var previousRole by remember { mutableStateOf<UserRole?>(null) }
+    var showProHostWelcome by remember { mutableStateOf(false) }
+    LaunchedEffect(currentUser?.role) {
+        val previous = previousRole
+        val current = currentUser?.role
+        if (previous != null && previous != UserRole.PRO_HOST && current == UserRole.PRO_HOST) {
+            showProHostWelcome = true
+        }
+        previousRole = current
+    }
 
     // Routes to any tab id, transparently choosing full-screen presentation vs. the
     // regular bottom-nav tab switch — the single place that decides how a given
@@ -453,6 +474,25 @@ fun ProHostAppRoot(
             WhishCheckoutWebView(
                 collectUrl = url,
                 onDismiss = { viewModel.clearPendingCheckoutUrl() }
+            )
+        }
+
+        if (showProHostWelcome) {
+            AlertDialog(
+                onDismissRequest = { showProHostWelcome = false },
+                icon = { Icon(Icons.Default.Celebration, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                title = { Text("You're Now a Pro Host!") },
+                text = {
+                    Text(
+                        "Your package is active. Publish a workspace listing, respond to booking " +
+                            "requests, and track your rentals — all from the Pro Host tools in the drawer."
+                    )
+                },
+                confirmButton = {
+                    Button(onClick = { showProHostWelcome = false }) {
+                        Text("Let's Go")
+                    }
+                }
             )
         }
     }
