@@ -93,6 +93,8 @@ $env:KEY_PASSWORD="your_key_password"
 
 ## 💡 Best Practices Checklist Before Release
 
+See [PLAYSTORE_READINESS.md](PLAYSTORE_READINESS.md) for the complete, production-grade checklist of security policies, crash-prevention rules, Play Integrity configuration, and Store Listing requirements.
+
 1. **Versioning**: Update `versionCode` (increment sequentially) and `versionName` in `app/build.gradle.kts` -> `defaultConfig`.
 2. **Compilation**: Run `./gradlew :app:compileDebugKotlin` and `./gradlew test` to ensure zero compilation or unit test failures.
 3. **Firebase & Google Cloud**: Verify `app/google-services.json` is present and SHA-1 / SHA-256 fingerprints are added in Firebase Console for Google Sign-In & App Check.
