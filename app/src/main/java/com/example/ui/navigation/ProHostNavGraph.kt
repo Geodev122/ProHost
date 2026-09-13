@@ -150,12 +150,19 @@ fun ProHostAppRoot(
         }
     }
 
-    var showSplash by remember { mutableStateOf(true) }
+    // Splash stays up until BOTH its own fixed animation delay finishes AND a
+    // cold-start session restore (see ProHostViewModel's init block) has resolved —
+    // without the second condition, a returning user's app used to flash the login
+    // screen for a moment before currentUser got rehydrated from their still-valid
+    // Firebase session.
+    val isRestoringSession by viewModel.isRestoringSession.collectAsState()
+    var splashTimerDone by remember { mutableStateOf(false) }
+    val showSplash = !splashTimerDone || isRestoringSession
 
     if (showSplash) {
         SplashScreen(
             onSplashCompleted = {
-                showSplash = false
+                splashTimerDone = true
             }
         )
     } else if (currentUser == null) {

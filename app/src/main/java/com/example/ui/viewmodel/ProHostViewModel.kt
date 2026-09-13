@@ -39,6 +39,43 @@ class ProHostViewModel(
     // since those are cross-cutting, multi-screen actions, unlike the auth flow.
     private val functionsClient = com.example.data.auth.FirebaseFunctionsClient()
 
+    // Cold-start session restoration — the actual fix for "signed out whenever the app
+    // is closed." repository.currentUser previously started (and, on a fresh process,
+    // always stayed) null until the explicit phone-OTP flow set it; nothing anywhere
+    // ever checked whether a Firebase Auth session already existed on disk and
+    // rehydrated it. Firebase's own token persistence was never the problem — this
+    // ViewModel's cold-start behavior simply never looked at it. Reuses
+    // completeVerifiedLogin exactly as a fresh sign-in already does (resolve role via
+    // the custom claim, then repository.login) rather than inventing a second way to
+    // build an AppUser.
+    private val _isRestoringSession = MutableStateFlow(
+        com.google.firebase.auth.FirebaseAuth.getInstance().currentUser != null
+    )
+    val isRestoringSession: StateFlow<Boolean> = _isRestoringSession.asStateFlow()
+
+    init {
+        val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+        if (firebaseUser != null) {
+            viewModelScope.launch {
+                try {
+                    com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
+                } catch (e: com.example.data.auth.AccountSuspendedException) {
+                    // Same handling the explicit sign-in flow uses for this exception — the
+                    // account is server-confirmed suspended, so don't leave a locally-valid
+                    // Firebase session around for the next cold start to just retry.
+                    com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                } catch (e: Exception) {
+                    // Most likely offline with no prior custom claim to fall back on
+                    // (resolveVerifiedRole's own tolerance already covers "offline but a
+                    // claim already exists"). repository.currentUser stays null either way,
+                    // so ProHostNavGraph correctly falls through to LoginAuthScreen.
+                } finally {
+                    _isRestoringSession.value = false
+                }
+            }
+        }
+    }
+
     val pricingState: StateFlow<AdminPricingState> = repository.pricingState
     val spaces: StateFlow<List<SpaceListing>> = repository.spaces
     val subscriptionFormulas: StateFlow<List<SubscriptionFormula>> = repository.subscriptionFormulas
