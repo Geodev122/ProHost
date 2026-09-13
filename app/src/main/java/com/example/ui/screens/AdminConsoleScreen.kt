@@ -353,12 +353,21 @@ private data class CategoryRunRateRow(
 
 /** One row per admin-configured SPACE_TYPE, so a newly-added category automatically
  * gets its own row (at $0/$0) with zero extra code the moment it's created — no row
- * is ever hand-wired to a specific category id. A transaction is attributed to a
- * category via its space's real spaceCategoryId; a legacy space saved before that
- * field existed falls back to matching the schema item's name against the space's
- * legacy spaceType display name (the same bridge SpaceListing's own field comments
- * describe). Only SUCCESS-status transactions count as "gross sales," matching the
- * Transactions tab's own settled-volume fix. */
+ * is ever hand-wired to a specific category id. Only SUCCESS-status transactions
+ * count as "gross sales," matching the Transactions tab's own settled-volume fix.
+ *
+ * Category attribution branches on the transaction's own purpose (see
+ * initiateWhishPayment.ts) rather than its spaceId — every purpose except the
+ * retired legacy "SUBSCRIPTION" one writes a synthetic spaceId
+ * ("PAYG-SLOT-{category}", "PAYG-CART-{ts}", "OWNER-PKG-{tier}"), so a spaceId-based
+ * space lookup can never resolve a category for real PAYG revenue. "PAYG_LISTING"
+ * carries the category directly as targetId; "PAYG_CART" can span several
+ * categories in one transaction, so each cart line is attributed to its own
+ * category by its own (unitPriceUsd x quantity); "OWNER_PACKAGE" is a whole-account
+ * fee with no single category and contributes nothing here (by design, not a gap).
+ * The old spaceId-based space lookup is kept as a fallback purely so any
+ * legacy "SUBSCRIPTION" transaction still in Firestore from before this purpose
+ * was retired keeps attributing the same way it always did. */
 private fun computeCategoryRunRateRows(
     spaceTypes: List<SchemaItem>,
     spaces: List<SpaceListing>,
@@ -383,12 +392,22 @@ private fun computeCategoryRunRateRows(
             ?: spaceTypes.find { it.name == space.spaceType.displayName }?.id
     }
 
+    fun matchesCategory(id: String?, category: SchemaItem): Boolean =
+        id != null && (id == category.id || id == category.name)
+
+    fun amountForCategory(tx: WhishTransaction, category: SchemaItem): Double = when (tx.purpose) {
+        "PAYG_LISTING" -> if (matchesCategory(tx.targetId, category)) tx.amountUsd else 0.0
+        "PAYG_CART" -> tx.cartItems
+            .filter { matchesCategory(it.categoryId, category) }
+            .sumOf { it.unitPriceUsd * it.quantity }
+        "OWNER_PACKAGE" -> 0.0
+        else -> if (categoryIdForSpace(tx.spaceId) == category.id) tx.amountUsd else 0.0
+    }
+
     val settled = transactions.filter { it.status == TransactionStatus.SUCCESS }
     return spaceTypes.map { category ->
-        val thisMonth = settled.filter { it.timestamp >= thisMonthStart && categoryIdForSpace(it.spaceId) == category.id }
-            .sumOf { it.amountUsd }
-        val lastMonth = settled.filter { it.timestamp in lastMonthStart..lastMonthEnd && categoryIdForSpace(it.spaceId) == category.id }
-            .sumOf { it.amountUsd }
+        val thisMonth = settled.filter { it.timestamp >= thisMonthStart }.sumOf { amountForCategory(it, category) }
+        val lastMonth = settled.filter { it.timestamp in lastMonthStart..lastMonthEnd }.sumOf { amountForCategory(it, category) }
         CategoryRunRateRow(category.name, thisMonth, lastMonth)
     }
 }
