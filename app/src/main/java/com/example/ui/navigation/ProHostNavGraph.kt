@@ -407,5 +407,17 @@ fun ProHostAppRoot(
             },
             onDismiss = { activeDrawerTabDialog = null }
         )
+
+        // Global Whish in-app checkout host — every purchase flow (PAYG cart,
+        // package subscribe/renew) funnels through ProHostViewModel's one shared
+        // launchWhishCheckout, so a single host here covers all of them regardless
+        // of which screen started the payment.
+        val pendingCheckoutUrl by viewModel.pendingCheckoutUrl.collectAsState()
+        pendingCheckoutUrl?.let { url ->
+            WhishCheckoutWebView(
+                collectUrl = url,
+                onDismiss = { viewModel.clearPendingCheckoutUrl() }
+            )
+        }
     }
 }

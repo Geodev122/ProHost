@@ -130,6 +130,23 @@ class ProHostViewModel(
     private val _isWhishCheckoutInFlight = MutableStateFlow(false)
     val isWhishCheckoutInFlight: StateFlow<Boolean> = _isWhishCheckoutInFlight.asStateFlow()
 
+    // The Whish checkout URL to show in an in-app WebView (see WhishCheckoutWebView.kt,
+    // hosted globally by ProHostNavGraph so it renders regardless of which screen
+    // started the payment). Replaces launching an external browser Intent — that
+    // depended on the hopebearer-award.com Android App Link reliably intercepting the
+    // post-checkout redirect, which isn't guaranteed (exact signing-cert fingerprint
+    // match, network access at install time). A WebView this app fully controls can
+    // detect that same redirect itself via shouldOverrideUrlLoading, with no
+    // dependency on OS-level App Link verification. checkWhishStatus polling (started
+    // right below, independent of the WebView) remains the actual source of truth for
+    // whether the payment settled — the WebView closing early is a UX nicety only.
+    private val _pendingCheckoutUrl = MutableStateFlow<String?>(null)
+    val pendingCheckoutUrl: StateFlow<String?> = _pendingCheckoutUrl.asStateFlow()
+
+    fun clearPendingCheckoutUrl() {
+        _pendingCheckoutUrl.value = null
+    }
+
     private fun launchWhishCheckout(
         purpose: String,
         targetId: String? = null,
@@ -148,17 +165,13 @@ class ProHostViewModel(
                 _isWhishCheckoutInFlight.value = false
             }
             result.onSuccess { init ->
-                try {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(init.collectUrl)))
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Could not open the payment page.", Toast.LENGTH_LONG).show()
-                }
+                _pendingCheckoutUrl.value = init.collectUrl
                 Toast.makeText(
                     context,
                     if (draftListingId != null) {
-                        "Complete your payment in the browser. Your pending Draft will publish automatically once Whish settles it."
+                        "Complete your payment. Your pending Draft will publish automatically once Whish settles it."
                     } else {
-                        "Complete your payment in the browser. We'll confirm automatically once Whish settles it."
+                        "Complete your payment. We'll confirm automatically once Whish settles it."
                     },
                     Toast.LENGTH_LONG
                 ).show()
