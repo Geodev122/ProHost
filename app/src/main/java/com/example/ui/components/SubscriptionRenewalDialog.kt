@@ -15,8 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.AppUser
-import com.example.data.model.OwnerPackageTier
-import com.example.data.model.SpaceArchitectureSchema
+import com.example.data.model.PackagePlan
 import com.example.ui.theme.Spacing
 import com.example.ui.theme.WhishRed
 import com.example.ui.viewmodel.ProHostViewModel
@@ -24,32 +23,30 @@ import java.util.Locale
 
 /**
  * Replaces the old WhishPayModal-based "Renew" flow, which always charged the flat
- * legacy monthlySubscriptionFeeUsd regardless of the host's real package/PAYG state
- * (the "Financial Run-Rate" engine Phase 11 already retired from the Admin Console,
- * but which kept leaking into this Pro-Host-facing dialog). This is an owner-level
- * entitlement dialog, not tied to any one listing:
- *  - PAY_AS_YOU_GO: a real per-category quantity cart ([PaygCartSection]) — pricing
- *    genuinely depends on which listing type the host wants, per the user's own spec.
- *  - LIMITED_3_TIER / UNLIMITED_TIER: the real active package name and fee, with a
- *    "Renew via Whish" button that extends the same package for another 30 days
- *    (ProHostViewModel.payOwnerPackageViaWhish with the current tier — no separate
- *    "SUBSCRIPTION" purpose needed).
+ * legacy monthlySubscriptionFeeUsd regardless of the host's real package state. This
+ * is an owner-level entitlement dialog, not tied to any one listing:
+ *  - No active package (ownerPackageId == null): pick one of the admin-enabled
+ *    packages below, then pay for it.
+ *  - Has an active package: shows its real name/price, with a "Renew via Whish"
+ *    button that buys the same package again (ProHostViewModel.payOwnerPackageViaWhish
+ *    with the current package id — extends ownerPackageExpiryMillis by its
+ *    validityDays, per entitlements.ts's grantEntitlement).
  */
 @Composable
 fun SubscriptionRenewalDialog(
     currentUser: AppUser,
-    schema: SpaceArchitectureSchema,
     viewModel: ProHostViewModel,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val packagePlans by viewModel.packagePlans.collectAsState()
     val isWhishCheckoutInFlight by viewModel.isWhishCheckoutInFlight.collectAsState()
     var payerName by remember { mutableStateOf(currentUser.fullName) }
     var payerPhone by remember { mutableStateOf(currentUser.phone) }
-    var quantities by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
 
-    val tier = currentUser.ownerPackageTier
-    val isPayg = tier == OwnerPackageTier.PAY_AS_YOU_GO
+    val enabledPlans = remember(packagePlans) { packagePlans.packages.values.filter { it.isEnabled }.sortedBy { it.sortOrder } }
+    val currentPlan = currentUser.ownerPackageId?.let { packagePlans.packages[it] }
+    var selectedPlan by remember(currentPlan, enabledPlans) { mutableStateOf(currentPlan ?: enabledPlans.firstOrNull()) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -76,34 +73,41 @@ fun SubscriptionRenewalDialog(
 
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
-                if (isPayg) {
+                if (currentPlan == null) {
                     Text(
-                        "Pay-as-You-Go is active — pricing depends on the listing type you want.",
+                        "No active package — choose one below to get started.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(Spacing.md))
-                    val priceableCategories = schema.spaceTypes.filter { it.isEnabled }
-                    PaygCartSection(
-                        categories = priceableCategories,
-                        quantities = quantities,
-                        onQuantityChange = { categoryId, newQty ->
-                            quantities = quantities.toMutableMap().apply {
-                                if (newQty <= 0) remove(categoryId) else put(categoryId, newQty)
-                            }
-                        }
-                    )
+                    if (enabledPlans.isEmpty()) {
+                        Text(
+                            "No packages are available right now — please check back later.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                    enabledPlans.forEach { plan ->
+                        PackagePickerRow(
+                            plan = plan,
+                            isSelected = selectedPlan?.id == plan.id,
+                            onSelect = { selectedPlan = plan }
+                        )
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+                    }
                 } else {
                     Surface(
                         color = MaterialTheme.colorScheme.primaryContainer,
                         shape = MaterialTheme.shapes.medium
                     ) {
                         Column(modifier = Modifier.padding(Spacing.md)) {
-                            Text(tier.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Text(tier.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(currentPlan.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            if (currentPlan.description.isNotBlank()) {
+                                Text(currentPlan.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                             Spacer(modifier = Modifier.height(Spacing.xs))
                             Text(
-                                "$${String.format(Locale.US, "%.2f", viewModel.pricingState.value.getPackageFee(tier))} / month",
+                                "$${String.format(Locale.US, "%.2f", currentPlan.priceUsd)} / ${currentPlan.validityDays} days",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.ExtraBold
                             )
@@ -131,16 +135,14 @@ fun SubscriptionRenewalDialog(
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
-                val cartItems = remember(quantities) { paygCartItems(quantities) }
+                val targetPlan = currentPlan ?: selectedPlan
                 val canSubmit = payerName.isNotBlank() && payerPhone.isNotBlank() &&
-                    (!isPayg || cartItems.isNotEmpty()) && !isWhishCheckoutInFlight
+                    targetPlan != null && !isWhishCheckoutInFlight
 
                 Button(
                     onClick = {
-                        if (isPayg) {
-                            viewModel.payPaygCartViaWhish(cartItems, payerName, payerPhone, context)
-                        } else {
-                            viewModel.payOwnerPackageViaWhish(tier, payerName, payerPhone, paygCategoryId = null, context = context)
+                        targetPlan?.let {
+                            viewModel.payOwnerPackageViaWhish(it.id, payerName, payerPhone, context = context)
                         }
                         onDismiss()
                     },
@@ -154,6 +156,42 @@ fun SubscriptionRenewalDialog(
                     Text("Pay by Whish", fontWeight = FontWeight.Bold)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PackagePickerRow(
+    plan: PackagePlan,
+    isSelected: Boolean,
+    onSelect: () -> Unit
+) {
+    Surface(
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        shape = MaterialTheme.shapes.medium,
+        onClick = onSelect
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.sm),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(plan.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    plan.listingLimit?.let { "Up to $it listing${if (it == 1) "" else "s"} · ${plan.validityDays} days" }
+                        ?: "Unlimited listings · ${plan.validityDays} days",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                "$${String.format(Locale.US, "%.2f", plan.priceUsd)}",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.ExtraBold
+            )
         }
     }
 }

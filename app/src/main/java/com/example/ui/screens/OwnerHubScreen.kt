@@ -41,7 +41,7 @@ fun OwnerHubScreen(
 ) {
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
-    val pricingState by viewModel.pricingState.collectAsState()
+    val packagePlans by viewModel.packagePlans.collectAsState()
     val spaces by viewModel.spaces.collectAsState()
     val allBookingRequests by viewModel.bookingRequests.collectAsState()
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
@@ -72,16 +72,15 @@ fun OwnerHubScreen(
     val coroutineScope = rememberCoroutineScope()
 
     // Checked once here (not inside the wizard) so a host who's already at their
-    // Package-2 cap sees that immediately on the "Add New Workspace Listing" card
+    // package's cap sees that immediately on the "Add New Workspace Listing" card
     // instead of only discovering it after completing the whole multi-step form.
-    val atListingLimit = remember(currentUser, pricingState) { viewModel.isAtListingLimit() }
+    val atListingLimit = remember(currentUser, packagePlans) { viewModel.isAtListingLimit() }
 
     OwnerHubScreenContent(
         ownerSpaces = ownerSpaces,
         allBookingRequests = allBookingRequests,
-        ownerPackageTier = currentUser?.ownerPackageTier ?: OwnerPackageTier.PAY_AS_YOU_GO,
+        currentPackage = currentUser?.ownerPackageId?.let { packagePlans.packages[it] },
         ownerPackageExpiryMillis = currentUser?.ownerPackageExpiryMillis,
-        packageFeeUsd = pricingState.getPackageFee(currentUser?.ownerPackageTier ?: OwnerPackageTier.PAY_AS_YOU_GO),
         // Admin's listing/booking capability is unconditional — never a purchased
         // package (see ProHostNavGraph excluding OwnerSubscriptions from Admin's
         // allowed tabs) — so the package/renewal banner never shows for Admin.
@@ -121,7 +120,6 @@ fun OwnerHubScreen(
     if (showRenewalDialog && currentUser != null) {
         SubscriptionRenewalDialog(
             currentUser = currentUser!!,
-            schema = architectureSchema,
             viewModel = viewModel,
             onDismiss = { showRenewalDialog = false }
         )
@@ -136,11 +134,11 @@ fun OwnerHubScreen(
         )
     }
 
-    // Shared by both quota/PAYG-credit rejection branches below: save exactly what
-    // the host built as a Draft (reusing the same listingId Publish would have used)
-    // instead of losing the whole wizard, then send them straight to whatever
-    // purchase unblocks it — entitlements.ts auto-publishes this same Draft the
-    // moment that payment settles (see ProHostViewModel.pendingAutoPublishDraftId).
+    // Used by the package-limit rejection branch below: save exactly what the host
+    // built as a Draft (reusing the same listingId Publish would have used) instead
+    // of losing the whole wizard, then send them straight to whatever purchase
+    // unblocks it — entitlements.ts auto-publishes this same Draft the moment that
+    // payment settles (see ProHostViewModel.pendingAutoPublishDraftId).
     // Only actually redirects/arms the correlation once the Draft save is confirmed
     // persisted — a failed save here would otherwise point the correlation at a
     // Draft that doesn't exist yet.
@@ -212,13 +210,6 @@ fun OwnerHubScreen(
                                 "Couldn't publish this listing — check your connection and try again.",
                                 android.widget.Toast.LENGTH_LONG
                             ).show()
-                        }
-                        is ListingCreateResult.PaygCategoryCreditRequired -> {
-                            redirectBlockedListingToPayment(
-                                newListing,
-                                "Saved as a Draft — buy a paid slot for this category to publish it automatically.",
-                                "Couldn't save this as a Draft — check your connection and try Publish again once you've bought a slot."
-                            )
                         }
                         else -> {
                             android.widget.Toast.makeText(
@@ -377,9 +368,8 @@ private fun OwnerDeleteListingDialog(
 fun OwnerHubScreenContent(
     ownerSpaces: List<SpaceListing>,
     allBookingRequests: List<BookingRequest>,
-    ownerPackageTier: OwnerPackageTier,
+    currentPackage: PackagePlan?,
     ownerPackageExpiryMillis: Long?,
-    packageFeeUsd: Double,
     onSelectSpace: (SpaceListing) -> Unit,
     onOpenWhishRenewal: () -> Unit,
     onOpenScheduleEditor: (SpaceListing) -> Unit,
@@ -466,13 +456,10 @@ fun OwnerHubScreenContent(
                                     shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
-                                        // PAYG has no flat/base figure — see SubscriptionRenewalDialog's own
-                                        // doc comment for why this replaced the old flat monthlySubscriptionFeeUsd
-                                        // pill, which used to show here regardless of the host's real plan.
-                                        text = if (ownerPackageTier == OwnerPackageTier.PAY_AS_YOU_GO) {
-                                            "Pay-As-You-Go"
+                                        text = if (currentPackage == null) {
+                                            "No Active Package"
                                         } else {
-                                            "$${String.format(Locale.US, "%.2f", packageFeeUsd)} /mo"
+                                            "$${String.format(Locale.US, "%.2f", currentPackage.priceUsd)} / ${currentPackage.validityDays}d"
                                         },
                                         color = Color.White,
                                         style = MaterialTheme.typography.labelMedium,
@@ -501,20 +488,20 @@ fun OwnerHubScreenContent(
                                 ((it - System.currentTimeMillis()) / (24L * 60 * 60 * 1000)).coerceAtLeast(0)
                             }
                             Text(
-                                text = if (ownerPackageTier == OwnerPackageTier.PAY_AS_YOU_GO) {
-                                    "Pay-As-You-Go Active"
+                                text = if (currentPackage == null) {
+                                    "No Active Package"
                                 } else if (daysRemaining != null) {
-                                    "${ownerPackageTier.title} — renews in $daysRemaining days"
+                                    "${currentPackage.name} — renews in $daysRemaining days"
                                 } else {
-                                    ownerPackageTier.title
+                                    currentPackage.name
                                 },
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
                             Text(
-                                text = if (ownerPackageTier == OwnerPackageTier.PAY_AS_YOU_GO) {
-                                    "Pricing depends on the listing type you publish — buy or top up category credits below."
+                                text = if (currentPackage == null) {
+                                    "Choose a package below to start publishing workspace listings."
                                 } else {
                                     "Manage smart availability, blackout offline hours, and keep your space active across Lebanon with Whish Pay."
                                 },

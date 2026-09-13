@@ -89,9 +89,9 @@ function subdivisionHasRealPrice(sub: SubdivisionDoc): boolean {
  * The invariants an ACTIVE listing must actually satisfy — re-checked
  * server-side because two paths can land status at ACTIVE without ever going
  * through CreateListingDialog's own gates: a raw Firestore SDK write (rules
- * only check quota/PAYG credit, never document completeness — see
- * withinListingLimit/hasPaygCredit in firestore.rules) and
- * autoPublishDraftIfNeeded (entitlements.ts), which flips a Draft to ACTIVE
+ * only check the package listing-limit quota, never document completeness —
+ * see withinListingLimit in firestore.rules) and autoPublishDraftIfNeeded
+ * (entitlements.ts), which flips a Draft to ACTIVE
  * the instant a payment settles, whatever incomplete state that Draft was
  * saved in. Returns human-readable problems; empty means valid.
  */

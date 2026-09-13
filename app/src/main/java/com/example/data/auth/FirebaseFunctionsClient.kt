@@ -95,6 +95,30 @@ class FirebaseFunctionsClient {
         }
     }
 
+    /**
+     * Admin-only, one-time (but safely re-runnable) migration
+     * (functions/src/packages/migratePaygUsers.ts): resets every remaining legacy
+     * `ownerPackageTier == "PAY_AS_YOU_GO"` user to the new "no active package"
+     * baseline and deletes their unspent PAYG credit fields. Returns the number of
+     * accounts migrated (0 once nothing remains to migrate — safe to call again).
+     * Triggered from a temporary Admin Console button (see the plan's Phase 15E),
+     * removed once confirmed run against the live project.
+     */
+    suspend fun migratePaygUsers(): Result<Int> {
+        return try {
+            val result = functions.getHttpsCallable("migratePaygUsers")
+                .call()
+                .await()
+            @Suppress("UNCHECKED_CAST")
+            val data = result.data as? Map<String, Any?>
+            val migrated = (data?.get("migrated") as? Number)?.toInt() ?: 0
+            Result.success(migrated)
+        } catch (e: Exception) {
+            Log.e(tag, "migratePaygUsers failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     /** functions/src/roles/revokeProHostRole.ts — Admin-only downgrade to SPECIALIST. */
     suspend fun revokeProHostRole(targetUid: String): Result<Unit> {
         return try {
@@ -112,15 +136,12 @@ class FirebaseFunctionsClient {
 
     /**
      * Starts a Whish payment (functions/src/payments/initiateWhishPayment.ts). The
-     * server looks up the real amount itself from [purpose]/[targetId]/[items] — this
-     * call never sends an amount, and the client can't influence what gets charged.
+     * server looks up the real amount itself from [purpose]/[targetId] — this call
+     * never sends an amount, and the client can't influence what gets charged.
      *
-     * @param purpose one of OWNER_PACKAGE, PAYG_LISTING, PAYG_CART
-     * @param targetId OwnerPackageTier name / Space Category id, matching [purpose] —
-     *  not used for PAYG_CART, which sends [items] instead
-     * @param items PAYG_CART only — a (categoryId, quantity) per admin-defined
-     *  category the host is buying/renewing credits for
-     * @param draftListingId set only when this payment is resolving a quota/PAYG-credit
+     * @param purpose always OWNER_PACKAGE
+     * @param targetId the PackagePlan id being purchased/renewed
+     * @param draftListingId set only when this payment is resolving a package-limit
      *  block that CreateListingDialog's Publish hit — the specific Draft to
      *  auto-publish once this settles (see entitlements.ts's autoPublishDraftIfNeeded)
      */
@@ -129,8 +150,7 @@ class FirebaseFunctionsClient {
         targetId: String? = null,
         payerName: String,
         payerPhone: String,
-        draftListingId: String? = null,
-        items: List<Pair<String, Int>>? = null
+        draftListingId: String? = null
     ): Result<WhishPaymentInit> {
         return try {
             val result = functions.getHttpsCallable("initiateWhishPayment")
@@ -141,11 +161,6 @@ class FirebaseFunctionsClient {
                         put("payerName", payerName)
                         put("payerPhone", payerPhone)
                         if (draftListingId != null) put("draftListingId", draftListingId)
-                        if (items != null) {
-                            put("items", items.map { (categoryId, quantity) ->
-                                mapOf("categoryId" to categoryId, "quantity" to quantity)
-                            })
-                        }
                     }
                 )
                 .await()

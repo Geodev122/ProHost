@@ -1379,17 +1379,17 @@ data class AppUser(
     val city: String = "",
     val isVerified: Boolean = false,
     val subscriptionExpiryMillis: Long? = null,
-    val ownerPackageTier: OwnerPackageTier = OwnerPackageTier.PAY_AS_YOU_GO,
-    val ownerPackageExpiryMillis: Long? = null,
-    val paygListingsBoughtCount: Int = 0,
     // Server-only, written exclusively by grantEntitlement() (functions/src/lib/
-    // entitlements.ts) the moment a PAYG_LISTING payment for a specific SchemaItem
-    // category settles — keyed by SchemaItem.id, value = how many unpublished slots
-    // remain for that category. createNewSpaceListing consumes one credit for the
-    // listing's spaceCategoryId on a successful PAYG-tier publish; paygListingsBoughtCount
-    // above stays a separate lifetime display counter, never decremented, unrelated to
-    // gating. A category with zero or no entry here has no purchased slot.
-    val paygCategoryCredits: Map<String, Int> = emptyMap(),
+    // entitlements.ts) — the id of the admin-defined PackagePlan (package_plans/main)
+    // this account currently holds, or null if no active package. Replaces the old
+    // closed OwnerPackageTier enum; a package's real price/listing-limit/validity are
+    // resolved live from package_plans/main by this id, not stored redundantly here.
+    val ownerPackageId: String? = null,
+    // Server-only. Real, enforced expiry (functions/src/packages/expirePackages.ts,
+    // an hourly scheduled function, clears ownerPackageId/this field once it lapses;
+    // firestore.rules' withinListingLimit() also treats an expired-but-not-yet-swept
+    // package as "no package" directly, closing the gap between lapse and the next sweep).
+    val ownerPackageExpiryMillis: Long? = null,
     // Server-only, written exclusively by assignInitialRole.ts — createdAtMillis is set
     // once, the first time this uid ever gets a role claim; lastSignInAtMillis is
     // refreshed on every subsequent call (every sign-in). Never included in
@@ -1440,7 +1440,7 @@ data class AppUser(
             "city" to city,
             "isVerified" to isVerified,
             "subscriptionExpiryMillis" to subscriptionExpiryMillis,
-            "ownerPackageTier" to ownerPackageTier.name,
+            "ownerPackageId" to ownerPackageId,
             "ownerPackageExpiryMillis" to ownerPackageExpiryMillis,
             "savedSpaceIds" to savedSpaceIds,
             "updatedAt" to System.currentTimeMillis()
@@ -1453,9 +1453,6 @@ data class AppUser(
         fun fromFirestoreMap(docId: String, data: Map<String, Any?>): AppUser {
             val roleStr = data["role"] as? String ?: UserRole.SPECIALIST.name
             val role = runCatching { UserRole.valueOf(roleStr) }.getOrDefault(UserRole.SPECIALIST)
-
-            val pkgTierStr = data["ownerPackageTier"] as? String ?: OwnerPackageTier.PAY_AS_YOU_GO.name
-            val pkgTier = runCatching { OwnerPackageTier.valueOf(pkgTierStr) }.getOrDefault(OwnerPackageTier.PAY_AS_YOU_GO)
 
             return AppUser(
                 id = docId,
@@ -1471,103 +1468,105 @@ data class AppUser(
                 city = data["city"] as? String ?: "",
                 isVerified = data["isVerified"] as? Boolean ?: false,
                 subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong(),
-                ownerPackageTier = pkgTier,
+                ownerPackageId = data["ownerPackageId"] as? String,
                 ownerPackageExpiryMillis = (data["ownerPackageExpiryMillis"] as? Number)?.toLong(),
-                paygListingsBoughtCount = (data["paygListingsBoughtCount"] as? Number)?.toInt() ?: 0,
                 createdAtMillis = (data["createdAtMillis"] as? Number)?.toLong(),
                 lastSignInAtMillis = (data["lastSignInAtMillis"] as? Number)?.toLong(),
                 tosAcceptedAtMillis = (data["tosAcceptedAtMillis"] as? Number)?.toLong(),
                 consentVersion = data["consentVersion"] as? String,
                 isSuspended = data["isSuspended"] as? Boolean ?: false,
                 activeListingCount = (data["activeListingCount"] as? Number)?.toInt() ?: 0,
-                paygCategoryCredits = (data["paygCategoryCredits"] as? Map<*, *>)?.entries
-                    ?.mapNotNull { (k, v) -> (k as? String)?.let { key -> (v as? Number)?.toInt()?.let { key to it } } }
-                    ?.toMap() ?: emptyMap(),
                 savedSpaceIds = (data["savedSpaceIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
             )
         }
     }
 }
 
-enum class OwnerPackageTier(
-    val tierNumber: Int,
-    val title: String,
-    val subtitle: String,
-    val maxListings: Int,
-    val badgeName: String
+/**
+ * An admin-defined, purchasable Pro Host package — replaces the old closed
+ * OwnerPackageTier enum (2 hardcoded tiers) entirely. An admin can create/edit/
+ * enable-disable/delete any number of these via the Admin Console's Packages
+ * Configuration card (mirrors SchemaItem's own admin-CRUD pattern). [listingLimit]
+ * null means unlimited; [validityDays] drives real, enforced expiry
+ * (functions/src/packages/expirePackages.ts) rather than the old hardcoded,
+ * never-actually-checked 30-day constant.
+ */
+data class PackagePlan(
+    val id: String,
+    val name: String,
+    val description: String = "",
+    val badgeName: String = "",
+    val priceUsd: Double = 0.0,
+    val listingLimit: Int? = null,
+    val validityDays: Int = 30,
+    val isEnabled: Boolean = true,
+    val sortOrder: Int = 0
 ) {
-    PAY_AS_YOU_GO(
-        tierNumber = 1,
-        title = "Package 1: Pay As You Go",
-        subtitle = "Per-listing billing based on workspace type configured at Admin Console",
-        maxListings = 0, // indicates dynamic per-listing billing
-        badgeName = "Pay As You Go"
-    ),
-    LIMITED_3_TIER(
-        tierNumber = 2,
-        title = "Package 2: Pro (3 Listings Limit)",
-        subtitle = "Host and operate up to 3 active workspaces under a bundled monthly fee",
-        maxListings = 3,
-        badgeName = "3-Listing Pro"
-    ),
-    UNLIMITED_TIER(
-        tierNumber = 3,
-        title = "Package 3: Enterprise (All-In Unlimited)",
-        subtitle = "Publish unlimited active workspace listings with priority platform exposure",
-        maxListings = Int.MAX_VALUE,
-        badgeName = "All-In Unlimited"
+    fun toFirestoreMap(): Map<String, Any?> = mapOf(
+        "id" to id,
+        "name" to name,
+        "description" to description,
+        "badgeName" to badgeName,
+        "priceUsd" to priceUsd,
+        "listingLimit" to listingLimit,
+        "validityDays" to validityDays,
+        "isEnabled" to isEnabled,
+        "sortOrder" to sortOrder
     )
+
+    companion object {
+        fun fromFirestoreMap(id: String, data: Map<String, Any?>): PackagePlan = PackagePlan(
+            id = id,
+            name = data["name"] as? String ?: "Package",
+            description = data["description"] as? String ?: "",
+            badgeName = data["badgeName"] as? String ?: "",
+            priceUsd = (data["priceUsd"] as? Number)?.toDouble() ?: 0.0,
+            listingLimit = (data["listingLimit"] as? Number)?.toInt(),
+            validityDays = (data["validityDays"] as? Number)?.toInt() ?: 30,
+            isEnabled = data["isEnabled"] as? Boolean ?: true,
+            sortOrder = (data["sortOrder"] as? Number)?.toInt() ?: 0
+        )
+    }
+}
+
+/**
+ * Wraps the admin-managed package catalog, stored keyed by id (a map, not a
+ * list) inside package_plans/main — the map shape lets firestore.rules resolve
+ * a specific package via a plain .get(id, null) chain, the same well-supported
+ * idiom used throughout this app's rules, rather than a list-filter/scan.
+ */
+data class PackagePlanCatalog(val packages: Map<String, PackagePlan> = emptyMap()) {
+    fun toFirestoreMap(): Map<String, Any?> = mapOf(
+        "packages" to packages.mapValues { it.value.toFirestoreMap() }
+    )
+
+    companion object {
+        const val COLLECTION_PATH = "package_plans"
+        const val DOCUMENT_ID = "main"
+
+        @Suppress("UNCHECKED_CAST")
+        fun fromFirestoreMap(data: Map<String, Any?>): PackagePlanCatalog {
+            val raw = data["packages"] as? Map<String, Any?> ?: emptyMap()
+            val packages = raw.mapNotNull { (id, value) ->
+                (value as? Map<String, Any?>)?.let { id to PackagePlan.fromFirestoreMap(id, it) }
+            }.toMap()
+            return PackagePlanCatalog(packages)
+        }
+    }
 }
 
 data class AdminPricingState(
     val monthlySubscriptionFeeUsd: Double = 1.80,
     val baselineFeeUsd: Double = 1.80,
     val presetOptions: List<Double> = listOf(1.00, 1.50, 1.80, 2.50, 3.00, 5.00, 10.00),
-    val governanceTag: String = "HOST-PACKAGING-TIERS-V2-ACTIVE",
-    val paygPrivateOfficeUsd: Double = 1.50,
-    val paygCenterUsd: Double = 3.50,
-    val paygPolyclinicUsd: Double = 2.80,
-    val paygCoworkingUsd: Double = 1.80,
-    val package2Limit: Int = 3,
-    val package2MonthlyFeeUsd: Double = 3.99,
-    val package3MonthlyFeeUsd: Double = 8.99
+    val governanceTag: String = "HOST-PACKAGING-TIERS-V2-ACTIVE"
 ) {
-    fun getPaygFeeForType(type: SpaceType): Double {
-        return when (type) {
-            SpaceType.PRIVATE_OFFICE -> paygPrivateOfficeUsd
-            SpaceType.CENTER -> paygCenterUsd
-            SpaceType.POLYCLINIC -> paygPolyclinicUsd
-            SpaceType.COWORKING_SPACE -> paygCoworkingUsd
-        }
-    }
-
-    fun getPackageFee(tier: OwnerPackageTier): Double {
-        return when (tier) {
-            OwnerPackageTier.PAY_AS_YOU_GO -> monthlySubscriptionFeeUsd
-            OwnerPackageTier.LIMITED_3_TIER -> package2MonthlyFeeUsd
-            OwnerPackageTier.UNLIMITED_TIER -> package3MonthlyFeeUsd
-        }
-    }
-
-    /**
-     * The initiateWhishPayment Cloud Function reads pricing from this same document
-     * (functions/src/lib/pricing.ts) to compute the real amount server-side — never
-     * trusting a client-supplied amount. Admin pricing changes must persist here or
-     * the server keeps charging its hardcoded fallback defaults forever.
-     */
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
             "monthlySubscriptionFeeUsd" to monthlySubscriptionFeeUsd,
             "baselineFeeUsd" to baselineFeeUsd,
             "presetOptions" to presetOptions,
             "governanceTag" to governanceTag,
-            "paygPrivateOfficeUsd" to paygPrivateOfficeUsd,
-            "paygCenterUsd" to paygCenterUsd,
-            "paygPolyclinicUsd" to paygPolyclinicUsd,
-            "paygCoworkingUsd" to paygCoworkingUsd,
-            "package2Limit" to package2Limit,
-            "package2MonthlyFeeUsd" to package2MonthlyFeeUsd,
-            "package3MonthlyFeeUsd" to package3MonthlyFeeUsd,
             "updatedAt" to System.currentTimeMillis()
         )
     }
@@ -1582,14 +1581,7 @@ data class AdminPricingState(
                 monthlySubscriptionFeeUsd = (data["monthlySubscriptionFeeUsd"] as? Number)?.toDouble() ?: defaults.monthlySubscriptionFeeUsd,
                 baselineFeeUsd = (data["baselineFeeUsd"] as? Number)?.toDouble() ?: defaults.baselineFeeUsd,
                 presetOptions = (data["presetOptions"] as? List<*>)?.mapNotNull { (it as? Number)?.toDouble() } ?: defaults.presetOptions,
-                governanceTag = data["governanceTag"] as? String ?: defaults.governanceTag,
-                paygPrivateOfficeUsd = (data["paygPrivateOfficeUsd"] as? Number)?.toDouble() ?: defaults.paygPrivateOfficeUsd,
-                paygCenterUsd = (data["paygCenterUsd"] as? Number)?.toDouble() ?: defaults.paygCenterUsd,
-                paygPolyclinicUsd = (data["paygPolyclinicUsd"] as? Number)?.toDouble() ?: defaults.paygPolyclinicUsd,
-                paygCoworkingUsd = (data["paygCoworkingUsd"] as? Number)?.toDouble() ?: defaults.paygCoworkingUsd,
-                package2Limit = (data["package2Limit"] as? Number)?.toInt() ?: defaults.package2Limit,
-                package2MonthlyFeeUsd = (data["package2MonthlyFeeUsd"] as? Number)?.toDouble() ?: defaults.package2MonthlyFeeUsd,
-                package3MonthlyFeeUsd = (data["package3MonthlyFeeUsd"] as? Number)?.toDouble() ?: defaults.package3MonthlyFeeUsd
+                governanceTag = data["governanceTag"] as? String ?: defaults.governanceTag
             )
         }
     }
@@ -1617,11 +1609,6 @@ data class SchemaItem(
     val iconName: String = "Category",
     val isEnabled: Boolean = true,
     val isSystemDefault: Boolean = true,
-    // Only meaningful for category == "SPACE_TYPE": the PAYG per-listing fee for this
-    // category, admin-set. Null means "not priced yet" — CreateListingDialog and the
-    // PAYG buy flow fall back to a fixed default rather than letting a category be
-    // bought for $0. Ignored for every other category.
-    val priceUsd: Double? = null,
     // Only meaningful for category == "SPACE_TYPE": the maximum number of subdivisions
     // a listing under this category may declare in CreateListingDialog's Step 3. Null
     // means "no cap configured yet" (unlimited in practice, matching pre-existing
@@ -1636,7 +1623,6 @@ data class SchemaItem(
         "iconName" to iconName,
         "isEnabled" to isEnabled,
         "isSystemDefault" to isSystemDefault,
-        "priceUsd" to priceUsd,
         "maxSubdivisions" to maxSubdivisions
     )
 
@@ -1649,7 +1635,6 @@ data class SchemaItem(
             iconName = data["iconName"] as? String ?: "Category",
             isEnabled = data["isEnabled"] as? Boolean ?: true,
             isSystemDefault = data["isSystemDefault"] as? Boolean ?: true,
-            priceUsd = (data["priceUsd"] as? Number)?.toDouble(),
             maxSubdivisions = (data["maxSubdivisions"] as? Number)?.toInt()
         )
     }

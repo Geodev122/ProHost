@@ -21,13 +21,11 @@ import java.net.URLEncoder
  */
 sealed class ListingCreateResult {
     object Success : ListingCreateResult()
+    // Covers both "no active package at all" and "at the current package's listing
+    // cap" — either way the fix is the same: upgrade to a package with room. See
+    // createNewSpaceListing's own doc comment.
     object PackageLimitReached : ListingCreateResult()
     object Failed : ListingCreateResult()
-    // PAY_AS_YOU_GO tier only: no purchased slot exists for this listing's category —
-    // CreateListingDialog's Publish button already greys out for this case, but the
-    // check is repeated here since it's the real gate (client UI is a convenience,
-    // not the source of truth).
-    data class PaygCategoryCreditRequired(val categoryId: String?) : ListingCreateResult()
 }
 
 class ProHostViewModel(
@@ -77,6 +75,8 @@ class ProHostViewModel(
     }
 
     val pricingState: StateFlow<AdminPricingState> = repository.pricingState
+    // Admin-managed, purchasable Pro Host packages — see PackagePlan/PackagePlanCatalog.
+    val packagePlans: StateFlow<PackagePlanCatalog> = repository.packagePlans
     val spaces: StateFlow<List<SpaceListing>> = repository.spaces
     val subscriptionFormulas: StateFlow<List<SubscriptionFormula>> = repository.subscriptionFormulas
     val isCloudConnected: StateFlow<Boolean> = repository.isCloudConnected
@@ -162,8 +162,8 @@ class ProHostViewModel(
     // the same purchase (e.g. a rapid double-tap on "Go to Whish Pay" before the
     // confirmation dialog closes) — each would be a real, independently-charged
     // order server-side, not a harmless duplicate click. Exposed so the buttons
-    // that call payOwnerPackageViaWhish/payPaygCartViaWhish can grey out while
-    // one is already in flight, on top of the hard guard below.
+    // that call payOwnerPackageViaWhish can grey out while one is already in
+    // flight, on top of the hard guard below.
     private val _isWhishCheckoutInFlight = MutableStateFlow(false)
     val isWhishCheckoutInFlight: StateFlow<Boolean> = _isWhishCheckoutInFlight.asStateFlow()
 
@@ -190,14 +190,13 @@ class ProHostViewModel(
         payerName: String,
         payerPhone: String,
         context: Context,
-        draftListingId: String? = null,
-        items: List<Pair<String, Int>>? = null
+        draftListingId: String? = null
     ) {
         if (_isWhishCheckoutInFlight.value) return
         _isWhishCheckoutInFlight.value = true
         viewModelScope.launch {
             val result = try {
-                functionsClient.initiateWhishPayment(purpose, targetId, payerName, payerPhone, draftListingId, items)
+                functionsClient.initiateWhishPayment(purpose, targetId, payerName, payerPhone, draftListingId)
             } finally {
                 _isWhishCheckoutInFlight.value = false
             }
@@ -225,7 +224,7 @@ class ProHostViewModel(
     }
 
     // Set by OwnerHubScreen right before redirecting to Subscriptions after a
-    // PackageLimitReached/PaygCategoryCreditRequired Publish rejection — the id of
+    // PackageLimitReached Publish rejection — the id of
     // the Draft that was just saved in place of the blocked Publish attempt.
     // OwnerSubscriptionsScreen reads this (same shared ViewModel instance across
     // both screens) to surface a banner and thread the id into whichever purchase
@@ -247,7 +246,7 @@ class ProHostViewModel(
      * Re-reads the signed-in user's role from a force-refreshed Firebase Auth ID
      * token and reflects it into currentUser — the client-side counterpart of
      * grantEntitlement()'s grantProHostRoleIfNeeded() (see entitlements.ts). Called
-     * once a package/PAYG_LISTING payment is confirmed settled, so a SPECIALIST who
+     * once a package payment is confirmed settled, so a SPECIALIST who
      * just got promoted to PRO_HOST sees Pro Host navigation immediately, without
      * needing to sign out and back in. Mirrors how AuthFlow.resolveVerifiedRole()
      * already resolves role at sign-in — role always comes from the custom claim,
@@ -267,7 +266,7 @@ class ProHostViewModel(
                 kotlinx.coroutines.delay(5000)
                 val status = functionsClient.checkWhishStatus(txId).getOrNull()
                 if (status == "SUCCESS") {
-                    if (purpose == "OWNER_PACKAGE" || purpose == "PAYG_LISTING" || purpose == "PAYG_CART") {
+                    if (purpose == "OWNER_PACKAGE") {
                         refreshCurrentUserRoleAfterEntitlement()
                     }
                     Toast.makeText(context, "Payment confirmed! Your entitlement is now active.", Toast.LENGTH_LONG).show()
@@ -284,7 +283,7 @@ class ProHostViewModel(
     fun checkWhishPaymentStatus(txId: String, purpose: String, context: Context) {
         viewModelScope.launch {
             val status = functionsClient.checkWhishStatus(txId).getOrNull()
-            if (status == "SUCCESS" && (purpose == "OWNER_PACKAGE" || purpose == "PAYG_LISTING" || purpose == "PAYG_CART")) {
+            if (status == "SUCCESS" && purpose == "OWNER_PACKAGE") {
                 refreshCurrentUserRoleAfterEntitlement()
             }
             val message = when (status) {
@@ -313,47 +312,41 @@ class ProHostViewModel(
     // --- Space Owner Listing Creation ---
     suspend fun createNewSpaceListing(listing: SpaceListing): ListingCreateResult {
         val user = currentUser.value
-        // ADMIN never purchases/holds a real package or PAYG credits at all
-        // (grantAdminRole/bootstrapSuperAdmin only ever set role) — matching
-        // OwnerHubScreen's own unconditional "unlimited access" treatment for Admin
-        // rather than the two gates below, which exist to meter a real host's
-        // purchased quota/credits, not to block an account that never has any.
+        // ADMIN never purchases/holds a real package at all (grantAdminRole/
+        // bootstrapSuperAdmin only ever set role) — matching OwnerHubScreen's own
+        // unconditional "unlimited access" treatment for Admin rather than the gate
+        // below, which exists to meter a real host's purchased package, not to block
+        // an account that never has one.
         val isAdmin = user?.role == UserRole.ADMIN
-        val tier = user?.ownerPackageTier ?: OwnerPackageTier.PAY_AS_YOU_GO
-        val limit = pricingState.value.package2Limit
 
-        if (!isAdmin && tier == OwnerPackageTier.LIMITED_3_TIER && (user?.activeListingCount ?: 0) >= limit) {
-            repository.addAuditLog(
-                actionType = "LISTING_BLOCKED_PACKAGE_LIMIT",
-                details = "Owner reached Package 2 limit ($limit listings max). Upgrade to Package 3 Unlimited required.",
-                severity = "WARN"
-            )
-            return ListingCreateResult.PackageLimitReached
-        }
-
-        // PAY_AS_YOU_GO is per-listing, per-category billing (spec: "PAYG-locked"
-        // categories) — publishing straight to ACTIVE requires a purchased slot for
-        // this exact category; saving as a Draft is exempt (nothing to consume yet).
-        if (!isAdmin && tier == OwnerPackageTier.PAY_AS_YOU_GO && listing.status == ListingStatus.ACTIVE) {
-            val categoryId = listing.spaceCategoryId
-            val hasCredit = categoryId != null && (user?.paygCategoryCredits?.get(categoryId) ?: 0) > 0
-            if (!hasCredit) {
+        // Publishing straight to ACTIVE requires an active, enabled, non-expired
+        // package with room under its listing limit; saving as a Draft is always
+        // exempt (nothing to consume yet). "No package" and "at the package's cap"
+        // both resolve to the same PackageLimitReached outcome — the fix in either
+        // case is the same upgrade-to-a-package flow (firestore.rules'
+        // withinListingLimit() enforces the identical rule server-side).
+        if (!isAdmin && listing.status == ListingStatus.ACTIVE) {
+            val plan = user?.ownerPackageId?.let { packagePlans.value.packages[it] }
+            val expiry = user?.ownerPackageExpiryMillis
+            val isExpired = expiry != null && expiry <= System.currentTimeMillis()
+            val withinLimit = plan != null && plan.isEnabled && !isExpired &&
+                (plan.listingLimit == null || (user.activeListingCount) < plan.listingLimit)
+            if (!withinLimit) {
                 repository.addAuditLog(
-                    actionType = "LISTING_BLOCKED_PAYG_CREDIT",
-                    details = "Owner attempted to publish category '${listing.spaceCategoryName ?: categoryId}' with no purchased PAYG slot.",
+                    actionType = "LISTING_BLOCKED_PACKAGE_LIMIT",
+                    details = if (plan == null) {
+                        "Owner attempted to publish with no active package."
+                    } else {
+                        "Owner reached '${plan.name}' limit (${plan.listingLimit} listings max). Upgrade required."
+                    },
                     severity = "WARN"
                 )
-                return ListingCreateResult.PaygCategoryCreditRequired(categoryId)
+                return ListingCreateResult.PackageLimitReached
             }
         }
 
         // Reports the real Firestore result now — this used to return an
         // unconditional true for a listing that was never actually persisted.
-        // paygCategoryCredits is server-protected (firestore.rules), the same way
-        // activeListingCount is — the client can't decrement it directly. Consuming
-        // the credit happens server-side, in the same Firestore trigger that already
-        // maintains activeListingCount on this exact create (see
-        // functions/src/listings/listingCountTracker.ts's consumePaygCreditIfNeeded).
         return if (repository.addSpaceListing(listing)) ListingCreateResult.Success else ListingCreateResult.Failed
     }
 
@@ -362,8 +355,11 @@ class ProHostViewModel(
      * time on a multi-step wizard that [createNewSpaceListing] will just reject. */
     fun isAtListingLimit(): Boolean {
         val user = currentUser.value ?: return false
-        return user.ownerPackageTier == OwnerPackageTier.LIMITED_3_TIER &&
-            user.activeListingCount >= pricingState.value.package2Limit
+        val plan = user.ownerPackageId?.let { packagePlans.value.packages[it] } ?: return true
+        val expiry = user.ownerPackageExpiryMillis
+        val isExpired = expiry != null && expiry <= System.currentTimeMillis()
+        if (isExpired || !plan.isEnabled) return true
+        return plan.listingLimit != null && user.activeListingCount >= plan.listingLimit
     }
 
     // An owner had no in-app way to correct a mistake in, or take down, their own
@@ -381,35 +377,13 @@ class ProHostViewModel(
     }
 
     fun payOwnerPackageViaWhish(
-        tier: OwnerPackageTier,
+        packageId: String,
         payerName: String,
         payerPhone: String,
-        // A SchemaItem.id from the admin-defined Space Category catalog (or a legacy
-        // SpaceType name as fallback) — only meaningful when tier == PAY_AS_YOU_GO.
-        paygCategoryId: String?,
         context: Context,
         draftListingId: String? = null
     ) {
-        if (tier == OwnerPackageTier.PAY_AS_YOU_GO) {
-            val categoryId = paygCategoryId ?: SpaceType.PRIVATE_OFFICE.name
-            launchWhishCheckout("PAYG_LISTING", categoryId, payerName, payerPhone, context, draftListingId)
-        } else {
-            launchWhishCheckout("OWNER_PACKAGE", tier.name, payerName, payerPhone, context, draftListingId)
-        }
-    }
-
-    // Renew popup (OwnerHubScreen) / Buy PAYG (OwnerSubscriptionsScreen) — one
-    // checkout across every admin-defined category the host is buying/renewing
-    // credits for, replacing repeated one-category-at-a-time PAYG_LISTING payments
-    // for this specific flow. Each pair is (categoryId, quantity); the server prices
-    // and totals it (getPaygFeeForCategory), never trusting the cart's own display.
-    fun payPaygCartViaWhish(
-        items: List<Pair<String, Int>>,
-        payerName: String,
-        payerPhone: String,
-        context: Context
-    ) {
-        launchWhishCheckout("PAYG_CART", targetId = null, payerName = payerName, payerPhone = payerPhone, context = context, items = items)
+        launchWhishCheckout("OWNER_PACKAGE", packageId, payerName, payerPhone, context, draftListingId)
     }
 
     // Sign-in/registration (phone OTP + Google Sign-In) moved to AuthViewModel —

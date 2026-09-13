@@ -35,3 +35,6 @@ export { onWorkspaceListingCreated, onWorkspaceListingDeleted, onWorkspaceListin
 export { onWorkspaceListingPublishValidation } from "./listings/publishValidation";
 export { onBookingAcceptConflictGuard } from "./bookings/bookingConflictGuard";
 export { onUserFavoritesChanged } from "./users/favoritesSync";
+
+export { expirePackages } from "./packages/expirePackages";
+export { migratePaygUsers } from "./packages/migratePaygUsers";

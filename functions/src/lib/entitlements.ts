@@ -1,9 +1,10 @@
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { recordAuditLog } from "./auditLog";
 import { validateListingForPublish } from "../listings/publishValidation";
+import { getPackagePlan } from "./packagePlans";
 
-export type WhishPurpose = "OWNER_PACKAGE" | "PAYG_LISTING" | "PAYG_CART";
+export type WhishPurpose = "OWNER_PACKAGE";
 
 export interface WhishTransactionDoc {
   id: string;
@@ -24,25 +25,20 @@ export interface WhishTransactionDoc {
   purpose: WhishPurpose;
   targetId: string | null;
   externalId: number;
-  // Set only when this payment was triggered by a quota/PAYG-credit rejection inside
+  // Set only when this payment was triggered by a package-limit rejection inside
   // CreateListingDialog's Publish flow — the specific Draft (same workspace_listings
   // id CreateListingDialog already reuses between Save-as-Draft and Publish) that
   // should flip to ACTIVE the moment this payment settles, instead of making the
   // host re-open the wizard and hit Publish a second time. See
   // autoPublishDraftIfNeeded below.
   draftListingId?: string;
-  // PAYG_CART only — see initiateWhishPayment.ts's PAYG_CART case.
-  cartItems?: { categoryId: string; quantity: number; unitPriceUsd: number }[];
 }
-
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 /**
  * Promotes a SPECIALIST to PRO_HOST — the ONLY way this role is ever granted (no
  * self-service/free upgrade path exists). Called from grantEntitlement() below the
- * moment a real OWNER_PACKAGE or PAYG_LISTING Whish payment settles. Never downgrades
- * an ADMIN, and is a no-op if the user is already PRO_HOST — safe to call on every
- * such payment, including repeat PAYG purchases by an existing Pro Host.
+ * moment a real OWNER_PACKAGE Whish payment settles. Never downgrades an ADMIN, and
+ * is a no-op if the user is already PRO_HOST — safe to call on every such payment.
  */
 async function grantProHostRoleIfNeeded(uid: string): Promise<void> {
   const auth = getAuth();
@@ -69,26 +65,21 @@ async function grantProHostRoleIfNeeded(uid: string): Promise<void> {
 }
 
 /**
- * Flips a Draft straight to ACTIVE the moment the quota/PAYG-credit payment that was
+ * Flips a Draft straight to ACTIVE the moment the package-limit payment that was
  * blocking it settles — the other half of ProHostViewModel.createNewSpaceListing's
- * PackageLimitReached / PaygCategoryCreditRequired flow: the host's in-progress
- * wizard is saved as this exact Draft (same listingId CreateListingDialog already
- * reuses between Save-as-Draft and Publish) before they're sent to pay, so nothing
- * is lost and they don't have to re-open the wizard and hit Publish a second time.
- * Deliberately conservative: only ever touches a Draft this same user owns, and does
- * nothing if it's already left the Draft state (already published or deleted) or
- * doesn't exist — never resurrects or hijacks a listing.
+ * PackageLimitReached flow: the host's in-progress wizard is saved as this exact
+ * Draft (same listingId CreateListingDialog already reuses between Save-as-Draft
+ * and Publish) before they're sent to pay, so nothing is lost and they don't have
+ * to re-open the wizard and hit Publish a second time. Deliberately conservative:
+ * only ever touches a Draft this same user owns, and does nothing if it's already
+ * left the Draft state (already published or deleted) or doesn't exist — never
+ * resurrects or hijacks a listing.
  *
- * Validates BEFORE flipping the Draft to ACTIVE. listingCountTracker.ts's
- * onWorkspaceListingStatusChanged only actually consumes the PAYG/quota credit
- * this payment just purchased when a real Draft -> ACTIVE transition happens —
- * flipping an incomplete Draft to ACTIVE used to burn that credit immediately,
- * and a moment later onWorkspaceListingPublishValidation would demote it
- * straight back to Draft (the listing was never actually live), leaving the
- * host having paid for a credit they no longer had anything to show for. Skip
- * the transition entirely when the Draft still fails validation instead — the
- * credit stays unspent, and the host can finish the listing and publish it for
- * real (consuming the credit exactly once) without paying again.
+ * Validates BEFORE flipping the Draft to ACTIVE — an incomplete Draft flipped to
+ * ACTIVE would just get demoted straight back to Draft a moment later by
+ * onWorkspaceListingPublishValidation, leaving the host having paid for nothing to
+ * show for it. Skip the transition entirely when the Draft still fails validation;
+ * the host can finish the listing and publish it for real once it's complete.
  */
 async function autoPublishDraftIfNeeded(tx: WhishTransactionDoc): Promise<void> {
   if (!tx.draftListingId) return;
@@ -132,62 +123,36 @@ export async function grantEntitlement(tx: WhishTransactionDoc): Promise<void> {
 
   switch (tx.purpose) {
     case "OWNER_PACKAGE": {
-      await db.collection("user_profiles").doc(tx.userId).set(
-        { ownerPackageTier: tx.targetId, ownerPackageExpiryMillis: now + THIRTY_DAYS_MS, updatedAt: now },
-        { merge: true }
-      );
-      await grantProHostRoleIfNeeded(tx.userId);
-      break;
-    }
-    case "PAYG_LISTING": {
-      // targetId is the purchased SchemaItem category id (e.g. "ST-01") — recording
-      // it as a credit here is what CreateListingDialog's category-lock and
-      // listingCountTracker.ts's consumePaygCreditIfNeeded both key off. Previously
-      // this only bumped the display-only paygListingsBoughtCount counter, which
-      // discarded which category was actually bought — a purchase for one category
-      // could silently be "spent" publishing a listing under a different, unpaid one.
-      await db.collection("user_profiles").doc(tx.userId).set(
-        {
-          paygListingsBoughtCount: FieldValue.increment(1),
-          [`paygCategoryCredits.${tx.targetId}`]: FieldValue.increment(1),
-          updatedAt: now,
-        },
-        { merge: true }
-      );
-      await grantProHostRoleIfNeeded(tx.userId);
-      break;
-    }
-    case "PAYG_CART": {
-      // Same recording as PAYG_LISTING, just for every cart line at once — each
-      // category's own credit count grows by its own purchased quantity, not a
-      // flat +1. See initiateWhishPayment.ts's PAYG_CART case for how cartItems
-      // is built (server-priced, never trusting the client's cart display).
-      const items = tx.cartItems ?? [];
-      const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
-      const update: Record<string, unknown> = {
-        paygListingsBoughtCount: FieldValue.increment(totalQuantity),
-        updatedAt: now,
-      };
-      for (const item of items) {
-        update[`paygCategoryCredits.${item.categoryId}`] = FieldValue.increment(item.quantity);
+      // Real, admin-defined validity — replaces the old hardcoded 30-day constant
+      // that was never actually tied to what the host bought. initiateWhishPayment.ts
+      // already validated targetId resolves to a real, enabled PackagePlan before
+      // this payment was ever allowed to start; a plan missing/disabled here only
+      // happens if an admin deleted/disabled it in the brief window between checkout
+      // and settlement — the payment already happened, so fall back to 30 days
+      // rather than leaving the host with nothing to show for it.
+      const plan = tx.targetId ? await getPackagePlan(tx.targetId) : undefined;
+      if (!plan) {
+        await recordAuditLog({
+          actionType: "PACKAGE_PLAN_MISSING_AT_GRANT",
+          details: `OWNER_PACKAGE payment (order ${tx.orderId}) settled for targetId "${tx.targetId}", but no matching package_plans/main entry was found at grant time — falling back to a 30-day validity.`,
+          actorEmail: tx.payerName,
+          severity: "WARN",
+        });
       }
-      await db.collection("user_profiles").doc(tx.userId).set(update, { merge: true });
+      const validityMs = (plan?.validityDays ?? 30) * 24 * 60 * 60 * 1000;
+      await db.collection("user_profiles").doc(tx.userId).set(
+        { ownerPackageId: tx.targetId, ownerPackageExpiryMillis: now + validityMs, updatedAt: now },
+        { merge: true }
+      );
       await grantProHostRoleIfNeeded(tx.userId);
+      await autoPublishDraftIfNeeded(tx);
       break;
     }
   }
 
-  // Only OWNER_PACKAGE (tier upgrade lifting the whole-listing cap), PAYG_LISTING
-  // and PAYG_CART (per-category credits) can ever be the thing standing between a
-  // Draft and Publish.
-  if (tx.purpose === "OWNER_PACKAGE" || tx.purpose === "PAYG_LISTING" || tx.purpose === "PAYG_CART") {
-    await autoPublishDraftIfNeeded(tx);
-  }
-
-  const targetDescription = tx.targetId ?? tx.cartItems?.map((i) => `${i.categoryId} x${i.quantity}`).join(", ") ?? "n/a";
   await recordAuditLog({
     actionType: "WHISH_PAYMENT_SUCCESS",
-    details: `Order ${tx.orderId} ($${tx.amountUsd.toFixed(2)}) settled for purpose ${tx.purpose} (target ${targetDescription}). Entitlement granted.`,
+    details: `Order ${tx.orderId} ($${tx.amountUsd.toFixed(2)}) settled for purpose ${tx.purpose} (target ${tx.targetId ?? "n/a"}). Entitlement granted.`,
     actorEmail: tx.payerName,
     severity: "SECURE",
   });

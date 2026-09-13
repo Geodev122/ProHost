@@ -98,6 +98,7 @@ fun ProHostAppRoot(
     viewModel: ProHostViewModel = viewModel()
 ) {
     val currentUser by viewModel.currentUser.collectAsState()
+    val drawerPackagePlans by viewModel.packagePlans.collectAsState()
     var detailedSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var activeTabId by remember { mutableStateOf("search_map") }
     var activeDrawerTabDialog by remember { mutableStateOf<String?>(null) }
@@ -207,6 +208,7 @@ fun ProHostAppRoot(
                         UserRole.SPECIALIST, UserRole.PRO_HOST -> {
                             SpecialistDrawerContent(
                                 currentUser = currentUser,
+                                packagePlans = drawerPackagePlans,
                                 currentRole = currentRole,
                                 activeProHostTabId = fullScreenDrawerTab,
                                 onTabSelected = { tabId ->

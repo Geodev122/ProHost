@@ -5,32 +5,22 @@ import "../lib/admin";
 
 interface UpdatePricingData {
   monthlySubscriptionFeeUsd?: number;
-  paygPrivateOfficeUsd?: number;
-  paygCenterUsd?: number;
-  paygPolyclinicUsd?: number;
-  paygCoworkingUsd?: number;
-  package2MonthlyFeeUsd?: number;
-  package3MonthlyFeeUsd?: number;
-  package2Limit?: number;
   governanceTag?: string;
 }
 
 const NUMERIC_FIELDS: (keyof UpdatePricingData)[] = [
   "monthlySubscriptionFeeUsd",
-  "paygPrivateOfficeUsd",
-  "paygCenterUsd",
-  "paygPolyclinicUsd",
-  "paygCoworkingUsd",
-  "package2MonthlyFeeUsd",
-  "package3MonthlyFeeUsd",
 ];
 
 /**
- * The only path that may write system_metadata/pricing — the doc
- * initiateWhishPayment reads server-side to compute real charge amounts.
- * Firestore rules deny every client write to system_metadata, so this
- * used-to-be-a-direct-write (ProSpaceRepository.persistPricingState) is now
- * the sole way an admin can change pricing, with a guaranteed audit trail.
+ * The only path that may write system_metadata/pricing. Package price/listing
+ * limit/validity days no longer live here — they're admin-managed directly on
+ * package_plans/main (add/edit/toggle/delete via ProHostRepository's
+ * addPackagePlan/updatePackagePlan/togglePackagePlan/deletePackagePlan, same
+ * direct-admin-write pattern as SchemaItem CRUD). This callable only remains
+ * for the unrelated monthlySubscriptionFeeUsd/governanceTag fields. Firestore
+ * rules deny every client write to system_metadata, so this is the sole way
+ * an admin can change what's left here, with a guaranteed audit trail.
  */
 export const updatePricing = onCall<UpdatePricingData>(async (request) => {
   const auth = request.auth;
@@ -53,20 +43,6 @@ export const updatePricing = onCall<UpdatePricingData>(async (request) => {
     }
     patch[field] = value;
     changes.push(`${field}=${value}`);
-  }
-
-  if (data.package2Limit !== undefined) {
-    // Not folded into NUMERIC_FIELDS above (which only checks "non-negative") —
-    // a listing cap needs its own stricter bound: an integer, and at least 1
-    // (0 would make LIMITED_3_TIER an unusable tier, not a real limit).
-    // firestore.rules' withinListingLimit() has always claimed this was
-    // "Admin-configurable (updatePricing)" — this was the missing wiring for
-    // that comment to actually be true.
-    if (typeof data.package2Limit !== "number" || !Number.isInteger(data.package2Limit) || data.package2Limit < 1) {
-      throw new HttpsError("invalid-argument", "package2Limit must be a positive integer.");
-    }
-    patch.package2Limit = data.package2Limit;
-    changes.push(`package2Limit=${data.package2Limit}`);
   }
 
   if (data.governanceTag !== undefined) {

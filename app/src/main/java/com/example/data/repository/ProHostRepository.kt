@@ -29,8 +29,7 @@ class ProHostRepository {
         // see that function's own doc comment for the exact bug this prevents.
         private val PROTECTED_UPDATE_FIELDS = setOf(
             "role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
-            "ownerPackageTier", "ownerPackageExpiryMillis", "activeListingCount",
-            "paygCategoryCredits", "paygListingsBoughtCount",
+            "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount",
             "tosAcceptedAtMillis", "consentVersion"
         )
 
@@ -123,6 +122,39 @@ class ProHostRepository {
     private val _spaceArchitectureSchema = MutableStateFlow<SpaceArchitectureSchema>(createDefaultSchema())
     val spaceArchitectureSchema: StateFlow<SpaceArchitectureSchema> = _spaceArchitectureSchema.asStateFlow()
 
+    // Admin-managed, purchasable Pro Host packages — replaces the old closed
+    // OwnerPackageTier enum + PAYG credit system entirely. Seeded locally with
+    // the two legacy packages (same ids the old enum used, "LIMITED_3_TIER"/
+    // "UNLIMITED_TIER") so an existing Pro Host's already-stored ownerPackageId
+    // resolves correctly even before any admin ever opens the new Packages
+    // Configuration card — this local default is overwritten the moment a real
+    // package_plans/main Firestore doc arrives via the live listener below.
+    private val _packagePlans = MutableStateFlow(
+        PackagePlanCatalog(
+            packages = mapOf(
+                "LIMITED_3_TIER" to PackagePlan(
+                    id = "LIMITED_3_TIER",
+                    name = "Package 2: Pro (3 Listings Limit)",
+                    description = "Host and operate up to 3 active workspaces under a bundled monthly fee",
+                    badgeName = "3-Listing Pro",
+                    priceUsd = 3.99,
+                    listingLimit = 3,
+                    validityDays = 30
+                ),
+                "UNLIMITED_TIER" to PackagePlan(
+                    id = "UNLIMITED_TIER",
+                    name = "Package 3: Enterprise (All-In Unlimited)",
+                    description = "Publish unlimited active workspace listings with priority platform exposure",
+                    badgeName = "All-In Unlimited",
+                    priceUsd = 8.99,
+                    listingLimit = null,
+                    validityDays = 30
+                )
+            )
+        )
+    )
+    val packagePlans: StateFlow<PackagePlanCatalog> = _packagePlans.asStateFlow()
+
     init {
         seedInitialData()
         startRealtimeSync()
@@ -190,6 +222,10 @@ class ProHostRepository {
                 },
                 onAuditLogsUpdated = { updatedLogs ->
                     _auditLogs.value = updatedLogs
+                },
+                onPackagePlansUpdated = { updatedCatalog ->
+                    _packagePlans.value = updatedCatalog
+                    _isCloudConnected.value = true
                 }
             )
 
@@ -367,77 +403,70 @@ class ProHostRepository {
         return success
     }
 
-    /**
-     * Commits all 4 legacy PAYG fees in one Cloud Function call + one audit entry —
-     * replaces the old per-field updatePaygFee(spaceType, fee), which AdminConsoleScreen
-     * used to call directly from each OutlinedTextField's onValueChange, firing a full
-     * updatePricing round-trip (and an audit-log write) on every valid keystroke. The
-     * UI now buffers all 4 fields locally and calls this once from a Save button,
-     * matching updatePackageFees' own pattern below.
-     */
-    suspend fun updatePaygFees(
-        privateOfficeFee: Double,
-        centerFee: Double,
-        polyclinicFee: Double,
-        coworkingFee: Double
-    ): Boolean {
-        val success = persistPricingState(
-            mapOf(
-                "paygPrivateOfficeUsd" to privateOfficeFee,
-                "paygCenterUsd" to centerFee,
-                "paygPolyclinicUsd" to polyclinicFee,
-                "paygCoworkingUsd" to coworkingFee
-            )
-        )
+    // --- Admin-Managed Package Plans ---
+    // Mirrors the Dynamic Space Architecture Schema Management block below (add/
+    // toggle/delete via a direct, admin-role-gated Firestore write — no dedicated
+    // Cloud Function needed for basic CRUD, matching SchemaItem's own pattern).
+    // The purchase-time price/validity lookup and expiry sweep remain genuine
+    // Cloud-Function trust-boundary logic (initiateWhishPayment.ts/expirePackages.ts).
+
+    suspend fun addPackagePlan(plan: PackagePlan): Boolean {
+        val updated = _packagePlans.value.copy(packages = _packagePlans.value.packages + (plan.id to plan))
+        val success = firestoreService.savePackagePlans(updated)
         if (success) {
-            _pricingState.value = _pricingState.value.copy(
-                paygPrivateOfficeUsd = privateOfficeFee,
-                paygCenterUsd = centerFee,
-                paygPolyclinicUsd = polyclinicFee,
-                paygCoworkingUsd = coworkingFee
+            _packagePlans.value = updated
+            addAuditLog(
+                actionType = "PACKAGE_PLAN_ADDED",
+                details = "Admin added package '${plan.name}' — $${String.format(Locale.US, "%.2f", plan.priceUsd)}, " +
+                    "limit ${plan.listingLimit ?: "unlimited"}, ${plan.validityDays} days validity",
+                severity = "SECURE"
             )
-            addLocalAuditLogEntry(
-                actionType = "PAYG_PRICING_UPDATED",
-                details = "PAYG fees updated — Private Office $${String.format(Locale.US, "%.2f", privateOfficeFee)}, " +
-                    "Center $${String.format(Locale.US, "%.2f", centerFee)}, " +
-                    "Polyclinic $${String.format(Locale.US, "%.2f", polyclinicFee)}, " +
-                    "Coworking $${String.format(Locale.US, "%.2f", coworkingFee)} USD",
+        }
+        return success
+    }
+
+    suspend fun updatePackagePlan(plan: PackagePlan): Boolean {
+        if (_packagePlans.value.packages[plan.id] == null) return false
+        val updated = _packagePlans.value.copy(packages = _packagePlans.value.packages + (plan.id to plan))
+        val success = firestoreService.savePackagePlans(updated)
+        if (success) {
+            _packagePlans.value = updated
+            addAuditLog(
+                actionType = "PACKAGE_PLAN_UPDATED",
+                details = "Admin updated package '${plan.name}' (#${plan.id}) — $${String.format(Locale.US, "%.2f", plan.priceUsd)}, " +
+                    "limit ${plan.listingLimit ?: "unlimited"}, ${plan.validityDays} days validity",
+                severity = "SECURE"
+            )
+        }
+        return success
+    }
+
+    suspend fun togglePackagePlan(planId: String): Boolean {
+        val current = _packagePlans.value.packages[planId] ?: return false
+        val updated = _packagePlans.value.copy(
+            packages = _packagePlans.value.packages + (planId to current.copy(isEnabled = !current.isEnabled))
+        )
+        val success = firestoreService.savePackagePlans(updated)
+        if (success) {
+            _packagePlans.value = updated
+            addAuditLog(
+                actionType = "PACKAGE_PLAN_TOGGLED",
+                details = "Admin toggled package '${current.name}' (#$planId) active status",
                 severity = "INFO"
             )
         }
         return success
     }
 
-    /**
-     * [package2Limit] defaults to the current value so existing call sites that
-     * don't pass it (none currently — AdminConsoleScreen always sends its own
-     * buffered input) leave the cap untouched rather than silently resetting it.
-     * Wires up firestore.rules' withinListingLimit() comment, which has always
-     * claimed this was "Admin-configurable (updatePricing)" despite no field or
-     * UI control ever having actually supported changing it.
-     */
-    suspend fun updatePackageFees(
-        package2Fee: Double,
-        package3Fee: Double,
-        package2Limit: Int = _pricingState.value.package2Limit
-    ): Boolean {
-        val success = persistPricingState(
-            mapOf(
-                "package2MonthlyFeeUsd" to package2Fee,
-                "package3MonthlyFeeUsd" to package3Fee,
-                "package2Limit" to package2Limit
-            )
-        )
+    suspend fun deletePackagePlan(planId: String): Boolean {
+        val existing = _packagePlans.value.packages[planId] ?: return false
+        val success = firestoreService.deletePackagePlan(planId)
         if (success) {
-            _pricingState.value = _pricingState.value.copy(
-                package2MonthlyFeeUsd = package2Fee,
-                package3MonthlyFeeUsd = package3Fee,
-                package2Limit = package2Limit
-            )
-            addLocalAuditLogEntry(
-                actionType = "PACKAGE_FEES_UPDATED",
-                details = "Package 2 (limit $package2Limit) fee updated to $${String.format(Locale.US, "%.2f", package2Fee)}, Package 3 (Unlimited) fee updated to $${String.format(Locale.US, "%.2f", package3Fee)}",
-                severity = "INFO"
+            _packagePlans.value = _packagePlans.value.copy(packages = _packagePlans.value.packages - planId)
+            addAuditLog(
+                actionType = "PACKAGE_PLAN_DELETED",
+                details = "Admin removed package '${existing.name}' (#$planId)",
+                severity = "WARN"
             )
         }
         return success
@@ -470,33 +499,21 @@ class ProHostRepository {
         return success
     }
 
-    /** This category's real admin-configured PAYG price if [listing] has one
-     * (spaceCategoryId resolved against the live schema — automatically covers any
-     * admin-added category with zero extra code), falling back to the legacy fixed
-     * 4-value lookup for a listing with no spaceCategoryId (created before that field
-     * existed) — the same fallback order functions/src/lib/pricing.ts's
-     * getPaygFeeForCategory uses server-side, kept in sync deliberately. */
-    private fun paygPriceForListing(listing: SpaceListing, schema: SpaceArchitectureSchema): Double {
-        val categoryPrice = listing.spaceCategoryId?.let { id -> schema.spaceTypes.find { it.id == id }?.priceUsd }
-        return categoryPrice ?: _pricingState.value.getPaygFeeForType(listing.spaceType)
-    }
-
-    /** A PAYG listing's cost is charged per-listing (its own category's price); a
-     * Package 2/3 listing's cost is its OWNER's flat monthly fee, charged once per
-     * owner regardless of how many listings they have — [dedupeByOwner] controls which
-     * shape applies. Shared by calculateActiveMrr (isActiveSubscription-filtered) and
+    /** Every listing's owner pays their own package's flat price once, regardless of
+     * how many listings they have — real revenue is now owner-level, not per-listing,
+     * since PAYG's per-listing credit pricing is gone. distinctBy{ownerId} is what
+     * makes this owner-level rather than listing-level; an owner with no active
+     * package (ownerPackageId == null, or one that no longer resolves to a real
+     * package_plans entry) contributes $0, which is correct. Naturally generalizes
+     * over however many packages an admin has defined — no hardcoded tier count.
+     * Shared by calculateActiveMrr (isActiveSubscription-filtered) and
      * calculatePotentialCapacityMrr (every listing, active or not) so the two can't
      * silently diverge in how they price a listing, only in which listings they include. */
     private fun sumListingRevenue(listings: List<SpaceListing>): Double {
-        val schema = _spaceArchitectureSchema.value
         val usersById = _users.value.associateBy { it.id }
-        fun tierFor(ownerId: String) = usersById[ownerId]?.ownerPackageTier ?: OwnerPackageTier.PAY_AS_YOU_GO
-
-        val (paygListings, tieredListings) = listings.partition { tierFor(it.ownerId) == OwnerPackageTier.PAY_AS_YOU_GO }
-        val paygTotal = paygListings.sumOf { paygPriceForListing(it, schema) }
-        val tieredTotal = tieredListings.distinctBy { it.ownerId }
-            .sumOf { _pricingState.value.getPackageFee(tierFor(it.ownerId)) }
-        return paygTotal + tieredTotal
+        val plansById = _packagePlans.value.packages
+        return listings.distinctBy { it.ownerId }
+            .sumOf { usersById[it.ownerId]?.ownerPackageId?.let { id -> plansById[id]?.priceUsd } ?: 0.0 }
     }
 
     fun calculateActiveMrr(): Double {
@@ -754,14 +771,14 @@ class ProHostRepository {
                 role = current.role,
                 isVerified = current.isVerified,
                 isSuspended = current.isSuspended,
-                ownerPackageTier = current.ownerPackageTier,
+                ownerPackageId = current.ownerPackageId,
                 ownerPackageExpiryMillis = current.ownerPackageExpiryMillis
             )
         } else {
             updated
         }
         // A targeted write of only these fields — role/isVerified/isSuspended/
-        // ownerPackageTier/etc. are Cloud-Function/Admin-SDK-only per firestore.rules'
+        // ownerPackageId/etc. are Cloud-Function/Admin-SDK-only per firestore.rules'
         // user_profiles protected-fields list, and are never sent here at all (not
         // even echoed back unchanged) — echoing back the *locally cached* value used
         // to be this function's protection, but that cache can itself be stale
@@ -849,14 +866,16 @@ class ProHostRepository {
         return success
     }
 
-    /** Edits priceUsd/maxSubdivisions on an EXISTING SchemaItem — previously only settable
+    /** Edits maxSubdivisions on an EXISTING SchemaItem — previously only settable
      * once, at creation, via addSchemaItem. Only meaningful for category == "SPACE_TYPE"
-     * (both fields are ignored/no-ops for any other category, same as the fields' own
-     * doc comments on SchemaItem). */
-    suspend fun updateSchemaItemPricing(itemId: String, category: String, priceUsd: Double?, maxSubdivisions: Int?): Boolean {
+     * (a no-op for any other category, same as the field's own doc comment on
+     * SchemaItem). PAYG per-category pricing used to live alongside this same field
+     * (SchemaItem.priceUsd) — removed with PAYG; package pricing now lives on
+     * PackagePlan instead (see addPackagePlan/updatePackagePlan above). */
+    suspend fun updateSchemaItemMaxSubdivisions(itemId: String, category: String, maxSubdivisions: Int?): Boolean {
         val current = _spaceArchitectureSchema.value
         fun updateList(items: List<SchemaItem>) =
-            items.map { if (it.id == itemId) it.copy(priceUsd = priceUsd, maxSubdivisions = maxSubdivisions) else it }
+            items.map { if (it.id == itemId) it.copy(maxSubdivisions = maxSubdivisions) else it }
         val updated = when (category) {
             "SPACE_TYPE" -> current.copy(spaceTypes = updateList(current.spaceTypes))
             else -> return false
@@ -866,7 +885,7 @@ class ProHostRepository {
             _spaceArchitectureSchema.value = updated
             addAuditLog(
                 actionType = "SCHEMA_ITEM_PRICING_UPDATED",
-                details = "Admin updated pricing/max-subdivisions for schema item #$itemId",
+                details = "Admin updated max-subdivisions for schema item #$itemId",
                 severity = "SECURE"
             )
         }
@@ -932,12 +951,12 @@ class ProHostRepository {
     private fun createDefaultSchema(): SpaceArchitectureSchema {
         return SpaceArchitectureSchema(
             spaceTypes = listOf(
-                SchemaItem("ST-01", "Private Office", "Dedicated self-contained lockable office suites", "SPACE_TYPE", "Apartment", priceUsd = 1.50),
-                SchemaItem("ST-02", "Center", "Multi-disciplinary center / medical polyclinic compound", "SPACE_TYPE", "Business", priceUsd = 3.50),
-                SchemaItem("ST-03", "Polyclinic", "Certified medical examination rooms & clinical facilities", "SPACE_TYPE", "LocalHospital", priceUsd = 2.80),
-                SchemaItem("ST-04", "Co-working Space", "Open collaborative desks and flexible shared work hubs", "SPACE_TYPE", "Groups", priceUsd = 1.80),
-                SchemaItem("ST-05", "Executive Boardroom", "High-profile executive meeting and conference suites", "SPACE_TYPE", "MeetingRoom", priceUsd = 2.20),
-                SchemaItem("ST-06", "Consultation Suite", "Acoustically isolated private consultation rooms", "SPACE_TYPE", "Psychology", priceUsd = 1.60)
+                SchemaItem("ST-01", "Private Office", "Dedicated self-contained lockable office suites", "SPACE_TYPE", "Apartment"),
+                SchemaItem("ST-02", "Center", "Multi-disciplinary center / medical polyclinic compound", "SPACE_TYPE", "Business"),
+                SchemaItem("ST-03", "Polyclinic", "Certified medical examination rooms & clinical facilities", "SPACE_TYPE", "LocalHospital"),
+                SchemaItem("ST-04", "Co-working Space", "Open collaborative desks and flexible shared work hubs", "SPACE_TYPE", "Groups"),
+                SchemaItem("ST-05", "Executive Boardroom", "High-profile executive meeting and conference suites", "SPACE_TYPE", "MeetingRoom"),
+                SchemaItem("ST-06", "Consultation Suite", "Acoustically isolated private consultation rooms", "SPACE_TYPE", "Psychology")
             ),
             subcategories = listOf(
                 SchemaItem("SUB-01", "Rooms / Dedicated Suites", "Independent private room within premises", "SUBCATEGORY", "MeetingRoom"),
@@ -1528,7 +1547,7 @@ class ProHostRepository {
      * fixes: assignInitialRole.ts's Admin-SDK write always lands (and creates the
      * user_profiles/{uid} document) before this function's own write does, so by the time
      * this write reaches Firestore it's evaluated as an UPDATE, not a create — and
-     * AppUser.toFirestoreMap() unconditionally includes ownerPackageTier/
+     * AppUser.toFirestoreMap() unconditionally includes ownerPackageId/
      * ownerPackageExpiryMillis, both on the update rule's protected-fields list (see
      * PROTECTED_UPDATE_FIELDS below), so the whole write used to be silently rejected
      * with permission-denied. The caller (completeVerifiedRegistration) is already a
@@ -1565,7 +1584,7 @@ class ProHostRepository {
 
         // A targeted merge of only the fields this registration actually owns — never the
         // fields firestore.rules' user_profiles update rule protects (role/isVerified/
-        // ownerPackageTier/etc. — assignInitialRole.ts already correctly set/defaulted all
+        // ownerPackageId/etc. — assignInitialRole.ts already correctly set/defaulted all
         // of those). Filtering toFirestoreMap() by this list, rather than hand-listing the
         // "safe" fields, means a future field added to toFirestoreMap() is safe-by-default
         // unless it's also added here. Keep this in sync with firestore.rules' own list.
@@ -1676,7 +1695,7 @@ class ProHostRepository {
             profilePictureUrl = profilePictureUrl ?: current.profilePictureUrl
         )
         // A targeted write of only these fields — never role/isVerified/isSuspended/
-        // ownerPackageTier/etc. Echoing those back from the locally-cached AppUser
+        // ownerPackageId/etc. Echoing those back from the locally-cached AppUser
         // (the old approach) could disagree with the real server-stored value (e.g.
         // right after a role grant the local cache hasn't refreshed yet) and get the
         // *entire* write rejected by firestore.rules' protected-fields check, even

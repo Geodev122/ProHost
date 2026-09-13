@@ -7,8 +7,8 @@
  *
  * Every account starts SPECIALIST. PRO_HOST is never self-service or free —
  * it's granted exclusively by grantEntitlement() (see entitlements.ts) the
- * moment a real OWNER_PACKAGE or PAYG_LISTING Whish payment settles. There is
- * no standalone "request role upgrade" function anymore.
+ * moment a real OWNER_PACKAGE Whish payment settles. There is no standalone
+ * "request role upgrade" function anymore.
  */
 export type AppRole = "SPECIALIST" | "PRO_HOST" | "ADMIN";
 

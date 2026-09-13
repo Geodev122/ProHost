@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.data.model.AppUser
+import com.example.data.model.PackagePlan
 import com.example.data.model.UserRole
 import com.example.ui.theme.*
 
@@ -32,6 +33,7 @@ import com.example.ui.theme.*
 @Composable
 fun DrawerIdentityCard(
     user: AppUser?,
+    currentPackage: PackagePlan? = null,
     modifier: Modifier = Modifier
 ) {
     val role = user?.role ?: UserRole.SPECIALIST
@@ -116,7 +118,7 @@ fun DrawerIdentityCard(
                             shape = MaterialTheme.shapes.medium
                         ) {
                             Text(
-                                text = user.ownerPackageTier.badgeName,
+                                text = currentPackage?.badgeName?.ifBlank { currentPackage.name } ?: "No Package",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,

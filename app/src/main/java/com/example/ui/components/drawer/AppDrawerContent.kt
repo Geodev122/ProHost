@@ -55,6 +55,7 @@ import com.example.ui.theme.*
 @Composable
 fun SpecialistDrawerContent(
     currentUser: AppUser?,
+    packagePlans: com.example.data.model.PackagePlanCatalog = com.example.data.model.PackagePlanCatalog(),
     currentRole: UserRole,
     activeProHostTabId: String?,
     onTabSelected: (String) -> Unit,
@@ -70,6 +71,7 @@ fun SpecialistDrawerContent(
     ) {
         DrawerIdentityCard(
             user = currentUser,
+            currentPackage = currentUser?.ownerPackageId?.let { packagePlans.packages[it] },
             modifier = Modifier.padding(bottom = 16.dp)
         )
 

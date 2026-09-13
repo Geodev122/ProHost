@@ -26,6 +26,10 @@ object FirestoreSchema {
         const val AUDIT_SECURITY_LOGS = "audit_security_logs"
         const val SYSTEM_METADATA = "system_metadata"
         const val SCHEMA_ARCHITECTURE = "schema_architecture"
+        // Admin-managed, purchasable Pro Host packages (PackagePlanCatalog, one doc
+        // "main" holding a map of PackagePlan keyed by id) — replaces the old closed
+        // OwnerPackageTier enum + PAYG credit system entirely.
+        const val PACKAGE_PLANS = "package_plans"
         // One document per hashtag (doc id = the lowercased tag text), incremented
         // on every publish that carries it — feeds the Target Disciplines autosuggest
         // in CreateListingDialog and an Admin analytics view, spec section 1.4.

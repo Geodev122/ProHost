@@ -11,7 +11,7 @@ interface RevokeProHostRoleData {
 
 /**
  * The downgrade path PRO_HOST never had — once granted (exclusively via a
- * settled Whish OWNER_PACKAGE/PAYG_LISTING payment, see grantEntitlement()),
+ * settled Whish OWNER_PACKAGE payment, see grantEntitlement()),
  * a host previously only ever fell back to SPECIALIST passively, by letting
  * ownerPackageExpiryMillis lapse; there was no explicit Admin action to
  * revoke it outright (e.g. for a policy violation). Admin-only.
@@ -67,7 +67,7 @@ export const revokeProHostRole = onCall<RevokeProHostRoleData>(async (request) =
         await db.collection("user_profiles").doc(targetUid).set(
           {
             role: "SPECIALIST",
-            ownerPackageTier: "PAY_AS_YOU_GO",
+            ownerPackageId: null,
             ownerPackageExpiryMillis: null,
             updatedAt: Date.now(),
           },

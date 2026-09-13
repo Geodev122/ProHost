@@ -49,34 +49,37 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/user_profiles/$(uid)).data.get('role', 'SPECIALIST');
     }
 
-    // Package-tier listing-limit enforcement (previously client-side only —
-    // ProSpaceViewModel.createNewSpaceListing checked this, but nothing
+    // Package listing-limit enforcement (previously client-side only —
+    // ProHostViewModel.createNewSpaceListing checked this, but nothing
     // stopped a direct Firestore write from skipping it). `activeListingCount`
     // is a denormalized counter maintained by listingCountTracker.ts's
-    // Firestore triggers, since rules can't COUNT a query directly.
-    // `package2Limit` is Admin-configurable (updatePricing) rather than a
-    // hardcoded "3", so a tier change takes effect without a rules redeploy.
+    // Firestore triggers, since rules can't COUNT a query directly. Packages
+    // are now an admin-managed, arbitrary-length catalog (package_plans/main,
+    // keyed by id — see PackagePlan/PackagePlanCatalog) rather than a fixed
+    // 2-tier enum, so this resolves the caller's OWN purchased package live
+    // instead of hardcoding a single tier name/field. Treats no package,
+    // an unresolvable/disabled package, and an expired-but-not-yet-swept
+    // package (see expirePackages.ts) all identically as "no active package".
     function withinListingLimit(uid) {
       let profile = get(/databases/$(database)/documents/user_profiles/$(uid)).data;
-      let tier = profile.get('ownerPackageTier', 'PAY_AS_YOU_GO');
+      let packageId = profile.get('ownerPackageId', null);
+      let expiry = profile.get('ownerPackageExpiryMillis', null);
+      let isExpired = expiry != null && expiry <= request.time.toMillis();
+      // get() on a document that doesn't exist THROWS in rules (unlike a
+      // missing field, which .get(key, default) tolerates) — guard with
+      // exists() so a fresh deploy, before any package has ever been created
+      // via the Admin Console, fails closed (empty catalog -> nobody can
+      // publish ACTIVE) instead of erroring out on every write.
+      let plansPath = /databases/$(database)/documents/package_plans/main;
+      let allPlans = exists(plansPath) ? get(plansPath).data.get('packages', {}) : {};
+      // Guard the map lookup with a null key — package_plans/main's map is
+      // keyed by string package ids only, never a null/missing entry.
+      let plan = packageId != null ? allPlans.get(packageId, null) : null;
       let count = profile.get('activeListingCount', 0);
-      let limit = get(/databases/$(database)/documents/system_metadata/pricing).data.get('package2Limit', 3);
-      return tier != 'LIMITED_3_TIER' || count < limit;
-    }
-
-    // Same reasoning as withinListingLimit() above, for PAY_AS_YOU_GO's per-category
-    // slots instead of LIMITED_3_TIER's whole-listing cap: without this, a raw
-    // Firestore SDK write could publish a PAYG category with zero purchased credit,
-    // bypassing both CreateListingDialog's disabled Publish button and
-    // ProHostViewModel.createNewSpaceListing's check. paygCategoryCredits is
-    // maintained only by listingCountTracker.ts's consumePaygCreditIfNeeded (this
-    // function only reads it, never writes it — see user_profiles' protected-fields
-    // list below for the write-side of that guarantee).
-    function hasPaygCredit(uid, categoryId) {
-      let profile = get(/databases/$(database)/documents/user_profiles/$(uid)).data;
-      let tier = profile.get('ownerPackageTier', 'PAY_AS_YOU_GO');
-      let credits = profile.get('paygCategoryCredits', {});
-      return tier != 'PAY_AS_YOU_GO' || (categoryId != null && credits.get(categoryId, 0) > 0);
+      let limit = plan != null ? plan.get('listingLimit', null) : null;
+      return packageId != null && !isExpired && plan != null &&
+        plan.get('isEnabled', false) == true &&
+        (limit == null || count < limit);
     }
 
     // ---------------------------------------------------------------
@@ -106,12 +109,11 @@ service cloud.firestore {
         !isSuspended() &&
         // A Draft doesn't consume the host's quota (see ListingStatus's doc
         // comment) — only a create that lands directly as ACTIVE is gated by
-        // withinListingLimit()/hasPaygCredit(); saving a brand-new Draft is exempt
-        // the same way listingCountTracker.ts's create trigger only counts ACTIVE.
+        // withinListingLimit(); saving a brand-new Draft is exempt the same
+        // way listingCountTracker.ts's create trigger only counts ACTIVE.
         (isAdmin() ||
           request.resource.data.get('status', 'ACTIVE') != 'ACTIVE' ||
-          (withinListingLimit(request.auth.uid) &&
-            hasPaygCredit(request.auth.uid, request.resource.data.get('spaceCategoryId', null)))) &&
+          withinListingLimit(request.auth.uid)) &&
         // The update rule below has always blocked isVerified/ownerIsIdVerified
         // on an existing document, but create() is a separate rule block with no
         // "before" document to diff against — without this, a brand-new listing
@@ -150,21 +152,15 @@ service cloud.firestore {
           // Publishing a Draft or resuming a Paused listing (status -> ACTIVE)
           // is the moment it starts consuming the host's quota — gate that
           // transition the same way create() gates a straight-to-ACTIVE
-          // create. Any other status change (staying Draft/Paused, or
-          // Active -> Paused) never needs the quota check. The one case that
-          // ALSO needs re-checking despite status staying ACTIVE the whole
-          // time: rewriting spaceCategoryId on an already-live listing — left
-          // unguarded before, a PAYG host could publish cheaply under one
-          // category, then swap spaceCategoryId to any other category
-          // (including one they never bought a slot for) with zero
-          // enforcement. listingCountTracker.ts's onWorkspaceListingStatusChanged
-          // consumes the credit for this same case server-side.
+          // create. Any other status change (staying Draft/Paused, Active ->
+          // Paused, or an ACTIVE listing simply changing category) never
+          // needs the quota re-check — packages gate the OVERALL listing
+          // count only, with no per-category credit concept anymore, so
+          // there's nothing left for a category swap to abuse.
           (isAdmin() ||
-            (resource.data.get('status', 'ACTIVE') == 'ACTIVE' &&
-              resource.data.get('spaceCategoryId', null) == request.resource.data.get('spaceCategoryId', null)) ||
+            resource.data.get('status', 'ACTIVE') == 'ACTIVE' ||
             request.resource.data.get('status', 'ACTIVE') != 'ACTIVE' ||
-            (withinListingLimit(request.auth.uid) &&
-              hasPaygCredit(request.auth.uid, request.resource.data.get('spaceCategoryId', null))))
+            withinListingLimit(request.auth.uid))
         ) ||
         // Engagement counters are incremented by the Specialist viewing/
         // contacting the listing, not the owner — the owner-only clause above
@@ -197,7 +193,7 @@ service cloud.firestore {
       // at the free tier with a zero listing counter, same reasoning as the
       // update rule below.
       allow create: if isOwner(userId) &&
-        request.resource.data.get('ownerPackageTier', 'PAY_AS_YOU_GO') == 'PAY_AS_YOU_GO' &&
+        request.resource.data.get('ownerPackageId', null) == null &&
         request.resource.data.get('activeListingCount', 0) == 0 &&
         // isVerified must match reality — the ID token's own phone_number claim
         // (the same source of truth assignInitialRole.ts already uses
@@ -208,16 +204,13 @@ service cloud.firestore {
         // ONLY way it can be true, not merely the app's current behavior.
         request.resource.data.get('isVerified', false) == (request.auth.token.phone_number != null) &&
         // Every one of these is either absent from AppUser.toFirestoreMap()
-        // entirely (paygCategoryCredits/paygListingsBoughtCount/isSuspended/
-        // createdAtMillis/lastSignInAtMillis/tosAcceptedAtMillis/consentVersion)
-        // or null-by-default (ownerPackageExpiryMillis) on a legitimate first
-        // write — without this, a raw SDK create() could grant itself free PAYG
-        // credits, backdate the account, start pre-suspended/pre-expired, or
-        // fabricate ToS acceptance that never actually happened through
-        // assignInitialRole.ts, none of which the update rule below would ever
-        // let a client set afterward.
-        request.resource.data.get('paygCategoryCredits', {}) == {} &&
-        request.resource.data.get('paygListingsBoughtCount', 0) == 0 &&
+        // entirely (isSuspended/createdAtMillis/lastSignInAtMillis/
+        // tosAcceptedAtMillis/consentVersion) or null-by-default
+        // (ownerPackageExpiryMillis) on a legitimate first write — without
+        // this, a raw SDK create() could backdate the account, start
+        // pre-suspended/pre-expired, or fabricate ToS acceptance that never
+        // actually happened through assignInitialRole.ts, none of which the
+        // update rule below would ever let a client set afterward.
         request.resource.data.get('ownerPackageExpiryMillis', null) == null &&
         request.resource.data.get('isSuspended', false) == false &&
         request.resource.data.get('createdAtMillis', null) == null &&
@@ -233,18 +226,18 @@ service cloud.firestore {
       // setAccountSuspended (isSuspended) can, all Admin SDK. There is no
       // admin-reviewed accreditation system anymore, so no separate
       // verificationStatus/verificationTier/trustScore fields to protect.
-      // ownerPackageTier/ownerPackageExpiryMillis are entitlement fields set
-      // exclusively by grantEntitlement() (the Whish webhook) or
-      // revokeProHostRole (Admin SDK) — a client write could otherwise
-      // self-grant an unlimited listing package for free. activeListingCount
-      // is maintained only by listingCountTracker.ts's triggers, for the same
-      // reason (see withinListingLimit() above — a client-writable counter
-      // would make that check trivially bypassable).
+      // ownerPackageId/ownerPackageExpiryMillis are entitlement fields set
+      // exclusively by grantEntitlement() (the Whish webhook), expirePackages.ts
+      // (the hourly expiry sweep), migratePaygUsers.ts (the one-time PAYG
+      // migration), or revokeProHostRole (Admin SDK) — a client write could
+      // otherwise self-grant a package for free or dodge real expiry.
+      // activeListingCount is maintained only by listingCountTracker.ts's
+      // triggers, for the same reason (see withinListingLimit() above — a
+      // client-writable counter would make that check trivially bypassable).
       allow update: if (isOwner(userId) || isAdmin()) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
           ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
-           "ownerPackageTier", "ownerPackageExpiryMillis", "activeListingCount",
-           "paygCategoryCredits", "paygListingsBoughtCount",
+           "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount",
            "tosAcceptedAtMillis", "consentVersion"]
         );
 
@@ -365,18 +358,6 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------
-    // processed_trigger_events — server-only internal bookkeeping (see
-    // lib/idempotency.ts). One marker doc per Cloud Functions v2 trigger
-    // event id, used to detect an at-least-once redelivery of the same
-    // event before consumePaygCreditIfNeeded (listingCountTracker.ts) runs
-    // a second time for it. No client, including Admin, has any reason to
-    // read or write this.
-    // ---------------------------------------------------------------
-    match /processed_trigger_events/{eventId} {
-      allow read, write: if false;
-    }
-
-    // ---------------------------------------------------------------
     // system_metadata — server-only (updatePricing Cloud Function is the
     // only writer; FirestoreService.initializeSchema, which would have
     // written schema_info directly, has no call sites anywhere in the app).
@@ -395,6 +376,22 @@ service cloud.firestore {
     // to render listing creation/discovery filters.
     // ---------------------------------------------------------------
     match /schema_architecture/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // package_plans — admin-managed, purchasable Pro Host packages (replaces
+    // the old closed OwnerPackageTier enum + PAYG credit system entirely).
+    // Same direct-admin-write pattern as schema_architecture above rather than
+    // system_metadata's Cloud-Function-only pattern: the trust boundary that
+    // actually matters — never trusting a BUYER's claimed price — is enforced
+    // where money changes hands (initiateWhishPayment.ts reads this doc live,
+    // server-side, at charge time), not at admin-configuration time. Public
+    // read is required: every client needs the live catalog to render
+    // purchase/renewal screens and resolve a host's own package.
+    // ---------------------------------------------------------------
+    match /package_plans/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }

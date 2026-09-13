@@ -67,7 +67,12 @@ data class AdminUiState(
     // Configuration's "Add Category Type") open the same dialog pre-selected on the
     // right category, instead of every "Add" entry point defaulting to the same one.
     val addSchemaItemPresetCategory: String? = null,
-    val isResetSchemaDialogOpen: Boolean = false
+    val isResetSchemaDialogOpen: Boolean = false,
+
+    // Admin-managed, purchasable Pro Host packages — replaces the old fixed
+    // Package 2/3 fee+limit inputs entirely (see PackagePlan/PackagePlanCatalog).
+    val packagePlans: PackagePlanCatalog = PackagePlanCatalog(),
+    val isAddPackagePlanDialogOpen: Boolean = false
 ) {
     val filteredUsers: List<AppUser>
         get() = allUsers.filter { user ->

@@ -49,7 +49,7 @@ fun CreateListingDialog(
     // this dialog is opened from the Listings Catalog admin tab's Edit action. When
     // non-null: the final step's primary button reads "Save Changes" and calls THIS
     // instead of onListingCreated (a straight repository update, not a new publish —
-    // it must not re-run the create-flow's PAYG-credit/quota gating, which exists to
+    // it must not re-run the create-flow's package-limit gating, which exists to
     // meter NEW listings, not edits to ones that already exist), "Save as Draft" is
     // hidden (editing an existing ACTIVE/PAUSED listing should never silently demote
     // it to Draft), and the listing's own current status is preserved rather than
@@ -152,10 +152,10 @@ fun CreateListingDialog(
         }
     }
     // Best-effort mapping onto the closed legacy enum, purely for readers that still
-    // key off SpaceListing.spaceType (Discovery filters, badges, the original 4-value
-    // PAYG fee switch) — a category with no obvious match (a brand-new admin
-    // category, or one of the two schema-only categories with no legacy equivalent)
-    // falls back to PRIVATE_OFFICE rather than crashing on a missing branch.
+    // key off SpaceListing.spaceType (Discovery filters, badges) — a category with no
+    // obvious match (a brand-new admin category, or one of the two schema-only
+    // categories with no legacy equivalent) falls back to PRIVATE_OFFICE rather than
+    // crashing on a missing branch.
     fun legacyTypeFor(categoryId: String?): SpaceType = when (categoryId) {
         "ST-01", SpaceType.PRIVATE_OFFICE.name -> SpaceType.PRIVATE_OFFICE
         "ST-02", SpaceType.CENTER.name -> SpaceType.CENTER
@@ -177,17 +177,6 @@ fun CreateListingDialog(
     var selectedCategoryName by remember {
         mutableStateOf(existingDraft?.spaceCategoryName ?: categoryOptions.firstOrNull { it.id == selectedCategoryId }?.name)
     }
-    // PAYG hosts can only Publish a category they've paid a slot for (spec: "PAYG-
-    // locked" categories) — a subscription host (LIMITED_3_TIER/UNLIMITED_TIER) has
-    // no per-category lock, only the existing whole-listing quota. ADMIN accounts
-    // never go through package purchase/entitlement at all (grantAdminRole/
-    // bootstrapSuperAdmin only ever set role — never ownerPackageTier/
-    // paygCategoryCredits), so an Admin's tier defaults to PAY_AS_YOU_GO with zero
-    // credits and every category locked forever unless explicitly bypassed here —
-    // matching OwnerHubScreen's own unconditional "Admin has unlimited access"
-    // treatment (isAdminUnlimited) rather than trying to fake a real tier for Admin.
-    val isPaygTier = activeUser.role != UserRole.ADMIN && activeUser.ownerPackageTier == OwnerPackageTier.PAY_AS_YOU_GO
-    val paygCredits = activeUser.paygCategoryCredits
     // No longer shown as its own picker — a governorate field alongside a real map
     // pin only ever fought the map (see ListingLocationMapPicker's doc comment).
     // Derived instead from the picked pin's nearest match in buildListing(), purely
@@ -394,12 +383,6 @@ fun CreateListingDialog(
                                 Text("Space Category", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     items(categoryOptions) { category ->
-                                        // A PAYG host with zero purchased slots for this category
-                                        // can still browse/select it (to save a Draft or see
-                                        // pricing), but Publish stays blocked until a matching
-                                        // slot is bought — see createNewSpaceListing. Dimmed here
-                                        // only as a visual cue, never disabled outright.
-                                        val hasCreditOrUnlocked = !isPaygTier || (paygCredits[category.id] ?: 0) > 0
                                         FilterChip(
                                             selected = selectedCategoryId == category.id,
                                             onClick = {
@@ -408,36 +391,10 @@ fun CreateListingDialog(
                                                 selectedSpaceType = legacyTypeFor(category.id)
                                             },
                                             label = {
-                                                Text(
-                                                    if (hasCreditOrUnlocked) category.name else "🔒 ${category.name}",
-                                                    fontSize = MaterialTheme.typography.labelMedium.fontSize
-                                                )
-                                            },
-                                            modifier = if (hasCreditOrUnlocked) Modifier else Modifier.alpha(0.55f)
+                                                Text(category.name, fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                                            }
                                         )
                                     }
-                                }
-                                if (isPaygTier) {
-                                    val selectedItem = categoryOptions.firstOrNull { it.id == selectedCategoryId }
-                                    val fee = selectedItem?.priceUsd
-                                    val credits = selectedCategoryId?.let { paygCredits[it] } ?: 0
-                                    // The server's legacy fallback only prices the original 4 category
-                                    // ids/names (getPaygFeeForCategory) — anything else with no admin-set
-                                    // priceUsd can't be bought at all yet, so say so here instead of
-                                    // letting the host discover it as a payment error later.
-                                    val isLegacyPriced = selectedCategoryId in setOf("ST-01", "ST-02", "ST-03", "ST-04") ||
-                                        SpaceType.values().any { it.name == selectedCategoryId }
-                                    val isUnpriced = fee == null && !isLegacyPriced
-                                    Text(
-                                        when {
-                                            credits > 0 -> "You have $credits paid slot(s) for ${selectedItem?.name ?: "this category"}."
-                                            isUnpriced -> "${selectedItem?.name ?: "This category"} has no PAYG price set yet — an admin must price it before a slot can be bought. You can still save this as a Draft."
-                                            else -> "No paid slot yet for ${selectedItem?.name ?: "this category"}" +
-                                                (fee?.let { " — buy one for $${String.format("%.2f", it)} from Subscriptions." } ?: " — buy one from Subscriptions to publish.")
-                                        },
-                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                        color = if (credits > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                                    )
                                 }
 
                                 HorizontalDivider()
@@ -1202,8 +1159,7 @@ fun CreateListingDialog(
                             }
                         } else {
                             pickedLatLng != null && ownershipProofUrl != null && !isUploadingOwnershipProof &&
-                                uploadedPhotoUrls.isNotEmpty() &&
-                                (onListingUpdated != null || !isPaygTier || (selectedCategoryId?.let { paygCredits[it] } ?: 0) > 0)
+                                uploadedPhotoUrls.isNotEmpty()
                         }
                     )
                 }

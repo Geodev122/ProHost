@@ -53,8 +53,9 @@ class AdminViewModel(
                 repository.spaces,
                 repository.pricingState,
                 repository.spaceArchitectureSchema,
-                repository.users
-            ) { spaces, _, _, _ -> spaces }.collect { spaces ->
+                repository.users,
+                repository.packagePlans
+            ) { spaces, _, _, _, _ -> spaces }.collect { spaces ->
                 _uiState.update {
                     it.copy(
                         allSpaces = spaces,
@@ -95,6 +96,11 @@ class AdminViewModel(
                 _uiState.update { it.copy(schema = schema) }
             }
         }
+        viewModelScope.launch {
+            repository.packagePlans.collect { plans ->
+                _uiState.update { it.copy(packagePlans = plans) }
+            }
+        }
     }
 
     // --- Navigation & Pricing ---
@@ -112,23 +118,72 @@ class AdminViewModel(
         }
     }
 
-    fun updatePaygFees(privateOfficeFee: Double, centerFee: Double, polyclinicFee: Double, coworkingFee: Double) {
+    fun addPackagePlan(plan: PackagePlan) {
         viewModelScope.launch {
-            val success = repository.updatePaygFees(privateOfficeFee, centerFee, polyclinicFee, coworkingFee)
+            val success = repository.addPackagePlan(plan)
             _events.emit(
                 AdminUiEvent.ShowToast(
-                    if (success) "PAYG fees updated" else "Failed to update PAYG fees"
+                    if (success) "Package '${plan.name}' added" else "Failed to add package"
+                )
+            )
+            if (success) closeAddPackagePlanDialog()
+        }
+    }
+
+    fun updatePackagePlan(plan: PackagePlan) {
+        viewModelScope.launch {
+            val success = repository.updatePackagePlan(plan)
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "Package '${plan.name}' updated" else "Failed to update package"
                 )
             )
         }
     }
 
-    fun updatePackageFees(package2Fee: Double, package3Fee: Double, package2Limit: Int) {
+    fun togglePackagePlan(planId: String) {
         viewModelScope.launch {
-            val success = repository.updatePackageFees(package2Fee, package3Fee, package2Limit)
+            val success = repository.togglePackagePlan(planId)
+            if (!success) {
+                _events.emit(AdminUiEvent.ShowToast("Failed to toggle package"))
+            }
+        }
+    }
+
+    fun deletePackagePlan(planId: String) {
+        viewModelScope.launch {
+            val success = repository.deletePackagePlan(planId)
             _events.emit(
                 AdminUiEvent.ShowToast(
-                    if (success) "ProHost package pricing updated successfully" else "Failed to update ProHost package pricing"
+                    if (success) "Package removed" else "Failed to remove package"
+                )
+            )
+        }
+    }
+
+    fun openAddPackagePlanDialog() {
+        _uiState.update { it.copy(isAddPackagePlanDialogOpen = true) }
+    }
+
+    fun closeAddPackagePlanDialog() {
+        _uiState.update { it.copy(isAddPackagePlanDialogOpen = false) }
+    }
+
+    // One-time (but safely re-runnable) migration of any remaining legacy PAYG users
+    // to the new "no active package" baseline — see functions/src/packages/
+    // migratePaygUsers.ts and the plan's Phase 15E. This trigger button is meant to
+    // be removed from the UI once confirmed run against the live project; calling it
+    // again is harmless (it returns migrated: 0 once nothing matches the legacy
+    // ownerPackageTier == "PAY_AS_YOU_GO" query).
+    fun runPaygMigration() {
+        viewModelScope.launch {
+            val result = functionsClient.migratePaygUsers()
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    result.fold(
+                        onSuccess = { count -> "PAYG migration complete — $count account(s) reset to no-package baseline" },
+                        onFailure = { "PAYG migration failed — check your connection and try again" }
+                    )
                 )
             )
         }
@@ -449,10 +504,9 @@ class AdminViewModel(
         name: String,
         description: String = "",
         iconName: String = "Category",
-        priceUsd: Double? = null,
         maxSubdivisions: Int? = null
     ) {
-        addNewSchemaItem(category, name, description, iconName, priceUsd, maxSubdivisions)
+        addNewSchemaItem(category, name, description, iconName, maxSubdivisions)
     }
 
     fun addNewSchemaItem(
@@ -460,7 +514,6 @@ class AdminViewModel(
         name: String,
         description: String,
         iconName: String,
-        priceUsd: Double? = null,
         maxSubdivisions: Int? = null
     ) {
         viewModelScope.launch {
@@ -472,7 +525,6 @@ class AdminViewModel(
                 iconName = iconName,
                 isEnabled = true,
                 isSystemDefault = false,
-                priceUsd = priceUsd,
                 maxSubdivisions = maxSubdivisions
             )
             val success = repository.addSchemaItem(newItem)
@@ -485,16 +537,17 @@ class AdminViewModel(
         }
     }
 
-    /** Buffer-locally-commit-on-Save price editor for an EXISTING SchemaItem (task #106's
-     * pattern) — SchemaItem.priceUsd used to only ever be set once, at creation, via
-     * AddSchemaItemDialog; the Packages Configuration list needs to edit it in place for
-     * every SPACE_TYPE category, old and new alike. */
-    fun updateSchemaItemPricing(itemId: String, category: String, priceUsd: Double?, maxSubdivisions: Int?) {
+    /** Buffer-locally-commit-on-Save editor for an EXISTING SchemaItem's max-subdivisions
+     * cap (task #106's pattern) — used to only ever be settable once, at creation, via
+     * AddSchemaItemDialog; the Schema tab needs to edit it in place for every SPACE_TYPE
+     * category, old and new alike. Per-category PAYG pricing used to live alongside this
+     * same field — removed with PAYG; package pricing now lives on PackagePlan instead. */
+    fun updateSchemaItemMaxSubdivisions(itemId: String, category: String, maxSubdivisions: Int?) {
         viewModelScope.launch {
-            val success = repository.updateSchemaItemPricing(itemId, category, priceUsd, maxSubdivisions)
+            val success = repository.updateSchemaItemMaxSubdivisions(itemId, category, maxSubdivisions)
             _events.emit(
                 AdminUiEvent.ShowToast(
-                    if (success) "Category pricing updated" else "Failed to update category pricing — please try again"
+                    if (success) "Max subdivisions updated" else "Failed to update max subdivisions — please try again"
                 )
             )
         }

@@ -327,8 +327,8 @@ fun AdminConsoleScreen(
         AdminAddSchemaItemDialog(
             initialCategory = uiState.addSchemaItemPresetCategory ?: "SUBCATEGORY",
             onDismiss = { adminViewModel.closeAddSchemaItemDialog() },
-            onAdd = { name, category, description, iconName, priceUsd, maxSubdivisions ->
-                adminViewModel.addSchemaItem(category, name, description, iconName, priceUsd, maxSubdivisions)
+            onAdd = { name, category, description, iconName, maxSubdivisions ->
+                adminViewModel.addSchemaItem(category, name, description, iconName, maxSubdivisions)
             }
         )
     }
@@ -345,73 +345,6 @@ fun AdminConsoleScreen(
 // =========================================================================
 // TAB 0: REVENUE & PRICING ENGINE
 // =========================================================================
-private data class CategoryRunRateRow(
-    val categoryName: String,
-    val thisMonthTotal: Double,
-    val lastMonthTotal: Double
-)
-
-/** One row per admin-configured SPACE_TYPE, so a newly-added category automatically
- * gets its own row (at $0/$0) with zero extra code the moment it's created — no row
- * is ever hand-wired to a specific category id. Only SUCCESS-status transactions
- * count as "gross sales," matching the Transactions tab's own settled-volume fix.
- *
- * Category attribution branches on the transaction's own purpose (see
- * initiateWhishPayment.ts) rather than its spaceId — every purpose except the
- * retired legacy "SUBSCRIPTION" one writes a synthetic spaceId
- * ("PAYG-SLOT-{category}", "PAYG-CART-{ts}", "OWNER-PKG-{tier}"), so a spaceId-based
- * space lookup can never resolve a category for real PAYG revenue. "PAYG_LISTING"
- * carries the category directly as targetId; "PAYG_CART" can span several
- * categories in one transaction, so each cart line is attributed to its own
- * category by its own (unitPriceUsd x quantity); "OWNER_PACKAGE" is a whole-account
- * fee with no single category and contributes nothing here (by design, not a gap).
- * The old spaceId-based space lookup is kept as a fallback purely so any
- * legacy "SUBSCRIPTION" transaction still in Firestore from before this purpose
- * was retired keeps attributing the same way it always did. */
-private fun computeCategoryRunRateRows(
-    spaceTypes: List<SchemaItem>,
-    spaces: List<SpaceListing>,
-    transactions: List<WhishTransaction>
-): List<CategoryRunRateRow> {
-    if (spaceTypes.isEmpty()) return emptyList()
-
-    val cal = java.util.Calendar.getInstance()
-    cal.set(java.util.Calendar.DAY_OF_MONTH, 1)
-    cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
-    cal.set(java.util.Calendar.MINUTE, 0)
-    cal.set(java.util.Calendar.SECOND, 0)
-    cal.set(java.util.Calendar.MILLISECOND, 0)
-    val thisMonthStart = cal.timeInMillis
-    cal.add(java.util.Calendar.MONTH, -1)
-    val lastMonthStart = cal.timeInMillis
-    val lastMonthEnd = thisMonthStart - 1
-
-    fun categoryIdForSpace(spaceId: String): String? {
-        val space = spaces.find { it.id == spaceId } ?: return null
-        return space.spaceCategoryId
-            ?: spaceTypes.find { it.name == space.spaceType.displayName }?.id
-    }
-
-    fun matchesCategory(id: String?, category: SchemaItem): Boolean =
-        id != null && (id == category.id || id == category.name)
-
-    fun amountForCategory(tx: WhishTransaction, category: SchemaItem): Double = when (tx.purpose) {
-        "PAYG_LISTING" -> if (matchesCategory(tx.targetId, category)) tx.amountUsd else 0.0
-        "PAYG_CART" -> tx.cartItems
-            .filter { matchesCategory(it.categoryId, category) }
-            .sumOf { it.unitPriceUsd * it.quantity }
-        "OWNER_PACKAGE" -> 0.0
-        else -> if (categoryIdForSpace(tx.spaceId) == category.id) tx.amountUsd else 0.0
-    }
-
-    val settled = transactions.filter { it.status == TransactionStatus.SUCCESS }
-    return spaceTypes.map { category ->
-        val thisMonth = settled.filter { it.timestamp >= thisMonthStart }.sumOf { amountForCategory(it, category) }
-        val lastMonth = settled.filter { it.timestamp in lastMonthStart..lastMonthEnd }.sumOf { amountForCategory(it, category) }
-        CategoryRunRateRow(category.name, thisMonth, lastMonth)
-    }
-}
-
 @Composable
 private fun AdminRevenueTab(
     uiState: com.example.ui.state.AdminUiState,
@@ -479,72 +412,13 @@ private fun AdminRevenueTab(
             }
         }
 
-        // Per-category gross sales, this month vs last — iterates schema.spaceTypes
-        // directly so any admin-added category automatically gets a row here with zero
-        // extra code, the moment it starts settling real transactions.
-        item {
-            ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    ProSectionHeader(
-                        title = "Gross Sales by Category",
-                        subtitle = "This month vs. last month, settled (SUCCESS) transactions only",
-                        icon = Icons.Default.BarChart
-                    )
-
-                    val rows = remember(uiState.schema.spaceTypes, uiState.allSpaces, uiState.allTransactions) {
-                        computeCategoryRunRateRows(uiState.schema.spaceTypes, uiState.allSpaces, uiState.allTransactions)
-                    }
-
-                    if (rows.isEmpty()) {
-                        Text(
-                            "No space categories configured yet.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        rows.forEach { row ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(row.categoryName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        "$${String.format(Locale.US, "%.2f", row.thisMonthTotal)}",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = FreshGreen
-                                    )
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = if (row.thisMonthTotal >= row.lastMonthTotal) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                                            contentDescription = null,
-                                            tint = if (row.thisMonthTotal >= row.lastMonthTotal) FreshGreen else StatusError,
-                                            modifier = Modifier.size(12.dp)
-                                        )
-                                        Text(
-                                            "vs $${String.format(Locale.US, "%.2f", row.lastMonthTotal)} last month",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                            HorizontalDivider(color = LightGray.copy(alpha = 0.4f))
-                        }
-                    }
-                }
-            }
-        }
-
         // Owner Packages & Governance Hub Card
         item {
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     ProSectionHeader(
                         title = "Packages Configuration",
-                        subtitle = "Configure Package Tiers, PAYG fees per workspace type, and Control Tag",
+                        subtitle = "Create and edit Pro Host packages, and the Control Tag",
                         icon = Icons.Default.AdminPanelSettings
                     )
 
@@ -563,122 +437,205 @@ private fun AdminRevenueTab(
 
                     HorizontalDivider()
 
+                    // Temporary, one-time (but safely re-runnable) migration trigger —
+                    // remove once confirmed run against the live project (see the plan's
+                    // Phase 15E). Resets any remaining legacy PAYG users to the new
+                    // "no active package" baseline; their published listings are left
+                    // untouched.
+                    var showPaygMigrationConfirm by remember { mutableStateOf(false) }
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "One-time PAYG migration",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Resets any account still on the legacy Pay-As-You-Go plan to the new no-package baseline. Published listings are left untouched. Safe to run more than once.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        OutlinedButton(
+                            onClick = { showPaygMigrationConfirm = true },
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Icon(Icons.Default.SyncAlt, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text("Run PAYG Migration", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                    if (showPaygMigrationConfirm) {
+                        AlertDialog(
+                            onDismissRequest = { showPaygMigrationConfirm = false },
+                            icon = { Icon(Icons.Default.SyncAlt, contentDescription = null, tint = AmberWarning) },
+                            title = { Text("Run PAYG migration?") },
+                            text = {
+                                Text("This resets every remaining legacy Pay-As-You-Go account's package to \"none\" and clears their unspent PAYG credits. Their published listings stay untouched. This cannot be undone, though the action is safe to repeat.")
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        showPaygMigrationConfirm = false
+                                        adminViewModel.runPaygMigration()
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
+                                ) {
+                                    Text("Run Migration")
+                                }
+                            },
+                            dismissButton = {
+                                OutlinedButton(onClick = { showPaygMigrationConfirm = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+
+                    HorizontalDivider()
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Package 1: Pay As You Go (Per-Listing Fees by Type)",
+                            text = "Packages",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                         Button(
-                            onClick = { adminViewModel.openAddSchemaItemDialog(presetCategory = "SPACE_TYPE") },
+                            onClick = { adminViewModel.openAddPackagePlanDialog() },
                             shape = MaterialTheme.shapes.small,
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Add Category Type", style = MaterialTheme.typography.labelSmall)
+                            Text("Add Package", style = MaterialTheme.typography.labelSmall)
                         }
                     }
 
-                    // Reads every admin-configured SPACE_TYPE from the Schema tab directly
-                    // — previously this was 4 hardcoded fields tied to the legacy SpaceType
-                    // enum, so any category added since (or renamed/removed) never had a
-                    // way to have its price set here at all, only at creation time. Each
-                    // row is buffered locally and committed on its own Save (same
-                    // buffer-then-commit pattern as Package 2/3 below), not on keystroke.
-                    uiState.schema.spaceTypes.forEach { category ->
-                        var priceInput by remember(category.id, category.priceUsd) {
-                            mutableStateOf(category.priceUsd?.toString() ?: "")
-                        }
-                        var maxSubInput by remember(category.id, category.maxSubdivisions) {
-                            mutableStateOf(category.maxSubdivisions?.toString() ?: "")
-                        }
-                        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(category.name, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                    if (uiState.packagePlans.packages.isEmpty()) {
+                        Text(
+                            "No packages configured yet — add one above.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    // Each row is buffered locally and committed on its own Save (task
+                    // #106's pattern), not on keystroke — replaces the old fixed
+                    // Package-2/Package-3 fee+limit inputs with a real, admin-creatable
+                    // list. Price/limit/validity are the trust boundary that matters:
+                    // initiateWhishPayment.ts always re-reads this same package_plans
+                    // doc server-side at charge time, never trusting the client.
+                    uiState.packagePlans.packages.values.sortedBy { it.sortOrder }.forEach { plan ->
+                        var nameInput by remember(plan.id, plan.name) { mutableStateOf(plan.name) }
+                        var descInput by remember(plan.id, plan.description) { mutableStateOf(plan.description) }
+                        var badgeInput by remember(plan.id, plan.badgeName) { mutableStateOf(plan.badgeName) }
+                        var priceInput by remember(plan.id, plan.priceUsd) { mutableStateOf(plan.priceUsd.toString()) }
+                        var unlimitedInput by remember(plan.id, plan.listingLimit) { mutableStateOf(plan.listingLimit == null) }
+                        var limitInput by remember(plan.id, plan.listingLimit) { mutableStateOf((plan.listingLimit ?: 3).toString()) }
+                        var validityInput by remember(plan.id, plan.validityDays) { mutableStateOf(plan.validityDays.toString()) }
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), MaterialTheme.shapes.medium)
+                                .padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("#${plan.id}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        if (plan.isEnabled) "Enabled" else "Disabled",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (plan.isEnabled) FreshGreen else StatusError
+                                    )
+                                    Switch(checked = plan.isEnabled, onCheckedChange = { adminViewModel.togglePackagePlan(plan.id) })
+                                    IconButton(onClick = { adminViewModel.deletePackagePlan(plan.id) }) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Delete package", tint = StatusError)
+                                    }
+                                }
+                            }
+                            OutlinedTextField(
+                                value = nameInput,
+                                onValueChange = { nameInput = it },
+                                label = { Text("Name") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = descInput,
+                                onValueChange = { descInput = it },
+                                label = { Text("Description") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(
+                                    value = badgeInput,
+                                    onValueChange = { badgeInput = it },
+                                    label = { Text("Badge text") },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
                                 OutlinedTextField(
                                     value = priceInput,
                                     onValueChange = { priceInput = it.filter { c -> c.isDigit() || c == '.' } },
-                                    label = { Text("PAYG Fee ($)") },
+                                    label = { Text("Price ($)") },
                                     modifier = Modifier.weight(1f),
                                     singleLine = true
                                 )
-                                OutlinedTextField(
-                                    value = maxSubInput,
-                                    onValueChange = { maxSubInput = it.filter { c -> c.isDigit() } },
-                                    label = { Text("Max subdivisions") },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true
-                                )
-                                IconButton(
-                                    onClick = {
-                                        adminViewModel.updateSchemaItemPricing(
-                                            category.id,
-                                            category.category,
-                                            priceInput.toDoubleOrNull(),
-                                            maxSubInput.toIntOrNull()
-                                        )
-                                    }
-                                ) {
-                                    Icon(Icons.Default.Check, contentDescription = "Save", tint = MaterialTheme.colorScheme.primary)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                if (!unlimitedInput) {
+                                    OutlinedTextField(
+                                        value = limitInput,
+                                        onValueChange = { limitInput = it.filter { c -> c.isDigit() } },
+                                        label = { Text("Listing limit") },
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true
+                                    )
                                 }
+                                Row(
+                                    modifier = if (unlimitedInput) Modifier.weight(1f) else Modifier,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Unlimited", style = MaterialTheme.typography.labelSmall)
+                                    Switch(checked = unlimitedInput, onCheckedChange = { unlimitedInput = it })
+                                }
+                                OutlinedTextField(
+                                    value = validityInput,
+                                    onValueChange = { validityInput = it.filter { c -> c.isDigit() } },
+                                    label = { Text("Validity (days)") },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
+                            }
+                            Button(
+                                onClick = {
+                                    adminViewModel.updatePackagePlan(
+                                        plan.copy(
+                                            name = nameInput.ifBlank { plan.name },
+                                            description = descInput,
+                                            badgeName = badgeInput,
+                                            priceUsd = priceInput.toDoubleOrNull() ?: plan.priceUsd,
+                                            listingLimit = if (unlimitedInput) null else limitInput.toIntOrNull()?.takeIf { it >= 1 },
+                                            validityDays = validityInput.toIntOrNull()?.takeIf { it >= 1 } ?: plan.validityDays
+                                        )
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Text("Save Package")
                             }
                         }
-                    }
-
-                    HorizontalDivider()
-
-                    Text(
-                        text = "Package 2 (Limited) & Package 3 (Unlimited)",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    var pkg2Fee by remember(uiState.pricingState.package2MonthlyFeeUsd) { mutableStateOf(uiState.pricingState.package2MonthlyFeeUsd.toString()) }
-                    var pkg3Fee by remember(uiState.pricingState.package3MonthlyFeeUsd) { mutableStateOf(uiState.pricingState.package3MonthlyFeeUsd.toString()) }
-                    // Previously display-only text ("3 Listings Limit" above) — the
-                    // actual cap firestore.rules' withinListingLimit() enforces was
-                    // never wired to an admin control, despite the rules file's own
-                    // comment claiming it was "Admin-configurable (updatePricing)."
-                    var pkg2Limit by remember(uiState.pricingState.package2Limit) { mutableStateOf(uiState.pricingState.package2Limit.toString()) }
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = pkg2Fee,
-                            onValueChange = { pkg2Fee = it },
-                            label = { Text("Pkg 2 Fee ($/mo)") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = pkg3Fee,
-                            onValueChange = { pkg3Fee = it },
-                            label = { Text("Pkg 3 Fee ($/mo)") },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    OutlinedTextField(
-                        value = pkg2Limit,
-                        onValueChange = { pkg2Limit = it },
-                        label = { Text("Pkg 2 Listing Limit") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Button(
-                        onClick = {
-                            val f2 = pkg2Fee.toDoubleOrNull() ?: 3.99
-                            val f3 = pkg3Fee.toDoubleOrNull() ?: 8.99
-                            val limit2 = pkg2Limit.toIntOrNull()?.takeIf { it >= 1 } ?: uiState.pricingState.package2Limit
-                            adminViewModel.updatePackageFees(f2, f3, limit2)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Text("Save Package Bundle Fees & Limit")
                     }
                 }
             }
@@ -1800,14 +1757,6 @@ private fun AdminSchemaArchitectureTab(
                             }
                             if (item.category == "SPACE_TYPE") {
                                 Text(
-                                    text = item.priceUsd?.let { "PAYG fee: $${String.format(java.util.Locale.US, "%.2f", it)}" }
-                                        ?: "PAYG fee: not set",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (item.priceUsd != null) MaterialTheme.colorScheme.primary else StatusError
-                                )
-                                Text(
                                     text = "Max subdivisions: ${item.maxSubdivisions?.toString() ?: "Unlimited"}",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontSize = MaterialTheme.typography.labelSmall.fontSize,
@@ -2442,12 +2391,11 @@ private fun AdminDeleteListingDialog(
 private fun AdminAddSchemaItemDialog(
     initialCategory: String = "SUBCATEGORY",
     onDismiss: () -> Unit,
-    onAdd: (name: String, category: String, description: String, iconName: String, priceUsd: Double?, maxSubdivisions: Int?) -> Unit
+    onAdd: (name: String, category: String, description: String, iconName: String, maxSubdivisions: Int?) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(initialCategory) }
-    var priceInput by remember { mutableStateOf("") }
     var maxSubdivisionsInput by remember { mutableStateOf("") }
 
     val categories = listOf(
@@ -2510,13 +2458,6 @@ private fun AdminAddSchemaItemDialog(
 
                 if (selectedCategory == "SPACE_TYPE") {
                     InputField(
-                        value = priceInput,
-                        onValueChange = { priceInput = it.filter { c -> c.isDigit() || c == '.' } },
-                        label = "PAYG Fee (USD) for this category",
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                    InputField(
                         value = maxSubdivisionsInput,
                         onValueChange = { maxSubdivisionsInput = it.filter { c -> c.isDigit() } },
                         label = "Max subdivisions this category includes (optional)",
@@ -2534,9 +2475,8 @@ private fun AdminAddSchemaItemDialog(
                     Button(
                         onClick = {
                             if (name.isNotBlank()) {
-                                val price = if (selectedCategory == "SPACE_TYPE") priceInput.toDoubleOrNull() else null
                                 val maxSub = if (selectedCategory == "SPACE_TYPE") maxSubdivisionsInput.toIntOrNull() else null
-                                onAdd(name, selectedCategory, description, "Category", price, maxSub)
+                                onAdd(name, selectedCategory, description, "Category", maxSub)
                             }
                         },
                         enabled = name.isNotBlank(),

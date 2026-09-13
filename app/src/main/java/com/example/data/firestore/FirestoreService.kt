@@ -107,7 +107,8 @@ class FirestoreService(
         onFormulasUpdated: (List<SubscriptionFormula>) -> Unit,
         onTransactionsUpdated: (List<WhishTransaction>) -> Unit,
         onSchemaUpdated: (SpaceArchitectureSchema) -> Unit = {},
-        onAuditLogsUpdated: (List<AuditSecurityLog>) -> Unit = {}
+        onAuditLogsUpdated: (List<AuditSecurityLog>) -> Unit = {},
+        onPackagePlansUpdated: (PackagePlanCatalog) -> Unit = {}
     ) {
         val db = firestore ?: return
 
@@ -209,6 +210,25 @@ class FirestoreService(
                     }
                 }
             activeListeners.add(schemaListener)
+
+            // Admin-managed, purchasable Pro Host packages (package_plans/main). Public
+            // read (firestore.rules) — every client, not just admins, needs the live
+            // catalog to render purchase/renewal screens and resolve a host's own
+            // package name/limit. Missing document just means no admin has created a
+            // package yet; callers keep whatever local default they had.
+            val packagePlansListener = db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
+                .document(PackagePlanCatalog.DOCUMENT_ID)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.w(TAG, "Package plans sync note: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    val data = snapshot?.data
+                    if (data != null) {
+                        onPackagePlansUpdated(PackagePlanCatalog.fromFirestoreMap(data))
+                    }
+                }
+            activeListeners.add(packagePlansListener)
 
             // Admin-only read (firestore.rules) — every non-admin session simply gets a
             // permission-denied here and never populates audit logs, which is fine, they
@@ -709,6 +729,48 @@ class FirestoreService(
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error saving schema architecture: ${e.message}", e)
+            false
+        }
+    }
+
+    // ==========================================
+    // ADMIN-MANAGED PACKAGE PLANS
+    // ==========================================
+
+    suspend fun savePackagePlans(catalog: PackagePlanCatalog): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
+                .document(PackagePlanCatalog.DOCUMENT_ID)
+                .set(catalog.toFirestoreMap(), SetOptions.merge())
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving package plans: ${e.message}", e)
+            false
+        }
+    }
+
+    /**
+     * A merge-write of the full `packages` map (savePackagePlans above) can only
+     * ADD/overwrite keys — Firestore's merge deep-merges nested map fields, so a
+     * key simply absent from the write payload is never removed server-side. Real
+     * deletion needs an explicit FieldValue.delete() at the specific nested path.
+     * Requires the doc to already exist (update(), not set-with-merge) — true for
+     * any package that ever went through addPackagePlan/updatePackagePlan/
+     * togglePackagePlan; a still-only-local seeded default has nothing to delete
+     * server-side yet, and this simply fails harmlessly in that edge case.
+     */
+    suspend fun deletePackagePlan(planId: String): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
+                .document(PackagePlanCatalog.DOCUMENT_ID)
+                .update("packages.$planId", com.google.firebase.firestore.FieldValue.delete())
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting package plan: ${e.message}", e)
             false
         }
     }
