@@ -340,6 +340,17 @@ fun AdminConsoleScreen(
             onConfirm = { adminViewModel.confirmResetSchema() }
         )
     }
+
+    // 8. Add Package Plan Dialog — this used to just toggle isAddPackagePlanDialogOpen
+    // with no dialog anywhere actually reading it, so "Add Package" was a fully dead
+    // button; this is the real dialog it was always meant to open.
+    if (uiState.isAddPackagePlanDialogOpen) {
+        AdminAddPackagePlanDialog(
+            existingIds = uiState.packagePlans.packages.keys,
+            onDismiss = { adminViewModel.closeAddPackagePlanDialog() },
+            onAdd = { plan -> adminViewModel.addPackagePlan(plan) }
+        )
+    }
 }
 
 // =========================================================================
@@ -434,6 +445,35 @@ private fun AdminRevenueTab(
                             }
                         }
                     )
+
+                    HorizontalDivider()
+
+                    // Temporary, one-time (but idempotent) seed trigger — remove once
+                    // confirmed run against the live project. Run this BEFORE "Run PAYG
+                    // Migration" below on a fresh deploy: it's what makes an already-
+                    // migrated Pro Host's stored ownerPackageId ("LIMITED_3_TIER"/
+                    // "UNLIMITED_TIER") resolve to a real, purchasable package instead of
+                    // "No Active Package."
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Seed legacy packages",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Creates the two legacy tiered packages (Pro / Enterprise) if no package has been created yet. Never overwrites an existing catalog. Run this once, before Run PAYG Migration below.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        OutlinedButton(
+                            onClick = { adminViewModel.runSeedLegacyPackagePlans() },
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text("Seed Legacy Packages", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
 
                     HorizontalDivider()
 
@@ -2521,4 +2561,161 @@ private fun AdminResetSchemaDialog(
             }
         }
     )
+}
+
+/**
+ * 8. Add Package Plan Dialog — this used to be fully missing: the "Add Package"
+ * button toggled isAddPackagePlanDialogOpen but no composable ever read that
+ * state, so nothing happened when tapped and no package could ever be created
+ * from the Admin Console.
+ */
+@Composable
+private fun AdminAddPackagePlanDialog(
+    existingIds: Set<String>,
+    onDismiss: () -> Unit,
+    onAdd: (PackagePlan) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var badgeName by remember { mutableStateOf("") }
+    var priceInput by remember { mutableStateOf("") }
+    var unlimited by remember { mutableStateOf(false) }
+    var limitInput by remember { mutableStateOf("") }
+    var validityInput by remember { mutableStateOf("30") }
+
+    // Derived from the name so the admin never has to think about it, but still
+    // shown read-only — collisions (e.g. re-adding "LIMITED_3_TIER") are refused
+    // client-side with a clear message rather than silently overwriting an
+    // existing package via a same-id merge write.
+    val derivedId = remember(name) {
+        name.trim().uppercase().replace(Regex("[^A-Z0-9]+"), "_").trim('_').ifBlank { "PACKAGE" }
+    }
+    val idCollision = derivedId in existingIds
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.sm)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Spacing.lg)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Add Package", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = "Close") }
+                }
+
+                InputField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = "Package Name (e.g. Growth Plan)",
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                if (name.isNotBlank()) {
+                    Text(
+                        if (idCollision) "A package with id \"$derivedId\" already exists — choose a different name." else "Package id: $derivedId",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (idCollision) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                InputField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = "Description",
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = false
+                )
+
+                InputField(
+                    value = badgeName,
+                    onValueChange = { badgeName = it },
+                    label = "Badge text (shown in the drawer/hero)",
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                InputField(
+                    value = priceInput,
+                    onValueChange = { priceInput = it.filter { c -> c.isDigit() || c == '.' } },
+                    label = "Price (USD)",
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (!unlimited) {
+                        InputField(
+                            value = limitInput,
+                            onValueChange = { limitInput = it.filter { c -> c.isDigit() } },
+                            label = "Listing limit",
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
+                        )
+                    }
+                    Row(
+                        modifier = if (unlimited) Modifier.weight(1f) else Modifier,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Unlimited", style = MaterialTheme.typography.labelSmall)
+                        Switch(checked = unlimited, onCheckedChange = { unlimited = it })
+                    }
+                    InputField(
+                        value = validityInput,
+                        onValueChange = { validityInput = it.filter { c -> c.isDigit() } },
+                        label = "Validity (days)",
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                val canAdd = name.isNotBlank() && !idCollision &&
+                    priceInput.toDoubleOrNull() != null &&
+                    (unlimited || limitInput.toIntOrNull()?.let { it >= 1 } == true) &&
+                    (validityInput.toIntOrNull()?.let { it >= 1 } == true)
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = MaterialTheme.shapes.small) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = {
+                            onAdd(
+                                PackagePlan(
+                                    id = derivedId,
+                                    name = name.trim(),
+                                    description = description,
+                                    badgeName = badgeName,
+                                    priceUsd = priceInput.toDoubleOrNull() ?: 0.0,
+                                    listingLimit = if (unlimited) null else limitInput.toIntOrNull(),
+                                    validityDays = validityInput.toIntOrNull() ?: 30,
+                                    isEnabled = true
+                                )
+                            )
+                        },
+                        enabled = canAdd,
+                        modifier = Modifier.weight(1f),
+                        shape = MaterialTheme.shapes.small,
+                        colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
+                    ) {
+                        Text("Add Package")
+                    }
+                }
+            }
+        }
+    }
 }

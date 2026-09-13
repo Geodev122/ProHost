@@ -119,6 +119,32 @@ class FirebaseFunctionsClient {
         }
     }
 
+    /**
+     * Admin-only, idempotent one-time seed
+     * (functions/src/packages/seedLegacyPackagePlans.ts): creates package_plans/main
+     * with the two legacy tiered packages IF the document doesn't already exist —
+     * the real Firestore-side seed step the Phase 15 package system always depended
+     * on, so an already-migrated Pro Host's stored ownerPackageId resolves to a
+     * real package without an admin having to manually recreate it by hand.
+     * Never overwrites an existing document. Returns whether it actually created
+     * one. Triggered from a temporary Admin Console button, removed once confirmed
+     * run against the live project.
+     */
+    suspend fun seedLegacyPackagePlans(): Result<Boolean> {
+        return try {
+            val result = functions.getHttpsCallable("seedLegacyPackagePlans")
+                .call()
+                .await()
+            @Suppress("UNCHECKED_CAST")
+            val data = result.data as? Map<String, Any?>
+            val seeded = data?.get("seeded") as? Boolean ?: false
+            Result.success(seeded)
+        } catch (e: Exception) {
+            Log.e(tag, "seedLegacyPackagePlans failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     /** functions/src/roles/revokeProHostRole.ts — Admin-only downgrade to SPECIALIST. */
     suspend fun revokeProHostRole(targetUid: String): Result<Unit> {
         return try {

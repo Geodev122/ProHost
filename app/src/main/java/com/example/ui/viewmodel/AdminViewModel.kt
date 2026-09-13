@@ -189,6 +189,27 @@ class AdminViewModel(
         }
     }
 
+    // One-time, idempotent seed of package_plans/main with the two legacy tiered
+    // packages — needed so an already-migrated Pro Host's stored ownerPackageId
+    // resolves to a real package without hand-recreating it. Safe to tap more than
+    // once; a no-op once the document already exists.
+    fun runSeedLegacyPackagePlans() {
+        viewModelScope.launch {
+            val result = functionsClient.seedLegacyPackagePlans()
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    result.fold(
+                        onSuccess = { seeded ->
+                            if (seeded) "Legacy packages seeded — LIMITED_3_TIER and UNLIMITED_TIER now exist"
+                            else "No seed needed — package_plans/main already exists"
+                        },
+                        onFailure = { "Seeding failed — check your connection and try again" }
+                    )
+                )
+            )
+        }
+    }
+
     fun updateGovernanceTag(tag: String) {
         viewModelScope.launch {
             val success = repository.updateGovernanceTag(tag)

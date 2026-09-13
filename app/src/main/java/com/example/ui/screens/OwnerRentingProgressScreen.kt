@@ -23,7 +23,6 @@ import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
-import java.util.Locale
 
 @Composable
 fun OwnerRentingProgressScreen(
@@ -33,7 +32,7 @@ fun OwnerRentingProgressScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val spaces by viewModel.spaces.collectAsState()
     val allBookingRequests by viewModel.bookingRequests.collectAsState()
-    val pricingState by viewModel.pricingState.collectAsState()
+    val packagePlans by viewModel.packagePlans.collectAsState()
     val hasLoadedBookingsOnce by viewModel.hasLoadedBookingsOnce.collectAsState()
 
     val ownerSpaces = remember(spaces, currentUser) {
@@ -72,7 +71,8 @@ fun OwnerRentingProgressScreen(
     OwnerRentingProgressScreenContent(
         ownerSpaces = ownerSpaces,
         activeBookings = activeBookings,
-        monthlySubscriptionFeeUsd = pricingState.monthlySubscriptionFeeUsd,
+        currentPackage = currentUser?.ownerPackageId?.let { packagePlans.packages[it] },
+        ownerPackageExpiryMillis = currentUser?.ownerPackageExpiryMillis,
         hasLoadedBookingsOnce = hasLoadedBookingsOnce,
         onWhatsAppPractitioner = { booking ->
             viewModel.launchWhatsAppToPractitioner(context, booking)
@@ -96,7 +96,8 @@ fun OwnerRentingProgressScreen(
 fun OwnerRentingProgressScreenContent(
     ownerSpaces: List<SpaceListing>,
     activeBookings: List<BookingRequest>,
-    monthlySubscriptionFeeUsd: Double,
+    currentPackage: PackagePlan?,
+    ownerPackageExpiryMillis: Long?,
     hasLoadedBookingsOnce: Boolean = true,
     onWhatsAppPractitioner: (BookingRequest) -> Unit,
     onSendPaymentReminder: (BookingRequest) -> Unit,
@@ -105,16 +106,21 @@ fun OwnerRentingProgressScreenContent(
     modifier: Modifier = Modifier
 ) {
     // Generate Dynamic Reminders & Alerts
-    val reminders = remember(ownerSpaces, activeBookings, monthlySubscriptionFeeUsd) {
+    val reminders = remember(ownerSpaces, activeBookings, currentPackage, ownerPackageExpiryMillis) {
         val list = mutableListOf<String>()
 
-        // 1. Subscription expiration reminders
-        ownerSpaces.forEach { space ->
-            val daysLeft = ((space.subscriptionExpiryMillis - System.currentTimeMillis()) / (24 * 60 * 60 * 1000)).coerceAtLeast(0)
+        // 1. Package renewal reminder — host-level (currentPackage/ownerPackageExpiryMillis),
+        // not per-listing. The old per-listing SpaceListing.subscriptionExpiryMillis this
+        // used to read is a dead field (set once at creation, never updated by any real
+        // renewal since packages replaced the flat per-listing subscription fee).
+        val daysLeft = ownerPackageExpiryMillis?.let {
+            ((it - System.currentTimeMillis()) / (24 * 60 * 60 * 1000)).coerceAtLeast(0)
+        }
+        if (currentPackage != null && daysLeft != null) {
             if (daysLeft <= 7) {
-                list.add("⚠️ Subscription renewal due for '${space.title}' in $daysLeft days. Keep listing active with Whish Pay ($${String.format(Locale.US, "%.2f", monthlySubscriptionFeeUsd)}).")
+                list.add("⚠️ '${currentPackage.name}' renews in $daysLeft days. Renew from My Listings to keep publishing new workspaces.")
             } else {
-                list.add("📅 Listing subscription for '${space.title}' is active. Next renew cycle in $daysLeft days.")
+                list.add("📅 '${currentPackage.name}' is active. Renews in $daysLeft days.")
             }
         }
 

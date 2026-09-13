@@ -214,8 +214,11 @@ class FirestoreService(
             // Admin-managed, purchasable Pro Host packages (package_plans/main). Public
             // read (firestore.rules) — every client, not just admins, needs the live
             // catalog to render purchase/renewal screens and resolve a host's own
-            // package name/limit. Missing document just means no admin has created a
-            // package yet; callers keep whatever local default they had.
+            // package name/limit. Unlike the schema listener above, a missing document
+            // here is reported as a real EMPTY catalog (not silently skipped) — an
+            // empty/"no packages yet" state must be distinguishable from "still waiting
+            // on Firestore," since the caller must never treat a placeholder as a real,
+            // purchasable package (see ProHostRepository's own doc comment on this).
             val packagePlansListener = db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
                 .document(PackagePlanCatalog.DOCUMENT_ID)
                 .addSnapshotListener { snapshot, error ->
@@ -224,9 +227,9 @@ class FirestoreService(
                         return@addSnapshotListener
                     }
                     val data = snapshot?.data
-                    if (data != null) {
-                        onPackagePlansUpdated(PackagePlanCatalog.fromFirestoreMap(data))
-                    }
+                    onPackagePlansUpdated(
+                        if (data != null) PackagePlanCatalog.fromFirestoreMap(data) else PackagePlanCatalog()
+                    )
                 }
             activeListeners.add(packagePlansListener)
 

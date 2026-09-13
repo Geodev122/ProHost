@@ -123,36 +123,22 @@ class ProHostRepository {
     val spaceArchitectureSchema: StateFlow<SpaceArchitectureSchema> = _spaceArchitectureSchema.asStateFlow()
 
     // Admin-managed, purchasable Pro Host packages — replaces the old closed
-    // OwnerPackageTier enum + PAYG credit system entirely. Seeded locally with
-    // the two legacy packages (same ids the old enum used, "LIMITED_3_TIER"/
-    // "UNLIMITED_TIER") so an existing Pro Host's already-stored ownerPackageId
-    // resolves correctly even before any admin ever opens the new Packages
-    // Configuration card — this local default is overwritten the moment a real
-    // package_plans/main Firestore doc arrives via the live listener below.
-    private val _packagePlans = MutableStateFlow(
-        PackagePlanCatalog(
-            packages = mapOf(
-                "LIMITED_3_TIER" to PackagePlan(
-                    id = "LIMITED_3_TIER",
-                    name = "Package 2: Pro (3 Listings Limit)",
-                    description = "Host and operate up to 3 active workspaces under a bundled monthly fee",
-                    badgeName = "3-Listing Pro",
-                    priceUsd = 3.99,
-                    listingLimit = 3,
-                    validityDays = 30
-                ),
-                "UNLIMITED_TIER" to PackagePlan(
-                    id = "UNLIMITED_TIER",
-                    name = "Package 3: Enterprise (All-In Unlimited)",
-                    description = "Publish unlimited active workspace listings with priority platform exposure",
-                    badgeName = "All-In Unlimited",
-                    priceUsd = 8.99,
-                    listingLimit = null,
-                    validityDays = 30
-                )
-            )
-        )
-    )
+    // OwnerPackageTier enum + PAYG credit system entirely. Starts EMPTY (not
+    // seeded with fake local data): an earlier version of this seeded two
+    // legacy-priced packages directly into this StateFlow so an existing Pro
+    // Host's stored ownerPackageId would resolve before any admin ever opened
+    // the Packages Configuration card — but that made those two fabricated
+    // packages appear as real, purchasable admin-published products on a
+    // fresh deploy (before package_plans/main even exists), AND got them
+    // silently persisted to Firestore the moment an admin added their first
+    // real package (addPackagePlan merges into whatever this StateFlow held).
+    // The real fix for "resolve an already-migrated host's legacy package id"
+    // is the one-time, admin-triggered functions/src/packages/
+    // seedLegacyPackagePlans.ts Cloud Function, which writes the two legacy
+    // packages into the real Firestore doc exactly once (idempotent) — see
+    // AdminViewModel.runSeedLegacyPackagePlans(). This StateFlow only ever
+    // reflects the real, live package_plans/main document.
+    private val _packagePlans = MutableStateFlow(PackagePlanCatalog())
     val packagePlans: StateFlow<PackagePlanCatalog> = _packagePlans.asStateFlow()
 
     init {

@@ -355,6 +355,12 @@ class ProHostViewModel(
      * time on a multi-step wizard that [createNewSpaceListing] will just reject. */
     fun isAtListingLimit(): Boolean {
         val user = currentUser.value ?: return false
+        // ADMIN never purchases/holds a real package (see createNewSpaceListing's
+        // own identical bypass and its doc comment) — without this, an Admin's
+        // always-null ownerPackageId fell through to the "no package" branch
+        // below and read as permanently at-limit, blocking Admin from ever
+        // opening the "Add New Workspace Listing" card.
+        if (user.role == UserRole.ADMIN) return false
         val plan = user.ownerPackageId?.let { packagePlans.value.packages[it] } ?: return true
         val expiry = user.ownerPackageExpiryMillis
         val isExpired = expiry != null && expiry <= System.currentTimeMillis()

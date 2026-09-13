@@ -140,8 +140,22 @@ export async function grantEntitlement(tx: WhishTransactionDoc): Promise<void> {
         });
       }
       const validityMs = (plan?.validityDays ?? 30) * 24 * 60 * 60 * 1000;
-      await db.collection("user_profiles").doc(tx.userId).set(
-        { ownerPackageId: tx.targetId, ownerPackageExpiryMillis: now + validityMs, updatedAt: now },
+      // Renewing the SAME package while time remains on it extends from that
+      // remaining expiry instead of discarding it — a host renewing 20 days
+      // early on a 30-day package keeps those 20 days rather than losing them
+      // to a payment that just restarts the clock from now. Switching to a
+      // different package (an upgrade, or renewing after it already lapsed)
+      // always starts a fresh term from now — there's no unused time on a
+      // different plan to carry over.
+      const userRef = db.collection("user_profiles").doc(tx.userId);
+      const userSnap = await userRef.get();
+      const userData = userSnap.data();
+      const currentExpiry = userData?.ownerPackageExpiryMillis as number | null | undefined;
+      const isSamePackageRenewal = userData?.ownerPackageId === tx.targetId &&
+        typeof currentExpiry === "number" && currentExpiry > now;
+      const baseTime = isSamePackageRenewal ? currentExpiry : now;
+      await userRef.set(
+        { ownerPackageId: tx.targetId, ownerPackageExpiryMillis: baseTime + validityMs, updatedAt: now },
         { merge: true }
       );
       await grantProHostRoleIfNeeded(tx.userId);

@@ -38,3 +38,4 @@ export { onUserFavoritesChanged } from "./users/favoritesSync";
 
 export { expirePackages } from "./packages/expirePackages";
 export { migratePaygUsers } from "./packages/migratePaygUsers";
+export { seedLegacyPackagePlans } from "./packages/seedLegacyPackagePlans";
