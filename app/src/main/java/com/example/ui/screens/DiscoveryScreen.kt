@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
@@ -239,26 +240,28 @@ fun DiscoveryScreenContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                if (!isMapView) {
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                // Governorate Filter Chips Row
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    item {
-                        FilterChip(
-                            selected = selectedGovernorate == null,
-                            onClick = { onSelectGovernorate(null) },
-                            label = { Text("All Lebanon", fontSize = MaterialTheme.typography.labelSmall.fontSize) }
-                        )
-                    }
-                    items(Governorate.entries) { gov ->
-                        FilterChip(
-                            selected = selectedGovernorate == gov,
-                            onClick = { onSelectGovernorate(if (selectedGovernorate == gov) null else gov) },
-                            label = { Text(gov.displayName.split(" ").first(), fontSize = MaterialTheme.typography.labelSmall.fontSize) }
-                        )
+                    // Governorate Filter Chips Row (List View only)
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        item {
+                            FilterChip(
+                                selected = selectedGovernorate == null,
+                                onClick = { onSelectGovernorate(null) },
+                                label = { Text("All Lebanon", fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                            )
+                        }
+                        items(Governorate.entries) { gov ->
+                            FilterChip(
+                                selected = selectedGovernorate == gov,
+                                onClick = { onSelectGovernorate(if (selectedGovernorate == gov) null else gov) },
+                                label = { Text(gov.displayName.split(" ").first(), fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                            )
+                        }
                     }
                 }
             }
@@ -266,12 +269,14 @@ fun DiscoveryScreenContent(
 
         // Body Content: Map or List
         if (isMapView) {
-            LebanonMapCanvas(
-                spaces = spaces,
-                onSpaceSelected = { space -> if (space != null) onSelectSpace(space) },
-                onNavigateToDetails = { onSelectSpace(it) },
-                modifier = Modifier.fillMaxSize()
-            )
+            Box(modifier = Modifier.fillMaxSize().clipToBounds()) {
+                LebanonMapCanvas(
+                    spaces = spaces,
+                    onSpaceSelected = { space -> if (space != null) onSelectSpace(space) },
+                    onNavigateToDetails = { onSelectSpace(it) },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         } else {
             // List View
             if (spaces.isEmpty()) {

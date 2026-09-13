@@ -196,6 +196,8 @@ fun CreateListingDialog(
     // resumed draft doesn't jump to Beirut before its pin is re-picked.
     var derivedGovernorate by remember { mutableStateOf(existingDraft?.governorate ?: Governorate.BEIRUT) }
     var description by remember { mutableStateOf(existingDraft?.description ?: "") }
+    var country by remember { mutableStateOf("Lebanon") }
+    var city by remember { mutableStateOf("") }
     var district by remember { mutableStateOf(existingDraft?.district ?: "") }
     var streetAddress by remember { mutableStateOf(existingDraft?.streetAddress ?: "") }
 
@@ -465,14 +467,10 @@ fun CreateListingDialog(
                                     pickedLatLng = pickedLatLng,
                                     onLocationPicked = { picked ->
                                         pickedLatLng = GeoPoint(picked.lat, picked.lng)
-                                        // Auto-applies on every pin drop/drag — the
-                                        // spec's "geocoding reads marker position and
-                                        // auto-populates address fields" — instead of
-                                        // requiring a separate manual "Apply" tap.
-                                        // Still never overwrites text the host has
-                                        // already typed themselves.
-                                        if (streetAddress.isBlank()) picked.addressLine?.let { streetAddress = it }
-                                        if (district.isBlank()) picked.district?.let { district = it }
+                                        picked.addressLine?.let { streetAddress = it }
+                                        (picked.district ?: picked.city)?.let { district = it }
+                                        (picked.city ?: picked.governorate)?.let { city = it }
+                                        picked.country?.let { country = it }
                                         derivedGovernorate = Governorate.values().minByOrNull { gov ->
                                             val dLat = gov.centerLat - picked.lat
                                             val dLng = gov.centerLng - picked.lng
@@ -480,6 +478,22 @@ fun CreateListingDialog(
                                         } ?: derivedGovernorate
                                     },
                                     modifier = Modifier.fillMaxWidth()
+                                )
+
+                                InputField(
+                                    value = country,
+                                    onValueChange = { country = it },
+                                    label = "Country",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+
+                                InputField(
+                                    value = if (city.isNotBlank()) city else derivedGovernorate.displayName,
+                                    onValueChange = { city = it },
+                                    label = "City / Governorate",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
                                 )
 
                                 InputField(
