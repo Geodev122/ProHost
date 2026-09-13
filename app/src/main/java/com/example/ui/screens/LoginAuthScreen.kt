@@ -18,6 +18,8 @@ import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -59,6 +61,24 @@ private enum class AuthStep { PHONE_ENTRY, OTP_ENTRY, REGISTRATION_FORM }
 /** Matches Firebase Phone Auth's own typical SMS-resend throttling window. */
 private const val OTP_RESEND_COOLDOWN_SECONDS = 30
 
+// Savers for rememberSaveable — process death (a low-memory kill while backgrounded)
+// would otherwise lose all in-progress phone/OTP/registration state, with no auto-save
+// safety net for this screen the way CreateListingDialog's wizard has one.
+private val AuthStepSaver = Saver<AuthStep, String>(
+    save = { it.name },
+    restore = { AuthStep.valueOf(it) }
+)
+
+private val CountrySaver = Saver<com.example.data.model.Country, String>(
+    save = { it.name },
+    restore = { findCountryByName(it) }
+)
+
+private val DocumentPickerStateSaver = Saver<DocumentPickerState, List<String?>>(
+    save = { listOf(it.uri?.toString(), it.fileName) },
+    restore = { DocumentPickerState(it.getOrNull(0)?.let(Uri::parse), it.getOrNull(1)) }
+)
+
 private fun android.content.Context.findActivity(): Activity? {
     var ctx = this
     while (ctx is android.content.ContextWrapper) {
@@ -92,14 +112,16 @@ fun LoginAuthScreen(
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
     val coroutineScope = rememberCoroutineScope()
-    var step by remember { mutableStateOf(if (resumeAtRegistration) AuthStep.REGISTRATION_FORM else AuthStep.PHONE_ENTRY) }
+    var step by rememberSaveable(stateSaver = AuthStepSaver) {
+        mutableStateOf(if (resumeAtRegistration) AuthStep.REGISTRATION_FORM else AuthStep.PHONE_ENTRY)
+    }
 
     // --- Step 1: phone entry ---
-    var phoneCountry by remember { mutableStateOf(findCountryByName("Lebanon")) }
-    var phoneNumber by remember { mutableStateOf("") }
+    var phoneCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
+    var phoneNumber by rememberSaveable { mutableStateOf("") }
     // Only true until the very first auto-detect pass finishes, so it never overwrites
     // a country the user has since changed themselves via the field's "Change" action.
-    var hasAutoDetectedCountry by remember { mutableStateOf(false) }
+    var hasAutoDetectedCountry by rememberSaveable { mutableStateOf(false) }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -128,7 +150,7 @@ fun LoginAuthScreen(
     }
 
     // --- Step 2: OTP entry ---
-    var otpCode by remember { mutableStateOf("") }
+    var otpCode by rememberSaveable { mutableStateOf("") }
     // Resend affordance — previously entirely absent, so a code lost to a slow
     // carrier or a mistyped number had no in-app recovery short of "Change phone
     // number" (which restarts the whole flow, another SMS to the same number
@@ -136,7 +158,7 @@ fun LoginAuthScreen(
     // (initial or resend) to match SMS providers' typical throttling — only the
     // countdown reaching zero re-enables the button, so re-entering the step
     // doesn't let a stale click fire ahead of it.
-    var resendCountdownSeconds by remember { mutableStateOf(0) }
+    var resendCountdownSeconds by rememberSaveable { mutableStateOf(0) }
     LaunchedEffect(resendCountdownSeconds) {
         if (resendCountdownSeconds > 0) {
             kotlinx.coroutines.delay(1000)
@@ -145,21 +167,23 @@ fun LoginAuthScreen(
     }
 
     // --- Step 3: registration form (only ever shown for a brand-new phone number) ---
-    var regProfilePicUri by remember { mutableStateOf<Uri?>(null) }
-    var regFullName by remember { mutableStateOf("") }
-    var regEmail by remember { mutableStateOf("") }
-    var regSpecialty by remember { mutableStateOf("") }
-    var regIdDocState by remember { mutableStateOf(DocumentPickerState()) }
-    var regCountry by remember { mutableStateOf(findCountryByName("Lebanon")) }
-    var regGovernorateArea by remember { mutableStateOf("") }
-    var regCity by remember { mutableStateOf("") }
-    var tosAccepted by remember { mutableStateOf(false) }
+    var regProfilePicUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    var regFullName by rememberSaveable { mutableStateOf("") }
+    var regEmail by rememberSaveable { mutableStateOf("") }
+    var regSpecialty by rememberSaveable { mutableStateOf("") }
+    var regIdDocState by rememberSaveable(stateSaver = DocumentPickerStateSaver) { mutableStateOf(DocumentPickerState()) }
+    var regCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
+    var regGovernorateArea by rememberSaveable { mutableStateOf("") }
+    var regCity by rememberSaveable { mutableStateOf("") }
+    var tosAccepted by rememberSaveable { mutableStateOf(false) }
 
     val isAuthenticating by authViewModel.isAuthenticating.collectAsState()
     val authErrorMessage by authViewModel.authErrorMessage.collectAsState()
     val authSuccessMessage by authViewModel.authSuccessMessage.collectAsState()
 
-    var localErrorMessage by remember { mutableStateOf<String?>(null) }
+    var localErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    // Dialog-visibility state holding a static, code-defined document (not user input) —
+    // losing it on process death just closes the dialog, harmless; kept as plain remember.
     var showLegalDocument by remember { mutableStateOf<com.example.legal.LegalDocument?>(null) }
 
     // resumePhoneE164 stands in for the phone/OTP steps' own computed value when
