@@ -141,6 +141,24 @@ fun LebanonMapCanvas(
     }
 
     var activePinSpace by remember { mutableStateOf<SpaceListing?>(null) }
+    // activePinSpace is a plain snapshot captured at tap time — [spaces] can
+    // change underneath it (a live Firestore update pausing/removing the
+    // listing, or the caller's own filters changing) with nothing re-syncing
+    // the preview card, which kept showing a listing no longer in the current
+    // result set (stale price, or a listing that's since gone unavailable).
+    // Re-derive on every [spaces] change: refresh to the live object if the
+    // same id is still present, or clear the selection (and tell the caller)
+    // if it isn't.
+    LaunchedEffect(spaces) {
+        val current = activePinSpace ?: return@LaunchedEffect
+        val stillPresent = spaces.find { it.id == current.id }
+        if (stillPresent == null) {
+            activePinSpace = null
+            onSpaceSelected(null)
+        } else if (stillPresent != current) {
+            activePinSpace = stillPresent
+        }
+    }
     val defaultCenter = GeoPoint(33.8886, 35.5184)
 
     val mapView = remember {
