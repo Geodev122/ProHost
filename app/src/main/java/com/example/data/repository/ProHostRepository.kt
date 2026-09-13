@@ -1777,6 +1777,17 @@ class ProHostRepository {
      * protected field — any signed-in user may freely write their own savedSpaceIds,
      * so a plain merge write of the recomputed list is enough (no rules change needed).
      */
+    /**
+     * Was fully non-optimistic (waited for the Firestore round-trip before ever
+     * flipping currentUser), so every heart-icon tap had a visible delay before
+     * it reflected — and both call sites (DiscoveryScreen, SpaceDetailsScreen)
+     * discarded the returned Boolean entirely, so a write failure did nothing:
+     * not even a revert of the local state that, in this old code, hadn't
+     * changed yet anyway. Now flips currentUser immediately (this field is a
+     * per-user preference list, not security/money-sensitive, so an optimistic
+     * update carries no real risk) and reverts it if the write genuinely fails —
+     * a real, visible signal instead of a silent no-op.
+     */
     suspend fun toggleSavedSpace(spaceId: String): Boolean {
         val current = _currentUser.value ?: return false
         val updatedIds = if (current.savedSpaceIds.contains(spaceId)) {
@@ -1785,13 +1796,20 @@ class ProHostRepository {
             current.savedSpaceIds + spaceId
         }
         val updated = current.copy(savedSpaceIds = updatedIds)
+        _currentUser.value = updated
+        _users.value = _users.value.map { if (it.id == updated.id) updated else it }
+
         val success = firestoreService.updateUserProfileFields(
             current.id,
             mapOf("savedSpaceIds" to updatedIds)
         )
-        if (success) {
-            _currentUser.value = updated
-            _users.value = _users.value.map { if (it.id == updated.id) updated else it }
+        // Revert only if nothing has changed currentUser since this call made
+        // its own optimistic write — comparing against [updated] (not
+        // overwriting with [current] unconditionally) so a rapid second toggle
+        // that already landed isn't clobbered by this call's late failure.
+        if (!success && _currentUser.value == updated) {
+            _currentUser.value = current
+            _users.value = _users.value.map { if (it.id == current.id) current else it }
         }
         return success
     }
