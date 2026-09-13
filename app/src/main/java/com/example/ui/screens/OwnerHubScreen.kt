@@ -99,7 +99,7 @@ fun OwnerHubScreen(
             showCreateListingDialog = true
         },
         onOpenPackageSelection = { onOpenSubscriptions?.invoke() },
-        onEditSpace = { space -> editingSpace = space },
+        onEditSpace = { space -> viewModel.refreshTopHashtags(); editingSpace = space },
         onDeleteSpace = { space -> deletingSpace = space },
         onOpenListingVerification = { space -> verifyingSpace = space },
         onContinueDraft = { space -> viewModel.refreshTopHashtags(); draftToEdit = space },
@@ -229,15 +229,25 @@ fun OwnerHubScreen(
         )
     }
 
-    // Edit Listing Dialog — an owner previously had no way to correct a mistake in
-    // their own published listing; updateSpaceListing was only ever called from the
-    // Admin Console, even though Firestore rules already let the owning user update
-    // their own workspace_listings document directly.
+    // Edit Listing Dialog — reuses the real wizard (photos, subdivisions, pricing
+    // config, ownership doc, everything), the same "existingDraft + onListingUpdated"
+    // admin-edit mode CreateListingDialog already supports for the Admin Console's
+    // own Edit action (AdminConsoleScreen.kt). This replaces the bare six-field
+    // OwnerEditListingDialog (title/district/street/floor/price/phone only) that
+    // used to be a host's sole edit path once a listing was past Draft — subdivisions,
+    // pricing strategies, photos, facilities, description, house rules, and equipment
+    // were all simply unreachable on a host's own published listing.
     editingSpace?.let { space ->
-        OwnerEditListingDialog(
-            listing = space,
+        val editTopHashtags by viewModel.topHashtags.collectAsState()
+        CreateListingDialog(
+            currentUser = currentUser,
+            existingDraft = space,
+            suggestedHashtags = editTopHashtags,
+            availableFacilities = availableFacilities,
+            spaceCategories = architectureSchema.spaceTypes,
             onDismiss = { editingSpace = null },
-            onSave = { updated ->
+            onListingCreated = {},
+            onListingUpdated = { updated ->
                 coroutineScope.launch {
                     val success = viewModel.updateOwnerListing(updated)
                     editingSpace = null
@@ -268,75 +278,6 @@ fun OwnerHubScreen(
                 }
             }
         )
-    }
-}
-
-@Composable
-private fun OwnerEditListingDialog(
-    listing: SpaceListing,
-    onDismiss: () -> Unit,
-    onSave: (SpaceListing) -> Unit
-) {
-    var title by remember { mutableStateOf(listing.title) }
-    var district by remember { mutableStateOf(listing.district) }
-    var streetAddress by remember { mutableStateOf(listing.streetAddress) }
-    var floorInfo by remember { mutableStateOf(listing.floorInfo) }
-    var priceText by remember { mutableStateOf(listing.baseMonthlyRateUsd.toInt().toString()) }
-    var ownerPhone by remember { mutableStateOf(listing.ownerPhone) }
-
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(20.dp)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text("Edit Workspace Listing", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = district, onValueChange = { district = it }, label = { Text("District") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = streetAddress, onValueChange = { streetAddress = it }, label = { Text("Street Address") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = floorInfo, onValueChange = { floorInfo = it }, label = { Text("Floor Info") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(
-                    value = priceText,
-                    onValueChange = { priceText = it.filter { c -> c.isDigit() } },
-                    label = { Text("Monthly Rate (USD)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(value = ownerPhone, onValueChange = { ownerPhone = it }, label = { Text("Contact Phone") }, modifier = Modifier.fillMaxWidth())
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                        Text("Cancel")
-                    }
-                    Button(
-                        onClick = {
-                            onSave(
-                                listing.copy(
-                                    title = title,
-                                    district = district,
-                                    streetAddress = streetAddress,
-                                    floorInfo = floorInfo,
-                                    baseMonthlyRateUsd = priceText.toDoubleOrNull() ?: listing.baseMonthlyRateUsd,
-                                    ownerPhone = ownerPhone
-                                )
-                            )
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Save Changes")
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -593,14 +534,25 @@ fun OwnerHubScreenContent(
                         }
                         Spacer(modifier = Modifier.width(Spacing.lg))
                         Column {
+                            // Names the host's real, admin-configured package/limit
+                            // instead of a hardcoded "3-Listing"/"Package 3" — those
+                            // numbers are no longer fixed since packages became an
+                            // arbitrary admin-authored catalog (Phase 15); a listing
+                            // limit can be any number, or a package's own name can be
+                            // anything, not necessarily "Package 3".
                             Text(
-                                text = if (atListingLimit) "You've Reached Your 3-Listing Limit" else "Add New Workspace Listing",
+                                text = if (atListingLimit) {
+                                    currentPackage?.listingLimit?.let { "You've Reached Your $it-Listing Limit" }
+                                        ?: "You've Reached Your Listing Limit"
+                                } else {
+                                    "Add New Workspace Listing"
+                                },
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Text(
-                                text = if (atListingLimit) "Tap to upgrade to Package 3 for unlimited listings" else "Publish clinic, office, or studio space with smart pricing formulas",
+                                text = if (atListingLimit) "Tap to upgrade your package for more listings" else "Publish clinic, office, or studio space with smart pricing formulas",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                             )
