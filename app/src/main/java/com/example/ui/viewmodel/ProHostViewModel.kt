@@ -132,17 +132,18 @@ class ProHostViewModel(
 
     private fun launchWhishCheckout(
         purpose: String,
-        targetId: String,
+        targetId: String? = null,
         payerName: String,
         payerPhone: String,
         context: Context,
-        draftListingId: String? = null
+        draftListingId: String? = null,
+        items: List<Pair<String, Int>>? = null
     ) {
         if (_isWhishCheckoutInFlight.value) return
         _isWhishCheckoutInFlight.value = true
         viewModelScope.launch {
             val result = try {
-                functionsClient.initiateWhishPayment(purpose, targetId, payerName, payerPhone, draftListingId)
+                functionsClient.initiateWhishPayment(purpose, targetId, payerName, payerPhone, draftListingId, items)
             } finally {
                 _isWhishCheckoutInFlight.value = false
             }
@@ -216,7 +217,7 @@ class ProHostViewModel(
                 kotlinx.coroutines.delay(5000)
                 val status = functionsClient.checkWhishStatus(txId).getOrNull()
                 if (status == "SUCCESS") {
-                    if (purpose == "OWNER_PACKAGE" || purpose == "PAYG_LISTING") {
+                    if (purpose == "OWNER_PACKAGE" || purpose == "PAYG_LISTING" || purpose == "PAYG_CART") {
                         refreshCurrentUserRoleAfterEntitlement()
                     }
                     Toast.makeText(context, "Payment confirmed! Your entitlement is now active.", Toast.LENGTH_LONG).show()
@@ -233,7 +234,7 @@ class ProHostViewModel(
     fun checkWhishPaymentStatus(txId: String, purpose: String, context: Context) {
         viewModelScope.launch {
             val status = functionsClient.checkWhishStatus(txId).getOrNull()
-            if (status == "SUCCESS" && (purpose == "OWNER_PACKAGE" || purpose == "PAYG_LISTING")) {
+            if (status == "SUCCESS" && (purpose == "OWNER_PACKAGE" || purpose == "PAYG_LISTING" || purpose == "PAYG_CART")) {
                 refreshCurrentUserRoleAfterEntitlement()
             }
             val message = when (status) {
@@ -243,10 +244,6 @@ class ProHostViewModel(
             }
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }
-    }
-
-    fun paySubscriptionViaWhish(spaceId: String, payerName: String, payerPhone: String, context: Context) {
-        launchWhishCheckout("SUBSCRIPTION", spaceId, payerName, payerPhone, context)
     }
 
     // payBookingViaWhish (booking rent settlement inside the app) is gone —
@@ -363,6 +360,20 @@ class ProHostViewModel(
         draftListingId: String? = null
     ) {
         launchWhishCheckout("PAYG_LISTING", categoryId, payerName, payerPhone, context, draftListingId)
+    }
+
+    // Renew popup (OwnerHubScreen) / Buy PAYG (OwnerSubscriptionsScreen) — one
+    // checkout across every admin-defined category the host is buying/renewing
+    // credits for, replacing repeated one-category-at-a-time PAYG_LISTING payments
+    // for this specific flow. Each pair is (categoryId, quantity); the server prices
+    // and totals it (getPaygFeeForCategory), never trusting the cart's own display.
+    fun payPaygCartViaWhish(
+        items: List<Pair<String, Int>>,
+        payerName: String,
+        payerPhone: String,
+        context: Context
+    ) {
+        launchWhishCheckout("PAYG_CART", targetId = null, payerName = payerName, payerPhone = payerPhone, context = context, items = items)
     }
 
     // Sign-in/registration (phone OTP + Google Sign-In) moved to AuthViewModel —

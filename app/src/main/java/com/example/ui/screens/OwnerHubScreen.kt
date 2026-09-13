@@ -62,7 +62,7 @@ fun OwnerHubScreen(
         }
     }
 
-    var selectedSpaceForWhish by remember { mutableStateOf<SpaceListing?>(null) }
+    var showRenewalDialog by remember { mutableStateOf(false) }
     var selectedSpaceForSchedule by remember { mutableStateOf<SpaceListing?>(null) }
     var showCreateListingDialog by remember { mutableStateOf(false) }
     var showPackageSelectionDialog by remember { mutableStateOf(false) }
@@ -79,16 +79,17 @@ fun OwnerHubScreen(
 
     OwnerHubScreenContent(
         ownerSpaces = ownerSpaces,
-        allSpaces = spaces,
         allBookingRequests = allBookingRequests,
-        monthlySubscriptionFeeUsd = pricingState.monthlySubscriptionFeeUsd,
+        ownerPackageTier = currentUser?.ownerPackageTier ?: OwnerPackageTier.PAY_AS_YOU_GO,
+        ownerPackageExpiryMillis = currentUser?.ownerPackageExpiryMillis,
+        packageFeeUsd = pricingState.getPackageFee(currentUser?.ownerPackageTier ?: OwnerPackageTier.PAY_AS_YOU_GO),
         // Admin's listing/booking capability is unconditional — never a purchased
         // package (see ProHostNavGraph excluding OwnerSubscriptions from Admin's
         // allowed tabs) — so the package/renewal banner never shows for Admin.
         isAdminUnlimited = currentUser?.role == UserRole.ADMIN,
         atListingLimit = atListingLimit,
         onSelectSpace = onSelectSpace,
-        onOpenWhishRenewal = { space -> selectedSpaceForWhish = space },
+        onOpenWhishRenewal = { showRenewalDialog = true },
         onOpenScheduleEditor = { space -> selectedSpaceForSchedule = space },
         onOpenCreateListing = {
             viewModel.refreshTopHashtags()
@@ -218,23 +219,15 @@ fun OwnerHubScreen(
         }
     }
 
-    // Whish Settlement Dialog for Renewal
-    selectedSpaceForWhish?.let { space ->
-        WhishPayModal(
-            space = space,
-            currentFeeUsd = pricingState.monthlySubscriptionFeeUsd,
+    // Owner-level entitlement renewal — a real PAYG cart or tiered-package renewal,
+    // not tied to any one listing. See SubscriptionRenewalDialog's own doc comment
+    // for why this replaced the old per-listing WhishPayModal/flat-fee flow.
+    if (showRenewalDialog && currentUser != null) {
+        SubscriptionRenewalDialog(
+            currentUser = currentUser!!,
+            schema = architectureSchema,
             viewModel = viewModel,
-            onDismiss = { selectedSpaceForWhish = null },
-            onConfirmPayment = { _, _ ->
-                // WhishPayModal's own "Go to Whish Pay" button already calls
-                // viewModel.paySubscriptionViaWhish and dismisses itself — calling it again
-                // here used to double-fire the payment (two initiateWhishPayment calls, two
-                // browser launches, two polling loops for one tap). This callback only needs
-                // to clear local state now. Settlement isn't confirmed yet at this point —
-                // the app is still opening Whish's checkout page — so no success toast here;
-                // the Firestore listener reflects the real outcome once Whish confirms it.
-                selectedSpaceForWhish = null
-            }
+            onDismiss = { showRenewalDialog = false }
         )
     }
 
@@ -487,11 +480,12 @@ private fun OwnerDeleteListingDialog(
 @Composable
 fun OwnerHubScreenContent(
     ownerSpaces: List<SpaceListing>,
-    allSpaces: List<SpaceListing>,
     allBookingRequests: List<BookingRequest>,
-    monthlySubscriptionFeeUsd: Double,
+    ownerPackageTier: OwnerPackageTier,
+    ownerPackageExpiryMillis: Long?,
+    packageFeeUsd: Double,
     onSelectSpace: (SpaceListing) -> Unit,
-    onOpenWhishRenewal: (SpaceListing?) -> Unit,
+    onOpenWhishRenewal: () -> Unit,
     onOpenScheduleEditor: (SpaceListing) -> Unit,
     onOpenCreateListing: () -> Unit,
     onOpenPackageSelection: () -> Unit,
@@ -576,7 +570,14 @@ fun OwnerHubScreenContent(
                                     shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
-                                        text = "$${String.format(Locale.US, "%.2f", monthlySubscriptionFeeUsd)} /mo",
+                                        // PAYG has no flat/base figure — see SubscriptionRenewalDialog's own
+                                        // doc comment for why this replaced the old flat monthlySubscriptionFeeUsd
+                                        // pill, which used to show here regardless of the host's real plan.
+                                        text = if (ownerPackageTier == OwnerPackageTier.PAY_AS_YOU_GO) {
+                                            "Pay-As-You-Go"
+                                        } else {
+                                            "$${String.format(Locale.US, "%.2f", packageFeeUsd)} /mo"
+                                        },
                                         color = Color.White,
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.ExtraBold,
@@ -600,14 +601,27 @@ fun OwnerHubScreenContent(
                                 lineHeight = 16.sp
                             )
                         } else {
+                            val daysRemaining = ownerPackageExpiryMillis?.let {
+                                ((it - System.currentTimeMillis()) / (24L * 60 * 60 * 1000)).coerceAtLeast(0)
+                            }
                             Text(
-                                text = "30-Day Listing Entitlement",
+                                text = if (ownerPackageTier == OwnerPackageTier.PAY_AS_YOU_GO) {
+                                    "Pay-As-You-Go Active"
+                                } else if (daysRemaining != null) {
+                                    "${ownerPackageTier.title} — renews in $daysRemaining days"
+                                } else {
+                                    ownerPackageTier.title
+                                },
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
                             Text(
-                                text = "Manage smart availability, blackout offline hours, and keep your space active across Lebanon with Whish Pay.",
+                                text = if (ownerPackageTier == OwnerPackageTier.PAY_AS_YOU_GO) {
+                                    "Pricing depends on the listing type you publish — buy or top up category credits below."
+                                } else {
+                                    "Manage smart availability, blackout offline hours, and keep your space active across Lebanon with Whish Pay."
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xCCFFFFFF),
                                 lineHeight = 16.sp
@@ -618,10 +632,7 @@ fun OwnerHubScreenContent(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Button(
-                                    onClick = {
-                                        val target = ownerSpaces.firstOrNull() ?: allSpaces.firstOrNull()
-                                        onOpenWhishRenewal(target)
-                                    },
+                                    onClick = onOpenWhishRenewal,
                                     modifier = Modifier.weight(1f),
                                     shape = MaterialTheme.shapes.medium,
                                     colors = ButtonDefaults.buttonColors(containerColor = WhishRed)

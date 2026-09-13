@@ -14,6 +14,11 @@ export const whishSecret = defineSecret("WHISH_SECRET_KEY");
 const WEBHOOK_URL = "https://europe-west1-prohost-f766f.cloudfunctions.net/whishWebhook";
 const MERCHANT_SOURCE_EMAIL = "ceo@hopebearer-award.com";
 
+interface CartItemInput {
+  categoryId?: string;
+  quantity?: number;
+}
+
 interface InitiateWhishPaymentData {
   purpose?: string;
   targetId?: string;
@@ -24,6 +29,11 @@ interface InitiateWhishPaymentData {
   // Set only when this payment is resolving a quota/PAYG-credit block on a specific
   // Draft — see entitlements.ts's autoPublishDraftIfNeeded.
   draftListingId?: string;
+  // PAYG_CART only — a multi-category quantity cart (Renew popup / Buy PAYG on the
+  // Subscriptions screen), replacing the old single-targetId PAYG_LISTING for that
+  // flow. Each item's price is looked up server-side the same way PAYG_LISTING
+  // already does — a client-supplied price is never trusted.
+  items?: CartItemInput[];
 }
 
 /**
@@ -40,12 +50,15 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
       throw new HttpsError("unauthenticated", "Sign in required.");
     }
 
-    const { purpose, targetId, payerName, payerPhone, draftListingId } = request.data ?? {};
-    if (!purpose || !targetId || !payerName || !payerPhone) {
-      throw new HttpsError("invalid-argument", "purpose, targetId, payerName, and payerPhone are required.");
+    const { purpose, targetId, payerName, payerPhone, draftListingId, items } = request.data ?? {};
+    if (!purpose || !payerName || !payerPhone) {
+      throw new HttpsError("invalid-argument", "purpose, payerName, and payerPhone are required.");
     }
-    if (!["SUBSCRIPTION", "OWNER_PACKAGE", "PAYG_LISTING"].includes(purpose)) {
+    if (!["OWNER_PACKAGE", "PAYG_LISTING", "PAYG_CART"].includes(purpose)) {
       throw new HttpsError("invalid-argument", `Unknown purpose: ${purpose}`);
+    }
+    if (purpose !== "PAYG_CART" && !targetId) {
+      throw new HttpsError("invalid-argument", "targetId is required for this purpose.");
     }
 
     const db = getFirestore();
@@ -54,20 +67,9 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
     let spaceIdForRecord = "";
     let spaceTitleForRecord = "";
     let daysGranted = 30;
+    let cartItemsForRecord: { categoryId: string; quantity: number; unitPriceUsd: number }[] | undefined;
 
     switch (purpose as WhishPurpose) {
-      case "SUBSCRIPTION": {
-        const spaceSnap = await db.collection("workspace_listings").doc(targetId).get();
-        if (!spaceSnap.exists) {
-          throw new HttpsError("not-found", "Workspace listing not found.");
-        }
-        const pricing = await getPricingState();
-        amountUsd = pricing.monthlySubscriptionFeeUsd;
-        invoiceLabel = `Listing subscription #${targetId}`;
-        spaceIdForRecord = targetId;
-        spaceTitleForRecord = (spaceSnap.data()?.title as string) ?? "ProHost Subscription";
-        break;
-      }
       case "OWNER_PACKAGE": {
         if (targetId !== "LIMITED_3_TIER" && targetId !== "UNLIMITED_TIER") {
           throw new HttpsError("invalid-argument", "targetId must be LIMITED_3_TIER or UNLIMITED_TIER.");
@@ -88,7 +90,7 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
         // than falling back to any default charge.
         const pricing = await getPricingState();
         try {
-          amountUsd = await getPaygFeeForCategory(pricing, targetId);
+          amountUsd = await getPaygFeeForCategory(pricing, targetId as string);
         } catch (e) {
           logger.warn("whish_initiate_invalid_payg_category", {
             uid: auth.uid,
@@ -100,6 +102,45 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
         invoiceLabel = `PAYG listing slot: ${targetId}`;
         spaceIdForRecord = `PAYG-SLOT-${targetId}`;
         spaceTitleForRecord = `PAYG Listing Slot (${targetId})`;
+        break;
+      }
+      case "PAYG_CART": {
+        // Renew popup (OwnerHubScreen) / Buy PAYG (OwnerSubscriptionsScreen) — a
+        // quantity per admin-defined category in one checkout, replacing what used
+        // to be one PAYG_LISTING payment per category. Every price is looked up the
+        // same way PAYG_LISTING does (getPaygFeeForCategory); the client's own price
+        // display is never trusted for the actual charge.
+        if (!Array.isArray(items) || items.length === 0) {
+          throw new HttpsError("invalid-argument", "items must be a non-empty array for PAYG_CART.");
+        }
+        const pricing = await getPricingState();
+        const resolvedItems: { categoryId: string; quantity: number; unitPriceUsd: number }[] = [];
+        for (const raw of items as CartItemInput[]) {
+          const categoryId = raw.categoryId;
+          const quantity = raw.quantity;
+          if (!categoryId || typeof quantity !== "number" || !Number.isInteger(quantity) || quantity <= 0) {
+            continue; // a zero/blank-quantity row from the UI's cart — not an error, just excluded
+          }
+          try {
+            const unitPriceUsd = await getPaygFeeForCategory(pricing, categoryId);
+            resolvedItems.push({ categoryId, quantity, unitPriceUsd });
+          } catch (e) {
+            logger.warn("whish_initiate_invalid_payg_category", {
+              uid: auth.uid,
+              categoryId,
+              error: e instanceof Error ? e.message : String(e),
+            });
+            throw new HttpsError("invalid-argument", e instanceof Error ? e.message : "Invalid PAYG category.");
+          }
+        }
+        if (resolvedItems.length === 0) {
+          throw new HttpsError("invalid-argument", "No valid, priced cart items with a positive quantity.");
+        }
+        amountUsd = resolvedItems.reduce((sum, item) => sum + item.unitPriceUsd * item.quantity, 0);
+        cartItemsForRecord = resolvedItems;
+        invoiceLabel = `PAYG cart: ${resolvedItems.map((i) => `${i.categoryId} x${i.quantity}`).join(", ")}`;
+        spaceIdForRecord = `PAYG-CART-${Date.now()}`;
+        spaceTitleForRecord = "PAYG Listing Credits";
         break;
       }
     }
@@ -160,9 +201,10 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
       daysGranted,
       userId: auth.uid,
       purpose,
-      targetId,
+      targetId: targetId ?? null,
       externalId,
       ...(draftListingId ? { draftListingId } : {}),
+      ...(cartItemsForRecord ? { cartItems: cartItemsForRecord } : {}),
     });
 
     logger.info("whish_payment_initiated", {

@@ -3,7 +3,7 @@ import { getAuth } from "firebase-admin/auth";
 import { recordAuditLog } from "./auditLog";
 import { validateListingForPublish } from "../listings/publishValidation";
 
-export type WhishPurpose = "SUBSCRIPTION" | "OWNER_PACKAGE" | "PAYG_LISTING";
+export type WhishPurpose = "OWNER_PACKAGE" | "PAYG_LISTING" | "PAYG_CART";
 
 export interface WhishTransactionDoc {
   id: string;
@@ -22,7 +22,7 @@ export interface WhishTransactionDoc {
   daysGranted: number;
   userId: string;
   purpose: WhishPurpose;
-  targetId: string;
+  targetId: string | null;
   externalId: number;
   // Set only when this payment was triggered by a quota/PAYG-credit rejection inside
   // CreateListingDialog's Publish flow — the specific Draft (same workspace_listings
@@ -31,6 +31,8 @@ export interface WhishTransactionDoc {
   // host re-open the wizard and hit Publish a second time. See
   // autoPublishDraftIfNeeded below.
   draftListingId?: string;
+  // PAYG_CART only — see initiateWhishPayment.ts's PAYG_CART case.
+  cartItems?: { categoryId: string; quantity: number; unitPriceUsd: number }[];
 }
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -129,13 +131,6 @@ export async function grantEntitlement(tx: WhishTransactionDoc): Promise<void> {
   const now = Date.now();
 
   switch (tx.purpose) {
-    case "SUBSCRIPTION": {
-      await db.collection("workspace_listings").doc(tx.targetId).set(
-        { isActiveSubscription: true, subscriptionExpiryMillis: now + THIRTY_DAYS_MS, updatedAt: now },
-        { merge: true }
-      );
-      break;
-    }
     case "OWNER_PACKAGE": {
       await db.collection("user_profiles").doc(tx.userId).set(
         { ownerPackageTier: tx.targetId, ownerPackageExpiryMillis: now + THIRTY_DAYS_MS, updatedAt: now },
@@ -162,19 +157,37 @@ export async function grantEntitlement(tx: WhishTransactionDoc): Promise<void> {
       await grantProHostRoleIfNeeded(tx.userId);
       break;
     }
+    case "PAYG_CART": {
+      // Same recording as PAYG_LISTING, just for every cart line at once — each
+      // category's own credit count grows by its own purchased quantity, not a
+      // flat +1. See initiateWhishPayment.ts's PAYG_CART case for how cartItems
+      // is built (server-priced, never trusting the client's cart display).
+      const items = tx.cartItems ?? [];
+      const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+      const update: Record<string, unknown> = {
+        paygListingsBoughtCount: FieldValue.increment(totalQuantity),
+        updatedAt: now,
+      };
+      for (const item of items) {
+        update[`paygCategoryCredits.${item.categoryId}`] = FieldValue.increment(item.quantity);
+      }
+      await db.collection("user_profiles").doc(tx.userId).set(update, { merge: true });
+      await grantProHostRoleIfNeeded(tx.userId);
+      break;
+    }
   }
 
-  // Only OWNER_PACKAGE (tier upgrade lifting the whole-listing cap) and PAYG_LISTING
-  // (the specific category credit) can ever be the thing standing between a Draft and
-  // Publish — a SUBSCRIPTION payment renews an already-ACTIVE listing's own
-  // subscription, never a Draft, so it's excluded here.
-  if (tx.purpose === "OWNER_PACKAGE" || tx.purpose === "PAYG_LISTING") {
+  // Only OWNER_PACKAGE (tier upgrade lifting the whole-listing cap), PAYG_LISTING
+  // and PAYG_CART (per-category credits) can ever be the thing standing between a
+  // Draft and Publish.
+  if (tx.purpose === "OWNER_PACKAGE" || tx.purpose === "PAYG_LISTING" || tx.purpose === "PAYG_CART") {
     await autoPublishDraftIfNeeded(tx);
   }
 
+  const targetDescription = tx.targetId ?? tx.cartItems?.map((i) => `${i.categoryId} x${i.quantity}`).join(", ") ?? "n/a";
   await recordAuditLog({
     actionType: "WHISH_PAYMENT_SUCCESS",
-    details: `Order ${tx.orderId} ($${tx.amountUsd.toFixed(2)}) settled for purpose ${tx.purpose} (target ${tx.targetId}). Entitlement granted.`,
+    details: `Order ${tx.orderId} ($${tx.amountUsd.toFixed(2)}) settled for purpose ${tx.purpose} (target ${targetDescription}). Entitlement granted.`,
     actorEmail: tx.payerName,
     severity: "SECURE",
   });
