@@ -124,6 +124,15 @@ class DiscoveryViewModel(
         _filterState.update { it.copy(onlySaved = savedOnly) }
     }
 
+    // Was hidden entirely — DiscoveryFilterState.onlyActiveSubscribed defaults
+    // true and silently excluded any listing whose host's subscription had
+    // lapsed, with no UI anywhere showing this filtering was happening or
+    // letting a specialist turn it off. Same real-time toggle pattern as
+    // toggleVerifiedOnly/toggleSavedOnly above.
+    fun toggleActiveSubscribedOnly(activeOnly: Boolean) {
+        _filterState.update { it.copy(onlyActiveSubscribed = activeOnly) }
+    }
+
     fun toggleSavedSpace(spaceId: String) {
         viewModelScope.launch {
             repository.toggleSavedSpace(spaceId)

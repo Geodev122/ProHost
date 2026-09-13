@@ -83,6 +83,7 @@ fun DiscoveryScreen(
         maxPriceUsd = uiState.filterState.maxPriceUsd,
         onlyVerified = uiState.filterState.onlyVerified,
         onlySaved = uiState.filterState.onlySaved,
+        onlyActiveSubscribed = uiState.filterState.onlyActiveSubscribed,
         savedSpaceIds = uiState.savedSpaceIds,
         isMapView = uiState.isMapViewActive,
         showFilterSheet = uiState.isFilterSheetVisible,
@@ -98,6 +99,7 @@ fun DiscoveryScreen(
         onSetMaxPrice = { discoveryViewModel.setMaxPrice(it) },
         onToggleVerifiedOnly = { discoveryViewModel.toggleVerifiedOnly(it) },
         onToggleSavedOnly = { discoveryViewModel.toggleSavedOnly(it) },
+        onToggleActiveSubscribedOnly = { discoveryViewModel.toggleActiveSubscribedOnly(it) },
         onToggleSavedSpace = { discoveryViewModel.toggleSavedSpace(it) },
         onResetFilters = { discoveryViewModel.resetFilters() },
         onSelectSpace = onSelectSpace,
@@ -131,6 +133,7 @@ fun DiscoveryScreenContent(
     maxPriceUsd: Double,
     onlyVerified: Boolean,
     onlySaved: Boolean,
+    onlyActiveSubscribed: Boolean = true,
     savedSpaceIds: List<String>,
     isMapView: Boolean,
     showFilterSheet: Boolean,
@@ -146,6 +149,7 @@ fun DiscoveryScreenContent(
     onSetMaxPrice: (Double) -> Unit,
     onToggleVerifiedOnly: (Boolean) -> Unit,
     onToggleSavedOnly: (Boolean) -> Unit,
+    onToggleActiveSubscribedOnly: (Boolean) -> Unit = {},
     onToggleSavedSpace: (String) -> Unit,
     onResetFilters: () -> Unit,
     onSelectSpace: (SpaceListing) -> Unit,
@@ -486,6 +490,28 @@ fun DiscoveryScreenContent(
                 ) {
                     Text("Saved workspaces only", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                     Switch(checked = onlySaved, onCheckedChange = onToggleSavedOnly)
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.sm))
+
+                // This filter used to apply unconditionally with no UI at all —
+                // any listing whose host's subscription had lapsed was silently
+                // excluded from every search, with no way to see it or know why
+                // it was missing.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Active-subscription hosts only", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                        Text(
+                            "Hide listings whose host's ProHost subscription has lapsed",
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = onlyActiveSubscribed, onCheckedChange = onToggleActiveSubscribedOnly)
                 }
 
                 Spacer(modifier = Modifier.height(Spacing.md))
