@@ -145,6 +145,35 @@ class FirebaseFunctionsClient {
         }
     }
 
+    /**
+     * Admin-only, idempotent one-time backfill
+     * (functions/src/listings/backfillWorkspaceListingDefaults.ts): stamps
+     * isOwnerSuspended: false onto every workspace_listings document that
+     * predates the field (almost all of them — it was previously stamped only
+     * for an actually-suspended owner's listings, never written by the client
+     * at all). Required before FirestoreService's non-admin Discovery listener
+     * (its own real .where("isOwnerSuspended", "==", false) filter, needed to
+     * satisfy firestore.rules) can find these older listings — a Firestore
+     * equality filter never matches a document missing the field entirely.
+     * Returns how many documents were touched. Triggered from a temporary
+     * Admin Console button, removed once confirmed run against the live
+     * project.
+     */
+    suspend fun backfillWorkspaceListingDefaults(): Result<Int> {
+        return try {
+            val result = functions.getHttpsCallable("backfillWorkspaceListingDefaults")
+                .call()
+                .await()
+            @Suppress("UNCHECKED_CAST")
+            val data = result.data as? Map<String, Any?>
+            val backfilled = (data?.get("backfilled") as? Number)?.toInt() ?: 0
+            Result.success(backfilled)
+        } catch (e: Exception) {
+            Log.e(tag, "backfillWorkspaceListingDefaults failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     /** functions/src/roles/revokeProHostRole.ts — Admin-only downgrade to SPECIALIST. */
     suspend fun revokeProHostRole(targetUid: String): Result<Unit> {
         return try {

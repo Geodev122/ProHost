@@ -210,6 +210,26 @@ class AdminViewModel(
         }
     }
 
+    // One-time, idempotent backfill of isOwnerSuspended:false onto every
+    // workspace_listings document that predates the field — required before
+    // the non-admin Discovery listener's real .where("isOwnerSuspended","==",
+    // false) filter can find them (see backfillWorkspaceListingDefaults.ts's
+    // own doc comment for the full story). Safe to tap more than once; a
+    // no-op once every listing already carries the field.
+    fun runBackfillWorkspaceListingDefaults() {
+        viewModelScope.launch {
+            val result = functionsClient.backfillWorkspaceListingDefaults()
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    result.fold(
+                        onSuccess = { count -> "Backfill complete — $count listing(s) updated" },
+                        onFailure = { "Backfill failed — check your connection and try again" }
+                    )
+                )
+            )
+        }
+    }
+
     fun updateGovernanceTag(tag: String) {
         viewModelScope.launch {
             val success = repository.updateGovernanceTag(tag)

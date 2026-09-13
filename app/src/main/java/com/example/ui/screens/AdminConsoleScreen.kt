@@ -477,6 +477,35 @@ private fun AdminRevenueTab(
 
                     HorizontalDivider()
 
+                    // Temporary, one-time (but idempotent) backfill trigger — remove once
+                    // confirmed run against the live project. Required before the
+                    // non-admin Discovery listener (see FirestoreService.
+                    // attachLiveListeners) can find any listing saved before
+                    // isOwnerSuspended was ever written — a real query filter on that
+                    // field never matches a document where it's simply absent.
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Backfill listing defaults",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Stamps isOwnerSuspended: false onto every listing that predates the field (almost all of them). Never touches an already-suspended host's listings. Safe to run more than once.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        OutlinedButton(
+                            onClick = { adminViewModel.runBackfillWorkspaceListingDefaults() },
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text("Backfill Listing Defaults", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+
+                    HorizontalDivider()
+
                     // Temporary, one-time (but safely re-runnable) migration trigger —
                     // remove once confirmed run against the live project (see the plan's
                     // Phase 15E). Resets any remaining legacy PAYG users to the new

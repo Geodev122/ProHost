@@ -836,9 +836,18 @@ data class SpaceListing(
     val isVerified: Boolean = false,
     val isActiveSubscription: Boolean = true,
     // Mirrored by setAccountSuspended.ts (Admin SDK) onto every listing this owner
-    // has when their account is suspended/reactivated — server-only, never in
-    // toFirestoreMap(). Hides the listing from public Discovery (firestore.rules)
-    // while still letting the owner and Admin see it (with an explanatory badge).
+    // has when their account is suspended/reactivated. Hides the listing from
+    // public Discovery (firestore.rules). Now included in toFirestoreMap() below
+    // (echoing back whatever value this object already holds, always synced from
+    // the live listener — see updateUser's doc comment on why echoing a
+    // server-authoritative field back unchanged is safe, unlike echoing a
+    // possibly-stale one) — required so every listing always has a real,
+    // queryable value: FirestoreService's non-admin Discovery listener now
+    // filters ON this field directly (isOwnerSuspended == false) to satisfy
+    // firestore.rules' read rule, and Firestore's equality filters never match a
+    // document where the field is simply absent. A one-time backend backfill
+    // (backfillWorkspaceListingDefaults, admin-triggered) covers listings saved
+    // before this field was ever written.
     val isOwnerSuspended: Boolean = false,
     val subscriptionExpiryMillis: Long = System.currentTimeMillis() + (28L * 24 * 60 * 60 * 1000),
     val imageUrls: List<String> = emptyList(),
@@ -962,6 +971,7 @@ data class SpaceListing(
             "verificationDocType" to verificationDocType?.name,
             "isVerified" to isVerified,
             "isActiveSubscription" to isActiveSubscription,
+            "isOwnerSuspended" to isOwnerSuspended,
             "subscriptionExpiryMillis" to subscriptionExpiryMillis,
             "imageUrls" to imageUrls,
             "videoTourDurationSec" to videoTourDurationSec,
