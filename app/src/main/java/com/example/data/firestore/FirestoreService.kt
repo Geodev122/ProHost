@@ -100,6 +100,15 @@ class FirestoreService(
      * sync (workspaces, users, subscription formulas, bookings). Returns nothing; call
      * [clearListeners] to detach everything this has registered.
      *
+     * INVARIANT this whole function depends on for its ADMIN branches: firestore.rules'
+     * `isAdmin()`/`role()` must stay pure custom-claim checks with zero `resource.data`/
+     * `get()` dependency (see the matching comment there). The moment that stops being true —
+     * e.g. a future change makes an admin-revocation take effect instantly the way
+     * `isSuspended()`/`liveRole()` already do there — every unfiltered admin listener below
+     * (workspace_listings, user_profiles, booking_requests, whish_transactions,
+     * audit_security_logs) will start failing PERMISSION_DENIED, and must be re-architected
+     * into role-scoped queries in that same change, not discovered after the fact.
+     *
      * [currentUid]/[isAdminCaller] scope the four collections whose firestore.rules read
      * rule is content-conditional (workspace_listings, user_profiles, booking_requests,
      * whish_transactions) — an unconstrained `.collection().addSnapshotListener()` with no

@@ -14,6 +14,24 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // INVARIANT — do not change without reading this: role()/isAdmin() must
+    // stay pure custom-claim checks (request.auth.token.* only), with zero
+    // resource.data/get() dependency. FirestoreService.attachLiveListeners()
+    // relies on exactly that: it runs 5 fully unfiltered
+    // .collection().addSnapshotListener() calls (workspace_listings,
+    // user_profiles, booking_requests, whish_transactions,
+    // audit_security_logs) for ADMIN callers, with no .where(...) at all.
+    // Firestore can only prove an unfiltered LIST query safe against a rule
+    // like `isAdmin() || <content-dependent-branch>` when isAdmin() itself is
+    // provable independent of any document's content — true today because it
+    // reads only the ID token. If isAdmin()/role() were ever rewritten to
+    // read the LIVE user_profiles document instead (mirroring isSuspended()/
+    // liveRole() below, e.g. to make an admin-revocation take effect
+    // instantly), every one of those 5 admin listeners would start failing
+    // with PERMISSION_DENIED — the same failure mode non-admin callers had
+    // before FirestoreService's role-scoped query rewrite. If this ever needs
+    // to change, re-architect all 5 admin listeners into role-scoped queries
+    // in the same change, not after.
     function role() {
       return request.auth.token.role;
     }
@@ -193,6 +211,17 @@ service cloud.firestore {
       // at the free tier with a zero listing counter, same reasoning as the
       // update rule below.
       allow create: if isOwner(userId) &&
+        // role is otherwise a pure display/query mirror of the custom claim
+        // (see the comment above) — nothing trusts this field for
+        // authorization, but a raw client create() with no rule constraint
+        // on it at all could still write a misleading "ADMIN"/"PRO_HOST"
+        // value into a document anyone reading raw Firestore data (e.g. the
+        // Firebase Console) might mistake for real authority. Every
+        // legitimate create writes exactly "SPECIALIST" (registration is
+        // always a SPECIALIST — see AuthFlow.completeVerifiedRegistration's
+        // doc comment), so this formalizes what already always happens
+        // rather than changing any real behavior.
+        request.resource.data.get('role', null) == 'SPECIALIST' &&
         request.resource.data.get('ownerPackageId', null) == null &&
         request.resource.data.get('activeListingCount', 0) == 0 &&
         // isVerified must match reality — the ID token's own phone_number claim
