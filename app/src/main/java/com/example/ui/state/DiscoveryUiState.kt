@@ -11,7 +11,12 @@ data class DiscoveryFilterState(
     // A SchemaItem.id from the admin-defined Space Category catalog (or a legacy
     // SpaceType name from the empty-schema fallback) — see SpaceListing.matchesCategory.
     val selectedCategoryId: String? = null,
-    val selectedFormulaType: RentalFormulaType? = null,
+    // The real, fixed pricing-engine strategy (MONTHLY/HOURLY/SHIFT_BASED/DAY_BASED)
+    // every listing/subdivision's RentalPricingConfig.strategyType actually carries —
+    // unlike Space Category/Facility, this isn't an admin-open set (the schema's own
+    // "Rental Formulas" section is decorative labels with no live mapping to it), so
+    // it's matched directly against RentalStrategyType, not a SchemaItem catalog.
+    val selectedStrategyType: RentalStrategyType? = null,
     val selectedFacility: String? = null,
     val selectedEquipmentCategory: EquipmentCategory? = null,
     val maxPriceUsd: Double = 1500.0,

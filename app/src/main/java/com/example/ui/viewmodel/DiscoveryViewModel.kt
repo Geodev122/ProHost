@@ -44,7 +44,13 @@ class DiscoveryViewModel(
 
             val matchesGov = filter.selectedGovernorate == null || space.governorate == filter.selectedGovernorate
             val matchesType = space.matchesCategory(filter.selectedCategoryId)
-            val matchesFormula = filter.selectedFormulaType == null || space.rentalFormulas.any { it.type == filter.selectedFormulaType }
+            // space.rentalFormulas is a legacy, whole-space-only synthesis (empty for
+            // any subdivided listing — see CreateListingDialog's buildListing) — the
+            // real, currently-written pricing strategy lives on space.pricing and on
+            // each subdivision's own pricing, so match against those directly instead.
+            val matchesFormula = filter.selectedStrategyType == null ||
+                    space.pricing.strategyType == filter.selectedStrategyType ||
+                    space.subdivisions.any { it.pricing.strategyType == filter.selectedStrategyType }
             val matchesFacility = filter.selectedFacility == null || space.essentialFacilities.contains(filter.selectedFacility)
             val matchesEquip = filter.selectedEquipmentCategory == null || space.equipment.any { it.category == filter.selectedEquipmentCategory }
             val matchesPrice = space.baseMonthlyRateUsd <= filter.maxPriceUsd
@@ -86,8 +92,8 @@ class DiscoveryViewModel(
         _filterState.update { it.copy(selectedCategoryId = categoryId) }
     }
 
-    fun setFormulaFilter(formula: RentalFormulaType?) {
-        _filterState.update { it.copy(selectedFormulaType = formula) }
+    fun setFormulaFilter(strategy: RentalStrategyType?) {
+        _filterState.update { it.copy(selectedStrategyType = strategy) }
     }
 
     fun setFacilityFilter(facility: String?) {

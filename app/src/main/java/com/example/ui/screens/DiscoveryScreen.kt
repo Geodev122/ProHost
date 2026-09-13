@@ -75,7 +75,7 @@ fun DiscoveryScreen(
         selectedGovernorate = uiState.filterState.selectedGovernorate,
         categoryOptions = categoryOptions,
         selectedCategoryId = uiState.filterState.selectedCategoryId,
-        selectedFormulaType = uiState.filterState.selectedFormulaType,
+        selectedStrategyType = uiState.filterState.selectedStrategyType,
         availableFacilities = availableFacilities,
         selectedFacility = uiState.filterState.selectedFacility,
         selectedEquipmentCategory = uiState.filterState.selectedEquipmentCategory,
@@ -90,7 +90,7 @@ fun DiscoveryScreen(
         onSetFilterSheetVisible = { discoveryViewModel.setFilterSheetVisible(it) },
         onSelectGovernorate = { discoveryViewModel.setGovernorateFilter(it) },
         onSelectCategory = { discoveryViewModel.setCategoryFilter(it) },
-        onSelectFormulaType = { discoveryViewModel.setFormulaFilter(it) },
+        onSelectStrategyType = { discoveryViewModel.setFormulaFilter(it) },
         onSelectFacility = { discoveryViewModel.setFacilityFilter(it) },
         onSelectEquipmentCategory = { discoveryViewModel.setEquipmentCategoryFilter(it) },
         onSetMaxPrice = { discoveryViewModel.setMaxPrice(it) },
@@ -119,7 +119,7 @@ fun DiscoveryScreenContent(
     // passing the live list.
     categoryOptions: List<SchemaItem> = SpaceType.values().map { SchemaItem(id = it.name, name = it.displayName, category = "SPACE_TYPE") },
     selectedCategoryId: String?,
-    selectedFormulaType: RentalFormulaType?,
+    selectedStrategyType: RentalStrategyType?,
     selectedFacility: String?,
     // Admin-managed facility catalog (enabled SchemaItems, category "AMENITY") —
     // defaults to the old hardcoded FacilityCatalog.standard only so a caller that
@@ -137,7 +137,7 @@ fun DiscoveryScreenContent(
     onSetFilterSheetVisible: (Boolean) -> Unit,
     onSelectGovernorate: (Governorate?) -> Unit,
     onSelectCategory: (String?) -> Unit,
-    onSelectFormulaType: (RentalFormulaType?) -> Unit,
+    onSelectStrategyType: (RentalStrategyType?) -> Unit,
     onSelectFacility: (String?) -> Unit,
     onSelectEquipmentCategory: (EquipmentCategory?) -> Unit,
     onSetMaxPrice: (Double) -> Unit,
@@ -221,7 +221,7 @@ fun DiscoveryScreenContent(
                     ) {
                         val hasActiveFilter = selectedGovernorate != null ||
                                 selectedCategoryId != null ||
-                                selectedFormulaType != null ||
+                                selectedStrategyType != null ||
                                 selectedFacility != null ||
                                 selectedEquipmentCategory != null ||
                                 onlyVerified ||
@@ -415,11 +415,11 @@ fun DiscoveryScreenContent(
 
                 Text("Rental Formula", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(RentalFormulaType.entries) { formula ->
+                    items(RentalStrategyType.entries) { strategy ->
                         FilterChip(
-                            selected = selectedFormulaType == formula,
-                            onClick = { onSelectFormulaType(if (selectedFormulaType == formula) null else formula) },
-                            label = { Text(formula.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                            selected = selectedStrategyType == strategy,
+                            onClick = { onSelectStrategyType(if (selectedStrategyType == strategy) null else strategy) },
+                            label = { Text(strategy.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                         )
                     }
                 }
