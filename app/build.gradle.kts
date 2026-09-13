@@ -136,6 +136,7 @@ dependencies {
   implementation(libs.kotlinx.serialization.json)
   implementation(libs.play.app.update)
   implementation(libs.play.app.update.ktx)
+  implementation(libs.play.integrity)
   implementation(libs.play.services.location)
   // OpenStreetMap (osmdroid) — replaced Google Maps entirely (see LebanonMapCanvas.kt/
   // ListingLocationMapPicker.kt doc comments). No API key, no billing account, no
