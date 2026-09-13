@@ -724,7 +724,12 @@ class ProHostRepository {
      * listing simply reappeared the next time the live listener fired. Firestore
      * rules already permit an admin (or the owning user) to delete this document
      * directly (firestore.rules workspace_listings: allow delete), so no Cloud
-     * Function is needed here.
+     * Function is needed for the delete itself. A separate trigger
+     * (functions/src/listings/listingDeleteCleanup.ts,
+     * onWorkspaceListingDeletedCleanup) reacts to the deletion server-side to
+     * scrub this listing's id out of every other user's favorites and cancel
+     * any still-open booking against it — a raw client write here isn't
+     * authorized to touch another user's profile directly.
      */
     suspend fun deleteSpaceListing(spaceId: String): Boolean {
         val target = _spaces.value.find { it.id == spaceId }
