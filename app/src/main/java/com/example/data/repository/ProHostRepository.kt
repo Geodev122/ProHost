@@ -22,6 +22,18 @@ class ProHostRepository {
     companion object {
         private const val TAG = "ProHostRepository"
 
+        // Must stay in sync with firestore.rules' user_profiles update rule's own
+        // protected-fields list — every one of these is exclusively server-maintained
+        // (assignInitialRole/grantAdminRole/setAccountSuspended/the Whish entitlement
+        // grant). Used by registerMember to filter its write down to a safe subset —
+        // see that function's own doc comment for the exact bug this prevents.
+        private val PROTECTED_UPDATE_FIELDS = setOf(
+            "role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
+            "ownerPackageTier", "ownerPackageExpiryMillis", "activeListingCount",
+            "paygCategoryCredits", "paygListingsBoughtCount",
+            "tosAcceptedAtMillis", "consentVersion"
+        )
+
         @Volatile
         private var instance: ProHostRepository? = null
 
@@ -1507,18 +1519,22 @@ class ProHostRepository {
      * Registers a new member. [uid] must be the real Firebase Auth UID (so this user's
      * `id` lines up with the `user_profiles/{uid}` document the role-claim Cloud Functions
      * write to) and [verifiedRole] must already have been confirmed server-side — see
-     * [com.example.data.auth.completeVerifiedRegistration].
-     */
-    /**
-     * Registers a new member. [uid] must be the real Firebase Auth UID (so this user's
-     * `id` lines up with the `user_profiles/{uid}` document the role-claim Cloud Functions
-     * write to) and [verifiedRole] must already have been confirmed server-side — see
      * [com.example.data.auth.completeVerifiedRegistration]. [isVerified] reflects that
      * [uid]'s Firebase Auth account already completed phone-number SMS verification
      * before this is ever called (see LoginAuthScreen's OTP flow) — there is no admin
      * accreditation step anymore; [idDocumentUrl] is kept on file, not reviewed.
+     *
+     * Suspend, and its Firestore write is awaited and checked, because of a real bug this
+     * fixes: assignInitialRole.ts's Admin-SDK write always lands (and creates the
+     * user_profiles/{uid} document) before this function's own write does, so by the time
+     * this write reaches Firestore it's evaluated as an UPDATE, not a create — and
+     * AppUser.toFirestoreMap() unconditionally includes ownerPackageTier/
+     * ownerPackageExpiryMillis, both on the update rule's protected-fields list (see
+     * PROTECTED_UPDATE_FIELDS below), so the whole write used to be silently rejected
+     * with permission-denied. The caller (completeVerifiedRegistration) is already a
+     * suspend fun with exactly one call site, so making this suspend too costs nothing.
      */
-    fun registerMember(
+    suspend fun registerMember(
         uid: String,
         fullName: String,
         email: String,
@@ -1547,9 +1563,20 @@ class ProHostRepository {
             isVerified = true
         )
 
+        // A targeted merge of only the fields this registration actually owns — never the
+        // fields firestore.rules' user_profiles update rule protects (role/isVerified/
+        // ownerPackageTier/etc. — assignInitialRole.ts already correctly set/defaulted all
+        // of those). Filtering toFirestoreMap() by this list, rather than hand-listing the
+        // "safe" fields, means a future field added to toFirestoreMap() is safe-by-default
+        // unless it's also added here. Keep this in sync with firestore.rules' own list.
+        val safeFields = newUser.toFirestoreMap().filterKeys { it !in PROTECTED_UPDATE_FIELDS }
+        val saved = firestoreService.updateUserProfileFields(uid, safeFields)
+        if (!saved) {
+            throw IllegalStateException("We couldn't save your profile. Please check your connection and try again.")
+        }
+
         _users.value = _users.value.filterNot { it.id == uid } + newUser
         _currentUser.value = newUser
-        coroutineScope.launch { firestoreService.saveUserProfile(newUser) }
 
         addAuditLog(
             actionType = "MEMBER_REGISTRATION",

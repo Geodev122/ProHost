@@ -426,20 +426,6 @@ class FirestoreService(
     // USER PROFILES (schema.gql AppUser)
     // ==========================================
 
-    suspend fun saveUserProfile(user: AppUser): Boolean {
-        return try {
-            val db = firestore ?: return false
-            db.collection(FirestoreSchema.Collections.USER_PROFILES)
-                .document(user.id)
-                .set(user.toFirestoreMap(), SetOptions.merge())
-                .await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error saving user profile: ${e.message}", e)
-            false
-        }
-    }
-
     /**
      * Targeted merge write of only the given [fields] on [uid]'s profile — never the
      * full [AppUser] object. Use this for any client-initiated profile edit (self or
@@ -447,9 +433,9 @@ class FirestoreService(
      * lastSignInAtMillis/isSuspended/ownerPackageTier/ownerPackageExpiryMillis are
      * exclusively server-maintained (assignInitialRole/grantAdminRole/
      * setAccountSuspended/the Whish webhook — see firestore.rules' user_profiles
-     * update rule) and must never appear in [fields]. Echoing a full AppUser back
-     * through [saveUserProfile] risks writing a locally-cached, possibly-stale value
-     * for one of those fields that no longer matches the real server-stored one —
+     * update rule) and must never appear in [fields]. Echoing a full AppUser's
+     * toFirestoreMap() back unfiltered risks writing a locally-cached, possibly-stale
+     * value for one of those fields that no longer matches the real server-stored one —
      * Firestore then rejects the *entire* write as an attempted protected-field
      * change, even though the caller only meant to edit their name.
      */
@@ -733,7 +719,7 @@ class FirestoreService(
     // workflow — both are gone (see AppUser.idDocumentUrl / SpaceListing.
     // ownershipProofUrl doc comments). An ID document and a listing's ownership
     // proof are now just plain Storage-URL fields on the owning document, saved via
-    // the existing saveUserProfile / listing-save paths, no dedicated collection.
+    // the existing profile/listing-save paths, no dedicated collection.
 
     // ==========================================
     // FINANCIAL TRANSACTIONS & AUDIT LOGS
