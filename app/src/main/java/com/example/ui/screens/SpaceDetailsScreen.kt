@@ -137,6 +137,9 @@ fun SpaceDetailsScreenContent(
     val liveSpace = space
 
     Scaffold(
+        // Nested inside the app-shell Scaffold's already-inset content area — see
+        // MyFavoritesScreen's identical fix for why this is needed.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text("Workspace Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },

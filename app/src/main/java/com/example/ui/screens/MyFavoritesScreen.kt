@@ -47,6 +47,10 @@ fun MyFavoritesScreen(
     val unavailableIds = savedIds - savedSpaces.map { it.id }.toSet()
 
     Scaffold(
+        // Nested inside the app-shell Scaffold's already-inset content area — its
+        // default contentWindowInsets would otherwise re-apply the status-bar-height
+        // top inset a second time, producing extra blank space above this TopAppBar.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(title = { Text("My Favorites", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold) })
         }

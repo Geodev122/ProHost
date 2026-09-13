@@ -58,6 +58,12 @@ android {
       // booking request/accept, Whish payment, Admin Console) is required before
       // this is trusted — this environment has no Android SDK to run R8 itself.
       isMinifyEnabled = true
+      // Paired with isMinifyEnabled — confirmed via repo-wide grep that the app
+      // never looks up a resource dynamically by name (Resources.getIdentifier),
+      // so there's no reflective-by-name resource this could strip unexpectedly.
+      // Same standing caveat as isMinifyEnabled above: needs a real release build
+      // to confirm nothing is missing at runtime.
+      isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
     }
