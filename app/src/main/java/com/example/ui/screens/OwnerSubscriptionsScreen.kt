@@ -147,7 +147,7 @@ fun OwnerSubscriptionsScreen(
                 }
 
                 val atCap = currentPlan != null && currentPlan.listingLimit != null && ownerSpaces.size >= currentPlan.listingLimit
-                if (currentPlan == null || atCap) {
+                if ((currentPlan == null || atCap) && enabledPlans.isNotEmpty()) {
                     Button(
                         onClick = {
                             // Prompt an upgrade to a higher package — the same

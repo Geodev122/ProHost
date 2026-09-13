@@ -337,7 +337,13 @@ fun OwnerBookingRequestCard(
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    ProCurrencyTag(rateUsd = request.formula.rateUsd, isPerMonth = true)
+                    val requestUnitLabel = when (request.formula.type) {
+                        RentalFormulaType.HOURLY -> "/hr"
+                        RentalFormulaType.SHIFT -> "/shift"
+                        RentalFormulaType.DAY_PER_WEEK -> "/day"
+                        RentalFormulaType.FULL_MONTH -> "/mo"
+                    }
+                    ProCurrencyTag(rateUsd = request.formula.rateUsd, unitLabel = requestUnitLabel)
                 }
 
                 // Selected Date & Time Range Display

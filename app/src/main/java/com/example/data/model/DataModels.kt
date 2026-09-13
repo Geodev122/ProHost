@@ -1161,15 +1161,11 @@ data class WhishTransaction(
     val spaceTitle: String,
     val daysGranted: Int = 30,
     val userId: String = "",
-    // Written by initiateWhishPayment.ts for every transaction — "OWNER_PACKAGE" /
-    // "PAYG_LISTING" / "PAYG_CART". spaceId is a synthetic id (e.g. "PAYG-SLOT-ST-01",
-    // "PAYG-CART-1234") for every purpose except the retired legacy "SUBSCRIPTION"
-    // one, so purpose/targetId/cartItems are the only real way to attribute a PAYG
-    // transaction back to the admin category it actually paid for — see
-    // AdminConsoleScreen.kt's computeCategoryRunRateRows.
+    // Written by initiateWhishPayment.ts for every transaction — today always
+    // "OWNER_PACKAGE" (PAYG and the old flat-fee "SUBSCRIPTION" purposes were
+    // retired in Phase 15). targetId is the purchased PackagePlan's id.
     val purpose: String = "",
-    val targetId: String? = null,
-    val cartItems: List<PaygCartItemRecord> = emptyList()
+    val targetId: String? = null
 ) {
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
@@ -1189,8 +1185,7 @@ data class WhishTransaction(
             "daysGranted" to daysGranted,
             "userId" to userId,
             "purpose" to purpose,
-            "targetId" to targetId,
-            "cartItems" to cartItems.map { it.toFirestoreMap() }
+            "targetId" to targetId
         )
     }
 
@@ -1200,9 +1195,6 @@ data class WhishTransaction(
         fun fromFirestoreMap(docId: String, data: Map<String, Any?>): WhishTransaction {
             val statusStr = data["status"] as? String ?: TransactionStatus.PENDING.name
             val stat = runCatching { TransactionStatus.valueOf(statusStr) }.getOrDefault(TransactionStatus.PENDING)
-            val cartItems = (data["cartItems"] as? List<*>)?.mapNotNull { raw ->
-                (raw as? Map<*, *>)?.let { PaygCartItemRecord.fromFirestoreMap(it) }
-            } ?: emptyList()
             return WhishTransaction(
                 id = docId,
                 orderId = data["orderId"] as? String ?: "",
@@ -1220,31 +1212,8 @@ data class WhishTransaction(
                 daysGranted = (data["daysGranted"] as? Number)?.toInt() ?: 30,
                 userId = data["userId"] as? String ?: "",
                 purpose = data["purpose"] as? String ?: "",
-                targetId = data["targetId"] as? String,
-                cartItems = cartItems
+                targetId = data["targetId"] as? String
             )
-        }
-    }
-}
-
-/** One line of a PAYG_CART purchase — mirrors initiateWhishPayment.ts's cartItems shape. */
-data class PaygCartItemRecord(
-    val categoryId: String,
-    val quantity: Int,
-    val unitPriceUsd: Double
-) {
-    fun toFirestoreMap(): Map<String, Any?> = mapOf(
-        "categoryId" to categoryId,
-        "quantity" to quantity,
-        "unitPriceUsd" to unitPriceUsd
-    )
-
-    companion object {
-        fun fromFirestoreMap(data: Map<*, *>): PaygCartItemRecord? {
-            val categoryId = data["categoryId"] as? String ?: return null
-            val quantity = (data["quantity"] as? Number)?.toInt() ?: return null
-            val unitPriceUsd = (data["unitPriceUsd"] as? Number)?.toDouble() ?: return null
-            return PaygCartItemRecord(categoryId, quantity, unitPriceUsd)
         }
     }
 }

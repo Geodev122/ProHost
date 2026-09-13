@@ -56,7 +56,7 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
     let invoiceLabel: string;
     let spaceIdForRecord = "";
     let spaceTitleForRecord = "";
-    const daysGranted = 30;
+    let daysGranted: number;
 
     switch (purpose as WhishPurpose) {
       case "OWNER_PACKAGE": {
@@ -71,6 +71,7 @@ export const initiateWhishPayment = onCall<InitiateWhishPaymentData>(
         invoiceLabel = `ProHost package upgrade: ${plan.name}`;
         spaceIdForRecord = `OWNER-PKG-${targetId}`;
         spaceTitleForRecord = `ProHost Package Subscription: ${plan.name}`;
+        daysGranted = plan.validityDays;
         break;
       }
     }

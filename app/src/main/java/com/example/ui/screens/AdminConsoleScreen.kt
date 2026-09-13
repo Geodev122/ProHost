@@ -694,7 +694,7 @@ private fun AdminRevenueTab(
                                             description = descInput,
                                             badgeName = badgeInput,
                                             priceUsd = priceInput.toDoubleOrNull() ?: plan.priceUsd,
-                                            listingLimit = if (unlimitedInput) null else limitInput.toIntOrNull()?.takeIf { it >= 1 },
+                                            listingLimit = if (unlimitedInput) null else (limitInput.toIntOrNull()?.takeIf { it >= 1 } ?: plan.listingLimit),
                                             validityDays = validityInput.toIntOrNull()?.takeIf { it >= 1 } ?: plan.validityDays
                                         )
                                     )
