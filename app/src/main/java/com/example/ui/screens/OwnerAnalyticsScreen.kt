@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.ListingStatus
 import com.example.data.model.SpaceListing
 import com.example.ui.components.*
 import com.example.ui.theme.*
@@ -36,7 +37,14 @@ fun OwnerAnalyticsScreen(
     // own data) as well as misleading UX. An owner with no listings now sees a real
     // empty state instead (below).
     val displayListings = ownerSpaces
-    val totalRevenuePotential = displayListings.sumOf { it.baseMonthlyRateUsd }
+    // A Draft or Paused listing isn't actually live — it earns nothing and isn't
+    // an "active space" — but both the "Listings" tile (labeled "Active spaces")
+    // and "Est. MRR" (labeled "Monthly Potential") used to sum every owned
+    // listing regardless of status, inflating both figures. Inquiries/favorites
+    // stay over every owned listing below — those are real historical engagement
+    // even for a listing that's since been paused.
+    val activeListings = displayListings.filter { it.status == ListingStatus.ACTIVE }
+    val totalRevenuePotential = activeListings.sumOf { it.baseMonthlyRateUsd }
     val totalInquiries = displayListings.sumOf { it.avatarInquiryClicks }
     val totalFavorites = displayListings.sumOf { it.favoriteCount }
 
@@ -86,7 +94,7 @@ fun OwnerAnalyticsScreen(
                     ) {
                         ProMetricTile(
                             title = "Listings",
-                            value = "${displayListings.size}",
+                            value = "${activeListings.size}",
                             subtitle = "Active spaces",
                             icon = Icons.Default.HomeWork,
                             modifier = Modifier.weight(1f)
