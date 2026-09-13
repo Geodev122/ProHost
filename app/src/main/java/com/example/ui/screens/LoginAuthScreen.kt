@@ -56,6 +56,9 @@ import kotlinx.coroutines.launch
  */
 private enum class AuthStep { PHONE_ENTRY, OTP_ENTRY, REGISTRATION_FORM }
 
+/** Matches Firebase Phone Auth's own typical SMS-resend throttling window. */
+private const val OTP_RESEND_COOLDOWN_SECONDS = 30
+
 private fun android.content.Context.findActivity(): Activity? {
     var ctx = this
     while (ctx is android.content.ContextWrapper) {
@@ -126,6 +129,20 @@ fun LoginAuthScreen(
 
     // --- Step 2: OTP entry ---
     var otpCode by remember { mutableStateOf("") }
+    // Resend affordance — previously entirely absent, so a code lost to a slow
+    // carrier or a mistyped number had no in-app recovery short of "Change phone
+    // number" (which restarts the whole flow, another SMS to the same number
+    // notwithstanding). Counts down from a fixed window after every code send
+    // (initial or resend) to match SMS providers' typical throttling — only the
+    // countdown reaching zero re-enables the button, so re-entering the step
+    // doesn't let a stale click fire ahead of it.
+    var resendCountdownSeconds by remember { mutableStateOf(0) }
+    LaunchedEffect(resendCountdownSeconds) {
+        if (resendCountdownSeconds > 0) {
+            kotlinx.coroutines.delay(1000)
+            resendCountdownSeconds -= 1
+        }
+    }
 
     // --- Step 3: registration form (only ever shown for a brand-new phone number) ---
     var regProfilePicUri by remember { mutableStateOf<Uri?>(null) }
@@ -286,6 +303,7 @@ fun LoginAuthScreen(
                             onCodeSent = {
                                 otpCode = ""
                                 localErrorMessage = null
+                                resendCountdownSeconds = OTP_RESEND_COOLDOWN_SECONDS
                                 step = AuthStep.OTP_ENTRY
                             },
                             onVerified = { needsRegistration ->
@@ -350,6 +368,47 @@ fun LoginAuthScreen(
                 )
 
                 Spacer(modifier = Modifier.height(Spacing.sm))
+
+                // Resend — previously entirely absent, so a code lost to a slow
+                // carrier had no recovery besides "Change phone number" (which
+                // restarts the whole flow just to send the same number another
+                // SMS). Reuses the exact same startPhoneVerification call the
+                // initial send used.
+                if (resendCountdownSeconds > 0) {
+                    Text(
+                        text = "Resend code in ${resendCountdownSeconds}s",
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                } else {
+                    TextButton(
+                        onClick = {
+                            val currentActivity = activity
+                            if (currentActivity == null) {
+                                localErrorMessage = "Unable to resend the code right now."
+                                return@TextButton
+                            }
+                            localErrorMessage = null
+                            authViewModel.startPhoneVerification(
+                                activity = currentActivity,
+                                e164Phone = verifiedPhoneE164,
+                                onCodeSent = {
+                                    otpCode = ""
+                                    resendCountdownSeconds = OTP_RESEND_COOLDOWN_SECONDS
+                                },
+                                onVerified = { needsRegistration ->
+                                    if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
+                                }
+                            )
+                        },
+                        enabled = !isAuthenticating,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Resend Code", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
+                    }
+                }
 
                 TextButton(onClick = {
                     step = AuthStep.PHONE_ENTRY
