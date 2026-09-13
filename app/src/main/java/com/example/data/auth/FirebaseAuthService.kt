@@ -102,19 +102,19 @@ class FirebaseAuthService(private val context: Context) {
             onError("Authentication service unavailable. Please check your connection and try again.")
             return
         }
-        Log.d(tag, "Initiating phone verification for: $e164PhoneNumber")
+        Log.d(tag, "Initiating phone verification for: ${maskPhone(e164PhoneNumber)}")
         val options = PhoneAuthOptions.newBuilder(auth)
             .setPhoneNumber(e164PhoneNumber)
             .setTimeout(60L, TimeUnit.SECONDS)
             .setActivity(activity)
             .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
                 override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-                    Log.d(tag, "Phone verification completed automatically for $e164PhoneNumber")
+                    Log.d(tag, "Phone verification completed automatically for ${maskPhone(e164PhoneNumber)}")
                     onAutoVerified(credential)
                 }
 
                 override fun onVerificationFailed(e: FirebaseException) {
-                    Log.e(tag, "Phone verification failed for $e164PhoneNumber: ${e.message}", e)
+                    Log.e(tag, "Phone verification failed for ${maskPhone(e164PhoneNumber)}: ${e.message}", e)
                     // Release builds must never show a user the raw Firebase internals
                     // (commit bb6abd9 deliberately reverted that) — but with no live
                     // Firebase Console access from a dev environment, a developer running
@@ -133,7 +133,7 @@ class FirebaseAuthService(private val context: Context) {
                 }
 
                 override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
-                    Log.d(tag, "Verification SMS code sent to $e164PhoneNumber, verificationId=$verificationId")
+                    Log.d(tag, "Verification SMS code sent to ${maskPhone(e164PhoneNumber)}, verificationId=$verificationId")
                     onCodeSent(verificationId)
                 }
             })
@@ -180,6 +180,17 @@ class FirebaseAuthService(private val context: Context) {
     private fun phoneCredentialErrorMessage(e: Exception): String = friendlyPhoneAuthMessage(e.message)
 
     private fun friendlyVerificationErrorMessage(e: Exception): String = friendlyPhoneAuthMessage(e.message)
+
+    /**
+     * Masks an E.164 phone number for logging — keeps the leading "+" and the last 2
+     * digits, masks everything in between, so a release-build log line still has enough
+     * signal to correlate with a support ticket without shipping the full number.
+     */
+    private fun maskPhone(e164: String): String {
+        if (e164.length <= 4) return "***"
+        val visibleSuffix = e164.takeLast(2)
+        return "${e164.first()}${"*".repeat(e164.length - 3)}$visibleSuffix"
+    }
 
     private fun friendlyPhoneAuthMessage(rawMessage: String?): String {
         val m = rawMessage.orEmpty()

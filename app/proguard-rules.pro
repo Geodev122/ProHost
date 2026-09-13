@@ -63,3 +63,14 @@
 # Google Play Integrity API
 -keep class com.google.android.play.core.integrity.** { *; }
 -dontwarn com.google.android.play.core.integrity.**
+
+# Strip verbose/debug/info logging from release builds — defense-in-depth
+# against a future call site logging something sensitive without noticing.
+# Deliberately excludes w()/e(): this app relies on those staying visible in
+# release for real crash/error triage (see ProHostApplication's own Log.e
+# calls), so only the noisier, lower-value levels are removed.
+-assumenosideeffects class android.util.Log {
+    public static int d(...);
+    public static int v(...);
+    public static int i(...);
+}

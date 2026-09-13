@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import com.example.ui.navigation.ProHostAppRoot
 import com.example.ui.theme.ProHostTheme
 import com.example.util.InAppUpdateManager
+import com.example.util.NotificationPermissionManager
 
 class MainActivity : ComponentActivity() {
     private var targetTab by mutableStateOf<String?>(null)
@@ -29,6 +30,15 @@ class MainActivity : ComponentActivity() {
             inAppUpdateManager = manager
         } catch (e: Exception) {
             android.util.Log.w("MainActivity", "InAppUpdateManager initialization failed: ${e.message}")
+        }
+
+        // Request POST_NOTIFICATIONS (Android 13+) so booking/payment push alerts
+        // actually show — covers both a fresh sign-in and an already-signed-in
+        // returning user, who never sees LoginAuthScreen's own permission prompts.
+        try {
+            NotificationPermissionManager(this).requestIfNeeded()
+        } catch (e: Exception) {
+            android.util.Log.w("MainActivity", "NotificationPermissionManager request failed: ${e.message}")
         }
 
         setContent {

@@ -20,7 +20,7 @@ class ProHostMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        Log.d("ProHostMessaging", "New FCM token registered: $token")
+        Log.d("ProHostMessaging", "New FCM token registered: ${token.take(16)}...")
 
         // Log to our system audit trails for full admin traceability
         val repository = ProHostRepository.getInstance()
