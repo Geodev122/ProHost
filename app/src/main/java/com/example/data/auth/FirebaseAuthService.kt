@@ -115,7 +115,21 @@ class FirebaseAuthService(private val context: Context) {
 
                 override fun onVerificationFailed(e: FirebaseException) {
                     Log.e(tag, "Phone verification failed for $e164PhoneNumber: ${e.message}", e)
-                    onError(friendlyVerificationErrorMessage(e))
+                    // Release builds must never show a user the raw Firebase internals
+                    // (commit bb6abd9 deliberately reverted that) — but with no live
+                    // Firebase Console access from a dev environment, a developer running
+                    // a debug build needs some way to see the real reason SMS didn't send
+                    // (the common causes — Phone Auth not enabled, a SHA fingerprint
+                    // mismatch, Play Integrity not enabled, exhausted quota — all produce
+                    // the same generic-looking exception otherwise). Debug-only, appended
+                    // after the same sanitized message every user sees.
+                    val message = friendlyVerificationErrorMessage(e)
+                    val debugMessage = if (com.example.BuildConfig.DEBUG) {
+                        "$message\n\n[debug] ${e::class.simpleName}: ${e.message}"
+                    } else {
+                        message
+                    }
+                    onError(debugMessage)
                 }
 
                 override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
