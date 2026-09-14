@@ -68,7 +68,6 @@ fun OwnerHubScreen(
     }
 
     var showRenewalDialog by remember { mutableStateOf(false) }
-    var selectedSpaceForSchedule by remember { mutableStateOf<SpaceListing?>(null) }
     var showCreateListingDialog by remember { mutableStateOf(false) }
     var editingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var deletingSpace by remember { mutableStateOf<SpaceListing?>(null) }
@@ -93,7 +92,6 @@ fun OwnerHubScreen(
         atListingLimit = atListingLimit,
         onSelectSpace = onSelectSpace,
         onOpenWhishRenewal = { showRenewalDialog = true },
-        onOpenScheduleEditor = { space -> selectedSpaceForSchedule = space },
         onOpenCreateListing = {
             viewModel.refreshTopHashtags()
             showCreateListingDialog = true
@@ -127,15 +125,6 @@ fun OwnerHubScreen(
             currentUser = currentUser!!,
             viewModel = viewModel,
             onDismiss = { showRenewalDialog = false }
-        )
-    }
-
-    // Space Availability Schedule Editor Dialog
-    selectedSpaceForSchedule?.let { space ->
-        SpaceScheduleEditorDialog(
-            space = space,
-            viewModel = viewModel,
-            onDismiss = { selectedSpaceForSchedule = null }
         )
     }
 
@@ -195,12 +184,6 @@ fun OwnerHubScreen(
                             showCreateListingDialog = false
                             draftToEdit = null
                             android.widget.Toast.makeText(context, "Workspace listing published successfully!", android.widget.Toast.LENGTH_SHORT).show()
-                            // Straight into the real Availability Control editor (same one
-                            // used to manage an existing listing) so the host sets operating
-                            // hours, blackout slots, and any additional formulas right after
-                            // publishing. Only reached once the listing is really persisted,
-                            // since every save in that editor looks the space up first.
-                            selectedSpaceForSchedule = newListing
                         }
                         is ListingCreateResult.PackageLimitReached -> {
                             redirectBlockedListingToPayment(
@@ -318,7 +301,6 @@ fun OwnerHubScreenContent(
     ownerPackageExpiryMillis: Long?,
     onSelectSpace: (SpaceListing) -> Unit,
     onOpenWhishRenewal: () -> Unit,
-    onOpenScheduleEditor: (SpaceListing) -> Unit,
     onOpenCreateListing: () -> Unit,
     onOpenPackageSelection: () -> Unit,
     isAdminUnlimited: Boolean = false,
@@ -824,25 +806,19 @@ fun OwnerHubScreenContent(
                                     Text("Details", style = MaterialTheme.typography.labelMedium)
                                 }
 
-                                // Availability & Schedule Control Button
+                                // Edit Listing Button — the sole entry point into the wizard
+                                // for an already-published listing now (item 1): availability
+                                // (operating hours/days, blackout slots, rental formulas,
+                                // subdivisions) is entirely configured here, so there's no
+                                // separate "Availability" control anymore.
                                 Button(
-                                    onClick = { onOpenScheduleEditor(space) },
+                                    onClick = { onEditSpace(space) },
                                     modifier = Modifier.weight(1.5f),
                                     shape = MaterialTheme.shapes.medium
                                 ) {
-                                    Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text("Availability", style = MaterialTheme.typography.labelMedium)
-                                }
-
-                                // Edit Listing Button
-                                OutlinedButton(
-                                    onClick = { onEditSpace(space) },
-                                    modifier = Modifier.weight(0.9f),
-                                    shape = MaterialTheme.shapes.medium,
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
-                                ) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Edit Listing", modifier = Modifier.size(14.dp))
+                                    Text("Edit Listing", style = MaterialTheme.typography.labelMedium)
                                 }
 
                                 // Pause/Resume Button — the host's own lifecycle control,

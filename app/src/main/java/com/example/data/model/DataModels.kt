@@ -321,9 +321,9 @@ data class RentalPricingConfig(
          *  Called both from fromFirestoreMap (a document with no "pricing" key at
          *  all) and eagerly from every write path that still constructs a
          *  RentalFormula/SubdivisionStrategy directly (CreateListingDialog,
-         *  SubdivisionEditorSection, SpaceScheduleEditorDialog), so "pricing" is
-         *  always correct the moment it's first written, not only on a later read of
-         *  a genuinely old pre-existing document. */
+         *  SubdivisionEditorSection), so "pricing" is always correct the moment
+         *  it's first written, not only on a later read of a genuinely old
+         *  pre-existing document. */
         fun fromLegacyFormula(formula: RentalFormula?): RentalPricingConfig {
             if (formula == null) return default()
             val oldTypeStr = formula.type.name

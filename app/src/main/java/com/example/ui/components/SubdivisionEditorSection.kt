@@ -28,11 +28,12 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 /**
- * The room/desk ("subdivision") builder — add, list, and remove individually
- * rentable rooms or desks within a Center/Polyclinic/Co-working listing. Shared
- * by CreateListingDialog's Step 3 (at creation) and SpaceScheduleEditorDialog's
- * "Rooms & Subdivisions" section (post-publish), so a host is never stuck with
- * whatever subdivisions they happened to define during the original wizard.
+ * The room/desk ("subdivision") builder — add, edit, and remove individually
+ * rentable rooms or desks within a Center/Polyclinic/Co-working listing.
+ * CreateListingDialog's Step 3 is the sole caller, for both a brand-new listing
+ * and editing an already-published one (existingDraft + onListingUpdated), so a
+ * host is never stuck with whatever subdivisions they happened to define during
+ * the original wizard.
  *
  * [operatingDays]/[openingHour]/[closingHour] come from the parent space's own
  * [SpaceOperatingSchedule] — the per-division pricing editor keys its Hourly/Shift/
@@ -112,11 +113,10 @@ fun SubdivisionEditorSection(
                 // spaceId is always the real listing id now — CreateListingDialog
                 // passes its own stable listingId (generated up front, same one
                 // already used for uploadListingImage/uploadOwnershipProofDocument
-                // in that file, real listing or not yet published) and
-                // SpaceScheduleEditorDialog passes the already-published
-                // liveSpace.id. Previously this used pendingSubId (the subdivision's
-                // own random id) as a spaceId stand-in, which silently filed every
-                // subdivision image uploaded through the post-publish editor under a
+                // in that file), real listing or not yet published, or an already-
+                // published one's own id when editing. Previously this used
+                // pendingSubId (the subdivision's own random id) as a spaceId
+                // stand-in, which silently filed every subdivision image under a
                 // folder no workspace_listings document — and no cleanup trigger —
                 // ever points at, an orphaned-storage-object leak.
                 val url = storageService.uploadSubdivisionImage(
@@ -387,11 +387,8 @@ fun SubdivisionEditorSection(
                     }
 
                     // Room-specific blocked time — e.g. a maintenance window just for
-                    // this room, independent of the whole space's own blocked hours
-                    // (SpaceScheduleEditorDialog's post-publish grid editor, which this
-                    // intentionally doesn't try to replicate: that one operates on an
-                    // already-persisted listing's live schedule; this room doesn't exist
-                    // in Firestore yet while the wizard is still open).
+                    // this room, independent of the whole space's own blackout slots
+                    // (the wizard's Blackout Slots section, whole-space-only).
                     Text(
                         "Blocked Times (optional)",
                         fontWeight = FontWeight.SemiBold,

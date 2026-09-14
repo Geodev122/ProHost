@@ -11,13 +11,12 @@ import androidx.compose.ui.unit.dp
 
 /**
  * The opening/closing-hour fields + day-of-week chip row shared by
- * CreateListingDialog's Step 2 (setting a brand-new listing's operating schedule)
- * and SpaceScheduleEditorDialog's post-publish "Facility Operating Window" editor —
- * previously hand-rolled separately in both places despite being the identical
- * control (same fields, same day-chip toggle behavior), the one piece of Phase 2's
- * plan that was never actually extracted. Callers own everything around this
- * (titles, a Sunday toggle, a Save button, a wizard's surrounding form) — this is
- * just the two real inputs.
+ * CreateListingDialog's Step 2 (setting a listing's own operating schedule) and
+ * SubdivisionEditorSection's per-division schedule-override editor — the identical
+ * control (same fields, same day-chip toggle behavior) previously hand-rolled
+ * separately in each place. Callers own everything around this (titles, a Sunday
+ * toggle, a Save button, a wizard's surrounding form) — this is just the two real
+ * inputs.
  */
 @Composable
 fun OperatingScheduleEditorSection(

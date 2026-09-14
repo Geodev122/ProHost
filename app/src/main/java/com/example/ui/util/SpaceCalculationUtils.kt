@@ -5,9 +5,8 @@ import java.util.Calendar
 
 /**
  * One rentable unit of time produced by a rental pricing strategy. Shared source of
- * truth between the host's Availability Control editor (SpaceScheduleEditorDialog's
- * on/off toggles) and the Specialist-facing availability view
- * (SpaceAvailabilityMatrixView) — both render the exact same derived slots
+ * truth between CreateListingDialog's Blackout Slots on/off toggles and the
+ * Specialist-facing availability views — both render the exact same derived slots
  * ([SpaceCalculationUtils.buildAllSlotsForSpace]) instead of two different models
  * that could silently disagree (the specialist view used to be a fixed
  * Morning/Afternoon/Evening grid unrelated to what the host actually configured;
@@ -263,8 +262,8 @@ object SpaceCalculationUtils {
      * The unit a formula's [RentalFormula.rateUsd] is actually denominated in, so a
      * rate can be labelled honestly instead of being stamped "/mo" regardless of type.
      *
-     * This mirrors what the host is asked to enter in SpaceScheduleEditorDialog's
-     * formula builder: HOURLY collects "Rate ($ USD / hour)", while SHIFT,
+     * This mirrors what the host is asked to enter in CreateListingDialog's
+     * Additional Rental Formulas builder: HOURLY collects "Rate ($ USD / hour)", while SHIFT,
      * DAY_PER_WEEK and FULL_MONTH all collect a monthly figure ("Rate ($ USD/mo)" /
      * "Monthly Rate ($ USD)"). Deriving a per-shift or per-day number from the
      * monthly one would be inventing a figure the host never set.
