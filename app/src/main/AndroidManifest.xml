@@ -29,7 +29,7 @@
             android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
-            android:theme="@style/Theme.MyApplication">
+            android:theme="@style/Theme.MyApplication.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

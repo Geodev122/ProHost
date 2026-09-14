@@ -1,15 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- Pre-splashScreen-API-install theme: applied only for the instant between process
+         start and installSplashScreen()'s own call in MainActivity.onCreate — on API < 31
+         this WAS the actual first thing a user saw for the entire pre-Compose window,
+         with no explicit android:windowBackground set, so it fell back to whatever
+         android:Theme.DeviceDefault.NoActionBar resolves windowBackground to on that
+         device (dark on plenty of OEM skins) — the "old dark screen" flash. Explicit
+         windowBackground here closes that regardless of device/theme. -->
     <style name="Theme.MyApplication" parent="android:Theme.DeviceDefault.NoActionBar">
-        <!-- API 31+ only (ignored below): a brief, solid-color system splash — the
-             SplashScreen API has no full-bleed-image slot, only this background color
-             plus the launcher's own adaptive icon, shown automatically. Compose's own
-             SplashScreen.kt takes over immediately after with the real splash.png image;
-             this color is picked to match that image's backdrop so the handoff has no
-             visible seam. The animated-icon slot is deliberately left unset — it renders
-             a small centered icon, not a full-bleed image, so the launcher icon (already
-             the real ProHost icon) is the right default. -->
+        <item name="android:windowBackground">@color/splash_background</item>
+        <!-- API 31+ only (ignored below API 31, and superseded by the
+             androidx.core.splashscreen-driven Theme.MyApplication.Starting once
+             installSplashScreen() runs): kept as a defensive fallback only. -->
         <item name="android:windowSplashScreenBackground">@color/splash_background</item>
+    </style>
+
+    <!-- The real pre-Compose splash theme, applied via installSplashScreen() in
+         MainActivity.onCreate before super.onCreate() — androidx.core.splashscreen
+         backports the platform SplashScreen API's behavior consistently down to
+         minSdk (24), instead of the raw android:windowSplashScreenBackground attribute
+         above, which the OS silently ignores below API 31 (that was the other half of
+         the "old screen" bug: no controlled splash existed at all pre-31). Compose's own
+         SplashScreen.kt (splash.png) takes over immediately after, using the same
+         background color so the handoff has no visible seam. The icon slot is
+         deliberately left unset — it renders a small centered icon from the launcher's
+         own adaptive icon, not a full-bleed image, so the current ProHost icon is the
+         right default with zero extra assets to keep in sync. -->
+    <style name="Theme.MyApplication.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="postSplashScreenTheme">@style/Theme.MyApplication</item>
     </style>
 </resources>
