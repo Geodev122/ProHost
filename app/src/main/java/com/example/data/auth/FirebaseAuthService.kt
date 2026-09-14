@@ -156,13 +156,31 @@ class FirebaseAuthService(private val context: Context) {
 
     /**
      * Signs in with phone credential.
-     * Supports both real SMS credentials and fallback test credentials.
+     *
+     * @param verificationId The verification id [credential] was built from
+     * (FirebaseAuthService.buildPhoneAuthCredential's first argument) — pass it
+     * whenever the caller has it, so this can tell a real Firebase-issued
+     * verification apart from this class's own synthetic
+     * "TEST-VERIFY-ID-..." one (see [sendPhoneVerificationCode]'s QA-whitelist
+     * fast path and rate-limit fallback). Only the latter is allowed to fall
+     * back to an already-cached/anonymous session below — a real credential
+     * failing (wrong code, expired code, network hiccup — all common, everyday
+     * user mistakes) must always surface as a real error. It previously didn't:
+     * ANY 6-digit code — which every real OTP also is — on a real credential's
+     * failure silently "succeeded" by grabbing whatever Firebase user happened
+     * to already be cached on the device, or minting a brand-new anonymous
+     * account and reporting it as a genuinely new registration. That is almost
+     * certainly why an already-registered phone number could get routed to the
+     * registration form instead of being recognized: a real code mismatch (or
+     * any other transient credential failure) was silently reinterpreted as
+     * "brand new user," never as the error it actually was.
      */
-    suspend fun signInWithPhoneCredential(credential: PhoneAuthCredential): AuthResult {
+    suspend fun signInWithPhoneCredential(credential: PhoneAuthCredential, verificationId: String? = null): AuthResult {
         val auth = firebaseAuth
             ?: return AuthResult.Error("Authentication service unavailable. Please check your connection and try again.")
 
         val smsCode = credential.smsCode.orEmpty()
+        val isTestFlow = verificationId?.startsWith("TEST-VERIFY-ID-") == true
         return try {
             val result = auth.signInWithCredential(credential).awaitTask()
             val user = result.user
@@ -175,7 +193,11 @@ class FirebaseAuthService(private val context: Context) {
                 isNewUser = result.additionalUserInfo?.isNewUser ?: false
             )
         } catch (e: Exception) {
-            Log.w(tag, "Credential sign-in failed (${e.message}). Checking fallback test mode.")
+            if (!isTestFlow) {
+                Log.w(tag, "Real credential sign-in failed (${e.message}).")
+                return AuthResult.Error(friendlyPhoneAuthMessage(e.message), e)
+            }
+            Log.w(tag, "Test-flow credential sign-in failed (${e.message}). Using instant test verification fallback.")
             if (smsCode == "123456" || smsCode == "000000" || smsCode == "666666" || smsCode.length == 6) {
                 val current = auth.currentUser
                 if (current != null) {

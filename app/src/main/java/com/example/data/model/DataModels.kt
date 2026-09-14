@@ -142,10 +142,13 @@ data class ShiftBasedConfig(
     val distribution: Map<String, List<String>> = emptyMap()
 )
 
+// Single flat price per day (mirrors ShiftDefinition.price's item 7b rework,
+// same request applied to Day-Based) — a host now prices a day once; the
+// specialist configures real occurrences (one-time on a specific date, or
+// weekly-recurring on the same weekday up to a chosen end date) at booking
+// time instead of picking which of 3 pre-set commitment tiers to pay under.
 data class DayPricing(
-    val oneTimePrice: Double? = null,
-    val sameDayEachMonthPrice: Double? = null,
-    val sameDayEachWeekPrice: Double? = null
+    val price: Double = 0.0
 )
 
 data class DayBasedConfig(
@@ -195,13 +198,7 @@ data class RentalPricingConfig(
             mapOf(
                 "useFacilityHours" to dbc.useFacilityHours, "customStartHour" to dbc.customStartHour,
                 "customEndHour" to dbc.customEndHour,
-                "distribution" to dbc.distribution.mapValues { (_, v) ->
-                    mapOf(
-                        "oneTimePrice" to v.oneTimePrice,
-                        "sameDayEachMonthPrice" to v.sameDayEachMonthPrice,
-                        "sameDayEachWeekPrice" to v.sameDayEachWeekPrice
-                    )
-                }
+                "distribution" to dbc.distribution.mapValues { (_, v) -> mapOf("price" to v.price) }
             )
         }
     )
@@ -226,9 +223,7 @@ data class RentalPricingConfig(
                 }
             } ?: false
         }
-        RentalStrategyType.DAY_BASED -> dayBased?.distribution?.values?.any {
-            (it.oneTimePrice ?: 0.0) > 0.0 || (it.sameDayEachMonthPrice ?: 0.0) > 0.0 || (it.sameDayEachWeekPrice ?: 0.0) > 0.0
-        } ?: false
+        RentalStrategyType.DAY_BASED -> dayBased?.distribution?.values?.any { it.price > 0.0 } ?: false
     }
 
     companion object {
@@ -301,11 +296,18 @@ data class RentalPricingConfig(
                 val distribution = (db["distribution"] as? Map<*, *>)?.mapNotNull { (k, v) ->
                     (k as? String)?.let { key ->
                         (v as? Map<*, *>)?.let {
-                            key to DayPricing(
-                                oneTimePrice = (it["oneTimePrice"] as? Number)?.toDouble(),
-                                sameDayEachMonthPrice = (it["sameDayEachMonthPrice"] as? Number)?.toDouble(),
-                                sameDayEachWeekPrice = (it["sameDayEachWeekPrice"] as? Number)?.toDouble()
-                            )
+                            // New shape writes a single "price" field directly; an older
+                            // document instead carries the 3 legacy recurrence-tier
+                            // fields (one-time/monthly/weekly) — read whichever of the 3
+                            // is nonzero first, mirroring ShiftDefinition's identical
+                            // backward-compat read above.
+                            val price = (it["price"] as? Number)?.toDouble() ?: run {
+                                (it["oneTimePrice"] as? Number)?.toDouble()?.takeIf { p -> p > 0.0 }
+                                    ?: (it["sameDayEachWeekPrice"] as? Number)?.toDouble()?.takeIf { p -> p > 0.0 }
+                                    ?: (it["sameDayEachMonthPrice"] as? Number)?.toDouble()
+                                    ?: 0.0
+                            }
+                            key to DayPricing(price = price)
                         }
                     }
                 }?.toMap() ?: emptyMap()
@@ -378,7 +380,7 @@ data class RentalPricingConfig(
                     strategyType = RentalStrategyType.DAY_BASED,
                     dayBased = DayBasedConfig(
                         useFacilityHours = false, customStartHour = startHour, customEndHour = endHour,
-                        distribution = days.associateWith { DayPricing(rate, rate, rate) }
+                        distribution = days.associateWith { DayPricing(price = rate) }
                     )
                 )
                 else -> RentalPricingConfig(

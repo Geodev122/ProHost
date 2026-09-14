@@ -146,17 +146,17 @@ object SpaceCalculationUtils {
                 val to = if (d.useFacilityHours) closeHour else (d.customEndHour ?: closeHour)
                 operatingDays.mapNotNull { day ->
                     val dp = d.distribution[day] ?: return@mapNotNull null
-                    val prices = buildMap<BookingRecurrence, Double> {
-                        dp.oneTimePrice?.let { put(BookingRecurrence.ONE_TIME, it) }
-                        dp.sameDayEachWeekPrice?.let { put(BookingRecurrence.SAME_DAY_EVERY_WEEK, it) }
-                        dp.sameDayEachMonthPrice?.let { put(BookingRecurrence.SAME_DAY_EVERY_MONTH, it) }
-                    }
-                    if (prices.isEmpty()) return@mapNotNull null
+                    if (dp.price <= 0.0) return@mapNotNull null
                     RentableSlot(
                         groupLabel = "Day-Based • $sourceLabel", day = day,
                         startTime = hourLabel(from), endTime = hourLabel(to),
                         label = "$day  full day (${hourLabel(from)}-${hourLabel(to)})",
-                        sourceFormulaId = sourceId, pricesByRecurrence = prices,
+                        sourceFormulaId = sourceId,
+                        // Single flat price per day now (this session's Day-Based
+                        // rework, same shape as Shift-Based's item 7b) — a single-
+                        // entry map keyed FLAT rather than 3 now-meaningless legacy
+                        // recurrence keys.
+                        pricesByRecurrence = mapOf(BookingRecurrence.FLAT to dp.price),
                         strategyType = RentalStrategyType.DAY_BASED
                     )
                 }
@@ -353,7 +353,10 @@ object SpaceCalculationUtils {
             // (item 7b) — read that regardless of what recurrence the caller
             // passes, same as Monthly/Hourly above.
             RentalStrategyType.SHIFT_BASED -> slots.sumOf { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0 }
-            RentalStrategyType.DAY_BASED -> slots.sumOf { it.pricesByRecurrence[recurrence] ?: 0.0 }
+            // A day's pricesByRecurrence map only ever carries a FLAT key now (this
+            // session's Day-Based rework, mirroring item 7b's Shift-Based change) —
+            // read that regardless of what recurrence the caller passes.
+            RentalStrategyType.DAY_BASED -> slots.sumOf { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0 }
         }
         // Real weekly hours from the slots themselves — this feeds the host's
         // utilization stat (OwnerHubScreen), the "hrs/wk deducted" note
@@ -388,13 +391,16 @@ object SpaceCalculationUtils {
      * the app (RentalBookingDialog computed its own ad-hoc dynamicMonthlyRate
      * instead of ever calling it) and referenced the now-legacy RentalStrategy enum.
      *
-     * SHIFT_BASED is no longer priced through this function (item 7b) — a shift now
-     * has one flat price, and the specialist picks specific calendar dates rather
-     * than a term/recurrence tier, so the real total is simply
-     * `selectedCalendarDates.size * shift.price`, computed directly at
-     * RentalBookingDialog's own call site where the chosen dates are known. The
-     * `else` branch below is DAY_BASED-only now; it would silently return 0 for a
-     * SHIFT_BASED slot since its pricesByRecurrence map only carries a FLAT key.
+     * Neither SHIFT_BASED (item 7b) nor DAY_BASED (this session's identical rework)
+     * is priced through this function anymore — each now has one flat price, and
+     * the specialist picks specific calendar dates rather than a term/recurrence
+     * tier, so the real total is simply `selectedCalendarDates.size * price` (per
+     * weekday for Day-Based, since different days can carry different prices),
+     * computed directly at RentalBookingDialog's own call site where the chosen
+     * dates are known. The `else` branch below is now unreachable in practice —
+     * kept only so a stray legacy call site fails soft (0) rather than crashing,
+     * since neither remaining strategy's pricesByRecurrence map carries anything
+     * but a FLAT key.
      */
     fun calculateTotalRentalPrice(
         selectedSlots: List<RentableSlot>,
@@ -409,12 +415,9 @@ object SpaceCalculationUtils {
                 (selectedSlots.firstOrNull()?.pricesByRecurrence?.get(BookingRecurrence.FLAT) ?: 0.0) * effectiveMonths
             RentalStrategyType.HOURLY ->
                 selectedSlots.sumOf { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0 }
-            // Day-Based: a recurrence price is per occurrence, and the whole-
-            // commitment total is that price times how many times the chosen
-            // weekday actually falls inside the term. Counted on the real calendar
-            // from the real start date — "same day every week for 3 months" is 12,
-            // 13 or 14 occurrences depending on where the term starts, never a flat
-            // constant (product decision, Phase 6 task #88).
+            // Unreachable for MONTHLY/HOURLY/SHIFT_BASED/DAY_BASED (all handled
+            // above or bypass this function entirely) — see this function's doc
+            // comment.
             else ->
                 selectedSlots.sumOf { slot ->
                     (slot.pricesByRecurrence[recurrence] ?: 0.0) *

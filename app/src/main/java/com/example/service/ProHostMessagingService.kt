@@ -18,6 +18,7 @@ import java.util.UUID
 
 class ProHostMessagingService : FirebaseMessagingService() {
 
+    @Deprecated("Overrides FirebaseMessagingService.onNewToken, itself deprecated by the Firebase SDK; no in-app replacement to migrate to yet")
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("ProHostMessaging", "New FCM token registered: ${token.take(16)}...")

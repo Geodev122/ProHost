@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -20,6 +21,12 @@ class MainActivity : ComponentActivity() {
     private var inAppUpdateManager: InAppUpdateManager? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Must run before super.onCreate() — installs the real, consistently-themed
+        // system splash (androidx.core.splashscreen backport) on every API level down
+        // to minSdk, replacing the raw un-themed starting window that used to be the
+        // only thing visible pre-Compose on API < 31 (see themes.xml's
+        // Theme.MyApplication.Starting doc comment for the full root cause).
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         handleIncomingIntent(intent)

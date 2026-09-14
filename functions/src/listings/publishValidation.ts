@@ -22,7 +22,10 @@ interface RentalPricingConfigDoc {
     distribution?: Record<string, string[]>;
   } | null;
   dayBased?: {
-    distribution?: Record<string, { oneTimePrice?: number; sameDayEachMonthPrice?: number; sameDayEachWeekPrice?: number }>;
+    // New shape: a single flat "price" field. The 3 individually-named fields are
+    // the old shape, kept only for reading a document written before this change —
+    // see structuredConfigHasRealPrice's DAY_BASED case below.
+    distribution?: Record<string, { price?: number; oneTimePrice?: number; sameDayEachMonthPrice?: number; sameDayEachWeekPrice?: number }>;
   } | null;
 }
 
@@ -77,7 +80,11 @@ function structuredConfigHasRealPrice(config: RentalPricingConfigDoc | undefined
     case "DAY_BASED": {
       const distribution = config.dayBased?.distribution ?? {};
       return Object.values(distribution).some(
-        (p) => (p?.oneTimePrice ?? 0) > 0 || (p?.sameDayEachMonthPrice ?? 0) > 0 || (p?.sameDayEachWeekPrice ?? 0) > 0
+        (p) =>
+          (p?.price ?? 0) > 0 ||
+          (p?.oneTimePrice ?? 0) > 0 ||
+          (p?.sameDayEachMonthPrice ?? 0) > 0 ||
+          (p?.sameDayEachWeekPrice ?? 0) > 0
       );
     }
     default:

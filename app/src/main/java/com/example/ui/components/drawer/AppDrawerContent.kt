@@ -52,11 +52,31 @@ import com.example.ui.theme.*
  *      (rent-law reference content, app updates, legal documents), so it's
  *      shown to both rather than hidden for one and not the other.
  */
+/** A drawer nav-item icon with a small red dot in the corner when [showDot] is
+ * true — the "new pending request" indicator on "Renting Requests", alongside
+ * the existing push notification for the same event. */
+@Composable
+private fun DrawerBadgedIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, tint: androidx.compose.ui.graphics.Color, showDot: Boolean) {
+    BadgedBox(
+        badge = {
+            if (showDot) {
+                Badge(containerColor = CrimsonRed)
+            }
+        }
+    ) {
+        Icon(icon, contentDescription = null, tint = tint)
+    }
+}
+
 @Composable
 fun SpecialistDrawerContent(
     currentUser: AppUser?,
     packagePlans: com.example.data.model.PackagePlanCatalog = com.example.data.model.PackagePlanCatalog(),
     currentRole: UserRole,
+    // Count of PENDING booking requests against this host's own listings — drives
+    // the red dot on "Renting Requests" below, alongside the existing push
+    // notification, so a new request is visible at a glance without opening the tab.
+    pendingRequestsCount: Int = 0,
     activeProHostTabId: String?,
     onTabSelected: (String) -> Unit,
     onDrawerAction: (String) -> Unit,
@@ -100,7 +120,13 @@ fun SpecialistDrawerContent(
                 label = { Text("Renting Requests", fontWeight = FontWeight.Bold) },
                 selected = activeProHostTabId == "owner_requests",
                 onClick = { onTabSelected("owner_requests") },
-                icon = { Icon(Icons.Default.Inbox, contentDescription = null, tint = if (activeProHostTabId == "owner_requests") FreshGreen else OxfordBlue) },
+                icon = {
+                    DrawerBadgedIcon(
+                        icon = Icons.Default.Inbox,
+                        tint = if (activeProHostTabId == "owner_requests") FreshGreen else OxfordBlue,
+                        showDot = pendingRequestsCount > 0
+                    )
+                },
                 colors = NavigationDrawerItemDefaults.colors(
                     selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
                     selectedTextColor = OxfordBlue,
@@ -261,6 +287,9 @@ fun SpecialistDrawerContent(
 @Composable
 fun AdminDrawerContent(
     currentUser: AppUser?,
+    // Same badge signal as SpecialistDrawerContent's — Admin sees every listing's
+    // requests (its own "owner_requests" reads all, not just Admin-owned ones).
+    pendingRequestsCount: Int = 0,
     activeTabId: String?,
     onTabSelected: (String) -> Unit,
     onDrawerAction: (String) -> Unit,
@@ -333,7 +362,13 @@ fun AdminDrawerContent(
             label = { Text("Renting Requests", fontWeight = FontWeight.SemiBold) },
             selected = activeTabId == "owner_requests",
             onClick = { onTabSelected("owner_requests") },
-            icon = { Icon(Icons.Default.Inbox, contentDescription = null, tint = if (activeTabId == "owner_requests") CarnationOrange else OxfordBlue) }
+            icon = {
+                DrawerBadgedIcon(
+                    icon = Icons.Default.Inbox,
+                    tint = if (activeTabId == "owner_requests") CarnationOrange else OxfordBlue,
+                    showDot = pendingRequestsCount > 0
+                )
+            }
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
@@ -375,14 +410,19 @@ fun AdminDrawerContent(
         )
 
         // System Debugger stays at the very bottom of the admin side menu, below
-        // every other destination.
-        Spacer(modifier = Modifier.height(Spacing.xs))
-        NavigationDrawerItem(
-            label = { Text("Firebase & System Debugger", fontWeight = FontWeight.Bold) },
-            selected = false,
-            onClick = { onDrawerAction("system_debugger") },
-            icon = { Icon(Icons.Default.BugReport, contentDescription = null, tint = AmberWarning) }
-        )
+        // every other destination. Debug-build-only, on top of the admin-role gate
+        // this whole drawer is already behind — a live Firebase/system diagnostics
+        // panel has no end-user purpose in a release build, and gating it only by
+        // role would leave it reachable by any account ever promoted to ADMIN.
+        if (com.example.BuildConfig.DEBUG) {
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            NavigationDrawerItem(
+                label = { Text("Firebase & System Debugger", fontWeight = FontWeight.Bold) },
+                selected = false,
+                onClick = { onDrawerAction("system_debugger") },
+                icon = { Icon(Icons.Default.BugReport, contentDescription = null, tint = AmberWarning) }
+            )
+        }
 
         ProHostDrawerFooter()
 

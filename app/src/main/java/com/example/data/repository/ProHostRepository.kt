@@ -1675,15 +1675,31 @@ class ProHostRepository {
      * UI state. There is no code path here that grants a role from caller-supplied input.
      * [email] may be blank (a phone-auth FirebaseUser has no email of its own) — a blank
      * value never overwrites a previously-stored real email.
+     *
+     * This used to only ever check [_users]' in-memory cache for an existing profile —
+     * but that cache is populated by [startRealtimeSync]'s listeners, which only
+     * (re)attach in reaction to [_currentUser] changing, and [_currentUser] is set at
+     * the very end of THIS function. On the very first sign-in of a fresh app process
+     * (a returning user on a new device, or right after a reinstall/clear-data), the
+     * cache is therefore always empty at the moment this runs — every returning user's
+     * very first login of a session fabricated a brand-new, blank-phone profile, which
+     * routed them straight to the registration form despite a real, complete profile
+     * already sitting in Firestore. This is the confirmed root cause of a registered
+     * user being redirected to registration instead of recognized on login. A real,
+     * awaited direct document read (already rules-permitted — it's the same document
+     * [FirestoreService]'s own per-user listener reads) closes the race outright: the
+     * cache is still checked first as a fast path, but a cache miss now falls through
+     * to Firestore itself rather than assuming "no profile exists yet."
      */
-    fun login(uid: String, email: String, verifiedRole: UserRole): AppUser {
+    suspend fun login(uid: String, email: String, verifiedRole: UserRole): AppUser {
         val cleanEmail = email.trim().lowercase()
         val existing = _users.value.find { it.id == uid }
+            ?: firestoreService.getUserProfile(uid)?.let { AppUser.fromFirestoreMap(uid, it) }
 
         val user = existing?.copy(role = verifiedRole, email = cleanEmail.ifBlank { existing.email }) ?: AppUser(
             id = uid,
             email = cleanEmail,
-            fullName = if (cleanEmail.contains("@")) cleanEmail.substringBefore("@").replace(".", " ").capitalize(Locale.US) else "Member",
+            fullName = if (cleanEmail.contains("@")) cleanEmail.substringBefore("@").replace(".", " ").replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() } else "Member",
             role = verifiedRole,
             specialty = "",
             phone = "",

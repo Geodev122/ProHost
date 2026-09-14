@@ -17,6 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.data.model.BookingRequestStatus
 import com.example.data.model.SpaceListing
 import com.example.data.model.UserRole
 import com.example.ui.components.*
@@ -105,6 +106,13 @@ fun ProHostAppRoot(
     val currentUser by viewModel.currentUser.collectAsState()
     val drawerPackagePlans by viewModel.packagePlans.collectAsState()
     val deepLinkSpaces by viewModel.spaces.collectAsState()
+    // Drives the red dot on the drawer's "Renting Requests" item (PRO_HOST/ADMIN)
+    // so a new booking request is visible at a glance, alongside the existing
+    // push notification, without opening the tab.
+    val ownerIncomingRequestsForBadge by viewModel.ownerIncomingRequests.collectAsState()
+    val pendingIncomingRequestsCount = remember(ownerIncomingRequestsForBadge) {
+        ownerIncomingRequestsForBadge.count { it.status == BookingRequestStatus.PENDING }
+    }
     var detailedSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var activeTabId by remember { mutableStateOf("search_map") }
     var activeDrawerTabDialog by remember { mutableStateOf<String?>(null) }
@@ -280,6 +288,7 @@ fun ProHostAppRoot(
                                 currentUser = currentUser,
                                 packagePlans = drawerPackagePlans,
                                 currentRole = currentRole,
+                                pendingRequestsCount = pendingIncomingRequestsCount,
                                 activeProHostTabId = fullScreenDrawerTab,
                                 onTabSelected = { tabId ->
                                     navigateTo(tabId)
@@ -299,6 +308,7 @@ fun ProHostAppRoot(
                         UserRole.ADMIN -> {
                             AdminDrawerContent(
                                 currentUser = currentUser,
+                                pendingRequestsCount = pendingIncomingRequestsCount,
                                 activeTabId = fullScreenDrawerTab,
                                 onTabSelected = { tabId ->
                                     navigateTo(tabId)
