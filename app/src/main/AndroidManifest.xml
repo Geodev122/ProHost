@@ -37,11 +37,9 @@
             </intent-filter>
 
             <!-- Whish payment redirect App Link: hopebearer-award.com/payment/success|failure
-                 (see functions/src/payments/initiateWhishPayment.ts), and the listing
-                 share App Link: hopebearer-award.com/listing/{spaceId} (see
-                 functions/src/listings/shareLanding.ts) — both on the same already-
-                 verified domain, so one autoVerify intent-filter with two <data> blocks
-                 covers both link families. Verified via
+                 (see functions/src/payments/initiateWhishPayment.ts). This domain is
+                 reserved for Whish's payment-gateway channel API configuration only —
+                 do not add other link families to it. Verified via
                  https://hopebearer-award.com/.well-known/assetlinks.json. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
@@ -53,9 +51,24 @@
                     android:scheme="https"
                     android:host="hopebearer-award.com"
                     android:pathPrefix="/payment" />
+            </intent-filter>
+
+            <!-- Listing share App Link: prohost-f766f.web.app/listing/{spaceId} (see
+                 functions/src/listings/shareLanding.ts and ShareLinks.kt) — Firebase
+                 Hosting's own default domain, deliberately separate from
+                 hopebearer-award.com above. Serves the exact same Hosting deployment
+                 (assetlinks.json included), so it needs no extra domain
+                 registration/DNS work to verify. Verified via
+                 https://prohost-f766f.web.app/.well-known/assetlinks.json. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
                 <data
                     android:scheme="https"
-                    android:host="hopebearer-award.com"
+                    android:host="prohost-f766f.web.app"
                     android:pathPrefix="/listing" />
             </intent-filter>
 

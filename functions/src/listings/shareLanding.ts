@@ -2,11 +2,13 @@ import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import "../lib/admin";
 
-// Same custom domain already used for the Whish payment App Link (see
-// initiateWhishPayment.ts / AndroidManifest.xml's autoVerify intent-filter) —
-// reusing it means one already-verified Digital Asset Links domain covers
-// both link families instead of standing up a second one.
-const CANONICAL_HOST = "https://hopebearer-award.com";
+// Firebase Hosting's own default domain for this project — NOT
+// hopebearer-award.com, which is reserved solely for Whish's payment-gateway
+// channel API configuration (see initiateWhishPayment.ts) and must not be
+// reused for anything else. This default domain serves the exact same
+// Hosting deployment (assetlinks.json included), so Android App Link
+// verification works with zero extra domain registration/DNS work.
+const CANONICAL_HOST = "https://prohost-f766f.web.app";
 const FALLBACK_IMAGE = `${CANONICAL_HOST}/logo.png`;
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.geonajjar.prohost";
 
@@ -108,7 +110,9 @@ function renderPage(opts: {
  * Card meta tags — the piece a static Hosting page can't provide, since the
  * title/description/image must reflect the actual listing being shared.
  * Reached via a Hosting rewrite (firebase.json: "/listing/**" -> this
- * function) at https://hopebearer-award.com/listing/{spaceId}.
+ * function) at https://prohost-f766f.web.app/listing/{spaceId} — Firebase
+ * Hosting's own default domain, not hopebearer-award.com (reserved for
+ * Whish's payment channel only).
  *
  * Link-preview crawlers (WhatsApp, Telegram, Facebook, iMessage, etc.) fetch
  * this URL server-side over plain HTTP with no OS involvement, so Android's

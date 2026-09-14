@@ -107,14 +107,16 @@ class MainActivity : ComponentActivity() {
             targetTab = "payment_return"
         }
 
-        // A tapped listing share link (hopebearer-award.com/listing/{spaceId} — see
-        // functions/src/listings/shareLanding.ts) only reaches here when the OS's App
-        // Link verification succeeded and the app is installed; a link-preview crawler
-        // or a user without the app never hits this code path at all, they see the
-        // landing page's own HTML instead. ProHostNavGraph resolves the id against the
-        // live spaces list once the user is signed in and it's loaded.
+        // A tapped listing share link (prohost-f766f.web.app/listing/{spaceId} — see
+        // functions/src/listings/shareLanding.ts; deliberately NOT
+        // hopebearer-award.com, which is reserved for Whish's payment channel only)
+        // only reaches here when the OS's App Link verification succeeded and the
+        // app is installed; a link-preview crawler or a user without the app never
+        // hits this code path at all, they see the landing page's own HTML instead.
+        // ProHostNavGraph resolves the id against the live spaces list once the user
+        // is signed in and it's loaded.
         val isListingShareLink = data != null && data.scheme == "https" &&
-            data.host == "hopebearer-award.com" && data.path?.startsWith("/listing/") == true
+            data.host == "prohost-f766f.web.app" && data.path?.startsWith("/listing/") == true
         if (isListingShareLink) {
             targetSpaceId = data.path?.removePrefix("/listing/")?.trim('/')?.takeIf { it.isNotBlank() }
         }
