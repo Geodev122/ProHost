@@ -131,11 +131,10 @@ object SpaceCalculationUtils {
                             startTime = hourLabel(shift.startHour), endTime = hourLabel(shift.endHour),
                             label = "$day  ${shift.name.displayName} (${hourLabel(shift.startHour)}-${hourLabel(shift.endHour)})",
                             sourceFormulaId = sourceId,
-                            pricesByRecurrence = mapOf(
-                                BookingRecurrence.ONE_TIME to shift.pricing.oneTimePrice,
-                                BookingRecurrence.SAME_DAY_EVERY_WEEK to shift.pricing.sameDayEveryWeekPrice,
-                                BookingRecurrence.SAME_DAY_EVERY_MONTH to shift.pricing.monthlyRecurrencePrice
-                            ),
+                            // Single flat price per shift now (item 7b) — a single-
+                            // entry map keyed FLAT, matching Monthly/Hourly's shape,
+                            // rather than 3 now-meaningless legacy recurrence keys.
+                            pricesByRecurrence = mapOf(BookingRecurrence.FLAT to shift.price),
                             strategyType = RentalStrategyType.SHIFT_BASED
                         )
                     }
@@ -233,15 +232,56 @@ object SpaceCalculationUtils {
             req.spaceId == spaceId &&
             bookingScope(req, spaceId) == slot.sourceFormulaId &&
             (req.formula.type == RentalFormulaType.FULL_MONTH ||
-                (bookingDays(req).contains(slot.day) &&
+                // A booking scoped to specific calendar dates (item 7b/Decision 2)
+                // only locks those exact dates — see isCalendarDateLocked — never
+                // the whole recurring weekday+shift pattern, so this general
+                // "is the pattern ever offered" check stays true and other
+                // specialists can still book a different date of the same shift.
+                (req.selectedCalendarDates.isEmpty() &&
+                    bookingDays(req).contains(slot.day) &&
                     hoursOverlap(req.formula.startHour, req.formula.endHour, slot.startTime, slot.endTime)))
+    }
+
+    /**
+     * The per-date counterpart to [isSlotLocked] — whether [isoDate] (a real
+     * calendar date matching [slot]'s weekday) is already locked by an ACCEPTED
+     * booking. Used by RentalBookingDialog's calendar-date picker (item 7b) to
+     * grey out only the specific dates another specialist already has, leaving
+     * the rest of the same weekday+shift pattern open. A booking with no
+     * selectedCalendarDates (every non-Shift strategy, and any Shift-Based
+     * booking made before this field existed) still locks every occurrence of
+     * its weekday — the same fallback [isSlotLocked] uses.
+     */
+    fun isCalendarDateLocked(
+        slot: RentableSlot,
+        isoDate: String,
+        spaceId: String,
+        acceptedBookings: List<RentalBookingRequest>,
+        ignoreBookingId: String? = null
+    ): Boolean = acceptedBookings.any { req ->
+        req.status == BookingRequestStatus.ACCEPTED &&
+            req.id != ignoreBookingId &&
+            req.spaceId == spaceId &&
+            bookingScope(req, spaceId) == slot.sourceFormulaId &&
+            (req.formula.type == RentalFormulaType.FULL_MONTH ||
+                (hoursOverlap(req.formula.startHour, req.formula.endHour, slot.startTime, slot.endTime) &&
+                    if (req.selectedCalendarDates.isNotEmpty()) {
+                        isoDate in req.selectedCalendarDates
+                    } else {
+                        bookingDays(req).contains(slot.day)
+                    }))
     }
 
     /**
      * The ACCEPTED booking [candidate] would collide with if it were accepted now,
      * or null when it's clear — same scoping and overlap rule as [isSlotLocked],
      * applied booking-to-booking. The booking [candidate] is an edit of
-     * (replacesBookingId) is released on acceptance, so it never counts.
+     * (replacesBookingId) is released on acceptance, so it never counts. When both
+     * bookings carry real selectedCalendarDates (item 7b/Decision 2), the exact
+     * dates are compared instead of weekday overlap — two Shift-Based bookings on
+     * the same weekday but disjoint dates are not a conflict. When only one side
+     * (or neither) has real dates, falls back to the original weekday check —
+     * conservative, so a legacy weekday-forever lock is never silently bypassed.
      */
     fun findAcceptConflict(
         candidate: RentalBookingRequest,
@@ -254,8 +294,12 @@ object SpaceCalculationUtils {
             bookingScope(other, candidate.spaceId) == bookingScope(candidate, candidate.spaceId) &&
             (other.formula.type == RentalFormulaType.FULL_MONTH ||
                 candidate.formula.type == RentalFormulaType.FULL_MONTH ||
-                (bookingDays(other).any { it in bookingDays(candidate) } &&
-                    hoursOverlap(other.formula.startHour, other.formula.endHour, candidate.formula.startHour, candidate.formula.endHour)))
+                (hoursOverlap(other.formula.startHour, other.formula.endHour, candidate.formula.startHour, candidate.formula.endHour) &&
+                    if (other.selectedCalendarDates.isNotEmpty() && candidate.selectedCalendarDates.isNotEmpty()) {
+                        other.selectedCalendarDates.any { it in candidate.selectedCalendarDates }
+                    } else {
+                        bookingDays(other).any { it in bookingDays(candidate) }
+                    }))
     }
 
     /**
@@ -305,7 +349,11 @@ object SpaceCalculationUtils {
         val rate = when (strategy) {
             RentalStrategyType.MONTHLY -> first.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0
             RentalStrategyType.HOURLY -> slots.sumOf { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0 }
-            else -> slots.sumOf { it.pricesByRecurrence[recurrence] ?: 0.0 }
+            // A shift's pricesByRecurrence map only ever carries a FLAT key now
+            // (item 7b) — read that regardless of what recurrence the caller
+            // passes, same as Monthly/Hourly above.
+            RentalStrategyType.SHIFT_BASED -> slots.sumOf { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0 }
+            RentalStrategyType.DAY_BASED -> slots.sumOf { it.pricesByRecurrence[recurrence] ?: 0.0 }
         }
         // Real weekly hours from the slots themselves — this feeds the host's
         // utilization stat (OwnerHubScreen), the "hrs/wk deducted" note
@@ -339,6 +387,14 @@ object SpaceCalculationUtils {
      * selectedStrategyType: RentalStrategy, ...) that had zero callers anywhere in
      * the app (RentalBookingDialog computed its own ad-hoc dynamicMonthlyRate
      * instead of ever calling it) and referenced the now-legacy RentalStrategy enum.
+     *
+     * SHIFT_BASED is no longer priced through this function (item 7b) — a shift now
+     * has one flat price, and the specialist picks specific calendar dates rather
+     * than a term/recurrence tier, so the real total is simply
+     * `selectedCalendarDates.size * shift.price`, computed directly at
+     * RentalBookingDialog's own call site where the chosen dates are known. The
+     * `else` branch below is DAY_BASED-only now; it would silently return 0 for a
+     * SHIFT_BASED slot since its pricesByRecurrence map only carries a FLAT key.
      */
     fun calculateTotalRentalPrice(
         selectedSlots: List<RentableSlot>,
@@ -353,8 +409,8 @@ object SpaceCalculationUtils {
                 (selectedSlots.firstOrNull()?.pricesByRecurrence?.get(BookingRecurrence.FLAT) ?: 0.0) * effectiveMonths
             RentalStrategyType.HOURLY ->
                 selectedSlots.sumOf { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0 }
-            // Shift-Based / Day-Based: a recurrence price is per occurrence, and the
-            // whole-commitment total is that price times how many times the chosen
+            // Day-Based: a recurrence price is per occurrence, and the whole-
+            // commitment total is that price times how many times the chosen
             // weekday actually falls inside the term. Counted on the real calendar
             // from the real start date — "same day every week for 3 months" is 12,
             // 13 or 14 occurrences depending on where the term starts, never a flat

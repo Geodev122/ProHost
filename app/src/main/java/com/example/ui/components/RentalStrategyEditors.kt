@@ -287,29 +287,16 @@ fun ShiftStrategyEditor(
                             singleLine = true
                         )
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
-                            value = if (shift.pricing.oneTimePrice == 0.0) "" else shift.pricing.oneTimePrice.toInt().toString(),
-                            onValueChange = { v -> onConfigChange(config.copy(shifts = config.shifts.map { if (it.name == shift.name) it.copy(pricing = it.pricing.copy(oneTimePrice = v.toDoubleOrNull() ?: 0.0)) else it })) },
-                            label = { Text("One-time") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true
-                        )
-                        OutlinedTextField(
-                            value = if (shift.pricing.sameDayEveryWeekPrice == 0.0) "" else shift.pricing.sameDayEveryWeekPrice.toInt().toString(),
-                            onValueChange = { v -> onConfigChange(config.copy(shifts = config.shifts.map { if (it.name == shift.name) it.copy(pricing = it.pricing.copy(sameDayEveryWeekPrice = v.toDoubleOrNull() ?: 0.0)) else it })) },
-                            label = { Text("Weekly") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true
-                        )
-                        OutlinedTextField(
-                            value = if (shift.pricing.monthlyRecurrencePrice == 0.0) "" else shift.pricing.monthlyRecurrencePrice.toInt().toString(),
-                            onValueChange = { v -> onConfigChange(config.copy(shifts = config.shifts.map { if (it.name == shift.name) it.copy(pricing = it.pricing.copy(monthlyRecurrencePrice = v.toDoubleOrNull() ?: 0.0)) else it })) },
-                            label = { Text("Monthly") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true
-                        )
-                    }
+                    // Single flat price per shift (item 7b) — the specialist
+                    // configures occurrences (which dates, how many) at booking
+                    // time instead of picking one of 3 pre-set commitment tiers.
+                    OutlinedTextField(
+                        value = if (shift.price == 0.0) "" else shift.price.toInt().toString(),
+                        onValueChange = { v -> onConfigChange(config.copy(shifts = config.shifts.map { if (it.name == shift.name) it.copy(price = v.toDoubleOrNull() ?: 0.0) else it })) },
+                        label = { Text("Price per shift ($ USD)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
                 }
                 HorizontalDivider()
             }

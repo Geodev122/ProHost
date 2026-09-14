@@ -45,6 +45,25 @@ private fun recurrenceLabel(recurrence: BookingRecurrence): String = when (recur
     BookingRecurrence.SAME_DAY_EVERY_MONTH -> "Same day, every month"
 }
 
+private val calendarDayAbbreviations = mapOf(
+    Calendar.SUNDAY to "Sun", Calendar.MONDAY to "Mon", Calendar.TUESDAY to "Tue",
+    Calendar.WEDNESDAY to "Wed", Calendar.THURSDAY to "Thu", Calendar.FRIDAY to "Fri",
+    Calendar.SATURDAY to "Sat"
+)
+
+/** UTC-based, matching the date picker's own UTC millis — see [rememberDatePickerState]. */
+private fun weekdayAbbreviation(utcTimeMillis: Long): String {
+    val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+    cal.timeInMillis = utcTimeMillis
+    return calendarDayAbbreviations[cal.get(Calendar.DAY_OF_WEEK)] ?: "Mon"
+}
+
+private fun isoDateString(utcTimeMillis: Long): String {
+    val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+    cal.timeInMillis = utcTimeMillis
+    return "%04d-%02d-%02d".format(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH))
+}
+
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun RentalBookingDialog(
@@ -115,16 +134,35 @@ fun RentalBookingDialog(
     }
     var selectedHourlyCells by remember(hourlyDay) { mutableStateOf(setOf<RentableSlot>()) }
 
-    // --- Shift-Based: pick a day, a real shift offered that day, and a recurrence ---
+    // --- Shift-Based: pick a day, a real shift offered that day, then which other
+    // days share that same shift type, then specific real calendar dates (item 7b:
+    // one flat price per shift; the specialist configures real occurrences instead
+    // of picking a one-time/weekly/monthly recurrence tier) ---
     var shiftDay by remember(strategySlots) {
         mutableStateOf(strategySlots.firstOrNull()?.day ?: allWeekDays.first())
     }
     val shiftDayOptions = remember(strategySlots) { strategySlots.map { it.day }.distinct() }
     val shiftsForDay = remember(strategySlots, shiftDay) { strategySlots.filter { it.day == shiftDay } }
     var selectedShiftSlot by remember(shiftsForDay) { mutableStateOf(shiftsForDay.firstOrNull()) }
-    var shiftRecurrence by remember(selectedShiftSlot) {
-        mutableStateOf(selectedShiftSlot?.pricesByRecurrence?.keys?.firstOrNull() ?: BookingRecurrence.SAME_DAY_EVERY_WEEK)
+    // Every day (not just $shiftDay) that offers the exact same shift type as the
+    // one just picked — e.g. picking "Mon Morning" here also surfaces "Wed Morning"
+    // and "Fri Morning" if the host offers Morning shifts those days too, so the
+    // specialist can commit to a multi-day-per-week pattern, not just $shiftDay.
+    val sameShiftTypeSlots = remember(strategySlots, selectedShiftSlot) {
+        val label = selectedShiftSlot?.groupLabel
+        if (label == null) emptyList() else strategySlots.filter { it.groupLabel == label }
     }
+    val commitmentDayOptions = remember(sameShiftTypeSlots) { sameShiftTypeSlots.map { it.day }.distinct() }
+    var selectedCommitmentDays by remember(selectedShiftSlot) {
+        mutableStateOf(setOfNotNull(shiftDay.takeIf { d -> sameShiftTypeSlots.any { it.day == d } }))
+    }
+    // Real ISO dates the specialist has picked so far, constrained (via the date
+    // picker's SelectableDates below) to weekdays in selectedCommitmentDays and not
+    // already locked by another accepted booking. Resets when the commitment-days
+    // set changes so a stale date that no longer matches a chosen weekday can't
+    // silently remain selected.
+    var selectedCalendarDates by remember(selectedCommitmentDays) { mutableStateOf(listOf<String>()) }
+    var showDatePicker by remember { mutableStateOf(false) }
 
     // --- Day-Based: pick a recurrence, then one or more real priced days for it ---
     var dayBasedRecurrence by remember(strategySlots) {
@@ -163,30 +201,51 @@ fun RentalBookingDialog(
     // one-off booking of the chosen cells, so it's the only strategy without a term.
     val durationOptions = listOf(1, 2, 3, 6, 12)
     var selectedDurationMonths by remember { mutableStateOf(1) }
-    val usesTerm = selectedStrategyType != null && selectedStrategyType != RentalStrategyType.HOURLY
+    // Shift-Based no longer uses a preset Start Date / Duration Term at all — the
+    // real calendar dates picked below already are the specialist's exact
+    // commitment, so there's nothing left for those two controls to mean.
+    val usesTerm = selectedStrategyType == RentalStrategyType.MONTHLY || selectedStrategyType == RentalStrategyType.DAY_BASED
     val effectiveRecurrence = when (selectedStrategyType) {
-        RentalStrategyType.SHIFT_BASED -> shiftRecurrence
+        // A shift's pricesByRecurrence map only ever carries a FLAT key now
+        // (item 7b) — no more one-time/weekly/monthly tier to pick between.
+        RentalStrategyType.SHIFT_BASED -> BookingRecurrence.FLAT
         RentalStrategyType.DAY_BASED -> dayBasedRecurrence
         else -> BookingRecurrence.FLAT
     }
-    val totalCalculatedUsd = remember(selectedSlotsForPricing, effectiveRecurrence, selectedDurationMonths, selectedStrategyType, startDate) {
-        SpaceCalculationUtils.calculateTotalRentalPrice(selectedSlotsForPricing, effectiveRecurrence, selectedDurationMonths, startDate)
+    val totalCalculatedUsd = remember(selectedSlotsForPricing, effectiveRecurrence, selectedDurationMonths, selectedStrategyType, startDate, selectedCalendarDates) {
+        if (selectedStrategyType == RentalStrategyType.SHIFT_BASED) {
+            // Real occurrence count x the one flat shift price — no term/recurrence
+            // approximation involved.
+            val price = selectedShiftSlot?.pricesByRecurrence?.get(BookingRecurrence.FLAT) ?: 0.0
+            selectedCalendarDates.size * price
+        } else {
+            SpaceCalculationUtils.calculateTotalRentalPrice(selectedSlotsForPricing, effectiveRecurrence, selectedDurationMonths, startDate)
+        }
     }
     // Per-day "N occurrences x $price" breakdown so the whole-commitment total is
     // explainable, not a number that appears from nowhere.
-    val occurrenceBreakdown = remember(selectedSlotsForPricing, effectiveRecurrence, selectedDurationMonths, selectedStrategyType, startDate) {
-        if (selectedStrategyType == RentalStrategyType.SHIFT_BASED || selectedStrategyType == RentalStrategyType.DAY_BASED) {
-            selectedSlotsForPricing.joinToString("\n") { slot ->
-                val n = SpaceCalculationUtils.countRecurrenceOccurrences(slot.day, effectiveRecurrence, startDate, selectedDurationMonths)
-                val price = slot.pricesByRecurrence[effectiveRecurrence] ?: 0.0
-                "${slot.day}: $n occurrence${if (n == 1) "" else "s"} × $${price.toInt()}"
+    val occurrenceBreakdown = remember(selectedSlotsForPricing, effectiveRecurrence, selectedDurationMonths, selectedStrategyType, startDate, selectedCalendarDates) {
+        when (selectedStrategyType) {
+            RentalStrategyType.SHIFT_BASED -> {
+                if (selectedCalendarDates.isEmpty()) "" else {
+                    val price = selectedShiftSlot?.pricesByRecurrence?.get(BookingRecurrence.FLAT) ?: 0.0
+                    "${selectedCalendarDates.size} occurrence${if (selectedCalendarDates.size == 1) "" else "s"} × $${price.toInt()}"
+                }
             }
-        } else ""
+            RentalStrategyType.DAY_BASED -> {
+                selectedSlotsForPricing.joinToString("\n") { slot ->
+                    val n = SpaceCalculationUtils.countRecurrenceOccurrences(slot.day, effectiveRecurrence, startDate, selectedDurationMonths)
+                    val price = slot.pricesByRecurrence[effectiveRecurrence] ?: 0.0
+                    "${slot.day}: $n occurrence${if (n == 1) "" else "s"} × $${price.toInt()}"
+                }
+            }
+            else -> ""
+        }
     }
 
     var clinicalNotes by remember { mutableStateOf("") }
 
-    val chosenSlotSummary = remember(selectedStrategyType, selectedSlotsForPricing, effectiveRecurrence) {
+    val chosenSlotSummary = remember(selectedStrategyType, selectedSlotsForPricing, effectiveRecurrence, selectedShiftSlot, selectedCalendarDates) {
         when (selectedStrategyType) {
             RentalStrategyType.MONTHLY -> {
                 val m = if (hasSubdivisions) selectedSubdivision?.pricing?.monthly else space.pricing.monthly
@@ -198,9 +257,12 @@ fun RentalBookingDialog(
                     .joinToString(", ") { "${it.day} ${it.startTime}-${it.endTime}" }
             }
             RentalStrategyType.SHIFT_BASED -> {
-                val slot = selectedSlotsForPricing.firstOrNull()
-                if (slot == null) "No shift selected yet"
-                else "${slot.label} • ${recurrenceLabel(effectiveRecurrence)}"
+                val slot = selectedShiftSlot
+                when {
+                    slot == null -> "No shift selected yet"
+                    selectedCalendarDates.isEmpty() -> "${slot.groupLabel.substringAfter("• ")} • no dates selected yet"
+                    else -> "${slot.groupLabel.substringAfter("• ")} • ${selectedCalendarDates.size} date${if (selectedCalendarDates.size == 1) "" else "s"}"
+                }
             }
             RentalStrategyType.DAY_BASED -> {
                 if (selectedSlotsForPricing.isEmpty()) "No days selected yet"
@@ -463,19 +525,63 @@ fun RentalBookingDialog(
                                                 )
                                             }
                                         }
-                                        val shiftRecurrenceOptions = selectedShiftSlot?.pricesByRecurrence?.keys?.toList().orEmpty()
-                                        if (shiftRecurrenceOptions.isNotEmpty()) {
-                                            Text("Choose a commitment:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
-                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                shiftRecurrenceOptions.forEach { rec ->
-                                                    val price = selectedShiftSlot?.pricesByRecurrence?.get(rec) ?: 0.0
+                                        if (selectedShiftSlot != null) {
+                                            val shiftPrice = selectedShiftSlot?.pricesByRecurrence?.get(BookingRecurrence.FLAT) ?: 0.0
+
+                                            // Step 1: which days share this same shift type — defaults
+                                            // to just the day already browsed above; a specialist who
+                                            // only wants a single one-time shift needs no extra tap.
+                                            Text(
+                                                "Choose commitment — which days offer the same ${selectedShiftSlot?.groupLabel?.substringAfter("• ")} shift:",
+                                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                commitmentDayOptions.forEach { day ->
+                                                    val isOn = day in selectedCommitmentDays
                                                     FilterChip(
-                                                        selected = shiftRecurrence == rec,
-                                                        onClick = { shiftRecurrence = rec },
-                                                        label = { Text("${recurrenceLabel(rec)} · $${price.toInt()}", fontSize = MaterialTheme.typography.labelSmall.fontSize) },
-                                                        modifier = Modifier.weight(1f)
+                                                        selected = isOn,
+                                                        onClick = {
+                                                            selectedCommitmentDays = if (isOn) {
+                                                                selectedCommitmentDays - day
+                                                            } else {
+                                                                selectedCommitmentDays + day
+                                                            }
+                                                        },
+                                                        label = { Text(day, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
                                                     )
                                                 }
+                                            }
+
+                                            // Step 2: real calendar dates matching those weekdays —
+                                            // one at a time via the platform date picker, constrained
+                                            // (SelectableDates below) to the chosen weekdays and to
+                                            // dates not already locked by another accepted booking.
+                                            Text(
+                                                "Pick specific dates ($${shiftPrice.toInt()} each):",
+                                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            if (selectedCalendarDates.isNotEmpty()) {
+                                                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                    selectedCalendarDates.sorted().forEach { dateStr ->
+                                                        FilterChip(
+                                                            selected = true,
+                                                            onClick = { selectedCalendarDates = selectedCalendarDates - dateStr },
+                                                            label = { Text(dateStr, fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+                                                            trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove date", modifier = Modifier.size(14.dp)) }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            OutlinedButton(
+                                                onClick = { showDatePicker = true },
+                                                enabled = selectedCommitmentDays.isNotEmpty(),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text("Add a date", fontSize = MaterialTheme.typography.labelSmall.fontSize)
                                             }
                                         }
                                     }
@@ -520,39 +626,44 @@ fun RentalBookingDialog(
                         }
                     }
 
-                    // 4. Start Date Selector
-                    Column {
-                        Text(
-                            text = "Select Starting Date",
-                            fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(Spacing.sm))
+                    // 4. Start Date Selector — superseded by the real calendar-date
+                    // picker above for Shift-Based (item 7b): the dates picked there
+                    // already are the exact commitment, so a separate abstract
+                    // "start date" preset would mean nothing for that strategy.
+                    if (selectedStrategyType != RentalStrategyType.SHIFT_BASED) {
+                        Column {
+                            Text(
+                                text = "Select Starting Date",
+                                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(Spacing.sm))
 
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(dateOptions) { option ->
-                                val isSelected = selectedDateOption == option
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { selectedDateOption = option },
-                                    label = { Text(option, fontSize = MaterialTheme.typography.labelMedium.fontSize) },
-                                    leadingIcon = if (isSelected) {
-                                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                                    } else null
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(dateOptions) { option ->
+                                    val isSelected = selectedDateOption == option
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = { selectedDateOption = option },
+                                        label = { Text(option, fontSize = MaterialTheme.typography.labelMedium.fontSize) },
+                                        leadingIcon = if (isSelected) {
+                                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                        } else null
+                                    )
+                                }
+                            }
+
+                            if (selectedDateOption == "Custom Date") {
+                                Spacer(modifier = Modifier.height(Spacing.sm))
+                                OutlinedTextField(
+                                    value = customStartDate,
+                                    onValueChange = { customStartDate = it },
+                                    label = { Text("Start Date (YYYY-MM-DD)") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
-                        }
-
-                        if (selectedDateOption == "Custom Date") {
-                            Spacer(modifier = Modifier.height(Spacing.sm))
-                            OutlinedTextField(
-                                value = customStartDate,
-                                onValueChange = { customStartDate = it },
-                                label = { Text("Start Date (YYYY-MM-DD)") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
-                            )
                         }
                     }
 
@@ -691,8 +802,13 @@ fun RentalBookingDialog(
                             HorizontalDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
 
                             if (occurrenceBreakdown.isNotBlank()) {
+                                val breakdownHeader = if (selectedStrategyType == RentalStrategyType.SHIFT_BASED) {
+                                    "Your selected dates:"
+                                } else {
+                                    "Over $selectedDurationMonths month${if (selectedDurationMonths > 1) "s" else ""} from ${selectedDateOption.lowercase()}:"
+                                }
                                 Text(
-                                    text = "Over $selectedDurationMonths month${if (selectedDurationMonths > 1) "s" else ""} from ${selectedDateOption.lowercase()}:\n$occurrenceBreakdown",
+                                    text = "$breakdownHeader\n$occurrenceBreakdown",
                                     fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     lineHeight = 16.sp
@@ -716,17 +832,24 @@ fun RentalBookingDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    val computedDate = if (selectedDateOption == "Custom Date") customStartDate else selectedDateOption
-                    val canSubmit = selectedStrategyType != null && selectedSlotsForPricing.isNotEmpty()
+                    // Shift-Based has no abstract "start date" preset anymore (item
+                    // 7b) — the earliest real calendar date picked is the most
+                    // meaningful stand-in for this field.
+                    val computedDate = when {
+                        selectedStrategyType == RentalStrategyType.SHIFT_BASED -> selectedCalendarDates.sorted().firstOrNull() ?: ""
+                        selectedDateOption == "Custom Date" -> customStartDate
+                        else -> selectedDateOption
+                    }
+                    val canSubmit = selectedStrategyType != null && selectedSlotsForPricing.isNotEmpty() &&
+                        (selectedStrategyType != RentalStrategyType.SHIFT_BASED || selectedCalendarDates.isNotEmpty())
 
                     fun buildFormulaForSubmission(): RentalFormula? {
-                        // Same synthesis SpaceDetailsScreen's preview and
-                        // SpaceAvailabilityMatrixView's tap-to-book cells use — see its
-                        // doc comment for why this is shared rather than three
-                        // independent approximations. Only the description is
-                        // overridden here, since this dialog already has a more
-                        // specific, live-updating summary than the shared helper's
-                        // generic slot label.
+                        // Same synthesis SpaceDetailsScreen's renting-option preview and
+                        // Check Availability panel use — see its doc comment for why
+                        // this is shared rather than independent approximations. Only
+                        // the description is overridden here, since this dialog
+                        // already has a more specific, live-updating summary than the
+                        // shared helper's generic slot label.
                         return SpaceCalculationUtils.representativeFormula(selectedSlotsForPricing, effectiveRecurrence)
                             ?.copy(scheduleDescription = chosenSlotSummary)
                     }
@@ -749,6 +872,7 @@ fun RentalBookingDialog(
                                 context = context,
                                 alsoOpenWhatsApp = false,
                                 selectedDays = formula.daysOfWeek,
+                                selectedCalendarDates = if (selectedStrategyType == RentalStrategyType.SHIFT_BASED) selectedCalendarDates else emptyList(),
                                 selectedStartHour = formula.startHour,
                                 selectedEndHour = formula.endHour,
                                 selectedShift = if (selectedStrategyType == RentalStrategyType.SHIFT_BASED) formula.shiftName else "",
@@ -780,6 +904,7 @@ fun RentalBookingDialog(
                                 context = context,
                                 alsoOpenWhatsApp = true,
                                 selectedDays = formula.daysOfWeek,
+                                selectedCalendarDates = if (selectedStrategyType == RentalStrategyType.SHIFT_BASED) selectedCalendarDates else emptyList(),
                                 selectedStartHour = formula.startHour,
                                 selectedEndHour = formula.endHour,
                                 selectedShift = if (selectedStrategyType == RentalStrategyType.SHIFT_BASED) formula.shiftName else "",
@@ -799,6 +924,57 @@ fun RentalBookingDialog(
                     )
                 }
             }
+        }
+    }
+
+    // Real calendar-date picker for a Shift-Based commitment (item 7b) — the
+    // platform's own Material3 DatePicker, constrained via SelectableDates rather
+    // than a hand-rolled calendar grid, since that's a real, well-tested date-math
+    // implementation instead of a from-scratch one prone to timezone/month-
+    // boundary bugs. One date at a time, added to the running list above; the
+    // specialist repeats "Add a date" for a multi-date commitment.
+    if (showDatePicker && selectedShiftSlot != null) {
+        val tomorrowUtcMillis = remember {
+            val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+            cal.add(Calendar.DAY_OF_MONTH, 1)
+            cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+            cal.timeInMillis
+        }
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = tomorrowUtcMillis,
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    if (utcTimeMillis < tomorrowUtcMillis) return false
+                    val dayAbbrev = weekdayAbbreviation(utcTimeMillis)
+                    if (dayAbbrev !in selectedCommitmentDays) return false
+                    val iso = isoDateString(utcTimeMillis)
+                    if (iso in selectedCalendarDates) return false
+                    val slotForDay = sameShiftTypeSlots.firstOrNull { it.day == dayAbbrev } ?: return false
+                    return !SpaceCalculationUtils.isCalendarDateLocked(
+                        slotForDay, iso, space.id, acceptedForSpace, ignoreBookingId = replacesBookingId
+                    )
+                }
+            }
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val iso = isoDateString(millis)
+                            if (iso !in selectedCalendarDates) selectedCalendarDates = selectedCalendarDates + iso
+                        }
+                        showDatePicker = false
+                    }
+                ) { Text("Add") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }

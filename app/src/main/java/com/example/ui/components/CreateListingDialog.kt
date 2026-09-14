@@ -1502,7 +1502,7 @@ fun CreateListingDialog(
                             }
                             RentalStrategyType.SHIFT_BASED -> {
                                 val activeShift = p.shiftBased?.shifts?.firstOrNull { !it.isUnavailable }
-                                val rate = activeShift?.pricing?.oneTimePrice ?: 60.0
+                                val rate = activeShift?.price ?: 60.0
                                 monthly = rate * 20
                                 formulas.add(
                                     RentalFormula(

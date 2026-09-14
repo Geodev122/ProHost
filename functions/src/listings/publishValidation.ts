@@ -12,6 +12,11 @@ interface RentalPricingConfigDoc {
     shifts?: Array<{
       name?: string;
       isUnavailable?: boolean;
+      // New shape (item 7b): a single flat "price" field. "pricing" is the old
+      // 3-field shape (one-time/weekly/monthly), kept only for reading a
+      // document written before this change — see structuredConfigHasRealPrice's
+      // SHIFT_BASED case below.
+      price?: number;
       pricing?: { oneTimePrice?: number; sameDayEveryWeekPrice?: number; monthlyRecurrencePrice?: number };
     }>;
     distribution?: Record<string, string[]>;
@@ -60,6 +65,10 @@ function structuredConfigHasRealPrice(config: RentalPricingConfigDoc | undefined
         (shiftNames ?? []).some((name) => {
           const shift = shiftsByName.get(name);
           if (!shift || shift.isUnavailable) return false;
+          // New shape writes "price" directly; an older document instead
+          // carries the 3-field legacy "pricing" map — either being real (> 0)
+          // is enough, mirroring DataModels.kt's ShiftDefinition read path.
+          if ((shift.price ?? 0) > 0) return true;
           const p = shift.pricing;
           return (p?.oneTimePrice ?? 0) > 0 || (p?.sameDayEveryWeekPrice ?? 0) > 0 || (p?.monthlyRecurrencePrice ?? 0) > 0;
         })
