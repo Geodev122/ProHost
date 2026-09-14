@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ProHost — Lebanon's Workspace & Practice Exchange</title>
-  <meta name="description" content="ProHost connects independent healthcare practitioners, architects, consultants and other specialists with hosts renting clinics, studios and offices across Lebanon — with GPS discovery, phone-verified accounts and direct WhatsApp contact.">
+  <title>ProHost — The Workspace & Practice Exchange</title>
+  <meta name="description" content="ProHost connects independent professionals — physicians, therapists, architects, consultants — with hosts renting clinics, offices and workspaces. GPS discovery, phone-verified accounts, direct WhatsApp contact, and hourly, shift, daily or monthly pricing — with Lebanese rental-regulation compliance built in as standard where it applies.">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="ProHost — Lebanon's Workspace & Practice Exchange">
-  <meta property="og:description" content="Find or list a clinic, studio or office across Lebanon. GPS discovery, phone-verified accounts, direct contact — built for independent specialists and workspace hosts.">
+  <meta property="og:title" content="ProHost — The Workspace & Practice Exchange">
+  <meta property="og:description" content="Find or list a clinic, office or workspace. GPS discovery, phone-verified accounts, direct contact, flexible pricing — with Lebanese regulatory compliance built in as a plus.">
   <meta property="og:image" content="https://pro-host.tech/logo.png">
   <meta property="og:url" content="https://pro-host.tech/">
   <link rel="icon" type="image/png" href="/logo.png">
@@ -160,7 +160,10 @@
     .phone-sheet .row1 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .phone-sheet .name { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 0.78rem; color: var(--oxford); }
     .phone-sheet .loc { font-size: 0.62rem; color: var(--muted); }
-    .phone-sheet .price { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 0.78rem; color: var(--accent-deep); }
+    .price-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 9px; }
+    .price-tag { display: flex; flex-direction: column; align-items: center; background: var(--bg); border: 1px solid var(--border); border-radius: 0.5rem; padding: 5px 2px; }
+    .price-tag .pt-label { font-size: 0.52rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+    .price-tag .pt-value { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 0.68rem; color: var(--accent-deep); }
     .phone-sheet .cta { display: block; text-align: center; background: var(--accent); color: #fff; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.68rem; padding: 8px; border-radius: 0.5rem; }
     .badge-float { position: absolute; background: #fff; border-radius: 0.85rem; box-shadow: var(--shadow-sm); padding: 0.6rem 0.9rem; display: flex; align-items: center; gap: 0.55rem; font-family: 'Manrope', sans-serif; }
     .badge-float svg { width: 20px; height: 20px; color: var(--green); flex-shrink: 0; }
@@ -298,9 +301,9 @@
     <section class="hero">
       <div class="wrap hero-grid">
         <div>
-          <span class="eyebrow">Lebanon's Workspace &amp; Practice Exchange</span>
-          <h1>Find the room.<br>Fill the room.<br><span class="accent-underline">One map, all of Lebanon.</span></h1>
-          <p class="lede">ProHost connects independent specialists — physicians, therapists, architects, consultants — with hosts renting clinics, studios and offices, from Beirut to the Bekaa. Browse by GPS, message directly, book in minutes.</p>
+          <span class="eyebrow">The Workspace &amp; Practice Exchange</span>
+          <h1>Find the room.<br>Fill the room.<br><span class="accent-underline">Wherever you practice.</span></h1>
+          <p class="lede">ProHost connects independent professionals — physicians, therapists, architects, consultants — with hosts renting clinics, offices and workspaces. Browse by GPS, message directly, book by the hour, shift, day or month.</p>
           <div class="hero-ctas">
             <a href="#audience" class="btn btn-primary">
               I'm a Specialist
@@ -336,7 +339,7 @@
                 <div class="chip-row">
                   <span class="phone-chip active">All Spaces</span>
                   <span class="phone-chip">Clinics</span>
-                  <span class="phone-chip">Studios</span>
+                  <span class="phone-chip">Offices</span>
                 </div>
               </div>
               <div class="phone-map">
@@ -344,16 +347,21 @@
                 <div class="pin p2"></div>
                 <div class="pin p3"></div>
                 <div class="pin p4"></div>
-                <div class="float-card c1"><div class="t">Clinic Suite · Achrafieh</div><div class="p">$420/mo</div></div>
-                <div class="float-card c2"><div class="t">Studio · Hamra</div><div class="p">$18/hr</div></div>
+                <div class="float-card c1"><div class="t">Private Office · Achrafieh</div><div class="p">$420/mo</div></div>
+                <div class="float-card c2"><div class="t">Consult Room · Hamra</div><div class="p">$18/hr</div></div>
               </div>
               <div class="phone-sheet">
                 <div class="row1">
                   <div>
-                    <div class="name">Executive Clinic Suite</div>
+                    <div class="name">Executive Office Suite</div>
                     <div class="loc">Achrafieh, Beirut</div>
                   </div>
-                  <div class="price">$420/mo</div>
+                </div>
+                <div class="price-grid">
+                  <div class="price-tag"><span class="pt-label">Hour</span><span class="pt-value">$18</span></div>
+                  <div class="price-tag"><span class="pt-label">Shift</span><span class="pt-value">$60</span></div>
+                  <div class="price-tag"><span class="pt-label">Day</span><span class="pt-value">$95</span></div>
+                  <div class="price-tag"><span class="pt-label">Month</span><span class="pt-value">$420</span></div>
                 </div>
                 <span class="cta">Request to Rent</span>
               </div>
@@ -361,7 +369,7 @@
           </div>
           <div class="badge-float badge-bottom">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12l3-8 3 8-3 8-3-8zM18 4l3 8-3 8"/></svg>
-            <div><div class="l1">Governorate coverage</div><div class="l2">All of Lebanon</div></div>
+            <div><div class="l1">Real GPS coverage</div><div class="l2">Every listing, pinned</div></div>
           </div>
         </div>
       </div>
@@ -381,7 +389,7 @@
             </div>
             <h3>For Specialists</h3>
             <ul>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Browse verified clinics, studios and offices by GPS location and price</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Browse verified clinics, offices and workspaces by GPS location and price</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Book by the hour, shift, day or month — whatever the host offers</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Message the host directly on WhatsApp before you commit</li>
             </ul>
@@ -438,8 +446,8 @@
           </div>
           <div class="feature-card">
             <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6M9 16h6M9 8h6M5 4h14v16H5z"/></svg></div>
-            <h3>Built on Lebanese Law</h3>
-            <p>Data handling and platform terms are drafted around Law No. 81/2018 and the practical realities of the Lebanese market.</p>
+            <h3>Lebanon-Ready, as a Plus</h3>
+            <p>Operating in Lebanon? Platform terms and data handling are already drafted around Law No. 81/2018 — one less thing to adapt yourself.</p>
           </div>
         </div>
       </div>
@@ -476,7 +484,7 @@
       <div class="wrap trust">
         <div class="trust-card">
           <h3>Your data, handled deliberately</h3>
-          <p>ProHost is committed to transparency and explicit consent — read exactly what we collect, why, and the Lebanese legal framework it's built around.</p>
+          <p>ProHost is committed to transparency and explicit consent — read exactly what we collect and why, plus the Lebanese-regulation compliance built in as standard where it applies.</p>
           <div class="trust-links">
             <a href="/privacy" class="pill-link">Privacy Policy</a>
             <a href="/terms" class="pill-link">Terms of Use</a>
@@ -487,7 +495,7 @@
         <div class="law-list">
           <div class="law-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg>
-            <div><div class="t">Law No. 81/2018</div><div class="d">Electronic Transactions and Personal Data — the backbone of our Privacy Policy.</div></div>
+            <div><div class="t">Lebanese Compliance, Built In</div><div class="d">A plus for hosts and specialists in Lebanon: terms and data handling already follow Law No. 81/2018.</div></div>
           </div>
           <div class="law-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 8l7-5 7 5M5 8v9a2 2 0 002 2h10a2 2 0 002-2V8"/></svg>
@@ -526,7 +534,7 @@
             <img src="/logo.png" alt="ProHost">
             <span>ProHost</span>
           </div>
-          <p class="tag">Lebanon's workspace and practice exchange — connecting independent specialists with the hosts who have room for them.</p>
+          <p class="tag">The workspace and practice exchange — connecting independent professionals with the hosts who have room for them. Lebanese-regulation-ready as a plus.</p>
         </div>
         <div class="footer-col">
           <h4>Product</h4>
@@ -546,7 +554,7 @@
       </div>
       <div class="footer-bottom">
         <span>© 2026 ProHost. All rights reserved.</span>
-        <span>Made for Lebanon's independent professionals.</span>
+        <span>Built for independent professionals everywhere.</span>
       </div>
     </div>
   </footer>
