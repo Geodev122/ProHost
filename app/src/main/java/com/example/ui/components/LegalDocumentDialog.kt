@@ -38,11 +38,14 @@ import kotlinx.coroutines.withContext
  * version and loads it directly by URL, showing a placeholder if nothing has been
  * uploaded yet rather than falling back to [document]'s own Kotlin-hardcoded
  * content — Admin Console's Legal Documents card is now the sole source of truth
- * for these 3. The 4th document (the re-rental authorization template) is never
- * admin-uploadable, so it always renders [document]'s own hardcoded content exactly
- * as before, "Download PDF" included — only the 3 admin-managed ones hide that
- * button, since a PDF generated from stale hardcoded sections would silently
- * disagree with whatever HTML the admin actually published.
+ * for these 3. The 4th document (the re-rental authorization template) always
+ * renders [document]'s own hardcoded content as its WebView body, but its
+ * "Download PDF" button prefers a real admin-uploaded PDF
+ * (LegalDocumentVersion.RERENTAL_TEMPLATE_DOC_ID) when Admin Console's Legal
+ * Documents card has one published, opening it directly by URL instead of
+ * generating one from the hardcoded template — falling back to generation only
+ * when no admin PDF has been uploaded yet, since this is a load-bearing part
+ * of the listing-ownership-verification flow that must never dead-end.
  */
 @Composable
 fun LegalDocumentDialog(
@@ -54,16 +57,24 @@ fun LegalDocumentDialog(
     var isGeneratingPdf by remember { mutableStateOf(false) }
 
     val isAdminManaged = document.id in LegalDocumentVersion.ADMIN_MANAGED_DOC_IDS
+    val isRerentalTemplate = document.id == LegalDocumentVersion.RERENTAL_TEMPLATE_DOC_ID
     // null = still loading (admin-managed only); Unit-like "checked, nothing published"
     // is represented by adminVersion staying null after hasCheckedAdminVersion flips true.
     var adminVersion by remember(document.id) { mutableStateOf<LegalDocumentVersion?>(null) }
     var hasCheckedAdminVersion by remember(document.id) { mutableStateOf(false) }
+    // The re-rental template's admin-uploaded PDF (if any) — separate from
+    // adminVersion above since this document's WebView body always stays the
+    // Kotlin-hardcoded content; only the download button's target changes.
+    var rerentalPdfVersion by remember(document.id) { mutableStateOf<LegalDocumentVersion?>(null) }
 
     LaunchedEffect(document.id) {
         if (isAdminManaged) {
             adminVersion = com.example.data.repository.ProHostRepository.getInstance()
                 .getLatestLegalDocumentVersion(document.id)
             hasCheckedAdminVersion = true
+        } else if (isRerentalTemplate) {
+            rerentalPdfVersion = com.example.data.repository.ProHostRepository.getInstance()
+                .getLatestLegalDocumentVersion(document.id)
         }
     }
 
@@ -87,15 +98,28 @@ fun LegalDocumentDialog(
                                 TextButton(
                                     enabled = !isGeneratingPdf,
                                     onClick = {
-                                        isGeneratingPdf = true
-                                        coroutineScope.launch {
-                                            val file = withContext(Dispatchers.IO) {
-                                                LegalPdfGenerator.generate(context, document)
+                                        val adminPdfUrl = rerentalPdfVersion?.url
+                                        if (adminPdfUrl != null) {
+                                            // A real admin-uploaded template exists — open it
+                                            // directly by URL, same pattern MyBookingsScreen
+                                            // already uses for a Storage-hosted PDF, instead
+                                            // of generating one from the hardcoded content.
+                                            runCatching {
+                                                context.startActivity(
+                                                    android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(adminPdfUrl))
+                                                )
                                             }
-                                            isGeneratingPdf = false
-                                            if (file != null) {
-                                                runCatching {
-                                                    context.startActivity(LegalPdfGenerator.buildOpenIntent(context, file))
+                                        } else {
+                                            isGeneratingPdf = true
+                                            coroutineScope.launch {
+                                                val file = withContext(Dispatchers.IO) {
+                                                    LegalPdfGenerator.generate(context, document)
+                                                }
+                                                isGeneratingPdf = false
+                                                if (file != null) {
+                                                    runCatching {
+                                                        context.startActivity(LegalPdfGenerator.buildOpenIntent(context, file))
+                                                    }
                                                 }
                                             }
                                         }

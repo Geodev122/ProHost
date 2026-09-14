@@ -168,20 +168,27 @@ class FirebaseStorageService(
 
     /**
      * Uploads a new immutable version of an admin-managed legal document (Privacy
-     * Policy / Terms of Use / Revocation Policy — see LegalDocumentVersion) to
-     * `legal_documents/{docId}/v{version}.html`. Every version is its own permanent
+     * Policy / Terms of Use / Revocation Policy — text/html — or the re-rental
+     * authorization template — application/pdf — see LegalDocumentVersion) to
+     * `legal_documents/{docId}/v{version}.{ext}`. Every version is its own permanent
      * object — never overwritten or deleted, matching storage.rules' create-only
      * rule for this path — so re-uploading never destroys the previous version's
-     * history. Explicitly sets contentType to text/html rather than trusting the
-     * file picker's own MIME detection (which can come back generic for some
-     * share-sheet sources), since storage.rules' create rule checks it exactly.
+     * history. Explicitly sets contentType rather than trusting the file picker's
+     * own MIME detection (which can come back generic for some share-sheet
+     * sources), since storage.rules' create rule checks it exactly.
      */
-    suspend fun uploadLegalDocumentVersion(docId: String, version: Int, fileUri: Uri): String? =
+    suspend fun uploadLegalDocumentVersion(
+        docId: String,
+        version: Int,
+        fileUri: Uri,
+        contentType: String = "text/html",
+        fileExtension: String = "html"
+    ): String? =
         uploadAndGetUrl(
-            ref = storage?.reference?.child("legal_documents/$docId/v$version.html"),
+            ref = storage?.reference?.child("legal_documents/$docId/v$version.$fileExtension"),
             fileUri = fileUri,
             onProgress = {},
-            contentType = "text/html"
+            contentType = contentType
         )
 
     private suspend fun uploadAndGetUrl(

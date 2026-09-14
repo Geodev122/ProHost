@@ -164,17 +164,19 @@ service firebase.storage {
           firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid));
     }
 
-    // Admin-uploaded, versioned HTML for the 3 in-app legal documents (Privacy
-    // Policy / Terms of Use / Revocation Policy — see LegalDocumentVersion).
-    // Every version is its own permanent object (legal_documents/{docId}/
-    // v{version}.html, {version} baked into the filename) — create-only, same
-    // "kept on file forever" reasoning as id_documents above, so a re-upload
-    // can never destroy or silently replace a prior published version. Public
-    // read: this is exactly what a signed-out user on the registration screen,
-    // or anyone browsing the public policy pages, needs to load.
+    // Admin-uploaded, versioned content for the 3 in-app HTML legal documents
+    // (Privacy Policy / Terms of Use / Revocation Policy) and the re-rental
+    // authorization template PDF — see LegalDocumentVersion. Every version is
+    // its own permanent object (legal_documents/{docId}/v{version}.{ext},
+    // {version} baked into the filename) — create-only, same "kept on file
+    // forever" reasoning as id_documents above, so a re-upload can never
+    // destroy or silently replace a prior published version. Public read:
+    // this is exactly what a signed-out user on the registration screen, or a
+    // Pro Host downloading the re-rental template, needs to load.
     match /legal_documents/{docId}/{fileName} {
       allow read: if true;
-      allow create: if isAdmin() && withinSizeLimit() && request.resource.contentType == 'text/html';
+      allow create: if isAdmin() && withinSizeLimit() &&
+        (request.resource.contentType == 'text/html' || request.resource.contentType == 'application/pdf');
       allow update, delete: if false;
     }
 

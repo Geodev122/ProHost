@@ -483,7 +483,8 @@ class AdminViewModel(
 
     fun refreshLegalDocuments() {
         viewModelScope.launch {
-            val versions = LegalDocumentVersion.ADMIN_MANAGED_DOC_IDS.associateWith { docId ->
+            val docIds = LegalDocumentVersion.ADMIN_MANAGED_DOC_IDS + LegalDocumentVersion.RERENTAL_TEMPLATE_DOC_ID
+            val versions = docIds.associateWith { docId ->
                 repository.getLatestLegalDocumentVersion(docId)
             }
             _uiState.update { it.copy(legalDocuments = versions) }
@@ -501,13 +502,20 @@ class AdminViewModel(
      * publishLegalDocumentVersion for why each version is a permanent, never-
      * overwritten object rather than an in-place replace.
      */
-    fun uploadLegalDocument(docId: String, fileUri: android.net.Uri, fileName: String?, adminEmail: String) {
+    fun uploadLegalDocument(
+        docId: String,
+        fileUri: android.net.Uri,
+        fileName: String?,
+        adminEmail: String,
+        contentType: String = "text/html",
+        fileExtension: String = "html"
+    ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isUploadingLegalDocument = docId) }
             val current = repository.getLatestLegalDocumentVersion(docId)
             val nextVersion = (current?.version ?: 0) + 1
             val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
-            val url = storageService.uploadLegalDocumentVersion(docId, nextVersion, fileUri)
+            val url = storageService.uploadLegalDocumentVersion(docId, nextVersion, fileUri, contentType, fileExtension)
             val success = if (url != null) {
                 repository.publishLegalDocumentVersion(
                     docId,
@@ -516,7 +524,8 @@ class AdminViewModel(
                         url = url,
                         fileName = fileName,
                         uploadedAtMillis = System.currentTimeMillis(),
-                        uploadedByEmail = adminEmail
+                        uploadedByEmail = adminEmail,
+                        contentType = contentType
                     )
                 )
             } else {

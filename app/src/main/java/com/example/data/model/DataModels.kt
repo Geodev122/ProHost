@@ -1579,24 +1579,40 @@ data class LegalDocumentVersion(
     val url: String,
     val fileName: String? = null,
     val uploadedAtMillis: Long = 0L,
-    val uploadedByEmail: String = ""
+    val uploadedByEmail: String = "",
+    // "text/html" for the 3 HTML policy docs, "application/pdf" for the
+    // re-rental authorization template. Defaults to "text/html" so every
+    // version written before this field existed still round-trips correctly.
+    val contentType: String = "text/html"
 ) {
     fun toFirestoreMap(): Map<String, Any?> = mapOf(
         "version" to version,
         "url" to url,
         "fileName" to fileName,
         "uploadedAtMillis" to uploadedAtMillis,
-        "uploadedByEmail" to uploadedByEmail
+        "uploadedByEmail" to uploadedByEmail,
+        "contentType" to contentType
     )
 
     companion object {
         const val COLLECTION_PATH = "legal_documents"
 
-        // The only 3 doc ids this system manages — matches LegalContent's own
-        // id strings exactly. LegalContent.rerentalAuthorizationTemplate is
-        // deliberately NOT in this set: it stays Kotlin-hardcoded, never looked
-        // up here, since only these 3 are meant to become admin-uploadable.
+        // The 3 HTML policy doc ids — matches LegalContent's own id strings
+        // exactly. These fully replace their Kotlin-hardcoded content: with no
+        // admin version published, LegalDocumentDialog shows a placeholder
+        // rather than falling back to the hardcoded copy.
         val ADMIN_MANAGED_DOC_IDS = setOf("privacy_policy", "terms_of_use", "revocation_policy")
+
+        // The re-rental authorization template PDF — matches
+        // LegalContent.rerentalAuthorizationTemplate.id. Unlike the 3 HTML
+        // docs above, this ADDS an admin-uploadable PDF on top of the existing
+        // Kotlin-hardcoded template rather than replacing it: with no admin
+        // PDF published, the "Download Authorization Template" button falls
+        // back to generating one from the hardcoded content
+        // (LegalPdfGenerator), since this is a load-bearing part of the
+        // listing-ownership-verification flow that must never show a
+        // placeholder/dead end.
+        const val RERENTAL_TEMPLATE_DOC_ID = "rerental_authorization_template"
 
         fun fromFirestoreMap(data: Map<String, Any?>): LegalDocumentVersion? {
             val version = (data["version"] as? Number)?.toInt() ?: return null
@@ -1606,7 +1622,8 @@ data class LegalDocumentVersion(
                 url = url,
                 fileName = data["fileName"] as? String,
                 uploadedAtMillis = (data["uploadedAtMillis"] as? Number)?.toLong() ?: 0L,
-                uploadedByEmail = data["uploadedByEmail"] as? String ?: ""
+                uploadedByEmail = data["uploadedByEmail"] as? String ?: "",
+                contentType = data["contentType"] as? String ?: "text/html"
             )
         }
     }

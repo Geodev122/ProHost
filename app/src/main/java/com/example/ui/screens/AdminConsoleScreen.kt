@@ -1904,18 +1904,27 @@ private fun AdminSecurityAuditTab(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     ProSectionHeader(
                         title = "Legal Documents",
-                        subtitle = "Upload a new HTML file to publish a new version — prior versions are kept, never overwritten",
+                        subtitle = "Upload a new file to publish a new version — prior versions are kept, never overwritten",
                         icon = Icons.Default.Gavel
                     )
-                    LegalDocumentVersion.ADMIN_MANAGED_DOC_IDS.forEach { docId ->
-                        val title = when (docId) {
-                            "privacy_policy" -> "Privacy Policy"
-                            "terms_of_use" -> "Terms of Use"
-                            "revocation_policy" -> "Revocation Policy"
-                            else -> docId
-                        }
-                        val current = uiState.legalDocuments[docId]
-                        val isUploading = uiState.isUploadingLegalDocument == docId
+                    data class LegalDocSlot(val docId: String, val title: String, val mimeType: String, val extension: String, val noPublishedCopyIsBlocking: Boolean)
+                    val slots = listOf(
+                        LegalDocSlot("privacy_policy", "Privacy Policy", "text/html", "html", true),
+                        LegalDocSlot("terms_of_use", "Terms of Use", "text/html", "html", true),
+                        LegalDocSlot("revocation_policy", "Revocation Policy", "text/html", "html", true),
+                        LegalDocSlot(
+                            LegalDocumentVersion.RERENTAL_TEMPLATE_DOC_ID,
+                            "Re-Rental Authorization Template (PDF)",
+                            "application/pdf",
+                            "pdf",
+                            // Never a dead end: the app falls back to generating this PDF
+                            // from the built-in template when no admin version exists yet.
+                            false
+                        )
+                    )
+                    slots.forEach { slot ->
+                        val current = uiState.legalDocuments[slot.docId]
+                        val isUploading = uiState.isUploadingLegalDocument == slot.docId
                         val pickerLauncher = rememberLauncherForActivityResult(
                             contract = ActivityResultContracts.GetContent()
                         ) { uri: Uri? ->
@@ -1926,8 +1935,10 @@ private fun AdminSecurityAuditTab(
                                     if (cursor.moveToFirst() && nameIndex >= 0) resolvedName = cursor.getString(nameIndex)
                                 }
                                 adminViewModel.uploadLegalDocument(
-                                    docId, uri, resolvedName,
-                                    currentUser?.email ?: "admin@prohost.app"
+                                    slot.docId, uri, resolvedName,
+                                    currentUser?.email ?: "admin@prohost.app",
+                                    contentType = slot.mimeType,
+                                    fileExtension = slot.extension
                                 )
                             }
                         }
@@ -1937,20 +1948,22 @@ private fun AdminSecurityAuditTab(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                Text(slot.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                                 Text(
                                     text = if (current != null) {
                                         "v${current.version} — published ${SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date(current.uploadedAtMillis))}"
-                                    } else {
+                                    } else if (slot.noPublishedCopyIsBlocking) {
                                         "Not yet published"
+                                    } else {
+                                        "Not yet published — app falls back to a generated PDF"
                                     },
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = if (current != null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error
+                                    color = if (current != null || !slot.noPublishedCopyIsBlocking) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error
                                 )
                             }
                             OutlinedButton(
                                 enabled = !isUploading,
-                                onClick = { pickerLauncher.launch("text/html") },
+                                onClick = { pickerLauncher.launch(slot.mimeType) },
                                 shape = MaterialTheme.shapes.small
                             ) {
                                 if (isUploading) {
