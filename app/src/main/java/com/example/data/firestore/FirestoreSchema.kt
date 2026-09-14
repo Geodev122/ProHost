@@ -34,5 +34,9 @@ object FirestoreSchema {
         // on every publish that carries it — feeds the Target Disciplines autosuggest
         // in CreateListingDialog and an Admin analytics view, spec section 1.4.
         const val HASHTAG_USAGE = "hashtag_usage"
+        // Admin-uploaded, versioned HTML for the 3 legal documents (Privacy Policy /
+        // Terms of Use / Revocation Policy) — see LegalDocumentVersion's own doc
+        // comment for the parent-doc-plus-versions-subcollection shape.
+        const val LEGAL_DOCUMENTS = "legal_documents"
     }
 }

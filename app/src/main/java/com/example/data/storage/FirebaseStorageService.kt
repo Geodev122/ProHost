@@ -166,17 +166,39 @@ class FirebaseStorageService(
         onProgress = onProgress
     )
 
+    /**
+     * Uploads a new immutable version of an admin-managed legal document (Privacy
+     * Policy / Terms of Use / Revocation Policy — see LegalDocumentVersion) to
+     * `legal_documents/{docId}/v{version}.html`. Every version is its own permanent
+     * object — never overwritten or deleted, matching storage.rules' create-only
+     * rule for this path — so re-uploading never destroys the previous version's
+     * history. Explicitly sets contentType to text/html rather than trusting the
+     * file picker's own MIME detection (which can come back generic for some
+     * share-sheet sources), since storage.rules' create rule checks it exactly.
+     */
+    suspend fun uploadLegalDocumentVersion(docId: String, version: Int, fileUri: Uri): String? =
+        uploadAndGetUrl(
+            ref = storage?.reference?.child("legal_documents/$docId/v$version.html"),
+            fileUri = fileUri,
+            onProgress = {},
+            contentType = "text/html"
+        )
+
     private suspend fun uploadAndGetUrl(
         ref: StorageReference?,
         fileUri: Uri,
-        onProgress: (Float) -> Unit
+        onProgress: (Float) -> Unit,
+        contentType: String? = null
     ): String? {
         if (ref == null) {
             Log.w(TAG, "Storage unavailable; skipping upload")
             return null
         }
         return try {
-            val uploadTask = ref.putFile(fileUri)
+            val metadata = contentType?.let {
+                com.google.firebase.storage.StorageMetadata.Builder().setContentType(it).build()
+            }
+            val uploadTask = if (metadata != null) ref.putFile(fileUri, metadata) else ref.putFile(fileUri)
             uploadTask.addOnProgressListener { snapshot ->
                 val progress = if (snapshot.totalByteCount > 0) {
                     snapshot.bytesTransferred.toFloat() / snapshot.totalByteCount.toFloat()

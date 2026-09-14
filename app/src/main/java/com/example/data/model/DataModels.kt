@@ -1560,6 +1560,58 @@ data class PackagePlanCatalog(val packages: Map<String, PackagePlan> = emptyMap(
     }
 }
 
+/**
+ * One published, immutable version of an admin-managed legal document (Privacy
+ * Policy / Terms of Use / Revocation Policy — see LegalContent.kt's own id
+ * strings, which this [docId] matches exactly: "privacy_policy", "terms_of_use",
+ * "revocation_policy"). Stored two ways in Firestore under legal_documents/{docId}:
+ * this exact map as the "current" pointer on the parent document (fast, single-read
+ * lookup for the common case — "what's the latest version?"), and again as an
+ * append-only history entry in the legal_documents/{docId}/versions/{version}
+ * subcollection (versions/{version}'s own doc id is [version].toString(), so a
+ * re-upload can never collide with or overwrite a prior one). The uploaded HTML
+ * file itself lives at Storage path legal_documents/{docId}/v{version}.html —
+ * also create-only, never updated/deleted, for the same "never lose a prior
+ * version" reason.
+ */
+data class LegalDocumentVersion(
+    val version: Int,
+    val url: String,
+    val fileName: String? = null,
+    val uploadedAtMillis: Long = 0L,
+    val uploadedByEmail: String = ""
+) {
+    fun toFirestoreMap(): Map<String, Any?> = mapOf(
+        "version" to version,
+        "url" to url,
+        "fileName" to fileName,
+        "uploadedAtMillis" to uploadedAtMillis,
+        "uploadedByEmail" to uploadedByEmail
+    )
+
+    companion object {
+        const val COLLECTION_PATH = "legal_documents"
+
+        // The only 3 doc ids this system manages — matches LegalContent's own
+        // id strings exactly. LegalContent.rerentalAuthorizationTemplate is
+        // deliberately NOT in this set: it stays Kotlin-hardcoded, never looked
+        // up here, since only these 3 are meant to become admin-uploadable.
+        val ADMIN_MANAGED_DOC_IDS = setOf("privacy_policy", "terms_of_use", "revocation_policy")
+
+        fun fromFirestoreMap(data: Map<String, Any?>): LegalDocumentVersion? {
+            val version = (data["version"] as? Number)?.toInt() ?: return null
+            val url = data["url"] as? String ?: return null
+            return LegalDocumentVersion(
+                version = version,
+                url = url,
+                fileName = data["fileName"] as? String,
+                uploadedAtMillis = (data["uploadedAtMillis"] as? Number)?.toLong() ?: 0L,
+                uploadedByEmail = data["uploadedByEmail"] as? String ?: ""
+            )
+        }
+    }
+}
+
 data class AdminPricingState(
     val monthlySubscriptionFeeUsd: Double = 1.80,
     val baselineFeeUsd: Double = 1.80,

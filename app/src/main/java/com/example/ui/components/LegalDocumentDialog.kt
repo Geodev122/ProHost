@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.data.model.LegalDocumentVersion
 import com.example.legal.LegalDocument
 import com.example.legal.LegalPdfGenerator
 import com.example.legal.toHtml
@@ -27,11 +28,21 @@ import kotlinx.coroutines.withContext
 
 /**
  * Full-screen "HTML popup" for a legal document (Privacy Policy / Terms of Use /
- * Revocation Policy) — renders [document] as real HTML in a WebView (matching the
- * Google Play submission expectation of an accessible, readable in-app policy
- * page, not just a plain-text dump) with a "Download PDF" action that generates
- * an A5-formatted PDF (LegalPdfGenerator.kt) and opens it in the system PDF
- * viewer / share sheet.
+ * Revocation Policy / the re-rental authorization template) — renders as real HTML
+ * in a WebView (matching the Google Play submission expectation of an accessible,
+ * readable in-app policy page, not just a plain-text dump).
+ *
+ * [document]'s id decides the content source: for the 3 admin-manageable documents
+ * (LegalDocumentVersion.ADMIN_MANAGED_DOC_IDS — Privacy Policy/Terms of Use/
+ * Revocation Policy), this fetches the currently-published admin-uploaded HTML
+ * version and loads it directly by URL, showing a placeholder if nothing has been
+ * uploaded yet rather than falling back to [document]'s own Kotlin-hardcoded
+ * content — Admin Console's Legal Documents card is now the sole source of truth
+ * for these 3. The 4th document (the re-rental authorization template) is never
+ * admin-uploadable, so it always renders [document]'s own hardcoded content exactly
+ * as before, "Download PDF" included — only the 3 admin-managed ones hide that
+ * button, since a PDF generated from stale hardcoded sections would silently
+ * disagree with whatever HTML the admin actually published.
  */
 @Composable
 fun LegalDocumentDialog(
@@ -41,6 +52,20 @@ fun LegalDocumentDialog(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var isGeneratingPdf by remember { mutableStateOf(false) }
+
+    val isAdminManaged = document.id in LegalDocumentVersion.ADMIN_MANAGED_DOC_IDS
+    // null = still loading (admin-managed only); Unit-like "checked, nothing published"
+    // is represented by adminVersion staying null after hasCheckedAdminVersion flips true.
+    var adminVersion by remember(document.id) { mutableStateOf<LegalDocumentVersion?>(null) }
+    var hasCheckedAdminVersion by remember(document.id) { mutableStateOf(false) }
+
+    LaunchedEffect(document.id) {
+        if (isAdminManaged) {
+            adminVersion = com.example.data.repository.ProHostRepository.getInstance()
+                .getLatestLegalDocumentVersion(document.id)
+            hasCheckedAdminVersion = true
+        }
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -58,30 +83,32 @@ fun LegalDocumentDialog(
                     ) {
                         Text(document.title, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            TextButton(
-                                enabled = !isGeneratingPdf,
-                                onClick = {
-                                    isGeneratingPdf = true
-                                    coroutineScope.launch {
-                                        val file = withContext(Dispatchers.IO) {
-                                            LegalPdfGenerator.generate(context, document)
-                                        }
-                                        isGeneratingPdf = false
-                                        if (file != null) {
-                                            runCatching {
-                                                context.startActivity(LegalPdfGenerator.buildOpenIntent(context, file))
+                            if (!isAdminManaged) {
+                                TextButton(
+                                    enabled = !isGeneratingPdf,
+                                    onClick = {
+                                        isGeneratingPdf = true
+                                        coroutineScope.launch {
+                                            val file = withContext(Dispatchers.IO) {
+                                                LegalPdfGenerator.generate(context, document)
+                                            }
+                                            isGeneratingPdf = false
+                                            if (file != null) {
+                                                runCatching {
+                                                    context.startActivity(LegalPdfGenerator.buildOpenIntent(context, file))
+                                                }
                                             }
                                         }
                                     }
+                                ) {
+                                    if (isGeneratingPdf) {
+                                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                    } else {
+                                        Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    }
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Download PDF (A5)", fontSize = MaterialTheme.typography.labelMedium.fontSize)
                                 }
-                            ) {
-                                if (isGeneratingPdf) {
-                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                                } else {
-                                    Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
-                                }
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Download PDF (A5)", fontSize = MaterialTheme.typography.labelMedium.fontSize)
                             }
                             IconButton(onClick = onDismiss) {
                                 Icon(Icons.Default.Close, contentDescription = "Close")
@@ -90,17 +117,45 @@ fun LegalDocumentDialog(
                     }
                 }
 
-                AndroidView(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = 4.dp),
-                    factory = { ctx ->
-                        WebView(ctx).apply {
-                            settings.javaScriptEnabled = false
-                            loadDataWithBaseURL(null, document.toHtml(), "text/html", "utf-8", null)
+                when {
+                    !isAdminManaged -> {
+                        AndroidView(
+                            modifier = Modifier.fillMaxSize().padding(top = 4.dp),
+                            factory = { ctx ->
+                                WebView(ctx).apply {
+                                    settings.javaScriptEnabled = false
+                                    loadDataWithBaseURL(null, document.toHtml(), "text/html", "utf-8", null)
+                                }
+                            }
+                        )
+                    }
+                    !hasCheckedAdminVersion -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
                         }
                     }
-                )
+                    adminVersion == null -> {
+                        Box(modifier = Modifier.fillMaxSize().padding(Spacing.lg), contentAlignment = Alignment.Center) {
+                            Text(
+                                "This document hasn't been published yet — check back soon.",
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    else -> {
+                        val version = adminVersion!!
+                        AndroidView(
+                            modifier = Modifier.fillMaxSize().padding(top = 4.dp),
+                            factory = { ctx ->
+                                WebView(ctx).apply {
+                                    settings.javaScriptEnabled = false
+                                }
+                            },
+                            update = { webView -> webView.loadUrl(version.url) }
+                        )
+                    }
+                }
             }
         }
     }

@@ -38,6 +38,7 @@ class AdminViewModel(
         // accurate enough for this analytics view. refreshHashtagAnalytics() below
         // can be called again to re-fetch on demand.
         refreshHashtagAnalytics()
+        refreshLegalDocuments()
         // MRR depends on FOUR independent live sources (listings, pricing, the schema's
         // per-category prices, and each owner's package tier) that resolve at different
         // times on cold start — recomputing only from the `spaces` listener (as this
@@ -477,6 +478,57 @@ class AdminViewModel(
         viewModelScope.launch {
             val entries = repository.fetchHashtagAnalytics()
             _uiState.update { it.copy(hashtagAnalytics = entries) }
+        }
+    }
+
+    fun refreshLegalDocuments() {
+        viewModelScope.launch {
+            val versions = LegalDocumentVersion.ADMIN_MANAGED_DOC_IDS.associateWith { docId ->
+                repository.getLatestLegalDocumentVersion(docId)
+            }
+            _uiState.update { it.copy(legalDocuments = versions) }
+        }
+    }
+
+    /**
+     * Uploads [fileUri] (an .html file the admin picked) as the new current version
+     * of legal document [docId] — one of LegalDocumentVersion.ADMIN_MANAGED_DOC_IDS.
+     * Resolves the next version number from the currently-published one (read fresh
+     * here rather than trusting uiState.legalDocuments, in case another admin session
+     * published a version since this screen last refreshed), uploads to Storage at
+     * legal_documents/{docId}/v{nextVersion}.html, then records it in Firestore —
+     * see FirebaseStorageService.uploadLegalDocumentVersion / ProHostRepository.
+     * publishLegalDocumentVersion for why each version is a permanent, never-
+     * overwritten object rather than an in-place replace.
+     */
+    fun uploadLegalDocument(docId: String, fileUri: android.net.Uri, fileName: String?, adminEmail: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUploadingLegalDocument = docId) }
+            val current = repository.getLatestLegalDocumentVersion(docId)
+            val nextVersion = (current?.version ?: 0) + 1
+            val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
+            val url = storageService.uploadLegalDocumentVersion(docId, nextVersion, fileUri)
+            val success = if (url != null) {
+                repository.publishLegalDocumentVersion(
+                    docId,
+                    LegalDocumentVersion(
+                        version = nextVersion,
+                        url = url,
+                        fileName = fileName,
+                        uploadedAtMillis = System.currentTimeMillis(),
+                        uploadedByEmail = adminEmail
+                    )
+                )
+            } else {
+                false
+            }
+            _uiState.update { it.copy(isUploadingLegalDocument = null) }
+            if (success) refreshLegalDocuments()
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "Published $docId v$nextVersion" else "Upload failed — check your connection and try again"
+                )
+            )
         }
     }
 

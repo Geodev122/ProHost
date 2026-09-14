@@ -72,7 +72,16 @@ data class AdminUiState(
     // Admin-managed, purchasable Pro Host packages — replaces the old fixed
     // Package 2/3 fee+limit inputs entirely (see PackagePlan/PackagePlanCatalog).
     val packagePlans: PackagePlanCatalog = PackagePlanCatalog(),
-    val isAddPackagePlanDialogOpen: Boolean = false
+    val isAddPackagePlanDialogOpen: Boolean = false,
+
+    // Currently-published version of each of the 3 admin-manageable legal documents
+    // (LegalDocumentVersion.ADMIN_MANAGED_DOC_IDS), keyed by doc id — null means
+    // nothing has ever been uploaded for that doc yet. Loaded once on ViewModel init
+    // and refreshed after every successful upload (see AdminViewModel.
+    // refreshLegalDocuments/uploadLegalDocument) — not a live listener, since this
+    // content changes rarely and a fresh one-shot read on demand is plenty.
+    val legalDocuments: Map<String, LegalDocumentVersion?> = emptyMap(),
+    val isUploadingLegalDocument: String? = null // the docId currently mid-upload, if any
 ) {
     val filteredUsers: List<AppUser>
         get() = allUsers.filter { user ->

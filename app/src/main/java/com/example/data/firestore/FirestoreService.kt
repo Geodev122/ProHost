@@ -943,6 +943,48 @@ class FirestoreService(
         }
     }
 
+    /** One-shot read of the currently-published version of legal document [docId], or
+     * null if nothing has ever been uploaded for it (or the read fails). */
+    suspend fun getLatestLegalDocumentVersion(docId: String): LegalDocumentVersion? {
+        return try {
+            val db = firestore ?: return null
+            val snap = db.collection(LegalDocumentVersion.COLLECTION_PATH).document(docId).get().await()
+            if (!snap.exists()) return null
+            snap.data?.let { LegalDocumentVersion.fromFirestoreMap(it) }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error reading legal document version for $docId: ${e.message}", e)
+            null
+        }
+    }
+
+    /**
+     * Publishes [version] as legal document [docId]'s new current version — writes the
+     * parent "current pointer" doc (legal_documents/{docId}, merge) and a permanent
+     * history entry (legal_documents/{docId}/versions/{version}, create-only — see
+     * storage.rules' matching immutability for the underlying HTML file). Both writes
+     * use the same already-resolved [version] number (the caller reads the current
+     * version once, increments, then calls this — see ProHostRepository.
+     * uploadLegalDocumentVersion) rather than a Firestore-side atomic increment, since
+     * the version number also has to name the Storage object and the subcollection
+     * doc id consistently across both writes.
+     */
+    suspend fun publishLegalDocumentVersion(docId: String, version: LegalDocumentVersion): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(LegalDocumentVersion.COLLECTION_PATH).document(docId)
+                .set(version.toFirestoreMap(), SetOptions.merge())
+                .await()
+            db.collection(LegalDocumentVersion.COLLECTION_PATH).document(docId)
+                .collection("versions").document(version.version.toString())
+                .set(version.toFirestoreMap())
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error publishing legal document version for $docId: ${e.message}", e)
+            false
+        }
+    }
+
     // CREDENTIAL DOCUMENTS (saveCredentialDocument/getCredentialDocument/
     // deleteCredentialDocument/attachCredentialDocumentsListener) used to live here,
     // backing the user_credentials collection and its admin-reviewed accreditation

@@ -4,7 +4,11 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -1889,6 +1893,78 @@ private fun AdminSecurityAuditTab(
                         Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Export Audit Logs (CSV)", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        }
+
+        item {
+            val context = LocalContext.current
+            ProSurfaceCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ProSectionHeader(
+                        title = "Legal Documents",
+                        subtitle = "Upload a new HTML file to publish a new version — prior versions are kept, never overwritten",
+                        icon = Icons.Default.Gavel
+                    )
+                    LegalDocumentVersion.ADMIN_MANAGED_DOC_IDS.forEach { docId ->
+                        val title = when (docId) {
+                            "privacy_policy" -> "Privacy Policy"
+                            "terms_of_use" -> "Terms of Use"
+                            "revocation_policy" -> "Revocation Policy"
+                            else -> docId
+                        }
+                        val current = uiState.legalDocuments[docId]
+                        val isUploading = uiState.isUploadingLegalDocument == docId
+                        val pickerLauncher = rememberLauncherForActivityResult(
+                            contract = ActivityResultContracts.GetContent()
+                        ) { uri: Uri? ->
+                            if (uri != null) {
+                                var resolvedName: String? = null
+                                context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                                    if (cursor.moveToFirst() && nameIndex >= 0) resolvedName = cursor.getString(nameIndex)
+                                }
+                                adminViewModel.uploadLegalDocument(
+                                    docId, uri, resolvedName,
+                                    currentUser?.email ?: "admin@prohost.app"
+                                )
+                            }
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = if (current != null) {
+                                        "v${current.version} — published ${SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date(current.uploadedAtMillis))}"
+                                    } else {
+                                        "Not yet published"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (current != null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error
+                                )
+                            }
+                            OutlinedButton(
+                                enabled = !isUploading,
+                                onClick = { pickerLauncher.launch("text/html") },
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                if (isUploading) {
+                                    CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                } else {
+                                    Icon(Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(14.dp))
+                                }
+                                Spacer(modifier = Modifier.width(Spacing.xs))
+                                Text(
+                                    if (current != null) "Upload New Version" else "Upload",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        }
                     }
                 }
             }

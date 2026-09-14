@@ -417,6 +417,32 @@ class ProHostRepository {
     // The purchase-time price/validity lookup and expiry sweep remain genuine
     // Cloud-Function trust-boundary logic (initiateWhishPayment.ts/expirePackages.ts).
 
+    /** Current published version of legal document [docId] ("privacy_policy" /
+     * "terms_of_use" / "revocation_policy"), or null if never uploaded. Thin
+     * delegate — the Admin Console upload card reads this to show "currently v3"
+     * and to resolve the next version number before uploading; LegalDocumentDialog
+     * reads it to render the live HTML (or a placeholder when null). */
+    suspend fun getLatestLegalDocumentVersion(docId: String): LegalDocumentVersion? =
+        firestoreService.getLatestLegalDocumentVersion(docId)
+
+    /** Records [version] as legal document [docId]'s new current version (both the
+     * fast "current" pointer and a permanent, never-overwritten history entry — see
+     * FirestoreService.publishLegalDocumentVersion) and audit-logs the change. The
+     * caller (AdminViewModel.uploadLegalDocument) already uploaded the HTML to
+     * Storage and resolved [version]'s number before calling this. */
+    suspend fun publishLegalDocumentVersion(docId: String, version: LegalDocumentVersion): Boolean {
+        val success = firestoreService.publishLegalDocumentVersion(docId, version)
+        if (success) {
+            addAuditLog(
+                actionType = "LEGAL_DOCUMENT_PUBLISHED",
+                details = "Admin published $docId v${version.version}" +
+                    (version.fileName?.let { " (\"$it\")" } ?: ""),
+                severity = "SECURE"
+            )
+        }
+        return success
+    }
+
     suspend fun addPackagePlan(plan: PackagePlan): Boolean {
         val updated = _packagePlans.value.copy(packages = _packagePlans.value.packages + (plan.id to plan))
         val success = firestoreService.savePackagePlans(updated)
