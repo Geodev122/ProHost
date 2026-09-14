@@ -43,6 +43,13 @@
       {
         "source": "/payment/failure",
         "destination": "/payment/failure.html"
+      },
+      {
+        "source": "/listing/**",
+        "function": {
+          "functionId": "listingShareLanding",
+          "region": "europe-west1"
+        }
       }
     ],
     "headers": [

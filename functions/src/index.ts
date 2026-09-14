@@ -34,6 +34,7 @@ export { sendPaymentReminder } from "./notifications/sendPaymentReminder";
 export { onWorkspaceListingCreated, onWorkspaceListingDeleted, onWorkspaceListingStatusChanged } from "./listings/listingCountTracker";
 export { onWorkspaceListingPublishValidation } from "./listings/publishValidation";
 export { onWorkspaceListingDeletedCleanup } from "./listings/listingDeleteCleanup";
+export { listingShareLanding } from "./listings/shareLanding";
 export { onBookingAcceptConflictGuard } from "./bookings/bookingConflictGuard";
 export { onUserFavoritesChanged } from "./users/favoritesSync";
 

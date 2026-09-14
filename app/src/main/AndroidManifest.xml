@@ -37,7 +37,11 @@
             </intent-filter>
 
             <!-- Whish payment redirect App Link: hopebearer-award.com/payment/success|failure
-                 (see functions/src/payments/initiateWhishPayment.ts). Verified via
+                 (see functions/src/payments/initiateWhishPayment.ts), and the listing
+                 share App Link: hopebearer-award.com/listing/{spaceId} (see
+                 functions/src/listings/shareLanding.ts) — both on the same already-
+                 verified domain, so one autoVerify intent-filter with two <data> blocks
+                 covers both link families. Verified via
                  https://hopebearer-award.com/.well-known/assetlinks.json. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
@@ -49,6 +53,10 @@
                     android:scheme="https"
                     android:host="hopebearer-award.com"
                     android:pathPrefix="/payment" />
+                <data
+                    android:scheme="https"
+                    android:host="hopebearer-award.com"
+                    android:pathPrefix="/listing" />
             </intent-filter>
 
             <!-- Fallback for the same Whish redirect: a custom scheme needs no OS-level

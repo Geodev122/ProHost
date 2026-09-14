@@ -16,6 +16,7 @@ import com.example.util.NotificationPermissionManager
 class MainActivity : ComponentActivity() {
     private var targetTab by mutableStateOf<String?>(null)
     private var targetBookingId by mutableStateOf<String?>(null)
+    private var targetSpaceId by mutableStateOf<String?>(null)
     private var inAppUpdateManager: InAppUpdateManager? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,6 +47,7 @@ class MainActivity : ComponentActivity() {
                 ProHostAppRoot(
                     deepLinkTab = targetTab,
                     deepLinkBookingId = targetBookingId,
+                    deepLinkSpaceId = targetSpaceId,
                     inAppUpdateManager = inAppUpdateManager
                 )
             }
@@ -103,6 +105,18 @@ class MainActivity : ComponentActivity() {
         val isWhishFallbackReturn = data != null && data.scheme == "prohost" && data.host == "payment"
         if (isWhishAppLinkReturn || isWhishFallbackReturn) {
             targetTab = "payment_return"
+        }
+
+        // A tapped listing share link (hopebearer-award.com/listing/{spaceId} — see
+        // functions/src/listings/shareLanding.ts) only reaches here when the OS's App
+        // Link verification succeeded and the app is installed; a link-preview crawler
+        // or a user without the app never hits this code path at all, they see the
+        // landing page's own HTML instead. ProHostNavGraph resolves the id against the
+        // live spaces list once the user is signed in and it's loaded.
+        val isListingShareLink = data != null && data.scheme == "https" &&
+            data.host == "hopebearer-award.com" && data.path?.startsWith("/listing/") == true
+        if (isListingShareLink) {
+            targetSpaceId = data.path?.removePrefix("/listing/")?.trim('/')?.takeIf { it.isNotBlank() }
         }
     }
 }

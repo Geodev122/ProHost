@@ -98,11 +98,13 @@ private fun allowedTabIdsForRole(role: UserRole): Set<String> {
 fun ProHostAppRoot(
     deepLinkTab: String? = null,
     deepLinkBookingId: String? = null,
+    deepLinkSpaceId: String? = null,
     inAppUpdateManager: InAppUpdateManager? = null,
     viewModel: ProHostViewModel = viewModel()
 ) {
     val currentUser by viewModel.currentUser.collectAsState()
     val drawerPackagePlans by viewModel.packagePlans.collectAsState()
+    val deepLinkSpaces by viewModel.spaces.collectAsState()
     var detailedSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var activeTabId by remember { mutableStateOf("search_map") }
     var activeDrawerTabDialog by remember { mutableStateOf<String?>(null) }
@@ -172,6 +174,26 @@ fun ProHostAppRoot(
                 UserRole.SPECIALIST -> navigateTo("search_map")
                 null -> activeTabId = "auth"
             }
+        }
+    }
+
+    // Opens the listing detail modal for a tapped share link
+    // (hopebearer-award.com/listing/{spaceId} — see MainActivity's
+    // handleIncomingIntent and functions/src/listings/shareLanding.ts). Only
+    // reachable once the user is signed in (the app gates everything behind
+    // login) and the live spaces list has loaded — re-runs whenever either
+    // changes, so a link tapped from a cold start (spaces not loaded yet) or
+    // before sign-in still resolves the moment both are ready, without
+    // needing a one-shot Firestore fetch just for this case.
+    var consumedDeepLinkSpaceId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(deepLinkSpaceId, deepLinkSpaces, currentUser?.id) {
+        if (deepLinkSpaceId.isNullOrBlank() || currentUser == null) return@LaunchedEffect
+        if (consumedDeepLinkSpaceId == deepLinkSpaceId) return@LaunchedEffect
+        val match = deepLinkSpaces.find { it.id == deepLinkSpaceId }
+        if (match != null) {
+            consumedDeepLinkSpaceId = deepLinkSpaceId
+            detailedSpace = match
+            navigateTo("search_map")
         }
     }
 

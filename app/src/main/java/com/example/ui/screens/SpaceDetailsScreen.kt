@@ -9,6 +9,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
@@ -31,6 +32,7 @@ import com.example.ui.theme.*
 import com.example.ui.util.BookingRecurrence
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
+import com.example.util.ShareLinks
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,8 +109,19 @@ fun SpaceDetailsScreen(
             viewModel.launchWhatsAppInquiry(context, liveSpace, selectedFormula)
         },
         onShareClick = {
-            val shareText = "🏢 ProHost: ${liveSpace.title}\n📍 ${liveSpace.district}, ${liveSpace.governorate.displayName}\n💰 $${liveSpace.baseMonthlyRateUsd.toInt()}/mo • WhatsApp: ${liveSpace.ownerPhone}"
-            viewModel.shareExportData(context, "Listing", shareText)
+            val shareUrl = ShareLinks.forListing(liveSpace.id)
+            val shareText = buildString {
+                append("🏢 ${liveSpace.title}")
+                append("\n📍 ${liveSpace.district}, ${liveSpace.governorate.displayName}")
+                if (liveSpace.description.isNotBlank()) {
+                    append("\n${liveSpace.description}")
+                }
+                append("\n\n$shareUrl")
+            }
+            viewModel.shareListing(context, liveSpace.title, shareText)
+        },
+        onCopyLinkClick = {
+            viewModel.copyListingLink(context, ShareLinks.forListing(liveSpace.id))
         },
         isSaved = currentUser?.savedSpaceIds?.contains(liveSpace.id) == true,
         onToggleSave = { viewModel.toggleSavedSpace(liveSpace.id) },
@@ -130,11 +143,13 @@ fun SpaceDetailsScreenContent(
     onRequestRentClick: () -> Unit,
     onWhatsAppClick: () -> Unit,
     onShareClick: () -> Unit,
+    onCopyLinkClick: () -> Unit = {},
     isSaved: Boolean = false,
     onToggleSave: () -> Unit = {},
     onBack: () -> Unit
 ) {
     val liveSpace = space
+    var showShareMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         // Nested inside the app-shell Scaffold's already-inset content area — see
@@ -156,8 +171,28 @@ fun SpaceDetailsScreenContent(
                             tint = if (isSaved) CrimsonRed else LocalContentColor.current
                         )
                     }
-                    IconButton(onClick = onShareClick) {
-                        Icon(Icons.Default.Share, contentDescription = "Share")
+                    Box {
+                        IconButton(onClick = { showShareMenu = true }) {
+                            Icon(Icons.Default.Share, contentDescription = "Share")
+                        }
+                        DropdownMenu(expanded = showShareMenu, onDismissRequest = { showShareMenu = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Share Listing") },
+                                leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                                onClick = {
+                                    showShareMenu = false
+                                    onShareClick()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Copy Link") },
+                                leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
+                                onClick = {
+                                    showShareMenu = false
+                                    onCopyLinkClick()
+                                }
+                            )
+                        }
                     }
                 }
             )
@@ -165,7 +200,9 @@ fun SpaceDetailsScreenContent(
         bottomBar = {
             Surface(
                 color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp,
+                tonalElevation = 10.dp,
+                shadowElevation = 8.dp,
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
@@ -182,9 +219,9 @@ fun SpaceDetailsScreenContent(
                         val priceUnit = selectedFormula?.let { SpaceCalculationUtils.rateUnitLabel(it.type) } ?: "/mo"
                         Text(
                             text = "$${price.toInt()} USD$priceUnit",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = CarnationOrange
                         )
                         Text(
                             text = selectedFormula?.type?.displayName ?: "Full Month",
@@ -234,11 +271,15 @@ fun SpaceDetailsScreenContent(
         ) {
             // Hero Visual Card — swipeable through every photo, not just the first
             // (this used to hard-drop imageUrls[1..], the only place the rest of a
-            // listing's photos were ever shown).
+            // listing's photos were ever shown). Bottom-rounded so it tucks into the
+            // content sheet below, and a bottom-anchored gradient scrim (rather than a
+            // flat overlay across the whole photo) keeps the top of the image vivid
+            // while still guaranteeing the title/location text stays legible.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .height(260.dp)
+                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
             ) {
                 if (liveSpace.imageUrls.isNotEmpty()) {
                     val pagerState = rememberPagerState(pageCount = { liveSpace.imageUrls.size })
@@ -250,27 +291,35 @@ fun SpaceDetailsScreenContent(
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop
                         )
                     }
-                    // Semi-transparent overlay to ensure text is fully legible
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.45f))
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.65f)
+                                    ),
+                                    startY = 0f
+                                )
+                            )
                     )
                     if (liveSpace.imageUrls.size > 1) {
                         Row(
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
-                                .padding(top = Spacing.sm),
+                                .padding(top = Spacing.md),
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             repeat(liveSpace.imageUrls.size) { index ->
                                 Box(
                                     modifier = Modifier
-                                        .size(6.dp)
+                                        .size(if (index == pagerState.currentPage) 8.dp else 6.dp)
                                         .clip(CircleShape)
                                         .background(
                                             if (index == pagerState.currentPage) Color.White
-                                            else Color.White.copy(alpha = 0.4f)
+                                            else Color.White.copy(alpha = 0.5f)
                                         )
                                 )
                             }
@@ -295,25 +344,42 @@ fun SpaceDetailsScreenContent(
                         .align(Alignment.BottomStart)
                         .padding(20.dp)
                 ) {
-                    Surface(
-                        color = Color(0x33FFFFFF),
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Text(
-                            text = "${liveSpace.spaceCategoryName ?: liveSpace.spaceType.displayName} • ${if (liveSpace.isShared) "Shared Co-Working Space" else "Private Studio / Office"}",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Surface(
+                            color = Color(0x33FFFFFF),
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Text(
+                                text = "${liveSpace.spaceCategoryName ?: liveSpace.spaceType.displayName} • ${if (liveSpace.isShared) "Shared Co-Working Space" else "Private Studio / Office"}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                            )
+                        }
+                        if (liveSpace.isVerified) {
+                            Surface(
+                                color = FreshGreen,
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                                ) {
+                                    Icon(Icons.Default.Verified, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                                    Text("Verified", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                        }
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = liveSpace.title,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.ExtraBold,
                         color = Color.White,
-                        lineHeight = 24.sp,
+                        lineHeight = 28.sp,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -329,7 +395,7 @@ fun SpaceDetailsScreenContent(
 
             Column(
                 modifier = Modifier.padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.xl)
             ) {
                 // Active In-App Booking Request Status (if any)
                 myRequestsForThisSpace.forEach { req ->

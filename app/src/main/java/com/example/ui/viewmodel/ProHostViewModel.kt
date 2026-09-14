@@ -1,5 +1,7 @@
 package com.example.ui.viewmodel
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -976,5 +978,31 @@ class ProHostViewModel(
             putExtra(Intent.EXTRA_TEXT, content)
         }
         context.startActivity(Intent.createChooser(intent, "Export ProHost Data"))
+    }
+
+    /**
+     * Opens the system share sheet for a listing — [content] carries the real
+     * public link (see com.example.util.ShareLinks) so a link-preview-capable
+     * destination (WhatsApp, Telegram, iMessage, etc.) renders a real
+     * thumbnail/title/description card, sourced from
+     * functions/src/listings/shareLanding.ts, not just plain text. A separate
+     * function from shareExportData above — that one is for data exports and
+     * uses an export-specific subject/chooser title that would read oddly
+     * here.
+     */
+    fun shareListing(context: Context, title: String, content: String) {
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, title)
+            putExtra(Intent.EXTRA_TEXT, content)
+        }
+        context.startActivity(Intent.createChooser(intent, "Share Listing"))
+    }
+
+    /** Copies a listing's public share link (com.example.util.ShareLinks) to the clipboard. */
+    fun copyListingLink(context: Context, url: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("ProHost Listing Link", url))
+        Toast.makeText(context, "Link copied to clipboard", Toast.LENGTH_SHORT).show()
     }
 }
