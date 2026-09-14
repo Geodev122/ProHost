@@ -23,6 +23,23 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "redirects": [
+      {
+        "source": "/privacy.html",
+        "destination": "/privacy",
+        "type": 301
+      },
+      {
+        "source": "/terms.html",
+        "destination": "/terms",
+        "type": 301
+      },
+      {
+        "source": "/revocation.html",
+        "destination": "/revocation",
+        "type": 301
+      }
+    ],
     "rewrites": [
       {
         "source": "/privacy",
