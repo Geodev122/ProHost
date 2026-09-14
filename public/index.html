@@ -3,312 +3,550 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ProHost - Specialist Workspace & Office Rental Exchange</title>
-  <meta name="description" content="ProHost is Lebanon's premier marketplace connecting independent healthcare practitioners and professional specialists with workspace hosts.">
+  <title>ProHost — Lebanon's Workspace & Practice Exchange</title>
+  <meta name="description" content="ProHost connects independent healthcare practitioners, architects, consultants and other specialists with hosts renting clinics, studios and offices across Lebanon — with GPS discovery, phone-verified accounts and direct WhatsApp contact.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ProHost — Lebanon's Workspace & Practice Exchange">
+  <meta property="og:description" content="Find or list a clinic, studio or office across Lebanon. GPS discovery, phone-verified accounts, direct contact — built for independent specialists and workspace hosts.">
+  <meta property="og:image" content="https://pro-host.tech/logo.png">
+  <meta property="og:url" content="https://pro-host.tech/">
   <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #F25F4C;
-      --primary-hover: #E04E3A;
-      --oxford-blue: #0F172A;
-      --vibrant-blue: #2563EB;
-      --bg-light: #F8FAFC;
-      --card-bg: #FFFFFF;
-      --text-dark: #1E293B;
-      --text-muted: #64748B;
-      --border-color: #E2E8F0;
+      --oxford: #384152;
+      --oxford-deep: #272F3C;
+      --oxford-light: #5A667A;
+      --accent: #F25F4C;
+      --accent-deep: #D44432;
+      --accent-light: #FF8575;
+      --blue: #246BEE;
+      --green: #4CAF72;
+      --bg: #F8F9FA;
+      --card: #FFFFFF;
+      --border: #E2E4E8;
+      --border-strong: #D1D5DC;
+      --ink: #1E293B;
+      --muted: #5B6472;
+      --shadow: 0 24px 60px -24px rgba(39, 47, 60, 0.28);
+      --shadow-sm: 0 8px 24px -12px rgba(39, 47, 60, 0.18);
     }
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
     body {
-      background-color: var(--bg-light);
-      color: var(--text-dark);
-      line-height: 1.6;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
     }
-    header {
-      background-color: #FFFFFF;
-      border-bottom: 1px solid var(--border-color);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .nav-container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 1rem 1.5rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      text-decoration: none;
-    }
-    .brand img {
-      width: 42px;
-      height: 48px;
-      object-fit: contain;
-    }
-    .brand-title {
-      font-size: 1.5rem;
+    h1, h2, h3, .display {
+      font-family: 'Manrope', 'Inter', sans-serif;
       font-weight: 800;
       letter-spacing: -0.02em;
+      color: var(--oxford);
     }
-    .brand-pro { color: var(--oxford-blue); }
-    .brand-host { color: var(--vibrant-blue); }
-    .nav-links {
-      display: flex;
-      gap: 1.5rem;
-      align-items: center;
+    a { color: inherit; }
+    img { max-width: 100%; display: block; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding-inline: 1.5rem; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.78rem;
+      letter-spacing: 0.09em; text-transform: uppercase; color: var(--accent-deep);
     }
-    .nav-links a {
-      text-decoration: none;
-      color: var(--text-dark);
-      font-weight: 600;
-      font-size: 0.95rem;
-      transition: color 0.2s;
+    .eyebrow::before { content: ""; width: 18px; height: 2px; background: var(--accent); border-radius: 2px; }
+
+    /* ---------- Header ---------- */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(248, 249, 250, 0.86);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
     }
-    .nav-links a:hover {
-      color: var(--primary);
-    }
-    .hero {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 4rem 1.5rem 3rem;
-      text-align: center;
-    }
-    .badge {
-      display: inline-block;
-      background-color: #FEF2F2;
-      color: var(--primary);
-      border: 1px solid #FCA5A5;
-      padding: 0.35rem 1rem;
-      border-radius: 9999px;
-      font-size: 0.85rem;
-      font-weight: 700;
-      margin-bottom: 1.25rem;
-    }
-    .hero h1 {
-      font-size: 2.75rem;
-      font-weight: 900;
-      line-height: 1.2;
-      color: var(--oxford-blue);
-      margin-bottom: 1.25rem;
-      letter-spacing: -0.03em;
-    }
-    .hero p {
-      font-size: 1.2rem;
-      color: var(--text-muted);
-      max-width: 750px;
-      margin: 0 auto 2.5rem;
-    }
-    .cta-buttons {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
+    .nav-row { display: flex; align-items: center; justify-content: space-between; padding-block: 0.9rem; }
+    .brand { display: flex; align-items: center; gap: 0.65rem; text-decoration: none; }
+    .brand img { width: 32px; height: 32px; object-fit: contain; }
+    .brand-word { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 1.25rem; }
+    .brand-word .b1 { color: var(--oxford); }
+    .brand-word .b2 { color: var(--blue); }
+    nav.links { display: flex; align-items: center; gap: 1.9rem; }
+    nav.links a { font-size: 0.92rem; font-weight: 600; color: var(--oxford); text-decoration: none; }
+    nav.links a:hover { color: var(--accent); }
     .btn {
-      padding: 0.85rem 1.75rem;
-      border-radius: 0.5rem;
-      font-weight: 700;
-      text-decoration: none;
-      font-size: 1rem;
-      transition: all 0.2s;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+      font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.92rem;
+      padding: 0.7rem 1.35rem; border-radius: 0.65rem; text-decoration: none;
+      border: 1px solid transparent; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;
+      white-space: nowrap;
     }
-    .btn-primary {
-      background-color: var(--primary);
-      color: #FFFFFF;
-      box-shadow: 0 4px 12px rgba(242, 95, 76, 0.25);
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--accent); color: #fff; box-shadow: var(--shadow-sm); }
+    .btn-primary:hover { background: var(--accent-deep); }
+    .btn-outline { background: transparent; border-color: var(--border-strong); color: var(--oxford); }
+    .btn-outline:hover { border-color: var(--oxford); }
+    .btn-dark { background: var(--oxford); color: #fff; }
+    .btn-dark:hover { background: var(--oxford-deep); }
+    .btn-ghost-light { background: rgba(255,255,255,0.14); color: #fff; border-color: rgba(255,255,255,0.35); }
+    .btn-ghost-light:hover { background: rgba(255,255,255,0.22); }
+    .nav-cta { display: flex; align-items: center; gap: 0.75rem; }
+    .menu-toggle { display: none; }
+
+    /* ---------- Hero ---------- */
+    .hero { position: relative; overflow: hidden; padding-block: 4.5rem 5rem; }
+    .hero::before {
+      content: ""; position: absolute; inset: -20% -10% auto auto; width: 640px; height: 640px;
+      background: radial-gradient(circle at 30% 30%, rgba(36,107,238,0.16), transparent 65%);
+      z-index: 0;
     }
-    .btn-primary:hover {
-      background-color: var(--primary-hover);
+    .hero::after {
+      content: ""; position: absolute; bottom: -25% ; left: -12%; width: 560px; height: 560px;
+      background: radial-gradient(circle at 60% 60%, rgba(242,95,76,0.14), transparent 65%);
+      z-index: 0;
     }
-    .btn-secondary {
-      background-color: #FFFFFF;
-      color: var(--oxford-blue);
-      border: 1px solid var(--border-color);
+    .hero-grid {
+      position: relative; z-index: 1;
+      display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 3.5rem; align-items: center;
     }
-    .btn-secondary:hover {
-      background-color: #F1F5F9;
+    .hero h1 { font-size: clamp(2.3rem, 4.4vw, 3.4rem); line-height: 1.08; margin-block: 1rem 1.25rem; }
+    .hero h1 .accent-underline { position: relative; }
+    .hero h1 .accent-underline::after {
+      content: ""; position: absolute; left: 0; right: 0; bottom: 0.06em; height: 0.32em;
+      background: linear-gradient(120deg, rgba(36,107,238,0.35), rgba(242,95,76,0.4));
+      z-index: -1; border-radius: 3px;
     }
-    .features {
-      max-width: 1100px;
-      margin: 2rem auto 4rem;
-      padding: 0 1.5rem;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1f));
-      gap: 1.75rem;
+    .hero p.lede { font-size: 1.1rem; color: var(--muted); max-width: 34rem; margin-bottom: 2rem; }
+    .hero-ctas { display: flex; gap: 0.85rem; flex-wrap: wrap; margin-bottom: 2.25rem; }
+    .hero-meta { display: flex; gap: 1.75rem; flex-wrap: wrap; }
+    .hero-meta-item { display: flex; align-items: center; gap: 0.55rem; font-size: 0.88rem; color: var(--oxford); font-weight: 600; }
+    .hero-meta-item svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--green); }
+
+    /* ---------- Phone mockup ---------- */
+    .mockup-stage { position: relative; display: flex; justify-content: center; }
+    .phone {
+      position: relative; width: 280px; height: 570px; border-radius: 2.6rem;
+      background: linear-gradient(160deg, var(--oxford), var(--oxford-deep));
+      padding: 12px; box-shadow: var(--shadow);
     }
-    .feature-card {
-      background-color: var(--card-bg);
-      padding: 2rem;
-      border-radius: 1rem;
-      border: 1px solid var(--border-color);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    .phone-screen {
+      position: relative; width: 100%; height: 100%; border-radius: 2rem; background: var(--bg);
+      overflow: hidden; display: flex; flex-direction: column;
     }
-    .feature-icon {
-      font-size: 2rem;
-      margin-bottom: 1rem;
+    .phone-notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 84px; height: 20px; background: var(--oxford-deep); border-radius: 12px; z-index: 5; }
+    .phone-topbar { padding: 30px 16px 10px; }
+    .phone-topbar .chip-row { display: flex; gap: 6px; overflow: hidden; }
+    .phone-chip { font-size: 0.6rem; font-weight: 700; font-family: 'Manrope', sans-serif; padding: 5px 10px; border-radius: 999px; background: #fff; border: 1px solid var(--border); color: var(--oxford); white-space: nowrap; }
+    .phone-chip.active { background: var(--oxford); color: #fff; border-color: var(--oxford); }
+    .phone-map { position: relative; flex: 1; margin: 8px 12px; border-radius: 1.1rem; overflow: hidden;
+      background:
+        linear-gradient(0deg, rgba(36,107,238,0.06) 1px, transparent 1px) 0 0/26px 26px,
+        linear-gradient(90deg, rgba(36,107,238,0.06) 1px, transparent 1px) 0 0/26px 26px,
+        #EAF0FB;
+      border: 1px solid var(--border);
     }
-    .feature-card h3 {
-      font-size: 1.25rem;
-      color: var(--oxford-blue);
-      margin-bottom: 0.75rem;
-      font-weight: 800;
+    .pin { position: absolute; width: 26px; height: 26px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 3px 8px rgba(0,0,0,0.22); }
+    .pin::after { content:""; position:absolute; inset: 6px; background:#fff; border-radius:50%; }
+    .pin.p1 { top: 26px; left: 34px; background: var(--accent); }
+    .pin.p2 { top: 92px; left: 150px; background: var(--blue); }
+    .pin.p3 { top: 150px; left: 60px; background: var(--green); }
+    .pin.p4 { top: 60px; left: 200px; background: var(--oxford); }
+    .float-card { position: absolute; background: #fff; border-radius: 0.65rem; box-shadow: 0 10px 22px -10px rgba(39,47,60,0.35); padding: 7px 10px; font-family: 'Manrope', sans-serif; }
+    .float-card .t { font-size: 0.58rem; font-weight: 700; color: var(--oxford); }
+    .float-card .p { font-size: 0.66rem; font-weight: 800; color: var(--accent-deep); }
+    .float-card.c1 { top: 44px; left: 56px; }
+    .float-card.c2 { top: 168px; left: 96px; }
+    .phone-sheet { background: #fff; border-top: 1px solid var(--border); padding: 12px 16px 16px; border-radius: 1.1rem 1.1rem 0 0; margin-top: -14px; position: relative; z-index: 2; }
+    .phone-sheet .row1 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .phone-sheet .name { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 0.78rem; color: var(--oxford); }
+    .phone-sheet .loc { font-size: 0.62rem; color: var(--muted); }
+    .phone-sheet .price { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 0.78rem; color: var(--accent-deep); }
+    .phone-sheet .cta { display: block; text-align: center; background: var(--accent); color: #fff; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.68rem; padding: 8px; border-radius: 0.5rem; }
+    .badge-float { position: absolute; background: #fff; border-radius: 0.85rem; box-shadow: var(--shadow-sm); padding: 0.6rem 0.9rem; display: flex; align-items: center; gap: 0.55rem; font-family: 'Manrope', sans-serif; }
+    .badge-float svg { width: 20px; height: 20px; color: var(--green); flex-shrink: 0; }
+    .badge-float .l1 { font-size: 0.62rem; color: var(--muted); font-weight: 600; }
+    .badge-float .l2 { font-size: 0.78rem; font-weight: 800; color: var(--oxford); }
+    .badge-top { top: 4%; left: -8%; }
+    .badge-bottom { bottom: 8%; right: -10%; }
+
+    /* ---------- Section shell ---------- */
+    section { padding-block: 5rem; }
+    .section-head { max-width: 42rem; margin-bottom: 2.75rem; }
+    .section-head h2 { font-size: clamp(1.7rem, 2.8vw, 2.2rem); margin-top: 0.7rem; }
+    .section-head p { color: var(--muted); font-size: 1.02rem; margin-top: 0.85rem; }
+
+    /* ---------- Audience split ---------- */
+    .audience { background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .audience-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.75rem; }
+    .audience-card {
+      border-radius: 1.25rem; padding: 2.1rem; border: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 1.1rem;
     }
-    .feature-card p {
-      color: var(--text-muted);
-      font-size: 0.95rem;
+    .audience-card.specialist { background: linear-gradient(155deg, #EFF4FF, #fff 60%); }
+    .audience-card.host { background: linear-gradient(155deg, #FFF1EE, #fff 60%); }
+    .audience-icon { width: 52px; height: 52px; border-radius: 0.9rem; display: flex; align-items: center; justify-content: center; }
+    .audience-card.specialist .audience-icon { background: rgba(36,107,238,0.12); color: var(--blue); }
+    .audience-card.host .audience-icon { background: rgba(242,95,76,0.13); color: var(--accent-deep); }
+    .audience-icon svg { width: 26px; height: 26px; }
+    .audience-card h3 { font-size: 1.35rem; }
+    .audience-card ul { list-style: none; display: flex; flex-direction: column; gap: 0.65rem; }
+    .audience-card li { display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.94rem; color: var(--oxford); }
+    .audience-card li svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 0.15em; color: var(--green); }
+    .audience-card .btn { align-self: flex-start; margin-top: 0.3rem; }
+
+    /* ---------- Feature grid ---------- */
+    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    .feature-card { background: var(--card); border: 1px solid var(--border); border-radius: 1.1rem; padding: 1.75rem; }
+    .feature-icon { width: 46px; height: 46px; border-radius: 0.75rem; background: var(--oxford); display: flex; align-items: center; justify-content: center; margin-bottom: 1.1rem; }
+    .feature-icon svg { width: 24px; height: 24px; color: #fff; }
+    .feature-card:nth-child(2) .feature-icon { background: var(--blue); }
+    .feature-card:nth-child(3) .feature-icon { background: var(--accent); }
+    .feature-card:nth-child(5) .feature-icon { background: var(--blue); }
+    .feature-card:nth-child(6) .feature-icon { background: var(--accent); }
+    .feature-card h3 { font-size: 1.08rem; margin-bottom: 0.5rem; }
+    .feature-card p { font-size: 0.92rem; color: var(--muted); }
+
+    /* ---------- How it works ---------- */
+    .how { background: var(--oxford); color: #fff; }
+    .how .section-head h2, .how .section-head .eyebrow { color: #fff; }
+    .how .section-head p { color: rgba(255,255,255,0.72); }
+    .how .eyebrow::before { background: var(--accent-light); }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; counter-reset: step; }
+    .step { position: relative; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); border-radius: 1.1rem; padding: 1.9rem 1.6rem; }
+    .step .num { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 2.2rem; color: var(--accent-light); line-height: 1; margin-bottom: 0.9rem; }
+    .step h3 { color: #fff; font-size: 1.05rem; margin-bottom: 0.5rem; }
+    .step p { color: rgba(255,255,255,0.72); font-size: 0.92rem; }
+
+    /* ---------- Trust strip ---------- */
+    .trust { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 3rem; align-items: center; }
+    .trust-card { background: var(--card); border: 1px solid var(--border); border-radius: 1.25rem; padding: 2rem; }
+    .trust-card h3 { font-size: 1.05rem; margin-bottom: 0.6rem; }
+    .trust-card p { color: var(--muted); font-size: 0.92rem; }
+    .trust-links { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.1rem; }
+    .pill-link { font-size: 0.82rem; font-weight: 600; padding: 0.45rem 0.9rem; border-radius: 999px; border: 1px solid var(--border-strong); text-decoration: none; color: var(--oxford); }
+    .pill-link:hover { border-color: var(--accent); color: var(--accent-deep); }
+    .law-list { display: flex; flex-direction: column; gap: 1rem; }
+    .law-item { display: flex; gap: 0.85rem; }
+    .law-item svg { width: 22px; height: 22px; color: var(--blue); flex-shrink: 0; margin-top: 0.1em; }
+    .law-item .t { font-weight: 700; font-family: 'Manrope', sans-serif; font-size: 0.95rem; color: var(--oxford); }
+    .law-item .d { font-size: 0.86rem; color: var(--muted); }
+
+    /* ---------- Download CTA ---------- */
+    .download { position: relative; overflow: hidden; background: linear-gradient(135deg, var(--blue), var(--accent)); border-radius: 1.75rem; padding: 3.2rem 2.5rem; color: #fff; text-align: center; }
+    .download h2 { color: #fff; font-size: clamp(1.6rem, 3vw, 2.1rem); }
+    .download p { color: rgba(255,255,255,0.88); max-width: 34rem; margin: 0.9rem auto 1.8rem; }
+    .store-row { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+    .store-badge { display: inline-flex; align-items: center; gap: 0.7rem; background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.3); border-radius: 0.8rem; padding: 0.7rem 1.3rem; text-decoration: none; color: #fff; }
+    .store-badge svg { width: 26px; height: 26px; }
+    .store-badge .l1 { font-size: 0.62rem; opacity: 0.85; }
+    .store-badge .l2 { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.95rem; }
+    .store-note { margin-top: 1rem; font-size: 0.8rem; color: rgba(255,255,255,0.75); }
+
+    /* ---------- Footer ---------- */
+    footer { background: var(--oxford-deep); color: rgba(255,255,255,0.78); padding-block: 3.5rem 2rem; }
+    .footer-grid { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 2.5rem; margin-bottom: 2.5rem; }
+    .footer-brand { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.9rem; }
+    .footer-brand img { width: 28px; height: 28px; }
+    .footer-brand span { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 1.1rem; color: #fff; }
+    .footer-grid p.tag { font-size: 0.88rem; max-width: 24rem; }
+    .footer-col h4 { font-family: 'Manrope', sans-serif; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; color: #fff; margin-bottom: 0.9rem; }
+    .footer-col a { display: block; font-size: 0.88rem; color: rgba(255,255,255,0.72); text-decoration: none; margin-bottom: 0.65rem; }
+    .footer-col a:hover { color: #fff; }
+    .footer-bottom { border-top: 1px solid rgba(255,255,255,0.12); padding-top: 1.5rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; font-size: 0.82rem; }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 900px) {
+      nav.links { display: none; }
+      .hero-grid { grid-template-columns: 1fr; }
+      .mockup-stage { order: -1; margin-bottom: 1rem; }
+      .phone { width: 230px; height: 468px; }
+      .badge-top, .badge-bottom { display: none; }
+      .audience-grid { grid-template-columns: 1fr; }
+      .feature-grid { grid-template-columns: 1fr 1fr; }
+      .steps { grid-template-columns: 1fr; }
+      .trust { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr; }
     }
-    .legal-notice-box {
-      max-width: 1100px;
-      margin: 0 auto 4rem;
-      padding: 2rem 1.5rem;
-    }
-    .notice-content {
-      background-color: #EFF6FF;
-      border: 1px solid #BFDBFE;
-      padding: 2rem;
-      border-radius: 1rem;
-      text-align: center;
-    }
-    .notice-content h3 {
-      color: #1E40AF;
-      margin-bottom: 0.75rem;
-      font-size: 1.2rem;
-    }
-    .notice-content p {
-      color: #1E3A8A;
-      font-size: 0.95rem;
-      margin-bottom: 1.25rem;
-    }
-    footer {
-      background-color: var(--oxford-blue);
-      color: #94A3B8;
-      padding: 3rem 1.5rem;
-      border-top: 1px solid #1E293B;
-    }
-    .footer-container {
-      max-width: 1100px;
-      margin: 0 auto;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1.5rem;
-    }
-    .footer-brand {
-      color: #FFFFFF;
-      font-weight: 800;
-      font-size: 1.25rem;
-    }
-    .footer-links {
-      display: flex;
-      gap: 1.5rem;
-    }
-    .footer-links a {
-      color: #CBD5E1;
-      text-decoration: none;
-      font-size: 0.9rem;
-      font-weight: 600;
-      transition: color 0.2s;
-    }
-    .footer-links a:hover {
-      color: #FFFFFF;
-    }
-    @media (max-width: 640px) {
-      .hero h1 { font-size: 2rem; }
-      .hero p { font-size: 1rem; }
-      .nav-links { gap: 1rem; }
-      .footer-container { flex-direction: column; text-align: center; }
+    @media (max-width: 560px) {
+      .feature-grid { grid-template-columns: 1fr; }
+      .hero-ctas .btn, .nav-cta .btn { width: 100%; }
+      .hero-ctas { flex-direction: column; }
     }
   </style>
 </head>
 <body>
 
   <header>
-    <div class="nav-container">
+    <div class="wrap nav-row">
       <a href="/" class="brand">
-        <img src="/logo.png" alt="ProHost Logo">
-        <span class="brand-title">
-          <span class="brand-pro">Pro</span><span class="brand-host">Host</span>
-        </span>
+        <img src="/logo.png" alt="ProHost">
+        <span class="brand-word"><span class="b1">Pro</span><span class="b2">Host</span></span>
       </a>
-      <nav class="nav-links">
-        <a href="/">Home</a>
-        <a href="/privacy">Privacy Policy</a>
-        <a href="/terms">Terms of Service</a>
-        <a href="/revocation">Revocation Policy</a>
+      <nav class="links">
+        <a href="#audience">For You</a>
+        <a href="#features">Features</a>
+        <a href="#how">How It Works</a>
+        <a href="#trust">Trust &amp; Legal</a>
       </nav>
+      <div class="nav-cta">
+        <a href="#download" class="btn btn-primary">Get the App</a>
+      </div>
     </div>
   </header>
 
   <main>
     <section class="hero">
-      <span class="badge">Lebanon Workspace & Office Exchange</span>
-      <h1>Empowering Independent Specialists & Workspace Hosts</h1>
-      <p>ProHost is a specialized marketplace designed for healthcare practitioners, architects, consultants, and independent professionals in Lebanon to discover, reserve, and host verified clinics, studios, and professional office spaces.</p>
+      <div class="wrap hero-grid">
+        <div>
+          <span class="eyebrow">Lebanon's Workspace &amp; Practice Exchange</span>
+          <h1>Find the room.<br>Fill the room.<br><span class="accent-underline">One map, all of Lebanon.</span></h1>
+          <p class="lede">ProHost connects independent specialists — physicians, therapists, architects, consultants — with hosts renting clinics, studios and offices, from Beirut to the Bekaa. Browse by GPS, message directly, book in minutes.</p>
+          <div class="hero-ctas">
+            <a href="#audience" class="btn btn-primary">
+              I'm a Specialist
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a href="#audience" class="btn btn-outline">I Host a Space</a>
+          </div>
+          <div class="hero-meta">
+            <div class="hero-meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+              Phone-verified accounts
+            </div>
+            <div class="hero-meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+              Real GPS locations
+            </div>
+            <div class="hero-meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+              Direct WhatsApp contact
+            </div>
+          </div>
+        </div>
 
-      <div class="cta-buttons">
-        <a href="/privacy" class="btn btn-primary">Read Privacy Policy</a>
-        <a href="/terms" class="btn btn-secondary">Terms of Service</a>
+        <div class="mockup-stage">
+          <div class="badge-float badge-top">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+            <div><div class="l1">Verified via SMS OTP</div><div class="l2">Secure sign-in</div></div>
+          </div>
+          <div class="phone">
+            <div class="phone-screen">
+              <div class="phone-notch"></div>
+              <div class="phone-topbar">
+                <div class="chip-row">
+                  <span class="phone-chip active">All Spaces</span>
+                  <span class="phone-chip">Clinics</span>
+                  <span class="phone-chip">Studios</span>
+                </div>
+              </div>
+              <div class="phone-map">
+                <div class="pin p1"></div>
+                <div class="pin p2"></div>
+                <div class="pin p3"></div>
+                <div class="pin p4"></div>
+                <div class="float-card c1"><div class="t">Clinic Suite · Achrafieh</div><div class="p">$420/mo</div></div>
+                <div class="float-card c2"><div class="t">Studio · Hamra</div><div class="p">$18/hr</div></div>
+              </div>
+              <div class="phone-sheet">
+                <div class="row1">
+                  <div>
+                    <div class="name">Executive Clinic Suite</div>
+                    <div class="loc">Achrafieh, Beirut</div>
+                  </div>
+                  <div class="price">$420/mo</div>
+                </div>
+                <span class="cta">Request to Rent</span>
+              </div>
+            </div>
+          </div>
+          <div class="badge-float badge-bottom">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12l3-8 3 8-3 8-3-8zM18 4l3 8-3 8"/></svg>
+            <div><div class="l1">Governorate coverage</div><div class="l2">All of Lebanon</div></div>
+          </div>
+        </div>
       </div>
     </section>
 
-    <section class="features">
-      <div class="feature-card">
-        <div class="feature-icon">📱</div>
-        <h3>Secure Phone-OTP Authentication</h3>
-        <p>ProHost utilizes instant SMS one-time passcode (OTP) verification powered by Firebase Authentication to verify identity securely without password overhead.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">📍</div>
-        <h3>Interactive GPS Workspace Search</h3>
-        <p>Browse verified medical clinics, dental chairs, therapy rooms, and executive suites across Lebanese governorates with real-time location mapping and interactive schedules.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">🛡️</div>
-        <h3>Identity & Accreditation Security</h3>
-        <p>Your privacy and safety are paramount. User identity verification and document uploads strictly adhere to Lebanese Law No. 81/2018 on Electronic Transactions and Personal Data.</p>
+    <section class="audience" id="audience">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Built for Two Sides</span>
+          <h2>Whichever side of the door you're on.</h2>
+          <p>ProHost is one exchange serving both halves of the same market — specialists who need a room, and hosts who have one.</p>
+        </div>
+        <div class="audience-grid">
+          <div class="audience-card specialist">
+            <div class="audience-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12c2.5 0 4.5-2 4.5-4.5S14.5 3 12 3 7.5 5 7.5 7.5 9.5 12 12 12z"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+            </div>
+            <h3>For Specialists</h3>
+            <ul>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Browse verified clinics, studios and offices by GPS location and price</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Book by the hour, shift, day or month — whatever the host offers</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Message the host directly on WhatsApp before you commit</li>
+            </ul>
+            <a href="https://play.google.com/store/apps/details?id=app.geonajjar.prohost" class="btn btn-outline">Browse as a Specialist</a>
+          </div>
+          <div class="audience-card host">
+            <div class="audience-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>
+            </div>
+            <h3>For Pro Hosts</h3>
+            <ul>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>List an entire space or divide it into rentable rooms and desks</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Set your own pricing — hourly, shift-based, daily or monthly</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Review and accept booking requests, track it all from one hub</li>
+            </ul>
+            <a href="https://play.google.com/store/apps/details?id=app.geonajjar.prohost" class="btn btn-dark">List Your Space</a>
+          </div>
+        </div>
       </div>
     </section>
 
-    <section class="legal-notice-box">
-      <div class="notice-content">
-        <h3>Application Identity & User Privacy</h3>
-        <p>ProHost is committed to user data protection, transparency, and explicit consent. Review our full documentation regarding how user data, phone numbers, and profile details are processed.</p>
-        <div class="cta-buttons">
-          <a href="/privacy" class="btn btn-primary">View Privacy Policy</a>
-          <a href="/terms" class="btn btn-secondary">View Terms of Service</a>
-          <a href="/revocation" class="btn btn-secondary">View Revocation Policy</a>
+    <section id="features">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">What's Inside</span>
+          <h2>Everything a two-sided marketplace needs — nothing it doesn't.</h2>
+          <p>Six capabilities that actually ship in the app, not a wishlist.</p>
+        </div>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg></div>
+            <h3>Phone-OTP Authentication</h3>
+            <p>Every account is verified by a real SMS one-time code through Firebase Authentication — no passwords to leak or forget.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-6.5 7-11a7 7 0 10-14 0c0 4.5 7 11 7 11z"/></svg></div>
+            <h3>Real GPS Discovery</h3>
+            <p>Every listing is pinned at its real location. Browse the interactive map or filter by governorate, category and price.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21l1.65-4.95A9 9 0 1112 21a9 9 0 01-5.35-1.76L3 21z"/></svg></div>
+            <h3>Direct WhatsApp Contact</h3>
+            <p>Skip the middleman — reach out to a host or specialist directly on WhatsApp before or after a booking request.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+            <h3>Flexible Booking Requests</h3>
+            <p>Hourly, shift-based, daily or monthly — a host sets real availability and pricing, a specialist requests and gets confirmed.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4v5c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V7l8-4z"/></svg></div>
+            <h3>Admin-Governed Trust</h3>
+            <p>Suspicious activity, disputes and account governance are handled by a real Admin console — every action is audit-logged.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6M9 16h6M9 8h6M5 4h14v16H5z"/></svg></div>
+            <h3>Built on Lebanese Law</h3>
+            <p>Data handling and platform terms are drafted around Law No. 81/2018 and the practical realities of the Lebanese market.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="how" id="how">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">Three Steps</span>
+          <h2>From open app to confirmed booking.</h2>
+          <p>The same simple flow, whichever side you're on.</p>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <div class="num">01</div>
+            <h3>Sign in with your phone</h3>
+            <p>One SMS code and a short profile — specialty, city, and (for hosts) your first listing.</p>
+          </div>
+          <div class="step">
+            <div class="num">02</div>
+            <h3>Browse or publish</h3>
+            <p>Specialists scan the map for the right room; hosts set pricing, photos and real availability.</p>
+          </div>
+          <div class="step">
+            <div class="num">03</div>
+            <h3>Request, confirm, meet</h3>
+            <p>A booking request lands in the host's inbox; once accepted, the calendar locks and WhatsApp takes it from there.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="trust">
+      <div class="wrap trust">
+        <div class="trust-card">
+          <h3>Your data, handled deliberately</h3>
+          <p>ProHost is committed to transparency and explicit consent — read exactly what we collect, why, and the Lebanese legal framework it's built around.</p>
+          <div class="trust-links">
+            <a href="/privacy" class="pill-link">Privacy Policy</a>
+            <a href="/terms" class="pill-link">Terms of Use</a>
+            <a href="/revocation" class="pill-link">Revocation Policy</a>
+            <a href="/delete-account.html" class="pill-link">Delete My Account</a>
+          </div>
+        </div>
+        <div class="law-list">
+          <div class="law-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg>
+            <div><div class="t">Law No. 81/2018</div><div class="d">Electronic Transactions and Personal Data — the backbone of our Privacy Policy.</div></div>
+          </div>
+          <div class="law-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 8l7-5 7 5M5 8v9a2 2 0 002 2h10a2 2 0 002-2V8"/></svg>
+            <div><div class="t">No automated decisions</div><div class="d">Every suspension or account action is a deliberate, logged decision by a human Admin.</div></div>
+          </div>
+          <div class="law-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            <div><div class="t">Delete anytime</div><div class="d">In-app deletion is immediate; a web request is processed within 30 days.</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="download">
+      <div class="wrap">
+        <div class="download">
+          <h2>ProHost is on its way to Google Play.</h2>
+          <p>The Android app is in final review. This link will start working the moment ProHost goes live — bookmark it, or check back soon.</p>
+          <div class="store-row">
+            <a href="https://play.google.com/store/apps/details?id=app.geonajjar.prohost" class="store-badge">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3.5v17a.5.5 0 00.8.4l13-8.5a.5.5 0 000-.8l-13-8.5a.5.5 0 00-.8.4z"/></svg>
+              <div><div class="l1">Coming soon to</div><div class="l2">Google Play</div></div>
+            </a>
+          </div>
+          <p class="store-note">Package: app.geonajjar.prohost — this page will auto-detect the app once it launches.</p>
         </div>
       </div>
     </section>
   </main>
 
   <footer>
-    <div class="footer-container">
-      <div>
-        <div class="footer-brand">ProHost</div>
-        <p style="margin-top: 0.25rem; font-size: 0.85rem;">© 2026 ProHost. All rights reserved. Support: geo.elnajjar@gmail.com</p>
+    <div class="wrap">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">
+            <img src="/logo.png" alt="ProHost">
+            <span>ProHost</span>
+          </div>
+          <p class="tag">Lebanon's workspace and practice exchange — connecting independent specialists with the hosts who have room for them.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="#audience">For Specialists</a>
+          <a href="#audience">For Pro Hosts</a>
+          <a href="#features">Features</a>
+          <a href="#how">How It Works</a>
+        </div>
+        <div class="footer-col">
+          <h4>Legal &amp; Support</h4>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Use</a>
+          <a href="/revocation">Revocation Policy</a>
+          <a href="/delete-account.html">Delete Account</a>
+          <a href="mailto:geo.elnajjar@gmail.com">geo.elnajjar@gmail.com</a>
+        </div>
       </div>
-      <div class="footer-links">
-        <a href="/">Home</a>
-        <a href="/privacy">Privacy Policy</a>
-        <a href="/terms">Terms of Service</a>
-        <a href="/revocation">Revocation Policy</a>
+      <div class="footer-bottom">
+        <span>© 2026 ProHost. All rights reserved.</span>
+        <span>Made for Lebanon's independent professionals.</span>
       </div>
     </div>
   </footer>
