@@ -141,12 +141,11 @@ class ProHostRepository {
     // fresh deploy (before package_plans/main even exists), AND got them
     // silently persisted to Firestore the moment an admin added their first
     // real package (addPackagePlan merges into whatever this StateFlow held).
-    // The real fix for "resolve an already-migrated host's legacy package id"
-    // is the one-time, admin-triggered functions/src/packages/
-    // seedLegacyPackagePlans.ts Cloud Function, which writes the two legacy
-    // packages into the real Firestore doc exactly once (idempotent) — see
-    // AdminViewModel.runSeedLegacyPackagePlans(). This StateFlow only ever
-    // reflects the real, live package_plans/main document.
+    // An already-migrated host's stored legacy ownerPackageId simply resolves
+    // to "no active package" (see withinListingLimit() in firestore.rules)
+    // until an admin creates a real package via Add Package — no seed/migration
+    // tool fabricates one on their behalf. This StateFlow only ever reflects
+    // the real, live package_plans/main document.
     private val _packagePlans = MutableStateFlow(PackagePlanCatalog())
     val packagePlans: StateFlow<PackagePlanCatalog> = _packagePlans.asStateFlow()
 

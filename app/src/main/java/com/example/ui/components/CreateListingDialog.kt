@@ -173,6 +173,12 @@ fun CreateListingDialog(
     var lastAutoSavedAtMillis by rememberSaveable { mutableStateOf<Long?>(null) }
     var uploadedPhotoUrls by rememberSaveable(stateSaver = StringListSaver) { mutableStateOf(existingDraft?.imageUrls ?: emptyList()) }
     var isUploadingPhoto by rememberSaveable { mutableStateOf(false) }
+    // uploadAndGetUrl (FirebaseStorageService) already catches every upload failure and
+    // returns null rather than throwing — necessary so one bad file doesn't crash the
+    // coroutine, but it previously meant a permission-denied/network failure here was
+    // completely silent: the picker just did nothing and the host had no idea why. Not
+    // rememberSaveable — transient feedback, cleared on the next attempt either way.
+    var photoUploadError by remember { mutableStateOf<String?>(null) }
 
     // Proof of ownership / right to rent — required per listing (no admin review, just
     // kept on file; see SpaceListing.ownershipProofUrl's doc comment). Uploaded
@@ -180,12 +186,18 @@ fun CreateListingDialog(
     var ownershipProofDoc by rememberSaveable(stateSaver = DocumentPickerStateSaver) { mutableStateOf(DocumentPickerState()) }
     var ownershipProofUrl by rememberSaveable { mutableStateOf(existingDraft?.ownershipProofUrl) }
     var isUploadingOwnershipProof by rememberSaveable { mutableStateOf(false) }
+    // Same silent-failure gap as photoUploadError above — and more consequential here,
+    // since ownershipProofUrl staying null is exactly what keeps the Next button on
+    // Step 1 permanently disabled with no visible explanation (see enabled= below).
+    var ownershipUploadError by remember { mutableStateOf<String?>(null) }
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris: List<Uri> ->
         if (uris.isEmpty()) return@rememberLauncherForActivityResult
         coroutineScope.launch {
             isUploadingPhoto = true
+            photoUploadError = null
+            var failureCount = 0
             uris.forEach { uri ->
                 val imageId = UUID.randomUUID().toString().take(8)
                 val url = storageService.uploadListingImage(
@@ -196,6 +208,15 @@ fun CreateListingDialog(
                 )
                 if (url != null) {
                     uploadedPhotoUrls = uploadedPhotoUrls + url
+                } else {
+                    failureCount++
+                }
+            }
+            if (failureCount > 0) {
+                photoUploadError = if (failureCount == uris.size) {
+                    "Couldn't upload ${if (uris.size == 1) "that photo" else "those photos"}. Check your connection and try again."
+                } else {
+                    "$failureCount of ${uris.size} photos failed to upload. Check your connection and try again."
                 }
             }
             isUploadingPhoto = false
@@ -658,12 +679,18 @@ fun CreateListingDialog(
                                             if (uri != null) {
                                                 coroutineScope.launch {
                                                     isUploadingOwnershipProof = true
+                                                    ownershipUploadError = null
                                                     val ext = newState.fileName?.substringAfterLast('.', "pdf") ?: "pdf"
-                                                    ownershipProofUrl = storageService.uploadOwnershipProofDocument(listingId, uri, ext)
+                                                    val url = storageService.uploadOwnershipProofDocument(listingId, uri, ext)
+                                                    ownershipProofUrl = url
+                                                    if (url == null) {
+                                                        ownershipUploadError = "Couldn't upload that document. Check your connection and try again."
+                                                    }
                                                     isUploadingOwnershipProof = false
                                                 }
                                             } else {
                                                 ownershipProofUrl = null
+                                                ownershipUploadError = null
                                             }
                                         },
                                         modifier = Modifier.fillMaxWidth(),
@@ -671,6 +698,13 @@ fun CreateListingDialog(
                                     )
                                     if (isUploadingOwnershipProof) {
                                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                                    }
+                                    if (ownershipUploadError != null) {
+                                        Text(
+                                            ownershipUploadError!!,
+                                            color = MaterialTheme.colorScheme.error,
+                                            fontSize = MaterialTheme.typography.labelSmall.fontSize
+                                        )
                                     }
                                 } else {
                                     OutlinedButton(onClick = { showOwnershipRolePrompt = true }, modifier = Modifier.fillMaxWidth()) {
@@ -735,6 +769,13 @@ fun CreateListingDialog(
                                             }
                                         }
                                     }
+                                }
+                                if (photoUploadError != null) {
+                                    Text(
+                                        photoUploadError!!,
+                                        color = MaterialTheme.colorScheme.error,
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize
+                                    )
                                 }
                             }
                         }

@@ -169,66 +169,6 @@ class AdminViewModel(
         _uiState.update { it.copy(isAddPackagePlanDialogOpen = false) }
     }
 
-    // One-time (but safely re-runnable) migration of any remaining legacy PAYG users
-    // to the new "no active package" baseline — see functions/src/packages/
-    // migratePaygUsers.ts and the plan's Phase 15E. This trigger button is meant to
-    // be removed from the UI once confirmed run against the live project; calling it
-    // again is harmless (it returns migrated: 0 once nothing matches the legacy
-    // ownerPackageTier == "PAY_AS_YOU_GO" query).
-    fun runPaygMigration() {
-        viewModelScope.launch {
-            val result = functionsClient.migratePaygUsers()
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    result.fold(
-                        onSuccess = { count -> "PAYG migration complete — $count account(s) reset to no-package baseline" },
-                        onFailure = { "PAYG migration failed — check your connection and try again" }
-                    )
-                )
-            )
-        }
-    }
-
-    // One-time, idempotent seed of package_plans/main with the two legacy tiered
-    // packages — needed so an already-migrated Pro Host's stored ownerPackageId
-    // resolves to a real package without hand-recreating it. Safe to tap more than
-    // once; a no-op once the document already exists.
-    fun runSeedLegacyPackagePlans() {
-        viewModelScope.launch {
-            val result = functionsClient.seedLegacyPackagePlans()
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    result.fold(
-                        onSuccess = { seeded ->
-                            if (seeded) "Legacy packages seeded — LIMITED_3_TIER and UNLIMITED_TIER now exist"
-                            else "No seed needed — package_plans/main already exists"
-                        },
-                        onFailure = { "Seeding failed — check your connection and try again" }
-                    )
-                )
-            )
-        }
-    }
-
-    // One-time, idempotent backfill of isOwnerSuspended:false onto every
-    // workspace_listings document that predates the field — required before
-    // the non-admin Discovery listener's real .where("isOwnerSuspended","==",
-    // false) filter can find them (see backfillWorkspaceListingDefaults.ts's
-    // own doc comment for the full story). Safe to tap more than once; a
-    // no-op once every listing already carries the field.
-    fun runBackfillWorkspaceListingDefaults() {
-        viewModelScope.launch {
-            val result = functionsClient.backfillWorkspaceListingDefaults()
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    result.fold(
-                        onSuccess = { count -> "Backfill complete — $count listing(s) updated" },
-                        onFailure = { "Backfill failed — check your connection and try again" }
-                    )
-                )
-            )
-        }
-    }
 
     fun updateGovernanceTag(tag: String) {
         viewModelScope.launch {

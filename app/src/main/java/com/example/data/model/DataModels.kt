@@ -845,9 +845,9 @@ data class SpaceListing(
     // queryable value: FirestoreService's non-admin Discovery listener now
     // filters ON this field directly (isOwnerSuspended == false) to satisfy
     // firestore.rules' read rule, and Firestore's equality filters never match a
-    // document where the field is simply absent. A one-time backend backfill
-    // (backfillWorkspaceListingDefaults, admin-triggered) covers listings saved
-    // before this field was ever written.
+    // document where the field is simply absent — a listing saved before this
+    // field existed would need a one-time backfill (the admin-triggered tool
+    // that did this was removed once confirmed no live listing still lacked it).
     val isOwnerSuspended: Boolean = false,
     val subscriptionExpiryMillis: Long = System.currentTimeMillis() + (28L * 24 * 60 * 60 * 1000),
     val imageUrls: List<String> = emptyList(),

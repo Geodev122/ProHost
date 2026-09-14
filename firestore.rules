@@ -257,9 +257,8 @@ service cloud.firestore {
       // verificationStatus/verificationTier/trustScore fields to protect.
       // ownerPackageId/ownerPackageExpiryMillis are entitlement fields set
       // exclusively by grantEntitlement() (the Whish webhook), expirePackages.ts
-      // (the hourly expiry sweep), migratePaygUsers.ts (the one-time PAYG
-      // migration), or revokeProHostRole (Admin SDK) — a client write could
-      // otherwise self-grant a package for free or dodge real expiry.
+      // (the hourly expiry sweep), or revokeProHostRole (Admin SDK) — a client
+      // write could otherwise self-grant a package for free or dodge real expiry.
       // activeListingCount is maintained only by listingCountTracker.ts's
       // triggers, for the same reason (see withinListingLimit() above — a
       // client-writable counter would make that check trivially bypassable).
