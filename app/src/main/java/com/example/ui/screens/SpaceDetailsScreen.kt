@@ -73,14 +73,10 @@ fun SpaceDetailsScreen(
     var selectedFormula by remember(liveSpace.id) {
         mutableStateOf<RentalFormula?>(
             SpaceCalculationUtils.buildAllSlotsForSpace(liveSpace).firstOrNull()?.let { slot ->
-                // Same recurrence preference as the "Renting Options" cards
-                // below (prefer weekly if the strategy offers it) — a Shift/Day-Based
-                // slot has no FLAT price, so defaulting to FLAT here would seed a
-                // misleading $0 before the specialist taps anything.
-                val recurrence = slot.pricesByRecurrence.keys.let { keys ->
-                    if (BookingRecurrence.SAME_DAY_EVERY_WEEK in keys) BookingRecurrence.SAME_DAY_EVERY_WEEK else keys.firstOrNull()
-                } ?: BookingRecurrence.FLAT
-                SpaceCalculationUtils.representativeFormula(listOf(slot), recurrence)
+                // Every strategy prices under a single FLAT key now — Shift-Based
+                // (item 7b) and Day-Based (this session) both retired their 3-tier
+                // recurrence maps, so there's no "prefer weekly" choice left to make.
+                SpaceCalculationUtils.representativeFormula(listOf(slot), BookingRecurrence.FLAT)
             }
         )
     }
@@ -549,10 +545,7 @@ fun SpaceDetailsScreenContent(
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             strategyPreviewGroups.forEach { (strategyType, slots) ->
                                 val representativeSlot = slots.first()
-                                val previewRecurrence = representativeSlot.pricesByRecurrence.keys.let { keys ->
-                                    if (BookingRecurrence.SAME_DAY_EVERY_WEEK in keys) BookingRecurrence.SAME_DAY_EVERY_WEEK else keys.firstOrNull()
-                                } ?: BookingRecurrence.FLAT
-                                val formula = SpaceCalculationUtils.representativeFormula(listOf(representativeSlot), previewRecurrence)
+                                val formula = SpaceCalculationUtils.representativeFormula(listOf(representativeSlot), BookingRecurrence.FLAT)
                                     ?: return@forEach
                                 val isSelected = selectedFormula?.type == formula.type
                                 Card(

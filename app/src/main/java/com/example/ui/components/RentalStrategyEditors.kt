@@ -365,7 +365,9 @@ fun DayBasedStrategyEditor(
         }
 
         Text(
-            "Per day: price if rented one time, same day each month, and same day each week. Leave all three blank to mark a day Not Available.",
+            "Per day: a single price. Leave blank to mark a day Not Available. The " +
+                "specialist picks real occurrences (one-time or weekly-recurring until " +
+                "a chosen date) at booking time.",
             fontSize = MaterialTheme.typography.labelSmall.fontSize,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -373,38 +375,20 @@ fun DayBasedStrategyEditor(
             val dp = config.distribution[day] ?: DayPricing()
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(day, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = dp.oneTimePrice?.let { if (it == 0.0) "" else it.toInt().toString() } ?: "",
-                        onValueChange = { v ->
-                            val updated = dp.copy(oneTimePrice = v.toDoubleOrNull())
-                            onConfigChange(config.copy(distribution = config.distribution + (day to updated)))
-                        },
-                        label = { Text("One-time") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                    OutlinedTextField(
-                        value = dp.sameDayEachMonthPrice?.let { if (it == 0.0) "" else it.toInt().toString() } ?: "",
-                        onValueChange = { v ->
-                            val updated = dp.copy(sameDayEachMonthPrice = v.toDoubleOrNull())
-                            onConfigChange(config.copy(distribution = config.distribution + (day to updated)))
-                        },
-                        label = { Text("Monthly") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                    OutlinedTextField(
-                        value = dp.sameDayEachWeekPrice?.let { if (it == 0.0) "" else it.toInt().toString() } ?: "",
-                        onValueChange = { v ->
-                            val updated = dp.copy(sameDayEachWeekPrice = v.toDoubleOrNull())
-                            onConfigChange(config.copy(distribution = config.distribution + (day to updated)))
-                        },
-                        label = { Text("Weekly") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                }
+                // Single flat price per day (mirrors ShiftStrategyEditor's item 7b
+                // rework, same request applied to Day-Based) — occurrence count and
+                // recurrence (one-time vs. weekly-recurring) are configured by the
+                // specialist at booking time, not pre-set here.
+                OutlinedTextField(
+                    value = if (dp.price == 0.0) "" else dp.price.toInt().toString(),
+                    onValueChange = { v ->
+                        val updated = dp.copy(price = v.toDoubleOrNull() ?: 0.0)
+                        onConfigChange(config.copy(distribution = config.distribution + (day to updated)))
+                    },
+                    label = { Text("Price per day ($ USD)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
             }
         }
     }

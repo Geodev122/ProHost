@@ -103,7 +103,7 @@ private val EquipmentListSaver = listSaver<List<EquipmentItem>, Any?>(
     }
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.FlowPreview::class)
 @Composable
 fun CreateListingDialog(
     currentUser: AppUser?,
@@ -1515,7 +1515,7 @@ fun CreateListingDialog(
                                 )
                             }
                             RentalStrategyType.DAY_BASED -> {
-                                val prices = p.dayBased?.distribution?.values?.mapNotNull { it.oneTimePrice } ?: emptyList()
+                                val prices = p.dayBased?.distribution?.values?.map { it.price }?.filter { it > 0.0 } ?: emptyList()
                                 val rate = prices.average().takeIf { !it.isNaN() } ?: 120.0
                                 monthly = rate * (p.dayBased?.distribution?.size?.takeIf { it > 0 } ?: 4)
                                 formulas.add(
