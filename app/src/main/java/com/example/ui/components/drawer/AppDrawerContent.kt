@@ -410,14 +410,19 @@ fun AdminDrawerContent(
         )
 
         // System Debugger stays at the very bottom of the admin side menu, below
-        // every other destination.
-        Spacer(modifier = Modifier.height(Spacing.xs))
-        NavigationDrawerItem(
-            label = { Text("Firebase & System Debugger", fontWeight = FontWeight.Bold) },
-            selected = false,
-            onClick = { onDrawerAction("system_debugger") },
-            icon = { Icon(Icons.Default.BugReport, contentDescription = null, tint = AmberWarning) }
-        )
+        // every other destination. Debug-build-only, on top of the admin-role gate
+        // this whole drawer is already behind — a live Firebase/system diagnostics
+        // panel has no end-user purpose in a release build, and gating it only by
+        // role would leave it reachable by any account ever promoted to ADMIN.
+        if (com.example.BuildConfig.DEBUG) {
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            NavigationDrawerItem(
+                label = { Text("Firebase & System Debugger", fontWeight = FontWeight.Bold) },
+                selected = false,
+                onClick = { onDrawerAction("system_debugger") },
+                icon = { Icon(Icons.Default.BugReport, contentDescription = null, tint = AmberWarning) }
+            )
+        }
 
         ProHostDrawerFooter()
 
