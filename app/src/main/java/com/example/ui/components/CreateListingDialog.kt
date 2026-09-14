@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -1287,11 +1288,16 @@ fun CreateListingDialog(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     if (currentStep > 0) {
-                        ProOutlinedButton(
-                            text = "Back",
+                        // A compact arrow, not a full-width "Back" button — this row
+                        // already shares space with Save-as-Draft/Next/Publish/Save
+                        // Changes, all of which are the more important actions; Back
+                        // only needs to be reachable, not equally weighted.
+                        OutlinedIconButton(
                             onClick = { currentStep-- },
-                            modifier = Modifier.weight(1f)
-                        )
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
                     }
 
                     // Save as Draft — bypasses the Publish button's requiredness gate

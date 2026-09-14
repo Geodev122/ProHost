@@ -92,6 +92,13 @@ fun SubdivisionEditorSection(
     // in the same session the identical id, silently overwriting each other's images.
     var pendingSubId by remember { mutableStateOf("SUB-" + UUID.randomUUID().toString().take(6).uppercase()) }
 
+    // Which entry in subdivisionsList (if any) the form below is currently editing
+    // in place, rather than building a new one. Previously the only way to change
+    // an already-added subdivision was to delete it and re-add it from scratch —
+    // this tracks the in-progress edit so the "Add" button can become "Save
+    // Changes" and commit a replacement instead of an append.
+    var editingSubdivisionIndex by remember { mutableStateOf<Int?>(null) }
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris: List<Uri> ->
@@ -198,6 +205,29 @@ fun SubdivisionEditorSection(
                                     }
                                 }
                             }
+                            IconButton(onClick = {
+                                // Load this entry's real data into the form fields
+                                // below instead of blank defaults, and keep its
+                                // original id so "Save Changes" replaces it in
+                                // place rather than minting a new subdivision.
+                                subName = sub.name
+                                subType = sub.type
+                                subAmenitiesSelected = sub.amenities.toSet()
+                                subImageUrls = sub.imageUrls
+                                subPricing = sub.pricing
+                                val override = sub.scheduleOverride
+                                subScheduleOverrideEnabled = override != null
+                                subOverrideOpeningHour = override?.openingHour ?: openingHour
+                                subOverrideClosingHour = override?.closingHour ?: closingHour
+                                subOverrideDays = override?.operatingDays?.toSet() ?: operatingDays.toSet()
+                                subOverrideSundayOperating = override?.isSundayOperating ?: false
+                                subOverrideBlackouts = override?.blackoutSlots ?: emptyList()
+                                blackoutDay = subOverrideDays.firstOrNull() ?: "Mon"
+                                pendingSubId = sub.id
+                                editingSubdivisionIndex = index
+                            }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
+                            }
                             IconButton(onClick = { onSubdivisionsChange(subdivisionsList.filterIndexed { i, _ -> i != index }) }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
                             }
@@ -213,7 +243,11 @@ fun SubdivisionEditorSection(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Add Room / Unit Details", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                Text(
+                    if (editingSubdivisionIndex != null) "Edit Room / Unit Details" else "Add Room / Unit Details",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = MaterialTheme.typography.bodySmall.fontSize
+                )
 
                 InputField(
                     value = subName,
@@ -460,6 +494,7 @@ fun SubdivisionEditorSection(
 
                 Button(
                     onClick = {
+                        val editIndex = editingSubdivisionIndex
                         val newSub = Subdivision(
                             id = pendingSubId,
                             name = subName,
@@ -477,7 +512,14 @@ fun SubdivisionEditorSection(
                                 )
                             } else null
                         )
-                        onSubdivisionsChange(subdivisionsList + newSub)
+                        onSubdivisionsChange(
+                            if (editIndex != null) {
+                                subdivisionsList.mapIndexed { i, existing -> if (i == editIndex) newSub else existing }
+                            } else {
+                                subdivisionsList + newSub
+                            }
+                        )
+                        editingSubdivisionIndex = null
                         subName = ""
                         subAmenitiesSelected = emptySet()
                         subImageUrls = emptyList()
@@ -500,9 +542,38 @@ fun SubdivisionEditorSection(
                     // untouched, publishing a division with no real rate configured.
                     enabled = subName.isNotBlank() && subPricing.hasRealPrice()
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
+                    Icon(if (editingSubdivisionIndex != null) Icons.Default.Check else Icons.Default.Add, contentDescription = null)
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Add Room / Desk to Listing", fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                    Text(
+                        if (editingSubdivisionIndex != null) "Save Changes" else "Add Room / Desk to Listing",
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize
+                    )
+                }
+                if (editingSubdivisionIndex != null) {
+                    TextButton(
+                        onClick = {
+                            editingSubdivisionIndex = null
+                            subName = ""
+                            subType = Level2Type.ROOMS
+                            subAmenitiesSelected = emptySet()
+                            subImageUrls = emptyList()
+                            subPricing = RentalPricingConfig.default()
+                            subScheduleOverrideEnabled = false
+                            subOverrideOpeningHour = openingHour
+                            subOverrideClosingHour = closingHour
+                            subOverrideDays = operatingDays.toSet()
+                            subOverrideSundayOperating = false
+                            subOverrideBlackouts = emptyList()
+                            blackoutDay = operatingDays.firstOrNull() ?: "Mon"
+                            blackoutStart = "18:00"
+                            blackoutEnd = "22:00"
+                            blackoutReason = ""
+                            pendingSubId = "SUB-" + UUID.randomUUID().toString().take(6).uppercase()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Cancel Edit", fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                    }
                 }
             }
         }
