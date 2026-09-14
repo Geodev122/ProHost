@@ -470,8 +470,12 @@ class ProHostViewModel(
     // client-invocable "upgrade" call.
 
     fun logout() {
-        com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+        // repository.logout() fires the (fire-and-forget) FCM-token-clear write
+        // before we invalidate the local Firebase Auth session below — reversed,
+        // that write would leave with no real auth context and likely get
+        // rejected by firestore.rules.
         repository.logout()
+        com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
     }
 
     /**
@@ -486,7 +490,10 @@ class ProHostViewModel(
         val result = functionsClient.deleteOwnAccount()
         if (result.isSuccess) {
             com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-            repository.logout()
+            // The profile doc (and its fcmToken field) is already gone server-side —
+            // skip the token-clear write here, since it would otherwise just
+            // resurrect a stub user_profiles/{uid} doc post-deletion.
+            repository.logout(clearRemotePushToken = false)
         }
         return result
     }
@@ -619,6 +626,7 @@ class ProHostViewModel(
         context: Context,
         alsoOpenWhatsApp: Boolean = false,
         selectedDays: List<String> = emptyList(),
+        selectedCalendarDates: List<String> = emptyList(),
         selectedStartHour: String = "",
         selectedEndHour: String = "",
         selectedShift: String = "",
@@ -642,6 +650,7 @@ class ProHostViewModel(
                 durationMonths = durationMonths,
                 notes = notes,
                 selectedDays = selectedDays,
+                selectedCalendarDates = selectedCalendarDates,
                 selectedStartHour = selectedStartHour,
                 selectedEndHour = selectedEndHour,
                 selectedShift = selectedShift,

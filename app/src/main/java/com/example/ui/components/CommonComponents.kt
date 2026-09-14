@@ -1114,15 +1114,20 @@ fun WorkspaceCard(
         elevation = elevation
     ) {
         if (imageUrl != null) {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = title,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(140.dp)
-                    .clip(MaterialTheme.shapes.medium),
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop
-            )
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
+            }
             Spacer(modifier = Modifier.height(Spacing.md))
         }
 

@@ -121,18 +121,19 @@ enum class ShiftName(val displayName: String) {
     MORNING("Morning"), MID("Mid"), EVENING("Evening"), NIGHT("Night")
 }
 
-data class ShiftRecurrencePricing(
-    val oneTimePrice: Double = 0.0,
-    val sameDayEveryWeekPrice: Double = 0.0,
-    val monthlyRecurrencePrice: Double = 0.0
-)
-
+// Collapsed from 3 separate recurrence-tier prices (one-time / same-day-every-week /
+// same-day-every-month) to a single flat price per shift — admin now prices a shift
+// once; the specialist configures occurrence count (which real calendar dates, how
+// many) at booking time instead of picking which of 3 pre-set commitment tiers to
+// pay under. See RentalBookingDialog's calendar-date picker and
+// SpaceCalculationUtils.buildBookableSlots' SHIFT_BASED branch, which now populates
+// RentableSlot.pricesByRecurrence with a single BookingRecurrence.FLAT entry.
 data class ShiftDefinition(
     val name: ShiftName,
     val startHour: Int = 8,
     val endHour: Int = 12,
     val isUnavailable: Boolean = false,
-    val pricing: ShiftRecurrencePricing = ShiftRecurrencePricing()
+    val price: Double = 0.0
 )
 
 data class ShiftBasedConfig(
@@ -184,11 +185,7 @@ data class RentalPricingConfig(
                     mapOf(
                         "name" to s.name.name, "startHour" to s.startHour, "endHour" to s.endHour,
                         "isUnavailable" to s.isUnavailable,
-                        "pricing" to mapOf(
-                            "oneTimePrice" to s.pricing.oneTimePrice,
-                            "sameDayEveryWeekPrice" to s.pricing.sameDayEveryWeekPrice,
-                            "monthlyRecurrencePrice" to s.pricing.monthlyRecurrencePrice
-                        )
+                        "price" to s.price
                     )
                 },
                 "distribution" to sbc.distribution
@@ -225,8 +222,7 @@ data class RentalPricingConfig(
             shiftBased?.distribution?.values?.any { shiftNames ->
                 shiftNames.any { name ->
                     val shift = shiftsByName[name]
-                    shift != null && !shift.isUnavailable &&
-                        (shift.pricing.oneTimePrice > 0.0 || shift.pricing.sameDayEveryWeekPrice > 0.0 || shift.pricing.monthlyRecurrencePrice > 0.0)
+                    shift != null && !shift.isUnavailable && shift.price > 0.0
                 }
             } ?: false
         }
@@ -272,17 +268,27 @@ data class RentalPricingConfig(
                     (s as? Map<*, *>)?.let {
                         val nameStr = it["name"] as? String ?: ShiftName.MORNING.name
                         val name = runCatching { ShiftName.valueOf(nameStr) }.getOrDefault(ShiftName.MORNING)
-                        val pricingMap = it["pricing"] as? Map<*, *>
+                        // New shape writes a single "price" field directly; an older
+                        // document instead carries a nested "pricing" map with 3
+                        // legacy recurrence-tier fields (one-time/weekly/monthly),
+                        // which fromLegacyShape's SHIFT branch always set to the same
+                        // flat value anyway — read whichever of the 3 is nonzero
+                        // first, so an old document keeps its real price instead of
+                        // reading 0 until the host happens to re-save it.
+                        val price = (it["price"] as? Number)?.toDouble() ?: run {
+                            val pricingMap = it["pricing"] as? Map<*, *>
+                            (pricingMap?.get("oneTimePrice") as? Number)?.toDouble()
+                                ?.takeIf { p -> p > 0.0 }
+                                ?: (pricingMap?.get("sameDayEveryWeekPrice") as? Number)?.toDouble()?.takeIf { p -> p > 0.0 }
+                                ?: (pricingMap?.get("monthlyRecurrencePrice") as? Number)?.toDouble()
+                                ?: 0.0
+                        }
                         ShiftDefinition(
                             name = name,
                             startHour = (it["startHour"] as? Number)?.toInt() ?: 8,
                             endHour = (it["endHour"] as? Number)?.toInt() ?: 12,
                             isUnavailable = it["isUnavailable"] as? Boolean ?: false,
-                            pricing = ShiftRecurrencePricing(
-                                oneTimePrice = (pricingMap?.get("oneTimePrice") as? Number)?.toDouble() ?: 0.0,
-                                sameDayEveryWeekPrice = (pricingMap?.get("sameDayEveryWeekPrice") as? Number)?.toDouble() ?: 0.0,
-                                monthlyRecurrencePrice = (pricingMap?.get("monthlyRecurrencePrice") as? Number)?.toDouble() ?: 0.0
-                            )
+                            price = price
                         )
                     }
                 } ?: ShiftName.values().map { ShiftDefinition(name = it) }
@@ -321,9 +327,9 @@ data class RentalPricingConfig(
          *  Called both from fromFirestoreMap (a document with no "pricing" key at
          *  all) and eagerly from every write path that still constructs a
          *  RentalFormula/SubdivisionStrategy directly (CreateListingDialog,
-         *  SubdivisionEditorSection, SpaceScheduleEditorDialog), so "pricing" is
-         *  always correct the moment it's first written, not only on a later read of
-         *  a genuinely old pre-existing document. */
+         *  SubdivisionEditorSection), so "pricing" is always correct the moment
+         *  it's first written, not only on a later read of a genuinely old
+         *  pre-existing document. */
         fun fromLegacyFormula(formula: RentalFormula?): RentalPricingConfig {
             if (formula == null) return default()
             val oldTypeStr = formula.type.name
@@ -362,7 +368,7 @@ data class RentalPricingConfig(
                             ShiftDefinition(
                                 name = it, startHour = startHour, endHour = endHour,
                                 isUnavailable = it != ShiftName.MORNING,
-                                pricing = ShiftRecurrencePricing(rate, rate, rate)
+                                price = rate
                             )
                         },
                         distribution = days.associateWith { listOf(ShiftName.MORNING.name) }
@@ -553,6 +559,13 @@ data class BookingRequest(
     val startDate: String, // e.g. "2026-09-01"
     val endDate: String = "", // e.g. "2026-10-01"
     val selectedDays: List<String> = emptyList(), // Specific days chosen by professional from owner's available days
+    // Real ISO calendar dates ("2026-09-15") the specialist committed to for a
+    // Shift-Based booking — only this, not selectedDays' weekday-only granularity,
+    // is precise enough to lock the exact dates a shift was accepted for rather
+    // than the whole weekday indefinitely. Empty for every other strategy and for
+    // bookings made before this field existed (isSlotLocked/findAcceptConflict
+    // fall back to weekday-level locking in that case).
+    val selectedCalendarDates: List<String> = emptyList(),
     val selectedStartHour: String = "", // Chosen start time
     val selectedEndHour: String = "", // Chosen end time
     val selectedShift: String = "", // e.g. "Morning Shift (08:00 - 13:00)"
@@ -631,6 +644,7 @@ data class BookingRequest(
             "startDate" to startDate,
             "endDate" to endDate,
             "selectedDays" to selectedDays,
+            "selectedCalendarDates" to selectedCalendarDates,
             "selectedStartHour" to selectedStartHour,
             "selectedEndHour" to selectedEndHour,
             "selectedShift" to selectedShift,
@@ -702,6 +716,7 @@ data class BookingRequest(
                 startDate = data["startDate"] as? String ?: "",
                 endDate = data["endDate"] as? String ?: "",
                 selectedDays = daysList,
+                selectedCalendarDates = (data["selectedCalendarDates"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                 selectedStartHour = data["selectedStartHour"] as? String ?: "",
                 selectedEndHour = data["selectedEndHour"] as? String ?: "",
                 selectedShift = data["selectedShift"] as? String ?: "",

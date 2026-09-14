@@ -246,30 +246,6 @@ fun DiscoveryScreenContent(
                     }
                 }
 
-                if (!isMapView) {
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Governorate Filter Chips Row (List View only)
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        item {
-                            FilterChip(
-                                selected = selectedGovernorate == null,
-                                onClick = { onSelectGovernorate(null) },
-                                label = { Text("All Lebanon", fontSize = MaterialTheme.typography.labelSmall.fontSize) }
-                            )
-                        }
-                        items(Governorate.entries) { gov ->
-                            FilterChip(
-                                selected = selectedGovernorate == gov,
-                                onClick = { onSelectGovernorate(if (selectedGovernorate == gov) null else gov) },
-                                label = { Text(gov.displayName.split(" ").first(), fontSize = MaterialTheme.typography.labelSmall.fontSize) }
-                            )
-                        }
-                    }
-                }
             }
         }
 

@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,6 +34,7 @@ import coil.compose.AsyncImage
 import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
 import com.example.ui.theme.Spacing
+import com.example.ui.util.SpaceCalculationUtils
 import org.osmdroid.util.GeoPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.debounce
@@ -430,6 +432,43 @@ fun CreateListingDialog(
     // published through this wizard. Moving ownership to Step 1 (always reachable)
     // fixes this as a side effect of the restructuring, not as a separate patch.
     val totalSteps = 3
+
+    // Blackout slots + extra rental formulas — ported in from the now-deleted
+    // SpaceScheduleEditorDialog (the post-publish "Availability Control" modal,
+    // item 1), so every part of a listing's availability lives in this one wizard
+    // instead of two separate places. Complex nested types, deliberately excluded
+    // from the rememberSaveable retrofit for the same reason as subdivisionsList/
+    // wholeSpacePricing above — the existing Draft auto-save already covers this.
+    //
+    // buildListing() (below) only ever produces at most one synthesized "legacy
+    // bridge" formula, and only when !hasSubdivisions (it's index 0 whenever it
+    // exists) — so a resumed Draft's own formulas beyond that one are genuinely
+    // "additional"; a subdivided listing's rentalFormulas were never touched by
+    // buildListing() at all, so every one of them is "additional" there.
+    var blackoutSlots by remember { mutableStateOf(existingDraft?.schedule?.blackoutSlots ?: emptyList<BlackoutSlot>()) }
+    var additionalFormulas by remember {
+        mutableStateOf(
+            if (existingDraft == null) {
+                emptyList()
+            } else if (hasSubdivisions) {
+                existingDraft.rentalFormulas
+            } else {
+                existingDraft.rentalFormulas.drop(1)
+            }
+        )
+    }
+    // Transient "add a formula" form state — same field set the old dialog's
+    // section 3 used, just relocated here.
+    var showAddFormula by remember { mutableStateOf(false) }
+    var formulaType by remember { mutableStateOf(RentalFormulaType.DAY_PER_WEEK) }
+    var formulaRateUsd by remember { mutableStateOf("150") }
+    var formulaStartHour by remember { mutableStateOf("08:00") }
+    var formulaEndHour by remember { mutableStateOf("18:00") }
+    var formulaDescription by remember { mutableStateOf("1 Day per Week Practice • Choose Your Day") }
+    var formulaSelectedDays by remember { mutableStateOf(setOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat")) }
+    var formulaDaysCountRequired by remember { mutableStateOf(1) }
+    var formulaShiftName by remember { mutableStateOf("Morning Shift") }
+    var formulaMinHours by remember { mutableStateOf(2) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -1074,6 +1113,341 @@ fun CreateListingDialog(
                                         closingHour = closingHour,
                                         onConfigChange = { wholeSpacePricing = it }
                                     )
+
+                                    HorizontalDivider()
+
+                                    // Blackout Slots — ported from SpaceScheduleEditorDialog's
+                                    // section 2 (item 1). Hides specific slots the Renting
+                                    // Formula above would otherwise offer, e.g. a weekly
+                                    // maintenance window. Derived from the pricing config just
+                                    // configured, not typed by hand, so a blocked slot always
+                                    // lines up with something a specialist could actually book —
+                                    // same SpaceCalculationUtils.buildBookableSlots every other
+                                    // availability-facing screen already uses.
+                                    Text(
+                                        "Blackout Slots",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = MaterialTheme.typography.labelLarge.fontSize,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        "Every slot your renting formula offers is on by default. Switch off anything you don't want to rent out.",
+                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    val derivedSlots = remember(wholeSpacePricing, operatingDays, openingHour, closingHour) {
+                                        SpaceCalculationUtils.buildBookableSlots(
+                                            config = wholeSpacePricing,
+                                            schedule = SpaceOperatingSchedule(
+                                                openingHour = openingHour,
+                                                closingHour = closingHour,
+                                                operatingDays = operatingDays.toList()
+                                            ),
+                                            sourceId = listingId,
+                                            sourceLabel = title.ifBlank { "This space" }
+                                        )
+                                    }
+                                    if (derivedSlots.isEmpty()) {
+                                        Text(
+                                            "No rentable slots yet — configure a renting formula above and its slots will appear here.",
+                                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    } else {
+                                        derivedSlots.groupBy { it.groupLabel }.forEach { (groupLabel, slots) ->
+                                            Text(
+                                                groupLabel,
+                                                fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            slots.forEach { slot ->
+                                                val blocking = blackoutSlots.firstOrNull {
+                                                    it.dayOfWeek.equals(slot.day, ignoreCase = true) &&
+                                                        it.startTime == slot.startTime && it.endTime == slot.endTime
+                                                }
+                                                val isOffered = blocking == null
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        slot.label,
+                                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                                        color = if (isOffered) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                    Switch(
+                                                        checked = isOffered,
+                                                        onCheckedChange = { nowOffered ->
+                                                            blackoutSlots = if (nowOffered) {
+                                                                blocking?.let { b -> blackoutSlots.filterNot { it.id == b.id } } ?: blackoutSlots
+                                                            } else {
+                                                                blackoutSlots + BlackoutSlot(
+                                                                    dayOfWeek = slot.day,
+                                                                    startTime = slot.startTime,
+                                                                    endTime = slot.endTime,
+                                                                    reason = "Not offered for rent"
+                                                                )
+                                                            }
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    HorizontalDivider()
+
+                                    // Additional Rental Formulas — ported from
+                                    // SpaceScheduleEditorDialog's section 3. Lets the host
+                                    // publish more than the one Renting Formula synthesizes
+                                    // above (e.g. an Hourly option alongside the whole space's
+                                    // primary Monthly rate). Merged with that synthesized
+                                    // formula in buildListing() below, never replacing it.
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                "Additional Rental Formulas",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = MaterialTheme.typography.labelLarge.fontSize,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                            Text(
+                                                "Optional extra Day-per-Week, Shift, Hourly, or Full-Month packages",
+                                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        FilledTonalButton(
+                                            onClick = { showAddFormula = !showAddFormula },
+                                            shape = MaterialTheme.shapes.small,
+                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                        ) {
+                                            Icon(if (showAddFormula) Icons.Default.ExpandLess else Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(Spacing.xs))
+                                            Text(if (showAddFormula) "Close" else "Add Formula", fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                                        }
+                                    }
+
+                                    if (showAddFormula) {
+                                        Card(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                            shape = MaterialTheme.shapes.medium
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.padding(14.dp),
+                                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                Text("Select Formula Model:", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold)
+                                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                    items(RentalFormulaType.values().toList()) { type ->
+                                                        val isSelected = formulaType == type
+                                                        FilterChip(
+                                                            selected = isSelected,
+                                                            onClick = {
+                                                                formulaType = type
+                                                                when (type) {
+                                                                    RentalFormulaType.DAY_PER_WEEK -> {
+                                                                        formulaRateUsd = "150"
+                                                                        formulaDescription = "Day-per-Week • Specialist picks from available days"
+                                                                    }
+                                                                    RentalFormulaType.SHIFT -> {
+                                                                        formulaRateUsd = "120"
+                                                                        formulaDescription = "Morning Shift • Dedicated hours"
+                                                                    }
+                                                                    RentalFormulaType.HOURLY -> {
+                                                                        formulaRateUsd = "25"
+                                                                        formulaDescription = "Flexible Hourly Slots"
+                                                                    }
+                                                                    RentalFormulaType.FULL_MONTH -> {
+                                                                        formulaRateUsd = "650"
+                                                                        formulaDescription = "Full Dedicated Month Exclusive"
+                                                                    }
+                                                                }
+                                                            },
+                                                            label = { Text(type.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                                                        )
+                                                    }
+                                                }
+
+                                                when (formulaType) {
+                                                    RentalFormulaType.DAY_PER_WEEK -> {
+                                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                            InputField(
+                                                                value = formulaRateUsd,
+                                                                onValueChange = { formulaRateUsd = it },
+                                                                label = "Rate ($ USD/mo)",
+                                                                modifier = Modifier.weight(1f),
+                                                                singleLine = true
+                                                            )
+                                                            InputField(
+                                                                value = formulaDaysCountRequired.toString(),
+                                                                onValueChange = { formulaDaysCountRequired = it.toIntOrNull() ?: 1 },
+                                                                label = "Days/Wk Included",
+                                                                modifier = Modifier.weight(1f),
+                                                                singleLine = true
+                                                            )
+                                                        }
+                                                    }
+                                                    RentalFormulaType.SHIFT -> {
+                                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                            InputField(
+                                                                value = formulaShiftName,
+                                                                onValueChange = { formulaShiftName = it },
+                                                                label = "Shift Title",
+                                                                modifier = Modifier.weight(1.2f),
+                                                                singleLine = true
+                                                            )
+                                                            InputField(
+                                                                value = formulaRateUsd,
+                                                                onValueChange = { formulaRateUsd = it },
+                                                                label = "Rate ($ USD/mo)",
+                                                                modifier = Modifier.weight(1f),
+                                                                singleLine = true
+                                                            )
+                                                        }
+                                                    }
+                                                    RentalFormulaType.HOURLY -> {
+                                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                            InputField(
+                                                                value = formulaRateUsd,
+                                                                onValueChange = { formulaRateUsd = it },
+                                                                label = "Rate ($ USD / hour)",
+                                                                modifier = Modifier.weight(1f),
+                                                                singleLine = true
+                                                            )
+                                                            InputField(
+                                                                value = formulaMinHours.toString(),
+                                                                onValueChange = { formulaMinHours = it.toIntOrNull() ?: 2 },
+                                                                label = "Min Booking Hours",
+                                                                modifier = Modifier.weight(1f),
+                                                                singleLine = true
+                                                            )
+                                                        }
+                                                    }
+                                                    RentalFormulaType.FULL_MONTH -> {
+                                                        InputField(
+                                                            value = formulaRateUsd,
+                                                            onValueChange = { formulaRateUsd = it },
+                                                            label = "Monthly Rate ($ USD)",
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            singleLine = true
+                                                        )
+                                                    }
+                                                }
+
+                                                InputField(
+                                                    value = formulaDescription,
+                                                    onValueChange = { formulaDescription = it },
+                                                    label = "Formula Description for Specialists",
+                                                    singleLine = true,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+
+                                                Text("Days Available for this Formula:", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
+                                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    weekDayOptions.filter { it != "Sun" }.forEach { day ->
+                                                        val isSelected = formulaSelectedDays.contains(day)
+                                                        FilterChip(
+                                                            selected = isSelected,
+                                                            onClick = {
+                                                                formulaSelectedDays = if (isSelected) {
+                                                                    if (formulaSelectedDays.size > 1) formulaSelectedDays - day else formulaSelectedDays
+                                                                } else {
+                                                                    formulaSelectedDays + day
+                                                                }
+                                                            },
+                                                            label = { Text(day.take(1), fontSize = MaterialTheme.typography.bodySmall.fontSize) },
+                                                            modifier = Modifier.weight(1f)
+                                                        )
+                                                    }
+                                                }
+
+                                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                    InputField(
+                                                        value = formulaStartHour,
+                                                        onValueChange = { formulaStartHour = it },
+                                                        label = "Available From (HH:mm)",
+                                                        modifier = Modifier.weight(1f),
+                                                        singleLine = true
+                                                    )
+                                                    InputField(
+                                                        value = formulaEndHour,
+                                                        onValueChange = { formulaEndHour = it },
+                                                        label = "Available To (HH:mm)",
+                                                        modifier = Modifier.weight(1f),
+                                                        singleLine = true
+                                                    )
+                                                }
+
+                                                ProPrimaryButton(
+                                                    text = "Add Formula",
+                                                    onClick = {
+                                                        val rate = formulaRateUsd.toDoubleOrNull() ?: 100.0
+                                                        val startH = formulaStartHour.substringBefore(":").toIntOrNull() ?: 8
+                                                        val endH = formulaEndHour.substringBefore(":").toIntOrNull() ?: 18
+                                                        val dailyH = (endH - startH).coerceAtLeast(1)
+                                                        val totalWeeklyH = dailyH * formulaSelectedDays.size.coerceAtLeast(1)
+                                                        additionalFormulas = additionalFormulas + RentalFormula(
+                                                            type = formulaType,
+                                                            rateUsd = rate,
+                                                            scheduleDescription = formulaDescription,
+                                                            daysOfWeek = formulaSelectedDays.toList(),
+                                                            startHour = formulaStartHour,
+                                                            endHour = formulaEndHour,
+                                                            totalWeeklyHours = totalWeeklyH,
+                                                            daysCountRequired = formulaDaysCountRequired,
+                                                            minHours = formulaMinHours,
+                                                            shiftName = formulaShiftName
+                                                        )
+                                                        showAddFormula = false
+                                                    },
+                                                    icon = Icons.Default.AddCircle,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    additionalFormulas.forEach { f ->
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            shape = MaterialTheme.shapes.medium,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Text(f.type.displayName, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                                        Spacer(modifier = Modifier.width(6.dp))
+                                                        Text(
+                                                            if (f.type == RentalFormulaType.HOURLY) "$${f.rateUsd.toInt()} USD/hr" else "$${f.rateUsd.toInt()} USD/mo",
+                                                            fontWeight = FontWeight.ExtraBold,
+                                                            color = MaterialTheme.colorScheme.primary,
+                                                            fontSize = MaterialTheme.typography.bodySmall.fontSize
+                                                        )
+                                                    }
+                                                    Text(f.scheduleDescription, fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                }
+                                                IconButton(
+                                                    onClick = { additionalFormulas = additionalFormulas.filterNot { it.id == f.id } },
+                                                    modifier = Modifier.size(28.dp)
+                                                ) {
+                                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1128,7 +1502,7 @@ fun CreateListingDialog(
                             }
                             RentalStrategyType.SHIFT_BASED -> {
                                 val activeShift = p.shiftBased?.shifts?.firstOrNull { !it.isUnavailable }
-                                val rate = activeShift?.pricing?.oneTimePrice ?: 60.0
+                                val rate = activeShift?.price ?: 60.0
                                 monthly = rate * 20
                                 formulas.add(
                                     RentalFormula(
@@ -1161,6 +1535,13 @@ fun CreateListingDialog(
                     // carries no pricing of its own when it has divisions.
                     val pricingConfig = if (!hasSubdivisions) wholeSpacePricing else RentalPricingConfig.default()
 
+                    // additionalFormulas (item 1, ported from SpaceScheduleEditorDialog's
+                    // section 3) are appended after whatever legacy-bridge formula the
+                    // when-block above synthesized, never replacing it — a whole-space
+                    // listing can publish more than one rental formula, exactly like the
+                    // now-deleted post-publish dialog allowed.
+                    formulas.addAll(additionalFormulas)
+
                     // Prefer the real pin dropped on the map (recorded via
                     // ListingLocationMapPicker above); otherwise use whatever fallback
                     // the caller already resolved (see resolveFallbackGeocode() below —
@@ -1191,7 +1572,13 @@ fun CreateListingDialog(
                         lng = geocodedLng,
                         isShared = isShared,
                         complementarySpecialties = selectedSpecialties.toList(),
-                        residentPractitioners = listOf("${activeUser.fullName} (${activeUser.specialty})"),
+                        // Never overwrite this with just whoever is currently editing —
+                        // ProHostRepository's booking-accept flow is the real, live-
+                        // mutating source of this list (appends "name (specialty)" per
+                        // accepted booking); a save here used to always clobber it back
+                        // down to one entry, discarding every specialist a host had
+                        // actually accepted since publish.
+                        residentPractitioners = existingDraft?.residentPractitioners ?: emptyList(),
                         essentialFacilities = selectedFacilities.toList(),
                         equipment = chosenEquipment,
                         pricing = pricingConfig,
@@ -1206,7 +1593,8 @@ fun CreateListingDialog(
                         schedule = SpaceOperatingSchedule(
                             openingHour = openingHour,
                             closingHour = closingHour,
-                            operatingDays = operatingDays.toList()
+                            operatingDays = operatingDays.toList(),
+                            blackoutSlots = blackoutSlots
                         ),
                         ownerId = activeUser.id,
                         ownerName = activeUser.fullName,
@@ -1287,11 +1675,16 @@ fun CreateListingDialog(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     if (currentStep > 0) {
-                        ProOutlinedButton(
-                            text = "Back",
+                        // A compact arrow, not a full-width "Back" button — this row
+                        // already shares space with Save-as-Draft/Next/Publish/Save
+                        // Changes, all of which are the more important actions; Back
+                        // only needs to be reachable, not equally weighted.
+                        OutlinedIconButton(
                             onClick = { currentStep-- },
-                            modifier = Modifier.weight(1f)
-                        )
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
                     }
 
                     // Save as Draft — bypasses the Publish button's requiredness gate

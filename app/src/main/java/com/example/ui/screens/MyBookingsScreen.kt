@@ -35,7 +35,6 @@ import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
-import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -87,14 +86,21 @@ fun MyBookingsScreen(
     var selectedFilterChip by remember { mutableStateOf("ALL") } // ALL, ACCEPTED, PENDING, CANCELLED, REJECTED
     var searchQuery by remember { mutableStateOf("") }
 
-    // Dialog state for Re-booking with interactive calendar
-    var rebookTargetSpace by remember { mutableStateOf<SpaceListing?>(null) }
+    // Dialog state for Re-booking with interactive calendar. Stores just the
+    // space's id, not the SpaceListing itself — RentalBookingDialog's own slot/
+    // price computation is already correctly live (derived from the real
+    // bookingRequests StateFlow), but a frozen SpaceListing captured once at tap
+    // time would freeze the space's own pricing/schedule shape for as long as the
+    // dialog stayed open, missing e.g. a host editing the listing's pricing while
+    // a specialist has this dialog open. Re-deriving from the live allSpaces list
+    // below every recomposition closes that gap.
+    var rebookTargetSpaceId by remember { mutableStateOf<String?>(null) }
     var rebookSourceBooking by remember { mutableStateOf<BookingRequest?>(null) }
     // Editing an already-accepted booking is a separate flow from Re-book/Extend:
     // the submitted request references the booking it would replace (replacesBookingId)
     // and, if the host accepts it, actually replaces it (see ProHostRepository.acceptBookingRequest)
     // instead of coexisting alongside it as an independent new lease.
-    var editTargetSpace by remember { mutableStateOf<SpaceListing?>(null) }
+    var editTargetSpaceId by remember { mutableStateOf<String?>(null) }
     var editSourceBooking by remember { mutableStateOf<BookingRequest?>(null) }
     var showDigitalPassBooking by remember { mutableStateOf<BookingRequest?>(null) }
     var cancelTargetBooking by remember { mutableStateOf<BookingRequest?>(null) }
@@ -120,31 +126,6 @@ fun MyBookingsScreen(
 
             matchesFilter && matchesSearch
         }
-    }
-
-    // Summary calculations
-    val totalActiveLeases = remember(userBookings) {
-        userBookings.count { it.status == BookingRequestStatus.ACCEPTED }
-    }
-    // Real current-calendar-month spend: sums the recurring rate of ACCEPTED
-    // bookings whose lease term (startDate through startDate + durationMonths) actually
-    // covers the current month, rather than a flat all-time sum of every accepted
-    // booking regardless of whether it's active this month.
-    val thisMonthSpendUsd = remember(userBookings) {
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        val now = Calendar.getInstance()
-        userBookings.filter { it.status == BookingRequestStatus.ACCEPTED }.sumOf { booking ->
-            try {
-                val start = Calendar.getInstance().apply { time = dateFormat.parse(booking.startDate) ?: return@sumOf 0.0 }
-                val end = (start.clone() as Calendar).apply { add(Calendar.MONTH, booking.durationMonths) }
-                if (!now.before(start) && now.before(end)) booking.formula.rateUsd else 0.0
-            } catch (e: Exception) {
-                0.0
-            }
-        }
-    }
-    val pendingRequestsCount = remember(userBookings) {
-        userBookings.count { it.status == BookingRequestStatus.PENDING }
     }
 
     Column(
@@ -208,64 +189,6 @@ fun MyBookingsScreen(
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text("Book Space", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold)
-                }
-
-                // Summary Key Metrics Row — elevated white cards with a real shadow,
-                // trimmed labels/values so they read at a glance on narrow screens.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Active Leases
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Verified, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("Active Leases", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Text("$totalActiveLeases", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
-
-                    // This Month's Spend
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.AttachMoney, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("This Month", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Text("Spent $${String.format(Locale.US, "%.0f", thisMonthSpendUsd)}", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-
-                    // Pending Host
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Schedule, contentDescription = null, tint = BrightOrange, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("Pending Host", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Text("$pendingRequestsCount", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
                 }
 
                 // Primary Tab Switcher: Upcoming & Active vs Past & History — a
@@ -453,11 +376,11 @@ fun MyBookingsScreen(
                             if (space != null) onSelectSpace(space)
                         },
                         onRebook = {
-                            rebookTargetSpace = space ?: allSpaces.firstOrNull()
+                            rebookTargetSpaceId = (space ?: allSpaces.firstOrNull())?.id
                             rebookSourceBooking = booking
                         },
                         onEditBooking = {
-                            editTargetSpace = space ?: allSpaces.firstOrNull()
+                            editTargetSpaceId = (space ?: allSpaces.firstOrNull())?.id
                             editSourceBooking = booking
                         },
                         onViewDigitalPass = {
@@ -485,25 +408,29 @@ fun MyBookingsScreen(
 
     // Re-booking dialog — reuses the standard Rental Request flow so a re-book
     // is configured exactly the way a first booking is.
-    if (rebookTargetSpace != null) {
-        val targetSpace = rebookTargetSpace!!
+    if (rebookTargetSpaceId != null) {
+        // Re-derived from the live allSpaces list on every recomposition, not a
+        // snapshot frozen at tap time — see the state declaration's comment above.
+        val targetSpace = allSpaces.find { it.id == rebookTargetSpaceId } ?: allSpaces.firstOrNull()
         val sourceBooking = rebookSourceBooking
 
-        RentalBookingDialog(
-            space = targetSpace,
-            initialFormula = sourceBooking?.formula,
-            viewModel = viewModel,
-            onDismiss = {
-                rebookTargetSpace = null
-                rebookSourceBooking = null
-            },
-            // submitBookingRequest already confirms the request by toast, so this
-            // just closes the dialog.
-            onRequestSubmitted = {
-                rebookTargetSpace = null
-                rebookSourceBooking = null
-            }
-        )
+        if (targetSpace != null) {
+            RentalBookingDialog(
+                space = targetSpace,
+                initialFormula = sourceBooking?.formula,
+                viewModel = viewModel,
+                onDismiss = {
+                    rebookTargetSpaceId = null
+                    rebookSourceBooking = null
+                },
+                // submitBookingRequest already confirms the request by toast, so this
+                // just closes the dialog.
+                onRequestSubmitted = {
+                    rebookTargetSpaceId = null
+                    rebookSourceBooking = null
+                }
+            )
+        }
     }
 
     // Edit Active Booking dialog — the same Rental Request flow, pre-seeded with the
@@ -511,26 +438,30 @@ fun MyBookingsScreen(
     // booking it would replace. If the host accepts it, ProHostRepository.acceptBookingRequest
     // releases the old booking and this one takes its place; availability is always
     // computed live from ACCEPTED bookings, so nothing else needs recalculating by hand.
-    if (editTargetSpace != null) {
-        val targetSpace = editTargetSpace!!
+    if (editTargetSpaceId != null) {
+        // Re-derived from the live allSpaces list on every recomposition — see
+        // rebookTargetSpaceId's comment above for why.
+        val targetSpace = allSpaces.find { it.id == editTargetSpaceId } ?: allSpaces.firstOrNull()
         val sourceBooking = editSourceBooking
 
-        RentalBookingDialog(
-            space = targetSpace,
-            initialFormula = sourceBooking?.formula,
-            viewModel = viewModel,
-            replacesBookingId = sourceBooking?.id,
-            onDismiss = {
-                editTargetSpace = null
-                editSourceBooking = null
-            },
-            // submitBookingRequest already confirms the request by toast, so this
-            // just closes the dialog.
-            onRequestSubmitted = {
-                editTargetSpace = null
-                editSourceBooking = null
-            }
-        )
+        if (targetSpace != null) {
+            RentalBookingDialog(
+                space = targetSpace,
+                initialFormula = sourceBooking?.formula,
+                viewModel = viewModel,
+                replacesBookingId = sourceBooking?.id,
+                onDismiss = {
+                    editTargetSpaceId = null
+                    editSourceBooking = null
+                },
+                // submitBookingRequest already confirms the request by toast, so this
+                // just closes the dialog.
+                onRequestSubmitted = {
+                    editTargetSpaceId = null
+                    editSourceBooking = null
+                }
+            )
+        }
     }
 
     // Cancel PENDING Request confirmation — this used to fire the moment the button

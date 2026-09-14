@@ -31,6 +31,11 @@ interface BookingDoc {
   status?: string;
   replacesBookingId?: string;
   selectedDays?: string[];
+  // Real ISO calendar dates a Shift-Based booking committed to (item 7b) — when
+  // both bookings being compared have these, findConflict compares the exact
+  // dates instead of weekday overlap, so two Shift-Based bookings on the same
+  // weekday but disjoint dates are not a conflict. See findConflict below.
+  selectedCalendarDates?: string[];
   formula?: BookingFormula;
   ownerId?: string;
   ownerName?: string;
@@ -65,7 +70,11 @@ function bookingDays(booking: BookingDoc): string[] {
 
 /**
  * The already-ACCEPTED booking [candidateId]/[candidate] conflicts with, or
- * undefined when clear — same scoping/overlap rule as the Kotlin original.
+ * undefined when clear — same scoping/overlap rule as the Kotlin original,
+ * including the item 7b per-date comparison: when both bookings carry real
+ * selectedCalendarDates, their exact dates are compared instead of weekday
+ * overlap; otherwise (legacy bookings, non-Shift strategies) falls back to
+ * the original weekday check.
  */
 function findConflict(
   candidateId: string,
@@ -79,9 +88,15 @@ function findConflict(
     if (other.spaceId !== candidate.spaceId) return false;
     if (bookingScope(other) !== bookingScope(candidate)) return false;
     if (other.formula?.type === "FULL_MONTH" || candidate.formula?.type === "FULL_MONTH") return true;
-    const daysOverlap = bookingDays(other).some((d) => bookingDays(candidate).includes(d));
-    if (!daysOverlap) return false;
-    return hoursOverlap(other.formula?.startHour, other.formula?.endHour, candidate.formula?.startHour, candidate.formula?.endHour);
+    if (!hoursOverlap(other.formula?.startHour, other.formula?.endHour, candidate.formula?.startHour, candidate.formula?.endHour)) {
+      return false;
+    }
+    const otherDates = other.selectedCalendarDates ?? [];
+    const candidateDates = candidate.selectedCalendarDates ?? [];
+    if (otherDates.length > 0 && candidateDates.length > 0) {
+      return otherDates.some((d) => candidateDates.includes(d));
+    }
+    return bookingDays(other).some((d) => bookingDays(candidate).includes(d));
   });
 }
 
