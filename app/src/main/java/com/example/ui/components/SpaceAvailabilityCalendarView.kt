@@ -89,7 +89,7 @@ fun SpaceAvailabilityCalendarView(
                     )
                     Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
-                        text = "Operating & Smart Availability",
+                        text = "Smart Availability",
                         fontSize = MaterialTheme.typography.labelLarge.fontSize,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface

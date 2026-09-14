@@ -292,10 +292,10 @@ object SpaceCalculationUtils {
      * Synthesizes a legacy [RentalFormula] from real [RentableSlot]s — the single
      * shared construction every screen that still has to hand a [RentalFormula] to
      * [RentalBookingRequest]/downstream legacy readers uses (SpaceDetailsScreen's
-     * renting-option preview, SpaceAvailabilityMatrixView's tap-to-book cells,
-     * RentalBookingDialog's final submission), so all three describe the exact same
-     * real price/schedule instead of three independent approximations that could
-     * silently disagree. [recurrence] only matters for Shift-Based/Day-Based slots
+     * renting-option preview and Check Availability panel, RentalBookingDialog's
+     * final submission), so all of them describe the exact same real price/
+     * schedule instead of independent approximations that could silently
+     * disagree. [recurrence] only matters for Shift-Based/Day-Based slots
      * (Monthly/Hourly always price under FLAT). Returns null for an empty slot list.
      */
     fun representativeFormula(slots: List<RentableSlot>, recurrence: BookingRecurrence): RentalFormula? {
