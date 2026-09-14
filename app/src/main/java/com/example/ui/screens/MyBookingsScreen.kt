@@ -35,7 +35,6 @@ import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
-import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -129,31 +128,6 @@ fun MyBookingsScreen(
         }
     }
 
-    // Summary calculations
-    val totalActiveLeases = remember(userBookings) {
-        userBookings.count { it.status == BookingRequestStatus.ACCEPTED }
-    }
-    // Real current-calendar-month spend: sums the recurring rate of ACCEPTED
-    // bookings whose lease term (startDate through startDate + durationMonths) actually
-    // covers the current month, rather than a flat all-time sum of every accepted
-    // booking regardless of whether it's active this month.
-    val thisMonthSpendUsd = remember(userBookings) {
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        val now = Calendar.getInstance()
-        userBookings.filter { it.status == BookingRequestStatus.ACCEPTED }.sumOf { booking ->
-            try {
-                val start = Calendar.getInstance().apply { time = dateFormat.parse(booking.startDate) ?: return@sumOf 0.0 }
-                val end = (start.clone() as Calendar).apply { add(Calendar.MONTH, booking.durationMonths) }
-                if (!now.before(start) && now.before(end)) booking.formula.rateUsd else 0.0
-            } catch (e: Exception) {
-                0.0
-            }
-        }
-    }
-    val pendingRequestsCount = remember(userBookings) {
-        userBookings.count { it.status == BookingRequestStatus.PENDING }
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -215,64 +189,6 @@ fun MyBookingsScreen(
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text("Book Space", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold)
-                }
-
-                // Summary Key Metrics Row — elevated white cards with a real shadow,
-                // trimmed labels/values so they read at a glance on narrow screens.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Active Leases
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Verified, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("Active Leases", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Text("$totalActiveLeases", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
-
-                    // This Month's Spend
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.AttachMoney, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("This Month", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Text("Spent $${String.format(Locale.US, "%.0f", thisMonthSpendUsd)}", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-
-                    // Pending Host
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Schedule, contentDescription = null, tint = BrightOrange, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("Pending Host", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Text("$pendingRequestsCount", fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
                 }
 
                 // Primary Tab Switcher: Upcoming & Active vs Past & History — a

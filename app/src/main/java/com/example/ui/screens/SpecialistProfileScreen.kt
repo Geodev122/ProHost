@@ -231,6 +231,7 @@ fun SpecialistProfileScreen(
             val ownerSpaces by viewModel.ownerSpaces.collectAsState()
             val allSpacesList by viewModel.spaces.collectAsState()
             val pricingState by viewModel.pricingState.collectAsState()
+            val packagePlans by viewModel.packagePlans.collectAsState()
             val practitionerBookingsForStats by viewModel.practitionerBookings.collectAsState()
             val ownerIncomingRequests by viewModel.ownerIncomingRequests.collectAsState()
 
@@ -238,6 +239,12 @@ fun SpecialistProfileScreen(
             val pendingApplicationsCount = practitionerBookingsForStats.count { it.status == BookingRequestStatus.PENDING }
             val ownerActiveListings = if (ownerSpaces.isNotEmpty()) ownerSpaces else if (user.role == UserRole.ADMIN) allSpacesList else emptyList()
             val estimatedYieldUsd = ownerActiveListings.sumOf { it.baseMonthlyRateUsd }
+            // Real per-user package lookup (SubscriptionRenewalDialog.kt's established pattern) —
+            // this used to read the global, admin-wide pricingState.monthlySubscriptionFeeUsd, which
+            // showed a live legacy fee (e.g. "$2.50") even for a user with no active plan at all.
+            val ownerPackagePlan = user.ownerPackageId?.let { packagePlans.packages[it] }
+            val ownerPackageExpired = user.ownerPackageExpiryMillis?.let { it <= System.currentTimeMillis() } ?: false
+            val ownerActivePackagePlan = if (ownerPackageExpired) null else ownerPackagePlan
 
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -342,9 +349,9 @@ fun SpecialistProfileScreen(
                                     modifier = Modifier.weight(1f)
                                 )
                                 ProMetricTile(
-                                    title = "30-Day Listing Plan",
-                                    value = "$${pricingState.monthlySubscriptionFeeUsd} USD",
-                                    subtitle = "Whish Money direct rate",
+                                    title = "Active Package",
+                                    value = ownerActivePackagePlan?.let { "$${it.priceUsd.toInt()} USD" } ?: "No Plan",
+                                    subtitle = ownerActivePackagePlan?.let { "${it.name} · ${it.validityDays}d" } ?: "No active package",
                                     icon = Icons.Default.Payment,
                                     iconTint = CarnationOrangeDark,
                                     modifier = Modifier.weight(1f)
@@ -395,6 +402,87 @@ fun SpecialistProfileScreen(
                                     modifier = Modifier.weight(1f)
                                 )
                             }
+                        }
+                    }
+                }
+            }
+
+            // =========================================================================
+            // 4. SPECIALIST PERFORMANCE — the 3 stat boxes formerly pinned to the top
+            // of My Bookings (Active Leases / This Month Spent / Pending Host Reply),
+            // moved here per the user's request. Shown for every SPECIALIST; a
+            // PRO_HOST who also books space elsewhere as a specialist sees this
+            // section too, below their own Host Performance section above.
+            // =========================================================================
+            if (user.role == UserRole.SPECIALIST || user.role == UserRole.PRO_HOST) {
+                val allBookingRequests by viewModel.bookingRequests.collectAsState()
+                // Same 3-condition + ADMIN-passthrough filter MyBookingsScreen used for
+                // this same data, so the numbers stay consistent between screens.
+                val userOwnBookings = remember(allBookingRequests, user) {
+                    if (user.role == UserRole.ADMIN) {
+                        allBookingRequests
+                    } else {
+                        allBookingRequests.filter {
+                            it.practitionerId == user.id ||
+                                it.practitionerEmail.equals(user.email, ignoreCase = true) ||
+                                it.practitionerName.contains(user.fullName, ignoreCase = true)
+                        }
+                    }
+                }
+                val specialistActiveLeases = userOwnBookings.count { it.status == BookingRequestStatus.ACCEPTED }
+                val specialistPendingCount = userOwnBookings.count { it.status == BookingRequestStatus.PENDING }
+                // Real current-calendar-month spend, same logic MyBookingsScreen used.
+                val specialistThisMonthSpendUsd = remember(userOwnBookings) {
+                    val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                    val now = java.util.Calendar.getInstance()
+                    userOwnBookings.filter { it.status == BookingRequestStatus.ACCEPTED }.sumOf { booking ->
+                        try {
+                            val start = java.util.Calendar.getInstance().apply {
+                                time = dateFormat.parse(booking.startDate) ?: return@sumOf 0.0
+                            }
+                            val end = (start.clone() as java.util.Calendar).apply { add(java.util.Calendar.MONTH, booking.durationMonths) }
+                            if (!now.before(start) && now.before(end)) booking.formula.rateUsd else 0.0
+                        } catch (e: Exception) {
+                            0.0
+                        }
+                    }
+                }
+
+                ProSurfaceCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        ProSectionHeader(
+                            title = "Specialist Performance",
+                            subtitle = "Your own leases, spend, and pending requests as a renting specialist",
+                            icon = Icons.Default.EventAvailable
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            ProMetricTile(
+                                title = "Active Leases",
+                                value = "$specialistActiveLeases",
+                                subtitle = "Confirmed workspace slots",
+                                icon = Icons.Default.Verified,
+                                iconTint = OxfordBlue,
+                                modifier = Modifier.weight(1f)
+                            )
+                            ProMetricTile(
+                                title = "This Month",
+                                value = "$${String.format(java.util.Locale.US, "%.0f", specialistThisMonthSpendUsd)}",
+                                subtitle = "Spent this calendar month",
+                                icon = Icons.Default.AttachMoney,
+                                iconTint = FreshGreen,
+                                modifier = Modifier.weight(1f)
+                            )
+                            ProMetricTile(
+                                title = "Pending Host",
+                                value = "$specialistPendingCount",
+                                subtitle = "Awaiting host reply",
+                                icon = Icons.Default.Schedule,
+                                iconTint = BrightOrange,
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
                 }
