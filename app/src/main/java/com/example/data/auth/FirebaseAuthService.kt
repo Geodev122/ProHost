@@ -31,24 +31,21 @@ sealed class AuthResult {
 
 /**
  * Service encapsulating Firebase Auth operations.
- * Features rate-limit resilience and instant test phone number support to prevent
- * device blocking during development and testing.
+ * Sends real SMS verification codes for all real phone numbers, with fast-path
+ * test mode exclusively for explicit developer/QA whitelist numbers.
  */
 class FirebaseAuthService(private val context: Context) {
 
     private val tag = "FirebaseAuthService"
 
+    // Explicit developer/QA test numbers — ONLY these numbers bypass real SMS
     private val testPhoneNumbers = setOf(
         "+96170888999", "+96170123456", "+9613123456", "+961000000", "+961111222", "+96176543210"
     )
 
     private fun isTestPhoneNumber(phone: String): Boolean {
         val clean = phone.replace(" ", "").replace("-", "")
-        return testPhoneNumbers.contains(clean) ||
-            clean.endsWith("000000") ||
-            clean.endsWith("123456") ||
-            clean.endsWith("888999") ||
-            clean.endsWith("70888999")
+        return testPhoneNumbers.contains(clean)
     }
 
     private val firebaseAuth: FirebaseAuth? by lazy {
@@ -87,7 +84,7 @@ class FirebaseAuthService(private val context: Context) {
 
     /**
      * Kicks off Firebase Phone Auth SMS verification for [e164PhoneNumber].
-     * Includes fast-path test mode and automatic fallback if the device is rate-limited.
+     * Sends real SMS to all end-user phone numbers.
      */
     fun sendPhoneVerificationCode(
         activity: Activity,
@@ -102,15 +99,15 @@ class FirebaseAuthService(private val context: Context) {
             return
         }
 
-        // Fast-path for test phone numbers to avoid triggering SMS gateways
+        // Fast-path ONLY for explicit QA/developer whitelist numbers
         if (isTestPhoneNumber(e164PhoneNumber)) {
-            Log.d(tag, "Using instant test verification for: ${maskPhone(e164PhoneNumber)}")
+            Log.d(tag, "Using instant test verification for QA number: ${maskPhone(e164PhoneNumber)}")
             val testVerificationId = "TEST-VERIFY-ID-" + e164PhoneNumber.replace("+", "").replace(" ", "")
             onCodeSent(testVerificationId)
             return
         }
 
-        Log.d(tag, "Initiating phone verification for: ${maskPhone(e164PhoneNumber)}")
+        Log.d(tag, "Initiating real SMS phone verification for: ${maskPhone(e164PhoneNumber)}")
         val options = PhoneAuthOptions.newBuilder(auth)
             .setPhoneNumber(e164PhoneNumber)
             .setTimeout(60L, TimeUnit.SECONDS)
@@ -164,7 +161,7 @@ class FirebaseAuthService(private val context: Context) {
      * (FirebaseAuthService.buildPhoneAuthCredential's first argument) — pass it
      * whenever the caller has it, so this can tell a real Firebase-issued
      * verification apart from this class's own synthetic
-     * "TEST-VERIFY-ID-..." one (see [sendPhoneVerificationCode]'s test-number
+     * "TEST-VERIFY-ID-..." one (see [sendPhoneVerificationCode]'s QA-whitelist
      * fast path and rate-limit fallback). Only the latter is allowed to fall
      * back to an already-cached/anonymous session below — a real credential
      * failing (wrong code, expired code, network hiccup — all common, everyday
@@ -247,7 +244,7 @@ class FirebaseAuthService(private val context: Context) {
             m.contains("network", ignoreCase = true) ->
                 "Network connection error. Check your internet access and try again."
             else ->
-                "We couldn't verify your phone number right now. Please try again or use code 123456."
+                "We couldn't verify your phone number right now. Please check the number and try again."
         }
     }
 
