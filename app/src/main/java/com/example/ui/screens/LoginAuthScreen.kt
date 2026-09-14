@@ -351,8 +351,8 @@ fun LoginAuthScreen(
             ) {
                 AuthStepHeader(
                     icon = Icons.Default.Sms,
-                    title = "Enter the Verification Code",
-                    subtitle = "Sent via SMS to ${phoneCountry.dialCode} $phoneNumber",
+                    title = "Enter Verification Code",
+                    subtitle = "ProHost mobile app code sent to ${phoneCountry.dialCode} $phoneNumber",
                     isBusy = isAuthenticating
                 )
 
@@ -367,6 +367,32 @@ fun LoginAuthScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     singleLine = true
                 )
+
+                // Security notice box
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = LebaneseCedarGreen,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Do not share this code with anyone.",
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
