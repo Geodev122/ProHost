@@ -51,6 +51,10 @@ fun ListingVerificationDialog(
     var uploadedUrl by remember { mutableStateOf<String?>(null) }
     var isUploading by remember { mutableStateOf(false) }
     var isSubmitting by remember { mutableStateOf(false) }
+    // uploadAndGetUrl already catches its own failures and returns null — this
+    // surfaces that instead of leaving the Submit button silently disabled with
+    // no explanation, same pattern as CreateListingDialog's upload error state.
+    var uploadError by remember { mutableStateOf<String?>(null) }
 
     if (showTemplateDialog) {
         LegalDocumentDialog(
@@ -151,12 +155,17 @@ fun ListingVerificationDialog(
                                     if (uri != null) {
                                         coroutineScope.launch {
                                             isUploading = true
+                                            uploadError = null
                                             val ext = newState.fileName?.substringAfterLast('.', "pdf") ?: "pdf"
                                             uploadedUrl = storageService.uploadListingVerificationDocument(space.id, uri, ext)
+                                            if (uploadedUrl == null) {
+                                                uploadError = "Couldn't upload that document. Check your connection and try again."
+                                            }
                                             isUploading = false
                                         }
                                     } else {
                                         uploadedUrl = null
+                                        uploadError = null
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth(),
@@ -179,12 +188,17 @@ fun ListingVerificationDialog(
                                     if (uri != null) {
                                         coroutineScope.launch {
                                             isUploading = true
+                                            uploadError = null
                                             val ext = newState.fileName?.substringAfterLast('.', "pdf") ?: "pdf"
                                             uploadedUrl = storageService.uploadListingVerificationDocument(space.id, uri, ext)
+                                            if (uploadedUrl == null) {
+                                                uploadError = "Couldn't upload that document. Check your connection and try again."
+                                            }
                                             isUploading = false
                                         }
                                     } else {
                                         uploadedUrl = null
+                                        uploadError = null
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth(),
@@ -196,6 +210,13 @@ fun ListingVerificationDialog(
 
                     if (isUploading) {
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+                    if (uploadError != null) {
+                        Text(
+                            uploadError!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
 

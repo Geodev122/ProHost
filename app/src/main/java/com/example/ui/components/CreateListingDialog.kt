@@ -1058,6 +1058,7 @@ fun CreateListingDialog(
 
                                 if (hasSubdivisions) {
                                     SubdivisionEditorSection(
+                                        spaceId = listingId,
                                         subdivisionsList = subdivisionsList,
                                         onSubdivisionsChange = { subdivisionsList = it },
                                         operatingDays = operatingDays.toList(),

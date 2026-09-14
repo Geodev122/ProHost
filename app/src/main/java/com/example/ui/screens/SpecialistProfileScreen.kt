@@ -81,6 +81,12 @@ fun SpecialistProfileScreen(
     var isSavingProfile by remember { mutableStateOf(false) }
     var idDocState by remember { mutableStateOf(com.example.ui.components.DocumentPickerState()) }
     var isUploadingIdDoc by remember { mutableStateOf(false) }
+    // uploadAndGetUrl (FirebaseStorageService) already catches its own failures and
+    // returns null rather than throwing — these surface that instead of leaving the
+    // picker looking like it silently did nothing, same pattern as
+    // CreateListingDialog's photoUploadError/ownershipUploadError.
+    var idDocUploadError by remember { mutableStateOf<String?>(null) }
+    var profilePicUploadError by remember { mutableStateOf<String?>(null) }
 
     Box(
         modifier = Modifier
@@ -529,6 +535,7 @@ fun SpecialistProfileScreen(
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         ProfilePicturePickerField(
                             pictureUri = pendingProfilePicUri,
+                            existingUrl = user.profilePictureUrl,
                             onPictureSelected = { pendingProfilePicUri = it }
                         )
                         Column {
@@ -539,6 +546,13 @@ fun SpecialistProfileScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                    }
+                    if (profilePicUploadError != null) {
+                        Text(
+                            profilePicUploadError!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
 
                     InputField(
@@ -636,11 +650,16 @@ fun SpecialistProfileScreen(
                             if (uri != null) {
                                 coroutineScope.launch {
                                     isUploadingIdDoc = true
+                                    idDocUploadError = null
                                     val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
                                     val ext = newState.fileName?.substringAfterLast('.', "pdf") ?: "pdf"
                                     val url = storageService.uploadIdDocument(user.id, uri, ext)
                                     if (url != null) {
-                                        viewModel.updateIdDocument(url)
+                                        if (!viewModel.updateIdDocument(url)) {
+                                            idDocUploadError = "Uploaded, but couldn't save it to your profile. Please try again."
+                                        }
+                                    } else {
+                                        idDocUploadError = "Couldn't upload that document. Check your connection and try again."
                                     }
                                     isUploadingIdDoc = false
                                 }
@@ -652,6 +671,13 @@ fun SpecialistProfileScreen(
                     if (isUploadingIdDoc) {
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     }
+                    if (idDocUploadError != null) {
+                        Text(
+                            idDocUploadError!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(Spacing.xs))
 
@@ -661,14 +687,17 @@ fun SpecialistProfileScreen(
                         isLoading = isSavingProfile,
                         onClick = {
                             isSavingProfile = true
+                            profilePicUploadError = null
                             coroutineScope.launch {
                                 var profilePictureUrl: String? = null
                                 val localPicUri = pendingProfilePicUri
+                                var pictureUploadFailed = false
                                 if (localPicUri != null) {
                                     val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
                                     val mime = context.contentResolver.getType(localPicUri)
                                     val ext = mime?.let { android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(it) } ?: "jpg"
                                     profilePictureUrl = storageService.uploadProfilePicture(user.id, localPicUri, ext)
+                                    pictureUploadFailed = profilePictureUrl == null
                                 }
                                 val success = viewModel.updateProfile(
                                     name, specialty, phone,
@@ -676,11 +705,19 @@ fun SpecialistProfileScreen(
                                     profilePictureUrl
                                 )
                                 isSavingProfile = false
-                                Toast.makeText(
-                                    context,
-                                    if (success) "Profile Updated Successfully!" else "Failed to update profile — please try again",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                // A failed picture upload must never read as a full success —
+                                // updateCurrentUserProfile falls back to the existing picture
+                                // when profilePictureUrl is null, so the rest of the edit still
+                                // saved; only the new picture didn't, and that needs its own
+                                // message rather than a blanket "Updated Successfully!".
+                                when {
+                                    !success -> Toast.makeText(context, "Failed to update profile — please try again", Toast.LENGTH_SHORT).show()
+                                    pictureUploadFailed -> {
+                                        profilePicUploadError = "Profile saved, but the new photo couldn't be uploaded. Check your connection and try again."
+                                        Toast.makeText(context, "Profile saved — photo upload failed, please retry", Toast.LENGTH_LONG).show()
+                                    }
+                                    else -> Toast.makeText(context, "Profile Updated Successfully!", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         },
                         icon = Icons.Default.Save,

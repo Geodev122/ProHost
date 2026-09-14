@@ -123,15 +123,23 @@ fun DocumentPickerField(
 }
 
 /**
- * Circular profile-picture picker used on the registration form — tap to choose an
- * image, shows a live thumbnail once picked. Like [DocumentPickerField], upload itself
- * happens later (once a uid exists to key the Storage path on), not here.
+ * Circular profile-picture picker — tap to choose an image, shows a live thumbnail
+ * once picked. Like [DocumentPickerField], upload itself happens later (once a uid
+ * exists to key the Storage path on), not here.
+ *
+ * [existingUrl] is the account's already-uploaded remote picture (AppUser.
+ * profilePictureUrl) — without it, this field had no way to show a returning user
+ * their own current picture at all (only ever previewed a *freshly local-picked*
+ * [pictureUri]), so opening the profile screen always looked like no picture was on
+ * file even when one genuinely was. [pictureUri] always wins once the user picks a
+ * new one this session, same as before.
  */
 @Composable
 fun ProfilePicturePickerField(
     pictureUri: Uri?,
     onPictureSelected: (Uri) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    existingUrl: String? = null
 ) {
     val pickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -146,9 +154,10 @@ fun ProfilePicturePickerField(
             .clickable { pickerLauncher.launch("image/*") },
         contentAlignment = Alignment.Center
     ) {
-        if (pictureUri != null) {
+        val previewModel: Any? = pictureUri ?: existingUrl
+        if (previewModel != null) {
             AsyncImage(
-                model = pictureUri,
+                model = previewModel,
                 contentDescription = "Profile picture",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize().clip(CircleShape)

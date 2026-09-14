@@ -255,7 +255,22 @@ class AuthViewModel(
                 )
                 _isAuthenticating.value = false
                 registerFcmTokenForCurrentUser(user.id)
-                _authSuccessMessage.value = "Account created successfully for ${user.fullName}!"
+                // uploadAndGetUrl (FirebaseStorageService) already catches its own
+                // failures and returns null rather than throwing — without this check,
+                // a user who picked a file that then failed to upload (network blip
+                // during registration) would see an unqualified "Account created
+                // successfully!" with no indication their ID document/photo never
+                // actually made it, and no reason to think they need to add it later.
+                val missedUploads = buildList {
+                    if (registration.profilePictureUri != null && profilePictureUrl == null) add("profile photo")
+                    if (registration.idDocumentUri != null && idDocumentUrl == null) add("ID document")
+                }
+                _authSuccessMessage.value = if (missedUploads.isEmpty()) {
+                    "Account created successfully for ${user.fullName}!"
+                } else {
+                    "Account created for ${user.fullName}! Your ${missedUploads.joinToString(" and ")} " +
+                        "didn't upload — add ${if (missedUploads.size > 1) "them" else "it"} from your profile."
+                }
                 onSuccess()
             } catch (e: com.example.data.auth.AccountSuspendedException) {
                 com.google.firebase.auth.FirebaseAuth.getInstance().signOut()

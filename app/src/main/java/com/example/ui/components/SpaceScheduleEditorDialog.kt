@@ -699,6 +699,7 @@ fun SpaceScheduleEditorDialog(
                         ) {
                             SubdivisionEditorSection(
                                 modifier = Modifier.padding(14.dp),
+                                spaceId = liveSpace.id,
                                 subdivisionsList = liveSpace.subdivisions,
                                 operatingDays = liveSpace.schedule.operatingDays,
                                 openingHour = liveSpace.schedule.openingHour,

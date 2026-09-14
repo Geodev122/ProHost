@@ -45,6 +45,7 @@ import java.util.UUID
  */
 @Composable
 fun SubdivisionEditorSection(
+    spaceId: String,
     subdivisionsList: List<Subdivision>,
     onSubdivisionsChange: (List<Subdivision>) -> Unit,
     operatingDays: List<String> = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
@@ -63,6 +64,10 @@ fun SubdivisionEditorSection(
     var showAmenityPicker by remember { mutableStateOf(false) }
     var subImageUrls by remember { mutableStateOf(listOf<String>()) }
     var isUploadingSubImage by remember { mutableStateOf(false) }
+    // uploadAndGetUrl already catches its own failures and returns null — this
+    // surfaces that instead of letting the picker silently do nothing, same
+    // pattern as CreateListingDialog's photoUploadError/ownershipUploadError.
+    var subImageUploadError by remember { mutableStateOf<String?>(null) }
     var subPricing by remember { mutableStateOf(RentalPricingConfig.default()) }
 
     // Per-division operating-schedule override — off by default, meaning this room
@@ -93,22 +98,35 @@ fun SubdivisionEditorSection(
         if (uris.isEmpty()) return@rememberLauncherForActivityResult
         coroutineScope.launch {
             isUploadingSubImage = true
+            subImageUploadError = null
+            var failureCount = 0
             uris.forEach { uri ->
                 val imageId = UUID.randomUUID().toString().take(8)
-                // spaceId isn't known here (a subdivision can be configured before the
-                // parent listing itself is ever saved) — pendingSubId doubles as both
-                // the eventual Subdivision.id and a unique enough path segment, since
-                // uploadSubdivisionImage's path is keyed by spaceId anyway once this
-                // moves under a real listing; using it here too keeps every image this
-                // section ever uploads under a name unique to this one room.
+                // spaceId is always the real listing id now — CreateListingDialog
+                // passes its own stable listingId (generated up front, same one
+                // already used for uploadListingImage/uploadOwnershipProofDocument
+                // in that file, real listing or not yet published) and
+                // SpaceScheduleEditorDialog passes the already-published
+                // liveSpace.id. Previously this used pendingSubId (the subdivision's
+                // own random id) as a spaceId stand-in, which silently filed every
+                // subdivision image uploaded through the post-publish editor under a
+                // folder no workspace_listings document — and no cleanup trigger —
+                // ever points at, an orphaned-storage-object leak.
                 val url = storageService.uploadSubdivisionImage(
-                    spaceId = pendingSubId,
+                    spaceId = spaceId,
                     subdivisionId = pendingSubId,
                     imageId = imageId,
                     fileUri = uri,
                     fileExtension = "jpg"
                 )
-                if (url != null) subImageUrls = subImageUrls + url
+                if (url != null) subImageUrls = subImageUrls + url else failureCount++
+            }
+            if (failureCount > 0) {
+                subImageUploadError = if (failureCount == uris.size) {
+                    "Couldn't upload ${if (uris.size == 1) "that photo" else "those photos"}. Check your connection and try again."
+                } else {
+                    "$failureCount of ${uris.size} photos failed to upload. Check your connection and try again."
+                }
             }
             isUploadingSubImage = false
         }
@@ -278,6 +296,13 @@ fun SubdivisionEditorSection(
                             }
                         }
                     }
+                }
+                if (subImageUploadError != null) {
+                    Text(
+                        subImageUploadError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = MaterialTheme.typography.labelSmall.fontSize
+                    )
                 }
 
                 HorizontalDivider()
