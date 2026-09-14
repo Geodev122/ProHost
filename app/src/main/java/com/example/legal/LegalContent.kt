@@ -48,7 +48,7 @@ object LegalContent {
                 listOf(
                     OPERATOR_LINE,
                     "This Privacy Policy explains what personal data ProHost collects from Specialists, Pro Hosts, and anyone browsing the app; why we collect it; how it is stored, secured, and shared; and the rights you have over it. It applies to the ProHost Android application and any associated backend services, and is written to reflect Lebanese law — principally Law No. 81/2018 on Electronic Transactions and Personal Data, and, to the extent applicable, general principles recognized under the Lebanese Penal Code's provisions protecting private life and correspondence (Articles 579–580) and the Code of Obligations and Contracts governing contractual good faith. Where our practices also track internationally recognized data-protection norms (such as the EU General Data Protection Regulation) more closely than Lebanese law strictly requires, we do so voluntarily, as a matter of good practice for our users, not because Lebanese law itself currently imposes an equivalent standalone comprehensive data-protection regime.",
-                    "The latest version of this policy is always available online at https://prohost-f766f.web.app/privacy — check there if you want to confirm you're reading the current version."
+                    "The latest version of this policy is always available online at https://pro-host.tech/privacy — check there if you want to confirm you're reading the current version."
                 )
             ),
             LegalSection(
@@ -114,7 +114,7 @@ object LegalContent {
                 listOf(
                     "You may access, correct, or update most of your profile information directly in the app's Profile screen at any time.",
                     "You may request a copy of the personal data we hold about you, request its deletion, or object to a specific processing activity, by contacting us using the details in Section 11. We will respond within a reasonable time, and in any case no later than 30 days, except where a longer period is justified by the complexity of the request.",
-                    "Deleting your account is available in-app (Profile → Delete Account) and takes effect subject to the retention exceptions described in Section 5. If you no longer have access to the app, you can also request deletion at https://prohost-f766f.web.app/delete-account.",
+                    "Deleting your account is available in-app (Profile → Delete Account) and takes effect subject to the retention exceptions described in Section 5. If you no longer have access to the app, you can also request deletion at https://pro-host.tech/delete-account.",
                     "If you believe your data has been mishandled, you may also raise a complaint with the competent Lebanese authority responsible for electronic transactions and data matters under Law No. 81/2018, in addition to contacting us directly."
                 )
             ),

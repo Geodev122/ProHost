@@ -178,7 +178,7 @@ fun ProHostAppRoot(
     }
 
     // Opens the listing detail modal for a tapped share link
-    // (prohost-f766f.web.app/listing/{spaceId} — see MainActivity's
+    // (pro-host.tech/listing/{spaceId} — see MainActivity's
     // handleIncomingIntent and functions/src/listings/shareLanding.ts). Only
     // reachable once the user is signed in (the app gates everything behind
     // login) and the live spaces list has loaded — re-runs whenever either

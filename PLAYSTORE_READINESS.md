@@ -14,8 +14,8 @@
 - **No PII Logging**: No printing sensitive user data (phone numbers, full names, authentication tokens) using `Log.d`, `Log.v`, or `println()` in release builds.
 
 ### ✅ MUST HAVE:
-- **Account Deletion Flow (In-App + Web)**: Play Store policy **requires** both an in-app account deletion button (`Settings → Delete Account`, which calls `deleteOwnAccount`) AND a public web deletion request link (e.g., `https://prohost-f766f.web.app/delete-account`).
-- **Working Privacy Policy URL**: A live, accessible Privacy Policy link (`https://prohost-f766f.web.app/privacy.html`) declared in both the Play Console and app drawer.
+- **Account Deletion Flow (In-App + Web)**: Play Store policy **requires** both an in-app account deletion button (`Settings → Delete Account`, which calls `deleteOwnAccount`) AND a public web deletion request link (`https://pro-host.tech/delete-account`).
+- **Working Privacy Policy URL**: A live, accessible Privacy Policy link (`https://pro-host.tech/privacy`) declared in both the Play Console and app drawer.
 - **Target SDK 35 / Min SDK 24**: `targetSdk = 35` in `app/build.gradle.kts` to satisfy Google's latest target API requirement.
 - **Accurate Play Console Data Safety Declaration**: Correctly declare collected data types:
   - *Location*: Approximate & Precise (for workspace search and mapping).

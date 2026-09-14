@@ -26,11 +26,24 @@
     "rewrites": [
       {
         "source": "/privacy",
-        "destination": "/privacy.html"
+        "function": {
+          "functionId": "legalDocumentPage",
+          "region": "europe-west1"
+        }
       },
       {
         "source": "/terms",
-        "destination": "/terms.html"
+        "function": {
+          "functionId": "legalDocumentPage",
+          "region": "europe-west1"
+        }
+      },
+      {
+        "source": "/revocation",
+        "function": {
+          "functionId": "legalDocumentPage",
+          "region": "europe-west1"
+        }
       },
       {
         "source": "/delete-account",

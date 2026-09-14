@@ -53,13 +53,14 @@
                     android:pathPrefix="/payment" />
             </intent-filter>
 
-            <!-- Listing share App Link: prohost-f766f.web.app/listing/{spaceId} (see
-                 functions/src/listings/shareLanding.ts and ShareLinks.kt) — Firebase
-                 Hosting's own default domain, deliberately separate from
-                 hopebearer-award.com above. Serves the exact same Hosting deployment
-                 (assetlinks.json included), so it needs no extra domain
-                 registration/DNS work to verify. Verified via
-                 https://prohost-f766f.web.app/.well-known/assetlinks.json. -->
+            <!-- Listing share App Link: pro-host.tech/listing/{spaceId} (see
+                 functions/src/listings/shareLanding.ts and ShareLinks.kt) —
+                 ProHost's own registered marketing/App-Link domain, connected as
+                 a custom domain to this same Firebase Hosting site (already
+                 carrying the marketing landing page + legal docs). Deliberately
+                 separate from hopebearer-award.com above, which is Whish's
+                 payment channel only. Verified via
+                 https://pro-host.tech/.well-known/assetlinks.json. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
 
@@ -68,7 +69,7 @@
 
                 <data
                     android:scheme="https"
-                    android:host="prohost-f766f.web.app"
+                    android:host="pro-host.tech"
                     android:pathPrefix="/listing" />
             </intent-filter>
 

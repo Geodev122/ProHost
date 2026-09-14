@@ -2,13 +2,15 @@ import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import "../lib/admin";
 
-// Firebase Hosting's own default domain for this project — NOT
+// ProHost's own registered marketing/App-Link domain — a real custom domain
+// connected to this same Firebase Hosting site (already carrying the
+// marketing landing page and legal docs, see public/index.html). NOT
 // hopebearer-award.com, which is reserved solely for Whish's payment-gateway
 // channel API configuration (see initiateWhishPayment.ts) and must not be
-// reused for anything else. This default domain serves the exact same
-// Hosting deployment (assetlinks.json included), so Android App Link
-// verification works with zero extra domain registration/DNS work.
-const CANONICAL_HOST = "https://prohost-f766f.web.app";
+// reused for anything else. Serves the exact same Hosting deployment
+// (assetlinks.json included), so Android App Link verification works with
+// zero extra domain registration/DNS work.
+const CANONICAL_HOST = "https://pro-host.tech";
 const FALLBACK_IMAGE = `${CANONICAL_HOST}/logo.png`;
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.geonajjar.prohost";
 
@@ -110,9 +112,9 @@ function renderPage(opts: {
  * Card meta tags — the piece a static Hosting page can't provide, since the
  * title/description/image must reflect the actual listing being shared.
  * Reached via a Hosting rewrite (firebase.json: "/listing/**" -> this
- * function) at https://prohost-f766f.web.app/listing/{spaceId} — Firebase
- * Hosting's own default domain, not hopebearer-award.com (reserved for
- * Whish's payment channel only).
+ * function) at https://pro-host.tech/listing/{spaceId} — ProHost's own
+ * registered domain, not hopebearer-award.com (reserved for Whish's payment
+ * channel only) and not the raw prohost-f766f.web.app Firebase default.
  *
  * Link-preview crawlers (WhatsApp, Telegram, Facebook, iMessage, etc.) fetch
  * this URL server-side over plain HTTP with no OS involvement, so Android's
