@@ -74,6 +74,23 @@ fun SpecialistProfileScreen(
     var name by remember(user) { mutableStateOf(user.fullName) }
     var specialty by remember(user) { mutableStateOf(user.specialty) }
     var phone by remember(user) { mutableStateOf(user.phone) }
+    // Split into a real country-code picker + local digits, matching the same
+    // pattern CreateListingDialog's owner-phone field and registration's phone
+    // step already use — this used to be a bare text field with just a
+    // "(+961 ...)" hint, so nothing ever enforced a country code, and a saved
+    // number with none broke wa.me links downstream. Best-effort split of
+    // whatever the profile already has: match its longest known dial-code
+    // prefix, defaulting to Lebanon.
+    var phoneCountry by remember(user) {
+        mutableStateOf(
+            COUNTRIES.filter { user.phone.trim().startsWith(it.dialCode) }
+                .maxByOrNull { it.dialCode.length }
+                ?: COUNTRIES.first { it.isoCode == "LB" }
+        )
+    }
+    var phoneLocal by remember(user) {
+        mutableStateOf(user.phone.trim().removePrefix(phoneCountry.dialCode).trim())
+    }
     var selectedCountry by remember(user) { mutableStateOf(findCountryByName(user.country)) }
     var governorateArea by remember(user) { mutableStateOf(user.governorate) }
     var city by remember(user) { mutableStateOf(user.city) }
@@ -577,13 +594,19 @@ fun SpecialistProfileScreen(
                         singleLine = true
                     )
 
-                    InputField(
-                        value = phone,
-                        onValueChange = { phone = it },
-                        label = "WhatsApp Contact Number (+961 ...)",
-                        leadingIcon = Icons.Default.Phone,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                    PhoneNumberField(
+                        country = phoneCountry,
+                        onCountryChange = {
+                            phoneCountry = it
+                            phone = formatToE164(it, phoneLocal)
+                        },
+                        number = phoneLocal,
+                        onNumberChange = {
+                            phoneLocal = it
+                            phone = formatToE164(phoneCountry, it)
+                        },
+                        label = "WhatsApp Contact Number",
+                        modifier = Modifier.fillMaxWidth()
                     )
 
                     CountryDropdownField(
