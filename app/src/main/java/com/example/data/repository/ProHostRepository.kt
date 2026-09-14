@@ -1683,7 +1683,7 @@ class ProHostRepository {
         val user = existing?.copy(role = verifiedRole, email = cleanEmail.ifBlank { existing.email }) ?: AppUser(
             id = uid,
             email = cleanEmail,
-            fullName = if (cleanEmail.contains("@")) cleanEmail.substringBefore("@").replace(".", " ").capitalize(Locale.US) else "Member",
+            fullName = if (cleanEmail.contains("@")) cleanEmail.substringBefore("@").replace(".", " ").replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() } else "Member",
             role = verifiedRole,
             specialty = "",
             phone = "",

@@ -216,7 +216,7 @@ fun SpecialistProfileScreen(
                                 modifier = Modifier.weight(1f),
                                 shape = MaterialTheme.shapes.medium
                             ) {
-                                Icon(Icons.Default.EventNote, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(Icons.AutoMirrored.Filled.EventNote, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("View Rentals", style = MaterialTheme.typography.labelMedium)
                             }
