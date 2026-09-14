@@ -134,21 +134,28 @@ class AuthViewModel(
         _authErrorMessage.value = null
         val authService = com.example.data.auth.FirebaseAuthService(activity)
         val credential = authService.buildPhoneAuthCredential(verificationId, smsCode)
-        viewModelScope.launch { finishPhoneVerification(activity, credential, onVerified) }
+        viewModelScope.launch { finishPhoneVerification(activity, credential, onVerified, verificationId) }
     }
 
     /**
      * Resolves the verified phone credential and decides what the caller sees next:
      * an existing account is never routed back through a registration form — only a
      * genuinely brand-new phone number is.
+     *
+     * @param verificationId Passed through to [FirebaseAuthService.signInWithPhoneCredential]
+     * so it can tell a real Firebase-issued verification apart from this app's own
+     * synthetic test-number one — see that function's doc comment. Auto-verification
+     * (SMS Retriever) never has one, which is correct: that path is always a real
+     * credential and must never fall back to a stand-in session on failure.
      */
     private suspend fun finishPhoneVerification(
         activity: Activity,
         credential: com.google.firebase.auth.PhoneAuthCredential,
-        onVerified: (needsRegistration: Boolean) -> Unit
+        onVerified: (needsRegistration: Boolean) -> Unit,
+        verificationId: String? = null
     ) {
         val authService = com.example.data.auth.FirebaseAuthService(activity)
-        val result = authService.signInWithPhoneCredential(credential)
+        val result = authService.signInWithPhoneCredential(credential, verificationId)
         when (result) {
             is com.example.data.auth.AuthResult.Success -> {
                 val firebaseUser = result.firebaseUser
