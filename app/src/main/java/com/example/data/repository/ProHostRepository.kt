@@ -1717,8 +1717,29 @@ class ProHostRepository {
         return user
     }
 
-    fun logout() {
-        val previous = _currentUser.value?.email ?: "Unknown"
+    /**
+     * @param clearRemotePushToken Best-effort clears this device's fcmToken off the
+     * signed-out user's own profile doc before it's nulled locally, so a push meant
+     * for them can't keep reaching this device once someone else signs in on it —
+     * see ProHostViewModel.logout()'s comment for why this must run before
+     * FirebaseAuth.signOut() invalidates the write's auth context. Pass false from
+     * account-deletion (ProHostViewModel.deleteAccount()): the profile doc there has
+     * already been deleted server-side, and a merge write after that would just
+     * resurrect a stub user_profiles/{uid} doc with nothing in it but this field.
+     */
+    fun logout(clearRemotePushToken: Boolean = true) {
+        val loggedOutUser = _currentUser.value
+        val previous = loggedOutUser?.email ?: "Unknown"
+        if (clearRemotePushToken && loggedOutUser != null) {
+            coroutineScope.launch {
+                firestoreService.updateUserProfileFields(loggedOutUser.id, mapOf("fcmToken" to null))
+            }
+        }
+        // Also clear the in-app "Real-time Alerts Terminal" — this StateFlow is a
+        // process-wide singleton with no per-uid scoping, so without this an alert
+        // history from the account that just signed out stayed visible to whoever
+        // signs in next in the same app process.
+        _fcmAlerts.value = emptyList()
         _currentUser.value = null
         addAuditLog(
             actionType = "USER_LOGOUT",
