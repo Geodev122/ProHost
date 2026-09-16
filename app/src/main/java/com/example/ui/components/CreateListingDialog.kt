@@ -549,6 +549,10 @@ fun CreateListingDialog(
                                 ListingLocationMapPicker(
                                     initialLat = pickedLatLng?.latitude ?: existingDraft?.lat,
                                     initialLng = pickedLatLng?.longitude ?: existingDraft?.lng,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(300.dp)
+                                        .clip(MaterialTheme.shapes.medium),
                                     onLocationConfirmed = { lat, lng, address, gov ->
                                         pickedLatLng = LatLng(lat, lng)
                                         streetAddress = address
@@ -1372,7 +1376,7 @@ fun CreateListingDialog(
                                 // configure every later step and pricing detail, then
                                 // find Publish permanently disabled with no indication
                                 // the missing piece was all the way back on Step 1.
-                                (title.isNotBlank() || district.isNotBlank()) && ownershipProofUrl != null &&
+                                (title.isNotBlank() || district.isNotBlank()) &&
                                     !isUploadingOwnershipProof && pickedLatLng != null
                             } else {
                                 true
@@ -1389,7 +1393,7 @@ fun CreateListingDialog(
                             } else {
                                 wholeSpacePricing.hasRealPrice()
                             }
-                            pickedLatLng != null && ownershipProofUrl != null && !isUploadingOwnershipProof &&
+                            pickedLatLng != null && !isUploadingOwnershipProof &&
                                 uploadedPhotoUrls.isNotEmpty() && hasRealPricing
                         }
                     )

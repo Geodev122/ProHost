@@ -31,7 +31,8 @@ import com.example.ui.viewmodel.ProHostViewModel
 @Composable
 fun MyFavoritesScreen(
     viewModel: ProHostViewModel,
-    onSelectSpace: (SpaceListing) -> Unit
+    onSelectSpace: (SpaceListing) -> Unit,
+    onNavigateToExplore: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
@@ -60,7 +61,9 @@ fun MyFavoritesScreen(
                 ProEmptyState(
                     title = "No Favorites Yet",
                     description = "Tap the heart icon on any workspace to save it here for quick access later.",
-                    icon = Icons.Filled.FavoriteBorder
+                    icon = Icons.Filled.FavoriteBorder,
+                    actionButtonText = "Explore Workspaces",
+                    onActionClick = onNavigateToExplore
                 )
             }
         } else {

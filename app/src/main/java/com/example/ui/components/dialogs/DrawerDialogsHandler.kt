@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.theme.*
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.*
 import com.example.ui.theme.LebaneseCedarGreen
@@ -284,26 +285,59 @@ fun DrawerDialogsHandler(
                                     .verticalScroll(rememberScrollState()),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Governorate.values().forEach { gov ->
-                                    val listingCount = allSpaces.count { it.governorate == gov }
+                                Text(
+                                    text = "Governorate Status Matrix",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
+                                
+                                // Table Header
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = MaterialTheme.shapes.small,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Governorate", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(2f))
+                                        Text("Active", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                                        Text("Paused", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                                        Text("Draft", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                                        Text("Total", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                                    }
+                                }
+
+                                Governorate.entries.forEach { gov ->
+                                    val activeCount = allSpaces.count { it.governorate == gov && it.status == ListingStatus.ACTIVE }
+                                    val pausedCount = allSpaces.count { it.governorate == gov && it.status == ListingStatus.PAUSED }
+                                    val draftCount = allSpaces.count { it.governorate == gov && it.status == ListingStatus.DRAFT }
+                                    val totalCount = activeCount + pausedCount + draftCount
+
                                     Card(
-                                        modifier = Modifier.fillMaxWidth()
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(Spacing.md),
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                Icon(Icons.Default.Place, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                                Text(gov.displayName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                            }
-                                            Surface(
-                                                color = MaterialTheme.colorScheme.primaryContainer,
-                                                shape = MaterialTheme.shapes.small
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                modifier = Modifier.weight(2f)
                                             ) {
-                                                Text("$listingCount active", modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                                Icon(Icons.Default.Place, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                                Text(gov.displayName, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
                                             }
+                                            Text("$activeCount", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = FreshGreen, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                                            Text("$pausedCount", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = CarnationOrange, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                                            Text("$draftCount", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                                            Text("$totalCount", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
                                         }
                                     }
                                 }
@@ -315,15 +349,10 @@ fun DrawerDialogsHandler(
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Text(
-                                    text = "📥 Real-time Alerts Feed",
+                                    text = "Notifications",
                                     fontWeight = FontWeight.Bold,
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = "This terminal displays a live stream of real-time workspace updates and payment notifications received on your device via Firebase Cloud Messaging.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
 
                                 HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.xs))

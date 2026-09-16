@@ -1,5 +1,6 @@
 import { onDocumentDeleted } from "firebase-functions/v2/firestore";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 import { recordAuditLog } from "../lib/auditLog";
 import { sendPushToUser } from "../lib/push";
 
@@ -78,11 +79,20 @@ export const onWorkspaceListingDeletedCleanup = onDocumentDeleted(
       );
     }
 
+    // 3. Purge associated storage files (photos and ownership docs) from the bucket.
+    try {
+      const bucket = getStorage().bucket();
+      await bucket.deleteFiles({ prefix: `listings/${spaceId}/` });
+      await bucket.deleteFiles({ prefix: `listing_ownership_docs/${spaceId}/` });
+    } catch (err) {
+      console.error(`Failed to delete storage files for listing ${spaceId}:`, err);
+    }
+
     await recordAuditLog({
       actionType: "LISTING_DELETE_CLEANUP",
       details:
         `Cleaned up after deleting listing ${spaceId} (${listing?.title ?? "unknown"}): ` +
-        `removed from ${favoritedBy.size} user(s)' favorites, cancelled ${openBookings.size} open booking(s).`,
+        `removed from ${favoritedBy.size} user(s)' favorites, cancelled ${openBookings.size} open booking(s), and purged storage bucket files.`,
       actorEmail: "system@prohost.app",
       severity: "SECURE",
     });

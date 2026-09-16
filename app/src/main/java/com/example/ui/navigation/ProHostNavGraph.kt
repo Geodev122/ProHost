@@ -71,7 +71,8 @@ private val PRO_HOST_FULLSCREEN_TABS = listOf(
  */
 private val ADMIN_FULLSCREEN_TABS = listOf(
     AppNavTab.AdminConsole,
-    AppNavTab.AdminProfile
+    AppNavTab.AdminProfile,
+    AppNavTab.AdminVerifications
 )
 
 /** Reachable via the drawer by every role — unlike PRO_HOST_FULLSCREEN_TABS
@@ -437,7 +438,8 @@ fun ProHostAppRoot(
                                 when (safeFullScreenDrawerTab) {
                                     AppNavTab.MyFavorites.id -> MyFavoritesScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { detailedSpace = it }
+                                        onSelectSpace = { detailedSpace = it },
+                                        onNavigateToExplore = { navigateTo(AppNavTab.SearchMap.id) }
                                     )
                                     AppNavTab.OwnerRentalRequests.id -> OwnerRentalRequestsScreen(
                                         viewModel = viewModel
@@ -449,6 +451,9 @@ fun ProHostAppRoot(
                                         viewModel = viewModel
                                     )
                                     AppNavTab.AdminConsole.id -> AdminConsoleScreen(
+                                        viewModel = viewModel
+                                    )
+                                    AppNavTab.AdminVerifications.id -> AdminVerificationScreen(
                                         viewModel = viewModel
                                     )
                                     AppNavTab.AdminProfile.id -> SpecialistProfileScreen(

@@ -299,6 +299,13 @@ fun AdminDrawerContent(
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
+            label = { Text("Explore Workspaces", fontWeight = FontWeight.SemiBold) },
+            selected = activeTabId == "search_map",
+            onClick = { onTabSelected("search_map") },
+            icon = { Icon(Icons.Default.TravelExplore, contentDescription = null, tint = if (activeTabId == "search_map") CarnationOrange else OxfordBlue) }
+        )
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        NavigationDrawerItem(
             label = { Text("Renting Requests", fontWeight = FontWeight.SemiBold) },
             selected = activeTabId == "owner_requests",
             onClick = { onTabSelected("owner_requests") },
@@ -335,6 +342,13 @@ fun AdminDrawerContent(
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
 
+        NavigationDrawerItem(
+            label = { Text("Verification Requests", fontWeight = FontWeight.SemiBold) },
+            selected = activeTabId == "admin_verifications",
+            onClick = { onTabSelected("admin_verifications") },
+            icon = { Icon(Icons.Default.Verified, contentDescription = null, tint = if (activeTabId == "admin_verifications") CarnationOrange else OxfordBlue) }
+        )
+        Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
             label = { Text("System Audit Logs", fontWeight = FontWeight.SemiBold) },
             selected = false,

@@ -45,4 +45,5 @@ sealed class AppNavTab(
     // sub-tabs, not separate peer destinations like this used to have.
     object AdminConsole : AppNavTab("admin_console", "Admin Console", Icons.Filled.AdminPanelSettings, Icons.Outlined.AdminPanelSettings)
     object AdminProfile : AppNavTab("admin_profile", "Security ID", Icons.Filled.Shield, Icons.Outlined.Shield)
+    object AdminVerifications : AppNavTab("admin_verifications", "Verification Requests", Icons.Filled.Verified, Icons.Outlined.Verified)
 }

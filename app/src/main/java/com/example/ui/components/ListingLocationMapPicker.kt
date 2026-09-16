@@ -38,7 +38,8 @@ import java.util.Locale
 fun ListingLocationMapPicker(
     initialLat: Double?,
     initialLng: Double?,
-    onLocationConfirmed: (lat: Double, lng: Double, address: String, governorate: Governorate) -> Unit
+    onLocationConfirmed: (lat: Double, lng: Double, address: String, governorate: Governorate) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -129,7 +130,7 @@ fun ListingLocationMapPicker(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().clipToBounds()) {
+    Box(modifier = modifier.clipToBounds()) {
         val hasLocationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
                                     ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
@@ -201,8 +202,8 @@ fun ListingLocationMapPicker(
                         resolveLocationAndConfirm(currentCenter)
                     }
                 },
-                icon = { Icon(Icons.Default.Check, contentDescription = "Confirm Location") },
-                text = { Text("Confirm Location") },
+                icon = { Icon(Icons.Default.Check, contentDescription = "Mark Pin") },
+                text = { Text("Mark Pin") },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             )

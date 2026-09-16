@@ -579,10 +579,10 @@ fun OwnerHubScreenContent(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (space.isActiveSubscription) {
-                                ProStatusBadge(ProBadgeType.ACTIVE_30D)
-                            } else {
-                                ProStatusBadge(ProBadgeType.EXPIRED)
+                            when (space.status) {
+                                ListingStatus.ACTIVE -> ProStatusBadge(ProBadgeType.CUSTOM_SUCCESS, customText = "Available")
+                                ListingStatus.DRAFT -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = "Draft")
+                                ListingStatus.PAUSED -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = "Paused")
                             }
 
                             ProCurrencyTag(rateUsd = space.baseMonthlyRateUsd, isPerMonth = true)
