@@ -87,3 +87,29 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
     }
   }
 );
+
+/**
+ * Notifies the specialist when the host marks their lease payment as paid.
+ */
+export const onBookingPaymentAcknowledged = onDocumentUpdated(
+  "booking_requests/{bookingId}",
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!before || !after) return;
+
+    if (!before.paymentAcknowledgedByHost && after.paymentAcknowledgedByHost) {
+      await sendPushToUser(
+        after.practitionerId,
+        "Payment Acknowledged",
+        `The host (${after.ownerName ?? "Host"}) has marked your lease payment for "${after.spaceTitle ?? "workspace"}" as paid.`,
+        {
+          category: "PAYMENT_REMINDER",
+          targetTab: "pro_rentals",
+          bookingId: event.params.bookingId,
+        }
+      );
+    }
+  }
+);
+

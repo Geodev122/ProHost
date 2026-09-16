@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import { recordAuditLog } from "../lib/auditLog";
+import { sendPushToUser } from "../lib/push";
 import "../lib/admin";
 
 interface SetListingVerificationData {
@@ -34,7 +35,23 @@ export const setListingVerification = onCall<SetListingVerificationData>(async (
     throw new HttpsError("not-found", "Workspace listing not found.");
   }
 
+  const listing = snap.data();
+  const ownerId = listing?.ownerId;
+
   await ref.set({ isVerified: verified, updatedAt: Date.now() }, { merge: true });
+
+  if (ownerId) {
+    const title = verified ? "Listing Verified!" : "Verification Status Updated";
+    const body = verified
+      ? `Your workspace listing "${listing?.title ?? "Workspace"}" has been officially verified by ProHost Admin.`
+      : `Your workspace listing "${listing?.title ?? "Workspace"}" verification status was updated.`;
+    await sendPushToUser(ownerId, title, body, {
+      category: "LISTING_VERIFICATION",
+      targetTab: "manage_listings",
+      spaceId: spaceId,
+    });
+  }
+
   await recordAuditLog({
     actionType: "VERIFICATION_OVERRIDE",
     details: `Admin ${auth.token.email ?? auth.uid} set workspace #${spaceId} verified status to ${verified}`,

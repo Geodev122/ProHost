@@ -81,14 +81,15 @@ class ProHostViewModel(
         if (firebaseUser != null) {
             viewModelScope.launch {
                 try {
-                    // Bounded so a slow (not fully offline) connection can't leave the
-                    // splash screen up indefinitely — completeVerifiedLogin's own
-                    // network call (assignInitialRole) had no timeout of its own
-                    // beyond the Firebase Functions SDK's default (up to 70s), which
-                    // reads as "hung" to anyone watching a splash screen. A timeout
-                    // here is handled identically to any other restoration failure
-                    // below: currentUser stays null and the user just signs in again,
-                    // rather than waiting indefinitely for a slow round-trip.
+                    // Force refresh ID token to instantly pick up any server-side custom claim changes (e.g. ADMIN role promotion)
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        try {
+                            firebaseUser.getIdToken(true).await()
+                        } catch (e: Exception) {
+                            // Non-fatal if offline
+                        }
+                    }
+
                     val user = kotlinx.coroutines.withTimeout(SESSION_RESTORE_TIMEOUT_MS) {
                         com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
                     }

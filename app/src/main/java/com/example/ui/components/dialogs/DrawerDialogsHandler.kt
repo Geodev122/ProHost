@@ -143,19 +143,44 @@ fun DrawerDialogsHandler(
                                         Card(
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            Row(
-                                                modifier = Modifier.padding(Spacing.md),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Column {
-                                                    Text("Order #${tx.orderId}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                                    Text("Space: ${tx.spaceTitle}", style = MaterialTheme.typography.labelSmall)
-                                                    Text("Channel ID: ${tx.channelId}", style = MaterialTheme.typography.labelSmall)
+                                            Column(modifier = Modifier.padding(Spacing.md)) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Column {
+                                                        Text("Order #${tx.orderId}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                                        Text("Space: ${tx.spaceTitle}", style = MaterialTheme.typography.labelSmall)
+                                                        Text("Channel ID: ${tx.channelId}", style = MaterialTheme.typography.labelSmall)
+                                                    }
+                                                    Column(horizontalAlignment = Alignment.End) {
+                                                        Text("$${tx.amountUsd.toInt()} USD", fontWeight = FontWeight.ExtraBold, color = StatusSuccess)
+                                                        Text(tx.status.name, color = StatusSuccess, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                                    }
                                                 }
-                                                Column(horizontalAlignment = Alignment.End) {
-                                                    Text("$${tx.amountUsd.toInt()} USD", fontWeight = FontWeight.ExtraBold, color = StatusSuccess)
-                                                    Text(tx.status.name, color = StatusSuccess, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                OutlinedButton(
+                                                    onClick = {
+                                                        val file = com.example.legal.WhishReceiptPdfGenerator.generate(context, tx)
+                                                        if (file != null) {
+                                                            try {
+                                                                val intent = com.example.legal.WhishReceiptPdfGenerator.buildOpenIntent(context, file)
+                                                                context.startActivity(intent)
+                                                            } catch (e: Exception) {
+                                                                Toast.makeText(context, "Bill generated, but no PDF viewer found.", Toast.LENGTH_SHORT).show()
+                                                            }
+                                                        } else {
+                                                            Toast.makeText(context, "Failed to generate PDF bill.", Toast.LENGTH_SHORT).show()
+                                                        }
+                                                    },
+                                                    shape = MaterialTheme.shapes.small,
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    contentPadding = PaddingValues(vertical = 4.dp)
+                                                ) {
+                                                    Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text("Download Bill (A6 PDF)", style = MaterialTheme.typography.labelSmall)
                                                 }
                                             }
                                         }

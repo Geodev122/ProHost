@@ -1,6 +1,7 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { getFirestore } from "firebase-admin/firestore";
 import { recordAuditLog } from "../lib/auditLog";
+import { sendPushToUser } from "../lib/push";
 import "../lib/admin";
 
 /**
@@ -24,6 +25,33 @@ import "../lib/admin";
 export const expirePackages = onSchedule("0 * * * *", async () => {
   const db = getFirestore();
   const now = Date.now();
+
+  // 1. Proactive warning for packages expiring in <= 3 days (notified once)
+  const warningWindowEnd = now + 3 * 24 * 60 * 60 * 1000;
+  const warningSnap = await db
+    .collection("user_profiles")
+    .where("ownerPackageExpiryMillis", ">", now)
+    .where("ownerPackageExpiryMillis", "<=", warningWindowEnd)
+    .limit(500)
+    .get();
+
+  for (const doc of warningSnap.docs) {
+    const data = doc.data();
+    if (data.expiryWarningSent === true) continue;
+    const userId = doc.id;
+    const expiry = data.ownerPackageExpiryMillis as number;
+    const daysLeft = Math.max(1, Math.ceil((expiry - now) / (24 * 60 * 60 * 1000)));
+    await sendPushToUser(
+      userId,
+      "Package Expiring Soon",
+      `Your ProHost subscription package is expiring in ${daysLeft} day(s). Renew now to maintain your active workspace listings.`,
+      {
+        category: "PAYMENT_REMINDER",
+        targetTab: "owner_subscriptions",
+      }
+    );
+    await doc.ref.set({ expiryWarningSent: true }, { merge: true });
+  }
 
   const expiredSnap = await db
     .collection("user_profiles")
