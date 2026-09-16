@@ -153,3 +153,23 @@ val SuperAdminBadgeBg = CarnationOrangeContainer
 val SuperAdminBadgeText = CarnationOrangeDark
 val SecurityShieldGreen = FreshGreen
 val GoldTier = BrightOrange
+
+// Listing Type Brand Colors (ST-01 to ST-06)
+val MarkerBlueTop = Color(0xFF5B9BFF)
+val MarkerBlueBase = Color(0xFF246BEE) // Private Office (ST-01)
+
+val MarkerOrangeTop = Color(0xFFFF8F73)
+val MarkerOrangeBase = Color(0xFFF25F4C) // Center (ST-02)
+
+val MarkerGreenTop = Color(0xFF7DD9A0)
+val MarkerGreenBase = Color(0xFF4CAF72) // Polyclinic (ST-03)
+
+val MarkerVioletTop = Color(0xFFB197FC)
+val MarkerVioletBase = Color(0xFF8B5CF6) // Co-working Space (ST-04)
+
+val MarkerGoldTop = Color(0xFFE8C468)
+val MarkerGoldBase = Color(0xFFC99A2E) // Executive Boardroom (ST-05)
+
+val MarkerTealTop = Color(0xFF5CE0D0)
+val MarkerTealBase = Color(0xFF14B8A6) // Consultation Suite (ST-06)
+

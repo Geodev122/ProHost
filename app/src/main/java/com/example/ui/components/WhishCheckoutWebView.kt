@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -78,13 +79,21 @@ private fun WhishWebViewContent(
     onRedirectDetected: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val client = remember {
         object : WebViewClient() {
             private fun isWhishRedirect(url: Uri?): Boolean =
                 url?.host == WHISH_REDIRECT_HOST && url.path?.startsWith("/payment") == true
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                if (isWhishRedirect(request?.url)) {
+                val url = request?.url
+                if (isWhishRedirect(url)) {
+                    val isSuccess = url?.path?.contains("success") == true
+                    if (isSuccess) {
+                        android.widget.Toast.makeText(context, "Payment successful! Granting membership...", android.widget.Toast.LENGTH_LONG).show()
+                    } else {
+                        android.widget.Toast.makeText(context, "Payment was unsuccessful or cancelled.", android.widget.Toast.LENGTH_LONG).show()
+                    }
                     onRedirectDetected()
                     return true
                 }

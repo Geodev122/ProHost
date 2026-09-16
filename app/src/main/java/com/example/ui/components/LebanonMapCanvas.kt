@@ -17,12 +17,14 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -54,54 +56,69 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.*
 
-private val MARKER_COLOR_CLINIC = android.graphics.Color.parseColor("#E53935") // Red
-private val MARKER_COLOR_STUDIO = android.graphics.Color.parseColor("#8E24AA") // Purple
-private val MARKER_COLOR_OFFICE = android.graphics.Color.parseColor("#1E88E5") // Blue
-private val MARKER_COLOR_DEFAULT = android.graphics.Color.parseColor("#43A047") // Green
-private val MARKER_COLOR_SELECTED = android.graphics.Color.parseColor("#FFB300") // Amber
+private data class MarkerPalette(val topColor: Int, val baseColor: Int)
+
+private fun getMarkerPalette(spaceType: SpaceType, isSelected: Boolean): MarkerPalette {
+    if (isSelected) {
+        return MarkerPalette(android.graphics.Color.parseColor("#FFE082"), android.graphics.Color.parseColor("#FFB300"))
+    }
+    return when (spaceType) {
+        SpaceType.PRIVATE_OFFICE -> MarkerPalette(android.graphics.Color.parseColor("#5B9BFF"), android.graphics.Color.parseColor("#246BEE")) // ST-01 Blue
+        SpaceType.CENTER -> MarkerPalette(android.graphics.Color.parseColor("#FF8F73"), android.graphics.Color.parseColor("#F25F4C"))             // ST-02 Orange
+        SpaceType.POLYCLINIC -> MarkerPalette(android.graphics.Color.parseColor("#7DD9A0"), android.graphics.Color.parseColor("#4CAF72"))         // ST-03 Green
+        SpaceType.COWORKING_SPACE -> MarkerPalette(android.graphics.Color.parseColor("#B197FC"), android.graphics.Color.parseColor("#8B5CF6"))    // ST-04 Violet
+        else -> MarkerPalette(android.graphics.Color.parseColor("#E8C468"), android.graphics.Color.parseColor("#C99A2E"))                         // ST-05 Gold / ST-06 Teal
+    }
+}
 
 private fun createCustomMarker(context: Context, spaceType: SpaceType, isSelected: Boolean): BitmapDescriptor {
-    val size = (46 * context.resources.displayMetrics.density).toInt()
-    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val scale = context.resources.displayMetrics.density
+    val width = (72 * scale).toInt()
+    val height = (108 * scale).toInt()
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
-    // Base color by type
-    paint.color = if (isSelected) {
-        MARKER_COLOR_SELECTED
-    } else {
-        when (spaceType) {
-            SpaceType.POLYCLINIC -> MARKER_COLOR_CLINIC
-            SpaceType.CENTER -> MARKER_COLOR_STUDIO
-            SpaceType.PRIVATE_OFFICE, SpaceType.COWORKING_SPACE -> MARKER_COLOR_OFFICE
-            else -> MARKER_COLOR_DEFAULT
-        }
+    // Scale canvas to match SVG 200x300 viewBox
+    canvas.scale(width / 200f, height / 300f)
+
+    val palette = getMarkerPalette(spaceType, isSelected)
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
     }
-    
-    // Draw outer pin circle
-    canvas.drawCircle(size / 2f, size / 2f, size / 2.2f, paint)
-    
-    // Draw inner white background circle
-    paint.color = android.graphics.Color.WHITE
-    canvas.drawCircle(size / 2f, size / 2f, size / 3.0f, paint)
 
-    // Draw Tick Mark (Logo checkmark)
-    paint.color = if (isSelected) MARKER_COLOR_SELECTED else MARKER_COLOR_DEFAULT
-    paint.strokeWidth = 3.5f * context.resources.displayMetrics.density
-    paint.style = Paint.Style.STROKE
-    paint.strokeCap = Paint.Cap.ROUND
-    
+    // Teardrop path: M 30.72,135 A 80,80 0 1 1 169.28,135 L 100,255 Z
     val path = android.graphics.Path().apply {
-        moveTo(size * 0.35f, size * 0.52f)
-        lineTo(size * 0.46f, size * 0.62f)
-        lineTo(size * 0.68f, size * 0.38f)
+        moveTo(30.72f, 135f)
+        arcTo(android.graphics.RectF(20f, 15f, 180f, 175f), 180f, 180f, false)
+        lineTo(100f, 255f)
+        close()
     }
+
+    // Top-to-bottom linear gradient
+    paint.shader = android.graphics.LinearGradient(
+        100f, 15f, 100f, 255f,
+        palette.topColor, palette.baseColor,
+        android.graphics.Shader.TileMode.CLAMP
+    )
     canvas.drawPath(path, paint)
 
-    // Secondary overlay dot for type distinction
-    paint.style = Paint.Style.FILL
-    paint.color = paint.color
-    canvas.drawCircle(size * 0.75f, size * 0.25f, size * 0.15f, paint)
+    // Upper-left gloss highlight
+    val glossPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        shader = android.graphics.RadialGradient(
+            76f, 70f, 45f,
+            android.graphics.Color.WHITE,
+            android.graphics.Color.TRANSPARENT,
+            android.graphics.Shader.TileMode.CLAMP
+        )
+        alpha = 130
+    }
+    canvas.drawPath(path, glossPaint)
+
+    // White center circle (hole-punch accent)
+    paint.shader = null
+    paint.color = android.graphics.Color.WHITE
+    canvas.drawCircle(100f, 95f, 30f, paint)
 
     return BitmapDescriptorFactory.fromBitmap(bitmap)
 }
@@ -119,8 +136,9 @@ fun LebanonMapCanvas(
     var userLocation by remember { mutableStateOf<LatLng?>(null) }
     var sortedSpaces by remember { mutableStateOf(spaces) }
     var isLocating by remember { mutableStateOf(false) }
-    var activePinSpace by remember { mutableStateOf<SpaceListing?>(spaces.firstOrNull()) }
+    var activePinSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var showSearchThisArea by remember { mutableStateOf(false) }
+    var isStripCollapsed by remember { mutableStateOf(false) }
     
     val defaultCenter = LatLng(33.8886, 35.5184) // Beirut
     val cameraPositionState = rememberCameraPositionState {
@@ -199,7 +217,7 @@ fun LebanonMapCanvas(
         return r * c
     }
 
-    // Viewport Culling: filter spaces visible within current camera bounds or radius
+    // Viewport Culling
     val visibleSpaces = remember(spaces, cameraPositionState.position) {
         val bounds = cameraPositionState.projection?.visibleRegion?.latLngBounds
         if (bounds != null) {
@@ -220,9 +238,6 @@ fun LebanonMapCanvas(
             }
         } else {
             sortedSpaces = visibleSpaces
-        }
-        if (activePinSpace == null && sortedSpaces.isNotEmpty()) {
-            activePinSpace = sortedSpaces.first()
         }
     }
 
@@ -245,7 +260,10 @@ fun LebanonMapCanvas(
                 compassEnabled = true,
                 mapToolbarEnabled = false
             ),
-            onMapClick = {}
+            onMapClick = {
+                activePinSpace = null
+                onSpaceSelected(null)
+            }
         ) {
             visibleSpaces.forEach { space ->
                 val isSelected = activePinSpace?.id == space.id
@@ -254,7 +272,7 @@ fun LebanonMapCanvas(
                     title = space.title,
                     snippet = "$${space.baseMonthlyRateUsd.toInt()}/mo • ${space.spaceType.displayName}",
                     icon = createCustomMarker(context, space.spaceType, isSelected),
-                    anchor = androidx.compose.ui.geometry.Offset(0.5f, 1.0f), // Bottom corner / tip anchor point
+                    anchor = androidx.compose.ui.geometry.Offset(0.5f, 1.0f),
                     zIndex = if (isSelected) 2f else 1f,
                     onClick = {
                         activePinSpace = space
@@ -313,7 +331,7 @@ fun LebanonMapCanvas(
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = 145.dp)
+                .padding(end = 16.dp, bottom = if (activePinSpace != null || !isStripCollapsed) 135.dp else 24.dp)
                 .shadow(8.dp, CircleShape),
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -326,72 +344,243 @@ fun LebanonMapCanvas(
             }
         }
 
-        // BOTTOM DYNAMIC COLLAPSIBLE STRIP (Horizontal Slidable Ultracards)
+        // MARKER ULTRA CARD (Detailed card when a specific marker is pressed)
         AnimatedVisibility(
-            visible = sortedSpaces.isNotEmpty(),
+            visible = activePinSpace != null,
             enter = slideInVertically { it } + fadeIn(),
             exit = slideOutVertically { it } + fadeOut(),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = Spacing.md)
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm)
         ) {
-            LazyRow(
-                state = listState,
-                contentPadding = PaddingValues(horizontal = Spacing.md),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(sortedSpaces, key = { it.id }) { space ->
-                    val isSelected = activePinSpace?.id == space.id
-                    val minPrice = space.baseMonthlyRateUsd
-                    val minUnit = "/mo"
-
-                    Card(
-                        modifier = Modifier
-                            .width(280.dp)
-                            .shadow(if (isSelected) 8.dp else 4.dp, MaterialTheme.shapes.medium)
-                            .clickable {
-                                activePinSpace = space
-                                onSpaceSelected(space)
-                                coroutineScope.launch {
-                                    cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(LatLng(space.lat - 0.012, space.lng), 14f))
-                                }
-                            },
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f) else MaterialTheme.colorScheme.surface
-                        )
+            activePinSpace?.let { space ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(12.dp, MaterialTheme.shapes.large),
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(Spacing.md)
                     ) {
                         Row(
-                            modifier = Modifier.padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(52.dp)
-                                    .clip(MaterialTheme.shapes.small)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                if (space.imageUrls.isNotEmpty()) {
-                                    coil.compose.AsyncImage(
-                                        model = space.imageUrls.first(),
-                                        contentDescription = space.title,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = MaterialTheme.shapes.small
+                                ) {
+                                    Text(
+                                        text = space.spaceType.displayName,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                                if (space.isVerified) {
+                                    Icon(
+                                        imageVector = Icons.Default.Verified,
+                                        contentDescription = "Verified",
+                                        tint = LebaneseCedarGreen,
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
 
+                            IconButton(
+                                onClick = { activePinSpace = null },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Close", modifier = Modifier.size(16.dp))
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                Text(
+                                    text = space.title,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "📍 ${space.district}, ${space.governorate.displayName}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Text(
+                                    text = "$${space.baseMonthlyRateUsd.toInt()}",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = " /mo",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(Spacing.sm))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    try {
+                                        val cleanPhone = space.ownerPhone.filter { it.isDigit() }.let { if (it.length in 7..8) "961$it" else it }
+                                        val url = "https://wa.me/$cleanPhone"
+                                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "Could not launch WhatsApp", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = MaterialTheme.shapes.small,
+                                contentPadding = PaddingValues(vertical = 6.dp)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = WhatsAppGreen, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Contact", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            }
+
+                            Button(
+                                onClick = { onNavigateToDetails(space) },
+                                modifier = Modifier.weight(1.5f),
+                                shape = MaterialTheme.shapes.small,
+                                contentPadding = PaddingValues(vertical = 6.dp)
+                            ) {
+                                Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Check Details", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // BOTTOM COLLAPSIBLE STRIP (Horizontal Slidable Ultracards with Collapse Toggle)
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(bottom = Spacing.sm),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Collapse / Expand Pill Toggle
+            if (sortedSpaces.isNotEmpty()) {
+                Surface(
+                    onClick = { isStripCollapsed = !isStripCollapsed },
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                    shadowElevation = 3.dp,
+                    modifier = Modifier.padding(bottom = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isStripCollapsed) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = if (isStripCollapsed) "Show Workspaces (${sortedSpaces.size})" else "Collapse Map List",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
+            AnimatedVisibility(
+                visible = !isStripCollapsed && sortedSpaces.isNotEmpty(),
+                enter = slideInVertically { it } + fadeIn(),
+                exit = slideOutVertically { it } + fadeOut()
+            ) {
+                LazyRow(
+                    state = listState,
+                    flingBehavior = rememberSnapFlingBehavior(lazyListState = listState),
+                    contentPadding = PaddingValues(horizontal = Spacing.md),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(sortedSpaces, key = { it.id }) { space ->
+                        val isSelected = activePinSpace?.id == space.id
+                        val minPrice = space.baseMonthlyRateUsd
+                        val minUnit = "/mo"
+
+                        Card(
+                            modifier = Modifier
+                                .width(260.dp)
+                                .shadow(if (isSelected) 8.dp else 4.dp, MaterialTheme.shapes.medium)
+                                .clickable {
+                                    activePinSpace = space
+                                    onSpaceSelected(space)
+                                    coroutineScope.launch {
+                                        cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(LatLng(space.lat - 0.012, space.lng), 14f))
+                                    }
+                                },
+                            shape = MaterialTheme.shapes.medium,
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f) else MaterialTheme.colorScheme.surface
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(MaterialTheme.shapes.small)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
                                 ) {
+                                    if (space.imageUrls.isNotEmpty()) {
+                                        coil.compose.AsyncImage(
+                                            model = space.imageUrls.first(),
+                                            contentDescription = space.title,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                        )
+                                    }
+                                }
+
+                                Column(modifier = Modifier.weight(1f)) {
                                     Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Surface(
                                             color = MaterialTheme.colorScheme.primary,
@@ -400,53 +589,37 @@ fun LebanonMapCanvas(
                                             Text(
                                                 text = space.spaceType.displayName,
                                                 style = MaterialTheme.typography.labelSmall,
-                                                fontSize = 9.sp,
+                                                fontSize = 8.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color.White,
                                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                             )
                                         }
-                                        if (space.isVerified) {
-                                            Icon(
-                                                imageVector = Icons.Default.Verified,
-                                                contentDescription = "Verified",
-                                                tint = LebaneseCedarGreen,
-                                                modifier = Modifier.size(13.dp)
+                                        Row(verticalAlignment = Alignment.Bottom) {
+                                            Text(
+                                                text = "$${minPrice.toInt()}",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                            Text(
+                                                text = minUnit,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontSize = 9.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
-                                    Row(verticalAlignment = Alignment.Bottom) {
-                                        Text(
-                                            text = "$${minPrice.toInt()}",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        Text(
-                                            text = minUnit,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontSize = 9.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = space.title,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = space.title,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-
-                            Button(
-                                onClick = { onNavigateToDetails(space) },
-                                shape = MaterialTheme.shapes.small,
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Text("Check", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

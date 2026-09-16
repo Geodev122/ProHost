@@ -1579,6 +1579,31 @@ data class PackagePlanCatalog(val packages: Map<String, PackagePlan> = emptyMap(
 }
 
 /**
+ * Resolves an active package for [AppUser], falling back gracefully to a synthetic active
+ * plan if the user's stored ownerPackageId was removed or modified by an admin update,
+ * provided their package expiry timestamp is still in the future.
+ */
+fun AppUser.resolveActivePackage(catalog: PackagePlanCatalog): PackagePlan? {
+    val pkgId = ownerPackageId ?: return null
+    val plan = catalog.packages[pkgId]
+    if (plan != null) return plan
+    val expiry = ownerPackageExpiryMillis
+    if (expiry != null && expiry > System.currentTimeMillis()) {
+        return PackagePlan(
+            id = pkgId,
+            name = "Pro Host Plan",
+            description = "Active subscription membership",
+            badgeName = "Pro",
+            priceUsd = 0.0,
+            listingLimit = null,
+            validityDays = 30,
+            isEnabled = true
+        )
+    }
+    return null
+}
+
+/**
  * One published, immutable version of an admin-managed legal document (Privacy
  * Policy / Terms of Use / Revocation Policy — see LegalContent.kt's own id
  * strings, which this [docId] matches exactly: "privacy_policy", "terms_of_use",
