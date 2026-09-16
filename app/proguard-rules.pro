@@ -56,10 +56,6 @@
     volatile <fields>;
 }
 
-# osmdroid (OpenStreetMap)
--keep class org.osmdroid.** { *; }
--dontwarn org.osmdroid.**
-
 # Google Play Integrity API
 -keep class com.google.android.play.core.integrity.** { *; }
 -dontwarn com.google.android.play.core.integrity.**

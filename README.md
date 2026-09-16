@@ -11,7 +11,7 @@ ProHost is a modern Android application built with Jetpack Compose and Material 
 - **Architecture**: MVVM with Kotlin Coroutines & Flow
 - **Backend / Cloud Services**:
   - Firebase Authentication, Firestore, Storage, Messaging, Cloud Functions
-- **Maps & Location**: OpenStreetMap (`osmdroid`) & Play Services Location
+- **Maps & Location**: Google Maps Compose SDK & Play Services Location
 - **Build System**: Gradle with Version Catalog (`gradle/libs.versions.toml`)
 
 ---

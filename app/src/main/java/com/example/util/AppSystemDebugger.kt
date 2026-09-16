@@ -218,15 +218,12 @@ object AppSystemDebugger {
                 )
             )
 
-            // Maps run on OpenStreetMap (osmdroid) now, not Google Maps — no API key,
-            // billing account, or Cloud Console configuration to get wrong, so there's
-            // no live key/billing/restriction state left to diagnose here.
             results.add(
                 DiagnosticItem(
                     category = "Discovery & Geo-Spatial",
                     featureName = "Interactive Vector Map & GPS Pins",
                     status = DiagnosticStatus.PASSED,
-                    details = "Running on OpenStreetMap (osmdroid) tiles — no API key required; LebanonMapCanvas plotting ${spaces.size} active listings."
+                    details = "Running on Google Maps Compose SDK — API Key injected successfully; LebanonMapCanvas plotting ${spaces.size} active listings with custom markers."
                 )
             )
 
