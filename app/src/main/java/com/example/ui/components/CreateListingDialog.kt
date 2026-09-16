@@ -35,7 +35,7 @@ import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
 import com.example.ui.theme.Spacing
 import com.example.ui.util.SpaceCalculationUtils
-import org.osmdroid.util.GeoPoint
+import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -290,7 +290,7 @@ fun CreateListingDialog(
     // gate below).
     // GeoPoint implements Parcelable/Serializable, so it's Bundle-safe with the
     // default saver directly — no custom Saver needed.
-    var pickedLatLng by rememberSaveable { mutableStateOf(existingDraft?.let { GeoPoint(it.lat, it.lng) }) }
+    var pickedLatLng by rememberSaveable { mutableStateOf(existingDraft?.let { LatLng(it.lat, it.lng) }) }
     // Numeric floor, range -5..30 per spec (basement levels down to a high-rise's
     // upper floors). Was a free-text "Floor & Accessibility" string; accessibility
     // notes belong in the description/rules now, not smuggled into a number field.
@@ -547,21 +547,13 @@ fun CreateListingDialog(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 ListingLocationMapPicker(
-                                    initialCenter = GeoPoint(derivedGovernorate.centerLat, derivedGovernorate.centerLng),
-                                    pickedLatLng = pickedLatLng,
-                                    onLocationPicked = { picked ->
-                                        pickedLatLng = GeoPoint(picked.lat, picked.lng)
-                                        picked.addressLine?.let { streetAddress = it }
-                                        (picked.district ?: picked.city)?.let { district = it }
-                                        (picked.city ?: picked.governorate)?.let { city = it }
-                                        picked.country?.let { country = it }
-                                        derivedGovernorate = Governorate.values().minByOrNull { gov ->
-                                            val dLat = gov.centerLat - picked.lat
-                                            val dLng = gov.centerLng - picked.lng
-                                            dLat * dLat + dLng * dLng
-                                        } ?: derivedGovernorate
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
+                                    initialLat = pickedLatLng?.latitude ?: existingDraft?.lat,
+                                    initialLng = pickedLatLng?.longitude ?: existingDraft?.lng,
+                                    onLocationConfirmed = { lat, lng, address, gov ->
+                                        pickedLatLng = LatLng(lat, lng)
+                                        streetAddress = address
+                                        derivedGovernorate = gov
+                                    }
                                 )
 
                                 InputField(
@@ -1098,7 +1090,7 @@ fun CreateListingDialog(
                 // by both "Publish Listing" (status ACTIVE) and "Save as Draft" (status
                 // DRAFT, no requiredness gating) so the two paths can never disagree on
                 // how a listing gets assembled.
-                fun buildListing(status: ListingStatus, fallbackLatLng: GeoPoint? = null): SpaceListing {
+                fun buildListing(status: ListingStatus, fallbackLatLng: LatLng? = null): SpaceListing {
                     // The real source of truth for an undivided listing's pricing is
                     // wholeSpacePricing (set via RentalPricingConfigEditor above) — no
                     // longer a free-text "base monthly valuation" field. formulas below
@@ -1265,7 +1257,7 @@ fun CreateListingDialog(
                 // null (falling back to buildListing()'s own jittered-governorate-center
                 // default) whenever a pin already exists or there's nothing to geocode —
                 // matches ListingLocationMapPicker.resolveAndEmit()'s exact pattern.
-                suspend fun resolveFallbackGeocode(): GeoPoint? {
+                suspend fun resolveFallbackGeocode(): LatLng? {
                     if (pickedLatLng != null) return null
                     if (streetAddress.isBlank() && district.isBlank()) return null
                     return withContext(Dispatchers.IO) {
@@ -1273,7 +1265,7 @@ fun CreateListingDialog(
                             val fullAddress = "${streetAddress}, ${district}, ${derivedGovernorate.displayName}, Lebanon"
                             val geocoder = android.location.Geocoder(context, java.util.Locale.getDefault())
                             val addresses = geocoder.getFromLocationName(fullAddress, 1)
-                            addresses?.firstOrNull()?.let { GeoPoint(it.latitude, it.longitude) }
+                            addresses?.firstOrNull()?.let { LatLng(it.latitude, it.longitude) }
                         } catch (e: Exception) {
                             null
                         }

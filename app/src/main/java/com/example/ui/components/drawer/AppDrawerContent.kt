@@ -211,12 +211,14 @@ fun SpecialistDrawerContent(
         // that, and it's one tap away from the bottom nav at all times — a drawer
         // shortcut to it added nothing. Removed rather than kept as a redundant
         // second path to the same screen.
-        NavigationDrawerItem(
-            label = { Text("My Favorites", fontWeight = FontWeight.SemiBold) },
-            selected = activeProHostTabId == "my_favorites",
-            onClick = { onTabSelected("my_favorites") },
-            icon = { Icon(Icons.Default.Favorite, contentDescription = null, tint = OxfordBlue) }
-        )
+        if (!isProHost) {
+            NavigationDrawerItem(
+                label = { Text("My Favorites", fontWeight = FontWeight.SemiBold) },
+                selected = activeProHostTabId == "my_favorites",
+                onClick = { onTabSelected("my_favorites") },
+                icon = { Icon(Icons.Default.Favorite, contentDescription = null, tint = OxfordBlue) }
+            )
+        }
 
         if (isProHost) {
             Spacer(modifier = Modifier.height(Spacing.xs))
@@ -226,13 +228,8 @@ fun SpecialistDrawerContent(
                 onClick = { onTabSelected("search_map") },
                 icon = { Icon(Icons.Default.TravelExplore, contentDescription = null, tint = OxfordBlue) }
             )
-            Spacer(modifier = Modifier.height(Spacing.xs))
-            NavigationDrawerItem(
-                label = { Text("My Bookings", fontWeight = FontWeight.SemiBold) },
-                selected = false,
-                onClick = { onTabSelected("pro_rentals") },
-                icon = { Icon(Icons.Default.EventAvailable, contentDescription = null, tint = OxfordBlue) }
-            )
+            // Removed "My Bookings" for PRO_HOST because it routes to pro_rentals (Specialist booking flows),
+            // which PRO_HOST users should not be using. Their bookings are handled under "owner_requests".
         }
 
         if (isProHost) {

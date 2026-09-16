@@ -10,8 +10,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -395,6 +395,15 @@ fun ProHostAppRoot(
                 val downloadProgress by (inAppUpdateManager?.downloadProgress?.collectAsState() ?: remember { mutableStateOf(0f) })
                 val isOfflineMode by viewModel.isOfflineMode.collectAsState()
                 val syncStatusMessage by viewModel.syncStatusMessage.collectAsState()
+
+                BackHandler(enabled = detailedSpace != null || safeFullScreenDrawerTab != null) {
+                    if (detailedSpace != null) {
+                        detailedSpace = null
+                    } else if (safeFullScreenDrawerTab != null) {
+                        fullScreenDrawerTab = null
+                        activeTabId = if (currentRole == UserRole.ADMIN) AppNavTab.AdminConsole.id else AppNavTab.SearchMap.id
+                    }
+                }
 
                 Box(
                     modifier = Modifier

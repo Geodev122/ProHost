@@ -99,6 +99,7 @@ fun SpaceDetailsScreen(
         acceptedBookings = acceptedBookings,
         myRequestsForThisSpace = myRequestsForThisSpace,
         selectedFormula = selectedFormula,
+        currentUserRole = currentUser?.role,
         onSelectFormula = { selectedFormula = it },
         onRequestRentClick = { showBookingDialog = true },
         onWhatsAppClick = {
@@ -135,6 +136,7 @@ fun SpaceDetailsScreenContent(
     acceptedBookings: List<RentalBookingRequest>,
     myRequestsForThisSpace: List<RentalBookingRequest>,
     selectedFormula: RentalFormula?,
+    currentUserRole: UserRole?,
     onSelectFormula: (RentalFormula) -> Unit,
     onRequestRentClick: () -> Unit,
     onWhatsAppClick: () -> Unit,
@@ -242,60 +244,78 @@ fun SpaceDetailsScreenContent(
                         modifier = Modifier.weight(3.1f),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        // Check Availability Button — slides up the real availability
-                        // matrix for whichever renting option is currently selected
-                        // above (item 3.2), instead of a separate, always-visible
-                        // "Availability" section further down the page.
-                        OutlinedButton(
-                            onClick = { showAvailabilityPanel = true },
-                            enabled = strategyPreviewGroups.isNotEmpty(),
-                            shape = MaterialTheme.shapes.medium,
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)
-                        ) {
-                            Text(
-                                "Check Availability",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                maxLines = 2,
-                                lineHeight = 12.sp
-                            )
-                        }
-
-                        // Request to Rent Button
-                        Button(
-                            onClick = onRequestRentClick,
-                            shape = MaterialTheme.shapes.medium,
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)
-                        ) {
-                            Text(
-                                "Request Rent",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                maxLines = 2,
-                                lineHeight = 12.sp
-                            )
-                        }
-
-                        // WhatsApp Direct Inquiry Button
-                        Button(
-                            onClick = onWhatsAppClick,
-                            shape = MaterialTheme.shapes.medium,
-                            colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                            Text(
-                                "WhatsApp",
-                                color = Color.White,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1
-                            )
+                        if (currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN) {
+                            // ProHosts and Admins cannot book spaces. Show a clear banner instead of renting actions.
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = MaterialTheme.shapes.medium,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "Preview Mode (Pro Host / Admin)",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    modifier = Modifier.padding(vertical = 12.dp)
+                                )
+                            }
+                        } else {
+                            // Check Availability Button — slides up the real availability
+                            // matrix for whichever renting option is currently selected
+                            // above (item 3.2), instead of a separate, always-visible
+                            // "Availability" section further down the page.
+                            OutlinedButton(
+                                onClick = { showAvailabilityPanel = true },
+                                enabled = strategyPreviewGroups.isNotEmpty(),
+                                shape = MaterialTheme.shapes.medium,
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)
+                            ) {
+                                Text(
+                                    "Check Availability",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    maxLines = 2,
+                                    lineHeight = 12.sp
+                                )
+                            }
+    
+                            // Request to Rent Button
+                            Button(
+                                onClick = onRequestRentClick,
+                                shape = MaterialTheme.shapes.medium,
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)
+                            ) {
+                                Text(
+                                    "Request Rent",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    maxLines = 2,
+                                    lineHeight = 12.sp
+                                )
+                            }
+    
+                            // WhatsApp Direct Inquiry Button
+                            Button(
+                                onClick = onWhatsAppClick,
+                                shape = MaterialTheme.shapes.medium,
+                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                Text(
+                                    "WhatsApp",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                            }
                         }
                     }
                 }

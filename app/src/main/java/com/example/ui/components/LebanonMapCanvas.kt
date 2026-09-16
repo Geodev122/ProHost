@@ -1,8 +1,11 @@
 package com.example.ui.components
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.PorterDuff
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.location.Location
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -24,36 +27,59 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import com.example.data.model.SpaceListing
+import com.example.data.model.SpaceType
 import com.example.ui.theme.Spacing
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
-import org.osmdroid.events.MapEventsReceiver
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.MapEventsOverlay
-import org.osmdroid.views.overlay.Marker
+import com.google.maps.android.compose.*
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.CameraUpdateFactory
+import kotlinx.coroutines.launch
 import java.util.Locale
+import kotlin.math.*
 
-private val MARKER_COLOR_SELECTED = android.graphics.Color.parseColor("#E53935")
-private val MARKER_COLOR_ACTIVE_SUBSCRIPTION = android.graphics.Color.parseColor("#43A047")
-private val MARKER_COLOR_DEFAULT = android.graphics.Color.parseColor("#FFB300")
-private val MARKER_COLOR_USER = android.graphics.Color.parseColor("#1E88E5")
+private val MARKER_COLOR_CLINIC = android.graphics.Color.parseColor("#E53935") // Red
+private val MARKER_COLOR_STUDIO = android.graphics.Color.parseColor("#8E24AA") // Purple
+private val MARKER_COLOR_OFFICE = android.graphics.Color.parseColor("#1E88E5") // Blue
+private val MARKER_COLOR_DEFAULT = android.graphics.Color.parseColor("#43A047") // Green
+private val MARKER_COLOR_SELECTED = android.graphics.Color.parseColor("#FFB300") // Amber
 
-private fun tintedMarkerIcon(context: android.content.Context, tintColor: Int) =
-    ContextCompat.getDrawable(context, org.osmdroid.library.R.drawable.marker_default)?.mutate()?.apply {
-        setColorFilter(tintColor, PorterDuff.Mode.SRC_IN)
+private fun createCustomMarker(context: Context, spaceType: SpaceType, isSelected: Boolean): BitmapDescriptor {
+    val size = (36 * context.resources.displayMetrics.density).toInt()
+    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    // Base color by type
+    paint.color = if (isSelected) {
+        MARKER_COLOR_SELECTED
+    } else {
+        when (spaceType) {
+            SpaceType.POLYCLINIC -> MARKER_COLOR_CLINIC
+            SpaceType.CENTER -> MARKER_COLOR_STUDIO
+            SpaceType.PRIVATE_OFFICE, SpaceType.COWORKING_SPACE -> MARKER_COLOR_OFFICE
+            else -> MARKER_COLOR_DEFAULT
+        }
     }
+    
+    // Draw outer circle
+    canvas.drawCircle(size / 2f, size / 2f, size / 2.2f, paint)
+    
+    // Draw inner white circle
+    paint.color = android.graphics.Color.WHITE
+    canvas.drawCircle(size / 2f, size / 2f, size / 3.5f, paint)
+
+    return BitmapDescriptorFactory.fromBitmap(bitmap)
+}
 
 @Composable
 fun LebanonMapCanvas(
@@ -63,12 +89,18 @@ fun LebanonMapCanvas(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val coroutineScope = rememberCoroutineScope()
 
     // GPS Proximity coordinates
-    var userLocation by remember { mutableStateOf<GeoPoint?>(null) }
+    var userLocation by remember { mutableStateOf<LatLng?>(null) }
     var sortedSpaces by remember { mutableStateOf(spaces) }
     var isLocating by remember { mutableStateOf(false) }
+    var activePinSpace by remember { mutableStateOf<SpaceListing?>(null) }
+    
+    val defaultCenter = LatLng(33.8886, 35.5184) // Beirut
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(defaultCenter, 10f)
+    }
 
     val fusedLocationClient = remember {
         LocationServices.getFusedLocationProviderClient(context)
@@ -84,17 +116,22 @@ fun LebanonMapCanvas(
                 .addOnSuccessListener { location: Location? ->
                     isLocating = false
                     if (location != null) {
-                        userLocation = GeoPoint(location.latitude, location.longitude)
-                        Toast.makeText(context, "High-accuracy GPS location locked!", Toast.LENGTH_SHORT).show()
+                        val latLng = LatLng(location.latitude, location.longitude)
+                        userLocation = latLng
+                        coroutineScope.launch {
+                            cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(latLng, 14f))
+                        }
                     } else {
-                        // Fallback to last known location
+                        // Fallback
                         fusedLocationClient.lastLocation.addOnSuccessListener { lastLoc ->
                             if (lastLoc != null) {
-                                userLocation = GeoPoint(lastLoc.latitude, lastLoc.longitude)
-                                Toast.makeText(context, "Location updated from GPS cache.", Toast.LENGTH_SHORT).show()
+                                val latLng = LatLng(lastLoc.latitude, lastLoc.longitude)
+                                userLocation = latLng
+                                coroutineScope.launch {
+                                    cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(latLng, 14f))
+                                }
                             } else {
-                                userLocation = GeoPoint(33.8886, 35.5184)
-                                Toast.makeText(context, "GPS active. Position locked on Beirut.", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Cannot determine location.", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
@@ -114,7 +151,7 @@ fun LebanonMapCanvas(
         if (fineGranted || coarseGranted) {
             requestHighAccuracyLocation()
         } else {
-            Toast.makeText(context, "Location permission declined. Nearby features unavailable.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Location permission declined.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -122,10 +159,10 @@ fun LebanonMapCanvas(
         val r = 6371.0
         val dLat = Math.toRadians(lat2 - lat1)
         val dLng = Math.toRadians(lng2 - lng1)
-        val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                Math.sin(dLng / 2) * Math.sin(dLng / 2)
-        val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+        val a = sin(dLat / 2) * sin(dLat / 2) +
+                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+                sin(dLng / 2) * sin(dLng / 2)
+        val c = 2 * Math.atan2(sqrt(a), sqrt(1 - a))
         return r * c
     }
 
@@ -138,18 +175,8 @@ fun LebanonMapCanvas(
         } else {
             sortedSpaces = spaces
         }
-    }
-
-    var activePinSpace by remember { mutableStateOf<SpaceListing?>(null) }
-    // activePinSpace is a plain snapshot captured at tap time — [spaces] can
-    // change underneath it (a live Firestore update pausing/removing the
-    // listing, or the caller's own filters changing) with nothing re-syncing
-    // the preview card, which kept showing a listing no longer in the current
-    // result set (stale price, or a listing that's since gone unavailable).
-    // Re-derive on every [spaces] change: refresh to the live object if the
-    // same id is still present, or clear the selection (and tell the caller)
-    // if it isn't.
-    LaunchedEffect(spaces) {
+        
+        // Keep activePinSpace in sync with list changes
         val current = activePinSpace ?: return@LaunchedEffect
         val stillPresent = spaces.find { it.id == current.id }
         if (stillPresent == null) {
@@ -159,104 +186,52 @@ fun LebanonMapCanvas(
             activePinSpace = stillPresent
         }
     }
-    val defaultCenter = GeoPoint(33.8886, 35.5184)
-
-    val mapView = remember {
-        MapView(context).apply {
-            setTileSource(TileSourceFactory.MAPNIK)
-            setMultiTouchControls(true)
-            setBuiltInZoomControls(true)
-            controller.setZoom(10.0)
-            controller.setCenter(defaultCenter)
-        }
-    }
-
-    val spaceMarkersRef = remember { mutableListOf<Marker>() }
-    var userMarker by remember { mutableStateOf<Marker?>(null) }
-
-    DisposableEffect(mapView, lifecycleOwner) {
-        val eventsOverlay = MapEventsOverlay(object : MapEventsReceiver {
-            override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
-                activePinSpace = null
-                onSpaceSelected(null)
-                return true
-            }
-            override fun longPressHelper(p: GeoPoint): Boolean = false
-        })
-        mapView.overlays.add(0, eventsOverlay)
-
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> mapView.onResume()
-                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
-                else -> {}
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            mapView.overlays.remove(eventsOverlay)
-            mapView.onDetach()
-        }
-    }
-
-    LaunchedEffect(userLocation) {
-        userLocation?.let { uLoc ->
-            mapView.controller.setZoom(13.0)
-            mapView.controller.animateTo(uLoc)
-        }
-    }
 
     Box(
         modifier = modifier.fillMaxSize().clipToBounds()
     ) {
-        AndroidView(
-            factory = { mapView },
+        val hasLocationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                                    ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                                    
+        GoogleMap(
             modifier = Modifier.fillMaxSize(),
-            update = { view ->
-                spaceMarkersRef.forEach { view.overlays.remove(it) }
-                spaceMarkersRef.clear()
-
-                spaces.forEach { space ->
-                    val isSel = activePinSpace?.id == space.id
-                    val tint = when {
-                        isSel -> MARKER_COLOR_SELECTED
-                        space.isActiveSubscription -> MARKER_COLOR_ACTIVE_SUBSCRIPTION
-                        else -> MARKER_COLOR_DEFAULT
-                    }
-                    val marker = Marker(view).apply {
-                        position = GeoPoint(space.lat, space.lng)
-                        title = space.title
-                        snippet = "$${space.baseMonthlyRateUsd.toInt()}/mo • ${space.spaceType.displayName}"
-                        icon = tintedMarkerIcon(context, tint)
-                        setOnMarkerClickListener { _, _ ->
-                            activePinSpace = space
-                            onSpaceSelected(space)
-                            true
-                        }
-                    }
-                    view.overlays.add(marker)
-                    spaceMarkersRef.add(marker)
-                }
-
-                val uLoc = userLocation
-                if (uLoc != null) {
-                    val marker = userMarker ?: Marker(view).also {
-                        userMarker = it
-                        view.overlays.add(it)
-                    }
-                    marker.position = uLoc
-                    marker.title = "Your Location"
-                    marker.snippet = "Finding nearest spaces..."
-                    marker.icon = tintedMarkerIcon(context, MARKER_COLOR_USER)
-                } else {
-                    userMarker?.let { view.overlays.remove(it) }
-                    userMarker = null
-                }
-
-                view.invalidate()
+            cameraPositionState = cameraPositionState,
+            properties = MapProperties(
+                isMyLocationEnabled = hasLocationPermission,
+                mapType = MapType.NORMAL
+            ),
+            uiSettings = MapUiSettings(
+                myLocationButtonEnabled = false, // We use our own custom FAB below
+                zoomControlsEnabled = false,     // Cleaner UI without default zoom buttons
+                compassEnabled = true,
+                mapToolbarEnabled = false
+            ),
+            onMapClick = {
+                activePinSpace = null
+                onSpaceSelected(null)
             }
-        )
+        ) {
+            spaces.forEach { space ->
+                val isSelected = activePinSpace?.id == space.id
+                Marker(
+                    state = MarkerState(position = LatLng(space.lat, space.lng)),
+                    title = space.title,
+                    snippet = "$${space.baseMonthlyRateUsd.toInt()}/mo • ${space.spaceType.displayName}",
+                    icon = createCustomMarker(context, space.spaceType, isSelected),
+                    zIndex = if (isSelected) 1f else 0f,
+                    onClick = {
+                        activePinSpace = space
+                        onSpaceSelected(space)
+                        coroutineScope.launch {
+                            // Pan slightly down to accommodate the bottom card overlay
+                            val projection = CameraUpdateFactory.newLatLng(LatLng(space.lat - 0.015, space.lng))
+                            cameraPositionState.animate(projection)
+                        }
+                        true // Consume click
+                    }
+                )
+            }
+        }
 
         // TOP INTERACTIVE OVERLAY CONTROLS
         Column(
@@ -305,24 +280,6 @@ fun LebanonMapCanvas(
             }
         }
 
-        // Joystick Gear Stick Navigation Controller (Bottom Left)
-        MapJoystickNavigator(
-            onPan = { dx, dy ->
-                val center = mapView.mapCenter
-                val curLat = center.latitude
-                val curLng = center.longitude
-                val zoomLevel = mapView.zoomLevelDouble.coerceAtLeast(1.0)
-                val panStep = 0.00018 * (15.0 / zoomLevel)
-                val newLat = curLat - (dy * panStep)
-                val newLng = curLng + (dx * panStep)
-                mapView.controller.setCenter(GeoPoint(newLat, newLng))
-                mapView.invalidate()
-            },
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 16.dp, bottom = if (activePinSpace != null) 340.dp else 24.dp)
-        )
-
         // FLOATING HIGH-ACCURACY GPS CONTROLLER (Bottom Right)
         FloatingActionButton(
             onClick = {
@@ -352,21 +309,6 @@ fun LebanonMapCanvas(
             } else {
                 Icon(Icons.Default.MyLocation, contentDescription = "High-Accuracy GPS Locate")
             }
-        }
-
-        // Required by OpenStreetMap's tile-usage policy
-        Surface(
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
-            shape = MaterialTheme.shapes.extraSmall,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 4.dp)
-        ) {
-            Text(
-                "© OpenStreetMap contributors",
-                fontSize = 8.sp,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-            )
         }
 
         // FLOATING SELECTED WORKSPACE CARD PREVIEW (Slide-up menu)

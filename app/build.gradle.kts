@@ -1,3 +1,5 @@
+import java.util.Properties
+import java.io.FileInputStream
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
 
 plugins {
@@ -22,15 +24,30 @@ android {
     versionName = "1.0.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localProperties.load(FileInputStream(localPropertiesFile))
+    }
+    
+    val mapsApiKey = System.getenv("MAPS_API_KEY") ?: localProperties.getProperty("MAPS_API_KEY") ?: ""
+    manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
   }
 
   signingConfigs {
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localProperties.load(FileInputStream(localPropertiesFile))
+    }
+
     create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
+      val keystorePath = System.getenv("KEYSTORE_PATH") ?: localProperties.getProperty("keystore.path") ?: "${rootDir}/my-upload-key.jks"
       storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = "upload"
-      keyPassword = System.getenv("KEY_PASSWORD")
+      storePassword = System.getenv("STORE_PASSWORD") ?: localProperties.getProperty("keystore.password")
+      keyAlias = System.getenv("KEY_ALIAS") ?: localProperties.getProperty("key.alias") ?: "upload"
+      keyPassword = System.getenv("KEY_PASSWORD") ?: localProperties.getProperty("key.password")
     }
     val rootDebugKeystore = file("${rootDir}/debug.keystore")
     if (rootDebugKeystore.exists()) {
@@ -145,10 +162,8 @@ dependencies {
   implementation(libs.play.app.update.ktx)
   implementation(libs.play.integrity)
   implementation(libs.play.services.location)
-  // OpenStreetMap (osmdroid) — replaced Google Maps entirely (see LebanonMapCanvas.kt/
-  // ListingLocationMapPicker.kt doc comments). No API key, no billing account, no
-  // Cloud Console configuration to get wrong — the class of bug that motivated this.
-  implementation(libs.osmdroid.android)
+  implementation(libs.maps.compose)
+  implementation(libs.play.services.maps)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)
