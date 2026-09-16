@@ -31,13 +31,20 @@ import com.example.util.UpdateState
 import kotlinx.coroutines.launch
 
 /**
- * The bottom-nav tabs, identical for SPECIALIST and PRO_HOST — every account
- * keeps full Specialist capability (Explore/My Bookings/Profile) regardless of
- * whether it's also been promoted to Pro Host.
+ * The bottom-nav tabs for SPECIALIST.
  */
 private val SPECIALIST_BOTTOM_TABS = listOf(
     AppNavTab.SearchMap,
     AppNavTab.ProfessionalRentals,
+    AppNavTab.ProfessionalProfile
+)
+
+/**
+ * The bottom-nav tabs for PRO_HOST.
+ */
+private val PRO_HOST_BOTTOM_TABS = listOf(
+    AppNavTab.ManageListings,
+    AppNavTab.OwnerRentingProgress,
     AppNavTab.ProfessionalProfile
 )
 
@@ -50,9 +57,7 @@ private val SPECIALIST_BOTTOM_TABS = listOf(
  * Admin's listing/booking capability is unconditional, never a purchased package.
  */
 private val PRO_HOST_FULLSCREEN_TABS = listOf(
-    AppNavTab.ManageListings,
     AppNavTab.OwnerRentalRequests,
-    AppNavTab.OwnerRentingProgress,
     AppNavTab.Stats,
     AppNavTab.OwnerSubscriptions
 )
@@ -88,9 +93,9 @@ private fun allowedTabIdsForRole(role: UserRole): Set<String> {
     val shared = SHARED_FULLSCREEN_TABS.map { it.id }.toSet()
     return when (role) {
         UserRole.SPECIALIST -> SPECIALIST_BOTTOM_TABS.map { it.id }.toSet() + AppNavTab.OwnerSubscriptions.id + shared
-        UserRole.PRO_HOST -> SPECIALIST_BOTTOM_TABS.map { it.id }.toSet() + PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() + shared
+        UserRole.PRO_HOST -> PRO_HOST_BOTTOM_TABS.map { it.id }.toSet() + PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() + shared + AppNavTab.SearchMap.id
         UserRole.ADMIN -> ADMIN_FULLSCREEN_TABS.map { it.id }.toSet() +
-            (PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() - AppNavTab.OwnerSubscriptions.id) + shared
+            (PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() - AppNavTab.OwnerSubscriptions.id) + shared + AppNavTab.ManageListings.id + AppNavTab.OwnerRentingProgress.id
     }
 }
 
@@ -255,15 +260,10 @@ fun ProHostAppRoot(
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         val scope = rememberCoroutineScope()
 
-        // Determine visible bottom-nav tabs strictly according to role — identical
-        // for SPECIALIST and PRO_HOST (point 4 of the role-model spec: a unified
-        // bottom nav for both). Pro Host destinations live in PRO_HOST_FULLSCREEN_TABS
-        // instead, reachable only via the drawer's "Pro Host" section. Admin has no
-        // bottom nav at all — every Admin destination (Admin Console, Security ID,
-        // and the Pro Host tabs it also gets) is a single side-menu entry rendered
-        // full-screen, never a peer bottom-nav tab.
+        // Determine visible bottom-nav tabs strictly according to role
         val roleTabs: List<AppNavTab> = when (currentRole) {
-            UserRole.SPECIALIST, UserRole.PRO_HOST -> SPECIALIST_BOTTOM_TABS
+            UserRole.SPECIALIST -> SPECIALIST_BOTTOM_TABS
+            UserRole.PRO_HOST -> PRO_HOST_BOTTOM_TABS
             UserRole.ADMIN -> emptyList()
         }
 
@@ -401,7 +401,11 @@ fun ProHostAppRoot(
                         detailedSpace = null
                     } else if (safeFullScreenDrawerTab != null) {
                         fullScreenDrawerTab = null
-                        activeTabId = if (currentRole == UserRole.ADMIN) AppNavTab.AdminConsole.id else AppNavTab.SearchMap.id
+                        activeTabId = when (currentRole) {
+                            UserRole.ADMIN -> AppNavTab.AdminConsole.id
+                            UserRole.PRO_HOST -> AppNavTab.ManageListings.id
+                            else -> AppNavTab.SearchMap.id
+                        }
                     }
                 }
 
@@ -431,19 +435,11 @@ fun ProHostAppRoot(
                                 )
                             } else if (safeFullScreenDrawerTab != null) {
                                 when (safeFullScreenDrawerTab) {
-                                    AppNavTab.ManageListings.id -> OwnerHubScreen(
-                                        viewModel = viewModel,
-                                        onSelectSpace = { detailedSpace = it },
-                                        onOpenSubscriptions = { navigateTo(AppNavTab.OwnerSubscriptions.id) }
-                                    )
                                     AppNavTab.MyFavorites.id -> MyFavoritesScreen(
                                         viewModel = viewModel,
                                         onSelectSpace = { detailedSpace = it }
                                     )
                                     AppNavTab.OwnerRentalRequests.id -> OwnerRentalRequestsScreen(
-                                        viewModel = viewModel
-                                    )
-                                    AppNavTab.OwnerRentingProgress.id -> OwnerRentingProgressScreen(
                                         viewModel = viewModel
                                     )
                                     AppNavTab.Stats.id -> OwnerAnalyticsScreen(
@@ -478,6 +474,15 @@ fun ProHostAppRoot(
                                     AppNavTab.SearchMap.id -> DiscoveryScreen(
                                         viewModel = viewModel,
                                         onSelectSpace = { detailedSpace = it }
+                                    )
+                                    AppNavTab.ManageListings.id -> OwnerHubScreen(
+                                        viewModel = viewModel,
+                                        onSelectSpace = { detailedSpace = it },
+                                        onOpenSubscriptions = { navigateTo(AppNavTab.OwnerSubscriptions.id) }
+                                    )
+                                    AppNavTab.OwnerRentingProgress.id -> OwnerRentingProgressScreen(
+                                        viewModel = viewModel,
+                                        onOpenRequests = { navigateTo(AppNavTab.OwnerRentalRequests.id) }
                                     )
                                     AppNavTab.ProfessionalRentals.id -> MyBookingsScreen(
                                         viewModel = viewModel,

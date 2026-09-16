@@ -95,57 +95,15 @@ fun SpecialistDrawerContent(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        Text(
-            text = "PRO HOST",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = FreshGreen,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-        )
-
         if (isProHost) {
-            NavigationDrawerItem(
-                label = { Text("My Workspace Listings", fontWeight = FontWeight.Bold) },
-                selected = activeProHostTabId == "manage_listings",
-                onClick = { onTabSelected("manage_listings") },
-                icon = { Icon(Icons.Default.HomeWork, contentDescription = null, tint = if (activeProHostTabId == "manage_listings") FreshGreen else OxfordBlue) },
-                colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                    selectedTextColor = OxfordBlue,
-                    unselectedTextColor = CoolGray
-                )
+            Text(
+                text = "PRO HOST",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = FreshGreen,
+                modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
             )
-            Spacer(modifier = Modifier.height(Spacing.xs))
-            NavigationDrawerItem(
-                label = { Text("Renting Requests", fontWeight = FontWeight.Bold) },
-                selected = activeProHostTabId == "owner_requests",
-                onClick = { onTabSelected("owner_requests") },
-                icon = {
-                    DrawerBadgedIcon(
-                        icon = Icons.Default.Inbox,
-                        tint = if (activeProHostTabId == "owner_requests") FreshGreen else OxfordBlue,
-                        showDot = pendingRequestsCount > 0
-                    )
-                },
-                colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                    selectedTextColor = OxfordBlue,
-                    unselectedTextColor = CoolGray
-                )
-            )
-            Spacer(modifier = Modifier.height(Spacing.xs))
-            NavigationDrawerItem(
-                label = { Text("Renting Progress", fontWeight = FontWeight.Bold) },
-                selected = activeProHostTabId == "owner_progress",
-                onClick = { onTabSelected("owner_progress") },
-                icon = { Icon(Icons.Default.Schedule, contentDescription = null, tint = if (activeProHostTabId == "owner_progress") FreshGreen else OxfordBlue) },
-                colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                    selectedTextColor = OxfordBlue,
-                    unselectedTextColor = CoolGray
-                )
-            )
-            Spacer(modifier = Modifier.height(Spacing.xs))
+
             NavigationDrawerItem(
                 label = { Text("Financial Stats & Yields", fontWeight = FontWeight.Bold) },
                 selected = activeProHostTabId == "stats",
@@ -163,6 +121,18 @@ fun SpecialistDrawerContent(
                 selected = activeProHostTabId == "owner_subscriptions",
                 onClick = { onTabSelected("owner_subscriptions") },
                 icon = { Icon(Icons.Default.Layers, contentDescription = null, tint = if (activeProHostTabId == "owner_subscriptions") FreshGreen else OxfordBlue) },
+                colors = NavigationDrawerItemDefaults.colors(
+                    selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
+                    selectedTextColor = OxfordBlue,
+                    unselectedTextColor = CoolGray
+                )
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            NavigationDrawerItem(
+                label = { Text("Whish Money Transactions", fontWeight = FontWeight.Bold) },
+                selected = false,
+                onClick = { onDrawerAction("owner_whish") },
+                icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = OxfordBlue) },
                 colors = NavigationDrawerItemDefaults.colors(
                     selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
                     selectedTextColor = OxfordBlue,
@@ -221,39 +191,12 @@ fun SpecialistDrawerContent(
         }
 
         if (isProHost) {
-            Spacer(modifier = Modifier.height(Spacing.xs))
             NavigationDrawerItem(
                 label = { Text("Explore Workspaces", fontWeight = FontWeight.SemiBold) },
-                selected = false,
+                selected = false, // Since it's not a tab for ProHost, it acts as an action
                 onClick = { onTabSelected("search_map") },
                 icon = { Icon(Icons.Default.TravelExplore, contentDescription = null, tint = OxfordBlue) }
             )
-            // Removed "My Bookings" for PRO_HOST because it routes to pro_rentals (Specialist booking flows),
-            // which PRO_HOST users should not be using. Their bookings are handled under "owner_requests".
-        }
-
-        if (isProHost) {
-            HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
-
-            Text(
-                text = "HOST FINANCE & RESOURCES",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = FreshGreen,
-                modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-            )
-
-            NavigationDrawerItem(
-                label = { Text("Whish Money Transactions", fontWeight = FontWeight.SemiBold) },
-                selected = false,
-                onClick = { onDrawerAction("owner_whish") },
-                icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = OxfordBlue) }
-            )
-            // "Owner Package Tiers & Governance" used to duplicate this same section's
-            // own "Subscription & Packages" item above (same onTabSelected("owner_subscriptions")
-            // destination) with a second, stale copy of the tier pricing — hardcoded
-            // "$49/mo"/"$120/mo" figures that didn't even track the real admin-configurable
-            // pricing the actual Subscription & Packages screen shows. Removed outright.
         }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)

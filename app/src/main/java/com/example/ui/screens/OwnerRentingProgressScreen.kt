@@ -26,7 +26,8 @@ import com.example.ui.viewmodel.ProHostViewModel
 
 @Composable
 fun OwnerRentingProgressScreen(
-    viewModel: ProHostViewModel
+    viewModel: ProHostViewModel,
+    onOpenRequests: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
@@ -91,7 +92,8 @@ fun OwnerRentingProgressScreen(
         },
         onMarkPaid = { booking ->
             viewModel.acknowledgePayment(booking.id, asHost = true, context)
-        }
+        },
+        onOpenRequests = onOpenRequests
     )
 }
 
@@ -106,6 +108,7 @@ fun OwnerRentingProgressScreenContent(
     onSendPaymentReminder: (BookingRequest) -> Unit,
     onCancelAcceptedBooking: (BookingRequest) -> Unit = {},
     onMarkPaid: (BookingRequest) -> Unit = {},
+    onOpenRequests: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // Generate Dynamic Reminders & Alerts
@@ -167,15 +170,31 @@ fun OwnerRentingProgressScreenContent(
                     Row(
                         modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Icon(Icons.Default.EventAvailable, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                        Text(
-                            text = "${activeBookings.size} Active Leases",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.EventAvailable, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                            Text(
+                                text = "${activeBookings.size} Active Leases",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+
+                        Button(
+                            onClick = onOpenRequests,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            shape = MaterialTheme.shapes.small,
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Default.Inbox, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text("View Requests", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }

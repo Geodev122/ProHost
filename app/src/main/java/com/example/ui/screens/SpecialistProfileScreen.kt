@@ -410,11 +410,10 @@ fun SpecialistProfileScreen(
             // =========================================================================
             // 4. SPECIALIST PERFORMANCE — the 3 stat boxes formerly pinned to the top
             // of My Bookings (Active Leases / This Month Spent / Pending Host Reply),
-            // moved here per the user's request. Shown for every SPECIALIST; a
-            // PRO_HOST who also books space elsewhere as a specialist sees this
-            // section too, below their own Host Performance section above.
+            // moved here per the user's request. Shown ONLY for SPECIALIST now,
+            // ProHost users only see their host metrics above.
             // =========================================================================
-            if (user.role == UserRole.SPECIALIST || user.role == UserRole.PRO_HOST) {
+            if (user.role == UserRole.SPECIALIST) {
                 val allBookingRequests by viewModel.bookingRequests.collectAsState()
                 // Same 3-condition + ADMIN-passthrough filter MyBookingsScreen used for
                 // this same data, so the numbers stay consistent between screens.
