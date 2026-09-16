@@ -562,7 +562,7 @@ class ProHostViewModel(
 
         try {
             val encoded = URLEncoder.encode(rawMessage, "UTF-8")
-            val cleanPhone = space.ownerPhone.replace("+", "").replace(" ", "").replace("-", "")
+            val cleanPhone = formatWhatsAppNumber(space.ownerPhone)
             val url = "https://wa.me/$cleanPhone?text=$encoded"
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             context.startActivity(intent)
@@ -592,7 +592,7 @@ class ProHostViewModel(
 
         try {
             val encoded = URLEncoder.encode(rawMessage, "UTF-8")
-            val cleanPhone = request.practitionerPhone.replace("+", "").replace(" ", "").replace("-", "")
+            val cleanPhone = formatWhatsAppNumber(request.practitionerPhone)
             val url = "https://wa.me/$cleanPhone?text=$encoded"
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             context.startActivity(intent)
@@ -604,6 +604,24 @@ class ProHostViewModel(
         } catch (e: Exception) {
             Toast.makeText(context, "Could not launch WhatsApp.", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun formatWhatsAppNumber(raw: String): String {
+        val digits = raw.filter { it.isDigit() }
+        if (digits.startsWith("961") && digits.length >= 11) {
+            return digits
+        }
+        if (digits.startsWith("00961") && digits.length >= 13) {
+            return digits.removePrefix("00")
+        }
+        if (digits.startsWith("0") && digits.length > 1) {
+            val trimmed = digits.dropWhile { it == '0' }
+            return "961$trimmed"
+        }
+        if (digits.length in 7..8) {
+            return "961$digits"
+        }
+        return digits.ifBlank { "9613000000" }
     }
 
     // --- In-App Rental Request Engine ---
