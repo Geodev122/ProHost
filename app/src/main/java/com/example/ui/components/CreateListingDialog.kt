@@ -1267,6 +1267,7 @@ fun CreateListingDialog(
                 // null (falling back to buildListing()'s own jittered-governorate-center
                 // default) whenever a pin already exists or there's nothing to geocode —
                 // matches ListingLocationMapPicker.resolveAndEmit()'s exact pattern.
+                @Suppress("DEPRECATION")
                 suspend fun resolveFallbackGeocode(): LatLng? {
                     if (pickedLatLng != null) return null
                     if (streetAddress.isBlank() && district.isBlank()) return null

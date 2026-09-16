@@ -673,6 +673,7 @@ data class BookingRequest(
     companion object {
         const val COLLECTION_PATH = "booking_requests"
 
+        @Suppress("UNCHECKED_CAST")
         fun fromFirestoreMap(docId: String, data: Map<String, Any?>): BookingRequest {
             val formulaMap = data["formula"] as? Map<String, Any?> ?: emptyMap()
             val formulaTypeStr = formulaMap["type"] as? String ?: RentalFormulaType.FULL_MONTH.name

@@ -78,6 +78,7 @@ class AuthViewModel(
      * first got a token (e.g. it was assigned before this account ever signed in).
      * Best effort: a failure here shouldn't block sign-in.
      */
+    @Suppress("DEPRECATION")
     private fun registerFcmTokenForCurrentUser(uid: String) {
         viewModelScope.launch {
             runCatching {

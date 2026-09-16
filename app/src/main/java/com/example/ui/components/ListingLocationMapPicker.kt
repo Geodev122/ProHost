@@ -93,6 +93,7 @@ fun ListingLocationMapPicker(
         }
     }
 
+    @Suppress("DEPRECATION")
     suspend fun resolveLocationAndConfirm(latLng: LatLng) {
         withContext(Dispatchers.IO) {
             try {
