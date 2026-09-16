@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
@@ -1088,19 +1089,16 @@ fun ModernCard(
 @Composable
 fun WorkspaceCard(
     title: String,
-    specialization: String,
+    listingType: String,
     location: String,
     rateUsd: Double,
+    rateUnit: String = "/mo",
     modifier: Modifier = Modifier,
     imageUrl: String? = null,
-    scheduleSummary: String? = null,
-    doctorName: String? = null,
-    practiceType: String? = null,
-    isVerified: Boolean = true,
-    bookedDoctorCount: Int = 0,
-    facilities: List<String> = emptyList(),
-    elevation: Dp = 3.dp,
-    shape: CornerBasedShape = MaterialTheme.shapes.large,
+    operatingHours: String? = null,
+    totalDaysOpen: String? = null,
+    formulaTypes: List<String> = emptyList(),
+    isVerified: Boolean = false,
     isSaved: Boolean = false,
     onToggleSave: (() -> Unit)? = null,
     onClick: () -> Unit,
@@ -1109,18 +1107,19 @@ fun WorkspaceCard(
     ModernCard(
         modifier = modifier,
         onClick = onClick,
-        shape = shape,
-        contentPadding = PaddingValues(16.dp),
-        elevation = elevation
+        shape = MaterialTheme.shapes.large,
+        contentPadding = PaddingValues(14.dp),
+        elevation = 3.dp
     ) {
-        if (imageUrl != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(140.dp)
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
+        // Boxed cover photo with favorite overlay icon & listing type tag
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(130.dp)
+                .clip(MaterialTheme.shapes.medium)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            if (imageUrl != null) {
                 AsyncImage(
                     model = imageUrl,
                     contentDescription = title,
@@ -1128,198 +1127,203 @@ fun WorkspaceCard(
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop
                 )
             }
-            Spacer(modifier = Modifier.height(Spacing.md))
-        }
-
-        // Header: Price (the specialty tag that used to sit here was removed — a
-        // workspace listing isn't tied to one specialty, and the tag read as a
-        // filter/category label that didn't match how Explore actually works)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (onToggleSave != null) {
-                IconButton(onClick = onToggleSave, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = if (isSaved) "Remove from Saved" else "Save Workspace",
-                        tint = if (isSaved) CrimsonRed else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
+            if (isVerified) {
+                Surface(
+                    color = LebaneseCedarContainer,
+                    shape = MaterialTheme.shapes.small,
+                    border = BorderStroke(1.dp, LebaneseCedarGreen.copy(alpha = 0.5f)),
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Verified,
+                            contentDescription = null,
+                            tint = LebaneseCedarGreen,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Text(
+                            text = "Verified",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LebaneseCedarGreen
+                        )
+                    }
                 }
-            } else {
-                Spacer(modifier = Modifier.width(1.dp))
             }
-            ProCurrencyTag(usdAmount = rateUsd)
+            if (onToggleSave != null) {
+                Surface(
+                    onClick = onToggleSave,
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(32.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = if (isSaved) "Remove from Saved" else "Save Workspace",
+                            tint = if (isSaved) CrimsonRed else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f),
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(8.dp)
+            ) {
+                Text(
+                    text = listingType,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Title
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        // Title & Price row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).padding(end = 8.dp)
+            )
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = "$${rateUsd.toInt()}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = rateUnit,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
 
-        Spacer(modifier = Modifier.height(Spacing.xs))
+        Spacer(modifier = Modifier.height(4.dp))
 
-        // Location with pin
+        // Location
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Default.Place,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(14.dp)
             )
-            Spacer(modifier = Modifier.width(Spacing.xs))
+            Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = location,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
 
-        // Schedule & Occupancy Subtitle
-        if (scheduleSummary != null || bookedDoctorCount > 0) {
-            Spacer(modifier = Modifier.height(Spacing.sm))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (scheduleSummary != null) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AccessTime,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text(
-                                text = scheduleSummary,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-                    }
-                }
+        Spacer(modifier = Modifier.height(8.dp))
 
-                if (bookedDoctorCount > 0) {
-                    Surface(
-                        color = StatusInfoContainer,
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = null,
-                                tint = StatusOnInfoContainer,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text(
-                                text = "$bookedDoctorCount Active Member(s)",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = StatusOnInfoContainer
-                            )
-                        }
-                    }
+        // Operating hours & Days open badge
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (operatingHours != null) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.extraSmall
+                ) {
+                    Text(
+                        text = "🕒 $operatingHours",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            if (totalDaysOpen != null) {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+                    shape = MaterialTheme.shapes.extraSmall
+                ) {
+                    Text(
+                        text = "📅 $totalDaysOpen",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
                 }
             }
         }
 
-        // Highlighted Facilities Chips
-        if (facilities.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(10.dp))
+        // Configured Formula Types chips
+        if (formulaTypes.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(6.dp))
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                facilities.take(3).forEach { facility ->
+                formulaTypes.take(3).forEach { formula ->
                     Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = MaterialTheme.shapes.small
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                        shape = MaterialTheme.shapes.extraSmall
                     ) {
                         Text(
-                            text = facility,
+                            text = formula,
                             style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontSize = 9.sp,
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
             }
         }
 
-        // Footer: Owner details & Quick WhatsApp inquiry
-        if (doctorName != null || onWhatsAppClick != null) {
-            Spacer(modifier = Modifier.height(Spacing.md))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        // Footer: WhatsApp button
+        if (onWhatsAppClick != null) {
             Spacer(modifier = Modifier.height(10.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
+            Button(
+                onClick = onWhatsAppClick,
+                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                shape = MaterialTheme.shapes.small,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                contentPadding = PaddingValues(vertical = 6.dp)
             ) {
-                if (doctorName != null) {
-                    Row(
-                        modifier = Modifier.weight(1f, fill = false),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        ProMemberAvatar(name = doctorName, isVerified = isVerified, size = 34.dp)
-                        Spacer(modifier = Modifier.width(Spacing.sm))
-                        Column(modifier = Modifier.weight(1f, fill = false)) {
-                            Text(
-                                text = doctorName,
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            if (practiceType != null) {
-                                Text(
-                                    text = practiceType,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                    }
-                }
-
-                if (onWhatsAppClick != null) {
-                    CustomButton(
-                        text = "WhatsApp",
-                        onClick = onWhatsAppClick,
-                        variant = CustomButtonVariant.WHATSAPP,
-                        icon = Icons.AutoMirrored.Filled.Chat,
-                        shape = MaterialTheme.shapes.medium,
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                    )
-                }
+                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("WhatsApp Inquiry", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -1574,7 +1578,7 @@ fun NetworkSyncResilienceBanner(
 @Composable
 fun ProHostBrandLogo(
     size: Dp = 38.dp,
-    modifier: Modifier = Modifier
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
     Image(
         painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
@@ -1591,7 +1595,7 @@ fun ProHostBrandLogo(
 fun ProHostCedarBadge(
     text: String = "Lebanon Verified",
     isCompact: Boolean = false,
-    modifier: Modifier = Modifier
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
     Surface(
         color = LebaneseCedarContainer.copy(alpha = 0.85f),

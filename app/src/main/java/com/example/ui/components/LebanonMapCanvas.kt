@@ -15,6 +15,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -25,15 +26,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.data.model.SpaceListing
 import com.example.data.model.SpaceType
-import com.example.ui.theme.Spacing
+import com.example.ui.theme.*
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
@@ -321,127 +324,105 @@ fun LebanonMapCanvas(
                 .padding(Spacing.lg)
         ) {
             activePinSpace?.let { space ->
+                val minPrice = space.baseMonthlyRateUsd
+                val minUnit = "/mo"
+
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(12.dp, MaterialTheme.shapes.large)
+                        .shadow(8.dp, MaterialTheme.shapes.medium)
                         .clickable { onNavigateToDetails(space) },
-                    shape = MaterialTheme.shapes.large,
+                    shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(Spacing.lg)
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        // Small cover pic thumbnail
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(MaterialTheme.shapes.small)
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                         ) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                Text(
-                                    text = space.spaceType.displayName,
-                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "$${space.baseMonthlyRateUsd.toInt()}",
-                                    fontSize = MaterialTheme.typography.headlineSmall.fontSize,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = " /mo",
-                                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                            if (space.imageUrls.isNotEmpty()) {
+                                coil.compose.AsyncImage(
+                                    model = space.imageUrls.first(),
+                                    contentDescription = space.title,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(Spacing.sm))
-
-                        userLocation?.let { uLoc ->
-                            val dist = calculateDistanceKm(uLoc.latitude, uLoc.longitude, space.lat, space.lng)
-                            Surface(
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                shape = MaterialTheme.shapes.small,
-                                modifier = Modifier.padding(bottom = 6.dp)
+                        // Details: Listing Type, Title, Min Price
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "📍 Near You (${String.format(Locale.US, "%.1f", dist)} km away)",
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                                )
-                            }
-                        }
-
-                        Text(
-                            text = space.title,
-                            fontSize = MaterialTheme.typography.bodyLarge.fontSize,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1
-                        )
-
-                        Text(
-                            text = "📍 ${space.district}, ${space.governorate.displayName}",
-                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            space.essentialFacilities.take(2).forEach { facility ->
-                                Surface(
-                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = MaterialTheme.shapes.small
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        shape = MaterialTheme.shapes.extraSmall
+                                    ) {
+                                        Text(
+                                            text = space.spaceType.displayName,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                    if (space.isVerified) {
+                                        Icon(
+                                            imageVector = Icons.Default.Verified,
+                                            contentDescription = "Verified",
+                                            tint = LebaneseCedarGreen,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                }
+                                Row(verticalAlignment = Alignment.Bottom) {
                                     Text(
-                                        text = facility,
-                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                        text = "$${minPrice.toInt()}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        text = minUnit,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontSize = 10.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = space.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
 
-                        Spacer(modifier = Modifier.height(Spacing.md))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        // Check / View Button
+                        Button(
+                            onClick = { onNavigateToDetails(space) },
+                            shape = MaterialTheme.shapes.small,
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                         ) {
-                            OutlinedButton(
-                                onClick = { activePinSpace = null },
-                                modifier = Modifier.weight(1f),
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                Text("Close")
-                            }
-
-                            Button(
-                                onClick = { onNavigateToDetails(space) },
-                                modifier = Modifier.weight(2f),
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("View Space")
-                            }
+                            Text("Check", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

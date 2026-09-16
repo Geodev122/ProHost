@@ -52,30 +52,15 @@ class DiscoveryViewModel(
 
             val matchesGov = filter.selectedGovernorate == null || space.governorate == filter.selectedGovernorate
             val matchesType = space.matchesCategory(filter.selectedCategoryId)
-            // space.rentalFormulas is a legacy, whole-space-only synthesis (empty for
-            // any subdivided listing — see CreateListingDialog's buildListing) — the
-            // real, currently-written pricing strategy lives on space.pricing and on
-            // each subdivision's own pricing, so match against those directly instead.
             val matchesFormula = filter.selectedStrategyType == null ||
                     space.pricing.strategyType == filter.selectedStrategyType ||
                     space.subdivisions.any { it.pricing.strategyType == filter.selectedStrategyType }
-            val matchesFacility = filter.selectedFacility == null || space.essentialFacilities.contains(filter.selectedFacility)
-            val matchesEquip = filter.selectedEquipmentCategory == null || space.equipment.any { it.category == filter.selectedEquipmentCategory }
-            val matchesPrice = space.baseMonthlyRateUsd <= filter.maxPriceUsd
             val matchesVerified = !filter.onlyVerified || space.isVerified
-            val matchesSub = !filter.onlyActiveSubscribed || space.isActiveSubscription
             val matchesSaved = !filter.onlySaved || savedIds.contains(space.id)
-            // Explore/Discovery is the same shared tab for both roles — "a Pro Host
-            // is still a Specialist underneath" — so repository.spaces (which the
-            // owner-read carve-out in firestore.rules lets include their OWN
-            // Draft/Paused listings) must be narrowed here to real, live inventory:
-            // the same ACTIVE + not-owner-suspended bar public read access already
-            // enforces for every other viewer. Without this, a Pro Host browsing
-            // their own Explore tab sees their own unpublished listings mixed in
-            // among real ones, with no badge distinguishing them.
+
             val isLiveListing = space.status == ListingStatus.ACTIVE && !space.isOwnerSuspended
 
-            isLiveListing && matchesQuery && matchesGov && matchesType && matchesFormula && matchesFacility && matchesEquip && matchesPrice && matchesVerified && matchesSub && matchesSaved
+            isLiveListing && matchesQuery && matchesGov && matchesType && matchesFormula && matchesVerified && matchesSaved
         }
 
         DiscoveryUiState(
@@ -104,33 +89,12 @@ class DiscoveryViewModel(
         _filterState.update { it.copy(selectedStrategyType = strategy) }
     }
 
-    fun setFacilityFilter(facility: String?) {
-        _filterState.update { it.copy(selectedFacility = facility) }
-    }
-
-    fun setEquipmentCategoryFilter(category: EquipmentCategory?) {
-        _filterState.update { it.copy(selectedEquipmentCategory = category) }
-    }
-
-    fun setMaxPrice(price: Double) {
-        _filterState.update { it.copy(maxPriceUsd = price) }
-    }
-
     fun toggleVerifiedOnly(verifiedOnly: Boolean) {
         _filterState.update { it.copy(onlyVerified = verifiedOnly) }
     }
 
     fun toggleSavedOnly(savedOnly: Boolean) {
         _filterState.update { it.copy(onlySaved = savedOnly) }
-    }
-
-    // Was hidden entirely — DiscoveryFilterState.onlyActiveSubscribed defaults
-    // true and silently excluded any listing whose host's subscription had
-    // lapsed, with no UI anywhere showing this filtering was happening or
-    // letting a specialist turn it off. Same real-time toggle pattern as
-    // toggleVerifiedOnly/toggleSavedOnly above.
-    fun toggleActiveSubscribedOnly(activeOnly: Boolean) {
-        _filterState.update { it.copy(onlyActiveSubscribed = activeOnly) }
     }
 
     fun toggleSavedSpace(spaceId: String) {

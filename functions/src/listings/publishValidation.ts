@@ -124,10 +124,6 @@ function subdivisionHasRealPrice(sub: SubdivisionDoc): boolean {
 export function validateListingForPublish(listing: WorkspaceListingDoc): string[] {
   const problems: string[] = [];
 
-  if (!listing.ownershipProofUrl || listing.ownershipProofUrl.trim().length === 0) {
-    problems.push("Missing ownership or re-rental authorization document.");
-  }
-
   if (!listing.lat || !listing.lng) {
     problems.push("Missing pinned map location.");
   }

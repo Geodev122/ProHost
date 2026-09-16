@@ -37,17 +37,7 @@ import com.example.ui.theme.PremiumBackgroundGradient
 import com.example.ui.theme.Spacing
 
 /**
- * ViewModel-connected wrapper for DiscoveryScreen — search/filter/selection state
- * now lives on the dedicated [DiscoveryViewModel] (Phase 4 ViewModel split), not
- * the shared [ProHostViewModel] god object. [viewModel] (the shared instance) is
- * still passed through for the one genuinely cross-cutting action this screen
- * needs — launching a WhatsApp inquiry, which also writes to the shared audit log.
- *
- * DiscoveryViewModel already existed in the repo before this change but was never
- * actually instantiated anywhere — ProHostViewModel had grown its own,
- * independently-maintained duplicate of the exact same search/filter logic
- * (SearchFilterState/filteredSpaces/updateSearchQuery/etc., now removed from
- * ProHostViewModel since this screen was their only real caller).
+ * ViewModel-connected wrapper for DiscoveryScreen.
  */
 @Composable
 fun DiscoveryScreen(
@@ -55,15 +45,9 @@ fun DiscoveryScreen(
     onSelectSpace: (SpaceListing) -> Unit,
     discoveryViewModel: DiscoveryViewModel = viewModel()
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val uiState by discoveryViewModel.uiState.collectAsState()
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
-    val availableFacilities = remember(architectureSchema) {
-        architectureSchema.amenities.filter { it.isEnabled }.map { it.name }
-            .ifEmpty { FacilityCatalog.standard }
-    }
-    // Same catalog + empty-schema fallback CreateListingDialog's picker uses, so
-    // what a host could publish under and what a specialist can filter by agree.
     val categoryOptions = remember(architectureSchema) {
         architectureSchema.spaceTypes.filter { it.isEnabled }.ifEmpty {
             SpaceType.values().map { SchemaItem(id = it.name, name = it.displayName, category = "SPACE_TYPE") }
@@ -77,13 +61,8 @@ fun DiscoveryScreen(
         categoryOptions = categoryOptions,
         selectedCategoryId = uiState.filterState.selectedCategoryId,
         selectedStrategyType = uiState.filterState.selectedStrategyType,
-        availableFacilities = availableFacilities,
-        selectedFacility = uiState.filterState.selectedFacility,
-        selectedEquipmentCategory = uiState.filterState.selectedEquipmentCategory,
-        maxPriceUsd = uiState.filterState.maxPriceUsd,
         onlyVerified = uiState.filterState.onlyVerified,
         onlySaved = uiState.filterState.onlySaved,
-        onlyActiveSubscribed = uiState.filterState.onlyActiveSubscribed,
         savedSpaceIds = uiState.savedSpaceIds,
         isMapView = uiState.isMapViewActive,
         showFilterSheet = uiState.isFilterSheetVisible,
@@ -94,12 +73,8 @@ fun DiscoveryScreen(
         onSelectGovernorate = { discoveryViewModel.setGovernorateFilter(it) },
         onSelectCategory = { discoveryViewModel.setCategoryFilter(it) },
         onSelectStrategyType = { discoveryViewModel.setFormulaFilter(it) },
-        onSelectFacility = { discoveryViewModel.setFacilityFilter(it) },
-        onSelectEquipmentCategory = { discoveryViewModel.setEquipmentCategoryFilter(it) },
-        onSetMaxPrice = { discoveryViewModel.setMaxPrice(it) },
         onToggleVerifiedOnly = { discoveryViewModel.toggleVerifiedOnly(it) },
         onToggleSavedOnly = { discoveryViewModel.toggleSavedOnly(it) },
-        onToggleActiveSubscribedOnly = { discoveryViewModel.toggleActiveSubscribedOnly(it) },
         onToggleSavedSpace = { discoveryViewModel.toggleSavedSpace(it) },
         onResetFilters = { discoveryViewModel.resetFilters() },
         onSelectSpace = onSelectSpace,
@@ -118,22 +93,11 @@ fun DiscoveryScreenContent(
     spaces: List<SpaceListing>,
     searchQuery: String,
     selectedGovernorate: Governorate?,
-    // Admin-defined Space Category catalog (enabled SchemaItems, category
-    // "SPACE_TYPE"); defaults to the four legacy types for any caller not yet
-    // passing the live list.
     categoryOptions: List<SchemaItem> = SpaceType.values().map { SchemaItem(id = it.name, name = it.displayName, category = "SPACE_TYPE") },
     selectedCategoryId: String?,
     selectedStrategyType: RentalStrategyType?,
-    selectedFacility: String?,
-    // Admin-managed facility catalog (enabled SchemaItems, category "AMENITY") —
-    // defaults to the old hardcoded FacilityCatalog.standard only so a caller that
-    // hasn't been updated to pass the live list doesn't lose facilities entirely.
-    availableFacilities: List<String> = FacilityCatalog.standard,
-    selectedEquipmentCategory: EquipmentCategory?,
-    maxPriceUsd: Double,
     onlyVerified: Boolean,
     onlySaved: Boolean,
-    onlyActiveSubscribed: Boolean = true,
     savedSpaceIds: List<String>,
     isMapView: Boolean,
     showFilterSheet: Boolean,
@@ -144,12 +108,8 @@ fun DiscoveryScreenContent(
     onSelectGovernorate: (Governorate?) -> Unit,
     onSelectCategory: (String?) -> Unit,
     onSelectStrategyType: (RentalStrategyType?) -> Unit,
-    onSelectFacility: (String?) -> Unit,
-    onSelectEquipmentCategory: (EquipmentCategory?) -> Unit,
-    onSetMaxPrice: (Double) -> Unit,
     onToggleVerifiedOnly: (Boolean) -> Unit,
     onToggleSavedOnly: (Boolean) -> Unit,
-    onToggleActiveSubscribedOnly: (Boolean) -> Unit = {},
     onToggleSavedSpace: (String) -> Unit,
     onResetFilters: () -> Unit,
     onSelectSpace: (SpaceListing) -> Unit,
@@ -229,11 +189,8 @@ fun DiscoveryScreenContent(
                         val hasActiveFilter = selectedGovernorate != null ||
                                 selectedCategoryId != null ||
                                 selectedStrategyType != null ||
-                                selectedFacility != null ||
-                                selectedEquipmentCategory != null ||
                                 onlyVerified ||
-                                onlySaved ||
-                                maxPriceUsd < 1500.0
+                                onlySaved
                         BadgedBox(
                             badge = {
                                 if (hasActiveFilter) {
@@ -262,18 +219,13 @@ fun DiscoveryScreenContent(
         } else {
             // List View
             if (isLoading) {
-                // The first workspace_listings snapshot hasn't arrived yet —
-                // without this, isLoading was hardcoded false and an account
-                // with real matching listings briefly showed "No Workspaces
-                // Found" before the real list streamed in, indistinguishable
-                // from a search that genuinely matched nothing.
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             } else if (spaces.isEmpty()) {
                 ProEmptyState(
                     title = "No Workspaces Found",
-                    description = "Try adjusting your search query, governorate, or pricing filter.",
+                    description = "Try adjusting your search query, governorate, or category filter.",
                     icon = Icons.Default.SearchOff,
                     actionButtonText = "Reset All Filters",
                     onActionClick = onResetFilters
@@ -318,12 +270,6 @@ fun DiscoveryScreenContent(
                                         .padding(Spacing.lg),
                                     verticalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        ProHostCedarBadge(text = "Lebanon Verified Network", isCompact = true)
-                                    }
                                     Text(
                                         text = "Specialist Workspace Exchange",
                                         style = MaterialTheme.typography.titleLarge,
@@ -353,7 +299,6 @@ fun DiscoveryScreenContent(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            ProHostCedarBadge(text = "Verified Listings", isCompact = false)
                         }
                     }
 
@@ -422,32 +367,6 @@ fun DiscoveryScreenContent(
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
-                Text("Facility", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(availableFacilities) { facility ->
-                        FilterChip(
-                            selected = selectedFacility == facility,
-                            onClick = { onSelectFacility(if (selectedFacility == facility) null else facility) },
-                            label = { Text(facility, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.md))
-
-                Text("Equipment Category", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(EquipmentCategory.entries) { category ->
-                        FilterChip(
-                            selected = selectedEquipmentCategory == category,
-                            onClick = { onSelectEquipmentCategory(if (selectedEquipmentCategory == category) null else category) },
-                            label = { Text(category.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.md))
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -467,42 +386,6 @@ fun DiscoveryScreenContent(
                     Text("Saved workspaces only", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                     Switch(checked = onlySaved, onCheckedChange = onToggleSavedOnly)
                 }
-
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                // This filter used to apply unconditionally with no UI at all —
-                // any listing whose host's subscription had lapsed was silently
-                // excluded from every search, with no way to see it or know why
-                // it was missing.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Active-subscription hosts only", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                        Text(
-                            "Hide listings whose host's ProHost subscription has lapsed",
-                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(checked = onlyActiveSubscribed, onCheckedChange = onToggleActiveSubscribedOnly)
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.md))
-
-                Text(
-                    text = "Maximum Monthly Rate: $${maxPriceUsd.toInt()} USD",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = MaterialTheme.typography.bodySmall.fontSize
-                )
-                Slider(
-                    value = maxPriceUsd.toFloat(),
-                    onValueChange = { onSetMaxPrice(it.toDouble()) },
-                    valueRange = 100f..1500f,
-                    steps = 14
-                )
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
@@ -528,22 +411,26 @@ fun SpaceListingCard(
     isSaved: Boolean = false,
     onToggleSave: (() -> Unit)? = null
 ) {
+    val formulaTypes = mutableSetOf<String>()
+    formulaTypes.add(space.pricing.strategyType.displayName)
+    space.subdivisions.forEach { sub ->
+        formulaTypes.add(sub.pricing.strategyType.displayName)
+    }
+
     WorkspaceCard(
         title = space.title,
-        specialization = space.spaceType.displayName,
+        listingType = space.spaceType.displayName,
         location = "${space.district}, ${space.governorate.displayName}",
         rateUsd = space.baseMonthlyRateUsd,
+        rateUnit = "/mo",
         imageUrl = space.imageUrls.firstOrNull(),
-        scheduleSummary = "${space.schedule.openingHour} - ${space.schedule.closingHour} (${space.schedule.operatingDays.size}d)",
-        doctorName = space.ownerName,
-        practiceType = if (space.isShared) "Shared Space" else "Private Space",
+        operatingHours = "${space.schedule.openingHour} - ${space.schedule.closingHour}",
+        totalDaysOpen = "${space.schedule.operatingDays.size} days/wk",
+        formulaTypes = formulaTypes.toList(),
         isVerified = space.isVerified,
-        bookedDoctorCount = space.residentPractitioners.size,
-        facilities = space.essentialFacilities,
         isSaved = isSaved,
         onToggleSave = onToggleSave,
         onClick = onClick,
         onWhatsAppClick = onQuickWhatsApp
     )
 }
-

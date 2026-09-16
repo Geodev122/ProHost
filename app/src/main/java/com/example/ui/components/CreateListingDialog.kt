@@ -170,6 +170,7 @@ fun CreateListingDialog(
     // Editing" -> "Publish" all write to the same document instead of forking a
     // second listing.
     val listingId = remember { existingDraft?.id ?: ("SPC-LB-" + UUID.randomUUID().toString().take(6).uppercase()) }
+    var hasUserTyped by rememberSaveable { mutableStateOf(existingDraft != null) }
     // Drives the small "Draft auto-saved" caption in the header — set once the
     // auto-save LaunchedEffect below has actually fired at least once.
     var lastAutoSavedAtMillis by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -490,11 +491,16 @@ fun CreateListingDialog(
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
+                val scrollState = rememberScrollState()
+                LaunchedEffect(currentStep) {
+                    scrollState.scrollTo(0)
+                }
+
                 // Scrollable Content per step
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .verticalScroll(rememberScrollState())
+                        .verticalScroll(scrollState)
                 ) {
                     when (currentStep) {
                         0 -> {
@@ -503,7 +509,7 @@ fun CreateListingDialog(
                                 Text("Space Identification", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
                                 InputField(
                                     value = title,
-                                    onValueChange = { title = it },
+                                    onValueChange = { title = it; hasUserTyped = true },
                                     label = "Space Brand Name (e.g. Achrafieh Executive Suite)",
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true
@@ -578,7 +584,7 @@ fun CreateListingDialog(
 
                                 InputField(
                                     value = district,
-                                    onValueChange = { district = it },
+                                    onValueChange = { district = it; hasUserTyped = true },
                                     label = "District / Neighborhood (e.g., Hamra / Sassine)",
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true
@@ -1291,7 +1297,7 @@ fun CreateListingDialog(
                         .debounce(3000)
                         .distinctUntilChanged()
                         .collect { draft ->
-                            if (draft.title.isNotBlank() || draft.district.isNotBlank()) {
+                            if (hasUserTyped && (draft.title.isNotBlank() || draft.district.isNotBlank())) {
                                 onAutoSaveDraft(draft)
                                 lastAutoSavedAtMillis = System.currentTimeMillis()
                             }

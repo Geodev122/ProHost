@@ -651,29 +651,43 @@ fun OwnerHubScreenContent(
                         // static confirmation or a tappable entry point, never a badge
                         // shown unconditionally.
                         Surface(
-                            color = if (space.isVerified) StatusSuccessContainer else MaterialTheme.colorScheme.surfaceVariant,
+                            color = if (space.isVerified) StatusSuccessContainer else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
                             shape = MaterialTheme.shapes.small,
+                            border = if (space.isVerified) null else BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .let { if (space.isVerified) it else it.clickable { onOpenListingVerification(space) } }
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    if (space.isVerified) Icons.Default.Verified else Icons.Default.GppMaybe,
-                                    contentDescription = null,
-                                    tint = if (space.isVerified) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = if (space.isVerified) "Listing Verified" else "Not Listing Verified — tap to earn this badge (optional)",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (space.isVerified) StatusOnSuccessContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        if (space.isVerified) Icons.Default.Verified else Icons.Default.VerifiedUser,
+                                        contentDescription = null,
+                                        tint = if (space.isVerified) StatusSuccess else MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = if (space.isVerified) "Verified Listing" else "Earn Verified Badge",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (space.isVerified) StatusOnSuccessContainer else MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                                if (!space.isVerified) {
+                                    Text(
+                                        text = "Tap to Submit Proof ➔",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                             }
                         }
 
