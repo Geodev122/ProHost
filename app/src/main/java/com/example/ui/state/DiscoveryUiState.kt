@@ -21,7 +21,7 @@ data class DiscoveryFilterState(
     val selectedEquipmentCategory: EquipmentCategory? = null,
     val maxPriceUsd: Double = 1500.0,
     val onlyVerified: Boolean = false,
-    val onlyActiveSubscribed: Boolean = true,
+    val onlyActiveSubscribed: Boolean = false,
     val onlySaved: Boolean = false
 )
 

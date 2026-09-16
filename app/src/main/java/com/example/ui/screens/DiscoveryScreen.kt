@@ -251,7 +251,7 @@ fun DiscoveryScreenContent(
 
         // Body Content: Map or List
         if (isMapView) {
-            Box(modifier = Modifier.fillMaxSize().clipToBounds()) {
+            Box(modifier = Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
                 LebanonMapCanvas(
                     spaces = spaces,
                     onSpaceSelected = { space -> if (space != null) onSelectSpace(space) },
