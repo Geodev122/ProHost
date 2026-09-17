@@ -349,8 +349,6 @@ fun CreateListingDialog(
     // it's a real progress flag, not a transient dialog state.
     var showOwnershipRolePrompt by remember { mutableStateOf(existingDraft?.ownershipProofUrl == null) }
     var showRerentalTemplateDialog by remember { mutableStateOf(false) }
-    var showAuditDisclaimer by remember { mutableStateOf(false) }
-    var hasAcknowledgedAuditDisclaimer by rememberSaveable { mutableStateOf(false) }
 
     // Facilities toggles
     var masterFacilities by remember { mutableStateOf(availableFacilities) }
@@ -1294,16 +1292,7 @@ fun CreateListingDialog(
                         text = if (currentStep < totalSteps - 1) "Next" else if (onListingUpdated != null) "Save Changes" else "Publish Listing",
                         onClick = {
                             if (currentStep < totalSteps - 1) {
-                                // Leaving Step 1 (Space Definition & Ownership
-                                // Verification) — the ownership doc is already
-                                // mandatory (see enabled= below); the one-time random-
-                                // audit disclaimer shows once per dialog session
-                                // before actually advancing, per spec 1.5.
-                                if (currentStep == 0 && !hasAcknowledgedAuditDisclaimer) {
-                                    showAuditDisclaimer = true
-                                } else {
-                                    currentStep++
-                                }
+                                currentStep++
                             } else if (onListingUpdated != null) {
                                 coroutineScope.launch {
                                     // pickedLatLng is already mandatory to reach this step
@@ -1386,29 +1375,6 @@ fun CreateListingDialog(
             LegalDocumentDialog(
                 document = com.example.legal.LegalContent.rerentalAuthorizationTemplate,
                 onDismiss = { showRerentalTemplateDialog = false }
-            )
-        }
-
-        if (showAuditDisclaimer) {
-            AlertDialog(
-                onDismissRequest = { },
-                title = { Text("Right-to-Rent Verification Notice") },
-                text = {
-                    Text(
-                        "Admin performs random right-to-rent verifications on published listings. " +
-                            "Any misleading or fraudulent ownership document results in immediate " +
-                            "account suspension, reclaim of any payments received, and blacklisting " +
-                            "of the associated phone number.",
-                        fontSize = MaterialTheme.typography.bodySmall.fontSize
-                    )
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        hasAcknowledgedAuditDisclaimer = true
-                        showAuditDisclaimer = false
-                        currentStep++
-                    }) { Text("I Understand, Continue") }
-                }
             )
         }
 

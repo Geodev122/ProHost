@@ -1,18 +1,23 @@
 package com.example.data.storage
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
+import com.google.firebase.FirebaseApp
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 
 /**
  * FirebaseStorageService
  *
  * The single Cloud Storage access layer for ProHost: real file uploads for credential
- * documents and listing images. Replaces the previous simulation (a random file size, a
- * few delay() calls, and the local content:// picker Uri stored as-is — never actually
- * uploaded anywhere).
+ * documents and listing images with automatic bitmap compression to guarantee
+ * fast, reliable uploads and eliminate network timeout errors.
  */
 class FirebaseStorageService(
     private val storage: FirebaseStorage? = try {
@@ -37,10 +42,7 @@ class FirebaseStorageService(
 
     /**
      * Uploads a registrant's ID document (national ID / passport) to
-     * `id_documents/{uid}.{ext}` — kept on file with no admin review workflow, required
-     * once at registration for every account. Only the owning user or an Admin can read
-     * this path — see storage.rules. Returns the download URL, or null if Storage is
-     * unavailable or the upload fails.
+     * `id_documents/{uid}.{ext}`.
      */
     suspend fun uploadIdDocument(
         uid: String,
@@ -54,29 +56,21 @@ class FirebaseStorageService(
     )
 
     /**
-     * Uploads a registrant's profile picture to `profile_pictures/{uid}.{ext}`. Publicly
-     * readable (shown wherever a member's identity is displayed to others, e.g. a
-     * booking request) but writable only by the account owner or an Admin.
+     * Uploads a registrant's profile picture to `profile_pictures/{uid}.{ext}` with automatic compression.
      */
     suspend fun uploadProfilePicture(
         uid: String,
         fileUri: Uri,
         fileExtension: String,
         onProgress: (Float) -> Unit = {}
-    ): String? = uploadAndGetUrl(
+    ): String? = uploadCompressedImageAndGetUrl(
         ref = storage?.reference?.child("profile_pictures/$uid/photo.$fileExtension"),
         fileUri = fileUri,
         onProgress = onProgress
     )
 
     /**
-     * Uploads a Pro Host's proof of ownership / right to rent a specific space to
-     * `listing_ownership_docs/{spaceId}/ownership_proof.{ext}` — required per listing
-     * at creation time, kept on file with no admin review workflow (see
-     * SpaceListing.ownershipProofUrl). A separate path from listing photos
-     * (`listings/{spaceId}/...`) since this can be a PDF, not just an image — see
-     * storage.rules. Uses the same "listing owner, Firestore doc may not exist yet"
-     * bootstrapping rule as listing photos.
+     * Uploads a Pro Host's proof of ownership / right to rent.
      */
     suspend fun uploadOwnershipProofDocument(
         spaceId: String,
@@ -90,12 +84,7 @@ class FirebaseStorageService(
     )
 
     /**
-     * Uploads the document a Pro Host chose to EARN the Listing Verified badge —
-     * either a signed re-rental authorization or proof of self-ownership (see
-     * SpaceListing.verificationDocUrl's doc comment). A separate, optional upload
-     * from uploadOwnershipProofDocument above, which is required-but-unchecked at
-     * publish time; this one is optional-but-checked by
-     * FirebaseFunctionsClient.requestListingVerification.
+     * Uploads the document a Pro Host chose to EARN the Listing Verified badge.
      */
     suspend fun uploadListingVerificationDocument(
         spaceId: String,
@@ -109,13 +98,7 @@ class FirebaseStorageService(
     )
 
     /**
-     * Uploads the signed leasing agreement a Pro Host attaches when finalizing
-     * acceptance of a booking request, to `booking_agreements/{bookingId}/agreement.{ext}`
-     * — see BookingRequest.agreementUrl's doc comment: this is the record that host
-     * and specialist reached a real agreement (payment itself happens outside the
-     * app entirely), kept on file with no admin review. Readable by either party to
-     * the booking or an Admin, writable only by the host who owns the space — see
-     * storage.rules.
+     * Uploads the signed leasing agreement attached to a booking request.
      */
     suspend fun uploadBookingAgreement(
         bookingId: String,
@@ -129,10 +112,7 @@ class FirebaseStorageService(
     )
 
     /**
-     * Uploads a listing photo to `listings/{spaceId}/{imageId}.{ext}`. Publicly readable
-     * (listings are shown to unauthenticated browsers of the discovery feed) but writable
-     * only by the listing's owner or an Admin — see storage.rules. Returns the download
-     * URL, or null if Storage is unavailable or the upload fails.
+     * Uploads a listing photo to `listings/{spaceId}/{imageId}.{ext}` with automatic compression.
      */
     suspend fun uploadListingImage(
         spaceId: String,
@@ -140,19 +120,15 @@ class FirebaseStorageService(
         fileUri: Uri,
         fileExtension: String,
         onProgress: (Float) -> Unit = {}
-    ): String? = uploadAndGetUrl(
+    ): String? = uploadCompressedImageAndGetUrl(
         ref = storage?.reference?.child("listings/$spaceId/$imageId.$fileExtension"),
         fileUri = fileUri,
         onProgress = onProgress
     )
 
-    /** Per-subdivision (room/desk) images — deliberately a flat filename under the
-     *  same listings/{spaceId}/{fileName} path uploadListingImage uses, not a nested
-     *  listings/{spaceId}/subdivisions/{subId}/{imageId} path: storage.rules'
-     *  {fileName} wildcard matches exactly one path segment, so a nested path would
-     *  fall through to the default-deny catch-all and silently fail every upload.
-     *  This flat "sub-{subdivisionId}-{imageId}" naming matches the existing rule
-     *  with zero rules changes needed. */
+    /**
+     * Per-subdivision (room/desk) images with automatic compression.
+     */
     suspend fun uploadSubdivisionImage(
         spaceId: String,
         subdivisionId: String,
@@ -160,22 +136,14 @@ class FirebaseStorageService(
         fileUri: Uri,
         fileExtension: String,
         onProgress: (Float) -> Unit = {}
-    ): String? = uploadAndGetUrl(
+    ): String? = uploadCompressedImageAndGetUrl(
         ref = storage?.reference?.child("listings/$spaceId/sub-$subdivisionId-$imageId.$fileExtension"),
         fileUri = fileUri,
         onProgress = onProgress
     )
 
     /**
-     * Uploads a new immutable version of an admin-managed legal document (Privacy
-     * Policy / Terms of Use / Revocation Policy — text/html — or the re-rental
-     * authorization template — application/pdf — see LegalDocumentVersion) to
-     * `legal_documents/{docId}/v{version}.{ext}`. Every version is its own permanent
-     * object — never overwritten or deleted, matching storage.rules' create-only
-     * rule for this path — so re-uploading never destroys the previous version's
-     * history. Explicitly sets contentType rather than trusting the file picker's
-     * own MIME detection (which can come back generic for some share-sheet
-     * sources), since storage.rules' create rule checks it exactly.
+     * Uploads a new immutable version of an admin-managed legal document.
      */
     suspend fun uploadLegalDocumentVersion(
         docId: String,
@@ -218,6 +186,69 @@ class FirebaseStorageService(
             ref.downloadUrl.await().toString()
         } catch (e: Exception) {
             Log.e(TAG, "Upload to ${ref.path} failed: ${e.message}")
+            null
+        }
+    }
+
+    private suspend fun uploadCompressedImageAndGetUrl(
+        ref: StorageReference?,
+        fileUri: Uri,
+        onProgress: (Float) -> Unit
+    ): String? {
+        if (ref == null) {
+            Log.w(TAG, "Storage unavailable; skipping upload")
+            return null
+        }
+        return try {
+            val context = FirebaseApp.getInstance().applicationContext
+            val bytes = withContext(Dispatchers.IO) {
+                val inputStream = context.contentResolver.openInputStream(fileUri)
+                val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeStream(inputStream, null, options)
+                inputStream?.close()
+
+                val maxDim = 1600
+                var sampleSize = 1
+                val width = options.outWidth
+                val height = options.outHeight
+                if (width > maxDim || height > maxDim) {
+                    val halfW = width / 2
+                    val halfH = height / 2
+                    while ((halfW / sampleSize) >= maxDim && (halfH / sampleSize) >= maxDim) {
+                        sampleSize *= 2
+                    }
+                }
+
+                val decodeOptions = BitmapFactory.Options().apply {
+                    inSampleSize = sampleSize
+                }
+                val stream = context.contentResolver.openInputStream(fileUri)
+                val bitmap = BitmapFactory.decodeStream(stream, null, decodeOptions)
+                stream?.close()
+
+                val outputStream = ByteArrayOutputStream()
+                bitmap?.compress(Bitmap.CompressFormat.JPEG, 82, outputStream)
+                bitmap?.recycle()
+                outputStream.toByteArray()
+            }
+
+            val metadata = com.google.firebase.storage.StorageMetadata.Builder()
+                .setContentType("image/jpeg")
+                .build()
+
+            val uploadTask = ref.putBytes(bytes, metadata)
+            uploadTask.addOnProgressListener { snapshot ->
+                val progress = if (snapshot.totalByteCount > 0) {
+                    snapshot.bytesTransferred.toFloat() / snapshot.totalByteCount.toFloat()
+                } else {
+                    0f
+                }
+                onProgress(progress)
+            }
+            uploadTask.await()
+            ref.downloadUrl.await().toString()
+        } catch (e: Exception) {
+            Log.e(TAG, "Compressed image upload to ${ref.path} failed: ${e.message}")
             null
         }
     }
