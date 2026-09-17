@@ -591,7 +591,8 @@ fun OwnerHubScreenContent(
                                 ListingStatus.PAUSED -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = "Paused")
                             }
 
-                            ProCurrencyTag(rateUsd = space.baseMonthlyRateUsd, isPerMonth = true)
+                            val lowestPrice = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
+                            ProCurrencyTag(rateUsd = lowestPrice.amount, unitLabel = lowestPrice.unitLabel)
                         }
 
                         Column {

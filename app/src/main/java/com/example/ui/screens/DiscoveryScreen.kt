@@ -417,12 +417,14 @@ fun SpaceListingCard(
         formulaTypes.add(sub.pricing.strategyType.displayName)
     }
 
+    val lowestPrice = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
+
     WorkspaceCard(
         title = space.title,
         listingType = space.spaceType.displayName,
         location = "${space.district}, ${space.governorate.displayName}",
-        rateUsd = space.baseMonthlyRateUsd,
-        rateUnit = "/mo",
+        rateUsd = lowestPrice.amount,
+        rateUnit = lowestPrice.unitLabel,
         imageUrl = space.imageUrls.firstOrNull(),
         operatingHours = "${space.schedule.openingHour} - ${space.schedule.closingHour}",
         totalDaysOpen = "${space.schedule.operatingDays.size} days/wk",

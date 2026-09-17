@@ -22,10 +22,14 @@ import java.io.ByteArrayOutputStream
  */
 class FirebaseStorageService(
     private val storage: FirebaseStorage? = try {
-        FirebaseStorage.getInstance()
+        FirebaseStorage.getInstance("gs://prohost-f766f.firebasestorage.app")
     } catch (e: Exception) {
-        Log.w(TAG, "FirebaseStorage instance unavailable: ${e.message}")
-        null
+        try {
+            FirebaseStorage.getInstance()
+        } catch (e2: Exception) {
+            Log.w(TAG, "FirebaseStorage instance unavailable: ${e2.message}")
+            null
+        }
     }
 ) {
     companion object {
@@ -65,12 +69,16 @@ class FirebaseStorageService(
         fileExtension: String = "jpg",
         context: Context = try { FirebaseApp.getInstance().applicationContext } catch (e: Exception) { android.os.Environment.getDataDirectory() /* fallback */ ; throw e },
         onProgress: (Float) -> Unit = {}
-    ): String? = uploadCompressedImageAndGetUrl(
-        context = context,
-        ref = storage?.reference?.child("profile_pictures/$uid/photo.$fileExtension"),
-        fileUri = fileUri,
-        onProgress = onProgress
-    )
+    ): String? {
+        val bytes = withContext(Dispatchers.IO) {
+            context.contentResolver.openInputStream(fileUri)?.use { it.readBytes() }
+        } ?: return null
+        return uploadCompressedImageBytesAndGetUrl(
+            ref = storage?.reference?.child("profile_pictures/$uid/photo.$fileExtension"),
+            rawBytes = bytes,
+            onProgress = onProgress
+        )
+    }
 
     /**
      * Uploads a Pro Host's proof of ownership / right to rent.
@@ -115,7 +123,7 @@ class FirebaseStorageService(
     )
 
     /**
-     * Uploads a listing photo to `listings/{spaceId}/{imageId}.{ext}` with automatic compression.
+     * Uploads a listing photo to `listings/{spaceId}/photos/{imageId}.jpg` with automatic compression.
      */
     suspend fun uploadListingImage(
         spaceId: String,
@@ -124,15 +132,28 @@ class FirebaseStorageService(
         fileExtension: String = "jpg",
         context: Context = try { FirebaseApp.getInstance().applicationContext } catch (e: Exception) { throw e },
         onProgress: (Float) -> Unit = {}
-    ): String? = uploadCompressedImageAndGetUrl(
-        context = context,
-        ref = storage?.reference?.child("listings/$spaceId/$imageId.$fileExtension"),
-        fileUri = fileUri,
+    ): String? {
+        val bytes = withContext(Dispatchers.IO) {
+            context.contentResolver.openInputStream(fileUri)?.use { it.readBytes() }
+        } ?: return null
+        return uploadListingImageBytes(spaceId, imageId, bytes, fileExtension, onProgress)
+    }
+
+    suspend fun uploadListingImageBytes(
+        spaceId: String,
+        imageId: String,
+        rawBytes: ByteArray,
+        fileExtension: String = "jpg",
+        onProgress: (Float) -> Unit = {}
+    ): String? = uploadCompressedImageBytesAndGetUrl(
+        ref = storage?.reference?.child("listings/$spaceId/photos/$imageId.$fileExtension"),
+        rawBytes = rawBytes,
         onProgress = onProgress
     )
 
     /**
-     * Per-subdivision (room/desk) images with automatic compression.
+     * Per-subdivision (room/desk) images with automatic compression stored in
+     * `listings/{spaceId}/subdivisions/{subdivisionId}/{imageId}.jpg`.
      */
     suspend fun uploadSubdivisionImage(
         spaceId: String,
@@ -142,12 +163,48 @@ class FirebaseStorageService(
         fileExtension: String = "jpg",
         context: Context = try { FirebaseApp.getInstance().applicationContext } catch (e: Exception) { throw e },
         onProgress: (Float) -> Unit = {}
-    ): String? = uploadCompressedImageAndGetUrl(
-        context = context,
-        ref = storage?.reference?.child("listings/$spaceId/sub-$subdivisionId-$imageId.$fileExtension"),
-        fileUri = fileUri,
+    ): String? {
+        val bytes = withContext(Dispatchers.IO) {
+            context.contentResolver.openInputStream(fileUri)?.use { it.readBytes() }
+        } ?: return null
+        return uploadSubdivisionImageBytes(spaceId, subdivisionId, imageId, bytes, fileExtension, onProgress)
+    }
+
+    suspend fun uploadSubdivisionImageBytes(
+        spaceId: String,
+        subdivisionId: String,
+        imageId: String,
+        rawBytes: ByteArray,
+        fileExtension: String = "jpg",
+        onProgress: (Float) -> Unit = {}
+    ): String? = uploadCompressedImageBytesAndGetUrl(
+        ref = storage?.reference?.child("listings/$spaceId/subdivisions/$subdivisionId/$imageId.$fileExtension"),
+        rawBytes = rawBytes,
         onProgress = onProgress
     )
+
+    /**
+     * Client-side bucket purge for all images/files stored under `listings/{spaceId}/`.
+     */
+    suspend fun purgeListingStorage(spaceId: String): Boolean {
+        val rootRef = storage?.reference?.child("listings/$spaceId") ?: return false
+        return try {
+            val listResult = rootRef.listAll().await()
+            for (fileRef in listResult.items) {
+                try { fileRef.delete().await() } catch (e: Exception) { Log.w(TAG, "Failed deleting ${fileRef.path}: ${e.message}") }
+            }
+            for (prefixRef in listResult.prefixes) {
+                val subList = prefixRef.listAll().await()
+                for (fileRef in subList.items) {
+                    try { fileRef.delete().await() } catch (e: Exception) { Log.w(TAG, "Failed deleting ${fileRef.path}: ${e.message}") }
+                }
+            }
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "purgeListingStorage failed for spaceId $spaceId: ${e.message}")
+            false
+        }
+    }
 
     /**
      * Uploads a new immutable version of an admin-managed legal document.
@@ -197,10 +254,9 @@ class FirebaseStorageService(
         }
     }
 
-    private suspend fun uploadCompressedImageAndGetUrl(
-        context: Context,
+    private suspend fun uploadCompressedImageBytesAndGetUrl(
         ref: StorageReference?,
-        fileUri: Uri,
+        rawBytes: ByteArray,
         onProgress: (Float) -> Unit
     ): String? {
         if (ref == null) {
@@ -209,19 +265,15 @@ class FirebaseStorageService(
         }
         return try {
             val bytes = withContext(Dispatchers.IO) {
-                val inputStream = context.contentResolver.openInputStream(fileUri)
-                val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                BitmapFactory.decodeStream(inputStream, null, options)
-                inputStream?.close()
+                val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size, boundsOptions)
 
                 val maxDim = 1600
                 var sampleSize = 1
-                val width = options.outWidth
-                val height = options.outHeight
-                if (width > maxDim || height > maxDim) {
-                    val halfW = width / 2
-                    val halfH = height / 2
-                    while ((halfW / sampleSize) >= maxDim && (halfH / sampleSize) >= maxDim) {
+                val w = boundsOptions.outWidth
+                val h = boundsOptions.outHeight
+                if (w > 0 && h > 0) {
+                    while ((w / sampleSize) > maxDim || (h / sampleSize) > maxDim) {
                         sampleSize *= 2
                     }
                 }
@@ -229,14 +281,29 @@ class FirebaseStorageService(
                 val decodeOptions = BitmapFactory.Options().apply {
                     inSampleSize = sampleSize
                 }
-                val stream = context.contentResolver.openInputStream(fileUri)
-                val bitmap = BitmapFactory.decodeStream(stream, null, decodeOptions)
-                stream?.close()
+                var decodedBitmap: Bitmap? = BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size, decodeOptions)
 
-                val outputStream = ByteArrayOutputStream()
-                bitmap?.compress(Bitmap.CompressFormat.JPEG, 82, outputStream)
-                bitmap?.recycle()
-                outputStream.toByteArray()
+                if (decodedBitmap == null) {
+                    throw IllegalStateException("Failed to decode image from raw bytes (length=${rawBytes.size})")
+                }
+
+                val currentMax = Math.max(decodedBitmap.width, decodedBitmap.height)
+                if (currentMax > maxDim) {
+                    val scale = maxDim.toFloat() / currentMax.toFloat()
+                    val targetW = (decodedBitmap.width * scale).toInt()
+                    val targetH = (decodedBitmap.height * scale).toInt()
+                    val scaled = Bitmap.createScaledBitmap(decodedBitmap, targetW, targetH, true)
+                    if (scaled != decodedBitmap) {
+                        decodedBitmap.recycle()
+                        decodedBitmap = scaled
+                    }
+                }
+
+                ByteArrayOutputStream().use { outputStream ->
+                    decodedBitmap.compress(Bitmap.CompressFormat.JPEG, 82, outputStream)
+                    decodedBitmap.recycle()
+                    outputStream.toByteArray()
+                }
             }
 
             val metadata = com.google.firebase.storage.StorageMetadata.Builder()
@@ -255,7 +322,7 @@ class FirebaseStorageService(
             uploadTask.await()
             ref.downloadUrl.await().toString()
         } catch (e: Exception) {
-            Log.e(TAG, "Compressed image upload to ${ref.path} failed: ${e.message}")
+            Log.e(TAG, "Compressed image upload to ${ref.path} failed: ${e.message}", e)
             null
         }
     }

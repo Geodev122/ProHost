@@ -111,7 +111,7 @@ class AppFeatureComplianceAndDebuggerTest {
         val formula = space.rentalFormulas.first()
 
         val practitioner = repository.login(uid = "uid-dr-sami", email = "dr.sami@prospace.lb", verifiedRole = UserRole.SPECIALIST)
-        val booking = repository.createBookingRequest(
+        val (booking, created) = repository.createBookingRequest(
             space = space,
             formula = formula,
             practitioner = practitioner,
@@ -125,6 +125,7 @@ class AppFeatureComplianceAndDebuggerTest {
             calculatedTotalUsd = formula.rateUsd * 2
         )
 
+        assertTrue(created)
         assertNotNull(booking)
         assertEquals(BookingRequestStatus.PENDING, booking.status)
 

@@ -302,6 +302,54 @@ object SpaceCalculationUtils {
                     }))
     }
 
+    data class PriceDisplay(
+        val amount: Double,
+        val unitLabel: String
+    )
+
+    /**
+     * Dynamically computes the lowest configured price and unit label across all available
+     * whole-space formulas and subdivision pricing configs for a given workspace listing.
+     */
+    fun findLowestConfiguredPrice(space: SpaceListing): PriceDisplay {
+        val candidates = mutableListOf<PriceDisplay>()
+
+        if (space.baseMonthlyRateUsd > 0.0) {
+            candidates.add(PriceDisplay(space.baseMonthlyRateUsd, "/mo"))
+        }
+
+        space.rentalFormulas.forEach { formula ->
+            if (formula.rateUsd > 0.0) {
+                val label = rateUnitLabel(formula.type)
+                candidates.add(PriceDisplay(formula.rateUsd, label))
+            }
+        }
+
+        space.subdivisions.forEach { sub ->
+            val pricing = sub.pricing
+            when (pricing.strategyType) {
+                RentalStrategyType.MONTHLY -> {
+                    val rate = pricing.monthly?.rateUsd ?: 0.0
+                    if (rate > 0.0) candidates.add(PriceDisplay(rate, "/mo"))
+                }
+                RentalStrategyType.HOURLY -> {
+                    val rates = pricing.hourly?.cellPrices?.values?.filter { it > 0.0 } ?: emptyList()
+                    rates.minOrNull()?.let { candidates.add(PriceDisplay(it, "/hr")) }
+                }
+                RentalStrategyType.SHIFT_BASED -> {
+                    val shiftRates = pricing.shiftBased?.shifts?.map { it.price }?.filter { it > 0.0 } ?: emptyList()
+                    shiftRates.minOrNull()?.let { candidates.add(PriceDisplay(it, "/shift")) }
+                }
+                RentalStrategyType.DAY_BASED -> {
+                    val dayRates = pricing.dayBased?.distribution?.values?.map { it.price }?.filter { it > 0.0 } ?: emptyList()
+                    dayRates.minOrNull()?.let { candidates.add(PriceDisplay(it, "/day")) }
+                }
+            }
+        }
+
+        return candidates.minByOrNull { it.amount } ?: PriceDisplay(space.baseMonthlyRateUsd.coerceAtLeast(0.0), "/mo")
+    }
+
     /**
      * The unit a formula's [RentalFormula.rateUsd] is actually denominated in, so a
      * rate can be labelled honestly instead of being stamped "/mo" regardless of type.

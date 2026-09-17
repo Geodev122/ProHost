@@ -28,19 +28,11 @@ class ExampleRobolectricTest {
       channel = "15462415",
       amount = 1.80,
       currency = "USD",
-      orderId = "ORD-TEST-001"
+      orderId = "ORD-TEST-001",
+      secretKey = "test_secret_key"
     )
     assertNotNull(sigSha256)
     assertEquals(64, sigSha256.length)
-
-    val sigMd5 = WhishSecurity.generateMd5Signature(
-      channel = "15462415",
-      amount = 1.80,
-      currency = "USD",
-      orderId = "ORD-TEST-001"
-    )
-    assertNotNull(sigMd5)
-    assertEquals(32, sigMd5.length)
   }
 
   @Test

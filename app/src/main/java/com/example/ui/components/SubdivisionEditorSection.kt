@@ -24,7 +24,9 @@ import coil.compose.AsyncImage
 import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
 import com.example.ui.theme.Spacing
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 /**
@@ -110,23 +112,18 @@ fun SubdivisionEditorSection(
             var failureCount = 0
             uris.forEach { uri ->
                 val imageId = UUID.randomUUID().toString().take(8)
-                // spaceId is always the real listing id now — CreateListingDialog
-                // passes its own stable listingId (generated up front, same one
-                // already used for uploadListingImage/uploadOwnershipProofDocument
-                // in that file), real listing or not yet published, or an already-
-                // published one's own id when editing. Previously this used
-                // pendingSubId (the subdivision's own random id) as a spaceId
-                // stand-in, which silently filed every subdivision image under a
-                // folder no workspace_listings document — and no cleanup trigger —
-                // ever points at, an orphaned-storage-object leak.
-                val url = storageService.uploadSubdivisionImage(
-                    context = context,
-                    spaceId = spaceId,
-                    subdivisionId = pendingSubId,
-                    imageId = imageId,
-                    fileUri = uri,
-                    fileExtension = "jpg"
-                )
+                val bytes = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
+                }
+                val url = if (bytes != null) {
+                    storageService.uploadSubdivisionImageBytes(
+                        spaceId = spaceId,
+                        subdivisionId = pendingSubId,
+                        imageId = imageId,
+                        rawBytes = bytes,
+                        fileExtension = "jpg"
+                    )
+                } else null
                 if (url != null) subImageUrls = subImageUrls + url else failureCount++
             }
             if (failureCount > 0) {
@@ -490,87 +487,86 @@ fun SubdivisionEditorSection(
                     onConfigChange = { subPricing = it }
                 )
 
-                Button(
-                    onClick = {
-                        val editIndex = editingSubdivisionIndex
-                        val newSub = Subdivision(
-                            id = pendingSubId,
-                            name = subName,
-                            type = subType,
-                            imageUrls = subImageUrls,
-                            amenities = subAmenitiesSelected.toList(),
-                            pricing = subPricing,
-                            scheduleOverride = if (subScheduleOverrideEnabled) {
-                                SpaceOperatingSchedule(
-                                    openingHour = subOverrideOpeningHour,
-                                    closingHour = subOverrideClosingHour,
-                                    operatingDays = subOverrideDays.toList(),
-                                    isSundayOperating = subOverrideSundayOperating,
-                                    blackoutSlots = subOverrideBlackouts
-                                )
-                            } else null
-                        )
-                        onSubdivisionsChange(
-                            if (editIndex != null) {
-                                subdivisionsList.mapIndexed { i, existing -> if (i == editIndex) newSub else existing }
-                            } else {
-                                subdivisionsList + newSub
-                            }
-                        )
-                        editingSubdivisionIndex = null
-                        subName = ""
-                        subAmenitiesSelected = emptySet()
-                        subImageUrls = emptyList()
-                        subPricing = RentalPricingConfig.default()
-                        subScheduleOverrideEnabled = false
-                        subOverrideOpeningHour = openingHour
-                        subOverrideClosingHour = closingHour
-                        subOverrideDays = operatingDays.toSet()
-                        subOverrideSundayOperating = false
-                        subOverrideBlackouts = emptyList()
-                        blackoutDay = operatingDays.firstOrNull() ?: "Mon"
-                        blackoutStart = "18:00"
-                        blackoutEnd = "22:00"
-                        blackoutReason = ""
-                        pendingSubId = "SUB-" + UUID.randomUUID().toString().take(6).uppercase()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    // Requiring real pricing here too, not just a name — a room used
-                    // to be addable with its $0 default price left completely
-                    // untouched, publishing a division with no real rate configured.
-                    enabled = subName.isNotBlank() && subPricing.hasRealPrice()
-                ) {
-                    Icon(if (editingSubdivisionIndex != null) Icons.Default.Check else Icons.Default.Add, contentDescription = null)
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(
-                        if (editingSubdivisionIndex != null) "Save Changes" else "Add Room / Desk to Listing",
-                        fontSize = MaterialTheme.typography.labelMedium.fontSize
-                    )
+                val isSubFormValid = subName.isNotBlank() && subPricing.hasRealPrice()
+                fun resetSubdivisionForm() {
+                    editingSubdivisionIndex = null
+                    subName = ""
+                    subType = Level2Type.ROOMS
+                    subAmenitiesSelected = emptySet()
+                    subImageUrls = emptyList()
+                    subPricing = RentalPricingConfig.default()
+                    subScheduleOverrideEnabled = false
+                    subOverrideOpeningHour = openingHour
+                    subOverrideClosingHour = closingHour
+                    subOverrideDays = operatingDays.toSet()
+                    subOverrideSundayOperating = false
+                    subOverrideBlackouts = emptyList()
+                    blackoutDay = operatingDays.firstOrNull() ?: "Mon"
+                    blackoutStart = "18:00"
+                    blackoutEnd = "22:00"
+                    blackoutReason = ""
+                    pendingSubId = "SUB-" + UUID.randomUUID().toString().take(6).uppercase()
                 }
+
+                fun buildCurrentSubdivision(): Subdivision = Subdivision(
+                    id = pendingSubId,
+                    name = subName,
+                    type = subType,
+                    imageUrls = subImageUrls,
+                    amenities = subAmenitiesSelected.toList(),
+                    pricing = subPricing,
+                    scheduleOverride = if (subScheduleOverrideEnabled) {
+                        SpaceOperatingSchedule(
+                            openingHour = subOverrideOpeningHour,
+                            closingHour = subOverrideClosingHour,
+                            operatingDays = subOverrideDays.toList(),
+                            isSundayOperating = subOverrideSundayOperating,
+                            blackoutSlots = subOverrideBlackouts
+                        )
+                    } else null
+                )
+
                 if (editingSubdivisionIndex != null) {
-                    TextButton(
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = {
+                                val editIndex = editingSubdivisionIndex
+                                val updatedSub = buildCurrentSubdivision()
+                                onSubdivisionsChange(
+                                    subdivisionsList.mapIndexed { i, existing -> if (i == editIndex) updatedSub else existing }
+                                )
+                                resetSubdivisionForm()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = isSubFormValid
+                        ) {
+                            Icon(Icons.Default.Check, contentDescription = null)
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text("Save Subdivision", fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                        }
+
+                        OutlinedButton(
+                            onClick = { resetSubdivisionForm() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null)
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text("Cancel Edit & Add New Subdivision", fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                        }
+                    }
+                } else {
+                    Button(
                         onClick = {
-                            editingSubdivisionIndex = null
-                            subName = ""
-                            subType = Level2Type.ROOMS
-                            subAmenitiesSelected = emptySet()
-                            subImageUrls = emptyList()
-                            subPricing = RentalPricingConfig.default()
-                            subScheduleOverrideEnabled = false
-                            subOverrideOpeningHour = openingHour
-                            subOverrideClosingHour = closingHour
-                            subOverrideDays = operatingDays.toSet()
-                            subOverrideSundayOperating = false
-                            subOverrideBlackouts = emptyList()
-                            blackoutDay = operatingDays.firstOrNull() ?: "Mon"
-                            blackoutStart = "18:00"
-                            blackoutEnd = "22:00"
-                            blackoutReason = ""
-                            pendingSubId = "SUB-" + UUID.randomUUID().toString().take(6).uppercase()
+                            val newSub = buildCurrentSubdivision()
+                            onSubdivisionsChange(subdivisionsList + newSub)
+                            resetSubdivisionForm()
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = isSubFormValid
                     ) {
-                        Text("Cancel Edit", fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                        Icon(Icons.Default.Add, contentDescription = null)
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Text("Add Subdivision to Listing", fontSize = MaterialTheme.typography.labelMedium.fontSize)
                     }
                 }
             }

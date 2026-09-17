@@ -46,7 +46,7 @@ class ProHostEndToEndLifecycleTest {
         val selectedFormula = targetSpace.rentalFormulas.first()
 
         // 3. Submit Booking Application
-        val bookingRequest = repository.createBookingRequest(
+        val (bookingRequest, _) = repository.createBookingRequest(
             space = targetSpace,
             formula = selectedFormula,
             practitioner = practitioner,
@@ -68,9 +68,7 @@ class ProHostEndToEndLifecycleTest {
         val ownerIncoming = repository.bookingRequests.value.filter { it.spaceId == targetSpace.id }
         assertTrue(ownerIncoming.any { it.id == bookingRequest.id })
 
-        // 5. Owner Accepts Booking Application, uploading the signed agreement — there
-        // is no in-app payment settlement anymore; both sides handle payment outside
-        // the app, and the uploaded agreement is the record of the deal instead.
+        // 5. Owner Accepts Booking Application, uploading the signed agreement
         val agreementUrl = "https://storage.example.com/booking_agreements/${bookingRequest.id}/agreement.pdf"
         val accepted = repository.acceptBookingRequest(bookingRequest.id, agreementUrl)
         assertTrue(accepted)
@@ -91,7 +89,7 @@ class ProHostEndToEndLifecycleTest {
         val space = repository.spaces.value.first { it.rentalFormulas.isNotEmpty() }
         val formula = space.rentalFormulas.first()
 
-        val original = repository.createBookingRequest(
+        val (original, _) = repository.createBookingRequest(
             space = space,
             formula = formula,
             practitioner = practitioner,
@@ -103,7 +101,7 @@ class ProHostEndToEndLifecycleTest {
         assertEquals(BookingRequestStatus.ACCEPTED, repository.bookingRequests.value.find { it.id == original.id }?.status)
 
         // Practitioner submits an edit referencing the original
-        val edit = repository.createBookingRequest(
+        val (edit, _) = repository.createBookingRequest(
             space = space,
             formula = formula,
             practitioner = practitioner,
@@ -124,12 +122,12 @@ class ProHostEndToEndLifecycleTest {
     }
 
     @Test
-    fun `test space owner rejection workflow and audit logging`() {
+    fun `test space owner rejection workflow and audit logging`() = kotlinx.coroutines.runBlocking {
         val practitioner = repository.login(uid = "uid-dr-maya", email = "dr.maya@prospace.lb", verifiedRole = UserRole.SPECIALIST)
         val space = repository.spaces.value.first()
         val formula = space.rentalFormulas.first()
 
-        val request = repository.createBookingRequest(
+        val (request, _) = repository.createBookingRequest(
             space = space,
             formula = formula,
             practitioner = practitioner,
@@ -155,7 +153,7 @@ class ProHostEndToEndLifecycleTest {
     }
 
     @Test
-    fun `test super admin pricing governance and listing verification override`() {
+    fun `test super admin pricing governance and listing verification override`() = kotlinx.coroutines.runBlocking {
         // Admin login
         val admin = repository.login(uid = "uid-admin-test", email = "admin@prohost.test", verifiedRole = UserRole.ADMIN)
         assertEquals(UserRole.ADMIN, admin.role)
@@ -169,7 +167,6 @@ class ProHostEndToEndLifecycleTest {
         assertEquals(!initialVerification, toggledSpace?.isVerified)
 
         // Update pricing formula
-        val originalMonthlyFee = repository.pricingState.value.monthlySubscriptionFeeUsd
         repository.updateMonthlySubscriptionFee(2.50)
         assertEquals(2.50, repository.pricingState.value.monthlySubscriptionFeeUsd, 0.001)
     }
@@ -203,14 +200,8 @@ class ProHostEndToEndLifecycleTest {
         assertTrue(auditLogs.any { it.actionType == "OFFLINE_TX_RECOVERED" })
     }
 
-    // --- Regression tests for the two most severe bugs this app shipped with ---
-
     @Test
     fun `fresh repository starts signed out, not pre-authenticated as Super Admin`() {
-        // A brand-new ProHostRepository used to default currentUser to a fully-populated
-        // ADMIN AppUser, meaning every fresh install opened straight into the Admin
-        // console with zero authentication. A freshly constructed repository (as happens
-        // on process start) must start with no signed-in user.
         val freshRepository = ProHostRepository()
         assertNull(
             "A new repository instance must start signed out — it must NOT default to a pre-authenticated Admin session",
@@ -219,12 +210,7 @@ class ProHostEndToEndLifecycleTest {
     }
 
     @Test
-    fun `login role comes only from the verifiedRole argument, never inferred from email`() {
-        // login(uid, email, verifiedRole) must trust exactly what the caller (which, in the
-        // real app, is only ever code that already confirmed the role via a Firebase Auth
-        // ID token custom claim) passes as verifiedRole — never infer ADMIN from the email
-        // string itself, the way the old login(email, desiredRole) used to special-case
-        // "geo.elnajjar@gmail.com".
+    fun `login role comes only from the verifiedRole argument, never inferred from email`() = kotlinx.coroutines.runBlocking {
         val user = repository.login(
             uid = "uid-arbitrary",
             email = "geo.elnajjar@gmail.com",

@@ -184,16 +184,8 @@ fun CreateListingDialog(
     // rememberSaveable — transient feedback, cleared on the next attempt either way.
     var photoUploadError by remember { mutableStateOf<String?>(null) }
 
-    // Proof of ownership / right to rent — required per listing (no admin review, just
-    // kept on file; see SpaceListing.ownershipProofUrl's doc comment). Uploaded
-    // immediately on pick, same pattern as cover photos above.
-    var ownershipProofDoc by rememberSaveable(stateSaver = DocumentPickerStateSaver) { mutableStateOf(DocumentPickerState()) }
-    var ownershipProofUrl by rememberSaveable { mutableStateOf(existingDraft?.ownershipProofUrl) }
-    var isUploadingOwnershipProof by rememberSaveable { mutableStateOf(false) }
-    // Same silent-failure gap as photoUploadError above — and more consequential here,
-    // since ownershipProofUrl staying null is exactly what keeps the Next button on
-    // Step 1 permanently disabled with no visible explanation (see enabled= below).
-    var ownershipUploadError by remember { mutableStateOf<String?>(null) }
+    val ownershipProofUrl = existingDraft?.ownershipProofUrl
+    val ownershipRole = existingDraft?.ownershipDocRole
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris: List<Uri> ->
@@ -204,13 +196,17 @@ fun CreateListingDialog(
             var failureCount = 0
             uris.forEach { uri ->
                 val imageId = UUID.randomUUID().toString().take(8)
-                val url = storageService.uploadListingImage(
-                    context = context,
-                    spaceId = listingId,
-                    imageId = imageId,
-                    fileUri = uri,
-                    fileExtension = "jpg"
-                )
+                val bytes = withContext(Dispatchers.IO) {
+                    runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
+                }
+                val url = if (bytes != null) {
+                    storageService.uploadListingImageBytes(
+                        spaceId = listingId,
+                        imageId = imageId,
+                        rawBytes = bytes,
+                        fileExtension = "jpg"
+                    )
+                } else null
                 if (url != null) {
                     uploadedPhotoUrls = uploadedPhotoUrls + url
                 } else {
@@ -338,18 +334,7 @@ fun CreateListingDialog(
     var openingHour by rememberSaveable { mutableStateOf(existingDraft?.schedule?.openingHour ?: "08:00") }
     var closingHour by rememberSaveable { mutableStateOf(existingDraft?.schedule?.closingHour ?: "20:00") }
 
-    // Ownership / right-to-rent — moved from the wizard's last step to its first
-    // (spec 1.5): mandatory to advance past Step 1, not just to Publish, and gated
-    // behind an owner-vs-re-renter choice. Deliberately a DIFFERENT field
-    // (ownershipProofUrl) and a DIFFERENT, new dialog flow from the optional,
-    // post-publish "Get Listing Verified" badge system (verificationDocUrl /
-    // ListingVerificationDialog) — the two must never be conflated.
-    var ownershipRole by rememberSaveable(stateSaver = OwnershipRoleSaver) { mutableStateOf(existingDraft?.ownershipDocRole) }
-    // Dialog-visibility booleans stay plain remember — losing them on process death
-    // just closes a dialog, harmless. hasAcknowledgedAuditDisclaimer is converted since
-    // it's a real progress flag, not a transient dialog state.
-    var showOwnershipRolePrompt by remember { mutableStateOf(existingDraft?.ownershipProofUrl == null) }
-    var showRerentalTemplateDialog by remember { mutableStateOf(false) }
+
 
     // Facilities toggles
     var masterFacilities by remember { mutableStateOf(availableFacilities) }
@@ -668,64 +653,7 @@ fun CreateListingDialog(
                                     }
                                 }
 
-                                HorizontalDivider()
 
-                                Text("Proof of Ownership / Right to Rent", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
-                                Text(
-                                    "Required before continuing — a title deed, lease contract, or signed re-rental authorization showing you're entitled to rent this specific space out. Kept on file, no review needed.",
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                if (ownershipRole == OwnershipRole.RERENTER) {
-                                    OutlinedButton(onClick = { showRerentalTemplateDialog = true }, modifier = Modifier.fillMaxWidth()) {
-                                        Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text("Download Authorization Template")
-                                    }
-                                }
-                                if (ownershipRole != null || ownershipProofUrl != null) {
-                                    DocumentPickerField(
-                                        label = if (ownershipRole == OwnershipRole.RERENTER) "Signed Re-Rental Authorization" else "Ownership / Right-to-Rent Document",
-                                        helperText = "PDF, JPG, or PNG",
-                                        state = ownershipProofDoc,
-                                        onStateChanged = { newState ->
-                                            ownershipProofDoc = newState
-                                            val uri = newState.uri
-                                            if (uri != null) {
-                                                coroutineScope.launch {
-                                                    isUploadingOwnershipProof = true
-                                                    ownershipUploadError = null
-                                                    val ext = newState.fileName?.substringAfterLast('.', "pdf") ?: "pdf"
-                                                    val url = storageService.uploadOwnershipProofDocument(listingId, uri, ext)
-                                                    ownershipProofUrl = url
-                                                    if (url == null) {
-                                                        ownershipUploadError = "Couldn't upload that document. Check your connection and try again."
-                                                    }
-                                                    isUploadingOwnershipProof = false
-                                                }
-                                            } else {
-                                                ownershipProofUrl = null
-                                                ownershipUploadError = null
-                                            }
-                                        },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        required = true
-                                    )
-                                    if (isUploadingOwnershipProof) {
-                                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                                    }
-                                    if (ownershipUploadError != null) {
-                                        Text(
-                                            ownershipUploadError!!,
-                                            color = MaterialTheme.colorScheme.error,
-                                            fontSize = MaterialTheme.typography.labelSmall.fontSize
-                                        )
-                                    }
-                                } else {
-                                    OutlinedButton(onClick = { showOwnershipRolePrompt = true }, modifier = Modifier.fillMaxWidth()) {
-                                        Text("Confirm ownership status to continue")
-                                    }
-                                }
 
                                 HorizontalDivider()
 
@@ -1320,64 +1248,24 @@ fun CreateListingDialog(
                                 // configure every later step and pricing detail, then
                                 // find Publish permanently disabled with no indication
                                 // the missing piece was all the way back on Step 1.
-                                (title.isNotBlank() || district.isNotBlank()) &&
-                                    !isUploadingOwnershipProof && pickedLatLng != null
+                                (title.isNotBlank() || district.isNotBlank()) && pickedLatLng != null
                             } else {
                                 true
                             }
                         } else {
-                            // hasRealPrice() mirrors publishValidation.ts's own check
-                            // exactly — Publish used to only verify the pin/ownership-
-                            // doc/photo were present, never that any actual price was
-                            // configured, so a listing could flip live with a
-                            // "published successfully" toast and then get silently
-                            // demoted back to Draft moments later by the server.
                             val hasRealPricing = if (hasSubdivisions) {
                                 subdivisionsList.isNotEmpty() && subdivisionsList.any { it.pricing.hasRealPrice() }
                             } else {
                                 wholeSpacePricing.hasRealPrice()
                             }
-                            pickedLatLng != null && !isUploadingOwnershipProof &&
-                                uploadedPhotoUrls.isNotEmpty() && hasRealPricing
+                            pickedLatLng != null && uploadedPhotoUrls.isNotEmpty() && hasRealPricing
                         }
                     )
                 }
             }
         }
 
-        if (showOwnershipRolePrompt) {
-            AlertDialog(
-                onDismissRequest = { /* Not dismissible without a choice — the gate is mandatory. */ },
-                title = { Text("Are you the owner or a re-renter?") },
-                text = {
-                    Text(
-                        "This determines which document proves your right to list this space. " +
-                            "Owner: upload your own title deed or lease. Re-renter: download the " +
-                            "authorization template, have the property owner sign it, then upload the signed copy.",
-                        fontSize = MaterialTheme.typography.bodySmall.fontSize
-                    )
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        ownershipRole = OwnershipRole.OWNER
-                        showOwnershipRolePrompt = false
-                    }) { Text("I'm the Owner") }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        ownershipRole = OwnershipRole.RERENTER
-                        showOwnershipRolePrompt = false
-                    }) { Text("I'm Re-Renting") }
-                }
-            )
-        }
 
-        if (showRerentalTemplateDialog) {
-            LegalDocumentDialog(
-                document = com.example.legal.LegalContent.rerentalAuthorizationTemplate,
-                onDismiss = { showRerentalTemplateDialog = false }
-            )
-        }
 
         if (showFacilityDialog) {
             FacilityPickerDialog(

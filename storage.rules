@@ -53,33 +53,15 @@ service firebase.storage {
       allow delete: if false;
     }
 
-    // Pro Host proof of ownership / right to rent, one per listing — required at
-    // listing-creation time, kept on file with no admin review workflow (see
-    // SpaceListing.ownershipProofUrl's doc comment). Same "Firestore doc may not
-    // exist yet" bootstrapping as listing photos below, since this uploads before
-    // "Publish Listing" is tapped. Never publicly readable (unlike listing photos)
-    // — this is a legal/ownership document, not marketing material.
+    // Pro Host proof of ownership / right to rent, one per listing.
     match /listing_ownership_docs/{spaceId}/{fileName} {
       allow read: if isSignedIn() &&
         (isAdmin() ||
          (firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) &&
           firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid));
-      // The "!exists()" branch is a real, accepted gap, not an oversight: while
-      // the wizard's Firestore doc doesn't exist yet (uploads happen before
-      // Publish), Storage has no way to check WHICH PRO_HOST is entitled to
-      // this not-yet-created spaceId, so any signed-in, non-suspended PRO_HOST
-      // can write here for that brief pre-publish window. Practically bounded
-      // by spaceId being a random client-generated id (see CreateListingDialog's
-      // listingId) an attacker would have to both guess and race — closing it
-      // completely needs a client-side "reserve the Draft doc up front" change,
-      // deliberately not done here (see the follow-up task tracked for it: it
-      // needs a delete-draft affordance too, or an abandoned dialog open would
-      // leave an orphaned, undeletable Draft behind). The suspended check below
-      // is new — previously a suspended host could still write here even though
-      // they're blocked from creating the listing itself.
       allow create, update: if isSignedIn() &&
         (isAdmin() ||
-         (role() == "PRO_HOST" && request.auth.token.suspended != true &&
+         (request.auth.token.suspended != true &&
           (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
            firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid))) &&
         withinSizeLimit() &&
@@ -88,24 +70,15 @@ service firebase.storage {
       allow delete: if false;
     }
 
-    // Optional proof a Pro Host uploads to EARN the Listing Verified badge — either
-    // a re-rental authorization statement signed by the real property owner, or
-    // proof the Pro Host is the real owner (see SpaceListing.verificationDocUrl's
-    // doc comment). Not required to publish, unlike listing_ownership_docs above —
-    // this only feeds requestListingVerification (Cloud Function, Admin SDK),
-    // which checks verificationDocUrl is set before flipping isVerified. Same
-    // bootstrapping/read/write shape as listing_ownership_docs since a host may
-    // reasonably upload this before or after publishing.
+    // Optional proof a Pro Host uploads to EARN the Listing Verified badge.
     match /listing_verification_docs/{spaceId}/{fileName} {
       allow read: if isSignedIn() &&
         (isAdmin() ||
          (firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) &&
           firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid));
-      // See listing_ownership_docs above for why the "!exists()" bootstrap
-      // branch is a real, accepted, narrow gap rather than an oversight.
       allow create, update: if isSignedIn() &&
         (isAdmin() ||
-         (role() == "PRO_HOST" && request.auth.token.suspended != true &&
+         (request.auth.token.suspended != true &&
           (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
            firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid))) &&
         withinSizeLimit() &&
@@ -115,23 +88,13 @@ service firebase.storage {
     }
 
     // Signed leasing agreement a Pro Host uploads when finalizing acceptance of a
-    // booking request (see BookingRequest.agreementUrl's doc comment) — the record
-    // that host and specialist reached a real agreement; payment itself happens
-    // outside the app entirely, and nobody at ProHost reviews this document. The
-    // booking_requests doc always exists by the time a host can accept it (created
-    // when the practitioner submitted the request), so no bootstrapping case is
-    // needed here unlike listing photos/ownership docs. Readable by either party
-    // to the booking (the specialist's Digital Key Pass links here) or an Admin;
-    // writable only by the host who owns the space being booked.
+    // booking request.
     match /booking_agreements/{bookingId}/{fileName} {
       allow read: if isSignedIn() &&
         (isAdmin() ||
          (firestore.exists(/databases/(default)/documents/booking_requests/$(bookingId)) &&
           (firestore.get(/databases/(default)/documents/booking_requests/$(bookingId)).data.ownerId == request.auth.uid ||
            firestore.get(/databases/(default)/documents/booking_requests/$(bookingId)).data.practitionerId == request.auth.uid)));
-      // See id_documents above for why this is "create, update" rather than
-      // "write" — write already includes delete, which would make the
-      // "allow delete: if false" below dead.
       allow create, update: if isSignedIn() &&
         (isAdmin() ||
          (firestore.exists(/databases/(default)/documents/booking_requests/$(bookingId)) &&
@@ -142,25 +105,20 @@ service firebase.storage {
       allow delete: if false;
     }
 
-    // Listing cover photos. Publicly readable (the discovery feed and listing
-    // details are browsable), writable by the listing's actual owner once the
-    // Firestore doc exists — or by any PRO_HOST while it doesn't yet, since
-    // photos are picked and uploaded before "Publish Listing" is tapped and the
-    // Firestore document is created. See listing_ownership_docs above for why
-    // the "!exists()" branch is a real, accepted, narrow gap (not an
-    // oversight) and why the suspended check below was added to it.
-    match /listings/{spaceId}/{fileName} {
+    // Listing photos (whole space, cover, subdivisions). Publicly readable.
+    // Recursive match allowing subfolders under /listings/{spaceId}/.
+    match /listings/{spaceId}/{allPaths=**} {
       allow read: if true;
       allow write: if isSignedIn() &&
         (isAdmin() ||
-         (role() == "PRO_HOST" && request.auth.token.suspended != true &&
+         (request.auth.token.suspended != true &&
           (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
            firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid))) &&
         withinSizeLimit() &&
         request.resource.contentType.matches('image/.*');
       allow delete: if isSignedIn() &&
         (isAdmin() ||
-         (firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) &&
+         (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
           firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid));
     }
 

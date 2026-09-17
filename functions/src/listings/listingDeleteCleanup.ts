@@ -79,11 +79,13 @@ export const onWorkspaceListingDeletedCleanup = onDocumentDeleted(
       );
     }
 
-    // 3. Purge associated storage files (photos and ownership docs) from the bucket.
+    // 3. Purge associated storage files (photos, verification docs, ownership docs) from the bucket.
     try {
-      const bucket = getStorage().bucket();
+      const bucketName = process.env.STORAGE_BUCKET || "prohost-f766f.firebasestorage.app";
+      const bucket = getStorage().bucket(bucketName);
       await bucket.deleteFiles({ prefix: `listings/${spaceId}/` });
       await bucket.deleteFiles({ prefix: `listing_ownership_docs/${spaceId}/` });
+      await bucket.deleteFiles({ prefix: `listing_verification_docs/${spaceId}/` });
     } catch (err) {
       console.error(`Failed to delete storage files for listing ${spaceId}:`, err);
     }

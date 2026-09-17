@@ -427,15 +427,16 @@ fun LebanonMapCanvas(
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
+                            val lowestPrice = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Text(
-                                    text = "$${space.baseMonthlyRateUsd.toInt()}",
+                                    text = "$${lowestPrice.amount.toInt()}",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = " /mo",
+                                    text = " ${lowestPrice.unitLabel}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -536,8 +537,9 @@ fun LebanonMapCanvas(
                 ) {
                     items(sortedSpaces, key = { it.id }) { space ->
                         val isSelected = activePinSpace?.id == space.id
-                        val minPrice = space.baseMonthlyRateUsd
-                        val minUnit = "/mo"
+                        val lowestPrice = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
+                        val minPrice = lowestPrice.amount
+                        val minUnit = lowestPrice.unitLabel
 
                         Card(
                             modifier = Modifier

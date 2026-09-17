@@ -783,6 +783,7 @@ class ProHostRepository {
         val success = firestoreService.deleteWorkspace(spaceId)
         if (success) {
             _spaces.value = _spaces.value.filterNot { it.id == spaceId }
+            com.example.data.storage.FirebaseStorageService.getInstance().purgeListingStorage(spaceId)
             addAuditLog(
                 actionType = "LISTING_DELETED",
                 details = "Admin permanently deleted workspace listing #${spaceId} (${target?.title ?: "Unknown"})",
