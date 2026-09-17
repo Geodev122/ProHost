@@ -120,6 +120,7 @@ fun SubdivisionEditorSection(
                 // folder no workspace_listings document — and no cleanup trigger —
                 // ever points at, an orphaned-storage-object leak.
                 val url = storageService.uploadSubdivisionImage(
+                    context = context,
                     spaceId = spaceId,
                     subdivisionId = pendingSubId,
                     imageId = imageId,

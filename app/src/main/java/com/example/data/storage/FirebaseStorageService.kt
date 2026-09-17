@@ -1,5 +1,6 @@
 package com.example.data.storage
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -61,9 +62,11 @@ class FirebaseStorageService(
     suspend fun uploadProfilePicture(
         uid: String,
         fileUri: Uri,
-        fileExtension: String,
+        fileExtension: String = "jpg",
+        context: Context = try { FirebaseApp.getInstance().applicationContext } catch (e: Exception) { android.os.Environment.getDataDirectory() /* fallback */ ; throw e },
         onProgress: (Float) -> Unit = {}
     ): String? = uploadCompressedImageAndGetUrl(
+        context = context,
         ref = storage?.reference?.child("profile_pictures/$uid/photo.$fileExtension"),
         fileUri = fileUri,
         onProgress = onProgress
@@ -118,9 +121,11 @@ class FirebaseStorageService(
         spaceId: String,
         imageId: String,
         fileUri: Uri,
-        fileExtension: String,
+        fileExtension: String = "jpg",
+        context: Context = try { FirebaseApp.getInstance().applicationContext } catch (e: Exception) { throw e },
         onProgress: (Float) -> Unit = {}
     ): String? = uploadCompressedImageAndGetUrl(
+        context = context,
         ref = storage?.reference?.child("listings/$spaceId/$imageId.$fileExtension"),
         fileUri = fileUri,
         onProgress = onProgress
@@ -134,9 +139,11 @@ class FirebaseStorageService(
         subdivisionId: String,
         imageId: String,
         fileUri: Uri,
-        fileExtension: String,
+        fileExtension: String = "jpg",
+        context: Context = try { FirebaseApp.getInstance().applicationContext } catch (e: Exception) { throw e },
         onProgress: (Float) -> Unit = {}
     ): String? = uploadCompressedImageAndGetUrl(
+        context = context,
         ref = storage?.reference?.child("listings/$spaceId/sub-$subdivisionId-$imageId.$fileExtension"),
         fileUri = fileUri,
         onProgress = onProgress
@@ -191,6 +198,7 @@ class FirebaseStorageService(
     }
 
     private suspend fun uploadCompressedImageAndGetUrl(
+        context: Context,
         ref: StorageReference?,
         fileUri: Uri,
         onProgress: (Float) -> Unit
@@ -200,7 +208,6 @@ class FirebaseStorageService(
             return null
         }
         return try {
-            val context = FirebaseApp.getInstance().applicationContext
             val bytes = withContext(Dispatchers.IO) {
                 val inputStream = context.contentResolver.openInputStream(fileUri)
                 val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }

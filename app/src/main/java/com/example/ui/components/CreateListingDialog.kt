@@ -205,6 +205,7 @@ fun CreateListingDialog(
             uris.forEach { uri ->
                 val imageId = UUID.randomUUID().toString().take(8)
                 val url = storageService.uploadListingImage(
+                    context = context,
                     spaceId = listingId,
                     imageId = imageId,
                     fileUri = uri,
