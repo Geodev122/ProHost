@@ -36,6 +36,9 @@ class FirebaseStorageService(
         private const val TAG = "FirebaseStorageService"
 
         @Volatile
+        var lastUploadError: String? = null
+
+        @Volatile
         private var INSTANCE: FirebaseStorageService? = null
 
         fun getInstance(): FirebaseStorageService {
@@ -322,6 +325,7 @@ class FirebaseStorageService(
             uploadTask.await()
             ref.downloadUrl.await().toString()
         } catch (e: Exception) {
+            lastUploadError = e.message ?: e.toString()
             Log.e(TAG, "Compressed image upload to ${ref.path} failed: ${e.message}", e)
             null
         }

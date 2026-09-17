@@ -214,10 +214,11 @@ fun CreateListingDialog(
                 }
             }
             if (failureCount > 0) {
+                val detail = FirebaseStorageService.lastUploadError ?: "Check your connection and try again."
                 photoUploadError = if (failureCount == uris.size) {
-                    "Couldn't upload ${if (uris.size == 1) "that photo" else "those photos"}. Check your connection and try again."
+                    "Couldn't upload ${if (uris.size == 1) "that photo" else "those photos"}: $detail"
                 } else {
-                    "$failureCount of ${uris.size} photos failed to upload. Check your connection and try again."
+                    "$failureCount of ${uris.size} photos failed to upload: $detail"
                 }
             }
             isUploadingPhoto = false

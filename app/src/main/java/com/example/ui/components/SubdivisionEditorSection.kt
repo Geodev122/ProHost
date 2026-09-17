@@ -127,10 +127,11 @@ fun SubdivisionEditorSection(
                 if (url != null) subImageUrls = subImageUrls + url else failureCount++
             }
             if (failureCount > 0) {
+                val detail = FirebaseStorageService.lastUploadError ?: "Check your connection and try again."
                 subImageUploadError = if (failureCount == uris.size) {
-                    "Couldn't upload ${if (uris.size == 1) "that photo" else "those photos"}. Check your connection and try again."
+                    "Couldn't upload ${if (uris.size == 1) "that photo" else "those photos"}: $detail"
                 } else {
-                    "$failureCount of ${uris.size} photos failed to upload. Check your connection and try again."
+                    "$failureCount of ${uris.size} photos failed to upload: $detail"
                 }
             }
             isUploadingSubImage = false
@@ -160,74 +161,92 @@ fun SubdivisionEditorSection(
             Text("Configured Subdivisions (${subdivisionsList.size})", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 subdivisionsList.forEachIndexed { index, sub ->
+                    val isEditingThis = editingSubdivisionIndex == index
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                width = if (isEditingThis) 2.dp else 0.dp,
+                                color = if (isEditingThis) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent,
+                                shape = MaterialTheme.shapes.medium
+                            ),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isEditingThis) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                        ),
                         shape = MaterialTheme.shapes.medium
                     ) {
-                        Row(
-                            modifier = Modifier.padding(Spacing.md),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(sub.name, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
-                                Text("Type: ${sub.type.displayName}", fontSize = MaterialTheme.typography.labelMedium.fontSize, color = MaterialTheme.colorScheme.primary)
-                                Text(
-                                    "Strategy: ${sub.pricing.strategyType.displayName}",
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                if (sub.amenities.isNotEmpty()) {
-                                    Text("Amenities: ${sub.amenities.joinToString()}", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                sub.scheduleOverride?.let { override ->
-                                    Text(
-                                        "Custom hours: ${override.openingHour}-${override.closingHour}, ${override.operatingDays.joinToString()}" +
-                                            (if (override.isSundayOperating) " + Sun" else "") +
-                                            (if (override.blackoutSlots.isNotEmpty()) ", ${override.blackoutSlots.size} blocked time(s)" else ""),
-                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                                if (sub.imageUrls.isNotEmpty()) {
-                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        items(sub.imageUrls) { url ->
-                                            AsyncImage(
-                                                model = url,
-                                                contentDescription = null,
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier.size(48.dp)
+                        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(sub.name, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
+                                    if (isEditingThis) {
+                                        Surface(color = MaterialTheme.colorScheme.primary, shape = MaterialTheme.shapes.extraSmall) {
+                                            Text(
+                                                "EDITING",
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onPrimary
                                             )
                                         }
                                     }
                                 }
+
+                                Row {
+                                    if (!isEditingThis) {
+                                        IconButton(onClick = {
+                                            subName = sub.name
+                                            subType = sub.type
+                                            subAmenitiesSelected = sub.amenities.toSet()
+                                            subImageUrls = sub.imageUrls
+                                            subPricing = sub.pricing
+                                            val override = sub.scheduleOverride
+                                            subScheduleOverrideEnabled = override != null
+                                            subOverrideOpeningHour = override?.openingHour ?: openingHour
+                                            subOverrideClosingHour = override?.closingHour ?: closingHour
+                                            subOverrideDays = override?.operatingDays?.toSet() ?: operatingDays.toSet()
+                                            subOverrideSundayOperating = override?.isSundayOperating ?: false
+                                            subOverrideBlackouts = override?.blackoutSlots ?: emptyList()
+                                            blackoutDay = subOverrideDays.firstOrNull() ?: "Mon"
+                                            pendingSubId = sub.id
+                                            editingSubdivisionIndex = index
+                                        }) {
+                                            Icon(Icons.Default.Edit, contentDescription = "Edit Division", tint = MaterialTheme.colorScheme.primary)
+                                        }
+                                    }
+                                    IconButton(onClick = {
+                                        if (isEditingThis) {
+                                            editingSubdivisionIndex = null
+                                            subName = ""
+                                            subImageUrls = emptyList()
+                                            subPricing = RentalPricingConfig.default()
+                                        }
+                                        onSubdivisionsChange(subdivisionsList.filterIndexed { i, _ -> i != index })
+                                    }) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Delete Division", tint = MaterialTheme.colorScheme.error)
+                                    }
+                                }
                             }
-                            IconButton(onClick = {
-                                // Load this entry's real data into the form fields
-                                // below instead of blank defaults, and keep its
-                                // original id so "Save Changes" replaces it in
-                                // place rather than minting a new subdivision.
-                                subName = sub.name
-                                subType = sub.type
-                                subAmenitiesSelected = sub.amenities.toSet()
-                                subImageUrls = sub.imageUrls
-                                subPricing = sub.pricing
-                                val override = sub.scheduleOverride
-                                subScheduleOverrideEnabled = override != null
-                                subOverrideOpeningHour = override?.openingHour ?: openingHour
-                                subOverrideClosingHour = override?.closingHour ?: closingHour
-                                subOverrideDays = override?.operatingDays?.toSet() ?: operatingDays.toSet()
-                                subOverrideSundayOperating = override?.isSundayOperating ?: false
-                                subOverrideBlackouts = override?.blackoutSlots ?: emptyList()
-                                blackoutDay = subOverrideDays.firstOrNull() ?: "Mon"
-                                pendingSubId = sub.id
-                                editingSubdivisionIndex = index
-                            }) {
-                                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
+
+                            Text("Type: ${sub.type.displayName} • Strategy: ${sub.pricing.strategyType.displayName}", fontSize = MaterialTheme.typography.labelMedium.fontSize, color = MaterialTheme.colorScheme.primary)
+                            if (sub.amenities.isNotEmpty()) {
+                                Text("Amenities: ${sub.amenities.joinToString()}", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            IconButton(onClick = { onSubdivisionsChange(subdivisionsList.filterIndexed { i, _ -> i != index }) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                            if (sub.imageUrls.isNotEmpty()) {
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    items(sub.imageUrls) { url ->
+                                        AsyncImage(
+                                            model = url,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.size(48.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

@@ -1,13 +1,31 @@
 import * as logger from "firebase-functions/logger";
 import { adminApp } from "./admin";
+import { recordAuditLog } from "./auditLog";
 
 // Matches app/build.gradle.kts's applicationId.
 const PACKAGE_NAME = "app.geonajjar.prohost";
 
 interface DecodedIntegrityToken {
   tokenPayloadExternal?: {
-    appIntegrity?: { appRecognitionVerdict?: string };
-    deviceIntegrity?: { deviceRecognitionVerdict?: string[] };
+    requestDetails?: {
+      requestPackageName?: string;
+      timestampMillis?: string;
+    };
+    appIntegrity?: {
+      appRecognitionVerdict?: string;
+      packageName?: string;
+      certificateSha256Digest?: string[];
+    };
+    deviceIntegrity?: {
+      deviceRecognitionVerdict?: string[];
+    };
+    environmentDetails?: {
+      playProtectVerdict?: string;
+      appAccessRiskVerdict?: string;
+    };
+    accountDetails?: {
+      appLicensingVerdict?: string;
+    };
   };
 }
 
@@ -15,16 +33,7 @@ interface DecodedIntegrityToken {
  * Verifies a Play Integrity token server-side, log-only — this is a deliberate
  * first-rollout design (see PlayIntegrityManager.kt/assignInitialRole.ts): a
  * missing token, a failed API call, or an unexpected verdict is recorded via
- * structured Cloud Logging and this function returns normally either way. It
- * NEVER throws and NEVER blocks the caller — this is intentionally the same
- * "ship it observably first" pattern this project already used for the
- * account-suspension and booking-conflict-guard rollouts, since false
- * positives on a legitimate device (a sideloaded debug build, a rooted test
- * device, an emulator) would otherwise lock out real users with no way to
- * diagnose it remotely. Uses the Cloud Function's own runtime credentials
- * (Application Default Credentials, already configured via ../lib/admin's
- * bare initializeApp()) to authenticate to the Play Integrity API, rather
- * than adding a new npm dependency for one REST call.
+ * structured Cloud Logging and Audit Trail, and this function returns normally either way.
  */
 export async function checkPlayIntegrityLogOnly(token: string, uid: string): Promise<void> {
   try {
@@ -53,12 +62,36 @@ export async function checkPlayIntegrityLogOnly(token: string, uid: string): Pro
     }
 
     const decoded = (await response.json()) as DecodedIntegrityToken;
-    const appVerdict = decoded.tokenPayloadExternal?.appIntegrity?.appRecognitionVerdict;
-    if (appVerdict !== "PLAY_RECOGNIZED") {
+    const payload = decoded.tokenPayloadExternal;
+    const appVerdict = payload?.appIntegrity?.appRecognitionVerdict;
+    const deviceVerdicts = payload?.deviceIntegrity?.deviceRecognitionVerdict ?? [];
+    const playProtectVerdict = payload?.environmentDetails?.playProtectVerdict;
+    const licensingVerdict = payload?.accountDetails?.appLicensingVerdict;
+
+    const isRecognized = appVerdict === "PLAY_RECOGNIZED";
+    const meetsIntegrity = deviceVerdicts.length > 0;
+
+    if (!isRecognized || !meetsIntegrity) {
       logger.warn("play_integrity_verdict_anomaly", {
         uid,
         appVerdict,
-        deviceIntegrity: decoded.tokenPayloadExternal?.deviceIntegrity,
+        deviceVerdicts,
+        playProtectVerdict,
+        licensingVerdict,
+      });
+
+      await recordAuditLog({
+        actionType: "PLAY_INTEGRITY_ANOMALY",
+        details: `Play Integrity check for user ${uid}: appVerdict=${appVerdict ?? "UNKNOWN"}, deviceVerdicts=[${deviceVerdicts.join(", ")}], playProtect=${playProtectVerdict ?? "UNSPECIFIED"}`,
+        actorEmail: "security@prohost.app",
+        severity: "WARN",
+      });
+    } else {
+      logger.info("play_integrity_verdict_passed", {
+        uid,
+        appVerdict,
+        deviceVerdicts,
+        playProtectVerdict,
       });
     }
   } catch (e) {

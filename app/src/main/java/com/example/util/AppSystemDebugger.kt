@@ -203,6 +203,49 @@ object AppSystemDebugger {
         }
 
         // -------------------------------------------------------------
+        // GOOGLE PLAY INTEGRITY & SECURITY DIAGNOSTICS
+        // -------------------------------------------------------------
+        try {
+            val integrityMgr = PlayIntegrityManager(context)
+            val isAvailable = integrityMgr.isIntegrityAvailable()
+            val tokenTestResult = integrityMgr.requestIntegrityToken("DIAGNOSTIC_TEST_NONCE")
+            val tokenObtained = tokenTestResult.isSuccess
+
+            results.add(
+                DiagnosticItem(
+                    category = "Play Security & Integrity",
+                    featureName = "Google Play Services Integrity API Readiness",
+                    status = if (isAvailable) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
+                    details = if (isAvailable)
+                        "Google Play Services Integrity API is available and operational on this device."
+                    else
+                        "Google Play Services is not running or outdated on this device."
+                )
+            )
+
+            results.add(
+                DiagnosticItem(
+                    category = "Play Security & Integrity",
+                    featureName = "Play Integrity Cryptographic Token Generation",
+                    status = if (tokenObtained) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
+                    details = if (tokenObtained)
+                        "Successfully obtained Play Integrity token (${tokenTestResult.getOrNull()?.length ?: 0} chars) using Cloud Project #646730915838."
+                    else
+                        "Token request failed: ${tokenTestResult.exceptionOrNull()?.message} (expected on non-Play emulators/sideloads)."
+                )
+            )
+        } catch (e: Exception) {
+            results.add(
+                DiagnosticItem(
+                    category = "Play Security & Integrity",
+                    featureName = "Play Integrity Subsystem",
+                    status = DiagnosticStatus.WARNING,
+                    details = "Play Integrity diagnostic exception: ${e.message}"
+                )
+            )
+        }
+
+        // -------------------------------------------------------------
         // 3. WORKSPACE DISCOVERY & GEO-SPATIAL OPERATIONS
         // -------------------------------------------------------------
         try {
