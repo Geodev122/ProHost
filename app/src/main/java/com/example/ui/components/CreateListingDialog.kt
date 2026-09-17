@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -352,10 +353,11 @@ fun CreateListingDialog(
     var hasAcknowledgedAuditDisclaimer by rememberSaveable { mutableStateOf(false) }
 
     // Facilities toggles
-    val standardFacilities = availableFacilities
+    var masterFacilities by remember { mutableStateOf(availableFacilities) }
     var selectedFacilities by rememberSaveable(stateSaver = StringSetSaver) {
-        mutableStateOf(existingDraft?.essentialFacilities?.toSet() ?: standardFacilities.take(5).toSet())
+        mutableStateOf(existingDraft?.essentialFacilities?.toSet() ?: masterFacilities.take(3).toSet())
     }
+    var showFacilityDialog by remember { mutableStateOf(false) }
 
     // Equipment builder
     val defaultEquipCatalog = listOf(
@@ -372,11 +374,13 @@ fun CreateListingDialog(
         EquipmentItem("EQ-T11", "Espresso Bar & Beverage Refrigerator", EquipmentCategory.OFFICE_AMENITIES, 1),
         EquipmentItem("EQ-T12", "Magnetic Glass Presentation Whiteboard", EquipmentCategory.OFFICE_AMENITIES, 2)
     )
+    var masterEquipmentCatalog by remember { mutableStateOf(defaultEquipCatalog) }
+    var showEquipmentDialog by remember { mutableStateOf(false) }
 
     var chosenEquipment by rememberSaveable(stateSaver = EquipmentListSaver) {
         mutableStateOf(
             existingDraft?.equipment?.takeIf { it.isNotEmpty() }
-                ?: listOf(defaultEquipCatalog[0], defaultEquipCatalog[3], defaultEquipCatalog[10])
+                ?: listOf(masterEquipmentCatalog[0], masterEquipmentCatalog[3], masterEquipmentCatalog[10])
         )
     }
     var equipmentSearchQuery by rememberSaveable { mutableStateOf("") }
@@ -832,113 +836,56 @@ fun CreateListingDialog(
                                 HorizontalDivider()
 
                                 Text("Shared Essential Facilities", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                                standardFacilities.forEach { facility ->
-                                    val isChecked = selectedFacilities.contains(facility)
+                                val firstFacility = selectedFacilities.firstOrNull()
+                                val facilitySummary = if (firstFacility != null) {
+                                    if (selectedFacilities.size > 1) "$firstFacility (+${selectedFacilities.size - 1} more selected)" else "$firstFacility selected"
+                                } else {
+                                    "No facilities selected"
+                                }
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = MaterialTheme.shapes.medium,
+                                    onClick = { showFacilityDialog = true },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
                                     Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(MaterialTheme.shapes.small)
-                                            .clickable {
-                                                selectedFacilities = if (isChecked) selectedFacilities - facility else selectedFacilities + facility
-                                            }
-                                            .padding(vertical = Spacing.xs)
+                                        modifier = Modifier.padding(12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Checkbox(checked = isChecked, onCheckedChange = {
-                                            selectedFacilities = if (it) selectedFacilities + facility else selectedFacilities - facility
-                                        })
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(facility, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(facilitySummary, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                                            Text("Tap to open picker & manage master list", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                        Text("See More ➔", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                     }
                                 }
 
                                 HorizontalDivider()
 
                                 Text("Professional Equipment Catalog", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                                Text("Select equipment available on premises", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                                OutlinedTextField(
-                                    value = equipmentSearchQuery,
-                                    onValueChange = { equipmentSearchQuery = it },
-                                    placeholder = { Text("Search equipment...") },
-                                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                                    modifier = Modifier.fillMaxWidth(),
+                                val firstEquip = chosenEquipment.firstOrNull()?.name
+                                val equipSummary = if (firstEquip != null) {
+                                    if (chosenEquipment.size > 1) "$firstEquip (+${chosenEquipment.size - 1} more selected)" else "$firstEquip selected"
+                                } else {
+                                    "No equipment selected"
+                                }
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
                                     shape = MaterialTheme.shapes.medium,
-                                    singleLine = true
-                                )
-
-                                val filteredEquip = defaultEquipCatalog.filter {
-                                    equipmentSearchQuery.isBlank() || it.name.contains(equipmentSearchQuery, ignoreCase = true)
-                                }
-
-                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    filteredEquip.forEach { item ->
-                                        val isSelected = chosenEquipment.any { it.name == item.name }
-                                        Surface(
-                                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                                            shape = MaterialTheme.shapes.small,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    chosenEquipment = if (isSelected) {
-                                                        chosenEquipment.filterNot { it.name == item.name }
-                                                    } else {
-                                                        chosenEquipment + item
-                                                    }
-                                                }
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(10.dp),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Text(item.name, fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.SemiBold)
-                                                    Text(item.category.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                }
-                                                Icon(
-                                                    if (isSelected) Icons.Default.CheckCircle else Icons.Default.AddCircleOutline,
-                                                    contentDescription = null,
-                                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
+                                    onClick = { showEquipmentDialog = true },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(equipSummary, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                                            Text("Tap to open equipment catalog & manage master list", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
-                                    }
-                                }
-
-                                // Host-added equipment not in defaultEquipCatalog above —
-                                // shown separately since it never matches that list's own
-                                // search/toggle rows.
-                                val customChosenEquipment = remember(chosenEquipment) {
-                                    chosenEquipment.filterNot { chosen -> defaultEquipCatalog.any { it.name == chosen.name } }
-                                }
-                                if (customChosenEquipment.isNotEmpty()) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        customChosenEquipment.forEach { item ->
-                                            Surface(
-                                                color = MaterialTheme.colorScheme.primaryContainer,
-                                                shape = MaterialTheme.shapes.small,
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.padding(10.dp),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Column(modifier = Modifier.weight(1f)) {
-                                                        Text(item.name, fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.SemiBold)
-                                                        Text(
-                                                            "${item.category.displayName} • Added by you",
-                                                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
-                                                    }
-                                                    IconButton(onClick = { chosenEquipment = chosenEquipment.filterNot { it.id == item.id } }) {
-                                                        Icon(Icons.Default.Close, contentDescription = "Remove ${item.name}")
-                                                    }
-                                                }
-                                            }
-                                        }
+                                        Text("See More ➔", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                     }
                                 }
 
@@ -1463,6 +1410,276 @@ fun CreateListingDialog(
                     }) { Text("I Understand, Continue") }
                 }
             )
+        }
+
+        if (showFacilityDialog) {
+            FacilityPickerDialog(
+                facilities = masterFacilities,
+                selectedFacilities = selectedFacilities,
+                onDismiss = { showFacilityDialog = false },
+                onSave = { selectedFacilities = it },
+                onAddNewFacility = { newFac ->
+                    masterFacilities = masterFacilities + newFac
+                }
+            )
+        }
+
+        if (showEquipmentDialog) {
+            EquipmentPickerDialog(
+                catalog = masterEquipmentCatalog,
+                chosenEquipment = chosenEquipment,
+                onDismiss = { showEquipmentDialog = false },
+                onSave = { chosenEquipment = it },
+                onAddNewEquipment = { newItem ->
+                    masterEquipmentCatalog = masterEquipmentCatalog + newItem
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun FacilityPickerDialog(
+    facilities: List<String>,
+    selectedFacilities: Set<String>,
+    onDismiss: () -> Unit,
+    onSave: (Set<String>) -> Unit,
+    onAddNewFacility: (String) -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+    var currentSelected by remember { mutableStateOf(selectedFacilities) }
+    var newFacilityInput by remember { mutableStateOf("") }
+
+    val filtered = remember(facilities, query) {
+        facilities.filter { it.contains(query, ignoreCase = true) }
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.75f).padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Select Shared Essential Facilities", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = "Close") }
+                }
+
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = { Text("Search facilities...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium
+                )
+
+                LazyColumn(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(filtered, key = { it }) { facility ->
+                        val isChecked = currentSelected.contains(facility)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable {
+                                    currentSelected = if (isChecked) currentSelected - facility else currentSelected + facility
+                                }
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            Checkbox(
+                                checked = isChecked,
+                                onCheckedChange = { checked ->
+                                    currentSelected = if (checked) currentSelected + facility else currentSelected - facility
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(facility, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+
+                HorizontalDivider()
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = newFacilityInput,
+                        onValueChange = { newFacilityInput = it },
+                        placeholder = { Text("Add new to master list...") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        shape = MaterialTheme.shapes.medium
+                    )
+                    Button(
+                        onClick = {
+                            val trimmed = newFacilityInput.trim()
+                            if (trimmed.isNotBlank() && !facilities.contains(trimmed)) {
+                                onAddNewFacility(trimmed)
+                                currentSelected = currentSelected + trimmed
+                                newFacilityInput = ""
+                            }
+                        },
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Text("Add New")
+                    }
+                }
+
+                Button(
+                    onClick = { onSave(currentSelected); onDismiss() },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Text("Save & Apply (${currentSelected.size} Selected)")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EquipmentPickerDialog(
+    catalog: List<EquipmentItem>,
+    chosenEquipment: List<EquipmentItem>,
+    onDismiss: () -> Unit,
+    onSave: (List<EquipmentItem>) -> Unit,
+    onAddNewEquipment: (EquipmentItem) -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+    var currentChosen by remember { mutableStateOf(chosenEquipment) }
+    var newName by remember { mutableStateOf("") }
+    var newCategory by remember { mutableStateOf(EquipmentCategory.WORKSPACES) }
+
+    val filtered = remember(catalog, query) {
+        catalog.filter { query.isBlank() || it.name.contains(query, ignoreCase = true) }
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f).padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Select Professional Equipment", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = "Close") }
+                }
+
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = { Text("Search equipment catalog...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium
+                )
+
+                LazyColumn(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(filtered, key = { it.id }) { item ->
+                        val isSelected = currentChosen.any { it.name == item.name }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable {
+                                    currentChosen = if (isSelected) currentChosen.filterNot { it.name == item.name } else currentChosen + item
+                                }
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            Checkbox(
+                                checked = isSelected,
+                                onCheckedChange = { checked ->
+                                    currentChosen = if (checked) currentChosen + item else currentChosen.filterNot { it.name == item.name }
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(item.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                Text(item.category.displayName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider()
+
+                Text("Add New Equipment to Master List", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    placeholder = { Text("Equipment name...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    items(EquipmentCategory.entries) { cat ->
+                        FilterChip(
+                            selected = newCategory == cat,
+                            onClick = { newCategory = cat },
+                            label = { Text(cat.displayName, fontSize = 10.sp) }
+                        )
+                    }
+                }
+                Button(
+                    onClick = {
+                        val trimmed = newName.trim()
+                        if (trimmed.isNotBlank() && currentChosen.none { it.name.equals(trimmed, ignoreCase = true) }) {
+                            val newItem = EquipmentItem(
+                                id = "EQ-CUS-" + System.currentTimeMillis().toString().takeLast(6),
+                                name = trimmed,
+                                category = newCategory,
+                                quantity = 1
+                            )
+                            onAddNewEquipment(newItem)
+                            currentChosen = currentChosen + newItem
+                            newName = ""
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    enabled = newName.isNotBlank()
+                ) {
+                    Text("Add New to Master List")
+                }
+
+                Button(
+                    onClick = { onSave(currentChosen); onDismiss() },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Text("Save & Apply (${currentChosen.size} Selected)")
+                }
+            }
         }
     }
 }

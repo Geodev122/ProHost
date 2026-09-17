@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.data.model.Governorate
@@ -102,17 +103,22 @@ fun ListingLocationMapPicker(
                 
                 if (!addresses.isNullOrEmpty()) {
                     val address = addresses[0]
-                    
-                    // Construct a clean, readable address string
-                    val streetStr = address.thoroughfare ?: address.subLocality ?: ""
-                    val cityStr = address.locality ?: address.subAdminArea ?: ""
-                    val resolvedAddress = listOf(streetStr, cityStr).filter { it.isNotBlank() }.joinToString(", ")
-                    val finalAddress = resolvedAddress.ifBlank { "Unknown Area" }
-
+                    val thoroughfare = address.thoroughfare ?: ""
+                    val subLocality = address.subLocality ?: ""
+                    val locality = address.locality ?: ""
+                    val subAdminArea = address.subAdminArea ?: ""
                     val adminArea = address.adminArea ?: ""
+                    
+                    val streetStr = listOf(thoroughfare, subLocality).filter { it.isNotBlank() }.joinToString(", ")
+                    val cityStr = listOf(locality, subAdminArea).filter { it.isNotBlank() }.joinToString(", ")
+                    val resolvedAddress = listOf(streetStr, cityStr).filter { it.isNotBlank() }.joinToString(", ")
+                    val finalAddress = resolvedAddress.ifBlank { "Beirut Central District" }
+
                     val matchedGov = Governorate.entries.find { gov ->
                         adminArea.contains(gov.displayName, ignoreCase = true) ||
-                        gov.displayName.contains(adminArea, ignoreCase = true)
+                        gov.displayName.contains(adminArea, ignoreCase = true) ||
+                        cityStr.contains(gov.displayName, ignoreCase = true) ||
+                        subAdminArea.contains(gov.displayName, ignoreCase = true)
                     } ?: Governorate.BEIRUT
 
                     withContext(Dispatchers.Main) {
@@ -120,12 +126,12 @@ fun ListingLocationMapPicker(
                     }
                 } else {
                     withContext(Dispatchers.Main) {
-                        onLocationConfirmed(latLng.latitude, latLng.longitude, "Unknown Location", Governorate.BEIRUT)
+                        onLocationConfirmed(latLng.latitude, latLng.longitude, "Beirut Central District", Governorate.BEIRUT)
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    onLocationConfirmed(latLng.latitude, latLng.longitude, "Coordinates: ${latLng.latitude}, ${latLng.longitude}", Governorate.BEIRUT)
+                    onLocationConfirmed(latLng.latitude, latLng.longitude, "Coordinates: ${String.format(Locale.US, "%.4f, %.4f", latLng.latitude, latLng.longitude)}", Governorate.BEIRUT)
                 }
             }
         }
@@ -143,13 +149,13 @@ fun ListingLocationMapPicker(
                 mapType = MapType.NORMAL
             ),
             uiSettings = MapUiSettings(
-                myLocationButtonEnabled = false, // We use our own FAB
+                myLocationButtonEnabled = false,
                 zoomControlsEnabled = false,
                 compassEnabled = true
             )
         )
         
-        // Custom Crosshair Overlay
+        // Custom Crosshair Center Pin Overlay
         Icon(
             imageVector = Icons.Default.MyLocation,
             contentDescription = "Center Crosshair",
@@ -157,57 +163,69 @@ fun ListingLocationMapPicker(
             modifier = Modifier
                 .align(Alignment.Center)
                 .size(36.dp)
-                // Offset slightly up because the anchor of a pin is its bottom tip
                 .offset(y = (-18).dp)
         )
 
-        // Action Buttons
-        Column(
+        // Ultra-Compact Floating Action Controls (Inside bounds, zero overflow)
+        Box(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.End
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(10.dp),
+            contentAlignment = Alignment.Center
         ) {
-            FloatingActionButton(
-                onClick = {
-                    val finePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-                    val coarsePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-                    if (finePerm == PackageManager.PERMISSION_GRANTED || coarsePerm == PackageManager.PERMISSION_GRANTED) {
-                        requestHighAccuracyLocation()
-                    } else {
-                        requestPermissionLauncher.launch(
-                            arrayOf(
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION
-                            )
-                        )
-                    }
-                },
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                shape = CircleShape,
-                modifier = Modifier.size(48.dp)
-            ) {
-                if (isLocating) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                } else {
-                    Icon(Icons.Default.MyLocation, contentDescription = "Locate Me")
-                }
-            }
-
-            ExtendedFloatingActionButton(
+            Surface(
                 onClick = {
                     val currentCenter = cameraPositionState.position.target
                     coroutineScope.launch {
                         resolveLocationAndConfirm(currentCenter)
                     }
                 },
-                icon = { Icon(Icons.Default.Check, contentDescription = "Mark Pin") },
-                text = { Text("Mark Pin") },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            )
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shadowElevation = 6.dp
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Text("Mark Pin Location", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // GPS Locate FAB (Bottom Right inside bounds)
+        FloatingActionButton(
+            onClick = {
+                val finePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                val coarsePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+                if (finePerm == PackageManager.PERMISSION_GRANTED || coarsePerm == PackageManager.PERMISSION_GRANTED) {
+                    requestHighAccuracyLocation()
+                } else {
+                    requestPermissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                        )
+                    )
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            shape = CircleShape,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(10.dp)
+                .size(40.dp)
+        ) {
+            if (isLocating) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            } else {
+                Icon(Icons.Default.MyLocation, contentDescription = "Locate Me", modifier = Modifier.size(20.dp))
+            }
         }
     }
 }

@@ -22,13 +22,7 @@ import com.example.data.model.UserRole
 import com.example.ui.theme.*
 
 /**
- * The rich role-tailored identity card — role pill, avatar, name, credentials,
- * and location/ID/phone-status meta — that used to live at the top of
- * SpecialistProfileScreen. It's now the single identity card shown at the top
- * of every role's side drawer (Specialist, Pro Host, Admin) so the same user
- * summary isn't duplicated in two different visual styles across the app.
- * Sign Out lives separately, as the last item in the drawer (DrawerSignOutButton
- * in AppDrawerContent.kt) — not on this card.
+ * The rich role-tailored identity card shown at the top of every role's side drawer.
  */
 @Composable
 fun DrawerIdentityCard(
@@ -62,70 +56,77 @@ fun DrawerIdentityCard(
                 .padding(20.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // Top row: Role Pill (+ active subscription tag for a Pro Host)
+                // Top row: Active Plan Tag (for Pro Host, keeping only active plan tag as requested)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Start,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(
-                        color = when (role) {
-                            UserRole.ADMIN -> AmberWarning.copy(alpha = 0.25f)
-                            UserRole.PRO_HOST -> CarnationOrange.copy(alpha = 0.25f)
-                            UserRole.SPECIALIST -> VibrantBlue.copy(alpha = 0.25f)
-                        },
-                        shape = MaterialTheme.shapes.medium,
-                        border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.6f))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                imageVector = when (role) {
-                                    UserRole.ADMIN -> Icons.Default.Shield
-                                    UserRole.PRO_HOST -> Icons.Default.HomeWork
-                                    UserRole.SPECIALIST -> Icons.Default.VerifiedUser
-                                },
-                                contentDescription = null,
-                                tint = when (role) {
-                                    UserRole.ADMIN -> AmberWarning
-                                    UserRole.PRO_HOST -> CarnationOrangeLight
-                                    UserRole.SPECIALIST -> Color.White
-                                },
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = when (role) {
-                                    UserRole.ADMIN -> "Super Administrator Node"
-                                    UserRole.PRO_HOST -> "Verified Space Host"
-                                    UserRole.SPECIALIST -> "Practitioner / Specialist"
-                                },
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-
                     if (role == UserRole.PRO_HOST && user != null) {
-                        Spacer(modifier = Modifier.width(6.dp))
                         Surface(
-                            color = Color.White.copy(alpha = 0.15f),
-                            shape = MaterialTheme.shapes.medium
+                            color = CarnationOrange.copy(alpha = 0.35f),
+                            shape = MaterialTheme.shapes.medium,
+                            border = BorderStroke(1.dp, CarnationOrange.copy(alpha = 0.8f))
                         ) {
-                            Text(
-                                text = currentPackage?.badgeName?.ifBlank { currentPackage.name } ?: "No Package",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.WorkspacePremium,
+                                    contentDescription = null,
+                                    tint = CarnationOrangeLight,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = currentPackage?.badgeName?.ifBlank { currentPackage.name } ?: "Active Plan",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    } else {
+                        Surface(
+                            color = when (role) {
+                                UserRole.ADMIN -> AmberWarning.copy(alpha = 0.25f)
+                                else -> VibrantBlue.copy(alpha = 0.25f)
+                            },
+                            shape = MaterialTheme.shapes.medium,
+                            border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.6f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = when (role) {
+                                        UserRole.ADMIN -> Icons.Default.Shield
+                                        else -> Icons.Default.VerifiedUser
+                                    },
+                                    contentDescription = null,
+                                    tint = when (role) {
+                                        UserRole.ADMIN -> AmberWarning
+                                        else -> Color.White
+                                    },
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = when (role) {
+                                        UserRole.ADMIN -> "Super Administrator Node"
+                                        else -> "Practitioner / Specialist"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                 }
@@ -176,11 +177,6 @@ fun DrawerIdentityCard(
                                 }
                             }
                         }
-                        // Distinct from the phone-verified check above: this reflects
-                        // whether a real ID document is actually on file
-                        // (AppUser.idDocumentUrl), not just a completed SMS OTP. Kept
-                        // visually separate (gold, top corner) so the two can't be
-                        // mistaken for one another.
                         if (user?.idDocumentUrl != null) {
                             Surface(
                                 color = AmberWarning,
@@ -247,9 +243,7 @@ fun DrawerIdentityCard(
 
                 HorizontalDivider(color = Color.White.copy(alpha = 0.15f))
 
-                // Bottom Meta: Location + Member ID on one row (each weighted +
-                // truncated so they never collide on narrow screens), Phone-Verified
-                // status on its own row below.
+                // Bottom Meta: Location + Member ID
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),

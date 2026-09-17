@@ -431,7 +431,7 @@ fun OwnerHubScreenContent(
                                 text = if (currentPackage == null) {
                                     "Choose a package below to start publishing workspace listings."
                                 } else {
-                                    "Manage smart availability, blackout offline hours, and keep your space active across Lebanon with Whish Pay."
+                                    "List your space, set subdivisions, choose renting modal, and keep your business active."
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xCCFFFFFF),
@@ -440,7 +440,8 @@ fun OwnerHubScreenContent(
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Button(
                                     onClick = onOpenWhishRenewal,
@@ -453,16 +454,21 @@ fun OwnerHubScreenContent(
                                     Text("Renew", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                                 }
 
-                                OutlinedButton(
-                                    onClick = onOpenPackageSelection,
-                                    modifier = Modifier.weight(1f),
+                                val activeCount = ownerSpaces.count { it.status == ListingStatus.ACTIVE }
+                                val limitText = currentPackage?.listingLimit?.let { "$activeCount / $it Consumed" } ?: "$activeCount Active"
+                                Surface(
+                                    color = Color.White.copy(alpha = 0.2f),
                                     shape = MaterialTheme.shapes.medium,
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                                    border = BorderStroke(1.dp, Color.White)
+                                    modifier = Modifier.weight(1f).height(40.dp)
                                 ) {
-                                    Icon(Icons.Default.Layers, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Manage Packages", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                        Text(
+                                            text = limitText,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
                                 }
                             }
                         }

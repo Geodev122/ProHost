@@ -93,7 +93,7 @@ export async function initiatePayment(
     method: "POST",
     headers: headers(secret) as unknown as HeadersInit,
     body: JSON.stringify({
-      amount: params.amount.toFixed(0),
+      amount: params.amount.toFixed(2),
       currency: params.currency,
       invoice: params.invoice,
       externalId: params.externalId,

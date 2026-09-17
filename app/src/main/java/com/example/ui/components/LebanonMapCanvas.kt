@@ -73,8 +73,8 @@ private fun getMarkerPalette(spaceType: SpaceType, isSelected: Boolean): MarkerP
 
 private fun createCustomMarker(context: Context, spaceType: SpaceType, isSelected: Boolean): BitmapDescriptor {
     val scale = context.resources.displayMetrics.density
-    val width = (72 * scale).toInt()
-    val height = (108 * scale).toInt()
+    val width = (36 * scale).toInt() // Reduced by 50%
+    val height = (54 * scale).toInt() // Reduced by 50%
     val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
 

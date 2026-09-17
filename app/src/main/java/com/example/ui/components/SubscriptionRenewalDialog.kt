@@ -1,6 +1,9 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -10,9 +13,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.AppUser
 import com.example.data.model.PackagePlan
@@ -22,15 +29,10 @@ import com.example.ui.viewmodel.ProHostViewModel
 import java.util.Locale
 
 /**
- * Replaces the old WhishPayModal-based "Renew" flow, which always charged the flat
- * legacy monthlySubscriptionFeeUsd regardless of the host's real package state. This
- * is an owner-level entitlement dialog, not tied to any one listing:
- *  - No active package (ownerPackageId == null): pick one of the admin-enabled
- *    packages below, then pay for it.
- *  - Has an active package: shows its real name/price, with a "Renew via Whish"
- *    button that buys the same package again (ProHostViewModel.payOwnerPackageViaWhish
- *    with the current package id — extends ownerPackageExpiryMillis by its
- *    validityDays, per entitlements.ts's grantEntitlement).
+ * Replaces the old WhishPayModal-based "Renew" flow with an ultra-carousel dialog
+ * displaying all available subscription packages side-by-side, pre-selecting the
+ * current active or last subscribed plan for easy renewal while highlighting other
+ * tiers for upselling.
  */
 @Composable
 fun SubscriptionRenewalDialog(
@@ -65,7 +67,7 @@ fun SubscriptionRenewalDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Renew Access", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                    Text("Membership Plans & Renewal", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Default.Close, contentDescription = "Close")
                     }
@@ -73,49 +75,93 @@ fun SubscriptionRenewalDialog(
 
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
-                if (currentPlan == null) {
+                Text(
+                    text = "Choose your plan below to renew or upgrade your ProHost business tier:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                if (enabledPlans.isEmpty()) {
                     Text(
-                        "No active package — choose one below to get started.",
+                        "No packages are available right now — please check back later.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.error
                     )
-                    Spacer(modifier = Modifier.height(Spacing.md))
-                    if (enabledPlans.isEmpty()) {
-                        Text(
-                            "No packages are available right now — please check back later.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                    enabledPlans.forEach { plan ->
-                        PackagePickerRow(
-                            plan = plan,
-                            isSelected = selectedPlan?.id == plan.id,
-                            onSelect = { selectedPlan = plan }
-                        )
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-                    }
                 } else {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = MaterialTheme.shapes.medium
+                    // Ultra Carousel of all available plans (Renewal + Upselling)
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(Spacing.md)) {
-                            Text(currentPlan.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            if (currentPlan.description.isNotBlank()) {
-                                Text(currentPlan.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        items(enabledPlans, key = { it.id }) { plan ->
+                            val isSelected = selectedPlan?.id == plan.id
+                            val isCurrent = currentPlan?.id == plan.id
+
+                            Card(
+                                onClick = { selectedPlan = plan },
+                                modifier = Modifier
+                                    .width(210.dp)
+                                    .shadow(if (isSelected) 6.dp else 2.dp, MaterialTheme.shapes.medium),
+                                shape = MaterialTheme.shapes.medium,
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                ),
+                                border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = plan.name,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        if (isCurrent) {
+                                            Surface(
+                                                color = WhishRed,
+                                                shape = MaterialTheme.shapes.extraSmall
+                                            ) {
+                                                Text(
+                                                    text = "Active",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontSize = 8.sp,
+                                                    color = Color.White,
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                    Text(
+                                        text = plan.listingLimit?.let { "Up to $it listings · ${plan.validityDays}d" } ?: "Unlimited · ${plan.validityDays}d",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "$${String.format(Locale.US, "%.2f", plan.priceUsd)}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                             }
-                            Spacer(modifier = Modifier.height(Spacing.xs))
-                            Text(
-                                "$${String.format(Locale.US, "%.2f", currentPlan.priceUsd)} / ${currentPlan.validityDays} days",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.ExtraBold
-                            )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(Spacing.md))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 OutlinedTextField(
                     value = payerName,
@@ -135,7 +181,7 @@ fun SubscriptionRenewalDialog(
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
-                val targetPlan = currentPlan ?: selectedPlan
+                val targetPlan = selectedPlan
                 val canSubmit = payerName.isNotBlank() && payerPhone.isNotBlank() &&
                     targetPlan != null && !isWhishCheckoutInFlight
 
@@ -153,45 +199,9 @@ fun SubscriptionRenewalDialog(
                 ) {
                     Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text("Pay by Whish", fontWeight = FontWeight.Bold)
+                    Text(text = selectedPlan?.let { "Pay $${String.format(Locale.US, "%.2f", it.priceUsd)} by Whish" } ?: "Pay by Whish", fontWeight = FontWeight.Bold)
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun PackagePickerRow(
-    plan: PackagePlan,
-    isSelected: Boolean,
-    onSelect: () -> Unit
-) {
-    Surface(
-        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        shape = MaterialTheme.shapes.medium,
-        onClick = onSelect
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.sm),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(plan.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Text(
-                    plan.listingLimit?.let { "Up to $it listing${if (it == 1) "" else "s"} · ${plan.validityDays} days" }
-                        ?: "Unlimited listings · ${plan.validityDays} days",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Text(
-                "$${String.format(Locale.US, "%.2f", plan.priceUsd)}",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.ExtraBold
-            )
         }
     }
 }
