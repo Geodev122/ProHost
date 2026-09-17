@@ -117,6 +117,16 @@ android {
   }
 }
 
+tasks.register<Zip>("createNativeDebugSymbolsZip") {
+  archiveFileName.set("native-debug-symbols.zip")
+  destinationDirectory.set(file("${layout.buildDirectory.get().asFile}/outputs/native-debug-symbols"))
+  from(file("${layout.buildDirectory.get().asFile}/intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib"))
+}
+
+tasks.matching { it.name == "bundleRelease" || it.name == "assembleRelease" }.configureEach {
+  finalizedBy("createNativeDebugSymbolsZip")
+}
+
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
 
 // Some unused dependencies are commented out below instead of being removed.
