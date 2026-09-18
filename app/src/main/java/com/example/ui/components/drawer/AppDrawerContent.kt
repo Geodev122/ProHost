@@ -371,7 +371,7 @@ fun AdminDrawerContent(
         if (com.example.BuildConfig.DEBUG) {
             Spacer(modifier = Modifier.height(Spacing.xs))
             NavigationDrawerItem(
-                label = { Text("Firebase & System Debugger", fontWeight = FontWeight.Bold) },
+                label = { Text("Cloud & System Debugger", fontWeight = FontWeight.Bold) },
                 selected = false,
                 onClick = { onDrawerAction("system_debugger") },
                 icon = { Icon(Icons.Default.BugReport, contentDescription = null, tint = AmberWarning) }

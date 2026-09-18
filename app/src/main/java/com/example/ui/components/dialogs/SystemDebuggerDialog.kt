@@ -96,7 +96,7 @@ fun SystemDebuggerDialog(
                         Spacer(modifier = Modifier.width(Spacing.md))
                         Column {
                             Text(
-                                "System & Firebase Debugger",
+                                "System & Cloud Debugger",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )

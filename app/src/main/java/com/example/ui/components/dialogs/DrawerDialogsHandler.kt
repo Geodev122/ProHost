@@ -403,7 +403,7 @@ fun DrawerDialogsHandler(
                                             style = MaterialTheme.typography.bodyMedium
                                         )
                                         Text(
-                                            text = "Real-time updates received via Firebase Cloud Messaging will appear here.",
+                                            text = "Real-time updates received via push messaging will appear here.",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.outline,
                                             textAlign = TextAlign.Center,

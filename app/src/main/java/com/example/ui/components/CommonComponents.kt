@@ -1540,7 +1540,7 @@ fun NetworkSyncResilienceBanner(
                 )
                 Column {
                     Text(
-                        text = if (isOffline) "Resilient Offline Mode" else "Firebase Real-time Sync",
+                        text = if (isOffline) "Resilient Offline Mode" else "Cloud Sync Active",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.labelMedium,
                         color = if (isOffline) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer

@@ -306,7 +306,7 @@ fun SpecialistProfileScreen(
                                 ProMetricTile(
                                     title = "Phone Status",
                                     value = if (user.isVerified) "Verified" else "Unverified",
-                                    subtitle = "Firebase SMS verification",
+                                    subtitle = "SMS Verification Status",
                                     icon = Icons.Default.VerifiedUser,
                                     iconTint = FreshGreen,
                                     modifier = Modifier.weight(1f)
@@ -407,85 +407,7 @@ fun SpecialistProfileScreen(
                 }
             }
 
-            // =========================================================================
-            // 4. SPECIALIST PERFORMANCE — the 3 stat boxes formerly pinned to the top
-            // of My Bookings (Active Leases / This Month Spent / Pending Host Reply),
-            // moved here per the user's request. Shown ONLY for SPECIALIST now,
-            // ProHost users only see their host metrics above.
-            // =========================================================================
-            if (user.role == UserRole.SPECIALIST) {
-                val allBookingRequests by viewModel.bookingRequests.collectAsState()
-                // Same 3-condition + ADMIN-passthrough filter MyBookingsScreen used for
-                // this same data, so the numbers stay consistent between screens.
-                val userOwnBookings = remember(allBookingRequests, user) {
-                    if (user.role == UserRole.ADMIN) {
-                        allBookingRequests
-                    } else {
-                        allBookingRequests.filter {
-                            it.practitionerId == user.id ||
-                                it.practitionerEmail.equals(user.email, ignoreCase = true) ||
-                                it.practitionerName.contains(user.fullName, ignoreCase = true)
-                        }
-                    }
-                }
-                val specialistActiveLeases = userOwnBookings.count { it.status == BookingRequestStatus.ACCEPTED }
-                val specialistPendingCount = userOwnBookings.count { it.status == BookingRequestStatus.PENDING }
-                // Real current-calendar-month spend, same logic MyBookingsScreen used.
-                val specialistThisMonthSpendUsd = remember(userOwnBookings) {
-                    val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
-                    val now = java.util.Calendar.getInstance()
-                    userOwnBookings.filter { it.status == BookingRequestStatus.ACCEPTED }.sumOf { booking ->
-                        try {
-                            val start = java.util.Calendar.getInstance().apply {
-                                time = dateFormat.parse(booking.startDate) ?: return@sumOf 0.0
-                            }
-                            val end = (start.clone() as java.util.Calendar).apply { add(java.util.Calendar.MONTH, booking.durationMonths) }
-                            if (!now.before(start) && now.before(end)) booking.formula.rateUsd else 0.0
-                        } catch (e: Exception) {
-                            0.0
-                        }
-                    }
-                }
 
-                ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ProSectionHeader(
-                            title = "Specialist Performance",
-                            subtitle = "Your own leases, spend, and pending requests as a renting specialist",
-                            icon = Icons.Default.EventAvailable
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            ProMetricTile(
-                                title = "Active Leases",
-                                value = "$specialistActiveLeases",
-                                subtitle = "Confirmed workspace slots",
-                                icon = Icons.Default.Verified,
-                                iconTint = OxfordBlue,
-                                modifier = Modifier.weight(1f)
-                            )
-                            ProMetricTile(
-                                title = "This Month",
-                                value = "$${String.format(java.util.Locale.US, "%.0f", specialistThisMonthSpendUsd)}",
-                                subtitle = "Spent this calendar month",
-                                icon = Icons.Default.AttachMoney,
-                                iconTint = FreshGreen,
-                                modifier = Modifier.weight(1f)
-                            )
-                            ProMetricTile(
-                                title = "Pending Host",
-                                value = "$specialistPendingCount",
-                                subtitle = "Awaiting host reply",
-                                icon = Icons.Default.Schedule,
-                                iconTint = BrightOrange,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-            }
 
             // =========================================================================
             // 5. ROLE-SPECIFIC ACTIVITY CARDS (BOOKINGS / LEASES)
@@ -837,77 +759,59 @@ fun SpecialistProfileScreen(
             }
 
             // =========================================================================
-            // 7. GOOGLE PLAY IN-APP UPDATES & APP INTEGRITY
+            // 7. COMPACT APP VERSION & UPDATE CHECK
             // =========================================================================
-            ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    ProSectionHeader(
-                        title = "App Version & In-App Updates",
-                        subtitle = "Google Play Core update management & release integrity",
-                        icon = Icons.Default.SystemUpdate
-                    )
+            val updateState by (inAppUpdateManager?.updateState?.collectAsState() ?: remember { mutableStateOf(UpdateState.UP_TO_DATE) })
 
-                    val updateState by (inAppUpdateManager?.updateState?.collectAsState() ?: remember { mutableStateOf(UpdateState.UP_TO_DATE) })
-                    val downloadProgress by (inAppUpdateManager?.downloadProgress?.collectAsState() ?: remember { mutableStateOf(0f) })
-
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Column {
-                            Text(
-                                text = "Installed Version: 1.0.0 (Build 1)",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = when (updateState) {
-                                    UpdateState.IDLE -> "Play Store check idle"
-                                    UpdateState.CHECKING -> "Checking Google Play Store..."
-                                    UpdateState.UPDATE_AVAILABLE_FLEXIBLE -> "New release available on Play Store"
-                                    UpdateState.UPDATE_AVAILABLE_IMMEDIATE -> "Mandatory update available"
-                                    UpdateState.DOWNLOADING -> "Downloading: ${(downloadProgress * 100).toInt()}%"
-                                    UpdateState.DOWNLOADED -> "Update downloaded! Ready to install."
-                                    UpdateState.FAILED -> "Update failed to download"
-                                    UpdateState.UP_TO_DATE -> "ProHost is up to date"
-                                },
-                                style = MaterialTheme.typography.labelSmall,
-                                color = when (updateState) {
-                                    UpdateState.DOWNLOADED -> FreshGreen
-                                    UpdateState.UPDATE_AVAILABLE_FLEXIBLE, UpdateState.UPDATE_AVAILABLE_IMMEDIATE -> BrightOrange
-                                    UpdateState.FAILED -> CrimsonRed
-                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                }
-                            )
-                        }
+                        Icon(
+                            Icons.Default.SystemUpdate,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "v1.0.0.2 (Build 3) • ProHost is up to date",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
 
-                        if (updateState == UpdateState.DOWNLOADED) {
-                            Button(
-                                onClick = { inAppUpdateManager?.completeUpdate() },
-                                colors = ButtonDefaults.buttonColors(containerColor = FreshGreen),
-                                shape = MaterialTheme.shapes.small,
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Text("Restart & Install", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold)
-                            }
-                        } else {
-                            OutlinedButton(
-                                onClick = {
-                                    if (inAppUpdateManager != null) {
-                                        inAppUpdateManager.checkForAppUpdate(preferImmediate = false)
-                                        Toast.makeText(context, "Checking Google Play for updates...", Toast.LENGTH_SHORT).show()
-                                    } else {
-                                        Toast.makeText(context, "ProHost is up to date (Version 1.0.0)", Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                shape = MaterialTheme.shapes.small,
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("Check Updates", fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                            }
+                    if (updateState == UpdateState.DOWNLOADED) {
+                        Button(
+                            onClick = { inAppUpdateManager?.completeUpdate() },
+                            colors = ButtonDefaults.buttonColors(containerColor = FreshGreen),
+                            shape = MaterialTheme.shapes.small,
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text("Install", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        TextButton(
+                            onClick = {
+                                if (inAppUpdateManager != null) {
+                                    inAppUpdateManager.checkForAppUpdate(preferImmediate = false)
+                                    Toast.makeText(context, "Checking Google Play for updates...", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "ProHost v1.0.0.2 is up to date", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text("Check Update", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
