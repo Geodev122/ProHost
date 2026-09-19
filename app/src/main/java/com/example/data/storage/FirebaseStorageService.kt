@@ -84,20 +84,6 @@ class FirebaseStorageService(
     }
 
     /**
-     * Uploads a Pro Host's proof of ownership / right to rent.
-     */
-    suspend fun uploadOwnershipProofDocument(
-        spaceId: String,
-        fileUri: Uri,
-        fileExtension: String,
-        onProgress: (Float) -> Unit = {}
-    ): String? = uploadAndGetUrl(
-        ref = storage?.reference?.child("listing_ownership_docs/$spaceId/ownership_proof.$fileExtension"),
-        fileUri = fileUri,
-        onProgress = onProgress
-    )
-
-    /**
      * Uploads the document a Pro Host chose to EARN the Listing Verified badge.
      */
     suspend fun uploadListingVerificationDocument(
@@ -128,20 +114,6 @@ class FirebaseStorageService(
     /**
      * Uploads a listing photo to `listings/{spaceId}/photos/{imageId}.jpg` with automatic compression.
      */
-    suspend fun uploadListingImage(
-        spaceId: String,
-        imageId: String,
-        fileUri: Uri,
-        fileExtension: String = "jpg",
-        context: Context = try { FirebaseApp.getInstance().applicationContext } catch (e: Exception) { throw e },
-        onProgress: (Float) -> Unit = {}
-    ): String? {
-        val bytes = withContext(Dispatchers.IO) {
-            context.contentResolver.openInputStream(fileUri)?.use { it.readBytes() }
-        } ?: return null
-        return uploadListingImageBytes(spaceId, imageId, bytes, fileExtension, onProgress)
-    }
-
     suspend fun uploadListingImageBytes(
         spaceId: String,
         imageId: String,
@@ -158,21 +130,6 @@ class FirebaseStorageService(
      * Per-subdivision (room/desk) images with automatic compression stored in
      * `listings/{spaceId}/subdivisions/{subdivisionId}/{imageId}.jpg`.
      */
-    suspend fun uploadSubdivisionImage(
-        spaceId: String,
-        subdivisionId: String,
-        imageId: String,
-        fileUri: Uri,
-        fileExtension: String = "jpg",
-        context: Context = try { FirebaseApp.getInstance().applicationContext } catch (e: Exception) { throw e },
-        onProgress: (Float) -> Unit = {}
-    ): String? {
-        val bytes = withContext(Dispatchers.IO) {
-            context.contentResolver.openInputStream(fileUri)?.use { it.readBytes() }
-        } ?: return null
-        return uploadSubdivisionImageBytes(spaceId, subdivisionId, imageId, bytes, fileExtension, onProgress)
-    }
-
     suspend fun uploadSubdivisionImageBytes(
         spaceId: String,
         subdivisionId: String,

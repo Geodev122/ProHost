@@ -343,13 +343,6 @@ fun AdminDrawerContent(
         )
 
         NavigationDrawerItem(
-            label = { Text("Verification Requests", fontWeight = FontWeight.SemiBold) },
-            selected = activeTabId == "admin_verifications",
-            onClick = { onTabSelected("admin_verifications") },
-            icon = { Icon(Icons.Default.Verified, contentDescription = null, tint = if (activeTabId == "admin_verifications") CarnationOrange else OxfordBlue) }
-        )
-        Spacer(modifier = Modifier.height(Spacing.xs))
-        NavigationDrawerItem(
             label = { Text("System Audit Logs", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { onDrawerAction("admin_audit") },

@@ -71,8 +71,7 @@ private val PRO_HOST_FULLSCREEN_TABS = listOf(
  */
 private val ADMIN_FULLSCREEN_TABS = listOf(
     AppNavTab.AdminConsole,
-    AppNavTab.AdminProfile,
-    AppNavTab.AdminVerifications
+    AppNavTab.AdminProfile
 )
 
 /** Reachable via the drawer by every role — unlike PRO_HOST_FULLSCREEN_TABS
@@ -91,12 +90,17 @@ private val FULLSCREEN_TAB_IDS: Set<String> =
  * validating externally-supplied tab ids (see below).
  */
 private fun allowedTabIdsForRole(role: UserRole): Set<String> {
+    // My Favorites is SPECIALIST-only — neither the Pro Host nor the Admin drawer
+    // exposes an entry point to it (both intentionally hide the "My Favorites"
+    // NavigationDrawerItem, AppDrawerContent.kt), so it must not be a landable
+    // tab id for those roles either, or it becomes reachable only via a raw
+    // deep link with no in-app way back to it.
     val shared = SHARED_FULLSCREEN_TABS.map { it.id }.toSet()
     return when (role) {
         UserRole.SPECIALIST -> SPECIALIST_BOTTOM_TABS.map { it.id }.toSet() + AppNavTab.OwnerSubscriptions.id + shared
-        UserRole.PRO_HOST -> PRO_HOST_BOTTOM_TABS.map { it.id }.toSet() + PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() + shared + AppNavTab.SearchMap.id
+        UserRole.PRO_HOST -> PRO_HOST_BOTTOM_TABS.map { it.id }.toSet() + PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() + AppNavTab.SearchMap.id
         UserRole.ADMIN -> ADMIN_FULLSCREEN_TABS.map { it.id }.toSet() +
-            (PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() - AppNavTab.OwnerSubscriptions.id) + shared + AppNavTab.ManageListings.id + AppNavTab.OwnerRentingProgress.id
+            (PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() - AppNavTab.OwnerSubscriptions.id) + AppNavTab.ManageListings.id + AppNavTab.OwnerRentingProgress.id
     }
 }
 
@@ -397,15 +401,31 @@ fun ProHostAppRoot(
                 val isOfflineMode by viewModel.isOfflineMode.collectAsState()
                 val syncStatusMessage by viewModel.syncStatusMessage.collectAsState()
 
-                BackHandler(enabled = detailedSpace != null || safeFullScreenDrawerTab != null) {
+                // Admin has no bottom-nav "home" tab to fall back to (roleTabs is empty
+                // for that role, and AdminConsole itself only ever renders via the
+                // fullscreen branch below, never the regular activeTabId switch) — so
+                // unlike Pro Host/Specialist, back must route Admin BACK INTO the
+                // fullscreen branch (at AdminConsole), not out of it. The old code set
+                // activeTabId = AdminConsole.id while also nulling fullScreenDrawerTab,
+                // which landed on the regular switch's else-branch (DiscoveryScreen) —
+                // a screen that doesn't belong to Admin's role at all — since
+                // AdminConsole.id has no case there. Already at AdminConsole itself,
+                // there's nowhere further back to go, so the handler is disabled there
+                // and the system default (minimize/exit) applies, same as it always has
+                // for Pro Host/Specialist sitting on their own root tab.
+                val isAdminAtRoot = currentRole == UserRole.ADMIN && safeFullScreenDrawerTab == AppNavTab.AdminConsole.id
+                BackHandler(enabled = detailedSpace != null || (safeFullScreenDrawerTab != null && !isAdminAtRoot)) {
                     if (detailedSpace != null) {
                         detailedSpace = null
                     } else if (safeFullScreenDrawerTab != null) {
-                        fullScreenDrawerTab = null
-                        activeTabId = when (currentRole) {
-                            UserRole.ADMIN -> AppNavTab.AdminConsole.id
-                            UserRole.PRO_HOST -> AppNavTab.ManageListings.id
-                            else -> AppNavTab.SearchMap.id
+                        if (currentRole == UserRole.ADMIN) {
+                            fullScreenDrawerTab = AppNavTab.AdminConsole.id
+                        } else {
+                            fullScreenDrawerTab = null
+                            activeTabId = when (currentRole) {
+                                UserRole.PRO_HOST -> AppNavTab.ManageListings.id
+                                else -> AppNavTab.SearchMap.id
+                            }
                         }
                     }
                 }
@@ -451,9 +471,6 @@ fun ProHostAppRoot(
                                         viewModel = viewModel
                                     )
                                     AppNavTab.AdminConsole.id -> AdminConsoleScreen(
-                                        viewModel = viewModel
-                                    )
-                                    AppNavTab.AdminVerifications.id -> AdminVerificationScreen(
                                         viewModel = viewModel
                                     )
                                     AppNavTab.AdminProfile.id -> SpecialistProfileScreen(
