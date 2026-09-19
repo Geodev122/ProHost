@@ -1065,7 +1065,8 @@ fun WorkspaceCard(
     isSaved: Boolean = false,
     onToggleSave: (() -> Unit)? = null,
     onClick: () -> Unit,
-    onWhatsAppClick: (() -> Unit)? = null
+    onWhatsAppClick: (() -> Unit)? = null,
+    onDetailsClick: (() -> Unit)? = null
 ) {
     ModernCard(
         modifier = modifier,
@@ -1292,20 +1293,37 @@ fun WorkspaceCard(
             }
         }
 
-        // Footer: WhatsApp button
-        if (onWhatsAppClick != null) {
+        // Footer: Details + WhatsApp buttons
+        if (onDetailsClick != null || onWhatsAppClick != null) {
             Spacer(modifier = Modifier.height(10.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
             Spacer(modifier = Modifier.height(8.dp))
 
-            CustomButton(
-                text = "WhatsApp Inquiry",
-                onClick = onWhatsAppClick,
-                variant = CustomButtonVariant.WHATSAPP,
-                icon = Icons.AutoMirrored.Filled.Chat,
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                compact = true
-            )
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (onDetailsClick != null) {
+                    CustomButton(
+                        text = "Details",
+                        onClick = onDetailsClick,
+                        variant = CustomButtonVariant.OUTLINED,
+                        icon = Icons.Default.Info,
+                        modifier = Modifier.weight(1f),
+                        compact = true
+                    )
+                }
+                if (onWhatsAppClick != null) {
+                    CustomButton(
+                        text = "WhatsApp",
+                        onClick = onWhatsAppClick,
+                        variant = CustomButtonVariant.WHATSAPP,
+                        icon = Icons.AutoMirrored.Filled.Chat,
+                        modifier = if (onDetailsClick != null) Modifier.weight(1f) else Modifier.fillMaxWidth(),
+                        compact = true
+                    )
+                }
+            }
         }
     }
 }
@@ -1490,67 +1508,6 @@ fun ProDivider(
  * Real-time Firebase Sync & Network Resilience Status Banner
  */
 @Composable
-fun NetworkSyncResilienceBanner(
-    isOffline: Boolean,
-    statusMessage: String?,
-    pendingOfflineCount: Int = 0,
-    onRetrySync: () -> Unit = {},
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        color = if (isOffline) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.85f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
-        shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(1.dp, if (isOffline) MaterialTheme.colorScheme.error.copy(alpha = 0.5f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(if (isOffline) StatusWarning else FreshGreen)
-                )
-                Column {
-                    Text(
-                        text = if (isOffline) "Resilient Offline Mode" else "Cloud Sync Active",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (isOffline) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = statusMessage ?: "Connected to Lebanese ProHost Cloud Node",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (isOffline) MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            if (isOffline || pendingOfflineCount > 0) {
-                FilledTonalButton(
-                    onClick = onRetrySync,
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                    modifier = Modifier.height(28.dp)
-                ) {
-                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(12.dp))
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(if (pendingOfflineCount > 0) "Retry ($pendingOfflineCount)" else "Sync", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-}
-
 /**
  * Standardized ProHost Brand Logo Composable
  * Renders the official pin-shaped mark (workspace silhouette on a two-tone base),
@@ -1619,6 +1576,7 @@ fun ProHostTopAppBar(
     unreadAlertCount: Int,
     onMenuClick: () -> Unit,
     onAlertsClick: () -> Unit,
+    pageTitle: String? = null,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -1671,7 +1629,7 @@ fun ProHostTopAppBar(
                     }
 
                     Text(
-                        text = when (currentRole) {
+                        text = pageTitle ?: when (currentRole) {
                             UserRole.ADMIN -> "Super Admin Node"
                             UserRole.PRO_HOST -> "Host & Owner Hub"
                             UserRole.SPECIALIST -> "Practitioner Circle"

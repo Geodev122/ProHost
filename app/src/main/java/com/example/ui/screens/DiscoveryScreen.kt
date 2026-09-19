@@ -410,6 +410,7 @@ fun SpaceListingCard(
         isSaved = isSaved,
         onToggleSave = onToggleSave,
         onClick = onClick,
+        onDetailsClick = onClick,
         onWhatsAppClick = onQuickWhatsApp
     )
 }
