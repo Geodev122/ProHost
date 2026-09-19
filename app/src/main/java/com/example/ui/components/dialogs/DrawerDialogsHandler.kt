@@ -529,7 +529,7 @@ fun DrawerDialogsHandler(
                     onClick = onDismiss,
                     modifier = Modifier.align(Alignment.End)
                 ) {
-                    Text("Close Panel")
+                    Text("Close")
                 }
             }
         }
