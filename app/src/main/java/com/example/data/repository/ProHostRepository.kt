@@ -146,7 +146,7 @@ class ProHostRepository {
     // until an admin creates a real package via Add Package — no seed/migration
     // tool fabricates one on their behalf. This StateFlow only ever reflects
     // the real, live package_plans/main document.
-    private val _packagePlans = MutableStateFlow(PackagePlanCatalog())
+    private val _packagePlans = MutableStateFlow(PackagePlanCatalog.DEFAULT_CATALOG)
     val packagePlans: StateFlow<PackagePlanCatalog> = _packagePlans.asStateFlow()
 
     init {

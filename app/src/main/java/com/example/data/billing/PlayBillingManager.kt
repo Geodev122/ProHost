@@ -42,10 +42,12 @@ class PlayBillingManager(
         // Default Subscription Product IDs configured in Google Play Console
         const val PRODUCT_ID_GROWTH = "package_growth_mrr"
         const val PRODUCT_ID_PRO = "package_pro_mrr"
+        const val PRODUCT_ID_ENTERPRISE = "package_enterprise_mrr"
 
         val ALL_SUBSCRIPTION_PRODUCT_IDS = listOf(
             PRODUCT_ID_GROWTH,
-            PRODUCT_ID_PRO
+            PRODUCT_ID_PRO,
+            PRODUCT_ID_ENTERPRISE
         )
     }
 
