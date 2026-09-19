@@ -28,7 +28,7 @@ export { setListingVerification, setListingSubscriptionActive, requestListingVer
 
 export { recordClientAuditLog } from "./audit/recordClientAuditLog";
 
-export { onBookingRequestCreated, onBookingRequestStatusChanged } from "./notifications/bookingNotifications";
+export { onBookingRequestCreated, onBookingRequestStatusChanged, onBookingPaymentAcknowledged } from "./notifications/bookingNotifications";
 export { sendPaymentReminder } from "./notifications/sendPaymentReminder";
 
 export { onWorkspaceListingCreated, onWorkspaceListingDeleted, onWorkspaceListingStatusChanged } from "./listings/listingCountTracker";
