@@ -187,7 +187,6 @@ fun StatusBadge(
     Surface(
         color = bg,
         shape = shape,
-        shadowElevation = 0.5.dp,
         modifier = modifier
     ) {
         Row(
@@ -419,6 +418,70 @@ fun ProCurrencyTag(
  * Standard Member / Professional Avatar with initials and verification badge.
  */
 @Composable
+private fun AvatarCircle(
+    initials: String,
+    isVerified: Boolean,
+    isIdVerified: Boolean,
+    size: Dp,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier.size(size)) {
+        Surface(
+            color = MaterialTheme.colorScheme.primary,
+            shape = CircleShape,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = initials,
+                    color = Color.White,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = (size.value * 0.38f).sp
+                )
+            }
+        }
+        if (isVerified) {
+            Surface(
+                color = StatusSuccess,
+                shape = CircleShape,
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
+                modifier = Modifier
+                    .size(size * 0.4f)
+                    .align(Alignment.BottomEnd)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = "Verified",
+                        tint = Color.White,
+                        modifier = Modifier.size(size * 0.25f)
+                    )
+                }
+            }
+        }
+        if (isIdVerified) {
+            Surface(
+                color = AmberWarning,
+                shape = CircleShape,
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
+                modifier = Modifier
+                    .size(size * 0.4f)
+                    .align(Alignment.TopEnd)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.Badge,
+                        contentDescription = "ID Verified",
+                        tint = Color.White,
+                        modifier = Modifier.size(size * 0.24f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun ProMemberAvatar(
     name: String,
     specialty: String? = null,
@@ -445,60 +508,7 @@ fun ProMemberAvatar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Box(modifier = Modifier.size(size)) {
-                Surface(
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = CircleShape,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = initials,
-                            color = Color.White,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = (size.value * 0.38f).sp
-                        )
-                    }
-                }
-                if (isVerified) {
-                    Surface(
-                        color = StatusSuccess,
-                        shape = CircleShape,
-                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
-                        modifier = Modifier
-                            .size(size * 0.4f)
-                            .align(Alignment.BottomEnd)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Check,
-                                contentDescription = "Verified",
-                                tint = Color.White,
-                                modifier = Modifier.size(size * 0.25f)
-                            )
-                        }
-                    }
-                }
-                if (isIdVerified) {
-                    Surface(
-                        color = AmberWarning,
-                        shape = CircleShape,
-                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
-                        modifier = Modifier
-                            .size(size * 0.4f)
-                            .align(Alignment.TopEnd)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Badge,
-                                contentDescription = "ID Verified",
-                                tint = Color.White,
-                                modifier = Modifier.size(size * 0.24f)
-                            )
-                        }
-                    }
-                }
-            }
+            AvatarCircle(initials = initials, isVerified = isVerified, isIdVerified = isIdVerified, size = size, modifier = Modifier)
 
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -535,60 +545,13 @@ fun ProMemberAvatar(
             }
         }
     } else {
-        Box(modifier = modifier.size(size)) {
-            Surface(
-                color = MaterialTheme.colorScheme.primary,
-                shape = CircleShape,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = initials,
-                        color = Color.White,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = (size.value * 0.38f).sp
-                    )
-                }
-            }
-            if (isVerified) {
-                Surface(
-                    color = StatusSuccess,
-                    shape = CircleShape,
-                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
-                    modifier = Modifier
-                        .size(size * 0.4f)
-                        .align(Alignment.BottomEnd)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.Check,
-                            contentDescription = "Verified",
-                            tint = Color.White,
-                            modifier = Modifier.size(size * 0.25f)
-                        )
-                    }
-                }
-            }
-            if (isIdVerified) {
-                Surface(
-                    color = AmberWarning,
-                    shape = CircleShape,
-                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
-                    modifier = Modifier
-                        .size(size * 0.4f)
-                        .align(Alignment.TopEnd)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.Badge,
-                            contentDescription = "ID Verified",
-                            tint = Color.White,
-                            modifier = Modifier.size(size * 0.24f)
-                        )
-                    }
-                }
-            }
-        }
+        AvatarCircle(
+            initials = initials,
+            isVerified = isVerified,
+            isIdVerified = isIdVerified,
+            size = size,
+            modifier = modifier
+        )
     }
 }
 
@@ -1259,13 +1222,24 @@ fun WorkspaceCard(
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = MaterialTheme.shapes.extraSmall
                 ) {
-                    Text(
-                        text = "🕒 $operatingHours",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 10.sp,
+                    Row(
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccessTime,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Text(
+                            text = operatingHours,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
             if (totalDaysOpen != null) {
@@ -1273,13 +1247,24 @@ fun WorkspaceCard(
                     color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
                     shape = MaterialTheme.shapes.extraSmall
                 ) {
-                    Text(
-                        text = "📅 $totalDaysOpen",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 10.sp,
+                    Row(
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Text(
+                            text = totalDaysOpen,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
                 }
             }
         }
@@ -1299,7 +1284,6 @@ fun WorkspaceCard(
                         Text(
                             text = formula,
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 9.sp,
                             modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -1314,17 +1298,14 @@ fun WorkspaceCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
             Spacer(modifier = Modifier.height(8.dp))
 
-            Button(
+            CustomButton(
+                text = "WhatsApp Inquiry",
                 onClick = onWhatsAppClick,
-                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                shape = MaterialTheme.shapes.small,
+                variant = CustomButtonVariant.WHATSAPP,
+                icon = Icons.AutoMirrored.Filled.Chat,
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(vertical = 6.dp)
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("WhatsApp Inquiry", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-            }
+                compact = true
+            )
         }
     }
 }
