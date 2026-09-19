@@ -114,10 +114,11 @@ class PlayBillingManager(
             .setProductList(productList)
             .build()
 
-        billingClient.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
+        billingClient.queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.d(TAG, "Retrieved ${productDetailsList.size} subscription products from Google Play")
-                _productDetailsList.value = productDetailsList
+                val list = queryProductDetailsResult.productDetailsList
+                Log.d(TAG, "Retrieved ${list.size} subscription products from Google Play")
+                _productDetailsList.value = list
             } else {
                 Log.e(TAG, "Error querying product details: ${billingResult.debugMessage}")
             }

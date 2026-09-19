@@ -43,7 +43,7 @@ firebaseBom = "34.17.0"
 googleServices = "4.4.2"
 playAppUpdate = "2.1.0"
 playIntegrity = "1.4.0"
-playBilling = "7.1.1"
+playBilling = "8.0.0"
 coreSplashscreen = "1.0.1"
 
 [libraries]
