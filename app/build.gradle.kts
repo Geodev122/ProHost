@@ -14,14 +14,14 @@ plugins {
 
 android {
   namespace = "com.example"
-  compileSdk = 36
+  compileSdk = 35
 
   defaultConfig {
     applicationId = "app.geonajjar.prohost"
     minSdk = 24
-    targetSdk = 36
-    versionCode = 3
-    versionName = "1.0.0.2"
+    targetSdk = 35
+    versionCode = 1
+    versionName = "1.0.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     
@@ -83,9 +83,6 @@ android {
       isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
-      ndk {
-        debugSymbolLevel = "FULL"
-      }
     }
     debug {
       signingConfig = signingConfigs.findByName("debugConfig") ?: signingConfigs.getByName("debug")
@@ -115,16 +112,6 @@ android {
     includeInApk = false
     includeInBundle = true
   }
-}
-
-tasks.register<Zip>("createNativeDebugSymbolsZip") {
-  archiveFileName.set("native-debug-symbols.zip")
-  destinationDirectory.set(file("${layout.buildDirectory.get().asFile}/outputs/native-debug-symbols"))
-  from(file("${layout.buildDirectory.get().asFile}/intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib"))
-}
-
-tasks.matching { it.name == "bundleRelease" || it.name == "assembleRelease" }.configureEach {
-  finalizedBy("createNativeDebugSymbolsZip")
 }
 
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
@@ -175,6 +162,7 @@ dependencies {
   implementation(libs.play.app.update)
   implementation(libs.play.app.update.ktx)
   implementation(libs.play.integrity)
+  implementation(libs.play.billing.ktx)
   implementation(libs.play.services.location)
   implementation(libs.maps.compose)
   implementation(libs.play.services.maps)

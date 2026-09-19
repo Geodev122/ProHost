@@ -10,7 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.*
@@ -25,26 +24,16 @@ import java.util.Locale
 fun OwnerSubscriptionsScreen(
     viewModel: ProHostViewModel
 ) {
-    val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
     val packagePlans by viewModel.packagePlans.collectAsState()
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
-    // Set by OwnerHubScreen when a Publish attempt hit the listing limit and got
-    // saved as a Draft instead — whichever package the host buys next auto-publishes
-    // this exact Draft (see entitlements.ts's autoPublishDraftIfNeeded), so surface
-    // that clearly rather than leaving the host wondering what buying a package here
-    // actually does for them right now.
     val pendingAutoPublishDraftId by viewModel.pendingAutoPublishDraftId.collectAsState()
-    val isCheckoutInFlight by viewModel.isWhishCheckoutInFlight.collectAsState()
 
     val enabledPlans = remember(packagePlans) { packagePlans.packages.values.filter { it.isEnabled }.sortedBy { it.sortOrder } }
     val currentPlan = currentUser?.ownerPackageId?.let { packagePlans.packages[it] }
 
     var showSubscribeDialog by remember { mutableStateOf(false) }
     var selectedPlanToSubscribe by remember { mutableStateOf<PackagePlan?>(null) }
-
-    var payerName by remember { mutableStateOf(currentUser?.fullName ?: "") }
-    var payerPhone by remember { mutableStateOf(currentUser?.phone ?: "+961 70 888 999") }
 
     val expiryMillis = currentUser?.ownerPackageExpiryMillis
     val remainingDays = if (expiryMillis != null && expiryMillis > System.currentTimeMillis()) {
@@ -149,12 +138,44 @@ fun OwnerSubscriptionsScreen(
                 }
 
                 val atCap = currentPlan != null && currentPlan.listingLimit != null && ownerSpaces.size >= currentPlan.listingLimit
+                val activity = androidx.activity.compose.LocalActivity.current
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (currentPlan != null && activity != null) {
+                        OutlinedButton(
+                            onClick = { viewModel.openManageSubscriptions(activity, currentPlan.id) },
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PureWhite),
+                            border = BorderStroke(1.dp, PureWhite.copy(alpha = 0.5f))
+                        ) {
+                            Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Manage in Play Store", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+
+                    if (activity != null) {
+                        OutlinedButton(
+                            onClick = { viewModel.openRedeemPromoCode(activity) },
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PureWhite),
+                            border = BorderStroke(1.dp, PureWhite.copy(alpha = 0.5f))
+                        ) {
+                            Icon(Icons.Default.CardGiftcard, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Redeem Code", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+
                 if ((currentPlan == null || atCap) && enabledPlans.isNotEmpty()) {
                     Button(
                         onClick = {
-                            // Prompt an upgrade to a higher package — the same
-                            // subscribe dialog below, pre-aimed at the cheapest
-                            // enabled package with more room than the current one.
                             selectedPlanToSubscribe = enabledPlans
                                 .filter { it.listingLimit == null || it.listingLimit > (currentPlan?.listingLimit ?: 0) }
                                 .minByOrNull { it.priceUsd }
@@ -165,10 +186,10 @@ fun OwnerSubscriptionsScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange),
                         shape = MaterialTheme.shapes.medium
                     ) {
-                        Icon(Icons.Default.AddCircle, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
-                            if (currentPlan == null) "Choose a Package" else "Package Limit Reached — Upgrade Package",
+                            if (currentPlan == null) "Subscribe with Google Pay" else "Package Limit Reached — Upgrade via Google Pay",
                             fontWeight = FontWeight.Bold,
                             color = PureWhite
                         )
@@ -205,44 +226,35 @@ fun OwnerSubscriptionsScreen(
         }
     }
 
-    // Subscribe Dialog with Whish Pay — a real, server-priced purchase of whichever
-    // admin-defined package the host tapped.
+    // Subscribe Dialog with Google Pay Billing
     if (showSubscribeDialog) {
         val targetPlan = selectedPlanToSubscribe
+        val activity = androidx.activity.compose.LocalActivity.current
         AlertDialog(
             onDismissRequest = { showSubscribeDialog = false },
             title = { Text("Subscribe to ${targetPlan?.name ?: "Package"}", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (targetPlan != null) {
-                        Text("Price: $${String.format(Locale.US, "%.2f", targetPlan.priceUsd)} for ${targetPlan.validityDays} Days")
+                        Text("Price: $${String.format(Locale.US, "%.2f", targetPlan.priceUsd)} / ${targetPlan.validityDays} Days")
+                        Text("Secured via Google Play Store & Google Pay. Cancel or manage anytime in Play Store settings.", style = MaterialTheme.typography.bodySmall, color = CoolGray)
                     }
-                    OutlinedTextField(
-                        value = payerName,
-                        onValueChange = { payerName = it },
-                        label = { Text("Payer Full Name") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
             },
             confirmButton = {
                 CustomButton(
-                    text = if (isCheckoutInFlight) "Starting payment..." else "Go to Whish Pay",
+                    text = "Subscribe with Google Pay",
                     onClick = {
-                        targetPlan?.let {
-                            viewModel.payOwnerPackageViaWhish(
-                                packageId = it.id,
-                                payerName = payerName,
-                                payerPhone = payerPhone,
-                                context = context,
-                                draftListingId = pendingAutoPublishDraftId
-                            )
+                        targetPlan?.let { plan ->
+                            activity?.let { act ->
+                                viewModel.launchGooglePaySubscription(act, plan.id)
+                            }
                         }
                         showSubscribeDialog = false
                     },
                     variant = CustomButtonVariant.SUCCESS,
-                    icon = Icons.Default.AccountBalanceWallet,
-                    enabled = targetPlan != null && !isCheckoutInFlight,
+                    icon = Icons.Default.ShoppingCart,
+                    enabled = targetPlan != null && activity != null,
                     compact = true
                 )
             },

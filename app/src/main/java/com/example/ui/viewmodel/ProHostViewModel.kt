@@ -206,6 +206,64 @@ class ProHostViewModel(
     // feedback of any kind. Both the dialog and these wrappers are removed; use
     // AdminViewModel's checked equivalents instead.
 
+    // --- Google Play Billing & Google Pay Integration ---
+    private var playBillingManager: com.example.data.billing.PlayBillingManager? = null
+
+    val playBillingProducts = MutableStateFlow<List<com.android.billingclient.api.ProductDetails>>(emptyList())
+    val playBillingConnected = MutableStateFlow(false)
+
+    fun initPlayBilling(context: Context) {
+        if (playBillingManager == null) {
+            val manager = com.example.data.billing.PlayBillingManager(context.applicationContext, viewModelScope)
+            playBillingManager = manager
+            viewModelScope.launch {
+                manager.isConnected.collect { connected ->
+                    playBillingConnected.value = connected
+                }
+            }
+            viewModelScope.launch {
+                manager.productDetailsList.collect { products ->
+                    playBillingProducts.value = products
+                }
+            }
+            manager.startConnection()
+        }
+    }
+
+    fun launchGooglePaySubscription(
+        activity: android.app.Activity,
+        productId: String
+    ) {
+        val manager = playBillingManager ?: run {
+            initPlayBilling(activity)
+            playBillingManager
+        }
+        val product = manager?.productDetailsList?.value?.find { it.productId == productId }
+        if (product != null) {
+            manager.launchSubscriptionPurchase(activity, product)
+        } else {
+            Toast.makeText(activity, "Connecting to Google Play Store...", Toast.LENGTH_SHORT).show()
+            manager?.querySubscriptionProducts()
+        }
+    }
+
+    fun openManageSubscriptions(activity: android.app.Activity, productId: String? = null) {
+        playBillingManager?.openManageSubscriptions(activity, productId) ?: run {
+            val uri = if (!productId.isNullOrBlank()) {
+                "https://play.google.com/store/account/subscriptions?sku=$productId&package=${activity.packageName}"
+            } else {
+                "https://play.google.com/store/account/subscriptions?package=${activity.packageName}"
+            }
+            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
+        }
+    }
+
+    fun openRedeemPromoCode(activity: android.app.Activity) {
+        playBillingManager?.openRedeemPromoCode(activity) ?: run {
+            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/redeem")))
+        }
+    }
+
     // --- Whish Pay Settlement ---
     // All four flows below used to build a "SUCCESS" WhishTransaction locally and grant
     // the entitlement immediately — the client both set the price and self-reported

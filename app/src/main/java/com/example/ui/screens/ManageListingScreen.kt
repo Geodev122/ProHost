@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -52,6 +53,7 @@ private data class DivisionInfo(
  * (SpaceCalculationUtils), so this can never disagree with what a specialist
  * actually sees.
  */
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ManageListingScreen(
     space: SpaceListing,
