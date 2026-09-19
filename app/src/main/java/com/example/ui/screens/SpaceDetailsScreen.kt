@@ -402,19 +402,7 @@ fun SpaceDetailsScreenContent(
                             )
                         }
                         if (liveSpace.isVerified) {
-                            Surface(
-                                color = FreshGreen,
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp),
-                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-                                ) {
-                                    Icon(Icons.Default.Verified, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
-                                    Text("Verified", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
-                                }
-                            }
+                            ProStatusBadge(type = ProBadgeType.VERIFIED_MEMBER, customText = "Verified")
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))

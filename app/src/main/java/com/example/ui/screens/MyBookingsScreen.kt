@@ -673,49 +673,15 @@ fun BookingReservationCard(
                     }
                 }
 
-                // Status Badge
-                Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = when (booking.status) {
-                        BookingRequestStatus.ACCEPTED -> StatusSuccessContainer
-                        BookingRequestStatus.PENDING -> StatusWarningContainer
-                        BookingRequestStatus.CANCELLED -> StatusErrorContainer
-                        BookingRequestStatus.REJECTED -> CoolGrayContainer
-                    }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = when (booking.status) {
-                                BookingRequestStatus.ACCEPTED -> Icons.Default.CheckCircle
-                                BookingRequestStatus.PENDING -> Icons.Default.Schedule
-                                BookingRequestStatus.CANCELLED -> Icons.Default.Cancel
-                                BookingRequestStatus.REJECTED -> Icons.Default.Block
-                            },
-                            contentDescription = null,
-                            tint = when (booking.status) {
-                                BookingRequestStatus.ACCEPTED -> FreshGreen
-                                BookingRequestStatus.PENDING -> BrightOrange
-                                BookingRequestStatus.CANCELLED -> CrimsonRed
-                                BookingRequestStatus.REJECTED -> CoolGray
-                            },
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Text(
-                            text = booking.status.displayName,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = when (booking.status) {
-                                BookingRequestStatus.ACCEPTED -> StatusOnSuccessContainer
-                                BookingRequestStatus.PENDING -> StatusOnWarningContainer
-                                BookingRequestStatus.CANCELLED -> StatusOnErrorContainer
-                                BookingRequestStatus.REJECTED -> CoolGrayDark
-                            }
-                        )
-                    }
+                // Status Badge — the shared ProStatusBadge component (already used for
+                // this exact status enum on SpecialistProfileScreen's own booking
+                // cards) instead of a second, independently hand-rolled Surface+Icon+
+                // Text chip with its own separate color mapping.
+                when (booking.status) {
+                    BookingRequestStatus.ACCEPTED -> ProStatusBadge(ProBadgeType.ACCEPTED_LOCKED)
+                    BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.PENDING)
+                    BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = "Cancelled")
+                    BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = "Declined")
                 }
             }
 
