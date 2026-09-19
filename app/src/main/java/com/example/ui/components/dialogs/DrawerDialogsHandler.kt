@@ -95,7 +95,6 @@ fun DrawerDialogsHandler(
                         "owner_whish" -> "Whish Money Transactions"
                         "admin_audit" -> "Central Security Audits"
                         "admin_gov" -> "Governorate Node Status"
-                        "admin_app_updates" -> "App Version & In-App Updates"
                         "fcm_alerts" -> "Real-time Alerts Terminal"
                         else -> "Information Sheet"
                     }
@@ -524,9 +523,6 @@ fun DrawerDialogsHandler(
                                 }
                             }
                         }
-                        "admin_app_updates" -> {
-                            AppUpdatesInfo(profileTabId = "admin_profile", onNavigateToTab = onNavigateToTab, onDismiss = onDismiss)
-                        }
                     }
                 }
 
@@ -542,44 +538,4 @@ fun DrawerDialogsHandler(
         }
     }
 
-}
-
-/**
- * All three role-specific "App Version & Updates" drawer dialogs used to be an
- * identical fake update checker: a hardcoded "1.0.0" version and a button that
- * always Toasted "up to date," completely disconnected from the real
- * InAppUpdateManager already wired into the app's persistent update banner and
- * SpecialistProfileScreen's genuine update UI. Rather than duplicate that real
- * check here too (this dialog has no InAppUpdateManager instance available),
- * this honestly points to where the real status actually lives.
- */
-@Composable
-private fun AppUpdatesInfo(
-    profileTabId: String,
-    onNavigateToTab: ((String) -> Unit)?,
-    onDismiss: () -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("App Updates", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-        Text(
-            "Update availability and version info are shown on your Profile tab, along with an in-app download banner whenever a new version is ready via Google Play.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        if (onNavigateToTab != null) {
-            Spacer(modifier = Modifier.height(Spacing.xs))
-            Button(
-                onClick = {
-                    onNavigateToTab(profileTabId)
-                    onDismiss()
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.small
-            ) {
-                Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Go to Profile", style = MaterialTheme.typography.labelMedium)
-            }
-        }
-    }
 }

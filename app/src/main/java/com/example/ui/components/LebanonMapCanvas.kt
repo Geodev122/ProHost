@@ -58,20 +58,41 @@ import kotlin.math.*
 
 private data class MarkerPalette(val topColor: Int, val baseColor: Int)
 
-private fun getMarkerPalette(spaceType: SpaceType, isSelected: Boolean): MarkerPalette {
+// A fixed rotation of palettes assigned deterministically by spaceCategoryId (via a
+// stable hash) so every admin-defined category — old or new, without the app ever
+// needing a code change when an admin adds one — gets a consistent, distinct marker
+// color. The legacy SpaceType-keyed palette below is kept only as a fallback for
+// listings saved before spaceCategoryId existed (spaceCategoryId == null).
+private val SCHEMA_MARKER_PALETTES = listOf(
+    MarkerPalette(android.graphics.Color.parseColor("#5B9BFF"), android.graphics.Color.parseColor("#246BEE")), // Blue
+    MarkerPalette(android.graphics.Color.parseColor("#FF8F73"), android.graphics.Color.parseColor("#F25F4C")), // Orange
+    MarkerPalette(android.graphics.Color.parseColor("#7DD9A0"), android.graphics.Color.parseColor("#4CAF72")), // Green
+    MarkerPalette(android.graphics.Color.parseColor("#B197FC"), android.graphics.Color.parseColor("#8B5CF6")), // Violet
+    MarkerPalette(android.graphics.Color.parseColor("#E8C468"), android.graphics.Color.parseColor("#C99A2E")), // Gold
+    MarkerPalette(android.graphics.Color.parseColor("#6FE3E3"), android.graphics.Color.parseColor("#2FB6B6")), // Teal
+)
+
+private fun legacyMarkerPalette(spaceType: SpaceType): MarkerPalette = when (spaceType) {
+    SpaceType.PRIVATE_OFFICE -> SCHEMA_MARKER_PALETTES[0]
+    SpaceType.CENTER -> SCHEMA_MARKER_PALETTES[1]
+    SpaceType.POLYCLINIC -> SCHEMA_MARKER_PALETTES[2]
+    SpaceType.COWORKING_SPACE -> SCHEMA_MARKER_PALETTES[3]
+    else -> SCHEMA_MARKER_PALETTES[4]
+}
+
+private fun getMarkerPalette(space: SpaceListing, isSelected: Boolean): MarkerPalette {
     if (isSelected) {
         return MarkerPalette(android.graphics.Color.parseColor("#FFE082"), android.graphics.Color.parseColor("#FFB300"))
     }
-    return when (spaceType) {
-        SpaceType.PRIVATE_OFFICE -> MarkerPalette(android.graphics.Color.parseColor("#5B9BFF"), android.graphics.Color.parseColor("#246BEE")) // ST-01 Blue
-        SpaceType.CENTER -> MarkerPalette(android.graphics.Color.parseColor("#FF8F73"), android.graphics.Color.parseColor("#F25F4C"))             // ST-02 Orange
-        SpaceType.POLYCLINIC -> MarkerPalette(android.graphics.Color.parseColor("#7DD9A0"), android.graphics.Color.parseColor("#4CAF72"))         // ST-03 Green
-        SpaceType.COWORKING_SPACE -> MarkerPalette(android.graphics.Color.parseColor("#B197FC"), android.graphics.Color.parseColor("#8B5CF6"))    // ST-04 Violet
-        else -> MarkerPalette(android.graphics.Color.parseColor("#E8C468"), android.graphics.Color.parseColor("#C99A2E"))                         // ST-05 Gold / ST-06 Teal
+    val categoryId = space.spaceCategoryId
+    if (!categoryId.isNullOrBlank()) {
+        val index = (categoryId.hashCode() and Int.MAX_VALUE) % SCHEMA_MARKER_PALETTES.size
+        return SCHEMA_MARKER_PALETTES[index]
     }
+    return legacyMarkerPalette(space.spaceType)
 }
 
-private fun createCustomMarker(context: Context, spaceType: SpaceType, isSelected: Boolean): BitmapDescriptor {
+private fun createCustomMarker(context: Context, space: SpaceListing, isSelected: Boolean): BitmapDescriptor {
     val scale = context.resources.displayMetrics.density
     val width = (36 * scale).toInt() // Reduced by 50%
     val height = (54 * scale).toInt() // Reduced by 50%
@@ -81,7 +102,7 @@ private fun createCustomMarker(context: Context, spaceType: SpaceType, isSelecte
     // Scale canvas to match SVG 200x300 viewBox
     canvas.scale(width / 200f, height / 300f)
 
-    val palette = getMarkerPalette(spaceType, isSelected)
+    val palette = getMarkerPalette(space, isSelected)
     val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
     }
@@ -137,19 +158,11 @@ fun LebanonMapCanvas(
     var sortedSpaces by remember { mutableStateOf(spaces) }
     var isLocating by remember { mutableStateOf(false) }
     var activePinSpace by remember { mutableStateOf<SpaceListing?>(null) }
-    var showSearchThisArea by remember { mutableStateOf(false) }
     var isStripCollapsed by remember { mutableStateOf(false) }
     
     val defaultCenter = LatLng(33.8886, 35.5184) // Beirut
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(defaultCenter, 10f)
-    }
-
-    // Trigger "Search this area" when map moves
-    LaunchedEffect(cameraPositionState.isMoving) {
-        if (cameraPositionState.isMoving) {
-            showSearchThisArea = true
-        }
     }
 
     val listState = rememberLazyListState()
@@ -271,7 +284,7 @@ fun LebanonMapCanvas(
                     state = MarkerState(position = LatLng(space.lat, space.lng)),
                     title = space.title,
                     snippet = "$${space.baseMonthlyRateUsd.toInt()}/mo • ${space.spaceType.displayName}",
-                    icon = createCustomMarker(context, space.spaceType, isSelected),
+                    icon = createCustomMarker(context, space, isSelected),
                     anchor = androidx.compose.ui.geometry.Offset(0.5f, 1.0f),
                     zIndex = if (isSelected) 2f else 1f,
                     onClick = {
@@ -284,32 +297,6 @@ fun LebanonMapCanvas(
                         true
                     }
                 )
-            }
-        }
-
-        // TOP INTERACTIVE OVERLAY CONTROLS ("Search this area" refresh button)
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .padding(Spacing.md),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (showSearchThisArea) {
-                Button(
-                    onClick = {
-                        showSearchThisArea = false
-                        Toast.makeText(context, "Refreshed visible workspaces (${visibleSpaces.size})", Toast.LENGTH_SHORT).show()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    shape = MaterialTheme.shapes.small,
-                    elevation = ButtonDefaults.buttonElevation(4.dp)
-                ) {
-                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Search this area", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                }
             }
         }
 
