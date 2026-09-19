@@ -20,8 +20,8 @@ android {
     applicationId = "app.geonajjar.prohost"
     minSdk = 24
     targetSdk = 36
-    versionCode = 3
-    versionName = "1.0.0.2"
+    versionCode = 6
+    versionName = "1.0.5"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     
@@ -62,6 +62,9 @@ android {
 
   buildTypes {
     release {
+      ndk {
+        debugSymbolLevel = "FULL"
+      }
       isCrunchPngs = false
       // Was false with proguardFiles(...) already configured below — dead
       // configuration that shipped every release build fully unobfuscated and
@@ -83,9 +86,6 @@ android {
       isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
-      ndk {
-        debugSymbolLevel = "FULL"
-      }
     }
     debug {
       signingConfig = signingConfigs.findByName("debugConfig") ?: signingConfigs.getByName("debug")
@@ -115,16 +115,6 @@ android {
     includeInApk = false
     includeInBundle = true
   }
-}
-
-tasks.register<Zip>("createNativeDebugSymbolsZip") {
-  archiveFileName.set("native-debug-symbols.zip")
-  destinationDirectory.set(file("${layout.buildDirectory.get().asFile}/outputs/native-debug-symbols"))
-  from(file("${layout.buildDirectory.get().asFile}/intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib"))
-}
-
-tasks.matching { it.name == "bundleRelease" || it.name == "assembleRelease" }.configureEach {
-  finalizedBy("createNativeDebugSymbolsZip")
 }
 
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
@@ -177,6 +167,7 @@ dependencies {
   implementation(libs.play.billing)
   implementation(libs.play.billing.ktx)
   implementation(libs.play.integrity)
+  implementation(libs.play.billing.ktx)
   implementation(libs.play.services.location)
   implementation(libs.maps.compose)
   implementation(libs.play.services.maps)

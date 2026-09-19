@@ -1505,10 +1505,6 @@ fun ProDivider(
 }
 
 /**
- * Real-time Firebase Sync & Network Resilience Status Banner
- */
-@Composable
-/**
  * Standardized ProHost Brand Logo Composable
  * Renders the official pin-shaped mark (workspace silhouette on a two-tone base),
  * which carries its own background/gradient - no surrounding box or border needed.

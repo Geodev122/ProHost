@@ -22,6 +22,7 @@ export { deleteOwnAccount } from "./roles/deleteOwnAccount";
 export { initiateWhishPayment } from "./payments/initiateWhishPayment";
 export { whishWebhook } from "./payments/whishWebhook";
 export { checkWhishStatus } from "./payments/checkWhishStatus";
+export { playBillingRtdn } from "./payments/playBillingRtdn";
 
 export { updatePricing } from "./admin/pricing";
 export { setListingVerification, setListingSubscriptionActive, requestListingVerification } from "./admin/listings";

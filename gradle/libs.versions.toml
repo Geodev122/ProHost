@@ -1,5 +1,5 @@
 [versions]
-agp = "8.8.1"
+agp = "8.8.2"
 coreKtx = "1.15.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -44,6 +44,7 @@ googleServices = "4.4.2"
 playAppUpdate = "2.1.0"
 playBilling = "7.1.1"
 playIntegrity = "1.4.0"
+playBilling = "8.0.0"
 coreSplashscreen = "1.0.1"
 
 [libraries]
@@ -111,6 +112,7 @@ play-app-update-ktx = { group = "com.google.android.play", name = "app-update-kt
 play-billing = { group = "com.android.billingclient", name = "billing", version.ref = "playBilling" }
 play-billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "playBilling" }
 play-integrity = { group = "com.google.android.play", name = "integrity", version.ref = "playIntegrity" }
+play-billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "playBilling" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

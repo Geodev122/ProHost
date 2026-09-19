@@ -13,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import android.widget.Toast
@@ -44,6 +43,9 @@ fun OwnerSubscriptionsScreen(
 
     val enabledPlans = remember(packagePlans) { packagePlans.packages.values.filter { it.isEnabled }.sortedBy { it.sortOrder } }
     val currentPlan = currentUser?.ownerPackageId?.let { packagePlans.packages[it] }
+
+    var showSubscribeDialog by remember { mutableStateOf(false) }
+    var selectedPlanToSubscribe by remember { mutableStateOf<PackagePlan?>(null) }
 
     val expiryMillis = currentUser?.ownerPackageExpiryMillis
     val remainingDays = if (expiryMillis != null && expiryMillis > System.currentTimeMillis()) {
@@ -238,6 +240,41 @@ fun OwnerSubscriptionsScreen(
                 }
 
                 val atCap = currentPlan != null && currentPlan.listingLimit != null && ownerSpaces.size >= currentPlan.listingLimit
+                val activity = androidx.activity.compose.LocalActivity.current
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (currentPlan != null && activity != null) {
+                        OutlinedButton(
+                            onClick = { viewModel.openManageSubscriptions(activity, currentPlan.id) },
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PureWhite),
+                            border = BorderStroke(1.dp, PureWhite.copy(alpha = 0.5f))
+                        ) {
+                            Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Manage in Play Store", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+
+                    if (activity != null) {
+                        OutlinedButton(
+                            onClick = { viewModel.openRedeemPromoCode(activity) },
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PureWhite),
+                            border = BorderStroke(1.dp, PureWhite.copy(alpha = 0.5f))
+                        ) {
+                            Icon(Icons.Default.CardGiftcard, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Redeem Code", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+
                 if ((currentPlan == null || atCap) && enabledPlans.isNotEmpty()) {
                     val upsellPlan = enabledPlans
                         .filter { it.listingLimit == null || it.listingLimit > (currentPlan?.listingLimit ?: 0) }
@@ -293,6 +330,46 @@ fun OwnerSubscriptionsScreen(
                 }
             )
         }
+    }
+
+    // Subscribe Dialog with Google Pay Billing
+    if (showSubscribeDialog) {
+        val targetPlan = selectedPlanToSubscribe
+        val dialogActivity = androidx.activity.compose.LocalActivity.current
+        AlertDialog(
+            onDismissRequest = { showSubscribeDialog = false },
+            title = { Text("Subscribe to ${targetPlan?.name ?: "Package"}", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (targetPlan != null) {
+                        Text("Price: $${String.format(Locale.US, "%.2f", targetPlan.priceUsd)} / ${targetPlan.validityDays} Days")
+                        Text("Secured via Google Play Store & Google Pay. Cancel or manage anytime in Play Store settings.", style = MaterialTheme.typography.bodySmall, color = CoolGray)
+                    }
+                }
+            },
+            confirmButton = {
+                CustomButton(
+                    text = "Subscribe with Google Pay",
+                    onClick = {
+                        targetPlan?.let { plan ->
+                            dialogActivity?.let { act ->
+                                viewModel.launchGooglePaySubscription(act, plan.id)
+                            }
+                        }
+                        showSubscribeDialog = false
+                    },
+                    variant = CustomButtonVariant.SUCCESS,
+                    icon = Icons.Default.ShoppingCart,
+                    enabled = targetPlan != null && dialogActivity != null,
+                    compact = true
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { showSubscribeDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

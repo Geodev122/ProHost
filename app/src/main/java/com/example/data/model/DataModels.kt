@@ -1612,13 +1612,51 @@ data class PackagePlanCatalog(val packages: Map<String, PackagePlan> = emptyMap(
         const val COLLECTION_PATH = "package_plans"
         const val DOCUMENT_ID = "main"
 
+        val DEFAULT_CATALOG = PackagePlanCatalog(
+            mapOf(
+                "package_growth_mrr" to PackagePlan(
+                    id = "package_growth_mrr",
+                    name = "Growth Plan",
+                    description = "Host 1 active workspace listing",
+                    badgeName = "Growth",
+                    priceUsd = 4.99,
+                    listingLimit = 1,
+                    validityDays = 30,
+                    isEnabled = true,
+                    sortOrder = 0
+                ),
+                "package_pro_mrr" to PackagePlan(
+                    id = "package_pro_mrr",
+                    name = "Pro Plan",
+                    description = "Host up to 3 active workspace listings",
+                    badgeName = "Pro",
+                    priceUsd = 16.99,
+                    listingLimit = 3,
+                    validityDays = 30,
+                    isEnabled = true,
+                    sortOrder = 1
+                ),
+                "package_enterprise_mrr" to PackagePlan(
+                    id = "package_enterprise_mrr",
+                    name = "Enterprise",
+                    description = "Unlimited active workspace listings",
+                    badgeName = "Enterprise",
+                    priceUsd = 38.99,
+                    listingLimit = null,
+                    validityDays = 30,
+                    isEnabled = true,
+                    sortOrder = 2
+                )
+            )
+        )
+
         @Suppress("UNCHECKED_CAST")
         fun fromFirestoreMap(data: Map<String, Any?>): PackagePlanCatalog {
             val raw = data["packages"] as? Map<String, Any?> ?: emptyMap()
             val packages = raw.mapNotNull { (id, value) ->
                 (value as? Map<String, Any?>)?.let { id to PackagePlan.fromFirestoreMap(id, it) }
             }.toMap()
-            return PackagePlanCatalog(packages)
+            return if (packages.isEmpty()) DEFAULT_CATALOG else PackagePlanCatalog(packages)
         }
     }
 }

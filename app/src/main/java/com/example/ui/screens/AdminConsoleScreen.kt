@@ -441,11 +441,11 @@ private fun AdminRevenueTab(
                         )
 
                         ProMetricTile(
-                            title = "Whish Volume",
+                            title = "Google Play Volume",
                             value = "$${String.format(Locale.US, "%.2f", uiState.totalSettlementVolume)}",
-                            subtitle = "Total Settled via Whish Money",
+                            subtitle = "Total Settled via Google Play Billing",
                             icon = Icons.Default.Payments,
-                            iconTint = WhishRed,
+                            iconTint = FreshGreen,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -1051,6 +1051,7 @@ private fun AdminListingsCatalogTab(
     uiState: com.example.ui.state.AdminUiState,
     adminViewModel: AdminViewModel
 ) {
+    val context = LocalContext.current
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -1424,7 +1425,7 @@ private fun AdminOwnersAndPaymentsTab(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Surface(
-                                color = WhishRed,
+                                color = FreshGreen,
                                 shape = CircleShape,
                                 modifier = Modifier.size(24.dp)
                             ) {
@@ -1434,7 +1435,7 @@ private fun AdminOwnersAndPaymentsTab(
                             }
                             Spacer(modifier = Modifier.width(Spacing.sm))
                             Text(
-                                text = "Whish Pay Gateway Protocol",
+                                text = "Google Play Billing & Pub/Sub RTDN Protocol",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
@@ -1450,9 +1451,9 @@ private fun AdminOwnersAndPaymentsTab(
                     }
 
                     Text(
-                        text = "• Channel ID: ${WhishSecurity.CHANNEL_ID}\n" +
-                                "• Website / Source: ${WhishSecurity.SOURCE_EMAIL}\n" +
-                                "• Hash Signature: SHA-256(channel|amount|currency|orderId|secretKey)",
+                        text = "• Google Play Pub/Sub RTDN Topic: projects/{project_id}/topics/play-billing-rtdn\n" +
+                                "• RSA Licensing Verification: Active (Base64 Key Configured)\n" +
+                                "• Signature Algorithm: SHA256withRSA",
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = FontFamily.Monospace,
                         lineHeight = 16.sp,

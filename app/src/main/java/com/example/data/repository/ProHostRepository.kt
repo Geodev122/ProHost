@@ -146,7 +146,7 @@ class ProHostRepository {
     // until an admin creates a real package via Add Package — no seed/migration
     // tool fabricates one on their behalf. This StateFlow only ever reflects
     // the real, live package_plans/main document.
-    private val _packagePlans = MutableStateFlow(PackagePlanCatalog())
+    private val _packagePlans = MutableStateFlow(PackagePlanCatalog.DEFAULT_CATALOG)
     val packagePlans: StateFlow<PackagePlanCatalog> = _packagePlans.asStateFlow()
 
     init {
@@ -1874,6 +1874,33 @@ class ProHostRepository {
         )
         if (success) {
             val updated = current.copy(idDocumentUrl = idDocumentUrl)
+            _currentUser.value = updated
+            _users.value = _users.value.map { if (it.id == updated.id) updated else it }
+        }
+        return success
+    }
+
+    /**
+     * Updates the user's subscription package and elevates role to PRO_HOST upon Google Play purchase.
+     */
+    suspend fun updateUserSubscriptionPackage(packageId: String, purchaseToken: String): Boolean {
+        val current = _currentUser.value ?: return false
+        val expiryMillis = System.currentTimeMillis() + 30 * 24 * 3600 * 1000L
+        val updated = current.copy(
+            role = UserRole.PRO_HOST,
+            ownerPackageId = packageId,
+            ownerPackageExpiryMillis = expiryMillis
+        )
+        val success = firestoreService.updateUserProfileFields(
+            current.id,
+            mapOf(
+                "role" to UserRole.PRO_HOST.name,
+                "ownerPackageId" to packageId,
+                "ownerPackageExpiryMillis" to expiryMillis,
+                "activePurchaseToken" to purchaseToken
+            )
+        )
+        if (success) {
             _currentUser.value = updated
             _users.value = _users.value.map { if (it.id == updated.id) updated else it }
         }
