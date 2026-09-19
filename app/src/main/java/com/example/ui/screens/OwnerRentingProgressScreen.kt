@@ -121,13 +121,14 @@ fun OwnerRentingProgressScreenContent(
         // used to read is a dead field (set once at creation, never updated by any real
         // renewal since packages replaced the flat per-listing subscription fee).
         val daysLeft = ownerPackageExpiryMillis?.let {
-            ((it - System.currentTimeMillis()) / (24 * 60 * 60 * 1000)).coerceAtLeast(0)
+            ((it - System.currentTimeMillis() + 86399999L) / (24 * 60 * 60 * 1000)).coerceAtLeast(1)
         }
+        val daysLabel = if (daysLeft == 1L) "< 1 day" else "$daysLeft days"
         if (currentPackage != null && daysLeft != null) {
             if (daysLeft <= 7) {
-                list.add(Pair(true, "'${currentPackage.name}' renews in $daysLeft days. Renew from My Listings to keep publishing new workspaces."))
+                list.add(Pair(true, "'${currentPackage.name}' renews in $daysLabel. Renew from My Listings to keep publishing new workspaces."))
             } else {
-                list.add(Pair(false, "'${currentPackage.name}' is active. Renews in $daysLeft days."))
+                list.add(Pair(false, "'${currentPackage.name}' is active. Renews in $daysLabel."))
             }
         }
 

@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -197,6 +198,18 @@ fun CreateListingDialog(
             var failureCount = 0
             uris.forEach { uri ->
                 val imageId = UUID.randomUUID().toString().take(8)
+                val fileSizeBytes = withContext(Dispatchers.IO) {
+                    runCatching {
+                        context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+                            if (cursor.moveToFirst()) cursor.getLong(0) else null
+                        }
+                    }.getOrNull()
+                }
+                if (fileSizeBytes != null && fileSizeBytes > 15 * 1024 * 1024) {
+                    failureCount++
+                    photoUploadError = "One or more images exceed the 15 MB limit. Please choose smaller files."
+                    return@forEach
+                }
                 val bytes = withContext(Dispatchers.IO) {
                     runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
                 }

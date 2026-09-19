@@ -19,6 +19,7 @@ class MainActivity : ComponentActivity() {
     private var targetBookingId by mutableStateOf<String?>(null)
     private var targetSpaceId by mutableStateOf<String?>(null)
     private var inAppUpdateManager: InAppUpdateManager? = null
+    private var backgroundedAtMillis: Long = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Must run before super.onCreate() — installs the real, consistently-themed
@@ -61,12 +62,28 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        backgroundedAtMillis = System.currentTimeMillis()
+    }
+
     override fun onResume() {
         super.onResume()
         try {
             inAppUpdateManager?.onResume()
         } catch (e: Exception) {
             android.util.Log.w("MainActivity", "InAppUpdateManager.onResume warning: ${e.message}")
+        }
+        // Trigger PIN re-auth if the app was in the background for more than 60 seconds (H1).
+        if (backgroundedAtMillis > 0L && System.currentTimeMillis() - backgroundedAtMillis > 60_000L) {
+            backgroundedAtMillis = 0L
+            // Signal the ViewModel so the nav graph can gate behind PIN entry.
+            try {
+                val viewModel = androidx.lifecycle.ViewModelProvider(this)[com.example.ui.viewmodel.ProHostViewModel::class.java]
+                viewModel.requestPinReauth()
+            } catch (e: Exception) {
+                android.util.Log.w("MainActivity", "PIN re-auth signal failed: ${e.message}")
+            }
         }
     }
 

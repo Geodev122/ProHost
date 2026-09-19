@@ -189,6 +189,32 @@ class AuthViewModel(
         }
     }
 
+    /**
+     * Verifies PIN for a re-auth lock screen (H1). Uses the current Firebase user's
+     * phone number — no full sign-in cycle, just a server-side PIN check.
+     */
+    fun verifyPinForReauth(pin: String, onResult: (success: Boolean, message: String?) -> Unit) {
+        val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+        val phone = firebaseUser?.phoneNumber
+        if (phone.isNullOrBlank()) {
+            onResult(false, "No phone on file — please sign in again.")
+            return
+        }
+        viewModelScope.launch {
+            val tokenResult = functionsClient.verifyPinAndIssueToken(phone, pin)
+            if (tokenResult.isSuccess) {
+                onResult(true, null)
+            } else {
+                val msg = tokenResult.exceptionOrNull()?.message
+                onResult(false, when {
+                    msg?.contains("resource-exhausted", ignoreCase = true) == true ->
+                        "Too many attempts — please wait before trying again."
+                    else -> "Incorrect PIN."
+                })
+            }
+        }
+    }
+
     // -------------------------------------------------------------------------
     // OTP path (signup + forgot-PIN reset)
     // -------------------------------------------------------------------------
@@ -252,7 +278,17 @@ class AuthViewModel(
         verificationId: String? = null
     ) {
         val authService = com.example.data.auth.FirebaseAuthService(activity)
-        val result = authService.signInWithPhoneCredential(credential, verificationId)
+        val result = try {
+            authService.signInWithPhoneCredential(credential, verificationId)
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            _isAuthenticating.value = false
+            _authErrorMessage.value = "Verification timed out — please check your connection and try again."
+            return
+        } catch (e: Exception) {
+            _isAuthenticating.value = false
+            _authErrorMessage.value = "Verification failed: ${e.message ?: "Please try again."}"
+            return
+        }
         when (result) {
             is com.example.data.auth.AuthResult.Success -> {
                 val firebaseUser = result.firebaseUser

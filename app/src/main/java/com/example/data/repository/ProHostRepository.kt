@@ -1151,6 +1151,20 @@ class ProHostRepository {
         subdivisionName: String? = null,
         replacesBookingId: String? = null
     ): Pair<RentalBookingRequest, Boolean> {
+        if (practitioner.id == space.ownerId) {
+            throw IllegalArgumentException("A host cannot book their own listing.")
+        }
+        // Guard against duplicate submissions: reject if a PENDING request from this
+        // practitioner for this space already exists in the local cache (M7).
+        val hasPending = _bookingRequests.value.any { existing ->
+            existing.spaceId == space.id &&
+            existing.practitionerId == practitioner.id &&
+            existing.status == BookingRequestStatus.PENDING &&
+            existing.id != replacesBookingId
+        }
+        if (hasPending) {
+            throw IllegalStateException("You already have a pending booking request for this space.")
+        }
         // Was "REQ-LB-" + (1000..9999).random() — only ~9,000 distinct values,
         // no collision check, and saveBookingRequest below does a
         // .document(requestId).set(..., merge=true) — a collision wouldn't even
@@ -1759,6 +1773,8 @@ class ProHostRepository {
         // signs in next in the same app process.
         _fcmAlerts.value = emptyList()
         _currentUser.value = null
+        _hasLoadedBookingsOnce.value = false
+        _hasLoadedSpacesOnce.value = false
         addAuditLog(
             actionType = "USER_LOGOUT",
             details = "Session closed for $previous",

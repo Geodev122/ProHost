@@ -371,6 +371,16 @@ fun AdminConsoleScreen(
         )
     }
 
+    // 8. Delete Package Plan Confirmation Dialog (BUG-C3)
+    if (uiState.isDeletePackagePlanDialogOpen && uiState.pendingDeletePlanId != null) {
+        AdminDeletePackagePlanDialog(
+            planId = uiState.pendingDeletePlanId!!,
+            subscriberCount = uiState.pendingDeletePlanSubscriberCount,
+            onDismiss = { adminViewModel.cancelDeletePackagePlan() },
+            onConfirm = { adminViewModel.confirmDeletePackagePlan() }
+        )
+    }
+
 }
 
 // =========================================================================
@@ -446,8 +456,8 @@ private fun AdminRevenueTab(
                     ) {
                         ProMetricTile(
                             title = "Play Subscribers",
-                            value = if (uiState.activePlaySubscriberCount > 0)
-                                uiState.activePlaySubscriberCount.toString() else "—",
+                            value = if (uiState.activeSubscriberCount > 0)
+                                uiState.activeSubscriberCount.toString() else "—",
                             subtitle = "Active Play Billing Subscriptions",
                             icon = Icons.Default.Subscriptions,
                             iconTint = MaterialTheme.colorScheme.tertiary,
@@ -601,6 +611,7 @@ private fun AdminRevenueTab(
                                     value = priceInput,
                                     onValueChange = { priceInput = it.filter { c -> c.isDigit() || c == '.' } },
                                     label = { Text("Price ($)") },
+                                    supportingText = if (isPlayLinked) {{ Text("The actual charge is handled by Google Play.") }} else null,
                                     modifier = Modifier.weight(1f),
                                     singleLine = true
                                 )
@@ -624,8 +635,10 @@ private fun AdminRevenueTab(
                                 }
                                 OutlinedTextField(
                                     value = validityInput,
-                                    onValueChange = { validityInput = it.filter { c -> c.isDigit() } },
+                                    onValueChange = { if (!isPlayLinked) validityInput = it.filter { c -> c.isDigit() } },
                                     label = { Text("Validity (days)") },
+                                    supportingText = if (isPlayLinked) {{ Text("Billing cycle reference only — actual billing is via Google Play.") }} else null,
+                                    readOnly = isPlayLinked,
                                     modifier = Modifier.weight(1f),
                                     singleLine = true
                                 )
@@ -2471,6 +2484,61 @@ private fun AdminDeleteListingDialog(
         confirmButton = {
             CustomButton(
                 text = "Confirm Delete",
+                onClick = onConfirm,
+                variant = CustomButtonVariant.DANGER
+            )
+        },
+        dismissButton = {
+            CustomButton(
+                text = "Cancel",
+                onClick = onDismiss,
+                variant = CustomButtonVariant.OUTLINED
+            )
+        }
+    )
+}
+
+/**
+ * 8. Delete Package Plan Confirmation Dialog (BUG-C3)
+ */
+@Composable
+private fun AdminDeletePackagePlanDialog(
+    planId: String,
+    subscriberCount: Int,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError) },
+        title = { Text("Remove Package Plan?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Are you sure you want to remove package '$planId'? This cannot be undone.")
+                if (subscriberCount > 0) {
+                    Surface(
+                        color = StatusError.copy(alpha = 0.1f),
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Default.Group, contentDescription = null, tint = StatusError, modifier = Modifier.size(16.dp))
+                            Text(
+                                "$subscriberCount active subscriber${if (subscriberCount == 1) "" else "s"} will lose access on their next renewal check.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = StatusError
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            CustomButton(
+                text = "Remove Package",
                 onClick = onConfirm,
                 variant = CustomButtonVariant.DANGER
             )

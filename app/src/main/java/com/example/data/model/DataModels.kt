@@ -879,7 +879,7 @@ data class SpaceListing(
     // restoreListingsAfterRenewal). Admin-SDK-only, same protected-field
     // pattern as isOwnerSuspended — see firestore.rules.
     val isOwnerPackageLapsed: Boolean = false,
-    val subscriptionExpiryMillis: Long = System.currentTimeMillis() + (28L * 24 * 60 * 60 * 1000),
+    val subscriptionExpiryMillis: Long = 0L,
     val imageUrls: List<String> = emptyList(),
     val videoTourDurationSec: Int = 10,
     val baseMonthlyRateUsd: Double = 450.0,
@@ -1152,7 +1152,7 @@ data class SpaceListing(
                 isActiveSubscription = data["isActiveSubscription"] as? Boolean ?: true,
                 isOwnerSuspended = data["isOwnerSuspended"] as? Boolean ?: false,
                 isOwnerPackageLapsed = data["isOwnerPackageLapsed"] as? Boolean ?: false,
-                subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong() ?: (System.currentTimeMillis() + 30L * 24 * 3600 * 1000),
+                subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong() ?: 0L,
                 imageUrls = (data["imageUrls"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                 videoTourDurationSec = (data["videoTourDurationSec"] as? Number)?.toInt() ?: 10,
                 baseMonthlyRateUsd = (data["baseMonthlyRateUsd"] as? Number)?.toDouble() ?: 450.0,
@@ -1462,6 +1462,12 @@ data class AppUser(
     // by the owner like any other profile field. See ProHostRepository.toggleSavedSpace.
     val savedSpaceIds: List<String> = emptyList()
 ) {
+    // Full map — only for admin/server-side contexts (e.g. bootstrapping a new profile
+    // from an admin console write). NEVER use for client-initiated profile updates;
+    // firestore.rules blocks writes to protected fields (role, isVerified, ownerPackageId,
+    // ownerPackageExpiryMillis, isSuspended, etc.), and including them in a client write
+    // causes the *entire* write to be rejected silently whenever a Cloud Function has
+    // updated one of those fields since the client last read the document.
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
             "id" to id,
@@ -1479,6 +1485,27 @@ data class AppUser(
             "subscriptionExpiryMillis" to subscriptionExpiryMillis,
             "ownerPackageId" to ownerPackageId,
             "ownerPackageExpiryMillis" to ownerPackageExpiryMillis,
+            "savedSpaceIds" to savedSpaceIds,
+            "updatedAt" to System.currentTimeMillis()
+        )
+    }
+
+    // Safe client-side profile update map — only fields the user is allowed to edit.
+    // Excludes every field guarded by firestore.rules' protectedKeys list so this map
+    // never triggers a rule rejection, even after a Cloud Function has updated
+    // ownerPackageId, role, isVerified, or any other server-owned field.
+    fun toEditableFieldsMap(): Map<String, Any?> {
+        return mapOf(
+            "fullName" to fullName,
+            "specialty" to specialty,
+            "phone" to phone,
+            "profilePictureUrl" to profilePictureUrl,
+            "idDocumentUrl" to idDocumentUrl,
+            "proofOfOwnershipUrl" to proofOfOwnershipUrl,
+            "country" to country,
+            "governorate" to governorate,
+            "city" to city,
+            "bio" to bio,
             "savedSpaceIds" to savedSpaceIds,
             "updatedAt" to System.currentTimeMillis()
         )

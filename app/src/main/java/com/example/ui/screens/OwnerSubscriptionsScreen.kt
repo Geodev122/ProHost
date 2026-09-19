@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -27,7 +29,7 @@ fun OwnerSubscriptionsScreen(
     viewModel: ProHostViewModel
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
+    val activity = context.findActivity()
     val currentUser by viewModel.currentUser.collectAsState()
     val packagePlans by viewModel.packagePlans.collectAsState()
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
@@ -83,16 +85,29 @@ fun OwnerSubscriptionsScreen(
                 shape = MaterialTheme.shapes.medium,
                 color = FreshGreen.copy(alpha = 0.12f)
             ) {
-                Row(
-                    modifier = Modifier.padding(Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = FreshGreen, strokeWidth = 2.dp)
-                    Spacer(modifier = Modifier.width(Spacing.sm))
+                Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = FreshGreen, strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Text(
+                                "Activating your subscription — this usually takes a few seconds.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OxfordBlue
+                            )
+                        }
+                        IconButton(onClick = { viewModel.dismissBillingActivationPending() }, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = CoolGray, modifier = Modifier.size(16.dp))
+                        }
+                    }
                     Text(
-                        "Activating your subscription — this usually takes a few seconds.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = OxfordBlue
+                        "Taking too long? Contact support via WhatsApp.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = CoolGray
                     )
                 }
             }
@@ -338,4 +353,13 @@ fun PackageOptionCard(
             )
         }
     }
+}
+
+private fun Context.findActivity(): Activity? {
+    var ctx = this
+    while (ctx is ContextWrapper) {
+        if (ctx is Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
 }

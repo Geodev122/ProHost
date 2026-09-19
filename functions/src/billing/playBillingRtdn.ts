@@ -249,7 +249,27 @@ export const playBillingRtdn = onMessagePublished(
 
     const uid = purchase.obfuscatedExternalAccountId;
     if (!uid) {
-      logger.error(`playBillingRtdn: no obfuscatedExternalAccountId for product=${productId} — launch flow must set setObfuscatedAccountId(uid)`);
+      const unresolvedDoc = {
+        purchaseToken,
+        productId,
+        orderId: purchase.orderId,
+        notificationType,
+        packageName: notification.packageName,
+        timestamp: Date.now(),
+        resolved: false,
+      };
+      if (notificationType === SUBSCRIPTION_PURCHASED || notificationType === SUBSCRIPTION_RECOVERED) {
+        // These can be retried — throw so Pub/Sub redelivers rather than permanently ACKing.
+        throw new Error(
+          `playBillingRtdn: no obfuscatedExternalAccountId for product=${productId} type=${notificationType} — Pub/Sub will redeliver`
+        );
+      }
+      // For revocation/expiry/hold/pause/cancel types: a retry won't help because
+      // a purchase without a UID can't be mapped to a user. Write for manual resolution.
+      logger.error(
+        `playBillingRtdn: no obfuscatedExternalAccountId for product=${productId} type=${notificationType} — writing to play_billing_unresolved`
+      );
+      await getFirestore().collection("play_billing_unresolved").add(unresolvedDoc);
       return;
     }
 
@@ -292,12 +312,10 @@ export const playBillingRtdn = onMessagePublished(
         break;
 
       case SUBSCRIPTION_DEFERRED:
-        // Promotional deferral — just update the expiry, no role changes
+        // Promotional deferral — use grantSubscription() so it keeps the later
+        // expiry, restores any lapsed listings, and auto-publishes pending drafts.
         if (expiryMs > 0) {
-          await getFirestore().collection("user_profiles").doc(uid).set(
-            { ownerPackageExpiryMillis: expiryMs, updatedAt: Date.now() },
-            { merge: true }
-          );
+          await grantSubscription(uid, productId, expiryMs, orderId);
         }
         break;
 

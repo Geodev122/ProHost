@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getAuth } from "firebase-admin/auth";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { createHash, randomBytes } from "crypto";
 import { adminApp } from "../lib/admin";
 
@@ -26,17 +26,11 @@ export const checkPhoneRegistered = onCall(async (request) => {
     throw new HttpsError("invalid-argument", "A valid E.164 phone number is required.");
   }
 
-  try {
-    const userRecord = await getFirebaseAuth().getUserByPhoneNumber(phone);
-    const profileDoc = await getDb().collection("user_profiles").doc(userRecord.uid).get();
-    const hasPinSet = !!(profileDoc.data()?.pinHash);
-    return { isRegistered: true, hasPinSet };
-  } catch (e: unknown) {
-    if ((e as { code?: string })?.code === "auth/user-not-found") {
-      return { isRegistered: false, hasPinSet: false };
-    }
-    throw new HttpsError("internal", "Could not check registration status. Please try again.");
-  }
+  // Always return ok:true to prevent phone-number enumeration. Old clients
+  // expecting isRegistered still receive the field (as true), but no Firestore
+  // or Auth lookup is made — registration state is inferred by the client from
+  // the OTP verification step instead.
+  return { ok: true, isRegistered: true };
 });
 
 /**
@@ -63,7 +57,8 @@ export const verifyPinAndIssueToken = onCall(async (request) => {
     throw new HttpsError("unauthenticated", "Incorrect PIN or unrecognized number.");
   }
 
-  const profileDoc = await getDb().collection("user_profiles").doc(uid).get();
+  const userRef = getDb().collection("user_profiles").doc(uid);
+  const profileDoc = await userRef.get();
   const data = profileDoc.data();
 
   if (!data?.pinHash || !data?.pinSalt) {
@@ -77,10 +72,29 @@ export const verifyPinAndIssueToken = onCall(async (request) => {
     throw new HttpsError("permission-denied", "This account has been suspended. Please contact support.");
   }
 
+  // Brute-force protection: check if the account is currently locked out.
+  const now = Date.now();
+  const pinLockedUntilMillis = data.pinLockedUntilMillis as number | null | undefined;
+  if (pinLockedUntilMillis && pinLockedUntilMillis > now) {
+    throw new HttpsError("resource-exhausted", "Too many failed attempts. Try again later.");
+  }
+
   const expectedHash = saltedHash(pin, data.pinSalt as string);
   if (expectedHash !== data.pinHash) {
+    // Increment failed attempt counter then re-read to decide whether to lock.
+    await userRef.set({ pinFailedAttempts: FieldValue.increment(1) }, { merge: true });
+    const updatedDoc = await userRef.get();
+    const newCount = (updatedDoc.data()?.pinFailedAttempts as number) ?? 1;
+    if (newCount >= 10) {
+      await userRef.set({ pinLockedUntilMillis: now + 24 * 60 * 60 * 1000 }, { merge: true });
+    } else if (newCount >= 5) {
+      await userRef.set({ pinLockedUntilMillis: now + 15 * 60 * 1000 }, { merge: true });
+    }
     throw new HttpsError("unauthenticated", "Incorrect PIN or unrecognized number.");
   }
+
+  // Success: reset brute-force counters.
+  await userRef.set({ pinFailedAttempts: 0, pinLockedUntilMillis: null }, { merge: true });
 
   const customToken = await getFirebaseAuth().createCustomToken(uid);
   return { token: customToken };
@@ -104,11 +118,11 @@ export const setUserPin = onCall(async (request) => {
   const salt = generateSalt();
   const hash = saltedHash(pin, salt);
 
-  await getDb().collection("user_profiles").doc(uid).update({
+  await getDb().collection("user_profiles").doc(uid).set({
     pinHash: hash,
     pinSalt: salt,
     pinSetAtMillis: Date.now(),
-  });
+  }, { merge: true });
 
   return { success: true };
 });

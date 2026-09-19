@@ -236,7 +236,7 @@ fun LoginAuthScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        AuthStepIndicator(step = step)
+        AuthStepIndicator(step = step, isForgotPinReset = isForgotPinReset)
 
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -701,10 +701,11 @@ private fun AuthStepHeader(
 }
 
 @Composable
-private fun AuthStepIndicator(step: AuthStep) {
+private fun AuthStepIndicator(step: AuthStep, isForgotPinReset: Boolean = false) {
     // Show only the steps relevant to the current auth mode inferred from position.
     // Login: Phone → PIN → Done
-    // Signup/Reset: Phone → Verify → Profile/PIN → Done
+    // Signup: Phone → Verify → Profile → PIN
+    // Forgot PIN: Phone → Verify → Set PIN
     val (steps, currentIndex) = when (step) {
         AuthStep.PHONE_ENTRY -> listOf(
             Triple(AuthStep.PHONE_ENTRY, "Phone", Icons.Default.Phone),
@@ -726,7 +727,11 @@ private fun AuthStepIndicator(step: AuthStep) {
             Triple(AuthStep.REGISTRATION_FORM, "Profile", Icons.Default.Person),
             Triple(AuthStep.SET_PIN, "PIN", Icons.Default.Lock)
         ) to 1
-        AuthStep.SET_PIN -> listOf(
+        AuthStep.SET_PIN -> if (isForgotPinReset) listOf(
+            Triple(AuthStep.PHONE_ENTRY, "Phone", Icons.Default.Phone),
+            Triple(AuthStep.OTP_ENTRY, "Verify", Icons.Default.Sms),
+            Triple(AuthStep.SET_PIN, "Set PIN", Icons.Default.Lock)
+        ) to 2 else listOf(
             Triple(AuthStep.OTP_ENTRY, "Verify", Icons.Default.Sms),
             Triple(AuthStep.REGISTRATION_FORM, "Profile", Icons.Default.Person),
             Triple(AuthStep.SET_PIN, "Set PIN", Icons.Default.Lock)

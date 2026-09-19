@@ -178,7 +178,7 @@ fun OwnerAnalyticsScreen(
         item {
             ProSectionHeader(
                 title = "My Listings",
-                subtitle = "Whish subscription status",
+                subtitle = "Subscription & listing health",
                 icon = Icons.Default.Shield
             )
         }
