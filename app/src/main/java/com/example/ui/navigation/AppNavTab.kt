@@ -18,7 +18,7 @@ sealed class AppNavTab(
     // in the drawer differs between the two roles). See allowedTabIdsForRole /
     // roleTabs in ProHostNavGraph.kt.
     object SearchMap : AppNavTab("search_map", "Explore", Icons.Filled.Search, Icons.Outlined.Search)
-    object ProfessionalRentals : AppNavTab("pro_rentals", "My Bookings", Icons.AutoMirrored.Filled.ReceiptLong, Icons.AutoMirrored.Outlined.ReceiptLong)
+    object ProfessionalRentals : AppNavTab("pro_rentals", "My Rentals", Icons.AutoMirrored.Filled.ReceiptLong, Icons.AutoMirrored.Outlined.ReceiptLong)
     object ProfessionalProfile : AppNavTab("pro_profile", "Profile", Icons.Filled.Person, Icons.Outlined.Person)
 
     // Pro Host destinations — reachable only from the drawer's "Pro Host" section,
