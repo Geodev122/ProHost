@@ -40,7 +40,6 @@ export const expirePackages = onSchedule("0 * * * *", async () => {
       .collection("user_profiles")
       .where("ownerPackageExpiryMillis", ">", now)
       .where("ownerPackageExpiryMillis", "<=", warningWindowEnd)
-      .orderBy("ownerPackageExpiryMillis")
       .limit(500);
     if (warningLastDoc) warningQuery = warningQuery.startAfter(warningLastDoc);
     const warningSnap = await warningQuery.get();

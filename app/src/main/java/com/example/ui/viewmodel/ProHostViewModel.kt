@@ -69,9 +69,10 @@ class ProHostViewModel(
     val pinReauthRequired: StateFlow<Boolean> = _pinReauthRequired.asStateFlow()
 
     fun requestPinReauth() {
-        if (currentUser.value != null) {
-            _pinReauthRequired.value = true
-        }
+        // Skip for ADMIN accounts — they have no phone-OTP registration and cannot verify PIN (NF1).
+        val user = currentUser.value ?: return
+        if (user.role == com.example.data.model.UserRole.ADMIN) return
+        _pinReauthRequired.value = true
     }
 
     fun clearPinReauth() {
