@@ -302,6 +302,70 @@ class FirebaseFunctionsClient {
         }
     }
 
+    // ----- PIN Auth (functions/src/auth/pinAuth.ts) -----
+
+    data class PhoneCheckResult(val isRegistered: Boolean, val hasPinSet: Boolean)
+
+    /**
+     * Checks whether a phone number is registered and has a PIN. Used by
+     * LoginAuthScreen to decide which path to show: PIN entry for returning users,
+     * OTP for new signups or accounts without a PIN yet.
+     */
+    suspend fun checkPhoneRegistered(phone: String): Result<PhoneCheckResult> {
+        return try {
+            val result = functions.getHttpsCallable("checkPhoneRegistered")
+                .call(mapOf("phone" to phone))
+                .await()
+            @Suppress("UNCHECKED_CAST")
+            val data = result.data as? Map<String, Any?>
+            Result.success(
+                PhoneCheckResult(
+                    isRegistered = data?.get("isRegistered") as? Boolean ?: false,
+                    hasPinSet = data?.get("hasPinSet") as? Boolean ?: false
+                )
+            )
+        } catch (e: Exception) {
+            Log.e(tag, "checkPhoneRegistered failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Verifies [pin] against the server-stored hash for [phone] and returns a
+     * Firebase custom auth token. The caller immediately calls
+     * FirebaseAuthService.signInWithCustomToken() with the returned token.
+     */
+    suspend fun verifyPinAndIssueToken(phone: String, pin: String): Result<String> {
+        return try {
+            val result = functions.getHttpsCallable("verifyPinAndIssueToken")
+                .call(mapOf("phone" to phone, "pin" to pin))
+                .await()
+            @Suppress("UNCHECKED_CAST")
+            val data = result.data as? Map<String, Any?>
+            val token = data?.get("token") as? String
+                ?: return Result.failure(IllegalStateException("verifyPinAndIssueToken returned no token."))
+            Result.success(token)
+        } catch (e: Exception) {
+            Log.e(tag, "verifyPinAndIssueToken failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Stores a hashed PIN for the authenticated caller (functions/src/auth/pinAuth.ts).
+     * Called after OTP sign-in during initial signup and after OTP reset during
+     * forgot-PIN. Requires an active Firebase Auth session.
+     */
+    suspend fun setUserPin(pin: String): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("setUserPin").call(mapOf("pin" to pin)).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "setUserPin failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     companion object {
         /**
          * Reads the role custom claim from the given user's current ID token,

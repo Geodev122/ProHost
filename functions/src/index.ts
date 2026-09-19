@@ -40,3 +40,5 @@ export { onBookingAcceptConflictGuard } from "./bookings/bookingConflictGuard";
 export { onUserFavoritesChanged } from "./users/favoritesSync";
 
 export { expirePackages } from "./packages/expirePackages";
+
+export { checkPhoneRegistered, verifyPinAndIssueToken, setUserPin } from "./auth/pinAuth";

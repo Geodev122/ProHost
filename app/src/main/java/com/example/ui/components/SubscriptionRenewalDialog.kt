@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import android.app.Activity
+import android.content.ContextWrapper
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -7,8 +9,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,17 +24,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.AppUser
-import com.example.data.model.PackagePlan
+import com.example.ui.theme.FreshGreen
 import com.example.ui.theme.Spacing
-import com.example.ui.theme.WhishRed
 import com.example.ui.viewmodel.ProHostViewModel
 import java.util.Locale
 
 /**
- * Replaces the old WhishPayModal-based "Renew" flow with an ultra-carousel dialog
- * displaying all available subscription packages side-by-side, pre-selecting the
- * current active or last subscribed plan for easy renewal while highlighting other
- * tiers for upselling.
+ * Subscription renewal/upgrade carousel. Launches Google Play Billing for all
+ * plans — the same flow used by OwnerSubscriptionsScreen's primary Subscribe CTA.
+ * Whish is not a valid payment path for in-app digital subscriptions per Play policy.
  */
 @Composable
 fun SubscriptionRenewalDialog(
@@ -41,14 +41,24 @@ fun SubscriptionRenewalDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val packagePlans by viewModel.packagePlans.collectAsState()
-    val isWhishCheckoutInFlight by viewModel.isWhishCheckoutInFlight.collectAsState()
-    var payerName by remember { mutableStateOf(currentUser.fullName) }
-    var payerPhone by remember { mutableStateOf(currentUser.phone) }
+    val activity = remember(context) {
+        var ctx = context
+        while (ctx is ContextWrapper) {
+            if (ctx is Activity) return@remember ctx as Activity
+            ctx = ctx.baseContext
+        }
+        null
+    }
 
-    val enabledPlans = remember(packagePlans) { packagePlans.packages.values.filter { it.isEnabled }.sortedBy { it.sortOrder } }
+    val packagePlans by viewModel.packagePlans.collectAsState()
+
+    val enabledPlans = remember(packagePlans) {
+        packagePlans.packages.values.filter { it.isEnabled }.sortedBy { it.sortOrder }
+    }
     val currentPlan = currentUser.ownerPackageId?.let { packagePlans.packages[it] }
-    var selectedPlan by remember(currentPlan, enabledPlans) { mutableStateOf(currentPlan ?: enabledPlans.firstOrNull()) }
+    var selectedPlan by remember(currentPlan, enabledPlans) {
+        mutableStateOf(currentPlan ?: enabledPlans.firstOrNull())
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -67,7 +77,11 @@ fun SubscriptionRenewalDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Membership Plans & Renewal", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                    Text(
+                        "Membership Plans",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold
+                    )
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Default.Close, contentDescription = "Close")
                     }
@@ -76,7 +90,7 @@ fun SubscriptionRenewalDialog(
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
                 Text(
-                    text = "Choose your plan below to renew or upgrade your ProHost business tier:",
+                    text = "Choose your plan to renew or upgrade your ProHost subscription:",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -90,7 +104,6 @@ fun SubscriptionRenewalDialog(
                         color = MaterialTheme.colorScheme.error
                     )
                 } else {
-                    // Ultra Carousel of all available plans (Renewal + Upselling)
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -106,7 +119,10 @@ fun SubscriptionRenewalDialog(
                                     .shadow(if (isSelected) 6.dp else 2.dp, MaterialTheme.shapes.medium),
                                 shape = MaterialTheme.shapes.medium,
                                 colors = CardDefaults.cardColors(
-                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    containerColor = if (isSelected)
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                 ),
                                 border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
                             ) {
@@ -128,7 +144,7 @@ fun SubscriptionRenewalDialog(
                                         )
                                         if (isCurrent) {
                                             Surface(
-                                                color = WhishRed,
+                                                color = FreshGreen,
                                                 shape = MaterialTheme.shapes.extraSmall
                                             ) {
                                                 Text(
@@ -142,7 +158,8 @@ fun SubscriptionRenewalDialog(
                                         }
                                     }
                                     Text(
-                                        text = plan.listingLimit?.let { "Up to $it listings · ${plan.validityDays}d" } ?: "Unlimited · ${plan.validityDays}d",
+                                        text = plan.listingLimit?.let { "Up to $it listings · ${plan.validityDays}d" }
+                                            ?: "Unlimited · ${plan.validityDays}d",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 2,
@@ -150,7 +167,7 @@ fun SubscriptionRenewalDialog(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "$${String.format(Locale.US, "%.2f", plan.priceUsd)}",
+                                        text = "$${String.format(Locale.US, "%.2f", plan.priceUsd)}/mo",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = MaterialTheme.colorScheme.primary
@@ -163,44 +180,42 @@ fun SubscriptionRenewalDialog(
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
-                OutlinedTextField(
-                    value = payerName,
-                    onValueChange = { payerName = it },
-                    label = { Text("Payer Name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.height(Spacing.sm))
-                OutlinedTextField(
-                    value = payerPhone,
-                    onValueChange = { payerPhone = it },
-                    label = { Text("Payer Phone") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
-                Spacer(modifier = Modifier.height(Spacing.lg))
-
                 val targetPlan = selectedPlan
-                val canSubmit = payerName.isNotBlank() && payerPhone.isNotBlank() &&
-                    targetPlan != null && !isWhishCheckoutInFlight
+                val canSubscribe = targetPlan != null && activity != null
 
                 Button(
                     onClick = {
-                        targetPlan?.let {
-                            viewModel.payOwnerPackageViaWhish(it.id, payerName, payerPhone, context = context)
+                        if (activity != null && targetPlan != null) {
+                            viewModel.launchGooglePaySubscription(activity, targetPlan.id)
+                            onDismiss()
                         }
-                        onDismiss()
                     },
-                    enabled = canSubmit,
+                    enabled = canSubscribe,
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
-                    colors = ButtonDefaults.buttonColors(containerColor = WhishRed)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
                 ) {
-                    Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text(text = selectedPlan?.let { "Pay $${String.format(Locale.US, "%.2f", it.priceUsd)} by Whish" } ?: "Pay by Whish", fontWeight = FontWeight.Bold)
+                    Text(
+                        text = selectedPlan?.let {
+                            "Subscribe with Google Play — $${String.format(Locale.US, "%.2f", it.priceUsd)}/mo"
+                        } ?: "Subscribe with Google Play",
+                        fontWeight = FontWeight.Bold
+                    )
                 }
+
+                Spacer(modifier = Modifier.height(Spacing.xs))
+
+                Text(
+                    text = "Managed by Google Play. Cancel anytime from Play Store.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
             }
         }
     }

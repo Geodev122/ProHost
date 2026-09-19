@@ -470,6 +470,11 @@ class ProHostViewModel(
     // to PRO_HOST the moment their package/listing Whish payment settles — never a free,
     // client-invocable "upgrade" call.
 
+    override fun onCleared() {
+        super.onCleared()
+        playBillingManager?.endConnection()
+    }
+
     fun logout() {
         // repository.logout() fires the (fire-and-forget) FCM-token-clear write
         // before we invalidate the local Firebase Auth session below — reversed,
