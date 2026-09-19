@@ -6,26 +6,13 @@ const PACKAGE_NAME = "app.geonajjar.prohost";
 
 interface DecodedIntegrityToken {
   tokenPayloadExternal?: {
-    appIntegrity?: { appRecognitionVerdict?: string };
+    appIntegrity?: { appRecognitionVerdict?: string; packageName?: string; certificateSha256Digest?: string[] };
     deviceIntegrity?: { deviceRecognitionVerdict?: string[] };
+    accountDetails?: { appLicensingVerdict?: string };
+    environmentDetails?: { playProtectVerdict?: string; appAccessRiskVerdict?: { appsDetected?: string[] } };
   };
 }
 
-/**
- * Verifies a Play Integrity token server-side, log-only — this is a deliberate
- * first-rollout design (see PlayIntegrityManager.kt/assignInitialRole.ts): a
- * missing token, a failed API call, or an unexpected verdict is recorded via
- * structured Cloud Logging and this function returns normally either way. It
- * NEVER throws and NEVER blocks the caller — this is intentionally the same
- * "ship it observably first" pattern this project already used for the
- * account-suspension and booking-conflict-guard rollouts, since false
- * positives on a legitimate device (a sideloaded debug build, a rooted test
- * device, an emulator) would otherwise lock out real users with no way to
- * diagnose it remotely. Uses the Cloud Function's own runtime credentials
- * (Application Default Credentials, already configured via ../lib/admin's
- * bare initializeApp()) to authenticate to the Play Integrity API, rather
- * than adding a new npm dependency for one REST call.
- */
 export async function checkPlayIntegrityLogOnly(token: string, uid: string): Promise<void> {
   try {
     const credential = adminApp.options.credential;
@@ -54,11 +41,29 @@ export async function checkPlayIntegrityLogOnly(token: string, uid: string): Pro
 
     const decoded = (await response.json()) as DecodedIntegrityToken;
     const appVerdict = decoded.tokenPayloadExternal?.appIntegrity?.appRecognitionVerdict;
-    if (appVerdict !== "PLAY_RECOGNIZED") {
+    const deviceVerdicts = decoded.tokenPayloadExternal?.deviceIntegrity?.deviceRecognitionVerdict || [];
+    const licensingVerdict = decoded.tokenPayloadExternal?.accountDetails?.appLicensingVerdict;
+    const playProtectVerdict = decoded.tokenPayloadExternal?.environmentDetails?.playProtectVerdict;
+
+    const meetsDeviceIntegrity = deviceVerdicts.includes("MEETS_DEVICE_INTEGRITY") || deviceVerdicts.includes("MEETS_STRONG_INTEGRITY");
+
+    logger.info("play_integrity_evaluation", {
+      uid,
+      appVerdict,
+      deviceVerdicts,
+      licensingVerdict,
+      playProtectVerdict,
+      meetsDeviceIntegrity,
+      isAuthenticPlayBinary: appVerdict === "PLAY_RECOGNIZED"
+    });
+
+    if (appVerdict !== "PLAY_RECOGNIZED" || !meetsDeviceIntegrity) {
       logger.warn("play_integrity_verdict_anomaly", {
         uid,
         appVerdict,
-        deviceIntegrity: decoded.tokenPayloadExternal?.deviceIntegrity,
+        deviceVerdicts,
+        licensingVerdict,
+        playProtectVerdict
       });
     }
   } catch (e) {

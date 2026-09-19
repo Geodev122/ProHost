@@ -1021,30 +1021,74 @@ fun SpaceDetailsScreenContent(
                                 }
                             }
                             RentalStrategyType.SHIFT_BASED -> {
-                                slots.groupBy { it.day }.toList().sortedBy { it.first }.forEach { (day, daySlots) ->
-                                    Text(day, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                                val dayOrder = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+                                slots.groupBy { it.day }.toList().sortedBy { (day, _) ->
+                                    val idx = dayOrder.indexOfFirst { it.equals(day, ignoreCase = true) }
+                                    if (idx >= 0) idx else 99
+                                }.forEach { (day, daySlots) ->
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                        shape = MaterialTheme.shapes.extraSmall,
+                                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = day,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
                                     daySlots.forEach { slot ->
                                         val locked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
                                         val isSelected = selectedAvailableSlot == slot
+                                        val displayShiftLabel = slot.label
+                                            .replace(Regex("^${Regex.escape(day)}\\s*[-–•]?\\s*", RegexOption.IGNORE_CASE), "")
+                                            .trim()
+                                            .ifBlank { slot.label }
+
                                         Surface(
                                             onClick = { if (!locked) selectedAvailableSlot = if (isSelected) null else slot },
                                             enabled = !locked,
-                                            color = if (isSelected) FreshGreen.copy(alpha = 0.16f) else Color.Transparent,
-                                            shape = MaterialTheme.shapes.extraSmall,
-                                            border = if (isSelected) BorderStroke(1.5.dp, FreshGreen) else null,
-                                            modifier = Modifier.fillMaxWidth()
+                                            color = when {
+                                                locked -> StatusErrorContainer.copy(alpha = 0.5f)
+                                                isSelected -> FreshGreen.copy(alpha = 0.2f)
+                                                else -> MaterialTheme.colorScheme.surface
+                                            },
+                                            shape = MaterialTheme.shapes.small,
+                                            border = BorderStroke(
+                                                if (isSelected) 1.5.dp else 1.dp,
+                                                if (isSelected) FreshGreen else if (locked) StatusError.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                            ),
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
                                         ) {
                                             Row(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .padding(vertical = 4.dp, horizontal = 4.dp),
-                                                horizontalArrangement = Arrangement.SpaceBetween
+                                                    .padding(vertical = 6.dp, horizontal = 10.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Text(slot.label, style = MaterialTheme.typography.bodySmall)
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(8.dp)
+                                                            .clip(CircleShape)
+                                                            .background(if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess)
+                                                    )
+                                                    Text(
+                                                        text = displayShiftLabel,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                    )
+                                                }
                                                 Text(
-                                                    if (locked) "Rented" else if (isSelected) "Selected" else "Available",
+                                                    text = if (locked) "Rented" else if (isSelected) "Selected" else "Available",
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    fontWeight = FontWeight.SemiBold,
+                                                    fontWeight = FontWeight.Bold,
                                                     color = if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess
                                                 )
                                             }
@@ -1059,22 +1103,41 @@ fun SpaceDetailsScreenContent(
                                     Surface(
                                         onClick = { if (!locked) selectedAvailableSlot = if (isSelected) null else slot },
                                         enabled = !locked,
-                                        color = if (isSelected) FreshGreen.copy(alpha = 0.16f) else Color.Transparent,
-                                        shape = MaterialTheme.shapes.extraSmall,
-                                        border = if (isSelected) BorderStroke(1.5.dp, FreshGreen) else null,
-                                        modifier = Modifier.fillMaxWidth()
+                                        color = when {
+                                            locked -> StatusErrorContainer.copy(alpha = 0.5f)
+                                            isSelected -> FreshGreen.copy(alpha = 0.2f)
+                                            else -> MaterialTheme.colorScheme.surface
+                                        },
+                                        shape = MaterialTheme.shapes.small,
+                                        border = BorderStroke(
+                                            if (isSelected) 1.5.dp else 1.dp,
+                                            if (isSelected) FreshGreen else if (locked) StatusError.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                        ),
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
                                     ) {
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(vertical = 4.dp, horizontal = 4.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween
+                                                .padding(vertical = 6.dp, horizontal = 10.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(slot.day, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(8.dp)
+                                                        .clip(CircleShape)
+                                                        .background(if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess)
+                                                )
+                                                Text(slot.day, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                            }
                                             Text(
-                                                if (locked) "Rented" else if (isSelected) "Selected" else "Available",
+                                                text = if (locked) "Rented" else if (isSelected) "Selected" else "Available",
                                                 style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.SemiBold,
+                                                fontWeight = FontWeight.Bold,
                                                 color = if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess
                                             )
                                         }
@@ -1084,14 +1147,39 @@ fun SpaceDetailsScreenContent(
                         }
 
                         if (selectedAvailableSlot != null) {
-                            Button(
-                                onClick = { showSendConfirm = true },
+                            val chosenSlot = selectedAvailableSlot!!
+                            Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.medium
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Send Request", fontWeight = FontWeight.Bold)
+                                Button(
+                                    onClick = { showSendConfirm = true },
+                                    modifier = Modifier.weight(1f),
+                                    shape = MaterialTheme.shapes.medium
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Send Request", fontWeight = FontWeight.Bold)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        val message = "Hello, I am interested in booking '${liveSpace.title}' for slot: ${chosenSlot.label} (${chosenSlot.day}). Is it still available?"
+                                        try {
+                                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://api.whatsapp.com/send?phone=${liveSpace.ownerPhone}&text=${java.net.URLEncoder.encode(message, "UTF-8")}"))
+                                            context.startActivity(intent)
+                                        } catch (e: Exception) {
+                                            android.widget.Toast.makeText(context, "WhatsApp not installed", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                                    shape = MaterialTheme.shapes.medium
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("WhatsApp", fontWeight = FontWeight.Bold, color = Color.White)
+                                }
                             }
                         }
                     }
