@@ -320,6 +320,14 @@ service cloud.firestore {
       allow create: if isSignedIn() &&
         request.resource.data.practitionerId == request.auth.uid &&
         !isSuspended() &&
+        // A Pro Host is a landlord role, not a renter — booking another host's
+        // listing is a specialist-only action (see the matching client-side
+        // gate in SpaceDetailsScreen/RentalBookingDialog). role() (a cheap
+        // custom-claim read) is deliberately used over liveRole() here: the
+        // only exploitable direction is a just-downgraded Pro Host still able
+        // to rent for up to ~1hr on a stale token, a harmless edge case, not
+        // a security hole.
+        role() != "PRO_HOST" &&
         // ownerId must be the REAL owner of spaceId — otherwise a Specialist
         // could create a BookingRequest naming an arbitrary ownerId with a
         // fabricated totalAmountUsd, and since the read rule above allows
