@@ -95,7 +95,13 @@ fun DrawerDialogsHandler(
                         "owner_whish" -> "Whish Money Transactions"
                         "admin_audit" -> "Central Security Audits"
                         "admin_gov" -> "Governorate Node Status"
-                        "fcm_alerts" -> "Real-time Alerts Terminal"
+                        // One title carrying the live unread count — this used to be a
+                        // separate chrome title ("Real-time Alerts Terminal") plus a
+                        // second, redundant "Notifications" heading inside the content.
+                        "fcm_alerts" -> {
+                            val unreadCount = fcmAlerts.count { !it.isRead }
+                            if (unreadCount > 0) "Notifications ($unreadCount new)" else "Notifications"
+                        }
                         else -> "Information Sheet"
                     }
                     Text(
@@ -372,15 +378,6 @@ fun DrawerDialogsHandler(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Text(
-                                    text = "Notifications",
-                                    fontWeight = FontWeight.Bold,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-
-                                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.xs))
-
                                 if (fcmAlerts.isEmpty()) {
                                     Column(
                                         modifier = Modifier
