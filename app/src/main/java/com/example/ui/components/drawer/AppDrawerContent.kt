@@ -1,5 +1,8 @@
 package com.example.ui.components.drawer
 
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,14 +18,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.model.AppUser
 import com.example.data.model.UserRole
 import com.example.ui.components.ProHostBrandLogo
 import com.example.ui.components.ProHostCedarBadge
 import com.example.ui.theme.*
+
+// Published as ProHost's real support/data-privacy contact on the public
+// privacy page (public/privacy.html) — single source of truth for the
+// drawer's "Contact Support" action, rather than a second hardcoded copy
+// that could drift from the published one.
+private const val SUPPORT_EMAIL = "geo.elnajjar@gmail.com"
 
 /**
  * The unified drawer for both SPECIALIST and PRO_HOST.
@@ -167,8 +176,13 @@ fun SpecialistDrawerContent(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
 
+        // "PRACTICE RESOURCES" and "CONFIGURATION & SETTINGS" used to be two
+        // separate sections for what's really one kind of destination — things a
+        // specialist reaches occasionally, not core daily workflow. Merged into one
+        // "MORE" section (also now home to Contact Support, relocated from the
+        // Profile screen) so the drawer reads as fewer, clearer groups.
         Text(
-            text = "PRACTICE RESOURCES",
+            text = "MORE",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = CarnationOrange,
@@ -199,21 +213,33 @@ fun SpecialistDrawerContent(
             )
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
-
-        Text(
-            text = "CONFIGURATION & SETTINGS",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = CarnationOrange,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-        )
-
         NavigationDrawerItem(
             label = { Text("Legal (Privacy, Terms & Policies)", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { onDrawerAction("legal_documents") },
             icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = OxfordBlue) }
+        )
+
+        val context = LocalContext.current
+        NavigationDrawerItem(
+            label = { Text("Contact Support", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = {
+                val subject = Uri.encode("ProHost Support — ${currentRole.name} account")
+                val body = Uri.encode(
+                    "Account: ${currentUser?.fullName ?: ""} (${currentUser?.email ?: ""})\n" +
+                        "User ID: ${currentUser?.id ?: ""}\n\nDescribe your question or issue below:\n"
+                )
+                val intent = Intent(Intent.ACTION_SENDTO).apply {
+                    data = Uri.parse("mailto:$SUPPORT_EMAIL?subject=$subject&body=$body")
+                }
+                try {
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(context, "No email app found — you can also reach us at $SUPPORT_EMAIL", Toast.LENGTH_LONG).show()
+                }
+            },
+            icon = { Icon(Icons.AutoMirrored.Filled.Help, contentDescription = null, tint = OxfordBlue) }
         )
 
         ProHostDrawerFooter()
@@ -393,25 +419,17 @@ fun ProHostDrawerFooter() {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             ProHostBrandLogo(size = 28.dp)
-            Column {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "ProHost Lebanon",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = OxfordBlue
-                    )
-                    ProHostCedarBadge(text = "v2.5", isCompact = true)
-                }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
-                    text = "Verified Specialist Workspace Grid",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontSize = 10.sp,
-                    color = CoolGray
+                    text = "ProHost Lebanon",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = OxfordBlue
                 )
+                ProHostCedarBadge(text = "v2.5", isCompact = true)
             }
         }
     }
