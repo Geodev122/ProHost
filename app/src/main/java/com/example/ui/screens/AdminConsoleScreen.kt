@@ -371,16 +371,16 @@ fun AdminConsoleScreen(
         )
     }
 
-    // 8. Add Package Plan Dialog — this used to just toggle isAddPackagePlanDialogOpen
-    // with no dialog anywhere actually reading it, so "Add Package" was a fully dead
-    // button; this is the real dialog it was always meant to open.
-    if (uiState.isAddPackagePlanDialogOpen) {
-        AdminAddPackagePlanDialog(
-            existingIds = uiState.packagePlans.packages.keys,
-            onDismiss = { adminViewModel.closeAddPackagePlanDialog() },
-            onAdd = { plan -> adminViewModel.addPackagePlan(plan) }
+    // 8. Delete Package Plan Confirmation Dialog (BUG-C3)
+    if (uiState.isDeletePackagePlanDialogOpen && uiState.pendingDeletePlanId != null) {
+        AdminDeletePackagePlanDialog(
+            planId = uiState.pendingDeletePlanId!!,
+            subscriberCount = uiState.pendingDeletePlanSubscriberCount,
+            onDismiss = { adminViewModel.cancelDeletePackagePlan() },
+            onConfirm = { adminViewModel.confirmDeletePackagePlan() }
         )
     }
+
 }
 
 // =========================================================================
@@ -449,6 +449,22 @@ private fun AdminRevenueTab(
                             modifier = Modifier.weight(1f)
                         )
                     }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        ProMetricTile(
+                            title = "Play Subscribers",
+                            value = if (uiState.activeSubscriberCount > 0)
+                                uiState.activeSubscriberCount.toString() else "—",
+                            subtitle = "Active Play Billing Subscriptions",
+                            icon = Icons.Default.Subscriptions,
+                            iconTint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                 }
             }
         }
@@ -478,25 +494,31 @@ private fun AdminRevenueTab(
 
                     HorizontalDivider()
 
-                    Row(
+                    Text(
+                        text = "Packages",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    // Packages are defined in Google Play Console (Monetise → Subscriptions).
+                    // Admin controls listing limits, display names, and enable/disable here.
+                    Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        shape = MaterialTheme.shapes.small
                     ) {
-                        Text(
-                            text = "Packages",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Button(
-                            onClick = { adminViewModel.openAddPackagePlanDialog() },
-                            shape = MaterialTheme.shapes.small,
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Add Package", style = MaterialTheme.typography.labelSmall)
+                            Icon(Icons.Default.Info, contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(14.dp))
+                            Text(
+                                "New plans are created in Google Play Console. Set listing limits and display names below.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
 
@@ -522,6 +544,7 @@ private fun AdminRevenueTab(
                         var unlimitedInput by remember(plan.id, plan.listingLimit) { mutableStateOf(plan.listingLimit == null) }
                         var limitInput by remember(plan.id, plan.listingLimit) { mutableStateOf((plan.listingLimit ?: 3).toString()) }
                         var validityInput by remember(plan.id, plan.validityDays) { mutableStateOf(plan.validityDays.toString()) }
+                        var googlePlayProductIdInput by remember(plan.id, plan.googlePlayProductId) { mutableStateOf(plan.googlePlayProductId) }
 
                         Column(
                             modifier = Modifier
@@ -530,12 +553,18 @@ private fun AdminRevenueTab(
                                 .padding(10.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
+                            val isPlayLinked = plan.googlePlayProductId.isNotBlank()
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("#${plan.id}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Column {
+                                    Text("#${plan.id}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    if (isPlayLinked) {
+                                        Text("Google Play", style = MaterialTheme.typography.labelSmall, color = FreshGreen)
+                                    }
+                                }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         if (plan.isEnabled) "Enabled" else "Disabled",
@@ -543,8 +572,16 @@ private fun AdminRevenueTab(
                                         color = if (plan.isEnabled) FreshGreen else StatusError
                                     )
                                     Switch(checked = plan.isEnabled, onCheckedChange = { adminViewModel.togglePackagePlan(plan.id) })
-                                    IconButton(onClick = { adminViewModel.deletePackagePlan(plan.id) }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Delete package", tint = StatusError)
+                                    // Play-linked plans cannot be deleted here — manage them in Play Console
+                                    IconButton(
+                                        onClick = { if (!isPlayLinked) adminViewModel.deletePackagePlan(plan.id) },
+                                        enabled = !isPlayLinked
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = if (isPlayLinked) "Managed in Google Play Console" else "Delete package",
+                                            tint = if (isPlayLinked) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f) else StatusError
+                                        )
                                     }
                                 }
                             }
@@ -574,6 +611,7 @@ private fun AdminRevenueTab(
                                     value = priceInput,
                                     onValueChange = { priceInput = it.filter { c -> c.isDigit() || c == '.' } },
                                     label = { Text("Price ($)") },
+                                    supportingText = if (isPlayLinked) {{ Text("The actual charge is handled by Google Play.") }} else null,
                                     modifier = Modifier.weight(1f),
                                     singleLine = true
                                 )
@@ -597,13 +635,53 @@ private fun AdminRevenueTab(
                                 }
                                 OutlinedTextField(
                                     value = validityInput,
-                                    onValueChange = { validityInput = it.filter { c -> c.isDigit() } },
+                                    onValueChange = { if (!isPlayLinked) validityInput = it.filter { c -> c.isDigit() } },
                                     label = { Text("Validity (days)") },
+                                    supportingText = if (isPlayLinked) {{ Text("Billing cycle reference only — actual billing is via Google Play.") }} else null,
+                                    readOnly = isPlayLinked,
                                     modifier = Modifier.weight(1f),
                                     singleLine = true
                                 )
                             }
-                            Button(
+                            if (plan.googlePlayProductId.isNotBlank()) {
+                                // Product ID is locked once set — it maps to a real Play subscription
+                                // that exists in Google Play Console. Changing it here would break
+                                // the RTDN handler's ability to resolve purchases to this plan.
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    shape = MaterialTheme.shapes.small
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(Icons.Default.Lock, contentDescription = null,
+                                            tint = FreshGreen, modifier = Modifier.size(14.dp))
+                                        Column {
+                                            Text("Google Play Product ID", style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text(plan.googlePlayProductId,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onSurface)
+                                        }
+                                    }
+                                }
+                            } else {
+                                OutlinedTextField(
+                                    value = googlePlayProductIdInput,
+                                    onValueChange = { googlePlayProductIdInput = it },
+                                    label = { Text("Google Play Product ID") },
+                                    placeholder = { Text("e.g. package_growth_mrr") },
+                                    supportingText = { Text("Must exactly match a Subscription ID in Google Play Console.") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+                            }
+                            CustomButton(
+                                text = "Save Package",
                                 onClick = {
                                     adminViewModel.updatePackagePlan(
                                         plan.copy(
@@ -612,15 +690,15 @@ private fun AdminRevenueTab(
                                             badgeName = badgeInput,
                                             priceUsd = priceInput.toDoubleOrNull() ?: plan.priceUsd,
                                             listingLimit = if (unlimitedInput) null else (limitInput.toIntOrNull()?.takeIf { it >= 1 } ?: plan.listingLimit),
-                                            validityDays = validityInput.toIntOrNull()?.takeIf { it >= 1 } ?: plan.validityDays
+                                            validityDays = validityInput.toIntOrNull()?.takeIf { it >= 1 } ?: plan.validityDays,
+                                            googlePlayProductId = googlePlayProductIdInput.trim()
                                         )
                                     )
                                 },
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                Text("Save Package")
-                            }
+                                variant = CustomButtonVariant.PRIMARY,
+                                compact = true
+                            )
                         }
                     }
                 }
@@ -645,27 +723,23 @@ private fun AdminRevenueTab(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Button(
+                        CustomButton(
+                            text = "Full Audit (TXT)",
                             onClick = { exportTxtFile("prohost_full_audit.txt", adminViewModel.getFullAuditReport()) },
                             modifier = Modifier.weight(1f),
-                            shape = MaterialTheme.shapes.small,
-                            colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
-                        ) {
-                            Icon(Icons.Default.Summarize, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Full Audit (TXT)", style = MaterialTheme.typography.labelSmall)
-                        }
+                            variant = CustomButtonVariant.PRIMARY,
+                            icon = Icons.Default.Summarize,
+                            compact = true
+                        )
 
-                        Button(
+                        CustomButton(
+                            text = "Master (JSON)",
                             onClick = { exportJsonFile("prohost_master_export.json", adminViewModel.getMasterJsonExport()) },
                             modifier = Modifier.weight(1f),
-                            shape = MaterialTheme.shapes.small,
-                            colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
-                        ) {
-                            Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Master (JSON)", style = MaterialTheme.typography.labelSmall)
-                        }
+                            variant = CustomButtonVariant.SECONDARY,
+                            icon = Icons.Default.Code,
+                            compact = true
+                        )
                     }
                 }
             }
@@ -701,26 +775,20 @@ private fun AdminUsersDirectoryTab(
                         )
 
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Button(
+                            CustomButton(
+                                text = "CSV",
                                 onClick = { adminViewModel.exportUsersDirectory("CSV") },
-                                shape = MaterialTheme.shapes.small,
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
-                            ) {
-                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("CSV", style = MaterialTheme.typography.labelSmall)
-                            }
-                            Button(
+                                variant = CustomButtonVariant.PRIMARY,
+                                icon = Icons.Default.Download,
+                                compact = true
+                            )
+                            CustomButton(
+                                text = "JSON",
                                 onClick = { adminViewModel.exportUsersDirectory("JSON") },
-                                shape = MaterialTheme.shapes.small,
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
-                            ) {
-                                Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("JSON", style = MaterialTheme.typography.labelSmall)
-                            }
+                                variant = CustomButtonVariant.SECONDARY,
+                                icon = Icons.Default.Code,
+                                compact = true
+                            )
                         }
                     }
 
@@ -905,16 +973,14 @@ private fun AdminUsersDirectoryTab(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Edit Button
-                        OutlinedButton(
+                        CustomButton(
+                            text = "Edit",
                             onClick = { adminViewModel.openEditUserDialog(user) },
-                            shape = MaterialTheme.shapes.small,
                             modifier = Modifier.weight(0.9f),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Edit", style = MaterialTheme.typography.labelSmall)
-                        }
+                            variant = CustomButtonVariant.OUTLINED,
+                            icon = Icons.Default.Edit,
+                            compact = true
+                        )
 
                         // Grant Admin Button
                         if (user.role != UserRole.ADMIN) {
@@ -1005,26 +1071,20 @@ private fun AdminListingsCatalogTab(
                         )
 
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Button(
+                            CustomButton(
+                                text = "CSV",
                                 onClick = { adminViewModel.exportListingsCatalog("CSV") },
-                                shape = MaterialTheme.shapes.small,
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
-                            ) {
-                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("CSV", style = MaterialTheme.typography.labelSmall)
-                            }
-                            Button(
+                                variant = CustomButtonVariant.PRIMARY,
+                                icon = Icons.Default.Download,
+                                compact = true
+                            )
+                            CustomButton(
+                                text = "JSON",
                                 onClick = { adminViewModel.exportListingsCatalog("JSON") },
-                                shape = MaterialTheme.shapes.small,
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
-                            ) {
-                                Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("JSON", style = MaterialTheme.typography.labelSmall)
-                            }
+                                variant = CustomButtonVariant.SECONDARY,
+                                icon = Icons.Default.Code,
+                                compact = true
+                            )
                         }
                     }
 
@@ -1125,7 +1185,7 @@ private fun AdminListingsCatalogTab(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "📍 ${space.district}, ${space.governorate.displayName.split(" ").first()} • ${space.streetAddress}",
+                                text = "${space.district}, ${space.governorate.displayName.split(" ").first()} • ${space.streetAddress}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -1169,7 +1229,8 @@ private fun AdminListingsCatalogTab(
                     }
 
                     if (!space.isVerified && !space.verificationDocUrl.isNullOrBlank()) {
-                        OutlinedButton(
+                        CustomButton(
+                            text = "View Verification Document (${space.verificationDocType?.name?.replace('_', ' ') ?: "on file"})",
                             onClick = {
                                 try {
                                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(space.verificationDocUrl)))
@@ -1178,16 +1239,10 @@ private fun AdminListingsCatalogTab(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.small,
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
-                        ) {
-                            Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text(
-                                text = "View Verification Document (${space.verificationDocType?.name?.replace('_', ' ') ?: "on file"})",
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
+                            variant = CustomButtonVariant.OUTLINED,
+                            icon = Icons.Default.Description,
+                            compact = true
+                        )
                     }
 
                     Text(
@@ -1207,50 +1262,34 @@ private fun AdminListingsCatalogTab(
                         // Toggle subscription active status — a plain admin override, no
                         // expiry date attached (setListingSubscriptionActive just flips the
                         // boolean; it doesn't grant or fabricate any time period).
-                        OutlinedButton(
+                        CustomButton(
+                            text = if (space.isActiveSubscription) "Deactivate" else "Activate",
                             onClick = { adminViewModel.toggleListingSubscription(space.id, space.isActiveSubscription) },
-                            shape = MaterialTheme.shapes.small,
                             modifier = Modifier.weight(1.1f),
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
-                        ) {
-                            Icon(
-                                if (space.isActiveSubscription) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text(
-                                text = if (space.isActiveSubscription) "Deactivate" else "Activate",
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
+                            variant = CustomButtonVariant.OUTLINED,
+                            icon = if (space.isActiveSubscription) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
+                            compact = true
+                        )
 
                         // Toggle Verified
-                        OutlinedButton(
+                        CustomButton(
+                            text = if (space.isVerified) "Unverify" else "Verify",
                             onClick = { adminViewModel.toggleListingVerification(space.id) },
-                            shape = MaterialTheme.shapes.small,
                             modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
-                        ) {
-                            Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text(
-                                text = if (space.isVerified) "Unverify" else "Verify",
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
+                            variant = CustomButtonVariant.OUTLINED,
+                            icon = Icons.Default.Verified,
+                            compact = true
+                        )
 
                         // Edit Button
-                        OutlinedButton(
+                        CustomButton(
+                            text = "Edit",
                             onClick = { adminViewModel.openEditListingDialog(space) },
-                            shape = MaterialTheme.shapes.small,
                             modifier = Modifier.weight(0.8f),
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Edit", style = MaterialTheme.typography.labelSmall)
-                        }
+                            variant = CustomButtonVariant.OUTLINED,
+                            icon = Icons.Default.Edit,
+                            compact = true
+                        )
 
                         // Delete Button
                         IconButton(
@@ -1349,16 +1388,13 @@ private fun AdminOwnersAndPaymentsTab(
                             icon = Icons.Default.HomeWork
                         )
 
-                        Button(
+                        CustomButton(
+                            text = "Export Hosts",
                             onClick = { adminViewModel.exportOwnerRegistrations() },
-                            shape = MaterialTheme.shapes.small,
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
-                        ) {
-                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Export Hosts", style = MaterialTheme.typography.labelSmall)
-                        }
+                            variant = CustomButtonVariant.SECONDARY,
+                            icon = Icons.Default.Download,
+                            compact = true
+                        )
                     }
 
                     var chartFromMillis by remember { mutableStateOf<Long?>(null) }
@@ -1405,16 +1441,13 @@ private fun AdminOwnersAndPaymentsTab(
                             )
                         }
 
-                        Button(
+                        CustomButton(
+                            text = "Export Ledger",
                             onClick = { adminViewModel.exportTransactionsLedger() },
-                            shape = MaterialTheme.shapes.small,
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
-                        ) {
-                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Export Ledger", style = MaterialTheme.typography.labelSmall)
-                        }
+                            variant = CustomButtonVariant.PRIMARY,
+                            icon = Icons.Default.Download,
+                            compact = true
+                        )
                     }
 
                     Text(
@@ -1576,26 +1609,21 @@ private fun AdminSchemaArchitectureTab(
                         )
 
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            OutlinedButton(
+                            CustomButton(
+                                text = "Reset Defaults",
                                 onClick = { adminViewModel.openResetSchemaDialog() },
-                                shape = MaterialTheme.shapes.small,
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Icon(Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("Reset Defaults", style = MaterialTheme.typography.labelSmall)
-                            }
+                                variant = CustomButtonVariant.OUTLINED,
+                                icon = Icons.Default.RestartAlt,
+                                compact = true
+                            )
 
-                            Button(
+                            CustomButton(
+                                text = "Add Node",
                                 onClick = { adminViewModel.openAddSchemaItemDialog() },
-                                shape = MaterialTheme.shapes.small,
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text("Add Node", style = MaterialTheme.typography.labelSmall)
-                            }
+                                variant = CustomButtonVariant.SECONDARY,
+                                icon = Icons.Default.Add,
+                                compact = true
+                            )
                         }
                     }
 
@@ -1762,22 +1790,19 @@ private fun AdminSchemaArchitectureTab(
                             }
                             Text(
                                 text = "Category: ${item.category} • ID: ${item.id}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             if (item.description.isNotBlank()) {
                                 Text(
                                     text = item.description,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize
+                                    style = MaterialTheme.typography.labelSmall
                                 )
                             }
                             if (item.category == "SPACE_TYPE") {
                                 Text(
                                     text = "Max subdivisions: ${item.maxSubdivisions?.toString() ?: "Unlimited"}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -1819,16 +1844,13 @@ private fun AdminSchemaArchitectureTab(
                             subtitle = "Reference labels only — real per-listing pricing is configured in the listing wizard",
                             icon = Icons.Default.Schedule
                         )
-                        Button(
+                        CustomButton(
+                            text = "Add Formula",
                             onClick = { adminViewModel.openAddSchemaItemDialog(presetCategory = "RENTAL_STRATEGY") },
-                            shape = MaterialTheme.shapes.small,
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Add Formula", style = MaterialTheme.typography.labelSmall)
-                        }
+                            variant = CustomButtonVariant.SECONDARY,
+                            icon = Icons.Default.Add,
+                            compact = true
+                        )
                     }
 
                     schema.rentalStrategies.forEach { item ->
@@ -1842,8 +1864,7 @@ private fun AdminSchemaArchitectureTab(
                                 if (item.description.isNotBlank()) {
                                     Text(
                                         item.description,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                        style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -1889,10 +1910,9 @@ private fun AdminSchemaArchitectureTab(
                                 "• Collection: 'system_metadata' (Documents: AdminPricingState)\n" +
                                 "• Collection: 'hashtag_usage' (Documents: HashtagUsageEntry)\n" +
                                 "• Collection: 'schema_architecture' (Documents: SpaceArchitectureSchema)",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelSmall,
                         fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = MaterialTheme.typography.labelSmall.fontSize
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -1939,19 +1959,16 @@ private fun AdminSecurityAuditTab(
                         onToChange = { auditExportToMillis = it }
                     )
 
-                    Button(
+                    CustomButton(
+                        text = "Export Audit Logs (CSV)",
                         onClick = {
                             val csv = adminViewModel.exportAuditLogsCsv(auditExportFromMillis, auditExportToMillis)
                             exportAuditCsvFile("prohost_audit_logs.csv", csv)
                         },
-                        shape = MaterialTheme.shapes.small,
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
-                    ) {
-                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("Export Audit Logs (CSV)", style = MaterialTheme.typography.labelSmall)
-                    }
+                        variant = CustomButtonVariant.PRIMARY,
+                        icon = Icons.Default.Download,
+                        compact = true
+                    )
                 }
             }
         }
@@ -2019,22 +2036,15 @@ private fun AdminSecurityAuditTab(
                                     color = if (current != null || !slot.noPublishedCopyIsBlocking) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error
                                 )
                             }
-                            OutlinedButton(
-                                enabled = !isUploading,
+                            CustomButton(
+                                text = if (current != null) "Upload New Version" else "Upload",
                                 onClick = { pickerLauncher.launch(slot.mimeType) },
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                if (isUploading) {
-                                    CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
-                                } else {
-                                    Icon(Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(14.dp))
-                                }
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text(
-                                    if (current != null) "Upload New Version" else "Upload",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
+                                variant = CustomButtonVariant.OUTLINED,
+                                enabled = !isUploading,
+                                isLoading = isUploading,
+                                icon = Icons.Default.UploadFile,
+                                compact = true
+                            )
                         }
                     }
                 }
@@ -2065,8 +2075,7 @@ private fun AdminSecurityAuditTab(
 
                         Text(
                             text = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date(log.timestamp)),
-                            style = MaterialTheme.typography.bodySmall,
-                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -2162,9 +2171,8 @@ private fun AdminExportDataDialog(
                     val scrollState = rememberScrollState()
                     Text(
                         text = content,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelSmall,
                         fontFamily = FontFamily.Monospace,
-                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(scrollState)
@@ -2177,7 +2185,8 @@ private fun AdminExportDataDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedButton(
+                    CustomButton(
+                        text = "Copy Text",
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             val clip = ClipData.newPlainText(title, content)
@@ -2185,14 +2194,12 @@ private fun AdminExportDataDialog(
                             Toast.makeText(context, "Copied to clipboard!", Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("Copy Text")
-                    }
+                        variant = CustomButtonVariant.OUTLINED,
+                        icon = Icons.Default.ContentCopy
+                    )
 
-                    Button(
+                    CustomButton(
+                        text = "Share / Export",
                         onClick = {
                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
@@ -2202,13 +2209,9 @@ private fun AdminExportDataDialog(
                             context.startActivity(Intent.createChooser(shareIntent, "Share Export Data"))
                         },
                         modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.small,
-                        colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("Share / Export")
-                    }
+                        variant = CustomButtonVariant.PRIMARY,
+                        icon = Icons.Default.Share
+                    )
                 }
             }
         }
@@ -2293,10 +2296,14 @@ private fun AdminEditUserDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = MaterialTheme.shapes.small) {
-                        Text("Cancel")
-                    }
-                    Button(
+                    CustomButton(
+                        text = "Cancel",
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        variant = CustomButtonVariant.OUTLINED
+                    )
+                    CustomButton(
+                        text = "Save Changes",
                         onClick = {
                             val updated = user.copy(
                                 fullName = fullName.trim(),
@@ -2310,11 +2317,8 @@ private fun AdminEditUserDialog(
                             onSave(updated)
                         },
                         modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.small,
-                        colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
-                    ) {
-                        Text("Save Changes")
-                    }
+                        variant = CustomButtonVariant.PRIMARY
+                    )
                 }
             }
         }
@@ -2338,17 +2342,18 @@ private fun AdminDeleteUserDialog(
             Text("Are you sure you want to permanently remove '${user.fullName}' (${user.email})'s profile from the platform? Their sign-in credentials are not revoked by this action.")
         },
         confirmButton = {
-            Button(
+            CustomButton(
+                text = "Confirm Delete",
                 onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = StatusError)
-            ) {
-                Text("Confirm Delete")
-            }
+                variant = CustomButtonVariant.DANGER
+            )
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            CustomButton(
+                text = "Cancel",
+                onClick = onDismiss,
+                variant = CustomButtonVariant.OUTLINED
+            )
         }
     )
 }
@@ -2370,14 +2375,18 @@ private fun AdminGrantAdminDialog(
             Text("Are you sure you want to grant full Admin privileges to '${user.fullName}' (${user.email})? This gives them unrestricted access to governance, pricing, and user management.")
         },
         confirmButton = {
-            Button(onClick = onConfirm) {
-                Text("Confirm Grant")
-            }
+            CustomButton(
+                text = "Confirm Grant",
+                onClick = onConfirm,
+                variant = CustomButtonVariant.SUCCESS
+            )
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            CustomButton(
+                text = "Cancel",
+                onClick = onDismiss,
+                variant = CustomButtonVariant.OUTLINED
+            )
         }
     )
 }
@@ -2409,17 +2418,18 @@ private fun AdminSuspendUserDialog(
             )
         },
         confirmButton = {
-            Button(
+            CustomButton(
+                text = if (suspending) "Confirm Suspend" else "Confirm Reactivate",
                 onClick = onConfirm,
-                colors = if (suspending) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors()
-            ) {
-                Text(if (suspending) "Confirm Suspend" else "Confirm Reactivate")
-            }
+                variant = if (suspending) CustomButtonVariant.DANGER else CustomButtonVariant.SUCCESS
+            )
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            CustomButton(
+                text = "Cancel",
+                onClick = onDismiss,
+                variant = CustomButtonVariant.OUTLINED
+            )
         }
     )
 }
@@ -2440,17 +2450,18 @@ private fun AdminRevokeProHostDialog(
             )
         },
         confirmButton = {
-            Button(
+            CustomButton(
+                text = "Confirm Revoke",
                 onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) {
-                Text("Confirm Revoke")
-            }
+                variant = CustomButtonVariant.DANGER
+            )
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            CustomButton(
+                text = "Cancel",
+                onClick = onDismiss,
+                variant = CustomButtonVariant.OUTLINED
+            )
         }
     )
 }
@@ -2472,17 +2483,73 @@ private fun AdminDeleteListingDialog(
             Text("Are you sure you want to delete '${listing.title}' in ${listing.district}? This will remove it from discovery and cancel any active rental bookings.")
         },
         confirmButton = {
-            Button(
+            CustomButton(
+                text = "Confirm Delete",
                 onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = StatusError)
-            ) {
-                Text("Confirm Delete")
-            }
+                variant = CustomButtonVariant.DANGER
+            )
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
-                Text("Cancel")
+            CustomButton(
+                text = "Cancel",
+                onClick = onDismiss,
+                variant = CustomButtonVariant.OUTLINED
+            )
+        }
+    )
+}
+
+/**
+ * 8. Delete Package Plan Confirmation Dialog (BUG-C3)
+ */
+@Composable
+private fun AdminDeletePackagePlanDialog(
+    planId: String,
+    subscriberCount: Int,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError) },
+        title = { Text("Remove Package Plan?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Are you sure you want to remove package '$planId'? This cannot be undone.")
+                if (subscriberCount > 0) {
+                    Surface(
+                        color = StatusError.copy(alpha = 0.1f),
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Default.Group, contentDescription = null, tint = StatusError, modifier = Modifier.size(16.dp))
+                            Text(
+                                "$subscriberCount active subscriber${if (subscriberCount == 1) "" else "s"} will lose access on their next renewal check.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = StatusError
+                            )
+                        }
+                    }
+                }
             }
+        },
+        confirmButton = {
+            CustomButton(
+                text = "Remove Package",
+                onClick = onConfirm,
+                variant = CustomButtonVariant.DANGER
+            )
+        },
+        dismissButton = {
+            CustomButton(
+                text = "Cancel",
+                onClick = onDismiss,
+                variant = CustomButtonVariant.OUTLINED
+            )
         }
     )
 }
@@ -2538,7 +2605,7 @@ private fun AdminAddSchemaItemDialog(
                         FilterChip(
                             selected = selectedCategory == catKey,
                             onClick = { selectedCategory = catKey },
-                            label = { Text(catLabel, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                            label = { Text(catLabel, style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }
@@ -2572,10 +2639,14 @@ private fun AdminAddSchemaItemDialog(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = MaterialTheme.shapes.small) {
-                        Text("Cancel")
-                    }
-                    Button(
+                    CustomButton(
+                        text = "Cancel",
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        variant = CustomButtonVariant.OUTLINED
+                    )
+                    CustomButton(
+                        text = "Create Node",
                         onClick = {
                             if (name.isNotBlank()) {
                                 val maxSub = if (selectedCategory == "SPACE_TYPE") maxSubdivisionsInput.toIntOrNull() else null
@@ -2584,11 +2655,8 @@ private fun AdminAddSchemaItemDialog(
                         },
                         enabled = name.isNotBlank(),
                         modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.small,
-                        colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
-                    ) {
-                        Text("Create Node")
-                    }
+                        variant = CustomButtonVariant.SECONDARY
+                    )
                 }
             }
         }
@@ -2611,17 +2679,18 @@ private fun AdminResetSchemaDialog(
             Text("This will restore all default Lebanese workspace classifications (OEA, LOP, BBA subcategories, solar amenities, and medical equipment) while removing custom additions.")
         },
         confirmButton = {
-            Button(
+            CustomButton(
+                text = "Confirm Reset",
                 onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue)
-            ) {
-                Text("Confirm Reset")
-            }
+                variant = CustomButtonVariant.PRIMARY
+            )
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            CustomButton(
+                text = "Cancel",
+                onClick = onDismiss,
+                variant = CustomButtonVariant.OUTLINED
+            )
         }
     )
 }
@@ -2645,6 +2714,7 @@ private fun AdminAddPackagePlanDialog(
     var unlimited by remember { mutableStateOf(false) }
     var limitInput by remember { mutableStateOf("") }
     var validityInput by remember { mutableStateOf("30") }
+    var newPlanGooglePlayProductId by remember { mutableStateOf("") }
 
     // Derived from the name so the admin never has to think about it, but still
     // shown read-only — collisions (e.g. re-adding "LIMITED_3_TIER") are refused
@@ -2744,6 +2814,16 @@ private fun AdminAddPackagePlanDialog(
                     )
                 }
 
+                OutlinedTextField(
+                    value = newPlanGooglePlayProductId,
+                    onValueChange = { newPlanGooglePlayProductId = it },
+                    label = { Text("Google Play Product ID") },
+                    placeholder = { Text("e.g. package_growth_mrr") },
+                    supportingText = { Text("Must exactly match a Subscription ID in Google Play Console. Leave blank for Whish-only plans.") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
                 Spacer(modifier = Modifier.height(6.dp))
 
                 val canAdd = name.isNotBlank() && !idCollision &&
@@ -2752,10 +2832,14 @@ private fun AdminAddPackagePlanDialog(
                     (validityInput.toIntOrNull()?.let { it >= 1 } == true)
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = MaterialTheme.shapes.small) {
-                        Text("Cancel")
-                    }
-                    Button(
+                    CustomButton(
+                        text = "Cancel",
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        variant = CustomButtonVariant.OUTLINED
+                    )
+                    CustomButton(
+                        text = "Add Package",
                         onClick = {
                             onAdd(
                                 PackagePlan(
@@ -2766,17 +2850,15 @@ private fun AdminAddPackagePlanDialog(
                                     priceUsd = priceInput.toDoubleOrNull() ?: 0.0,
                                     listingLimit = if (unlimited) null else limitInput.toIntOrNull(),
                                     validityDays = validityInput.toIntOrNull() ?: 30,
-                                    isEnabled = true
+                                    isEnabled = true,
+                                    googlePlayProductId = newPlanGooglePlayProductId.trim()
                                 )
                             )
                         },
                         enabled = canAdd,
                         modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.small,
-                        colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
-                    ) {
-                        Text("Add Package")
-                    }
+                        variant = CustomButtonVariant.SECONDARY
+                    )
                 }
             }
         }

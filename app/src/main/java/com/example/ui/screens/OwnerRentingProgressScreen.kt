@@ -112,37 +112,39 @@ fun OwnerRentingProgressScreenContent(
     modifier: Modifier = Modifier
 ) {
     // Generate Dynamic Reminders & Alerts
+    // Each reminder is (isUrgent, text) — isUrgent drives icon and tint selection.
     val reminders = remember(ownerSpaces, activeBookings, currentPackage, ownerPackageExpiryMillis) {
-        val list = mutableListOf<String>()
+        val list = mutableListOf<Pair<Boolean, String>>()
 
         // 1. Package renewal reminder — host-level (currentPackage/ownerPackageExpiryMillis),
         // not per-listing. The old per-listing SpaceListing.subscriptionExpiryMillis this
         // used to read is a dead field (set once at creation, never updated by any real
         // renewal since packages replaced the flat per-listing subscription fee).
         val daysLeft = ownerPackageExpiryMillis?.let {
-            ((it - System.currentTimeMillis()) / (24 * 60 * 60 * 1000)).coerceAtLeast(0)
+            ((it - System.currentTimeMillis() + 86399999L) / (24 * 60 * 60 * 1000)).coerceAtLeast(1)
         }
+        val daysLabel = if (daysLeft == 1L) "< 1 day" else "$daysLeft days"
         if (currentPackage != null && daysLeft != null) {
             if (daysLeft <= 7) {
-                list.add("⚠️ '${currentPackage.name}' renews in $daysLeft days. Renew from My Listings to keep publishing new workspaces.")
+                list.add(Pair(true, "'${currentPackage.name}' renews in $daysLabel. Renew from My Listings to keep publishing new workspaces."))
             } else {
-                list.add("📅 '${currentPackage.name}' is active. Renews in $daysLeft days.")
+                list.add(Pair(false, "'${currentPackage.name}' is active. Renews in $daysLabel."))
             }
         }
 
         // 2. Outside payment reminders
         activeBookings.forEach { booking ->
-            list.add("💰 Outside-App Rent due from Dr. ${booking.practitionerName} for slot '${booking.selectedDateTimeRange.ifBlank { booking.formula.scheduleDescription }}' (Amount: $${booking.totalAmountUsd.toInt()} USD).")
+            list.add(Pair(true, "Outside-App Rent due from Dr. ${booking.practitionerName} for slot '${booking.selectedDateTimeRange.ifBlank { booking.formula.scheduleDescription }}' (Amount: $${booking.totalAmountUsd.toInt()} USD)."))
         }
 
         // 3. Scheduling checklist reminder
         activeBookings.forEach { booking ->
             val daysOfWeek = booking.selectedDays.ifEmpty { booking.formula.daysOfWeek }
-            list.add("⏰ Practice Schedule Checklist: Dr. ${booking.practitionerName} has an upcoming shift on ${daysOfWeek.joinToString()} at '${booking.spaceTitle}'.")
+            list.add(Pair(false, "Practice Schedule: Dr. ${booking.practitionerName} has an upcoming shift on ${daysOfWeek.joinToString()} at '${booking.spaceTitle}'."))
         }
 
         if (list.isEmpty()) {
-            list.add("✨ All clear! No pending payments or active contract alerts right now.")
+            list.add(Pair(false, "All clear! No pending payments or active contract alerts right now."))
         }
         list
     }
@@ -210,7 +212,7 @@ fun OwnerRentingProgressScreenContent(
                     )
 
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        reminders.forEach { reminder ->
+                        reminders.forEach { (isUrgent, reminderText) ->
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                 shape = MaterialTheme.shapes.medium,
@@ -221,14 +223,14 @@ fun OwnerRentingProgressScreenContent(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        imageVector = if (reminder.startsWith("⚠️") || reminder.startsWith("💰")) Icons.Default.PriorityHigh else Icons.Default.Info,
+                                        imageVector = if (isUrgent) Icons.Default.PriorityHigh else Icons.Default.Info,
                                         contentDescription = null,
-                                        tint = if (reminder.startsWith("⚠️") || reminder.startsWith("💰")) StatusWarning else MaterialTheme.colorScheme.primary,
+                                        tint = if (isUrgent) StatusWarning else MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(
-                                        text = reminder,
+                                        text = reminderText,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         lineHeight = 16.sp,
@@ -326,7 +328,7 @@ fun OwnerRentingProgressScreenContent(
                                 val chosenHoursStr = if (booking.selectedStartHour.isNotBlank() && booking.selectedEndHour.isNotBlank()) "${booking.selectedStartHour} - ${booking.selectedEndHour}" else "${booking.formula.startHour} - ${booking.formula.endHour}"
 
                                 Text(
-                                    text = "🕒 Shift: $chosenDaysStr ($chosenHoursStr)",
+                                    text = "Shift: $chosenDaysStr ($chosenHoursStr)",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface

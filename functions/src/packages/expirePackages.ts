@@ -34,96 +34,109 @@ export const expirePackages = onSchedule("0 * * * *", async () => {
 
   // 1. Proactive warning for packages expiring in <= 3 days (notified once)
   const warningWindowEnd = now + 3 * 24 * 60 * 60 * 1000;
-  const warningSnap = await db
-    .collection("user_profiles")
-    .where("ownerPackageExpiryMillis", ">", now)
-    .where("ownerPackageExpiryMillis", "<=", warningWindowEnd)
-    .limit(500)
-    .get();
-
-  for (const doc of warningSnap.docs) {
-    const data = doc.data();
-    if (data.expiryWarningSent === true) continue;
-    const userId = doc.id;
-    const expiry = data.ownerPackageExpiryMillis as number;
-    const daysLeft = Math.max(1, Math.ceil((expiry - now) / (24 * 60 * 60 * 1000)));
-    await sendPushToUser(
-      userId,
-      "Package Expiring Soon",
-      `Your ProHost subscription package is expiring in ${daysLeft} day(s). Renew now to maintain your active workspace listings.`,
-      {
-        category: "PAYMENT_REMINDER",
-        targetTab: "owner_subscriptions",
-      }
-    );
-    await doc.ref.set({ expiryWarningSent: true }, { merge: true });
+  let warningLastDoc: FirebaseFirestore.QueryDocumentSnapshot | null = null;
+  while (true) {
+    let warningQuery = db
+      .collection("user_profiles")
+      .where("ownerPackageExpiryMillis", ">", now)
+      .where("ownerPackageExpiryMillis", "<=", warningWindowEnd)
+      .limit(500);
+    if (warningLastDoc) warningQuery = warningQuery.startAfter(warningLastDoc);
+    const warningSnap = await warningQuery.get();
+    if (warningSnap.empty) break;
+    for (const doc of warningSnap.docs) {
+      const data = doc.data();
+      if (data.expiryWarningSent === true) continue;
+      const userId = doc.id;
+      const expiry = data.ownerPackageExpiryMillis as number;
+      const daysLeft = Math.max(1, Math.ceil((expiry - now) / (24 * 60 * 60 * 1000)));
+      await sendPushToUser(
+        userId,
+        "Package Expiring Soon",
+        `Your ProHost subscription package is expiring in ${daysLeft} day(s). Renew now to maintain your active workspace listings.`,
+        {
+          category: "PAYMENT_REMINDER",
+          targetTab: "owner_subscriptions",
+        }
+      );
+      await doc.ref.set({ expiryWarningSent: true }, { merge: true });
+    }
+    if (warningSnap.docs.length < 500) break;
+    warningLastDoc = warningSnap.docs[warningSnap.docs.length - 1];
   }
-
-  const expiredSnap = await db
-    .collection("user_profiles")
-    .where("ownerPackageExpiryMillis", "<=", now)
-    .limit(500)
-    .get();
-
-  if (expiredSnap.empty) return;
 
   const auth = getAuth();
   let clearedCount = 0;
   let demotedCount = 0;
   let listingsHiddenCount = 0;
+  let totalSwept = 0;
 
-  for (const doc of expiredSnap.docs) {
-    const uid = doc.id;
-    try {
-      const authUser = await auth.getUser(uid);
-      const isProHost = authUser.customClaims?.role === "PRO_HOST";
+  while (true) {
+    const expiredSnap = await db
+      .collection("user_profiles")
+      .where("ownerPackageExpiryMillis", "<=", now)
+      .limit(500)
+      .get();
 
-      if (isProHost) {
-        await setClaimsThenFirestore(
-          auth,
-          uid,
-          authUser.customClaims,
-          { ...authUser.customClaims, role: "SPECIALIST" },
-          async () => {
-            await doc.ref.set(
-              { role: "SPECIALIST", ownerPackageId: null, ownerPackageExpiryMillis: null, updatedAt: now },
-              { merge: true }
-            );
+    if (expiredSnap.empty) break;
+
+    for (const doc of expiredSnap.docs) {
+      const uid = doc.id;
+      try {
+        const authUser = await auth.getUser(uid);
+        const isProHost = authUser.customClaims?.role === "PRO_HOST";
+
+        if (isProHost) {
+          await setClaimsThenFirestore(
+            auth,
+            uid,
+            authUser.customClaims,
+            { ...authUser.customClaims, role: "SPECIALIST" },
+            async () => {
+              await doc.ref.set(
+                { role: "SPECIALIST", ownerPackageId: null, ownerPackageExpiryMillis: null, updatedAt: now },
+                { merge: true }
+              );
+            }
+          );
+          try {
+            await auth.revokeRefreshTokens(uid);
+          } catch (e) {
+            logger.warn(`expirePackages: revokeRefreshTokens failed for ${uid}: ${(e as Error).message}`);
           }
-        );
-        try {
-          await auth.revokeRefreshTokens(uid);
-        } catch (e) {
-          logger.warn(`expirePackages: revokeRefreshTokens failed for ${uid}: ${(e as Error).message}`);
-        }
-        demotedCount++;
+          demotedCount++;
 
-        const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", uid).get();
-        if (!ownedListings.empty) {
-          const bulkWriter = db.bulkWriter();
-          ownedListings.docs.forEach((listingDoc) => {
-            bulkWriter.set(listingDoc.ref, { isOwnerPackageLapsed: true }, { merge: true });
-          });
-          await bulkWriter.close();
-          listingsHiddenCount += ownedListings.size;
-        }
+          const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", uid).get();
+          if (!ownedListings.empty) {
+            const bulkWriter = db.bulkWriter();
+            ownedListings.docs.forEach((listingDoc) => {
+              bulkWriter.set(listingDoc.ref, { isOwnerPackageLapsed: true }, { merge: true });
+            });
+            await bulkWriter.close();
+            listingsHiddenCount += ownedListings.size;
+          }
 
-        await sendPushToUser(
-          uid,
-          "Package Expired",
-          "Your ProHost package has expired and your Pro Host status was paused. Renew a package to restore it and your listings.",
-          { category: "PACKAGE_EXPIRED", targetTab: "owner_subscriptions" }
-        );
-      } else {
-        // Not currently PRO_HOST (e.g. already SPECIALIST with a stray expiry
-        // value on file) — just clear the baseline, nothing to demote or hide.
-        await doc.ref.set({ ownerPackageId: null, ownerPackageExpiryMillis: null }, { merge: true });
+          await sendPushToUser(
+            uid,
+            "Package Expired",
+            "Your ProHost package has expired and your Pro Host status was paused. Renew a package to restore it and your listings.",
+            { category: "PACKAGE_EXPIRED", targetTab: "owner_subscriptions" }
+          );
+        } else {
+          // Not currently PRO_HOST (e.g. already SPECIALIST with a stray expiry
+          // value on file) — just clear the baseline, nothing to demote or hide.
+          await doc.ref.set({ ownerPackageId: null, ownerPackageExpiryMillis: null }, { merge: true });
+        }
+        clearedCount++;
+      } catch (e) {
+        logger.error(`expirePackages: failed to process ${uid}: ${(e as Error).message}`);
       }
-      clearedCount++;
-    } catch (e) {
-      logger.error(`expirePackages: failed to process ${uid}: ${(e as Error).message}`);
     }
+
+    totalSwept += expiredSnap.size;
   }
+
+  logger.info(`expirePackages: swept ${totalSwept} packages`);
 
   await recordAuditLog({
     actionType: "PACKAGES_EXPIRED_BATCH",

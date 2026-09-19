@@ -178,7 +178,7 @@ fun OwnerAnalyticsScreen(
         item {
             ProSectionHeader(
                 title = "My Listings",
-                subtitle = "Whish subscription status",
+                subtitle = "Subscription & listing health",
                 icon = Icons.Default.Shield
             )
         }
@@ -259,12 +259,12 @@ fun ListingHealthCard(space: SpaceListing) {
                         maxLines = 1
                     )
                     Text(
-                        text = "📍 ${space.district} • $${space.baseMonthlyRateUsd.toInt()}/mo",
+                        text = "${space.district} • $${space.baseMonthlyRateUsd.toInt()}/mo",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = if (space.isActiveSubscription) "✅ Whish Subscription Active" else "⚠️ Needs Whish Renewal",
+                        text = if (space.isActiveSubscription) "Subscription Active" else "Renewal Required",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = if (space.isActiveSubscription) StatusSuccess else StatusError

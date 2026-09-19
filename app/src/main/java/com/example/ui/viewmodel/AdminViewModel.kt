@@ -69,7 +69,17 @@ class AdminViewModel(
         }
         viewModelScope.launch {
             repository.users.collect { users ->
-                _uiState.update { it.copy(allUsers = users) }
+                val now = System.currentTimeMillis()
+                _uiState.update {
+                    it.copy(
+                        allUsers = users,
+                        activeSubscriberCount = users.count { u ->
+                            u.ownerPackageId != null &&
+                            u.ownerPackageExpiryMillis != null &&
+                            u.ownerPackageExpiryMillis > now
+                        }
+                    )
+                }
             }
         }
         viewModelScope.launch {
@@ -145,21 +155,44 @@ class AdminViewModel(
     fun togglePackagePlan(planId: String) {
         viewModelScope.launch {
             val success = repository.togglePackagePlan(planId)
-            if (!success) {
-                _events.emit(AdminUiEvent.ShowToast("Failed to toggle package"))
-            }
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) {
+                        val isNowEnabled = _uiState.value.packagePlans.packages[planId]?.isEnabled == true
+                        "Package ${if (isNowEnabled) "enabled" else "disabled"}"
+                    } else "Failed to toggle package"
+                )
+            )
         }
     }
 
     fun deletePackagePlan(planId: String) {
-        viewModelScope.launch {
-            val success = repository.deletePackagePlan(planId)
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "Package removed" else "Failed to remove package"
-                )
+        val now = System.currentTimeMillis()
+        val activeSubscriberCount = _uiState.value.allUsers.count { u ->
+            u.ownerPackageId == planId &&
+            u.ownerPackageExpiryMillis != null &&
+            u.ownerPackageExpiryMillis > now
+        }
+        _uiState.update {
+            it.copy(
+                pendingDeletePlanId = planId,
+                pendingDeletePlanSubscriberCount = activeSubscriberCount,
+                isDeletePackagePlanDialogOpen = true
             )
         }
+    }
+
+    fun confirmDeletePackagePlan() {
+        val planId = _uiState.value.pendingDeletePlanId ?: return
+        _uiState.update { it.copy(isDeletePackagePlanDialogOpen = false, pendingDeletePlanId = null, pendingDeletePlanSubscriberCount = 0) }
+        viewModelScope.launch {
+            val success = repository.deletePackagePlan(planId)
+            _events.emit(AdminUiEvent.ShowToast(if (success) "Package removed" else "Failed to remove package"))
+        }
+    }
+
+    fun cancelDeletePackagePlan() {
+        _uiState.update { it.copy(isDeletePackagePlanDialogOpen = false, pendingDeletePlanId = null, pendingDeletePlanSubscriberCount = 0) }
     }
 
     fun openAddPackagePlanDialog() {

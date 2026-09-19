@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -68,7 +70,6 @@ fun OwnerHubScreen(
         }
     }
 
-    var showRenewalDialog by remember { mutableStateOf(false) }
     var showCreateListingDialog by remember { mutableStateOf(false) }
     var editingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var deletingSpace by remember { mutableStateOf<SpaceListing?>(null) }
@@ -93,7 +94,35 @@ fun OwnerHubScreen(
         atListingLimit = atListingLimit,
         onSelectSpace = onSelectSpace,
         onManageSpace = onManageSpace,
-        onOpenWhishRenewal = { showRenewalDialog = true },
+        onOpenWhishRenewal = {
+            val expiry = currentUser?.ownerPackageExpiryMillis
+            if (expiry != null && expiry > System.currentTimeMillis()) {
+                // Active Play subscription — open Play Store subscription management
+                // Include the specific product ID so Play Store deep-links directly
+                // to this subscription rather than the generic subscriptions list.
+                val productId = currentUser?.ownerPackageId
+                    ?.let { packagePlans.packages[it]?.googlePlayProductId }
+                    ?.ifBlank { null }
+                val uri = if (productId != null)
+                    "market://subscriptions?sku=$productId&package=app.geonajjar.prohost"
+                else
+                    "market://subscriptions?package=app.geonajjar.prohost"
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(uri))
+                val activity = context.findActivity()
+                if (activity != null) {
+                    try {
+                        activity.startActivity(intent)
+                    } catch (_: Exception) {
+                        onOpenSubscriptions?.invoke()
+                    }
+                } else {
+                    onOpenSubscriptions?.invoke()
+                }
+            } else {
+                // Expired or no subscription — navigate to subscriptions screen to pick a Play plan
+                onOpenSubscriptions?.invoke()
+            }
+        },
         onOpenCreateListing = {
             viewModel.refreshTopHashtags()
             showCreateListingDialog = true
@@ -116,17 +145,6 @@ fun OwnerHubScreen(
             space = space,
             viewModel = viewModel,
             onDismiss = { verifyingSpace = null }
-        )
-    }
-
-    // Owner-level entitlement renewal — a real PAYG cart or tiered-package renewal,
-    // not tied to any one listing. See SubscriptionRenewalDialog's own doc comment
-    // for why this replaced the old per-listing WhishPayModal/flat-fee flow.
-    if (showRenewalDialog && currentUser != null) {
-        SubscriptionRenewalDialog(
-            currentUser = currentUser!!,
-            viewModel = viewModel,
-            onDismiss = { showRenewalDialog = false }
         )
     }
 
@@ -387,14 +405,14 @@ fun OwnerHubScreenContent(
 
                             if (!isAdminUnlimited) {
                                 Surface(
-                                    color = WhishRed,
+                                    color = CarnationOrange,
                                     shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
                                         text = if (currentPackage == null) {
                                             "No Active Package"
                                         } else {
-                                            "$${String.format(Locale.US, "%.2f", currentPackage.priceUsd)} / ${currentPackage.validityDays}d"
+                                            "$${String.format(Locale.US, "%.2f", currentPackage.priceUsd)} / mo"
                                         },
                                         color = Color.White,
                                         style = MaterialTheme.typography.labelMedium,
@@ -450,15 +468,26 @@ fun OwnerHubScreenContent(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                val isActiveSubscription = ownerPackageExpiryMillis != null && ownerPackageExpiryMillis > System.currentTimeMillis()
                                 Button(
                                     onClick = onOpenWhishRenewal,
                                     modifier = Modifier.weight(1f),
                                     shape = MaterialTheme.shapes.medium,
-                                    colors = ButtonDefaults.buttonColors(containerColor = WhishRed)
+                                    colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                                 ) {
-                                    Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                    Icon(
+                                        if (isActiveSubscription) Icons.Default.Settings else Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Renew", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        if (isActiveSubscription) "Manage" else "Renew",
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
 
                                 val activeCount = ownerSpaces.count { it.status == ListingStatus.ACTIVE }
@@ -610,7 +639,7 @@ fun OwnerHubScreenContent(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "📍 ${space.district}, ${space.governorate.displayName}",
+                                text = "${space.district}, ${space.governorate.displayName}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -910,4 +939,13 @@ fun OwnerHubScreenContent(
         }
     }
 }
+}
+
+private fun Context.findActivity(): android.app.Activity? {
+    var ctx = this
+    while (ctx is ContextWrapper) {
+        if (ctx is android.app.Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
 }

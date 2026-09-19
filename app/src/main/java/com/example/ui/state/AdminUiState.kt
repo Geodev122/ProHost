@@ -18,6 +18,8 @@ data class AdminUiState(
     val potentialMrr: Double = 0.0,
     val projectedArr: Double = 0.0,
     val totalSettlementVolume: Double = 0.0,
+    /** Number of users with an active Google Play subscription. Wired up in AdminViewModel. */
+    val activeSubscriberCount: Int = 0,
     val selectedTab: Int = 0,
 
     // Filter and search states
@@ -73,6 +75,11 @@ data class AdminUiState(
     // Package 2/3 fee+limit inputs entirely (see PackagePlan/PackagePlanCatalog).
     val packagePlans: PackagePlanCatalog = PackagePlanCatalog(),
     val isAddPackagePlanDialogOpen: Boolean = false,
+
+    // Delete-package confirmation dialog — subscriber-aware (BUG-C3)
+    val isDeletePackagePlanDialogOpen: Boolean = false,
+    val pendingDeletePlanId: String? = null,
+    val pendingDeletePlanSubscriberCount: Int = 0,
 
     // Currently-published version of each of the 3 admin-manageable legal documents
     // (LegalDocumentVersion.ADMIN_MANAGED_DOC_IDS), keyed by doc id — null means

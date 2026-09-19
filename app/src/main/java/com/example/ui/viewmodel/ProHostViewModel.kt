@@ -60,6 +60,24 @@ class ProHostViewModel(
         com.google.firebase.auth.FirebaseAuth.getInstance().currentUser != null
     )
     val isRestoringSession: StateFlow<Boolean> = _isRestoringSession.asStateFlow()
+    private val _sessionRestoreError = MutableStateFlow<String?>(null)
+    val sessionRestoreError: StateFlow<String?> = _sessionRestoreError.asStateFlow()
+
+    // Set to true by MainActivity.onResume when the app was in the background for >60s
+    // with a signed-in user — gates the UI behind PIN entry (H1).
+    private val _pinReauthRequired = MutableStateFlow(false)
+    val pinReauthRequired: StateFlow<Boolean> = _pinReauthRequired.asStateFlow()
+
+    fun requestPinReauth() {
+        // Skip for ADMIN accounts — they have no phone-OTP registration and cannot verify PIN (NF1).
+        val user = currentUser.value ?: return
+        if (user.role == com.example.data.model.UserRole.ADMIN) return
+        _pinReauthRequired.value = true
+    }
+
+    fun clearPinReauth() {
+        _pinReauthRequired.value = false
+    }
 
     // Set when cold-start restoration finds a Firebase-Auth-verified session whose
     // registration was never actually completed (app killed between OTP
@@ -108,16 +126,30 @@ class ProHostViewModel(
                     // account is server-confirmed suspended, so don't leave a locally-valid
                     // Firebase session around for the next cold start to just retry.
                     com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                    // Session restore took >15s — most likely a slow connection with no
+                    // cached claim. currentUser stays null → ProHostNavGraph falls through
+                    // to LoginAuthScreen, but we surface a banner so the user knows why.
+                    _sessionRestoreError.value = "Session restore timed out. Please sign in again."
                 } catch (e: Exception) {
-                    // Most likely offline with no prior custom claim to fall back on
-                    // (resolveVerifiedRole's own tolerance already covers "offline but a
-                    // claim already exists"), or the timeout above firing
-                    // (kotlinx.coroutines.TimeoutCancellationException — also an
-                    // Exception, caught here same as any other failure). repository.
-                    // currentUser stays null either way, so ProHostNavGraph correctly
-                    // falls through to LoginAuthScreen.
+                    // Offline with no prior custom claim, or other transient failure.
+                    // repository.currentUser stays null — LoginAuthScreen handles it.
                 } finally {
                     _isRestoringSession.value = false
+                }
+            }
+        }
+    }
+
+    // Clears billingActivationPending as soon as the user profile confirms a valid
+    // package — the RTDN fires seconds after the Play sheet closes, so the banner
+    // stays visible for only a brief window.
+    init {
+        viewModelScope.launch {
+            currentUser.collectLatest { user ->
+                if (user?.ownerPackageExpiryMillis != null && _billingActivationPending.value) {
+                    billingActivationTimeoutJob?.cancel()
+                    _billingActivationPending.value = false
                 }
             }
         }
@@ -287,6 +319,95 @@ class ProHostViewModel(
     // flight, on top of the hard guard below.
     private val _isWhishCheckoutInFlight = MutableStateFlow(false)
     val isWhishCheckoutInFlight: StateFlow<Boolean> = _isWhishCheckoutInFlight.asStateFlow()
+
+    // --- Google Play Billing ---
+    private var playBillingManager: com.example.data.billing.PlayBillingManager? = null
+
+    private val _billingError = MutableStateFlow<String?>(null)
+    val billingError: StateFlow<String?> = _billingError.asStateFlow()
+
+    private val _billingSuccess = MutableStateFlow<String?>(null)
+    val billingSuccess: StateFlow<String?> = _billingSuccess.asStateFlow()
+
+    // True from the moment the Play sheet returns OK until the user_profiles snapshot
+    // delivers a valid ownerPackageExpiryMillis — drives an "activating…" banner so
+    // the host knows their purchase landed even before the RTDN fires.
+    // Auto-clears after 5 minutes so the banner never stays stuck (H5).
+    private val _billingActivationPending = MutableStateFlow(false)
+    val billingActivationPending: StateFlow<Boolean> = _billingActivationPending.asStateFlow()
+    private var billingActivationTimeoutJob: kotlinx.coroutines.Job? = null
+
+    fun clearBillingMessages() {
+        _billingError.value = null
+        _billingSuccess.value = null
+    }
+
+    fun dismissBillingActivationPending() {
+        billingActivationTimeoutJob?.cancel()
+        _billingActivationPending.value = false
+    }
+
+    /**
+     * Opens the Google Play subscription sheet for [planId]. The entitlement is
+     * granted server-side by the playBillingRtdn Cloud Function (Pub/Sub RTDN) —
+     * this only initiates the purchase flow and acknowledges the token.
+     *
+     * [planId] must match both the Google Play product ID and the Firestore
+     * package_plans document key exactly.
+     */
+    fun launchGooglePaySubscription(activity: android.app.Activity, planId: String) {
+        val uid = currentUser.value?.id ?: run {
+            _billingError.value = "You must be signed in to subscribe."
+            return
+        }
+
+        // Persist the pending draft ID before the billing sheet opens so the RTDN
+        // Cloud Function can auto-publish it when the subscription is confirmed.
+        val draftId = _pendingAutoPublishDraftId.value
+        if (draftId != null) {
+            viewModelScope.launch {
+                try {
+                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                        .collection("user_profiles").document(uid)
+                        .update("pendingPlayPublishDraftId", draftId).await()
+                } catch (_: Exception) { /* non-fatal; RTDN will just skip the auto-publish */ }
+            }
+        }
+
+        val manager = com.example.data.billing.PlayBillingManager(activity, uid)
+            .also { playBillingManager?.endConnection(); playBillingManager = it }
+
+        manager.startConnection(
+            onReady = {
+                viewModelScope.launch {
+                    val product = manager.querySubscriptionProduct(planId)
+                    if (product == null) {
+                        _billingError.value = "This subscription plan is not available in Google Play yet. Please try again later."
+                        return@launch
+                    }
+                    val result = manager.launchBillingFlow(product) { billingResult, _ ->
+                        if (billingResult.responseCode == com.android.billingclient.api.BillingClient.BillingResponseCode.OK) {
+                            _billingActivationPending.value = true
+                            billingActivationTimeoutJob?.cancel()
+                            billingActivationTimeoutJob = viewModelScope.launch {
+                                kotlinx.coroutines.delay(5 * 60 * 1000L)
+                                _billingActivationPending.value = false
+                            }
+                            _billingSuccess.value = "Purchase submitted! Your Pro Host subscription will activate shortly."
+                        } else if (billingResult.responseCode != com.android.billingclient.api.BillingClient.BillingResponseCode.USER_CANCELED) {
+                            _billingError.value = "Google Play checkout failed (${billingResult.responseCode}). Please try again."
+                        }
+                    }
+                    if (result.responseCode != com.android.billingclient.api.BillingClient.BillingResponseCode.OK) {
+                        _billingError.value = "Could not launch Google Play. Please try again."
+                    }
+                }
+            },
+            onFailed = { message ->
+                _billingError.value = "Google Play Billing is not available on this device: $message"
+            }
+        )
+    }
 
     // The Whish checkout URL to show in an in-app WebView (see WhishCheckoutWebView.kt,
     // hosted globally by ProHostNavGraph so it renders regardless of which screen
@@ -533,6 +654,11 @@ class ProHostViewModel(
     // grantAdminRole() (Admin-to-Admin grants) or grantEntitlement() promoting a SPECIALIST
     // to PRO_HOST the moment their package/listing Whish payment settles — never a free,
     // client-invocable "upgrade" call.
+
+    override fun onCleared() {
+        super.onCleared()
+        playBillingManager?.endConnection()
+    }
 
     fun logout() {
         // repository.logout() fires the (fire-and-forget) FCM-token-clear write

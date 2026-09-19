@@ -164,6 +164,8 @@ dependencies {
   implementation(libs.kotlinx.serialization.json)
   implementation(libs.play.app.update)
   implementation(libs.play.app.update.ktx)
+  implementation(libs.play.billing)
+  implementation(libs.play.billing.ktx)
   implementation(libs.play.integrity)
   implementation(libs.play.billing.ktx)
   implementation(libs.play.services.location)

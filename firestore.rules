@@ -115,6 +115,7 @@ service cloud.firestore {
       // the public Discovery feed — missing status reads as ACTIVE (its own
       // default) so listings written before this field existed stay visible.
       allow read: if (
+        isSignedIn() &&
         resource.data.get('isOwnerSuspended', false) == false &&
         resource.data.get('status', 'ACTIVE') == 'ACTIVE'
       ) ||
@@ -265,11 +266,17 @@ service cloud.firestore {
       // activeListingCount is maintained only by listingCountTracker.ts's
       // triggers, for the same reason (see withinListingLimit() above — a
       // client-writable counter would make that check trivially bypassable).
+      // pinHash/pinSalt/pinSetAtMillis are written exclusively by setUserPin (Admin SDK via
+      // Cloud Function) — blocking direct client writes prevents a client from computing
+      // their own SHA-256 hash and overwriting the server-stored hash with a PIN they chose
+      // outside the verified OTP flow.
       allow update: if (isOwner(userId) || isAdmin()) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
           ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
            "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount",
-           "tosAcceptedAtMillis", "consentVersion"]
+           "tosAcceptedAtMillis", "consentVersion",
+           "pinHash", "pinSalt", "pinSetAtMillis",
+           "pinFailedAttempts", "pinLockedUntilMillis"]
         );
 
       allow delete: if isAdmin();
@@ -348,7 +355,11 @@ service cloud.firestore {
         // figure no real Lebanon workspace rental would ever reach.
         request.resource.data.totalAmountUsd is number &&
         request.resource.data.totalAmountUsd >= 0 &&
-        request.resource.data.totalAmountUsd <= 500000;
+        request.resource.data.totalAmountUsd <= 500000 &&
+        // A host cannot book their own listing — the practitioner must be
+        // someone other than the listing's owner.
+        request.resource.data.practitionerId !=
+          get(/databases/$(database)/documents/workspace_listings/$(request.resource.data.spaceId)).data.ownerId;
 
       // The owner (or Admin) can write anything — accept/reject, agreementUrl (the
       // signed lease uploaded when finalizing acceptance), etc. The practitioner is

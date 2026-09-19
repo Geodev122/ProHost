@@ -1,6 +1,7 @@
 package com.example.ui.navigation
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Celebration
@@ -28,6 +29,8 @@ import com.example.ui.screens.*
 import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.InAppUpdateManager
 import com.example.util.UpdateState
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import kotlinx.coroutines.launch
 
 /**
@@ -216,6 +219,23 @@ fun ProHostAppRoot(
         }
     }
 
+    // Routes a booking-id deep link (FCM notification tap) to the appropriate booking
+    // tab for this role. The destination tab shows all bookings; the ID is surfaced via
+    // the existing search/filter fields on those screens rather than a separate detail
+    // modal, since there is no standalone booking-detail route yet. (H4)
+    var consumedDeepLinkBookingId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(deepLinkBookingId, currentUser?.id) {
+        if (deepLinkBookingId.isNullOrBlank() || currentUser == null) return@LaunchedEffect
+        if (consumedDeepLinkBookingId == deepLinkBookingId) return@LaunchedEffect
+        consumedDeepLinkBookingId = deepLinkBookingId
+        val role = currentUser?.role
+        when (role) {
+            UserRole.SPECIALIST -> navigateTo("pro_rentals")
+            UserRole.PRO_HOST -> navigateTo("owner_rental_requests")
+            else -> {}
+        }
+    }
+
     // Splash stays up until BOTH its own fixed animation delay finishes AND a
     // cold-start session restore (see ProHostViewModel's init block) has resolved —
     // without the second condition, a returning user's app used to flash the login
@@ -237,15 +257,37 @@ fun ProHostAppRoot(
         // straight to the registration form, skipping phone/OTP entry, since
         // Firebase Auth already has a valid verified session for this number.
         val pendingRegistrationPhone by viewModel.pendingRegistrationPhone.collectAsState()
-        LoginAuthScreen(
-            resumeAtRegistration = pendingRegistrationPhone != null,
-            resumePhoneE164 = pendingRegistrationPhone,
-            onCancelResume = { viewModel.clearPendingRegistrationPhone() },
-            onLoginSuccess = {
-                viewModel.clearPendingRegistrationPhone()
-                // Handled via LaunchedEffect
+        val sessionRestoreError by viewModel.sessionRestoreError.collectAsState()
+        Column {
+            if (sessionRestoreError != null) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.errorContainer
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            sessionRestoreError!!,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
             }
-        )
+            LoginAuthScreen(
+                resumeAtRegistration = pendingRegistrationPhone != null,
+                resumePhoneE164 = pendingRegistrationPhone,
+                onCancelResume = { viewModel.clearPendingRegistrationPhone() },
+                onLoginSuccess = {
+                    viewModel.clearPendingRegistrationPhone()
+                    // Handled via LaunchedEffect
+                }
+            )
+        }
     } else if (currentUser?.isSuspended == true) {
         // Before this, nothing reacted to a mid-session suspension at all —
         // _currentUser (ProHostRepository's onUsersUpdated) already syncs
@@ -262,9 +304,19 @@ fun ProHostAppRoot(
             }
         )
     } else {
+        val pinReauthRequired by viewModel.pinReauthRequired.collectAsState()
         val currentRole = currentUser?.role ?: UserRole.SPECIALIST
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         val scope = rememberCoroutineScope()
+
+        // PIN re-auth overlay — shown when the app returns from background after >60s (H1).
+        if (pinReauthRequired) {
+            PinReauthOverlay(
+                viewModel = viewModel,
+                onAuthenticated = { viewModel.clearPinReauth() },
+                onSignOut = { viewModel.logout() }
+            )
+        } else {
 
         // Determine visible bottom-nav tabs strictly according to role
         val roleTabs: List<AppNavTab> = when (currentRole) {
@@ -580,6 +632,63 @@ fun ProHostAppRoot(
                     }
                 }
             )
+        }
+        } // end main app (pinReauthRequired == false) branch
+    }
+}
+
+@Composable
+private fun PinReauthOverlay(
+    viewModel: ProHostViewModel,
+    onAuthenticated: () -> Unit,
+    onSignOut: () -> Unit
+) {
+    val authViewModel: com.example.ui.viewmodel.AuthViewModel = viewModel()
+    var pin by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    var isVerifying by remember { mutableStateOf(false) }
+
+    Scaffold { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Session Locked", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("The app was in the background. Enter your PIN to continue.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+            Spacer(modifier = Modifier.height(24.dp))
+            OutlinedTextField(
+                value = pin,
+                onValueChange = { if (it.length <= 6 && it.all { c -> c.isDigit() }) pin = it },
+                label = { Text("PIN") },
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                isError = error != null,
+                supportingText = error?.let { msg -> { Text(msg, color = MaterialTheme.colorScheme.error) } },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = {
+                    isVerifying = true
+                    error = null
+                    authViewModel.verifyPinForReauth(pin) { success, message ->
+                        isVerifying = false
+                        if (success) onAuthenticated() else error = message ?: "Incorrect PIN"
+                    }
+                },
+                enabled = pin.length >= 4 && !isVerifying,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(if (isVerifying) "Verifying..." else "Unlock") }
+            Spacer(modifier = Modifier.height(8.dp))
+            TextButton(onClick = onSignOut) { Text("Sign Out") }
         }
     }
 }

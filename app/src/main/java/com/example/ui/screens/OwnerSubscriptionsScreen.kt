@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import android.widget.Toast
 import com.example.data.model.*
 import com.example.ui.components.CustomButton
 import com.example.ui.components.CustomButtonVariant
@@ -24,10 +28,18 @@ import java.util.Locale
 fun OwnerSubscriptionsScreen(
     viewModel: ProHostViewModel
 ) {
+    val context = LocalContext.current
+    val activity = context.findActivity()
     val currentUser by viewModel.currentUser.collectAsState()
     val packagePlans by viewModel.packagePlans.collectAsState()
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
+    // Set by OwnerHubScreen when a Publish attempt hit the listing limit and got
+    // saved as a Draft instead — whichever package the host buys next auto-publishes
+    // this exact Draft so the host doesn't need to re-open the wizard.
     val pendingAutoPublishDraftId by viewModel.pendingAutoPublishDraftId.collectAsState()
+    val billingActivationPending by viewModel.billingActivationPending.collectAsState()
+    val billingError by viewModel.billingError.collectAsState()
+    val billingSuccess by viewModel.billingSuccess.collectAsState()
 
     val enabledPlans = remember(packagePlans) { packagePlans.packages.values.filter { it.isEnabled }.sortedBy { it.sortOrder } }
     val currentPlan = currentUser?.ownerPackageId?.let { packagePlans.packages[it] }
@@ -66,6 +78,86 @@ fun OwnerSubscriptionsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = OxfordBlue
                     )
+                }
+            }
+        }
+
+        if (billingActivationPending) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = FreshGreen.copy(alpha = 0.12f)
+            ) {
+                Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = FreshGreen, strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Text(
+                                "Activating your subscription — this usually takes a few seconds.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OxfordBlue
+                            )
+                        }
+                        IconButton(onClick = { viewModel.dismissBillingActivationPending() }, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = CoolGray, modifier = Modifier.size(16.dp))
+                        }
+                    }
+                    Text(
+                        "Taking too long? Contact support via WhatsApp.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = CoolGray
+                    )
+                }
+            }
+        }
+
+        if (billingSuccess != null) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = FreshGreen.copy(alpha = 0.12f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(Spacing.md),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        Text(billingSuccess!!, style = MaterialTheme.typography.bodySmall, color = OxfordBlue)
+                    }
+                    IconButton(onClick = { viewModel.clearBillingMessages() }, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = CoolGray, modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+        }
+
+        if (billingError != null) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.errorContainer
+            ) {
+                Row(
+                    modifier = Modifier.padding(Spacing.md),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.Error, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        Text(billingError!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
+                    }
+                    IconButton(onClick = { viewModel.clearBillingMessages() }, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(16.dp))
+                    }
                 }
             }
         }
@@ -116,9 +208,9 @@ fun OwnerSubscriptionsScreen(
                 if (currentPlan != null) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
-                            Text("Remaining Duration", style = MaterialTheme.typography.bodySmall, color = LightGray)
+                            Text("Days Until Renewal", style = MaterialTheme.typography.bodySmall, color = LightGray)
                             Text(
-                                remainingDays?.let { "$it Days" } ?: "—",
+                                remainingDays?.let { if (it == 0L || it == 0) "< 1 day" else "$it days" } ?: "—",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = PureWhite
@@ -132,6 +224,16 @@ fun OwnerSubscriptionsScreen(
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = PureWhite
+                            )
+                        }
+                    }
+                    if (remainingDays != null) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(Icons.Default.Autorenew, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(14.dp))
+                            Text(
+                                "Auto-renews monthly via Google Play",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = FreshGreen
                             )
                         }
                     }
@@ -174,32 +276,32 @@ fun OwnerSubscriptionsScreen(
                 }
 
                 if ((currentPlan == null || atCap) && enabledPlans.isNotEmpty()) {
-                    Button(
+                    val upsellPlan = enabledPlans
+                        .filter { it.listingLimit == null || it.listingLimit > (currentPlan?.listingLimit ?: 0) }
+                        .minByOrNull { it.priceUsd }
+                        ?: enabledPlans.firstOrNull()
+                    CustomButton(
+                        text = if (currentPlan == null) "Choose a Package" else "Package Limit Reached — Upgrade Package",
                         onClick = {
-                            selectedPlanToSubscribe = enabledPlans
-                                .filter { it.listingLimit == null || it.listingLimit > (currentPlan?.listingLimit ?: 0) }
-                                .minByOrNull { it.priceUsd }
-                                ?: enabledPlans.firstOrNull()
-                            showSubscribeDialog = true
+                            upsellPlan?.let { plan ->
+                                val productId = plan.googlePlayProductId.ifBlank { plan.id }
+                                if (activity != null) {
+                                    viewModel.launchGooglePaySubscription(activity, productId)
+                                } else {
+                                    Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
+                                }
+                            }
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text(
-                            if (currentPlan == null) "Subscribe with Google Pay" else "Package Limit Reached — Upgrade via Google Pay",
-                            fontWeight = FontWeight.Bold,
-                            color = PureWhite
-                        )
-                    }
+                        variant = CustomButtonVariant.PRIMARY,
+                        icon = Icons.Default.AddCircle,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
 
         Text(
-            text = "AVAILABLE ADMIN PUBLISHED PACKAGES",
+            text = "AVAILABLE SUBSCRIPTION PLANS",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = CoolGray,
@@ -219,8 +321,12 @@ fun OwnerSubscriptionsScreen(
                 plan = plan,
                 isCurrent = currentPlan?.id == plan.id,
                 onSelect = {
-                    selectedPlanToSubscribe = plan
-                    showSubscribeDialog = true
+                    val productId = plan.googlePlayProductId.ifBlank { plan.id }
+                    if (activity != null) {
+                        viewModel.launchGooglePaySubscription(activity, productId)
+                    } else {
+                        Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
+                    }
                 }
             )
         }
@@ -229,7 +335,7 @@ fun OwnerSubscriptionsScreen(
     // Subscribe Dialog with Google Pay Billing
     if (showSubscribeDialog) {
         val targetPlan = selectedPlanToSubscribe
-        val activity = androidx.activity.compose.LocalActivity.current
+        val dialogActivity = androidx.activity.compose.LocalActivity.current
         AlertDialog(
             onDismissRequest = { showSubscribeDialog = false },
             title = { Text("Subscribe to ${targetPlan?.name ?: "Package"}", fontWeight = FontWeight.Bold) },
@@ -246,7 +352,7 @@ fun OwnerSubscriptionsScreen(
                     text = "Subscribe with Google Pay",
                     onClick = {
                         targetPlan?.let { plan ->
-                            activity?.let { act ->
+                            dialogActivity?.let { act ->
                                 viewModel.launchGooglePaySubscription(act, plan.id)
                             }
                         }
@@ -254,7 +360,7 @@ fun OwnerSubscriptionsScreen(
                     },
                     variant = CustomButtonVariant.SUCCESS,
                     icon = Icons.Default.ShoppingCart,
-                    enabled = targetPlan != null && activity != null,
+                    enabled = targetPlan != null && dialogActivity != null,
                     compact = true
                 )
             },
@@ -295,7 +401,7 @@ fun PackageOptionCard(
                     color = OxfordBlue
                 )
                 Text(
-                    text = "$${String.format(Locale.US, "%.2f", plan.priceUsd)} / ${plan.validityDays}d",
+                    text = "$${String.format(Locale.US, "%.2f", plan.priceUsd)} / mo",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Black,
                     color = CarnationOrange
@@ -323,21 +429,23 @@ fun PackageOptionCard(
 
             Spacer(modifier = Modifier.height(Spacing.xs))
 
-            Button(
+            CustomButton(
+                text = if (isCurrent) "Current Active Package" else "Subscribe via Google Play",
                 onClick = onSelect,
-                modifier = Modifier.fillMaxWidth(),
+                variant = CustomButtonVariant.PRIMARY,
+                icon = if (isCurrent) Icons.Default.Verified else Icons.Default.ShoppingCart,
                 enabled = !isCurrent,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isCurrent) CoolGray else OxfordBlue
-                ),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Text(
-                    text = if (isCurrent) "Current Active Package" else "Subscribe / Activate Package",
-                    fontWeight = FontWeight.Bold,
-                    color = PureWhite
-                )
-            }
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
+}
+
+private fun Context.findActivity(): Activity? {
+    var ctx = this
+    while (ctx is ContextWrapper) {
+        if (ctx is Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
 }

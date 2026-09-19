@@ -332,7 +332,7 @@ fun OwnerBookingRequestCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "📑 Formula: ${request.formula.type.displayName}",
+                        text = "Formula: ${request.formula.type.displayName}",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary
@@ -373,7 +373,7 @@ fun OwnerBookingRequestCard(
                             )
                         }
                         Text(
-                            text = "🗓️ Starting Date: ${request.startDate} (${request.durationMonths} month term) • Formula: ${request.formula.type.displayName}",
+                            text = "Starting Date: ${request.startDate} (${request.durationMonths} month term) • Formula: ${request.formula.type.displayName}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -407,7 +407,7 @@ fun OwnerBookingRequestCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "💬 Requirements / Note: \"${request.clinicalNotes}\"",
+                        text = "Requirements / Note: \"${request.clinicalNotes}\"",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(6.dp)
@@ -450,7 +450,7 @@ fun OwnerBookingRequestCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "🚫 Decline Reason: ${request.rejectionReason}",
+                        text = "Decline Reason: ${request.rejectionReason}",
                         style = MaterialTheme.typography.labelSmall,
                         color = StatusError,
                         fontWeight = FontWeight.Medium,
