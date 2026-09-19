@@ -150,7 +150,7 @@ fun MyBookingsScreen(
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "My Bookings & Leases",
+                            text = "My Rentals",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -188,7 +188,7 @@ fun MyBookingsScreen(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Book Space", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold)
+                    Text("Book a Space", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold)
                 }
 
                 // Primary Tab Switcher: Upcoming & Active vs Past & History — a
@@ -354,7 +354,7 @@ fun MyBookingsScreen(
                     ) {
                         Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text("Explore Workspaces", fontWeight = FontWeight.Bold)
+                        Text("Book a Space", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -533,12 +533,29 @@ fun MyBookingsScreen(
                         shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("📍 ${bkg.spaceTitle}", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                            Text("👤 Renter: ${bkg.practitionerName} (${bkg.practitionerSpecialty})", fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                            Text("🗓️ Dates: ${bkg.startDate} → ${bkg.endDate}", fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                            Text("⏰ Schedule: ${bkg.selectedDays.joinToString()} • ${bkg.selectedStartHour} - ${bkg.selectedEndHour}", fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                            Text("🔑 Smart Key Pass: PRO-PASS-${bkg.id.take(6).uppercase()}", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(
+                                Icons.Default.LocationOn to bkg.spaceTitle,
+                                Icons.Default.Person to "Renter: ${bkg.practitionerName} (${bkg.practitionerSpecialty})",
+                                Icons.Default.CalendarMonth to "Dates: ${bkg.startDate} → ${bkg.endDate}",
+                                Icons.Default.Schedule to "Schedule: ${bkg.selectedDays.joinToString()} • ${bkg.selectedStartHour} - ${bkg.selectedEndHour}"
+                            ).forEach { (icon, text) ->
+                                Row(verticalAlignment = Alignment.Top) {
+                                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(text, fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                                }
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.VpnKey, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    "Smart Key Pass: PRO-PASS-${bkg.id.take(6).uppercase()}",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = MaterialTheme.typography.bodySmall.fontSize
+                                )
+                            }
                         }
                     }
 
@@ -640,11 +657,20 @@ fun BookingReservationCard(
                             Icon(Icons.Default.Verified, contentDescription = "Verified Space", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                         }
                     }
-                    Text(
-                        text = "📍 ${booking.spaceDistrict}, ${booking.governorate.displayName} • Ref #${booking.id}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "${booking.spaceDistrict}, ${booking.governorate.displayName} • Ref #${booking.id}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 // Status Badge
@@ -693,8 +719,12 @@ fun BookingReservationCard(
                 }
             }
 
-            // Step Progress Tracker
-            BookingStatusProgressStepper(status = booking.status)
+            // Step Progress Tracker — only meaningful while a request is still
+            // moving toward a live booking; a CANCELLED/REJECTED request has no
+            // "progress" left to show.
+            if (booking.status == BookingRequestStatus.ACCEPTED || booking.status == BookingRequestStatus.PENDING) {
+                BookingStatusProgressStepper(status = booking.status)
+            }
 
             // Schedule & Formula Details Box
             Surface(
@@ -778,11 +808,17 @@ fun BookingReservationCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = if (booking.paymentAcknowledgedBySpecialist) "✓ You marked this paid" else "Not marked paid yet",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (booking.paymentAcknowledgedBySpecialist) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (booking.paymentAcknowledgedBySpecialist) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = StatusSuccess, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+                        Text(
+                            text = if (booking.paymentAcknowledgedBySpecialist) "You marked this paid" else "Not marked paid yet",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (booking.paymentAcknowledgedBySpecialist) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     if (!booking.paymentAcknowledgedBySpecialist) {
                         TextButton(onClick = onMarkPaid) {
                             Text("Mark as Paid", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
@@ -793,7 +829,12 @@ fun BookingReservationCard(
 
             HorizontalDivider()
 
-            // Interactive Actions Bar (Re-book, Pass, WhatsApp, Details)
+            // Interactive Actions Bar — Re-book and WhatsApp stay directly
+            // tappable (the two most common actions); everything else (Digital
+            // Pass, Edit Booking, Cancel Request, Cancel Accepted Booking) collapses
+            // into one "More" overflow menu so this row never grows past 3 controls
+            // regardless of a booking's status.
+            var showMoreMenu by remember { mutableStateOf(false) }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -828,53 +869,50 @@ fun BookingReservationCard(
                     Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "WhatsApp Host", tint = WhatsAppDarkGreen, modifier = Modifier.size(18.dp))
                 }
 
-                // Digital Key Pass (if accepted) — links to the signed agreement
-                if (booking.status == BookingRequestStatus.ACCEPTED) {
-                    IconButton(
-                        onClick = onViewDigitalPass,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
-                    ) {
-                        Icon(Icons.Default.VpnKey, contentDescription = "Digital Pass", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                    }
-
-                    // Edit Booking (accepted only) — submits a change for host approval;
-                    // replaces this booking if/when accepted, distinct from Re-book/Extend
-                    // (which creates an independent new lease alongside this one).
-                    IconButton(
-                        onClick = onEditBooking,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
-                            .testTag("edit_booking_button_${booking.id}")
-                    ) {
-                        Icon(Icons.Default.EditCalendar, contentDescription = "Edit Booking", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
-                    }
-                }
-
-                // Cancel Request (if pending)
-                if (booking.status == BookingRequestStatus.PENDING) {
-                    IconButton(
-                        onClick = onCancelRequest,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), MaterialTheme.shapes.medium)
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = "Cancel Request", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
-                    }
-                }
-
-                // Cancel Accepted Booking (early termination) — the gap this session
-                // closed: previously there was no in-app way to end an active lease.
-                if (booking.status == BookingRequestStatus.ACCEPTED) {
-                    IconButton(
-                        onClick = onCancelAcceptedBooking,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), MaterialTheme.shapes.medium)
-                    ) {
-                        Icon(Icons.Default.EventBusy, contentDescription = "Cancel Booking", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                val hasMoreActions = booking.status == BookingRequestStatus.ACCEPTED || booking.status == BookingRequestStatus.PENDING
+                if (hasMoreActions) {
+                    Box {
+                        IconButton(
+                            onClick = { showMoreMenu = true },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
+                        ) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "More Actions", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                        }
+                        DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
+                            if (booking.status == BookingRequestStatus.ACCEPTED) {
+                                // Digital Key Pass — links to the signed agreement
+                                DropdownMenuItem(
+                                    text = { Text("Digital Pass") },
+                                    leadingIcon = { Icon(Icons.Default.VpnKey, contentDescription = null) },
+                                    onClick = { showMoreMenu = false; onViewDigitalPass() }
+                                )
+                                // Edit Booking — submits a change for host approval;
+                                // replaces this booking if/when accepted, distinct from
+                                // Re-book/Extend (which creates an independent new lease).
+                                DropdownMenuItem(
+                                    text = { Text("Edit Booking") },
+                                    leadingIcon = { Icon(Icons.Default.EditCalendar, contentDescription = null) },
+                                    modifier = Modifier.testTag("edit_booking_button_${booking.id}"),
+                                    onClick = { showMoreMenu = false; onEditBooking() }
+                                )
+                                // Cancel Accepted Booking (early termination)
+                                DropdownMenuItem(
+                                    text = { Text("Cancel Booking", color = MaterialTheme.colorScheme.error) },
+                                    leadingIcon = { Icon(Icons.Default.EventBusy, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                                    onClick = { showMoreMenu = false; onCancelAcceptedBooking() }
+                                )
+                            }
+                            if (booking.status == BookingRequestStatus.PENDING) {
+                                // Cancel Request — withdraws a not-yet-accepted request
+                                DropdownMenuItem(
+                                    text = { Text("Cancel Request", color = MaterialTheme.colorScheme.error) },
+                                    leadingIcon = { Icon(Icons.Default.Close, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                                    onClick = { showMoreMenu = false; onCancelRequest() }
+                                )
+                            }
+                        }
                     }
                 }
             }

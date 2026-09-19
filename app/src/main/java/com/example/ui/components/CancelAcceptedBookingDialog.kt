@@ -97,7 +97,7 @@ fun CancelAcceptedBookingDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Confirm Cancellation")
+                        Text("Cancel Booking")
                     }
                 }
             }
