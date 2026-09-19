@@ -310,7 +310,7 @@ fun DiscoveryScreenContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Filter Workspaces", fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold)
+                    Text("Filter Workspaces", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     TextButton(onClick = onResetFilters) {
                         Text("Reset")
                     }
@@ -318,26 +318,26 @@ fun DiscoveryScreenContent(
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
-                Text("Space Category", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                Text("Space Category", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(categoryOptions) { category ->
                         FilterChip(
                             selected = selectedCategoryId == category.id,
                             onClick = { onSelectCategory(if (selectedCategoryId == category.id) null else category.id) },
-                            label = { Text(category.name, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                            label = { Text(category.name, style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
-                Text("Rental Formula", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                Text("Rental Formula", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(RentalStrategyType.entries) { strategy ->
                         FilterChip(
                             selected = selectedStrategyType == strategy,
                             onClick = { onSelectStrategyType(if (selectedStrategyType == strategy) null else strategy) },
-                            label = { Text(strategy.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                            label = { Text(strategy.displayName, style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }
@@ -349,7 +349,7 @@ fun DiscoveryScreenContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Verified listings only", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                    Text("Verified listings only", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     Switch(checked = onlyVerified, onCheckedChange = onToggleVerifiedOnly)
                 }
 
@@ -360,7 +360,7 @@ fun DiscoveryScreenContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Saved workspaces only", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                    Text("Saved workspaces only", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     Switch(checked = onlySaved, onCheckedChange = onToggleSavedOnly)
                 }
 
@@ -410,6 +410,7 @@ fun SpaceListingCard(
         isSaved = isSaved,
         onToggleSave = onToggleSave,
         onClick = onClick,
+        onDetailsClick = onClick,
         onWhatsAppClick = onQuickWhatsApp
     )
 }

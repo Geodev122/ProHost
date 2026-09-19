@@ -360,11 +360,13 @@ fun ProHostAppRoot(
                             val alertsList = viewModel.fcmAlerts.collectAsState().value
                             val unreadCount = alertsList.count { !it.isRead }
 
+                            val currentPageTitle = roleTabs.firstOrNull { it.id == activeTabId }?.title
                             ProHostTopAppBar(
                                 currentRole = currentRole,
                                 unreadAlertCount = unreadCount,
                                 onMenuClick = { scope.launch { drawerState.open() } },
-                                onAlertsClick = { activeDrawerTabDialog = "fcm_alerts" }
+                                onAlertsClick = { activeDrawerTabDialog = "fcm_alerts" },
+                                pageTitle = currentPageTitle
                             )
                         }
                     }
@@ -389,7 +391,7 @@ fun ProHostAppRoot(
                                             contentDescription = tab.title
                                         )
                                     },
-                                    label = { Text(tab.title, fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold) },
+                                    label = { Text(tab.title, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
                                     modifier = Modifier.testTag("nav_item_${tab.id}")
                                 )
                             }

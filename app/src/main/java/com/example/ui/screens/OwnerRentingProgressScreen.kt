@@ -185,16 +185,13 @@ fun OwnerRentingProgressScreenContent(
                             )
                         }
 
-                        Button(
+                        CustomButton(
+                            text = "View Requests",
                             onClick = onOpenRequests,
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                            shape = MaterialTheme.shapes.small,
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Icon(Icons.Default.Inbox, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("View Requests", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                        }
+                            variant = CustomButtonVariant.PRIMARY,
+                            icon = Icons.Default.Inbox,
+                            compact = true
+                        )
                     }
                 }
             }
@@ -401,29 +398,23 @@ fun OwnerRentingProgressScreenContent(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Button(
+                            CustomButton(
+                                text = "WhatsApp",
                                 onClick = { onWhatsAppPractitioner(booking) },
-                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                                shape = MaterialTheme.shapes.medium,
-                                modifier = Modifier.weight(1f),
-                                contentPadding = PaddingValues(vertical = 10.dp)
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("WhatsApp", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                            }
+                                variant = CustomButtonVariant.WHATSAPP,
+                                icon = Icons.AutoMirrored.Filled.Chat,
+                                compact = true,
+                                modifier = Modifier.weight(1f)
+                            )
 
-                            Button(
+                            CustomButton(
+                                text = "Remind Dues",
                                 onClick = { onSendPaymentReminder(booking) },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-                                shape = MaterialTheme.shapes.medium,
-                                modifier = Modifier.weight(1.3f),
-                                contentPadding = PaddingValues(vertical = 10.dp)
-                            ) {
-                                Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Remind Dues", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                            }
+                                variant = CustomButtonVariant.SECONDARY,
+                                icon = Icons.Default.NotificationsActive,
+                                compact = true,
+                                modifier = Modifier.weight(1.3f)
+                            )
 
                             // Early termination — previously the only way to end an
                             // active lease was outside the app entirely.

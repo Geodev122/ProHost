@@ -72,7 +72,7 @@ fun CountryPickerDialog(
                                 .padding(vertical = 10.dp, horizontal = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(country.flagEmoji, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
+                            Text(country.flagEmoji, style = MaterialTheme.typography.bodyLarge)
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 country.name,

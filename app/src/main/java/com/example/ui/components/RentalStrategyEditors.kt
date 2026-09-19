@@ -32,7 +32,7 @@ fun RentalPricingConfigEditor(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Renting Strategy", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
+        Text("Renting Strategy", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             items(RentalStrategyType.values()) { type ->
                 FilterChip(
@@ -50,7 +50,7 @@ fun RentalPricingConfigEditor(
                             )
                         }
                     },
-                    label = { Text(type.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                    label = { Text(type.displayName, style = MaterialTheme.typography.labelSmall) }
                 )
             }
         }
@@ -102,7 +102,7 @@ fun MonthlyStrategyEditor(
             singleLine = true
         )
 
-        Text("Available From", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
+        Text("Available From", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             LazyRow(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 items(monthNames) { m ->
@@ -110,7 +110,7 @@ fun MonthlyStrategyEditor(
                     FilterChip(
                         selected = config.fromMonth == idx,
                         onClick = { onConfigChange(config.copy(fromMonth = idx)) },
-                        label = { Text(m, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                        label = { Text(m, style = MaterialTheme.typography.labelSmall) }
                     )
                 }
             }
@@ -123,7 +123,7 @@ fun MonthlyStrategyEditor(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Text("Indefinite (no end date)", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+            Text("Indefinite (no end date)", style = MaterialTheme.typography.bodySmall)
             Switch(
                 checked = config.isIndefinite,
                 onCheckedChange = { indefinite ->
@@ -145,7 +145,7 @@ fun MonthlyStrategyEditor(
         }
 
         if (!config.isIndefinite) {
-            Text("Available To", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
+            Text("Available To", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 LazyRow(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(monthNames) { m ->
@@ -153,7 +153,7 @@ fun MonthlyStrategyEditor(
                         FilterChip(
                             selected = config.toMonth == idx,
                             onClick = { onConfigChange(config.copy(toMonth = idx)) },
-                            label = { Text(m, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                            label = { Text(m, style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }
@@ -167,14 +167,14 @@ fun MonthlyStrategyEditor(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Text("Excluded ranges (${config.excludedRanges.size})", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+            Text("Excluded ranges (${config.excludedRanges.size})", style = MaterialTheme.typography.bodySmall)
             TextButton(onClick = {
                 onConfigChange(config.copy(excludedRanges = config.excludedRanges + MonthYearRange(nowCal.get(Calendar.MONTH) + 1, currentYear, nowCal.get(Calendar.MONTH) + 1, currentYear)))
             }) { Text("+ Add Excluded Range") }
         }
         config.excludedRanges.forEachIndexed { idx, range ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Text("${monthNames[range.fromMonth - 1]} ${range.fromYear} – ${monthNames[range.toMonth - 1]} ${range.toYear}", fontSize = MaterialTheme.typography.labelSmall.fontSize)
+                Text("${monthNames[range.fromMonth - 1]} ${range.fromYear} – ${monthNames[range.toMonth - 1]} ${range.toYear}", style = MaterialTheme.typography.labelSmall)
                 IconButton(onClick = { onConfigChange(config.copy(excludedRanges = config.excludedRanges.filterIndexed { i, _ -> i != idx })) }) {
                     Icon(Icons.Default.Delete, contentDescription = "Remove excluded range", tint = MaterialTheme.colorScheme.error)
                 }
@@ -202,13 +202,13 @@ fun HourlyStrategyEditor(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
             "Tap an hour to toggle it on/off for that day at the day's current price. Leaving an hour untouched keeps it out of renting.",
-            fontSize = MaterialTheme.typography.labelSmall.fontSize,
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         operatingDays.forEach { day ->
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(day, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize, modifier = Modifier.width(40.dp))
+                    Text(day, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(40.dp))
                     OutlinedTextField(
                         value = bulkPriceByDay[day] ?: "",
                         onValueChange = { bulkPriceByDay = bulkPriceByDay + (day to it) },
@@ -235,7 +235,7 @@ fun HourlyStrategyEditor(
                                     )
                                 )
                             },
-                            label = { Text("%02d:00".format(hour), fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                            label = { Text("%02d:00".format(hour), style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }
@@ -252,16 +252,16 @@ fun ShiftStrategyEditor(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("1. Shift Configuration", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelMedium.fontSize, color = MaterialTheme.colorScheme.primary)
+        Text("1. Shift Configuration", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         config.shifts.forEach { shift ->
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    Text(shift.name.displayName, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                    Text(shift.name.displayName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Unavailable", fontSize = MaterialTheme.typography.labelSmall.fontSize)
+                        Text("Unavailable", style = MaterialTheme.typography.labelSmall)
                         Switch(
                             checked = shift.isUnavailable,
                             onCheckedChange = { checked ->
@@ -302,16 +302,16 @@ fun ShiftStrategyEditor(
             }
         }
 
-        Text("2. Shifts Distribution", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelMedium.fontSize, color = MaterialTheme.colorScheme.primary)
+        Text("2. Shifts Distribution", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Text(
             "Which shifts are offered on which day.",
-            fontSize = MaterialTheme.typography.labelSmall.fontSize,
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         val availableShifts = config.shifts.filterNot { it.isUnavailable }
         operatingDays.forEach { day ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(day, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize, modifier = Modifier.width(40.dp))
+                Text(day, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(40.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(availableShifts) { shift ->
                         val offeredToday = config.distribution[day] ?: emptyList()
@@ -322,7 +322,7 @@ fun ShiftStrategyEditor(
                                 val updated = if (isOn) offeredToday - shift.name.name else offeredToday + shift.name.name
                                 onConfigChange(config.copy(distribution = config.distribution + (day to updated)))
                             },
-                            label = { Text(shift.name.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                            label = { Text(shift.name.displayName, style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }
@@ -342,7 +342,7 @@ fun DayBasedStrategyEditor(
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Text("Use facility operating hours ($openingHour–$closingHour)", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+            Text("Use facility operating hours ($openingHour–$closingHour)", style = MaterialTheme.typography.bodySmall)
             Switch(checked = config.useFacilityHours, onCheckedChange = { onConfigChange(config.copy(useFacilityHours = it)) })
         }
         if (!config.useFacilityHours) {
@@ -368,13 +368,13 @@ fun DayBasedStrategyEditor(
             "Per day: a single price. Leave blank to mark a day Not Available. The " +
                 "specialist picks real occurrences (one-time or weekly-recurring until " +
                 "a chosen date) at booking time.",
-            fontSize = MaterialTheme.typography.labelSmall.fontSize,
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         operatingDays.forEach { day ->
             val dp = config.distribution[day] ?: DayPricing()
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(day, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                Text(day, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                 // Single flat price per day (mirrors ShiftStrategyEditor's item 7b
                 // rework, same request applied to Day-Based) — occurrence count and
                 // recurrence (one-time vs. weekly-recurring) are configured by the

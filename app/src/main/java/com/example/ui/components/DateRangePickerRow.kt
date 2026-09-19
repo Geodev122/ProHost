@@ -57,12 +57,12 @@ fun DateRangePickerRow(
     ) {
         AssistChip(
             onClick = { showFromPicker = true },
-            label = { Text(fromMillis?.let { "From: ${sdfShort.format(Date(it))}" } ?: "From: Any", fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+            label = { Text(fromMillis?.let { "From: ${sdfShort.format(Date(it))}" } ?: "From: Any", style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
         )
         AssistChip(
             onClick = { showToPicker = true },
-            label = { Text(toMillis?.let { "To: ${sdfShort.format(Date(it))}" } ?: "To: Any", fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+            label = { Text(toMillis?.let { "To: ${sdfShort.format(Date(it))}" } ?: "To: Any", style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
         )
         if (fromMillis != null || toMillis != null) {

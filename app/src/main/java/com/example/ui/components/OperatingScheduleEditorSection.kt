@@ -50,7 +50,7 @@ fun OperatingScheduleEditorSection(
             )
         }
 
-        Text("Operating Days", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+        Text("Operating Days", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             items(weekDayOptions) { day ->
                 val isSelected = selectedDays.contains(day)
@@ -59,7 +59,7 @@ fun OperatingScheduleEditorSection(
                     onClick = {
                         onDaysChange(if (isSelected) selectedDays - day else selectedDays + day)
                     },
-                    label = { Text(day, fontSize = MaterialTheme.typography.labelMedium.fontSize) }
+                    label = { Text(day, style = MaterialTheme.typography.labelMedium) }
                 )
             }
         }

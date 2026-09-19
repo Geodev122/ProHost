@@ -154,7 +154,7 @@ fun DrawerIdentityCard(
                                         .ifEmpty { "PS" },
                                     color = Color.White,
                                     fontWeight = FontWeight.ExtraBold,
-                                    fontSize = MaterialTheme.typography.headlineMedium.fontSize
+                                    style = MaterialTheme.typography.headlineMedium
                                 )
                             }
                         }

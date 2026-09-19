@@ -280,17 +280,21 @@ private fun OwnerDeleteListingDialog(
             Text("Are you sure you want to permanently remove '${listing.title}' from the platform? This cannot be undone.")
         },
         confirmButton = {
-            Button(
+            CustomButton(
+                text = "Delete",
                 onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) {
-                Text("Delete")
-            }
+                variant = CustomButtonVariant.DANGER,
+                icon = Icons.Default.DeleteForever,
+                compact = true
+            )
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            CustomButton(
+                text = "Cancel",
+                onClick = onDismiss,
+                variant = CustomButtonVariant.OUTLINED,
+                compact = true
+            )
         }
     )
 }
@@ -749,15 +753,27 @@ fun OwnerHubScreenContent(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("🗓️ ${space.schedule.openingHour}-${space.schedule.closingHour}", style = MaterialTheme.typography.labelSmall)
-                                    Text("🔒 Rented: ${rentedH}h", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                        Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("${space.schedule.openingHour}-${space.schedule.closingHour}", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                        Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
+                                        Text("Rented: ${rentedH}h", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    }
                                 }
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("🚫 Closed: ${blackoutH}h", style = MaterialTheme.typography.labelSmall, color = NeutralGray500)
-                                    Text("🟢 Open: ${openH}h", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = StatusSuccess)
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                        Icon(Icons.Default.Block, contentDescription = null, modifier = Modifier.size(12.dp), tint = NeutralGray500)
+                                        Text("Closed: ${blackoutH}h", style = MaterialTheme.typography.labelSmall, color = NeutralGray500)
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                        Box(modifier = Modifier.size(8.dp).background(StatusSuccess, CircleShape))
+                                        Text("Open: ${openH}h", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = StatusSuccess)
+                                    }
                                 }
                             }
                         }
@@ -806,23 +822,23 @@ fun OwnerHubScreenContent(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                OutlinedButton(
+                                CustomButton(
+                                    text = "Details",
                                     onClick = { onSelectSpace(space) },
-                                    modifier = Modifier.weight(1f),
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    Text("Details", style = MaterialTheme.typography.labelMedium)
-                                }
+                                    variant = CustomButtonVariant.OUTLINED,
+                                    icon = Icons.Default.Info,
+                                    compact = true,
+                                    modifier = Modifier.weight(1f)
+                                )
 
-                                Button(
+                                CustomButton(
+                                    text = "Continue Editing",
                                     onClick = { onContinueDraft(space) },
-                                    modifier = Modifier.weight(1.5f),
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    Icon(Icons.Default.EditNote, contentDescription = null, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text("Continue Editing", style = MaterialTheme.typography.labelMedium)
-                                }
+                                    variant = CustomButtonVariant.PRIMARY,
+                                    icon = Icons.Default.EditNote,
+                                    compact = true,
+                                    modifier = Modifier.weight(1.5f)
+                                )
 
                                 IconButton(
                                     onClick = { onDeleteSpace(space) },
@@ -841,15 +857,14 @@ fun OwnerHubScreenContent(
                                 // occupancy, this-month-vs-last-month yield, and a calendar-
                                 // style availability table, replacing the old read-only
                                 // "Details" entry point.
-                                Button(
+                                CustomButton(
+                                    text = "Manage",
                                     onClick = { onManageSpace(space) },
-                                    modifier = Modifier.weight(1.6f),
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    Icon(Icons.Default.Dashboard, contentDescription = null, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text("Manage", style = MaterialTheme.typography.labelMedium)
-                                }
+                                    variant = CustomButtonVariant.PRIMARY,
+                                    icon = Icons.Default.Dashboard,
+                                    compact = true,
+                                    modifier = Modifier.weight(1.6f)
+                                )
 
                                 // Edit Listing Button — the sole entry point into the wizard
                                 // for an already-published listing now (item 1): availability
