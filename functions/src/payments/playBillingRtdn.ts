@@ -1,7 +1,8 @@
 import { onMessagePublished } from "firebase-functions/v2/pubsub";
-import * as admin from "firebase-admin";
+import { getFirestore } from "firebase-admin/firestore";
+import { adminApp } from "../lib/admin";
 
-const db = admin.firestore();
+const getDb = () => getFirestore(adminApp);
 
 /**
  * Google Play Billing Real-Time Developer Notification (RTDN) Pub/Sub Trigger.
@@ -68,7 +69,7 @@ async function handleSubscriptionNotification(
   console.log(`[RTDN] Subscription event: ${typeName} for SKU ${notification.subscriptionId}`);
 
   // Query user_profiles holding this purchase token or active subscription
-  const userQuery = await db.collection("user_profiles")
+  const userQuery = await getDb().collection("user_profiles")
     .where("activePurchaseToken", "==", notification.purchaseToken)
     .limit(1)
     .get();
@@ -79,7 +80,7 @@ async function handleSubscriptionNotification(
   }
 
   // Audit record
-  await db.collection("audit_security_logs").add({
+  await getDb().collection("audit_security_logs").add({
     actionType: `PLAY_BILLING_${typeName}`,
     actorEmail: userId ? `user:${userId}` : "google-play-rtdn",
     timestamp: Date.now(),
@@ -93,7 +94,7 @@ async function handleSubscriptionNotification(
     return;
   }
 
-  const userRef = db.collection("user_profiles").doc(userId);
+  const userRef = getDb().collection("user_profiles").doc(userId);
 
   switch (notification.notificationType) {
     case 1: // RECOVERED
@@ -149,20 +150,20 @@ async function handleVoidedPurchaseNotification(
   console.log(`[RTDN] Voided/Refunded purchase order: ${notification.orderId} for package ${packageName}`);
 
   // Query user by purchaseToken
-  const userQuery = await db.collection("user_profiles")
+  const userQuery = await getDb().collection("user_profiles")
     .where("activePurchaseToken", "==", notification.purchaseToken)
     .limit(1)
     .get();
 
   if (!userQuery.empty) {
     const userId = userQuery.docs[0].id;
-    await db.collection("user_profiles").doc(userId).update({
+    await getDb().collection("user_profiles").doc(userId).update({
       role: "SPECIALIST",
       subscriptionStatus: "REFUNDED_VOIDED",
       updatedAtMillis: Date.now()
     });
 
-    await db.collection("audit_security_logs").add({
+    await getDb().collection("audit_security_logs").add({
       actionType: "PLAY_BILLING_VOIDED_PURCHASE",
       actorEmail: `user:${userId}`,
       timestamp: Date.now(),

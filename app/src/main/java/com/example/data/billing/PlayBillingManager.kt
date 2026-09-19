@@ -61,6 +61,9 @@ class PlayBillingManager(
     private val _billingMessages = MutableSharedFlow<String>()
     val billingMessages: SharedFlow<String> = _billingMessages.asSharedFlow()
 
+    private val _purchaseEvents = MutableSharedFlow<Purchase>()
+    val purchaseEvents: SharedFlow<Purchase> = _purchaseEvents.asSharedFlow()
+
     private val billingClient: BillingClient = BillingClient.newBuilder(context)
         .setListener(this)
         .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
@@ -213,6 +216,7 @@ class PlayBillingManager(
                 acknowledgePurchase(purchase)
             } else {
                 emitMessage("Subscription verified and active!")
+                coroutineScope.launch { _purchaseEvents.emit(purchase) }
             }
             queryActivePurchases()
         } else if (purchase.purchaseState == Purchase.PurchaseState.PENDING) {
@@ -229,6 +233,7 @@ class PlayBillingManager(
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.d(TAG, "Purchase acknowledged successfully: ${purchase.orderId}")
                 emitMessage("Subscription activated successfully!")
+                coroutineScope.launch { _purchaseEvents.emit(purchase) }
             } else {
                 Log.e(TAG, "Failed to acknowledge purchase: ${billingResult.debugMessage}")
             }

@@ -1865,6 +1865,33 @@ class ProHostRepository {
     }
 
     /**
+     * Updates the user's subscription package and elevates role to PRO_HOST upon Google Play purchase.
+     */
+    suspend fun updateUserSubscriptionPackage(packageId: String, purchaseToken: String): Boolean {
+        val current = _currentUser.value ?: return false
+        val expiryMillis = System.currentTimeMillis() + 30 * 24 * 3600 * 1000L
+        val updated = current.copy(
+            role = UserRole.PRO_HOST,
+            ownerPackageId = packageId,
+            ownerPackageExpiryMillis = expiryMillis
+        )
+        val success = firestoreService.updateUserProfileFields(
+            current.id,
+            mapOf(
+                "role" to UserRole.PRO_HOST.name,
+                "ownerPackageId" to packageId,
+                "ownerPackageExpiryMillis" to expiryMillis,
+                "activePurchaseToken" to purchaseToken
+            )
+        )
+        if (success) {
+            _currentUser.value = updated
+            _users.value = _users.value.map { if (it.id == updated.id) updated else it }
+        }
+        return success
+    }
+
+    /**
      * Toggles [spaceId] in the current user's personal saved/favorites list. Not a
      * protected field — any signed-in user may freely write their own savedSpaceIds,
      * so a plain merge write of the recomputed list is enough (no rules change needed).

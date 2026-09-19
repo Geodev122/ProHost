@@ -226,6 +226,12 @@ class ProHostViewModel(
                     playBillingProducts.value = products
                 }
             }
+            viewModelScope.launch {
+                manager.purchaseEvents.collect { purchase ->
+                    val productId = purchase.products.firstOrNull() ?: com.example.data.billing.PlayBillingManager.PRODUCT_ID_GROWTH
+                    repository.updateUserSubscriptionPackage(productId, purchase.purchaseToken)
+                }
+            }
             manager.startConnection()
         }
     }
