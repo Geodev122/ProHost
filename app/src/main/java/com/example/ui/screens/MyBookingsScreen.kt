@@ -415,7 +415,7 @@ fun MyBookingsScreen(
         val sourceBooking = rebookSourceBooking
 
         if (targetSpace != null) {
-            RentalBookingDialog(
+            RebookDialog(
                 space = targetSpace,
                 initialFormula = sourceBooking?.formula,
                 viewModel = viewModel,
@@ -444,12 +444,16 @@ fun MyBookingsScreen(
         val targetSpace = allSpaces.find { it.id == editTargetSpaceId } ?: allSpaces.firstOrNull()
         val sourceBooking = editSourceBooking
 
-        if (targetSpace != null) {
-            RentalBookingDialog(
+        // EditBookingDialog requires a real replacesBookingId (non-null) — editSourceBooking
+        // is always set alongside editTargetSpaceId by BookingReservationCard's
+        // onEditBooking callback, but the type itself doesn't guarantee that, so this
+        // guards it explicitly rather than force-unwrapping.
+        if (targetSpace != null && sourceBooking != null) {
+            EditBookingDialog(
                 space = targetSpace,
-                initialFormula = sourceBooking?.formula,
+                initialFormula = sourceBooking.formula,
+                replacesBookingId = sourceBooking.id,
                 viewModel = viewModel,
-                replacesBookingId = sourceBooking?.id,
                 onDismiss = {
                     editTargetSpaceId = null
                     editSourceBooking = null

@@ -99,15 +99,83 @@ private fun weeklyOccurrencesUntil(weekdayAbbrev: String, untilIso: String): Lis
     return dates
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+/**
+ * Re-book/Extend entry point (My Rentals) — configures and submits a brand-new,
+ * independent lease request using the same real slot-selection engine a first
+ * booking uses. Never references an existing booking to replace.
+ */
 @Composable
-fun RentalBookingDialog(
+fun RebookDialog(
     space: SpaceListing,
     initialFormula: RentalFormula?,
     viewModel: ProHostViewModel,
     onDismiss: () -> Unit,
-    onRequestSubmitted: () -> Unit,
-    replacesBookingId: String? = null
+    onRequestSubmitted: () -> Unit
+) {
+    BookingSlotSelectorDialog(
+        space = space,
+        initialFormula = initialFormula,
+        viewModel = viewModel,
+        replacesBookingId = null,
+        headerTitle = "Re-book This Space",
+        headerBadgeText = "Real-Time Availability",
+        primaryButtonText = "Request",
+        secondaryButtonText = "Request and Contact",
+        onDismiss = onDismiss,
+        onRequestSubmitted = onRequestSubmitted
+    )
+}
+
+/**
+ * Edit Booking entry point (My Rentals, accepted bookings only) — proposes a new
+ * slot for an already-ACCEPTED booking. Submitted as a new PENDING request that
+ * references [replacesBookingId]; if the host accepts it,
+ * ProHostRepository.acceptBookingRequest releases the old booking and this one
+ * takes its place (see that function's own doc comment).
+ */
+@Composable
+fun EditBookingDialog(
+    space: SpaceListing,
+    initialFormula: RentalFormula?,
+    replacesBookingId: String,
+    viewModel: ProHostViewModel,
+    onDismiss: () -> Unit,
+    onRequestSubmitted: () -> Unit
+) {
+    BookingSlotSelectorDialog(
+        space = space,
+        initialFormula = initialFormula,
+        viewModel = viewModel,
+        replacesBookingId = replacesBookingId,
+        headerTitle = "Propose a Booking Change",
+        headerBadgeText = "Replaces Your Current Booking",
+        primaryButtonText = "Submit Change",
+        secondaryButtonText = "Submit Change and Contact",
+        onDismiss = onDismiss,
+        onRequestSubmitted = onRequestSubmitted
+    )
+}
+
+/**
+ * The shared slot-selection/pricing engine both [RebookDialog] and
+ * [EditBookingDialog] are thin, purpose-built wrappers around — subdivision
+ * picker, per-strategy availability customization, the 3 real-calendar date
+ * pickers, pricing, and submission are identical real logic either caller needs;
+ * only copy (header/button text) and [replacesBookingId] differ between them.
+ */
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@Composable
+private fun BookingSlotSelectorDialog(
+    space: SpaceListing,
+    initialFormula: RentalFormula?,
+    viewModel: ProHostViewModel,
+    replacesBookingId: String?,
+    headerTitle: String,
+    headerBadgeText: String,
+    primaryButtonText: String,
+    secondaryButtonText: String,
+    onDismiss: () -> Unit,
+    onRequestSubmitted: () -> Unit
 ) {
     val context = LocalContext.current
     val allWeekDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
@@ -360,13 +428,13 @@ fun RentalBookingDialog(
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Rental Request",
+                                text = headerTitle,
                                 fontSize = MaterialTheme.typography.headlineSmall.fontSize,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.width(Spacing.sm))
-                            ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = "Real-Time Availability")
+                            ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = headerBadgeText)
                         }
                         Text(
                             text = "${space.title} • ${space.district}, ${space.governorate.displayName}",
@@ -982,7 +1050,7 @@ fun RentalBookingDialog(
 
                     // In-App Only Request Button
                     ProOutlinedButton(
-                        text = "Request",
+                        text = primaryButtonText,
                         onClick = {
                             val formula = buildFormulaForSubmission()
                             if (formula == null) {
@@ -1022,7 +1090,7 @@ fun RentalBookingDialog(
 
                     // Request + WhatsApp Connect Button
                     CustomButton(
-                        text = "Request and contact",
+                        text = secondaryButtonText,
                         onClick = {
                             val formula = buildFormulaForSubmission() ?: return@CustomButton
                             viewModel.submitBookingRequest(
