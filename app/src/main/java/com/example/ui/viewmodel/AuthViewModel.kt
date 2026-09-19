@@ -202,15 +202,17 @@ class AuthViewModel(
         }
         viewModelScope.launch {
             val tokenResult = functionsClient.verifyPinAndIssueToken(phone, pin)
-            if (tokenResult.isSuccess) {
-                onResult(true, null)
-            } else {
-                val msg = tokenResult.exceptionOrNull()?.message
-                onResult(false, when {
-                    msg?.contains("resource-exhausted", ignoreCase = true) == true ->
-                        "Too many attempts — please wait before trying again."
-                    else -> "Incorrect PIN."
-                })
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                if (tokenResult.isSuccess) {
+                    onResult(true, null)
+                } else {
+                    val msg = tokenResult.exceptionOrNull()?.message
+                    onResult(false, when {
+                        msg?.contains("resource-exhausted", ignoreCase = true) == true ->
+                            "Too many attempts — please wait before trying again."
+                        else -> "Incorrect PIN."
+                    })
+                }
             }
         }
     }

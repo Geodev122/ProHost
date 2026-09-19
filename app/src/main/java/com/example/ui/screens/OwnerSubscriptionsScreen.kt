@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import android.widget.Toast
 import com.example.data.model.*
 import com.example.ui.components.CustomButton
 import com.example.ui.components.CustomButtonVariant
@@ -247,7 +248,11 @@ fun OwnerSubscriptionsScreen(
                         onClick = {
                             upsellPlan?.let { plan ->
                                 val productId = plan.googlePlayProductId.ifBlank { plan.id }
-                                activity?.let { viewModel.launchGooglePaySubscription(it, productId) }
+                                if (activity != null) {
+                                    viewModel.launchGooglePaySubscription(activity, productId)
+                                } else {
+                                    Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         },
                         variant = CustomButtonVariant.PRIMARY,
@@ -280,7 +285,11 @@ fun OwnerSubscriptionsScreen(
                 isCurrent = currentPlan?.id == plan.id,
                 onSelect = {
                     val productId = plan.googlePlayProductId.ifBlank { plan.id }
-                    activity?.let { viewModel.launchGooglePaySubscription(it, productId) }
+                    if (activity != null) {
+                        viewModel.launchGooglePaySubscription(activity, productId)
+                    } else {
+                        Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
+                    }
                 }
             )
         }

@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -106,10 +108,14 @@ fun OwnerHubScreen(
                 else
                     "market://subscriptions?package=app.geonajjar.prohost"
                 val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(uri))
-                try {
-                    (context as? android.app.Activity)?.startActivity(intent)
-                } catch (_: Exception) {
-                    // Play Store unavailable — fall back to in-app subscriptions screen
+                val activity = context.findActivity()
+                if (activity != null) {
+                    try {
+                        activity.startActivity(intent)
+                    } catch (_: Exception) {
+                        onOpenSubscriptions?.invoke()
+                    }
+                } else {
                     onOpenSubscriptions?.invoke()
                 }
             } else {
@@ -933,4 +939,13 @@ fun OwnerHubScreenContent(
         }
     }
 }
+}
+
+private fun Context.findActivity(): android.app.Activity? {
+    var ctx = this
+    while (ctx is ContextWrapper) {
+        if (ctx is android.app.Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
 }

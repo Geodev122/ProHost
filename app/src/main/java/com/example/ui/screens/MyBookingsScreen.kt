@@ -62,8 +62,7 @@ fun MyBookingsScreen(
         } else {
             allBookingRequests.filter {
                 it.practitionerId == user.id ||
-                it.practitionerEmail.equals(user.email, ignoreCase = true) ||
-                it.practitionerName.contains(user.fullName, ignoreCase = true)
+                it.practitionerEmail.equals(user.email, ignoreCase = true)
             }
         }
     }
