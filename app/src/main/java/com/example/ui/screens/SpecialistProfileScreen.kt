@@ -1,7 +1,5 @@
 package com.example.ui.screens
 
-import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -39,12 +37,6 @@ import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.InAppUpdateManager
 import com.example.util.UpdateState
 import kotlinx.coroutines.launch
-
-// Published as ProHost's real support/data-privacy contact on the public
-// privacy page (public/privacy.html) — kept here as the single source of
-// truth for the in-app "Contact Support" action below, rather than a second
-// hardcoded copy that could drift from the published one.
-private const val SUPPORT_EMAIL = "geo.elnajjar@gmail.com"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -246,6 +238,11 @@ fun SpecialistProfileScreen(
             val ownerPackageExpired = user.ownerPackageExpiryMillis?.let { it <= System.currentTimeMillis() } ?: false
             val ownerActivePackagePlan = if (ownerPackageExpired) null else ownerPackagePlan
 
+            // Specialist's own performance stats used to be shown twice — once here
+            // and once, in full, on the My Rentals screen. This card is now
+            // PRO_HOST/ADMIN-only; a Specialist opening Profile sees this section
+            // skipped entirely rather than a duplicate summary.
+            if (user.role != UserRole.SPECIALIST) {
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ProSectionHeader(
@@ -255,7 +252,7 @@ fun SpecialistProfileScreen(
                             UserRole.ADMIN -> "Central Platform Governance"
                         },
                         subtitle = when (user.role) {
-                            UserRole.SPECIALIST -> "Active leases, pending bookings, and Syndicate standing"
+                            UserRole.SPECIALIST -> "Active leases and pending bookings"
                             UserRole.PRO_HOST -> "Managed spaces, incoming tenant inquiries, and MRR yield"
                             UserRole.ADMIN -> "System spaces, cloud sync status, and transaction integrity"
                         },
@@ -406,8 +403,7 @@ fun SpecialistProfileScreen(
                     }
                 }
             }
-
-
+            }
 
             // =========================================================================
             // 5. ROLE-SPECIFIC ACTIVITY CARDS (BOOKINGS / LEASES)
@@ -420,16 +416,16 @@ fun SpecialistProfileScreen(
                     modifier = Modifier.shadow(2.dp, MaterialTheme.shapes.large)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ProSectionHeader(
-                            title = "My Rented Workspaces & Schedules",
-                            subtitle = "Confirmed schedules, pending rental requests, and leases",
-                            icon = Icons.Default.EventAvailable,
-                            trailingContent = {
-                                if (practitionerBookings.isNotEmpty()) {
-                                    ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = "${practitionerBookings.size} total")
-                                }
+                        // Title/subtitle dropped here on purpose — this same summary
+                        // (count + status) already lives on the My Rentals screen, so
+                        // this card keeps just the count badge and the list itself.
+                        if (practitionerBookings.isNotEmpty()) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.EventAvailable, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = "${practitionerBookings.size} total")
                             }
-                        )
+                        }
 
                         if (practitionerBookings.isEmpty()) {
                             ProEmptyState(
@@ -491,16 +487,24 @@ fun SpecialistProfileScreen(
                                             val chosenHoursStr = if (req.selectedStartHour.isNotBlank() && req.selectedEndHour.isNotBlank()) "${req.selectedStartHour} - ${req.selectedEndHour}" else "${req.formula.startHour} - ${req.formula.endHour}"
                                             val shiftDetail = if (req.selectedShift.isNotBlank()) " (${req.selectedShift})" else ""
 
-                                            Text(
-                                                text = "📑 Formula: ${req.formula.type.displayName} • $chosenDaysStr @ $chosenHoursStr$shiftDetail",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.primary,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                            Text(
-                                                text = "🗓️ Starting: ${req.startDate} (${req.durationMonths} mo term) • Total: $${req.totalAmountUsd.toInt()} USD",
-                                                style = MaterialTheme.typography.bodySmall
-                                            )
+                                            Row(verticalAlignment = Alignment.Top) {
+                                                Icon(Icons.Default.Assignment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "Formula: ${req.formula.type.displayName} • $chosenDaysStr @ $chosenHoursStr$shiftDetail",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            }
+                                            Row(verticalAlignment = Alignment.Top) {
+                                                Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "Starting: ${req.startDate} (${req.durationMonths} mo term) • Total: $${req.totalAmountUsd.toInt()} USD",
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                            }
 
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
@@ -553,7 +557,7 @@ fun SpecialistProfileScreen(
                             UserRole.PRO_HOST -> "Host Business Details"
                             UserRole.ADMIN -> "Super Administrator Identity"
                         },
-                        subtitle = "Ensure your WhatsApp booking contact is up to date",
+                        subtitle = "Contact & verification info",
                         icon = Icons.Default.Badge
                     )
 
@@ -817,43 +821,10 @@ fun SpecialistProfileScreen(
                 }
             }
 
-            // =========================================================================
-            // 8. CONTACT SUPPORT — the in-app support channel this screen's own Legal
-            // documents (Privacy Policy Section 11) already claim exists. Opens the
-            // device's own email app addressed to ProHost's published support contact
-            // (the same geo.elnajjar@gmail.com address already listed as "ProHost Data
-            // Privacy & Support" on the public privacy page) — this app has no backend
-            // ticketing/chat system, so a real mail composer is the honest channel to
-            // offer rather than inventing one that doesn't exist.
-            // =========================================================================
-            ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    ProSectionHeader(
-                        title = "Contact Support",
-                        subtitle = "Questions, a data request, or something not working right",
-                        icon = Icons.AutoMirrored.Filled.Help
-                    )
-                    OutlinedButton(
-                        onClick = {
-                            val subject = Uri.encode("ProHost Support — ${user.role.name} account")
-                            val body = Uri.encode("Account: ${user.fullName} (${user.email})\nUser ID: ${user.id}\n\nDescribe your question or issue below:\n")
-                            val intent = Intent(Intent.ACTION_SENDTO).apply {
-                                data = Uri.parse("mailto:$SUPPORT_EMAIL?subject=$subject&body=$body")
-                            }
-                            try {
-                                context.startActivity(intent)
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "No email app found — you can also reach us at $SUPPORT_EMAIL", Toast.LENGTH_LONG).show()
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Email Support ($SUPPORT_EMAIL)")
-                    }
-                }
-            }
+            // Contact Support moved to the drawer's merged "More" section
+            // (AppDrawerContent.kt) — one fewer card on this already-long screen,
+            // and it now sits alongside Legal/Favorites where a specialist already
+            // looks for account-level actions.
 
             // =========================================================================
             // 9. DANGER ZONE — PERMANENT ACCOUNT DELETION
@@ -871,15 +842,10 @@ fun SpecialistProfileScreen(
                     ProSectionHeader(
                         title = "Delete Account",
                         subtitle = if (user.role == UserRole.PRO_HOST)
-                            "Permanently removes your profile, uploaded documents, and every listing you own"
+                            "Deletes your profile, documents, and listings — cannot be undone"
                         else
-                            "Permanently removes your profile and uploaded documents",
+                            "Deletes your profile and documents — cannot be undone",
                         icon = Icons.Default.DeleteForever
-                    )
-                    Text(
-                        text = "This cannot be undone. Your booking history stays on file for the other party's records, but you will no longer be able to sign back in.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     OutlinedButton(
                         onClick = { showDeleteConfirmation = true },
@@ -902,10 +868,11 @@ fun SpecialistProfileScreen(
                     title = { Text("Delete your account?") },
                     text = {
                         Text(
-                            if (user.role == UserRole.PRO_HOST)
-                                "This permanently deletes your profile, uploaded ID document, and every listing you own. This cannot be undone."
+                            (if (user.role == UserRole.PRO_HOST)
+                                "This permanently deletes your profile, uploaded ID document, and every listing you own. "
                             else
-                                "This permanently deletes your profile and uploaded ID document. This cannot be undone."
+                                "This permanently deletes your profile and uploaded ID document. ") +
+                                "Your booking history stays on file for the other party's records, but you won't be able to sign back in."
                         )
                     },
                     confirmButton = {
