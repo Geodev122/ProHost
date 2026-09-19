@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
@@ -431,10 +432,13 @@ fun CreateListingDialog(
     // blackout slots a listing already had before this removal are preserved as-is
     // (see buildListing() below) — there is just no UI here to add more.
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.96f)
                 .fillMaxHeight(0.95f),
             shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -453,13 +457,13 @@ fun CreateListingDialog(
                     Column {
                         Text(
                             text = if (existingDraft != null) "Continue Draft Listing" else "Publish Workspace Listing",
-                            fontSize = MaterialTheme.typography.headlineSmall.fontSize,
+                            style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "Step ${currentStep + 1} of $totalSteps • Lebanon Network",
-                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                            style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         // Only ever true once the auto-save LaunchedEffect below has
@@ -467,7 +471,7 @@ fun CreateListingDialog(
                         if (lastAutoSavedAtMillis != null) {
                             Text(
                                 text = "Draft auto-saved",
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -927,19 +931,41 @@ fun CreateListingDialog(
 
                         2 -> {
                             // Step 3: Availability Control Logic
-                            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("Whole Space or Divisions?", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                // Mode selector card
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                    shape = MaterialTheme.shapes.large,
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    listOf(false to "Whole Space", true to "Has Divisions").forEach { (value, label) ->
-                                        FilterChip(
-                                            selected = hasSubdivisions == value,
-                                            onClick = { hasSubdivisions = value },
-                                            label = { Text(label) },
-                                            modifier = Modifier.weight(1f)
+                                    Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                            Icon(Icons.Default.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                            Text("How do specialists rent this space?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                        }
+                                        Text(
+                                            if (hasSubdivisions) "Divisions — specialists pick a specific room or desk inside the space."
+                                            else "Whole Space — specialists rent the entire space as-is.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            listOf(false to "Whole Space", true to "Has Divisions").forEach { (value, label) ->
+                                                FilterChip(
+                                                    selected = hasSubdivisions == value,
+                                                    onClick = { hasSubdivisions = value },
+                                                    label = { Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold) },
+                                                    leadingIcon = if (hasSubdivisions == value) {
+                                                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                                    } else null,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
 
@@ -953,15 +979,26 @@ fun CreateListingDialog(
                                         closingHour = closingHour
                                     )
                                 } else {
-                                    Text("Renting Formula", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
-                                    RentalPricingConfigEditor(
-                                        config = wholeSpacePricing,
-                                        operatingDays = operatingDays.toList(),
-                                        openingHour = openingHour,
-                                        closingHour = closingHour,
-                                        onConfigChange = { wholeSpacePricing = it }
-                                    )
-
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surface,
+                                        shape = MaterialTheme.shapes.large,
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                                Icon(Icons.Default.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                                Text("Renting Formula", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                            }
+                                            RentalPricingConfigEditor(
+                                                config = wholeSpacePricing,
+                                                operatingDays = operatingDays.toList(),
+                                                openingHour = openingHour,
+                                                closingHour = closingHour,
+                                                onConfigChange = { wholeSpacePricing = it }
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
