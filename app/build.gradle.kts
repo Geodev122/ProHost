@@ -62,6 +62,9 @@ android {
 
   buildTypes {
     release {
+      ndk {
+        debugSymbolLevel = "FULL"
+      }
       isCrunchPngs = false
       // Was false with proguardFiles(...) already configured below — dead
       // configuration that shipped every release build fully unobfuscated and
