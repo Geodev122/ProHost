@@ -387,7 +387,7 @@ fun LoginAuthScreen(
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Do not share this code with anyone.",
-                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Bold
                         )
@@ -427,7 +427,7 @@ fun LoginAuthScreen(
                 if (resendCountdownSeconds > 0) {
                     Text(
                         text = "Resend code in ${resendCountdownSeconds}s",
-                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -456,7 +456,7 @@ fun LoginAuthScreen(
                         enabled = !isAuthenticating,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Resend Code", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
+                        Text("Resend Code", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                     }
                 }
 
@@ -468,7 +468,7 @@ fun LoginAuthScreen(
                 }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Change phone number", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
+                    Text("Change phone number", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -639,22 +639,22 @@ fun LoginAuthScreen(
                         Row {
                             Text(
                                 text = "I agree to the ",
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = "Terms of Use",
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.termsOfUse }
                             )
                         }
                         Row {
-                            Text(text = "and ", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(text = "and ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
                                 text = "Privacy Policy",
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.privacyPolicy }
@@ -742,7 +742,7 @@ fun LoginAuthScreen(
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Start over with a different number", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
+                    Text("Start over with a different number", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

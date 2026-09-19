@@ -75,7 +75,7 @@ fun ExportDataDialog(
                         Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
                             text = "Multi-Format Export Hub",
-                            fontSize = MaterialTheme.typography.bodyLarge.fontSize,
+                            style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -96,17 +96,17 @@ fun ExportDataDialog(
                     Tab(
                         selected = selectedFormat == 0,
                         onClick = { selectedFormat = 0 },
-                        text = { Text("CSV", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold) }
+                        text = { Text("CSV", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = selectedFormat == 1,
                         onClick = { selectedFormat = 1 },
-                        text = { Text("JSON", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold) }
+                        text = { Text("JSON", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = selectedFormat == 2,
                         onClick = { selectedFormat = 2 },
-                        text = { Text("Audit TXT", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold) }
+                        text = { Text("Audit TXT", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                     )
                 }
 
@@ -114,7 +114,7 @@ fun ExportDataDialog(
 
                 Text(
                     text = "Live Monospace Preview ($formatLabel):",
-                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                    style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -139,7 +139,7 @@ fun ExportDataDialog(
                         Text(
                             text = currentContent,
                             fontFamily = FontFamily.Monospace,
-                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.inverseOnSurface,
                             lineHeight = 16.sp
                         )

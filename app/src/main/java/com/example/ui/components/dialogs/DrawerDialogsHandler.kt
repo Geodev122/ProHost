@@ -29,6 +29,8 @@ import com.example.data.model.*
 import com.example.ui.theme.LebaneseCedarGreen
 import com.example.ui.theme.StatusSuccess
 import com.example.ui.theme.WhatsAppGreen
+import com.example.ui.components.CustomButton
+import com.example.ui.components.CustomButtonVariant
 import com.example.ui.viewmodel.ProHostViewModel
 import com.example.ui.theme.Spacing
 import java.text.SimpleDateFormat
@@ -165,7 +167,8 @@ fun DrawerDialogsHandler(
                                                     }
                                                 }
                                                 Spacer(modifier = Modifier.height(8.dp))
-                                                OutlinedButton(
+                                                CustomButton(
+                                                    text = "Download Bill (A6 PDF)",
                                                     onClick = {
                                                         val file = com.example.legal.WhishReceiptPdfGenerator.generate(context, tx)
                                                         if (file != null) {
@@ -179,14 +182,11 @@ fun DrawerDialogsHandler(
                                                             Toast.makeText(context, "Failed to generate PDF bill.", Toast.LENGTH_SHORT).show()
                                                         }
                                                     },
-                                                    shape = MaterialTheme.shapes.small,
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    contentPadding = PaddingValues(vertical = 4.dp)
-                                                ) {
-                                                    Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
-                                                    Spacer(modifier = Modifier.width(6.dp))
-                                                    Text("Download Bill (A6 PDF)", style = MaterialTheme.typography.labelSmall)
-                                                }
+                                                    variant = CustomButtonVariant.OUTLINED,
+                                                    icon = Icons.Default.PictureAsPdf,
+                                                    compact = true,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
                                             }
                                         }
                                     }
@@ -211,12 +211,12 @@ fun DrawerDialogsHandler(
                                 ) {
                                     AssistChip(
                                         onClick = { showAuditFromPicker = true },
-                                        label = { Text(auditFromMillis?.let { "From: ${sdfShort.format(Date(it))}" } ?: "From: Any", fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+                                        label = { Text(auditFromMillis?.let { "From: ${sdfShort.format(Date(it))}" } ?: "From: Any", style = MaterialTheme.typography.labelSmall) },
                                         leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
                                     )
                                     AssistChip(
                                         onClick = { showAuditToPicker = true },
-                                        label = { Text(auditToMillis?.let { "To: ${sdfShort.format(Date(it))}" } ?: "To: Any", fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+                                        label = { Text(auditToMillis?.let { "To: ${sdfShort.format(Date(it))}" } ?: "To: Any", style = MaterialTheme.typography.labelSmall) },
                                         leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
                                     )
                                     if (auditFromMillis != null || auditToMillis != null) {
@@ -232,18 +232,16 @@ fun DrawerDialogsHandler(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text("${filteredAuditLogs.size} of ${auditLogs.size} entries", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Button(
+                                    CustomButton(
+                                        text = "Export CSV",
                                         onClick = {
                                             val csv = viewModel.repository.exportAuditLogsToCsv(auditFromMillis, auditToMillis)
                                             viewModel.shareExportData(context, "Audit Logs", csv)
                                         },
-                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                        shape = MaterialTheme.shapes.small
-                                    ) {
-                                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                                        Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text("Export CSV", fontSize = MaterialTheme.typography.labelSmall.fontSize)
-                                    }
+                                        variant = CustomButtonVariant.PRIMARY,
+                                        icon = Icons.Default.Download,
+                                        compact = true
+                                    )
                                 }
 
                                 LazyColumn(
@@ -253,21 +251,21 @@ fun DrawerDialogsHandler(
                                     items(filteredAuditLogs) { log ->
                                         Card(
                                             modifier = Modifier.fillMaxWidth(),
-                                            colors = CardDefaults.cardColors(containerColor = Color.Black)
+                                            colors = CardDefaults.cardColors(containerColor = CoolGray)
                                         ) {
                                             Column(modifier = Modifier.padding(Spacing.sm)) {
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth(),
                                                     horizontalArrangement = Arrangement.SpaceBetween
                                                 ) {
-                                                    Text(log.actionType, color = Color.Green, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
-                                                    Text(log.severity, color = if (log.severity == "SECURE") Color.Red else Color.Yellow, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                                    Text(log.actionType, color = FreshGreen, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                                    Text(log.severity, color = if (log.severity == "SECURE") MaterialTheme.colorScheme.error else AmberWarning, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
                                                 }
                                                 Text(log.details, color = Color.White, style = MaterialTheme.typography.labelSmall)
                                                 Text(
                                                     "Actor: ${log.actorEmail} • ${SimpleDateFormat("MMM d, yyyy HH:mm", Locale.US).format(Date(log.timestamp))}",
-                                                    color = Color.Gray,
-                                                    fontSize = 9.sp
+                                                    color = Color.White.copy(alpha = 0.5f),
+                                                    style = MaterialTheme.typography.labelSmall
                                                 )
                                             }
                                         }

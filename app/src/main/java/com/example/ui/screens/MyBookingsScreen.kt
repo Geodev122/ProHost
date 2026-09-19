@@ -188,7 +188,7 @@ fun MyBookingsScreen(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Book a Space", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.Bold)
+                    Text("Book a Space", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 }
 
                 // Primary Tab Switcher: Upcoming & Active vs Past & History — a
@@ -229,7 +229,7 @@ fun MyBookingsScreen(
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         label,
-                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                        style = MaterialTheme.typography.labelMedium,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -249,7 +249,7 @@ fun MyBookingsScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search...", fontSize = MaterialTheme.typography.labelMedium.fontSize) },
+                        placeholder = { Text("Search...", style = MaterialTheme.typography.labelMedium) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         trailingIcon = if (searchQuery.isNotEmpty()) {
                             {
@@ -286,7 +286,7 @@ fun MyBookingsScreen(
                         FilterChip(
                             selected = isSelected,
                             onClick = { selectedFilterChip = key },
-                            label = { Text(label, fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                             leadingIcon = if (isSelected) {
                                 { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
                             } else null,
@@ -547,7 +547,7 @@ fun MyBookingsScreen(
                                 Row(verticalAlignment = Alignment.Top) {
                                     Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text(text, fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                                    Text(text, style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -557,7 +557,7 @@ fun MyBookingsScreen(
                                     "Smart Key Pass: PRO-PASS-${bkg.id.take(6).uppercase()}",
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.primary,
-                                    fontSize = MaterialTheme.typography.bodySmall.fontSize
+                                    style = MaterialTheme.typography.bodySmall
                                 )
                             }
                         }
@@ -566,7 +566,7 @@ fun MyBookingsScreen(
                     if (bkg.agreementUrl != null) {
                         Text(
                             text = "This pass links to the signed leasing agreement your host uploaded when accepting.",
-                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Button(
@@ -593,7 +593,7 @@ fun MyBookingsScreen(
                         ) {
                             Text(
                                 text = "No signed agreement on file for this booking yet — contact your host on WhatsApp.",
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = StatusOnWarningContainer,
                                 modifier = Modifier.padding(10.dp)
                             )
@@ -722,7 +722,7 @@ fun BookingReservationCard(
                             val timeStr = if (booking.selectedStartHour.isNotBlank()) "${booking.selectedStartHour} - ${booking.selectedEndHour}" else "${booking.formula.startHour} - ${booking.formula.endHour}"
                             Text(
                                 text = "$daysStr @ $timeStr",
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -737,7 +737,7 @@ fun BookingReservationCard(
                             )
                             Text(
                                 text = "Start: ${booking.startDate.ifEmpty { "Immediate" }}",
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -825,7 +825,7 @@ fun BookingReservationCard(
                     Text(
                         text = if (booking.status == BookingRequestStatus.ACCEPTED) "Extend / Re-book" else "Re-book Space",
                         fontWeight = FontWeight.Bold,
-                        fontSize = MaterialTheme.typography.labelMedium.fontSize
+                        style = MaterialTheme.typography.labelMedium
                     )
                 }
 

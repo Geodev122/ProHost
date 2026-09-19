@@ -801,7 +801,7 @@ fun SpecialistProfileScreen(
                             shape = MaterialTheme.shapes.small,
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                         ) {
-                            Text("Install", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold)
+                            Text("Install", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     } else {
                         TextButton(
@@ -815,7 +815,7 @@ fun SpecialistProfileScreen(
                             },
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                         ) {
-                            Text("Check Update", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold)
+                            Text("Check Update", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
