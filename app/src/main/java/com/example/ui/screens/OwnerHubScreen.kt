@@ -37,6 +37,7 @@ import java.util.Locale
 fun OwnerHubScreen(
     viewModel: ProHostViewModel,
     onSelectSpace: (SpaceListing) -> Unit,
+    onManageSpace: (SpaceListing) -> Unit = onSelectSpace,
     onOpenSubscriptions: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -91,6 +92,7 @@ fun OwnerHubScreen(
         isAdminUnlimited = currentUser?.role == UserRole.ADMIN,
         atListingLimit = atListingLimit,
         onSelectSpace = onSelectSpace,
+        onManageSpace = onManageSpace,
         onOpenWhishRenewal = { showRenewalDialog = true },
         onOpenCreateListing = {
             viewModel.refreshTopHashtags()
@@ -300,6 +302,7 @@ fun OwnerHubScreenContent(
     currentPackage: PackagePlan?,
     ownerPackageExpiryMillis: Long?,
     onSelectSpace: (SpaceListing) -> Unit,
+    onManageSpace: (SpaceListing) -> Unit = onSelectSpace,
     onOpenWhishRenewal: () -> Unit,
     onOpenCreateListing: () -> Unit,
     onOpenPackageSelection: () -> Unit,
@@ -833,28 +836,32 @@ fun OwnerHubScreenContent(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                // View Specs Button
-                                OutlinedButton(
-                                    onClick = { onSelectSpace(space) },
-                                    modifier = Modifier.weight(1f),
+                                // Manage Button — opens the real performance + availability
+                                // page (ManageListingScreen) for this listing: per-division
+                                // occupancy, this-month-vs-last-month yield, and a calendar-
+                                // style availability table, replacing the old read-only
+                                // "Details" entry point.
+                                Button(
+                                    onClick = { onManageSpace(space) },
+                                    modifier = Modifier.weight(1.6f),
                                     shape = MaterialTheme.shapes.medium
                                 ) {
-                                    Text("Details", style = MaterialTheme.typography.labelMedium)
+                                    Icon(Icons.Default.Dashboard, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.xs))
+                                    Text("Manage", style = MaterialTheme.typography.labelMedium)
                                 }
 
                                 // Edit Listing Button — the sole entry point into the wizard
                                 // for an already-published listing now (item 1): availability
                                 // (operating hours/days, blackout slots, rental formulas,
                                 // subdivisions) is entirely configured here, so there's no
-                                // separate "Availability" control anymore.
-                                Button(
+                                // separate "Availability" control anymore. Icon-only, matching
+                                // the Pause/Resume and Delete controls beside it.
+                                IconButton(
                                     onClick = { onEditSpace(space) },
-                                    modifier = Modifier.weight(1.5f),
-                                    shape = MaterialTheme.shapes.medium
+                                    modifier = Modifier.weight(0.6f)
                                 ) {
-                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text("Edit Listing", style = MaterialTheme.typography.labelMedium)
+                                    Icon(Icons.Default.Edit, contentDescription = "Edit Listing", tint = MaterialTheme.colorScheme.primary)
                                 }
 
                                 // Pause/Resume Button — the host's own lifecycle control,

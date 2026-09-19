@@ -124,6 +124,7 @@ fun ProHostAppRoot(
         ownerIncomingRequestsForBadge.count { it.status == BookingRequestStatus.PENDING }
     }
     var detailedSpace by remember { mutableStateOf<SpaceListing?>(null) }
+    var managingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var activeTabId by remember { mutableStateOf("search_map") }
     var activeDrawerTabDialog by remember { mutableStateOf<String?>(null) }
     // Non-null while a drawer-only destination is open — a Pro Host destination, or
@@ -414,8 +415,10 @@ fun ProHostAppRoot(
                 // and the system default (minimize/exit) applies, same as it always has
                 // for Pro Host/Specialist sitting on their own root tab.
                 val isAdminAtRoot = currentRole == UserRole.ADMIN && safeFullScreenDrawerTab == AppNavTab.AdminConsole.id
-                BackHandler(enabled = detailedSpace != null || (safeFullScreenDrawerTab != null && !isAdminAtRoot)) {
-                    if (detailedSpace != null) {
+                BackHandler(enabled = managingSpace != null || detailedSpace != null || (safeFullScreenDrawerTab != null && !isAdminAtRoot)) {
+                    if (managingSpace != null) {
+                        managingSpace = null
+                    } else if (detailedSpace != null) {
                         detailedSpace = null
                     } else if (safeFullScreenDrawerTab != null) {
                         if (currentRole == UserRole.ADMIN) {
@@ -448,7 +451,13 @@ fun ProHostAppRoot(
                         )
 
                         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                            if (detailedSpace != null) {
+                            if (managingSpace != null) {
+                                ManageListingScreen(
+                                    space = managingSpace!!,
+                                    viewModel = viewModel,
+                                    onBack = { managingSpace = null }
+                                )
+                            } else if (detailedSpace != null) {
                                 SpaceDetailsScreen(
                                     space = detailedSpace!!,
                                     viewModel = viewModel,
@@ -500,6 +509,7 @@ fun ProHostAppRoot(
                                     AppNavTab.ManageListings.id -> OwnerHubScreen(
                                         viewModel = viewModel,
                                         onSelectSpace = { detailedSpace = it },
+                                        onManageSpace = { managingSpace = it },
                                         onOpenSubscriptions = { navigateTo(AppNavTab.OwnerSubscriptions.id) }
                                     )
                                     AppNavTab.OwnerRentingProgress.id -> OwnerRentingProgressScreen(
