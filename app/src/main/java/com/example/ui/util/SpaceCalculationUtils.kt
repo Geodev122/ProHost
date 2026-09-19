@@ -513,6 +513,29 @@ object SpaceCalculationUtils {
     }
 
     /**
+     * The next real calendar date — today, if it matches, otherwise the soonest day
+     * after today — whose weekday equals [day] (a 3-letter abbreviation like "Mon"),
+     * formatted "yyyy-MM-dd". HOURLY/SHIFT_BASED/DAY_BASED slots only ever encode a
+     * recurring weekday pattern, not a concrete date — Workspace Details' slot-tap-
+     * to-request flow needs one real date to submit a booking against, the same way
+     * RentalBookingDialog's own calendar picker (item 7b) resolves a specific date
+     * before submitting a Shift-Based request.
+     */
+    fun nextDateForWeekday(day: String, from: Calendar = Calendar.getInstance()): String {
+        val target = dayAbbreviationToCalendarDay[day.take(3)] ?: Calendar.MONDAY
+        val cal = (from.clone() as Calendar).apply {
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
+        while (cal.get(Calendar.DAY_OF_WEEK) != target) {
+            cal.add(Calendar.DAY_OF_MONTH, 1)
+        }
+        return "%04d-%02d-%02d".format(
+            cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH)
+        )
+    }
+
+    /**
      * Turns RentalBookingDialog's start-date choice into a real calendar date (time
      * cleared to midnight) — the same four presets the dialog offers, with the
      * custom option parsed from "yyyy-MM-dd" and falling back to tomorrow if it

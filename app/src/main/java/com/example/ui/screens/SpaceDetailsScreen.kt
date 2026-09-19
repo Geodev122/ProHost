@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -30,9 +31,11 @@ import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.util.BookingRecurrence
+import com.example.ui.util.RentableSlot
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.ShareLinks
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,28 +83,14 @@ fun SpaceDetailsScreen(
             }
         )
     }
-    var showBookingDialog by remember { mutableStateOf(false) }
-
-    if (showBookingDialog) {
-        RentalBookingDialog(
-            space = liveSpace,
-            initialFormula = selectedFormula,
-            viewModel = viewModel,
-            onDismiss = { showBookingDialog = false },
-            onRequestSubmitted = {
-                showBookingDialog = false
-            }
-        )
-    }
-
     SpaceDetailsScreenContent(
         space = liveSpace,
+        viewModel = viewModel,
         acceptedBookings = acceptedBookings,
         myRequestsForThisSpace = myRequestsForThisSpace,
         selectedFormula = selectedFormula,
         currentUserRole = currentUser?.role,
         onSelectFormula = { selectedFormula = it },
-        onRequestRentClick = { showBookingDialog = true },
         onWhatsAppClick = {
             viewModel.launchWhatsAppInquiry(context, liveSpace, selectedFormula)
         },
@@ -133,12 +122,12 @@ fun SpaceDetailsScreen(
 @Composable
 fun SpaceDetailsScreenContent(
     space: SpaceListing,
+    viewModel: ProHostViewModel,
     acceptedBookings: List<RentalBookingRequest>,
     myRequestsForThisSpace: List<RentalBookingRequest>,
     selectedFormula: RentalFormula?,
     currentUserRole: UserRole?,
     onSelectFormula: (RentalFormula) -> Unit,
-    onRequestRentClick: () -> Unit,
     onWhatsAppClick: () -> Unit,
     onShareClick: () -> Unit,
     onCopyLinkClick: () -> Unit = {},
@@ -147,8 +136,18 @@ fun SpaceDetailsScreenContent(
     onBack: () -> Unit
 ) {
     val liveSpace = space
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val currentUser by viewModel.currentUser.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
     var showShareMenu by remember { mutableStateOf(false) }
     var showAvailabilityPanel by remember { mutableStateOf(false) }
+    // The slot a specialist has tapped inside the Check Availability sheet —
+    // driving the "Send Request" bar and the confirm popup below. Cleared
+    // whenever the sheet closes so a stale selection never survives a re-open.
+    var selectedAvailableSlot by remember { mutableStateOf<RentableSlot?>(null) }
+    var showSendConfirm by remember { mutableStateOf(false) }
+    var isSendingSlotRequest by remember { mutableStateOf(false) }
 
     // Real, live pricing config (SpaceCalculationUtils.buildAllSlotsForSpace) — the
     // single source both the Renting Options cards and the Check Availability sheet
@@ -165,6 +164,7 @@ fun SpaceDetailsScreenContent(
         // Nested inside the app-shell Scaffold's already-inset content area — see
         // MyFavoritesScreen's identical fix for why this is needed.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Workspace Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
@@ -241,7 +241,7 @@ fun SpaceDetailsScreenContent(
                     }
 
                     Row(
-                        modifier = Modifier.weight(3.1f),
+                        modifier = Modifier.weight(2.2f),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         if (currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN) {
@@ -265,13 +265,15 @@ fun SpaceDetailsScreenContent(
                             // matrix for whichever renting option is currently selected
                             // above (item 3.2), instead of a separate, always-visible
                             // "Availability" section further down the page.
-                            OutlinedButton(
+                            Button(
                                 onClick = { showAvailabilityPanel = true },
                                 enabled = strategyPreviewGroups.isNotEmpty(),
                                 shape = MaterialTheme.shapes.medium,
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.weight(1.3f),
                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)
                             ) {
+                                Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     "Check Availability",
                                     style = MaterialTheme.typography.labelSmall,
@@ -281,24 +283,7 @@ fun SpaceDetailsScreenContent(
                                     lineHeight = 12.sp
                                 )
                             }
-    
-                            // Request to Rent Button
-                            Button(
-                                onClick = onRequestRentClick,
-                                shape = MaterialTheme.shapes.medium,
-                                modifier = Modifier.weight(1f),
-                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)
-                            ) {
-                                Text(
-                                    "Request Rent",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                    maxLines = 2,
-                                    lineHeight = 12.sp
-                                )
-                            }
-    
+
                             // WhatsApp Direct Inquiry Button
                             Button(
                                 onClick = onWhatsAppClick,
@@ -442,13 +427,22 @@ fun SpaceDetailsScreenContent(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        text = "📍 ${liveSpace.district}, ${liveSpace.governorate.displayName} • ${liveSpace.floorInfo}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xCCFFFFFF),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = Color(0xCCFFFFFF),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "${liveSpace.district}, ${liveSpace.governorate.displayName} • ${liveSpace.floorInfo}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xCCFFFFFF),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
 
@@ -586,7 +580,7 @@ fun SpaceDetailsScreenContent(
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         ProSectionHeader(
                             title = "Renting Options",
-                            subtitle = "Real availability & pricing configured by the host",
+                            subtitle = "Tap an option, then check its live availability below",
                             icon = Icons.Default.Tune
                         )
 
@@ -674,7 +668,7 @@ fun SpaceDetailsScreenContent(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         ProSectionHeader(
                             title = "Facilities & Utilities",
-                            subtitle = "Infrastructure and amenities available in the workspace",
+                            subtitle = "${liveSpace.essentialFacilities.size} amenities included",
                             icon = Icons.Default.Business
                         )
 
@@ -703,7 +697,6 @@ fun SpaceDetailsScreenContent(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         ProSectionHeader(
                             title = "Equipment Catalog (${liveSpace.equipment.size})",
-                            subtitle = "On-premises certified hardware and amenities ready for use",
                             icon = Icons.Default.Handyman
                         )
 
@@ -762,7 +755,7 @@ fun SpaceDetailsScreenContent(
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             ProSectionHeader(
                                 title = "Co-Working Synergy",
-                                subtitle = "Networking and collaborative peers on premises",
+                                subtitle = "${residentSpecialties.size} peer${if (residentSpecialties.size == 1) "" else "s"} on premises",
                                 icon = Icons.Default.Groups
                             )
 
@@ -827,27 +820,23 @@ fun SpaceDetailsScreenContent(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         ProSectionHeader(
                             title = "Rules & Premises Policies",
-                            subtitle = "Code of conduct and facility access hours",
+                            subtitle = "4 policies to review",
                             icon = Icons.Default.Policy
                         )
 
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                text = "🚭 Smoking: ${if (liveSpace.rules.smokingAllowed) "Permitted in designated zone" else "Strictly Prohibited"}",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                            Text(
-                                text = "☕ Food & Beverages: ${if (liveSpace.rules.foodAllowed) "Permitted in staff breakroom" else "Not allowed"}",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                            Text(
-                                text = "🕒 Off-Hours Access: ${if (liveSpace.rules.offHoursAccess) "24/7 Keycard / Smart Access" else "Business Hours Only"}",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                            Text(
-                                text = "👥 Visitor Policy: ${liveSpace.rules.visitorPolicy}",
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(
+                                Icons.Default.SmokeFree to "Smoking: ${if (liveSpace.rules.smokingAllowed) "Permitted in designated zone" else "Strictly Prohibited"}",
+                                Icons.Default.Coffee to "Food & Beverages: ${if (liveSpace.rules.foodAllowed) "Permitted in staff breakroom" else "Not allowed"}",
+                                Icons.Default.Schedule to "Off-Hours Access: ${if (liveSpace.rules.offHoursAccess) "24/7 Keycard / Smart Access" else "Business Hours Only"}",
+                                Icons.Default.Groups to "Visitor Policy: ${liveSpace.rules.visitorPolicy}"
+                            ).forEach { (icon, text) ->
+                                Row(verticalAlignment = Alignment.Top) {
+                                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(text = text, style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
                         }
                     }
                 }
@@ -857,19 +846,78 @@ fun SpaceDetailsScreenContent(
         }
     }
 
-    // Check Availability slide-up panel (item 3.2) — the real per-cell rented/
-    // available matrix for whichever renting option is currently selected above,
-    // reusing the exact same shared slot data (SpaceCalculationUtils.
-    // buildAllSlotsForSpace/isSlotLocked) the Renting Options cards already use.
-    // Re-scoped to the one selected group instead of looping every configured
-    // formula, so the matrix changes dynamically as the selection above changes.
+    // Sends a booking request straight off a tapped, live slot — the specialist
+    // never leaves the availability sheet to fill out a separate form. Reuses the
+    // exact repository call RentalBookingDialog itself calls (createBookingRequest)
+    // so an ACCEPTED request locks this same slot everywhere else that reads
+    // isSlotLocked/isCalendarDateLocked, including the host's own Manage Listing
+    // screen.
+    fun sendSlotRequest(slot: RentableSlot) {
+        val user = currentUser
+        val strategyType = slot.strategyType
+        if (user == null || strategyType == null) return
+        isSendingSlotRequest = true
+        coroutineScope.launch {
+            val formula = SpaceCalculationUtils.representativeFormula(listOf(slot), BookingRecurrence.FLAT)
+            if (formula == null) {
+                isSendingSlotRequest = false
+                return@launch
+            }
+            val isoDate = SpaceCalculationUtils.nextDateForWeekday(slot.day)
+            val subdivision = liveSpace.subdivisions.find { it.id == slot.sourceFormulaId }
+            val price = slot.pricesByRecurrence[BookingRecurrence.FLAT] ?: formula.rateUsd
+            val shiftLabel = if (strategyType == RentalStrategyType.SHIFT_BASED) slot.groupLabel.substringAfter("• ") else ""
+            val (request, synced) = viewModel.repository.createBookingRequest(
+                space = liveSpace,
+                formula = formula,
+                practitioner = user,
+                startDate = isoDate,
+                durationMonths = 1,
+                notes = "Requested via live slot selection",
+                selectedDays = listOf(slot.day),
+                selectedCalendarDates = if (strategyType == RentalStrategyType.MONTHLY) emptyList() else listOf(isoDate),
+                selectedStartHour = slot.startTime,
+                selectedEndHour = slot.endTime,
+                selectedShift = shiftLabel,
+                calculatedTotalUsd = price,
+                subdivisionId = subdivision?.id,
+                subdivisionName = subdivision?.name
+            )
+            isSendingSlotRequest = false
+            showSendConfirm = false
+            if (synced) {
+                selectedAvailableSlot = null
+                showAvailabilityPanel = false
+                val result = snackbarHostState.showSnackbar(
+                    message = "Request sent! The host has been notified.",
+                    actionLabel = "WhatsApp Host",
+                    duration = SnackbarDuration.Long
+                )
+                if (result == SnackbarResult.ActionPerformed) {
+                    viewModel.launchWhatsAppInquiry(context, liveSpace, formula, request)
+                }
+            } else {
+                snackbarHostState.showSnackbar("Couldn't send your request — check your connection and try again.")
+            }
+        }
+    }
+
+    // Check Availability slide-up panel (item 3.2), reworked into a real booking
+    // entry point: the real per-cell rented/available matrix for whichever renting
+    // option is currently selected above (reusing the exact same shared slot data,
+    // SpaceCalculationUtils.buildAllSlotsForSpace/isSlotLocked, the Renting Options
+    // cards already use), but every open slot is now tappable — tapping one surfaces
+    // a "Send Request" bar, which opens the confirm popup below.
     if (showAvailabilityPanel) {
         val selectedGroup = strategyPreviewGroups.firstOrNull { (strategyType, _) ->
             selectedFormula?.type == SpaceCalculationUtils.legacyFormulaType(strategyType)
         } ?: strategyPreviewGroups.firstOrNull()
 
         ModalBottomSheet(
-            onDismissRequest = { showAvailabilityPanel = false },
+            onDismissRequest = {
+                showAvailabilityPanel = false
+                selectedAvailableSlot = null
+            },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ) {
             Column(
@@ -880,8 +928,12 @@ fun SpaceDetailsScreenContent(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 ProSectionHeader(
-                    title = "Check Availability",
-                    subtitle = "Real rented vs. available slots for this renting option",
+                    title = if (selectedGroup != null) "Pick a Slot" else "Check Availability",
+                    subtitle = if (selectedGroup != null) {
+                        "Here's live availability — tap an open slot to request it."
+                    } else {
+                        "Select a renting option above, then check its live availability here."
+                    },
                     icon = Icons.Default.EventAvailable
                 )
 
@@ -914,15 +966,42 @@ fun SpaceDetailsScreenContent(
                             RentalStrategyType.MONTHLY -> {
                                 val slot = slots.first()
                                 val isLocked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
+                                val isSelected = selectedAvailableSlot == slot
                                 Text(
                                     "Full-month exclusive lease • $${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}/mo",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                ProStatusBadge(
-                                    if (isLocked) ProBadgeType.CUSTOM_ERROR else ProBadgeType.CUSTOM_INFO,
-                                    customText = if (isLocked) "Currently Rented" else "Available Now"
-                                )
+                                Surface(
+                                    onClick = { if (!isLocked) selectedAvailableSlot = if (isSelected) null else slot },
+                                    enabled = !isLocked,
+                                    color = when {
+                                        isLocked -> StatusErrorContainer
+                                        isSelected -> FreshGreen.copy(alpha = 0.22f)
+                                        else -> StatusSuccessContainer
+                                    },
+                                    shape = MaterialTheme.shapes.small,
+                                    border = if (isSelected) BorderStroke(1.5.dp, FreshGreen) else null
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isLocked) Icons.Default.Lock else if (isSelected) Icons.Default.CheckCircle else Icons.Default.EventAvailable,
+                                            contentDescription = null,
+                                            tint = if (isLocked) StatusError else if (isSelected) FreshGreen else StatusSuccess,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            if (isLocked) "Currently Rented" else if (isSelected) "Selected" else "Available Now",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isLocked) StatusError else if (isSelected) FreshGreen else StatusSuccess
+                                        )
+                                    }
+                                }
                             }
                             RentalStrategyType.HOURLY -> {
                                 slots.groupBy { it.day }.toList().sortedBy { it.first }.forEach { (day, daySlots) ->
@@ -930,14 +1009,22 @@ fun SpaceDetailsScreenContent(
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                         items(daySlots.sortedBy { it.startTime }) { slot ->
                                             val locked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
+                                            val isSelected = selectedAvailableSlot == slot
                                             Surface(
-                                                color = if (locked) StatusErrorContainer else StatusSuccessContainer,
-                                                shape = MaterialTheme.shapes.extraSmall
+                                                onClick = { if (!locked) selectedAvailableSlot = if (isSelected) null else slot },
+                                                enabled = !locked,
+                                                color = when {
+                                                    locked -> StatusErrorContainer
+                                                    isSelected -> FreshGreen.copy(alpha = 0.22f)
+                                                    else -> StatusSuccessContainer
+                                                },
+                                                shape = MaterialTheme.shapes.extraSmall,
+                                                border = if (isSelected) BorderStroke(1.5.dp, FreshGreen) else null
                                             ) {
                                                 Text(
                                                     slot.startTime,
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    color = if (locked) StatusError else StatusSuccess,
+                                                    color = if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess,
                                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                                 )
                                             }
@@ -950,17 +1037,29 @@ fun SpaceDetailsScreenContent(
                                     Text(day, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                                     daySlots.forEach { slot ->
                                         val locked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        val isSelected = selectedAvailableSlot == slot
+                                        Surface(
+                                            onClick = { if (!locked) selectedAvailableSlot = if (isSelected) null else slot },
+                                            enabled = !locked,
+                                            color = if (isSelected) FreshGreen.copy(alpha = 0.16f) else Color.Transparent,
+                                            shape = MaterialTheme.shapes.extraSmall,
+                                            border = if (isSelected) BorderStroke(1.5.dp, FreshGreen) else null,
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            Text(slot.label, style = MaterialTheme.typography.bodySmall)
-                                            Text(
-                                                if (locked) "Rented" else "Available",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = if (locked) StatusError else StatusSuccess
-                                            )
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 4.dp, horizontal = 4.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text(slot.label, style = MaterialTheme.typography.bodySmall)
+                                                Text(
+                                                    if (locked) "Rented" else if (isSelected) "Selected" else "Available",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -968,24 +1067,96 @@ fun SpaceDetailsScreenContent(
                             RentalStrategyType.DAY_BASED -> {
                                 slots.sortedBy { it.day }.forEach { slot ->
                                     val locked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    val isSelected = selectedAvailableSlot == slot
+                                    Surface(
+                                        onClick = { if (!locked) selectedAvailableSlot = if (isSelected) null else slot },
+                                        enabled = !locked,
+                                        color = if (isSelected) FreshGreen.copy(alpha = 0.16f) else Color.Transparent,
+                                        shape = MaterialTheme.shapes.extraSmall,
+                                        border = if (isSelected) BorderStroke(1.5.dp, FreshGreen) else null,
+                                        modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Text(slot.day, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                                        Text(
-                                            if (locked) "Rented" else "Available",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = if (locked) StatusError else StatusSuccess
-                                        )
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp, horizontal = 4.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(slot.day, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                            Text(
+                                                if (locked) "Rented" else if (isSelected) "Selected" else "Available",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess
+                                            )
+                                        }
                                     }
                                 }
+                            }
+                        }
+
+                        if (selectedAvailableSlot != null) {
+                            Button(
+                                onClick = { showSendConfirm = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.medium
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Send Request", fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    // Confirm-and-send popup, gated on a slot actually being selected — shows the
+    // real request details (space, location, room, chosen slot, price) before
+    // anything is submitted.
+    val slotPendingConfirm = selectedAvailableSlot
+    if (showSendConfirm && slotPendingConfirm != null) {
+        val subdivision = liveSpace.subdivisions.find { it.id == slotPendingConfirm.sourceFormulaId }
+        val price = slotPendingConfirm.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0
+        AlertDialog(
+            onDismissRequest = { if (!isSendingSlotRequest) showSendConfirm = false },
+            icon = { Icon(Icons.Default.EventAvailable, contentDescription = null) },
+            title = { Text("Confirm Your Request") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        "Space" to liveSpace.title,
+                        "Location" to "${liveSpace.district}, ${liveSpace.governorate.displayName}",
+                        "Room" to (subdivision?.name ?: "Whole Space"),
+                        "Time Slot" to slotPendingConfirm.label,
+                        "Price" to "$${price.toInt()} USD"
+                    ).forEach { (label, value) ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { sendSlotRequest(slotPendingConfirm) },
+                    enabled = !isSendingSlotRequest
+                ) {
+                    if (isSendingSlotRequest) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                    } else {
+                        Text("Send")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSendConfirm = false }, enabled = !isSendingSlotRequest) { Text("Cancel") }
+            }
+        )
     }
 }
