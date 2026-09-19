@@ -190,9 +190,9 @@ fun OwnerSubscriptionsScreen(
                 if (currentPlan != null) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
-                            Text("Remaining Duration", style = MaterialTheme.typography.bodySmall, color = LightGray)
+                            Text("Days Until Renewal", style = MaterialTheme.typography.bodySmall, color = LightGray)
                             Text(
-                                remainingDays?.let { "$it Days" } ?: "—",
+                                remainingDays?.let { if (it == 0L || it == 0) "< 1 day" else "$it days" } ?: "—",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = PureWhite
@@ -206,6 +206,16 @@ fun OwnerSubscriptionsScreen(
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = PureWhite
+                            )
+                        }
+                    }
+                    if (remainingDays != null) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(Icons.Default.Autorenew, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(14.dp))
+                            Text(
+                                "Auto-renews monthly via Google Play",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = FreshGreen
                             )
                         }
                     }
@@ -234,7 +244,7 @@ fun OwnerSubscriptionsScreen(
         }
 
         Text(
-            text = "AVAILABLE ADMIN PUBLISHED PACKAGES",
+            text = "AVAILABLE SUBSCRIPTION PLANS",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = CoolGray,
@@ -290,7 +300,7 @@ fun PackageOptionCard(
                     color = OxfordBlue
                 )
                 Text(
-                    text = "$${String.format(Locale.US, "%.2f", plan.priceUsd)} / ${plan.validityDays}d",
+                    text = "$${String.format(Locale.US, "%.2f", plan.priceUsd)} / mo",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Black,
                     color = CarnationOrange

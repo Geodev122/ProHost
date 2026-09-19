@@ -68,12 +68,10 @@ fun OwnerHubScreen(
         }
     }
 
-    var showRenewalDialog by remember { mutableStateOf(false) }
     var showCreateListingDialog by remember { mutableStateOf(false) }
     var editingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var deletingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var verifyingSpace by remember { mutableStateOf<SpaceListing?>(null) }
-    val context = androidx.compose.ui.platform.LocalContext.current
     var draftToEdit by remember { mutableStateOf<SpaceListing?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -98,13 +96,25 @@ fun OwnerHubScreen(
             val expiry = currentUser?.ownerPackageExpiryMillis
             if (expiry != null && expiry > System.currentTimeMillis()) {
                 // Active Play subscription — open Play Store subscription management
-                val intent = android.content.Intent(
-                    android.content.Intent.ACTION_VIEW,
-                    android.net.Uri.parse("market://subscriptions?package=app.geonajjar.prohost")
-                )
-                try { (context as? android.app.Activity)?.startActivity(intent) } catch (_: Exception) { showRenewalDialog = true }
+                // Include the specific product ID so Play Store deep-links directly
+                // to this subscription rather than the generic subscriptions list.
+                val productId = currentUser?.ownerPackageId
+                    ?.let { packagePlans.packages[it]?.googlePlayProductId }
+                    ?.ifBlank { null }
+                val uri = if (productId != null)
+                    "market://subscriptions?sku=$productId&package=app.geonajjar.prohost"
+                else
+                    "market://subscriptions?package=app.geonajjar.prohost"
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(uri))
+                try {
+                    (context as? android.app.Activity)?.startActivity(intent)
+                } catch (_: Exception) {
+                    // Play Store unavailable — fall back to in-app subscriptions screen
+                    onOpenSubscriptions?.invoke()
+                }
             } else {
-                showRenewalDialog = true
+                // Expired or no subscription — navigate to subscriptions screen to pick a Play plan
+                onOpenSubscriptions?.invoke()
             }
         },
         onOpenCreateListing = {
@@ -129,17 +139,6 @@ fun OwnerHubScreen(
             space = space,
             viewModel = viewModel,
             onDismiss = { verifyingSpace = null }
-        )
-    }
-
-    // Owner-level entitlement renewal — a real PAYG cart or tiered-package renewal,
-    // not tied to any one listing. See SubscriptionRenewalDialog's own doc comment
-    // for why this replaced the old per-listing WhishPayModal/flat-fee flow.
-    if (showRenewalDialog && currentUser != null) {
-        SubscriptionRenewalDialog(
-            currentUser = currentUser!!,
-            viewModel = viewModel,
-            onDismiss = { showRenewalDialog = false }
         )
     }
 
@@ -407,7 +406,7 @@ fun OwnerHubScreenContent(
                                         text = if (currentPackage == null) {
                                             "No Active Package"
                                         } else {
-                                            "$${String.format(Locale.US, "%.2f", currentPackage.priceUsd)} / ${currentPackage.validityDays}d"
+                                            "$${String.format(Locale.US, "%.2f", currentPackage.priceUsd)} / mo"
                                         },
                                         color = Color.White,
                                         style = MaterialTheme.typography.labelMedium,

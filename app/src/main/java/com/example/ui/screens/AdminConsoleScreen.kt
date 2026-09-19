@@ -371,16 +371,6 @@ fun AdminConsoleScreen(
         )
     }
 
-    // 8. Add Package Plan Dialog — this used to just toggle isAddPackagePlanDialogOpen
-    // with no dialog anywhere actually reading it, so "Add Package" was a fully dead
-    // button; this is the real dialog it was always meant to open.
-    if (uiState.isAddPackagePlanDialogOpen) {
-        AdminAddPackagePlanDialog(
-            existingIds = uiState.packagePlans.packages.keys,
-            onDismiss = { adminViewModel.closeAddPackagePlanDialog() },
-            onAdd = { plan -> adminViewModel.addPackagePlan(plan) }
-        )
-    }
 }
 
 // =========================================================================
@@ -494,23 +484,32 @@ private fun AdminRevenueTab(
 
                     HorizontalDivider()
 
-                    Row(
+                    Text(
+                        text = "Packages",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    // Packages are defined in Google Play Console (Monetise → Subscriptions).
+                    // Admin controls listing limits, display names, and enable/disable here.
+                    Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        shape = MaterialTheme.shapes.small
                     ) {
-                        Text(
-                            text = "Packages",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        CustomButton(
-                            text = "Add Package",
-                            onClick = { adminViewModel.openAddPackagePlanDialog() },
-                            variant = CustomButtonVariant.SECONDARY,
-                            icon = Icons.Default.Add,
-                            compact = true
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Default.Info, contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(14.dp))
+                            Text(
+                                "New plans are created in Google Play Console. Set listing limits and display names below.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
                     if (uiState.packagePlans.packages.isEmpty()) {
@@ -544,12 +543,18 @@ private fun AdminRevenueTab(
                                 .padding(10.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
+                            val isPlayLinked = plan.googlePlayProductId.isNotBlank()
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("#${plan.id}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Column {
+                                    Text("#${plan.id}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    if (isPlayLinked) {
+                                        Text("Google Play", style = MaterialTheme.typography.labelSmall, color = FreshGreen)
+                                    }
+                                }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         if (plan.isEnabled) "Enabled" else "Disabled",
@@ -557,8 +562,16 @@ private fun AdminRevenueTab(
                                         color = if (plan.isEnabled) FreshGreen else StatusError
                                     )
                                     Switch(checked = plan.isEnabled, onCheckedChange = { adminViewModel.togglePackagePlan(plan.id) })
-                                    IconButton(onClick = { adminViewModel.deletePackagePlan(plan.id) }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Delete package", tint = StatusError)
+                                    // Play-linked plans cannot be deleted here — manage them in Play Console
+                                    IconButton(
+                                        onClick = { if (!isPlayLinked) adminViewModel.deletePackagePlan(plan.id) },
+                                        enabled = !isPlayLinked
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = if (isPlayLinked) "Managed in Google Play Console" else "Delete package",
+                                            tint = if (isPlayLinked) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f) else StatusError
+                                        )
                                     }
                                 }
                             }
@@ -617,20 +630,41 @@ private fun AdminRevenueTab(
                                     singleLine = true
                                 )
                             }
-                            OutlinedTextField(
-                                value = googlePlayProductIdInput,
-                                onValueChange = { googlePlayProductIdInput = it },
-                                label = { Text("Google Play Product ID") },
-                                placeholder = { Text("e.g. prohost_starter_30d") },
-                                supportingText = { Text("Must exactly match a Subscription ID in Google Play Console. Leave blank for Whish-only plans.") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
                             if (plan.googlePlayProductId.isNotBlank()) {
-                                Text(
-                                    "Play Product: ${plan.googlePlayProductId}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                // Product ID is locked once set — it maps to a real Play subscription
+                                // that exists in Google Play Console. Changing it here would break
+                                // the RTDN handler's ability to resolve purchases to this plan.
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    shape = MaterialTheme.shapes.small
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(Icons.Default.Lock, contentDescription = null,
+                                            tint = FreshGreen, modifier = Modifier.size(14.dp))
+                                        Column {
+                                            Text("Google Play Product ID", style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text(plan.googlePlayProductId,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onSurface)
+                                        }
+                                    }
+                                }
+                            } else {
+                                OutlinedTextField(
+                                    value = googlePlayProductIdInput,
+                                    onValueChange = { googlePlayProductIdInput = it },
+                                    label = { Text("Google Play Product ID") },
+                                    placeholder = { Text("e.g. package_growth_mrr") },
+                                    supportingText = { Text("Must exactly match a Subscription ID in Google Play Console.") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
                                 )
                             }
                             CustomButton(
@@ -2715,7 +2749,7 @@ private fun AdminAddPackagePlanDialog(
                     value = newPlanGooglePlayProductId,
                     onValueChange = { newPlanGooglePlayProductId = it },
                     label = { Text("Google Play Product ID") },
-                    placeholder = { Text("e.g. prohost_starter_30d") },
+                    placeholder = { Text("e.g. package_growth_mrr") },
                     supportingText = { Text("Must exactly match a Subscription ID in Google Play Console. Leave blank for Whish-only plans.") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
