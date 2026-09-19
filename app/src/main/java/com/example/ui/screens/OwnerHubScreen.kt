@@ -387,7 +387,7 @@ fun OwnerHubScreenContent(
 
                             if (!isAdminUnlimited) {
                                 Surface(
-                                    color = WhishRed,
+                                    color = CarnationOrange,
                                     shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
@@ -454,9 +454,9 @@ fun OwnerHubScreenContent(
                                     onClick = onOpenWhishRenewal,
                                     modifier = Modifier.weight(1f),
                                     shape = MaterialTheme.shapes.medium,
-                                    colors = ButtonDefaults.buttonColors(containerColor = WhishRed)
+                                    colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                                 ) {
-                                    Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                    Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text("Renew", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                                 }
@@ -610,7 +610,7 @@ fun OwnerHubScreenContent(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "📍 ${space.district}, ${space.governorate.displayName}",
+                                text = "${space.district}, ${space.governorate.displayName}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

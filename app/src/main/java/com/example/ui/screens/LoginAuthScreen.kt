@@ -658,7 +658,7 @@ fun LoginAuthScreen(
                         "Your 6-digit PIN protects your account. Never share it with anyone."
                     else
                         "Your phone number is your account — verified via one-time SMS.",
-                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
