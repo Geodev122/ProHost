@@ -31,9 +31,11 @@ import kotlinx.coroutines.launch
  * qualify (see SpaceListing.verificationDocUrl's doc comment): a re-rental
  * authorization signed by the real property owner (template downloadable here,
  * reusing LegalDocumentDialog/LegalPdfGenerator unmodified), or proof the Pro
- * Host is the real owner. Either upload, once on file, lets
- * ProHostViewModel.requestListingVerification auto-grant the badge — no manual
- * review, same as every other "kept on file" document in this app.
+ * Host is the real owner. Uploading either document and tapping Submit sends it
+ * to Admin for manual review (functions/src/admin/listings.ts's
+ * requestListingVerification pushes every Admin, then Admin Console's Listings
+ * Catalog "Pending Review" filter is where the document actually gets looked at
+ * and the badge granted via setListingVerification) — not an instant grant.
  */
 @Composable
 fun ListingVerificationDialog(
@@ -91,7 +93,7 @@ fun ListingVerificationDialog(
 
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
-                    "Optional — earns the Listing Verified badge shown to Specialists. Not required to keep this listing published.",
+                    "Optional — submit a document for Admin review to earn the Listing Verified badge shown to Specialists. Not required to keep this listing published.",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -235,7 +237,7 @@ fun ListingVerificationDialog(
                 ) {
                     Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text("Submit for Listing Verified Badge")
+                    Text("Submit for Admin Review")
                 }
             }
         }

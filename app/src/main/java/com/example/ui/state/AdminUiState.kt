@@ -28,7 +28,7 @@ data class AdminUiState(
     // A SchemaItem.id from the admin-defined Space Category catalog (or a legacy
     // SpaceType name) — see SpaceListing.matchesCategory.
     val selectedListingTypeFilter: String? = null,
-    val selectedListingStatusFilter: String = "ALL", // "ALL", "ACTIVE_30D", "EXPIRED", "VERIFIED"
+    val selectedListingStatusFilter: String = "ALL", // "ALL", "ACTIVE_30D", "EXPIRED", "VERIFIED", "PENDING_VERIFICATION"
 
     val txSearchQuery: String = "",
     val selectedTxStatusFilter: String = "ALL", // "ALL", "SUCCESS", "PENDING", "FAILED"
@@ -113,6 +113,7 @@ data class AdminUiState(
                 "ACTIVE_30D" -> space.isActiveSubscription
                 "EXPIRED" -> !space.isActiveSubscription
                 "VERIFIED" -> space.isVerified
+                "PENDING_VERIFICATION" -> !space.verificationDocUrl.isNullOrBlank() && !space.isVerified
                 else -> true
             }
             matchesQuery && matchesType && matchesStatus

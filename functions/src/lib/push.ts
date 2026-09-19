@@ -41,3 +41,24 @@ export async function sendPushToUser(
     logger.error(`sendPushToUser failed for ${uid}: ${(e as Error).message}`);
   }
 }
+
+/**
+ * Broadcasts a push to every ADMIN account with an fcmToken on file — for
+ * events an Admin needs to act on (e.g. a new listing-verification request)
+ * that aren't scoped to any single user the way sendPushToUser's are. Reuses
+ * the same data-only payload contract; failures for one admin never block
+ * delivery to the rest.
+ */
+export async function sendPushToAdmins(
+  title: string,
+  body: string,
+  data: Record<string, string> = {}
+): Promise<void> {
+  try {
+    const db = getFirestore();
+    const adminsSnap = await db.collection("user_profiles").where("role", "==", "ADMIN").get();
+    await Promise.all(adminsSnap.docs.map((doc) => sendPushToUser(doc.id, title, body, data)));
+  } catch (e) {
+    logger.error(`sendPushToAdmins failed: ${(e as Error).message}`);
+  }
+}

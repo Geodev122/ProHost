@@ -657,12 +657,19 @@ fun OwnerHubScreenContent(
                         // SpaceListing.isVerified's doc comment — so this is either a
                         // static confirmation or a tappable entry point, never a badge
                         // shown unconditionally.
+                        val verificationPending = !space.isVerified && !space.verificationDocUrl.isNullOrBlank()
                         Surface(
-                            color = if (space.isVerified) StatusSuccessContainer else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                            color = when {
+                                space.isVerified -> StatusSuccessContainer
+                                verificationPending -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
+                                else -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                            },
                             shape = MaterialTheme.shapes.small,
                             border = if (space.isVerified) null else BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
                             modifier = Modifier
                                 .fillMaxWidth()
+                                // Still tappable while pending, in case the host wants to
+                                // re-submit a better document before Admin reviews it.
                                 .let { if (space.isVerified) it else it.clickable { onOpenListingVerification(space) } }
                         ) {
                             Row(
@@ -675,13 +682,21 @@ fun OwnerHubScreenContent(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Icon(
-                                        if (space.isVerified) Icons.Default.Verified else Icons.Default.VerifiedUser,
+                                        when {
+                                            space.isVerified -> Icons.Default.Verified
+                                            verificationPending -> Icons.Default.HourglassTop
+                                            else -> Icons.Default.VerifiedUser
+                                        },
                                         contentDescription = null,
                                         tint = if (space.isVerified) StatusSuccess else MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Text(
-                                        text = if (space.isVerified) "Verified Listing" else "Earn Verified Badge",
+                                        text = when {
+                                            space.isVerified -> "Verified Listing"
+                                            verificationPending -> "Pending Admin Review"
+                                            else -> "Earn Verified Badge"
+                                        },
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = if (space.isVerified) StatusOnSuccessContainer else MaterialTheme.colorScheme.onPrimaryContainer
@@ -689,7 +704,7 @@ fun OwnerHubScreenContent(
                                 }
                                 if (!space.isVerified) {
                                     Text(
-                                        text = "Tap to Submit Proof ➔",
+                                        text = if (verificationPending) "Tap to Re-submit ➔" else "Tap to Submit Proof ➔",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.primary

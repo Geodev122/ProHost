@@ -1,7 +1,7 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import { recordAuditLog } from "../lib/auditLog";
-import { sendPushToUser } from "../lib/push";
+import { sendPushToUser, sendPushToAdmins } from "../lib/push";
 import "../lib/admin";
 
 interface SetListingVerificationData {
@@ -111,14 +111,16 @@ interface RequestListingVerificationData {
 }
 
 /**
- * Host-callable, self-service sibling to setListingVerification above — that one
- * stays Admin-only for a manual override; this one lets the listing's own
- * PRO_HOST owner earn the Listing Verified badge themselves, the moment a
- * qualifying document is on file. Auto-granted, no manual review step, matching
- * this codebase's established stance on ownershipProofUrl/idDocumentUrl ("kept
- * on file, no review workflow") — see SpaceListing.verificationDocUrl's doc
- * comment for what counts as qualifying (a signed re-rental authorization, or
- * proof of self-ownership).
+ * Host-callable, self-service sibling to setListingVerification above. The
+ * listing's PRO_HOST owner uploads a qualifying document (a signed re-rental
+ * authorization, or proof of self-ownership — see
+ * SpaceListing.verificationDocUrl's doc comment) then calls this to submit it
+ * for review. This does NOT grant the badge itself — only an Admin can, via
+ * setListingVerification, after actually looking at the document (Admin
+ * Console's Listings Catalog tab, "Pending Review" filter). This function's
+ * only real job is validating the submission and notifying every Admin that
+ * one is waiting — the grant is a genuine manual review step, not an
+ * auto-approval.
  */
 export const requestListingVerification = onCall<RequestListingVerificationData>(async (request) => {
   const auth = request.auth;
@@ -151,10 +153,19 @@ export const requestListingVerification = onCall<RequestListingVerificationData>
     );
   }
 
-  await ref.set({ isVerified: true, updatedAt: Date.now() }, { merge: true });
+  await sendPushToAdmins(
+    "New Listing Verification Request",
+    `${data.title ?? "A listing"} (host: ${data.ownerName ?? auth.token.email ?? auth.uid}) submitted a document for the Listing Verified badge — review it in Admin Console.`,
+    {
+      category: "LISTING_VERIFICATION_REQUEST",
+      targetTab: "admin_console",
+      spaceId: spaceId,
+    }
+  );
+
   await recordAuditLog({
-    actionType: "HOST_SELF_VERIFICATION",
-    details: `${auth.token.email ?? auth.uid} self-verified listing #${spaceId} (${data.verificationDocType ?? "unknown"} document on file).`,
+    actionType: "LISTING_VERIFICATION_REQUESTED",
+    details: `${auth.token.email ?? auth.uid} submitted listing #${spaceId} for verification review (${data.verificationDocType ?? "unknown"} document on file).`,
     actorEmail: auth.token.email ?? "system@prohost.app",
     severity: "INFO",
   });

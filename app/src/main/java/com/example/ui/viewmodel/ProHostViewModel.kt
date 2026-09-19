@@ -829,7 +829,7 @@ class ProHostViewModel(
             val success = repository.requestOwnListingVerification(spaceId, docUrl, docType)
             Toast.makeText(
                 context,
-                if (success) "Listing Verified badge earned!" else "Couldn't verify this listing — please try again.",
+                if (success) "Submitted for review — an Admin will verify it shortly." else "Couldn't submit this listing for verification — please try again.",
                 Toast.LENGTH_LONG
             ).show()
         }

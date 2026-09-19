@@ -1045,8 +1045,15 @@ private fun AdminListingsCatalogTab(
 
                     // Status Filter
                     Text("Filter by Subscription / Verification:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    val pendingVerificationCount = uiState.allSpaces.count { !it.verificationDocUrl.isNullOrBlank() && !it.isVerified }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf("ALL" to "All", "ACTIVE_30D" to "Active", "EXPIRED" to "Expired", "VERIFIED" to "Verified").forEach { (key, label) ->
+                        listOf(
+                            "ALL" to "All",
+                            "ACTIVE_30D" to "Active",
+                            "EXPIRED" to "Expired",
+                            "VERIFIED" to "Verified",
+                            "PENDING_VERIFICATION" to "Pending Review ($pendingVerificationCount)"
+                        ).forEach { (key, label) ->
                             FilterChip(
                                 selected = uiState.selectedListingStatusFilter == key,
                                 onClick = { adminViewModel.setListingStatusFilter(key) },
@@ -1129,6 +1136,30 @@ private fun AdminListingsCatalogTab(
 
                         if (space.isVerified) {
                             ProStatusBadge(ProBadgeType.CUSTOM_SUCCESS, customText = "Verified")
+                        } else if (!space.verificationDocUrl.isNullOrBlank()) {
+                            ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = "Pending Verification")
+                        }
+                    }
+
+                    if (!space.isVerified && !space.verificationDocUrl.isNullOrBlank()) {
+                        OutlinedButton(
+                            onClick = {
+                                try {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(space.verificationDocUrl)))
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Could not open document URL", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.small,
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text(
+                                text = "View Verification Document (${space.verificationDocType?.name?.replace('_', ' ') ?: "on file"})",
+                                style = MaterialTheme.typography.labelSmall
+                            )
                         }
                     }
 

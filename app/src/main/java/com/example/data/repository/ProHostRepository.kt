@@ -1072,12 +1072,13 @@ class ProHostRepository {
 
         val result = functionsClient.requestListingVerification(spaceId)
         if (result.isSuccess) {
-            _spaces.value = _spaces.value.map {
-                if (it.id == spaceId) it.copy(isVerified = true) else it
-            }
+            // Does NOT flip isVerified locally — the badge is only granted once an
+            // Admin actually reviews the document (Admin Console's Listings Catalog,
+            // "Pending Review" filter) and calls setListingVerification. The live
+            // Firestore listener picks up that flip whenever it happens.
             addAuditLog(
-                actionType = "HOST_SELF_VERIFICATION",
-                details = "Owner self-verified workspace #$spaceId ($docType document on file).",
+                actionType = "LISTING_VERIFICATION_REQUESTED",
+                details = "Owner submitted workspace #$spaceId for verification review ($docType document on file).",
                 severity = "INFO"
             )
         }
