@@ -224,6 +224,62 @@ class ProHostViewModel(
     private val _isWhishCheckoutInFlight = MutableStateFlow(false)
     val isWhishCheckoutInFlight: StateFlow<Boolean> = _isWhishCheckoutInFlight.asStateFlow()
 
+    // --- Google Play Billing ---
+    private var playBillingManager: com.example.data.billing.PlayBillingManager? = null
+
+    private val _billingError = MutableStateFlow<String?>(null)
+    val billingError: StateFlow<String?> = _billingError.asStateFlow()
+
+    private val _billingSuccess = MutableStateFlow<String?>(null)
+    val billingSuccess: StateFlow<String?> = _billingSuccess.asStateFlow()
+
+    fun clearBillingMessages() {
+        _billingError.value = null
+        _billingSuccess.value = null
+    }
+
+    /**
+     * Opens the Google Play subscription sheet for [planId]. The entitlement is
+     * granted server-side by the playBillingRtdn Cloud Function (Pub/Sub RTDN) —
+     * this only initiates the purchase flow and acknowledges the token.
+     *
+     * [planId] must match both the Google Play product ID and the Firestore
+     * package_plans document key exactly.
+     */
+    fun launchGooglePaySubscription(activity: android.app.Activity, planId: String) {
+        val uid = currentUser.value?.id ?: run {
+            _billingError.value = "You must be signed in to subscribe."
+            return
+        }
+        val manager = com.example.data.billing.PlayBillingManager(activity, uid)
+            .also { playBillingManager?.endConnection(); playBillingManager = it }
+
+        manager.startConnection(
+            onReady = {
+                viewModelScope.launch {
+                    val product = manager.querySubscriptionProduct(planId)
+                    if (product == null) {
+                        _billingError.value = "This subscription plan is not available in Google Play yet. Please try again later."
+                        return@launch
+                    }
+                    val result = manager.launchBillingFlow(product) { billingResult, _ ->
+                        if (billingResult.responseCode == com.android.billingclient.api.BillingClient.BillingResponseCode.OK) {
+                            _billingSuccess.value = "Purchase submitted! Your Pro Host subscription will activate shortly."
+                        } else if (billingResult.responseCode != com.android.billingclient.api.BillingClient.BillingResponseCode.USER_CANCELED) {
+                            _billingError.value = "Google Play checkout failed (${billingResult.responseCode}). Please try again."
+                        }
+                    }
+                    if (result.responseCode != com.android.billingclient.api.BillingClient.BillingResponseCode.OK) {
+                        _billingError.value = "Could not launch Google Play. Please try again."
+                    }
+                }
+            },
+            onFailed = { message ->
+                _billingError.value = "Google Play Billing is not available on this device: $message"
+            }
+        )
+    }
+
     // The Whish checkout URL to show in an in-app WebView (see WhishCheckoutWebView.kt,
     // hosted globally by ProHostNavGraph so it renders regardless of which screen
     // started the payment). Replaces launching an external browser Intent — that

@@ -42,6 +42,7 @@ roborazzi = "1.40.0"
 firebaseBom = "34.17.0"
 googleServices = "4.4.2"
 playAppUpdate = "2.1.0"
+playBilling = "7.1.1"
 playIntegrity = "1.4.0"
 coreSplashscreen = "1.0.1"
 
@@ -107,6 +108,8 @@ firebase-storage = { group = "com.google.firebase", name = "firebase-storage" }
 firebase-dataconnect = { group = "com.google.firebase", name = "firebase-dataconnect" }
 play-app-update = { group = "com.google.android.play", name = "app-update", version.ref = "playAppUpdate" }
 play-app-update-ktx = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "playAppUpdate" }
+play-billing = { group = "com.android.billingclient", name = "billing", version.ref = "playBilling" }
+play-billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "playBilling" }
 play-integrity = { group = "com.google.android.play", name = "integrity", version.ref = "playIntegrity" }
 
 [plugins]

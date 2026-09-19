@@ -265,11 +265,16 @@ service cloud.firestore {
       // activeListingCount is maintained only by listingCountTracker.ts's
       // triggers, for the same reason (see withinListingLimit() above — a
       // client-writable counter would make that check trivially bypassable).
+      // pinHash/pinSalt/pinSetAtMillis are written exclusively by setUserPin (Admin SDK via
+      // Cloud Function) — blocking direct client writes prevents a client from computing
+      // their own SHA-256 hash and overwriting the server-stored hash with a PIN they chose
+      // outside the verified OTP flow.
       allow update: if (isOwner(userId) || isAdmin()) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
           ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
            "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount",
-           "tosAcceptedAtMillis", "consentVersion"]
+           "tosAcceptedAtMillis", "consentVersion",
+           "pinHash", "pinSalt", "pinSetAtMillis"]
         );
 
       allow delete: if isAdmin();
