@@ -18,11 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.shadow
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -243,62 +238,44 @@ fun DiscoveryScreenContent(
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                     item {
-                        Card(
-                            shape = RoundedCornerShape(18.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(175.dp)
-                                .shadow(4.dp, RoundedCornerShape(18.dp)),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) {
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                Image(
-                                    painter = painterResource(id = com.example.R.drawable.img_discovery_hero),
-                                    contentDescription = "ProHost Workspaces Banner",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                                // Soft dark gradient overlap to make typography legible
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Black.copy(alpha = 0.42f))
-                                )
-                                Column(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomStart)
-                                        .padding(Spacing.lg),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Text(
-                                        text = "Specialist Workspace Exchange",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color.White
-                                    )
-                                    Text(
-                                        text = "Co-share modern offices, consulting clinics & studios with flexible Whish settlement",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                                        color = Color.White.copy(alpha = 0.92f)
-                                    )
-                                }
-                            }
+                        // One-line hero (Option B): the whole banner collapses to a
+                        // single real-data statement instead of a tall image card plus
+                        // a separate "Available Workspaces (N)" header below it — the
+                        // count here already carries that role. The country named is
+                        // whatever this device actually detects (SIM, then last-known
+                        // location, then network, then locale — see
+                        // PhoneCountryDetector), never a hardcoded "Lebanon": ProHost
+                        // isn't Lebanon-only.
+                        var detectedCountryName by remember { mutableStateOf<String?>(null) }
+                        LaunchedEffect(Unit) {
+                            detectedCountryName = com.example.util.PhoneCountryDetector.detectCountry(context).name
                         }
-                    }
-
-                    item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = "Available Workspaces (${spaces.size})",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Verified,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "${spaces.size} verified workspace${if (spaces.size == 1) "" else "s"}" +
+                                        (detectedCountryName?.let { " in $it" } ?: ""),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
                         }
                     }
 
