@@ -59,6 +59,8 @@ fun AdminConsoleScreen(
     val context = LocalContext.current
     val uiState by adminViewModel.uiState.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
+    val isOffline by viewModel.isOfflineMode.collectAsState()
+    val syncStatusMessage by viewModel.syncStatusMessage.collectAsState()
 
     // Listen to admin events (Toasts)
     LaunchedEffect(adminViewModel) {
@@ -141,7 +143,7 @@ fun AdminConsoleScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Surface(
-                            color = FreshGreen.copy(alpha = 0.12f),
+                            color = if (isOffline) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) else FreshGreen.copy(alpha = 0.12f),
                             shape = MaterialTheme.shapes.small
                         ) {
                             Row(
@@ -152,17 +154,41 @@ fun AdminConsoleScreen(
                                 Box(
                                     modifier = Modifier
                                         .size(6.dp)
-                                        .background(FreshGreen, CircleShape)
+                                        .background(if (isOffline) MaterialTheme.colorScheme.error else FreshGreen, CircleShape)
                                 )
                                 Text(
-                                    "Live",
+                                    if (isOffline) "Offline" else "Cloud Sync Active",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = FreshGreen,
+                                    color = if (isOffline) MaterialTheme.colorScheme.error else FreshGreen,
                                     maxLines = 1,
                                     softWrap = false
                                 )
                             }
+                        }
+                    }
+                }
+
+                // Cloud sync status — only shown on admin side; non-admin users never see this
+                if (isOffline) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f),
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.CloudOff, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                            Text(
+                                syncStatusMessage ?: "Firestore unreachable — serving cached data.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
                 }
