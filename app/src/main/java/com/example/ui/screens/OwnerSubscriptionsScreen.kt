@@ -14,6 +14,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.*
+import com.example.ui.components.CustomButton
+import com.example.ui.components.CustomButtonVariant
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
 import java.util.Locale
@@ -224,7 +226,8 @@ fun OwnerSubscriptionsScreen(
                 }
             },
             confirmButton = {
-                Button(
+                CustomButton(
+                    text = if (isCheckoutInFlight) "Starting payment..." else "Go to Whish Pay",
                     onClick = {
                         targetPlan?.let {
                             viewModel.payOwnerPackageViaWhish(
@@ -237,11 +240,11 @@ fun OwnerSubscriptionsScreen(
                         }
                         showSubscribeDialog = false
                     },
+                    variant = CustomButtonVariant.SUCCESS,
+                    icon = Icons.Default.AccountBalanceWallet,
                     enabled = targetPlan != null && !isCheckoutInFlight,
-                    colors = ButtonDefaults.buttonColors(containerColor = FreshGreen)
-                ) {
-                    Text(if (isCheckoutInFlight) "Starting payment..." else "Go to Whish Pay", color = PureWhite, fontWeight = FontWeight.Bold)
-                }
+                    compact = true
+                )
             },
             dismissButton = {
                 TextButton(onClick = { showSubscribeDialog = false }) {

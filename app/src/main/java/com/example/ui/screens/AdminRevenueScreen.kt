@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.TransactionStatus
 import com.example.data.model.WhishTransaction
+import com.example.ui.components.CustomButton
+import com.example.ui.components.CustomButtonVariant
 import com.example.ui.components.DateRangePickerRow
 import com.example.ui.components.rememberFileExportLauncher
 import com.example.ui.theme.*
@@ -131,19 +133,16 @@ fun AdminRevenueScreen(
             onFromChange = { exportFromMillis = it },
             onToChange = { exportToMillis = it }
         )
-        Button(
+        CustomButton(
+            text = "Export to CSV (Package ID, User ID, Price, Date, Expiration)",
             onClick = {
                 val csvContent = adminViewModel.exportRevenueCsv(exportFromMillis, exportToMillis)
                 exportCsvFile("prohost_revenue.csv", csvContent)
             },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = FreshGreen),
-            shape = MaterialTheme.shapes.medium
-        ) {
-            Icon(Icons.Default.Download, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(Spacing.sm))
-            Text("Export to CSV (Package ID, User ID, Price, Date, Expiration)", fontWeight = FontWeight.Bold, color = PureWhite)
-        }
+            variant = CustomButtonVariant.SUCCESS,
+            icon = Icons.Default.Download,
+            modifier = Modifier.fillMaxWidth()
+        )
 
         // Search & Filter
         OutlinedTextField(
