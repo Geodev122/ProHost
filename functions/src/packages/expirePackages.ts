@@ -1,26 +1,32 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { logger } from "firebase-functions/v2";
 import { recordAuditLog } from "../lib/auditLog";
 import { sendPushToUser } from "../lib/push";
+import { setClaimsThenFirestore } from "../lib/roles";
 import "../lib/admin";
 
 /**
- * Real, enforced package expiry — the piece that never existed before this
- * change. ownerPackageExpiryMillis was previously written on every OWNER_PACKAGE
- * grant but never read/checked anywhere, so no package (PAYG or tiered) ever
- * actually lapsed. Runs hourly; queries user_profiles for any doc whose
- * ownerPackageExpiryMillis has passed (Firestore's `<=` filter naturally
- * excludes docs where the field is null, so only a genuinely-active-then-lapsed
- * package ever matches) and resets it to the "no active package" baseline.
+ * Real, enforced package expiry. ownerPackageExpiryMillis was previously
+ * written on every OWNER_PACKAGE grant but never read/checked anywhere, so no
+ * package (PAYG or tiered) ever actually lapsed. Runs hourly; queries
+ * user_profiles for any doc whose ownerPackageExpiryMillis has passed
+ * (Firestore's `<=` filter naturally excludes docs where the field is null,
+ * so only a genuinely-active-then-lapsed package ever matches).
  *
- * Deliberately narrow: keeps PRO_HOST role (a host with no active package is
- * already a valid, pre-existing state — nothing has ever demoted role on
- * expiry) and never touches workspace_listings (no unpublishing, no
- * isActiveSubscription flip — nothing else in this app force-unpublishes a
- * listing on a downgrade, and expiry must not be the first exception).
- * firestore.rules' withinListingLimit() also checks the live expiry timestamp
- * itself, so a package that's lapsed but not yet swept by this function is
- * still correctly treated as "no package" for gating purposes in the meantime.
+ * On expiry with no renewal: demotes PRO_HOST -> SPECIALIST (setClaimsThenFirestore,
+ * the same fail-safe claim+Firestore pattern revokeProHostRole.ts uses) and mirrors
+ * isOwnerPackageLapsed: true onto every listing the host owns — hides them from a
+ * fresh Discovery browse (DiscoveryViewModel's isLiveListing filter) WITHOUT
+ * unpublishing (status/isActiveSubscription untouched) and WITHOUT locking out a
+ * specialist who already has an ACCEPTED booking there (SpaceDetailsScreen shows a
+ * "host is in verification process" note for them instead, reached via My Bookings,
+ * not Discovery). Both are reversed automatically the moment the host's package
+ * renews — see entitlements.ts's restoreListingsAfterRenewal. firestore.rules'
+ * withinListingLimit() also checks the live expiry timestamp itself, so a package
+ * that's lapsed but not yet swept by this function is still correctly treated as
+ * "no package" for publish-quota purposes in the meantime.
  */
 export const expirePackages = onSchedule("0 * * * *", async () => {
   const db = getFirestore();
@@ -61,18 +67,68 @@ export const expirePackages = onSchedule("0 * * * *", async () => {
 
   if (expiredSnap.empty) return;
 
-  const bulkWriter = db.bulkWriter();
-  let count = 0;
-  expiredSnap.docs.forEach((doc) => {
-    bulkWriter.set(doc.ref, { ownerPackageId: null, ownerPackageExpiryMillis: null }, { merge: true });
-    count++;
-  });
-  await bulkWriter.close();
+  const auth = getAuth();
+  let clearedCount = 0;
+  let demotedCount = 0;
+  let listingsHiddenCount = 0;
+
+  for (const doc of expiredSnap.docs) {
+    const uid = doc.id;
+    try {
+      const authUser = await auth.getUser(uid);
+      const isProHost = authUser.customClaims?.role === "PRO_HOST";
+
+      if (isProHost) {
+        await setClaimsThenFirestore(
+          auth,
+          uid,
+          authUser.customClaims,
+          { ...authUser.customClaims, role: "SPECIALIST" },
+          async () => {
+            await doc.ref.set(
+              { role: "SPECIALIST", ownerPackageId: null, ownerPackageExpiryMillis: null, updatedAt: now },
+              { merge: true }
+            );
+          }
+        );
+        try {
+          await auth.revokeRefreshTokens(uid);
+        } catch (e) {
+          logger.warn(`expirePackages: revokeRefreshTokens failed for ${uid}: ${(e as Error).message}`);
+        }
+        demotedCount++;
+
+        const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", uid).get();
+        if (!ownedListings.empty) {
+          const bulkWriter = db.bulkWriter();
+          ownedListings.docs.forEach((listingDoc) => {
+            bulkWriter.set(listingDoc.ref, { isOwnerPackageLapsed: true }, { merge: true });
+          });
+          await bulkWriter.close();
+          listingsHiddenCount += ownedListings.size;
+        }
+
+        await sendPushToUser(
+          uid,
+          "Package Expired",
+          "Your ProHost package has expired and your Pro Host status was paused. Renew a package to restore it and your listings.",
+          { category: "PACKAGE_EXPIRED", targetTab: "owner_subscriptions" }
+        );
+      } else {
+        // Not currently PRO_HOST (e.g. already SPECIALIST with a stray expiry
+        // value on file) — just clear the baseline, nothing to demote or hide.
+        await doc.ref.set({ ownerPackageId: null, ownerPackageExpiryMillis: null }, { merge: true });
+      }
+      clearedCount++;
+    } catch (e) {
+      logger.error(`expirePackages: failed to process ${uid}: ${(e as Error).message}`);
+    }
+  }
 
   await recordAuditLog({
     actionType: "PACKAGES_EXPIRED_BATCH",
-    details: `Scheduled sweep cleared ${count} expired owner package(s) back to the no-package baseline.`,
+    details: `Scheduled sweep processed ${clearedCount} expired owner package(s): ${demotedCount} Pro Host(s) demoted to Specialist, ${listingsHiddenCount} listing(s) hidden pending renewal.`,
     actorEmail: "system@prohost.app",
-    severity: "INFO",
+    severity: demotedCount > 0 ? "WARN" : "INFO",
   });
 });

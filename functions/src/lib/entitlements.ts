@@ -65,6 +65,36 @@ async function grantProHostRoleIfNeeded(uid: string): Promise<void> {
 }
 
 /**
+ * Clears isOwnerPackageLapsed off every listing [uid] owns — the other half of
+ * expirePackages.ts's downgrade path (see that file's doc comment). Called on
+ * every OWNER_PACKAGE grant, not just after a real prior expiry: cheap no-op
+ * bulkWriter merge for a host whose listings were never hidden, and correctly
+ * un-hides them the moment a lapsed host actually renews or upgrades.
+ */
+async function restoreListingsAfterRenewal(uid: string): Promise<void> {
+  const db = getFirestore();
+  const lapsedListings = await db
+    .collection("workspace_listings")
+    .where("ownerId", "==", uid)
+    .where("isOwnerPackageLapsed", "==", true)
+    .get();
+  if (lapsedListings.empty) return;
+
+  const bulkWriter = db.bulkWriter();
+  lapsedListings.docs.forEach((doc) => {
+    bulkWriter.set(doc.ref, { isOwnerPackageLapsed: false }, { merge: true });
+  });
+  await bulkWriter.close();
+
+  await recordAuditLog({
+    actionType: "LISTINGS_RESTORED_AFTER_RENEWAL",
+    details: `Restored ${lapsedListings.size} listing(s) for ${uid} after a package purchase cleared their lapsed state.`,
+    actorEmail: "system@prohost.app",
+    severity: "INFO",
+  });
+}
+
+/**
  * Flips a Draft straight to ACTIVE the moment the package-limit payment that was
  * blocking it settles — the other half of ProHostViewModel.createNewSpaceListing's
  * PackageLimitReached flow: the host's in-progress wizard is saved as this exact
@@ -159,6 +189,7 @@ export async function grantEntitlement(tx: WhishTransactionDoc): Promise<void> {
         { merge: true }
       );
       await grantProHostRoleIfNeeded(tx.userId);
+      await restoreListingsAfterRenewal(tx.userId);
       await autoPublishDraftIfNeeded(tx);
       break;
     }

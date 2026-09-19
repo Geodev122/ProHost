@@ -867,6 +867,18 @@ data class SpaceListing(
     // field existed would need a one-time backfill (the admin-triggered tool
     // that did this was removed once confirmed no live listing still lacked it).
     val isOwnerSuspended: Boolean = false,
+    // Mirrored true onto every listing owned by a PRO_HOST whose package lapsed
+    // with no renewal (functions/src/packages/expirePackages.ts's downgrade
+    // path) — hides the listing from a fresh Discovery browse
+    // (DiscoveryViewModel's isLiveListing filter) without unpublishing it or
+    // touching status/isActiveSubscription. Deliberately does NOT block a
+    // specialist who already has an ACCEPTED booking at this listing from
+    // still reaching it via My Bookings — SpaceDetailsScreen shows a "host is
+    // in verification process" note there instead. Cleared automatically the
+    // moment the host's package renews (entitlements.ts's
+    // restoreListingsAfterRenewal). Admin-SDK-only, same protected-field
+    // pattern as isOwnerSuspended — see firestore.rules.
+    val isOwnerPackageLapsed: Boolean = false,
     val subscriptionExpiryMillis: Long = System.currentTimeMillis() + (28L * 24 * 60 * 60 * 1000),
     val imageUrls: List<String> = emptyList(),
     val videoTourDurationSec: Int = 10,
@@ -990,6 +1002,7 @@ data class SpaceListing(
             "isVerified" to isVerified,
             "isActiveSubscription" to isActiveSubscription,
             "isOwnerSuspended" to isOwnerSuspended,
+            "isOwnerPackageLapsed" to isOwnerPackageLapsed,
             "subscriptionExpiryMillis" to subscriptionExpiryMillis,
             "imageUrls" to imageUrls,
             "videoTourDurationSec" to videoTourDurationSec,
@@ -1138,6 +1151,7 @@ data class SpaceListing(
                 isVerified = data["isVerified"] as? Boolean ?: false,
                 isActiveSubscription = data["isActiveSubscription"] as? Boolean ?: true,
                 isOwnerSuspended = data["isOwnerSuspended"] as? Boolean ?: false,
+                isOwnerPackageLapsed = data["isOwnerPackageLapsed"] as? Boolean ?: false,
                 subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong() ?: (System.currentTimeMillis() + 30L * 24 * 3600 * 1000),
                 imageUrls = (data["imageUrls"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                 videoTourDurationSec = (data["videoTourDurationSec"] as? Number)?.toInt() ?: 10,

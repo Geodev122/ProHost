@@ -58,7 +58,12 @@ class DiscoveryViewModel(
             val matchesVerified = !filter.onlyVerified || space.isVerified
             val matchesSaved = !filter.onlySaved || savedIds.contains(space.id)
 
-            val isLiveListing = space.status == ListingStatus.ACTIVE && !space.isOwnerSuspended
+            // isOwnerPackageLapsed hides a listing from a fresh Discovery browse (the
+            // host's package lapsed with no renewal — see expirePackages.ts) without
+            // unpublishing it; a specialist who already has an ACCEPTED booking there
+            // still reaches it via My Bookings, unaffected by this filter, and sees a
+            // "host is in verification process" note (SpaceDetailsScreen).
+            val isLiveListing = space.status == ListingStatus.ACTIVE && !space.isOwnerSuspended && !space.isOwnerPackageLapsed
 
             isLiveListing && matchesQuery && matchesGov && matchesType && matchesFormula && matchesVerified && matchesSaved
         }
