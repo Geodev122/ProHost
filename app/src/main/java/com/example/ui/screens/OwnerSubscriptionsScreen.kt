@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.app.Activity
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -26,25 +27,20 @@ fun OwnerSubscriptionsScreen(
     viewModel: ProHostViewModel
 ) {
     val context = LocalContext.current
+    val activity = context as? Activity
     val currentUser by viewModel.currentUser.collectAsState()
     val packagePlans by viewModel.packagePlans.collectAsState()
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
     // Set by OwnerHubScreen when a Publish attempt hit the listing limit and got
     // saved as a Draft instead — whichever package the host buys next auto-publishes
-    // this exact Draft (see entitlements.ts's autoPublishDraftIfNeeded), so surface
-    // that clearly rather than leaving the host wondering what buying a package here
-    // actually does for them right now.
+    // this exact Draft so the host doesn't need to re-open the wizard.
     val pendingAutoPublishDraftId by viewModel.pendingAutoPublishDraftId.collectAsState()
-    val isCheckoutInFlight by viewModel.isWhishCheckoutInFlight.collectAsState()
+    val billingActivationPending by viewModel.billingActivationPending.collectAsState()
+    val billingError by viewModel.billingError.collectAsState()
+    val billingSuccess by viewModel.billingSuccess.collectAsState()
 
     val enabledPlans = remember(packagePlans) { packagePlans.packages.values.filter { it.isEnabled }.sortedBy { it.sortOrder } }
     val currentPlan = currentUser?.ownerPackageId?.let { packagePlans.packages[it] }
-
-    var showSubscribeDialog by remember { mutableStateOf(false) }
-    var selectedPlanToSubscribe by remember { mutableStateOf<PackagePlan?>(null) }
-
-    var payerName by remember { mutableStateOf(currentUser?.fullName ?: "") }
-    var payerPhone by remember { mutableStateOf(currentUser?.phone ?: "+961 70 888 999") }
 
     val expiryMillis = currentUser?.ownerPackageExpiryMillis
     val remainingDays = if (expiryMillis != null && expiryMillis > System.currentTimeMillis()) {
@@ -77,6 +73,73 @@ fun OwnerSubscriptionsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = OxfordBlue
                     )
+                }
+            }
+        }
+
+        if (billingActivationPending) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = FreshGreen.copy(alpha = 0.12f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = FreshGreen, strokeWidth = 2.dp)
+                    Spacer(modifier = Modifier.width(Spacing.sm))
+                    Text(
+                        "Activating your subscription — this usually takes a few seconds.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = OxfordBlue
+                    )
+                }
+            }
+        }
+
+        if (billingSuccess != null) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = FreshGreen.copy(alpha = 0.12f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(Spacing.md),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        Text(billingSuccess!!, style = MaterialTheme.typography.bodySmall, color = OxfordBlue)
+                    }
+                    IconButton(onClick = { viewModel.clearBillingMessages() }, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = CoolGray, modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+        }
+
+        if (billingError != null) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.errorContainer
+            ) {
+                Row(
+                    modifier = Modifier.padding(Spacing.md),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.Error, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        Text(billingError!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
+                    }
+                    IconButton(onClick = { viewModel.clearBillingMessages() }, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(16.dp))
+                    }
                 }
             }
         }
@@ -150,29 +213,22 @@ fun OwnerSubscriptionsScreen(
 
                 val atCap = currentPlan != null && currentPlan.listingLimit != null && ownerSpaces.size >= currentPlan.listingLimit
                 if ((currentPlan == null || atCap) && enabledPlans.isNotEmpty()) {
-                    Button(
+                    val upsellPlan = enabledPlans
+                        .filter { it.listingLimit == null || it.listingLimit > (currentPlan?.listingLimit ?: 0) }
+                        .minByOrNull { it.priceUsd }
+                        ?: enabledPlans.firstOrNull()
+                    CustomButton(
+                        text = if (currentPlan == null) "Choose a Package" else "Package Limit Reached — Upgrade Package",
                         onClick = {
-                            // Prompt an upgrade to a higher package — the same
-                            // subscribe dialog below, pre-aimed at the cheapest
-                            // enabled package with more room than the current one.
-                            selectedPlanToSubscribe = enabledPlans
-                                .filter { it.listingLimit == null || it.listingLimit > (currentPlan?.listingLimit ?: 0) }
-                                .minByOrNull { it.priceUsd }
-                                ?: enabledPlans.firstOrNull()
-                            showSubscribeDialog = true
+                            upsellPlan?.let { plan ->
+                                val productId = plan.googlePlayProductId.ifBlank { plan.id }
+                                activity?.let { viewModel.launchGooglePaySubscription(it, productId) }
+                            }
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Icon(Icons.Default.AddCircle, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text(
-                            if (currentPlan == null) "Choose a Package" else "Package Limit Reached — Upgrade Package",
-                            fontWeight = FontWeight.Bold,
-                            color = PureWhite
-                        )
-                    }
+                        variant = CustomButtonVariant.PRIMARY,
+                        icon = Icons.Default.AddCircle,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
@@ -198,60 +254,11 @@ fun OwnerSubscriptionsScreen(
                 plan = plan,
                 isCurrent = currentPlan?.id == plan.id,
                 onSelect = {
-                    selectedPlanToSubscribe = plan
-                    showSubscribeDialog = true
+                    val productId = plan.googlePlayProductId.ifBlank { plan.id }
+                    activity?.let { viewModel.launchGooglePaySubscription(it, productId) }
                 }
             )
         }
-    }
-
-    // Subscribe Dialog with Whish Pay — a real, server-priced purchase of whichever
-    // admin-defined package the host tapped.
-    if (showSubscribeDialog) {
-        val targetPlan = selectedPlanToSubscribe
-        AlertDialog(
-            onDismissRequest = { showSubscribeDialog = false },
-            title = { Text("Subscribe to ${targetPlan?.name ?: "Package"}", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (targetPlan != null) {
-                        Text("Price: $${String.format(Locale.US, "%.2f", targetPlan.priceUsd)} for ${targetPlan.validityDays} Days")
-                    }
-                    OutlinedTextField(
-                        value = payerName,
-                        onValueChange = { payerName = it },
-                        label = { Text("Payer Full Name") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                CustomButton(
-                    text = if (isCheckoutInFlight) "Starting payment..." else "Go to Whish Pay",
-                    onClick = {
-                        targetPlan?.let {
-                            viewModel.payOwnerPackageViaWhish(
-                                packageId = it.id,
-                                payerName = payerName,
-                                payerPhone = payerPhone,
-                                context = context,
-                                draftListingId = pendingAutoPublishDraftId
-                            )
-                        }
-                        showSubscribeDialog = false
-                    },
-                    variant = CustomButtonVariant.SUCCESS,
-                    icon = Icons.Default.AccountBalanceWallet,
-                    enabled = targetPlan != null && !isCheckoutInFlight,
-                    compact = true
-                )
-            },
-            dismissButton = {
-                TextButton(onClick = { showSubscribeDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
     }
 }
 
@@ -311,21 +318,14 @@ fun PackageOptionCard(
 
             Spacer(modifier = Modifier.height(Spacing.xs))
 
-            Button(
+            CustomButton(
+                text = if (isCurrent) "Current Active Package" else "Subscribe via Google Play",
                 onClick = onSelect,
-                modifier = Modifier.fillMaxWidth(),
+                variant = CustomButtonVariant.PRIMARY,
+                icon = if (isCurrent) Icons.Default.Verified else Icons.Default.ShoppingCart,
                 enabled = !isCurrent,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isCurrent) CoolGray else OxfordBlue
-                ),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Text(
-                    text = if (isCurrent) "Current Active Package" else "Subscribe / Activate Package",
-                    fontWeight = FontWeight.Bold,
-                    color = PureWhite
-                )
-            }
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

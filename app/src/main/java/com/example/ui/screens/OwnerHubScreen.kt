@@ -73,6 +73,7 @@ fun OwnerHubScreen(
     var editingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var deletingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var verifyingSpace by remember { mutableStateOf<SpaceListing?>(null) }
+    val context = androidx.compose.ui.platform.LocalContext.current
     var draftToEdit by remember { mutableStateOf<SpaceListing?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -93,7 +94,19 @@ fun OwnerHubScreen(
         atListingLimit = atListingLimit,
         onSelectSpace = onSelectSpace,
         onManageSpace = onManageSpace,
-        onOpenWhishRenewal = { showRenewalDialog = true },
+        onOpenWhishRenewal = {
+            val expiry = currentUser?.ownerPackageExpiryMillis
+            if (expiry != null && expiry > System.currentTimeMillis()) {
+                // Active Play subscription — open Play Store subscription management
+                val intent = android.content.Intent(
+                    android.content.Intent.ACTION_VIEW,
+                    android.net.Uri.parse("market://subscriptions?package=app.geonajjar.prohost")
+                )
+                try { (context as? android.app.Activity)?.startActivity(intent) } catch (_: Exception) { showRenewalDialog = true }
+            } else {
+                showRenewalDialog = true
+            }
+        },
         onOpenCreateListing = {
             viewModel.refreshTopHashtags()
             showCreateListingDialog = true
@@ -450,15 +463,26 @@ fun OwnerHubScreenContent(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                val isActiveSubscription = ownerPackageExpiryMillis != null && ownerPackageExpiryMillis > System.currentTimeMillis()
                                 Button(
                                     onClick = onOpenWhishRenewal,
                                     modifier = Modifier.weight(1f),
                                     shape = MaterialTheme.shapes.medium,
                                     colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                                 ) {
-                                    Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                    Icon(
+                                        if (isActiveSubscription) Icons.Default.Settings else Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Renew", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        if (isActiveSubscription) "Manage" else "Renew",
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
 
                                 val activeCount = ownerSpaces.count { it.status == ListingStatus.ACTIVE }

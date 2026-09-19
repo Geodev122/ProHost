@@ -69,7 +69,17 @@ class AdminViewModel(
         }
         viewModelScope.launch {
             repository.users.collect { users ->
-                _uiState.update { it.copy(allUsers = users) }
+                val now = System.currentTimeMillis()
+                _uiState.update {
+                    it.copy(
+                        allUsers = users,
+                        activePlaySubscriberCount = users.count { u ->
+                            u.ownerPackageId != null &&
+                            u.ownerPackageExpiryMillis != null &&
+                            u.ownerPackageExpiryMillis > now
+                        }
+                    )
+                }
             }
         }
         viewModelScope.launch {

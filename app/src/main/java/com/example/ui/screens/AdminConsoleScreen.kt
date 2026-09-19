@@ -449,6 +449,22 @@ private fun AdminRevenueTab(
                             modifier = Modifier.weight(1f)
                         )
                     }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        ProMetricTile(
+                            title = "Play Subscribers",
+                            value = if (uiState.activePlaySubscriberCount > 0)
+                                uiState.activePlaySubscriberCount.toString() else "—",
+                            subtitle = "Active Play Billing Subscriptions",
+                            icon = Icons.Default.Subscriptions,
+                            iconTint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                 }
             }
         }
@@ -519,6 +535,7 @@ private fun AdminRevenueTab(
                         var unlimitedInput by remember(plan.id, plan.listingLimit) { mutableStateOf(plan.listingLimit == null) }
                         var limitInput by remember(plan.id, plan.listingLimit) { mutableStateOf((plan.listingLimit ?: 3).toString()) }
                         var validityInput by remember(plan.id, plan.validityDays) { mutableStateOf(plan.validityDays.toString()) }
+                        var googlePlayProductIdInput by remember(plan.id, plan.googlePlayProductId) { mutableStateOf(plan.googlePlayProductId) }
 
                         Column(
                             modifier = Modifier
@@ -600,6 +617,22 @@ private fun AdminRevenueTab(
                                     singleLine = true
                                 )
                             }
+                            OutlinedTextField(
+                                value = googlePlayProductIdInput,
+                                onValueChange = { googlePlayProductIdInput = it },
+                                label = { Text("Google Play Product ID") },
+                                placeholder = { Text("e.g. prohost_starter_30d") },
+                                supportingText = { Text("Must exactly match a Subscription ID in Google Play Console. Leave blank for Whish-only plans.") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            if (plan.googlePlayProductId.isNotBlank()) {
+                                Text(
+                                    "Play Product: ${plan.googlePlayProductId}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                             CustomButton(
                                 text = "Save Package",
                                 onClick = {
@@ -610,7 +643,8 @@ private fun AdminRevenueTab(
                                             badgeName = badgeInput,
                                             priceUsd = priceInput.toDoubleOrNull() ?: plan.priceUsd,
                                             listingLimit = if (unlimitedInput) null else (limitInput.toIntOrNull()?.takeIf { it >= 1 } ?: plan.listingLimit),
-                                            validityDays = validityInput.toIntOrNull()?.takeIf { it >= 1 } ?: plan.validityDays
+                                            validityDays = validityInput.toIntOrNull()?.takeIf { it >= 1 } ?: plan.validityDays,
+                                            googlePlayProductId = googlePlayProductIdInput.trim()
                                         )
                                     )
                                 },
@@ -2577,6 +2611,7 @@ private fun AdminAddPackagePlanDialog(
     var unlimited by remember { mutableStateOf(false) }
     var limitInput by remember { mutableStateOf("") }
     var validityInput by remember { mutableStateOf("30") }
+    var newPlanGooglePlayProductId by remember { mutableStateOf("") }
 
     // Derived from the name so the admin never has to think about it, but still
     // shown read-only — collisions (e.g. re-adding "LIMITED_3_TIER") are refused
@@ -2676,6 +2711,16 @@ private fun AdminAddPackagePlanDialog(
                     )
                 }
 
+                OutlinedTextField(
+                    value = newPlanGooglePlayProductId,
+                    onValueChange = { newPlanGooglePlayProductId = it },
+                    label = { Text("Google Play Product ID") },
+                    placeholder = { Text("e.g. prohost_starter_30d") },
+                    supportingText = { Text("Must exactly match a Subscription ID in Google Play Console. Leave blank for Whish-only plans.") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
                 Spacer(modifier = Modifier.height(6.dp))
 
                 val canAdd = name.isNotBlank() && !idCollision &&
@@ -2702,7 +2747,8 @@ private fun AdminAddPackagePlanDialog(
                                     priceUsd = priceInput.toDoubleOrNull() ?: 0.0,
                                     listingLimit = if (unlimited) null else limitInput.toIntOrNull(),
                                     validityDays = validityInput.toIntOrNull() ?: 30,
-                                    isEnabled = true
+                                    isEnabled = true,
+                                    googlePlayProductId = newPlanGooglePlayProductId.trim()
                                 )
                             )
                         },

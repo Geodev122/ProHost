@@ -18,6 +18,8 @@ data class AdminUiState(
     val potentialMrr: Double = 0.0,
     val projectedArr: Double = 0.0,
     val totalSettlementVolume: Double = 0.0,
+    /** Number of users whose active subscription was purchased via Google Play Billing. Wired up in AdminViewModel. */
+    val activePlaySubscriberCount: Int = 0,
     val selectedTab: Int = 0,
 
     // Filter and search states

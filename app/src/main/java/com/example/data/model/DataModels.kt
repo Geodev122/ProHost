@@ -1537,7 +1537,9 @@ data class PackagePlan(
     val listingLimit: Int? = null,
     val validityDays: Int = 30,
     val isEnabled: Boolean = true,
-    val sortOrder: Int = 0
+    val sortOrder: Int = 0,
+    /** Subscription product ID in Google Play Console (e.g. "prohost_starter_30d"). Empty means Whish-only. */
+    val googlePlayProductId: String = ""
 ) {
     fun toFirestoreMap(): Map<String, Any?> = mapOf(
         "id" to id,
@@ -1548,7 +1550,8 @@ data class PackagePlan(
         "listingLimit" to listingLimit,
         "validityDays" to validityDays,
         "isEnabled" to isEnabled,
-        "sortOrder" to sortOrder
+        "sortOrder" to sortOrder,
+        "googlePlayProductId" to googlePlayProductId
     )
 
     companion object {
@@ -1561,7 +1564,8 @@ data class PackagePlan(
             listingLimit = (data["listingLimit"] as? Number)?.toInt(),
             validityDays = (data["validityDays"] as? Number)?.toInt() ?: 30,
             isEnabled = data["isEnabled"] as? Boolean ?: true,
-            sortOrder = (data["sortOrder"] as? Number)?.toInt() ?: 0
+            sortOrder = (data["sortOrder"] as? Number)?.toInt() ?: 0,
+            googlePlayProductId = data["googlePlayProductId"] as? String ?: ""
         )
     }
 }

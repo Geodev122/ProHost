@@ -102,6 +102,23 @@ async function grantSubscription(
     logger.info(`playBillingRtdn: restored ${lapsedListings.size} lapsed listing(s) for uid=${uid}`);
   }
 
+  // Auto-publish a draft listing that was saved when the host hit their listing
+  // limit and was redirected here — the client writes pendingPlayPublishDraftId
+  // to user_profiles before the Play sheet opens so we can pick it up here.
+  const pendingDraftId = userData?.pendingPlayPublishDraftId as string | undefined;
+  if (pendingDraftId) {
+    try {
+      await db.collection("workspace_listings").doc(pendingDraftId).set(
+        { status: "ACTIVE", isOwnerPackageLapsed: false, updatedAt: now },
+        { merge: true }
+      );
+      await userRef.set({ pendingPlayPublishDraftId: null }, { merge: true });
+      logger.info(`playBillingRtdn: auto-published draft ${pendingDraftId} for uid=${uid}`);
+    } catch (e) {
+      logger.warn(`playBillingRtdn: failed to auto-publish draft for uid=${uid}:`, e);
+    }
+  }
+
   await recordAuditLog({
     actionType: "PLAY_BILLING_SUBSCRIPTION_GRANTED",
     details: `Plan ${planId} granted for uid=${uid}, order=${orderId}, expires=${new Date(newExpiry).toISOString()}.`,
@@ -242,7 +259,29 @@ export const playBillingRtdn = onMessagePublished(
     // 3. Dispatch by notification type
     switch (notificationType) {
       case SUBSCRIPTION_PURCHASED:
+        if (expiryMs > 0) {
+          await grantSubscription(uid, productId, expiryMs, orderId);
+          await sendPushToUser(uid, "Pro Host Subscription Activated", "Welcome! Your Pro Host subscription is now active — start publishing workspace listings.", {
+            category: "PACKAGE_ACTIVATED",
+            targetTab: "owner_hub",
+          });
+        } else {
+          logger.warn(`playBillingRtdn: type=${notificationType} has no expiryTimeMillis, skipping grant`);
+        }
+        break;
+
       case SUBSCRIPTION_RENEWED:
+        if (expiryMs > 0) {
+          await grantSubscription(uid, productId, expiryMs, orderId);
+          await sendPushToUser(uid, "Subscription Renewed", "Your Pro Host subscription has renewed — your access continues uninterrupted.", {
+            category: "PACKAGE_RENEWED",
+            targetTab: "owner_hub",
+          });
+        } else {
+          logger.warn(`playBillingRtdn: type=${notificationType} has no expiryTimeMillis, skipping grant`);
+        }
+        break;
+
       case SUBSCRIPTION_RECOVERED:
       case SUBSCRIPTION_RESTARTED:
         if (expiryMs > 0) {
@@ -279,10 +318,20 @@ export const playBillingRtdn = onMessagePublished(
         break;
 
       case SUBSCRIPTION_ON_HOLD:
-      case SUBSCRIPTION_PAUSED:
         await revokeSubscription(
           uid, productId, orderId,
           "Your ProHost subscription is on hold. Update your payment method in Google Play to restore Pro Host access."
+        );
+        break;
+
+      case SUBSCRIPTION_PAUSED:
+        // User-initiated pause: access should be suspended but listings stay hidden
+        // gently (same as ON_HOLD) rather than hard-deleted — RESTARTED will restore
+        // them. Use revokeSubscription so listings get isOwnerPackageLapsed=true, but
+        // send a softer message.
+        await revokeSubscription(
+          uid, productId, orderId,
+          "Your ProHost subscription is paused. Resume it in Google Play to restore your Pro Host access and listings."
         );
         break;
 

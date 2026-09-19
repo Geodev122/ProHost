@@ -35,10 +35,11 @@ export interface WhishTransactionDoc {
 }
 
 /**
- * Promotes a SPECIALIST to PRO_HOST — the ONLY way this role is ever granted (no
- * self-service/free upgrade path exists). Called from grantEntitlement() below the
- * moment a real OWNER_PACKAGE Whish payment settles. Never downgrades an ADMIN, and
- * is a no-op if the user is already PRO_HOST — safe to call on every such payment.
+ * Promotes a SPECIALIST to PRO_HOST — the only ways this role is ever granted are:
+ * (a) grantEntitlement() below, triggered when a Whish OWNER_PACKAGE payment settles,
+ * (b) grantSubscription() in billing/playBillingRtdn.ts, triggered by a Google Play
+ *     subscription RTDN notification. No self-service/free upgrade path exists.
+ * Never downgrades an ADMIN, and is a no-op if the user is already PRO_HOST.
  */
 async function grantProHostRoleIfNeeded(uid: string): Promise<void> {
   const auth = getAuth();

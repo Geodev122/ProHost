@@ -123,6 +123,19 @@ class ProHostViewModel(
         }
     }
 
+    // Clears billingActivationPending as soon as the user profile confirms a valid
+    // package — the RTDN fires seconds after the Play sheet closes, so the banner
+    // stays visible for only a brief window.
+    init {
+        viewModelScope.launch {
+            currentUser.collectLatest { user ->
+                if (user?.ownerPackageExpiryMillis != null && _billingActivationPending.value) {
+                    _billingActivationPending.value = false
+                }
+            }
+        }
+    }
+
     val pricingState: StateFlow<AdminPricingState> = repository.pricingState
     // Admin-managed, purchasable Pro Host packages — see PackagePlan/PackagePlanCatalog.
     val packagePlans: StateFlow<PackagePlanCatalog> = repository.packagePlans
@@ -233,6 +246,12 @@ class ProHostViewModel(
     private val _billingSuccess = MutableStateFlow<String?>(null)
     val billingSuccess: StateFlow<String?> = _billingSuccess.asStateFlow()
 
+    // True from the moment the Play sheet returns OK until the user_profiles snapshot
+    // delivers a valid ownerPackageExpiryMillis — drives an "activating…" banner so
+    // the host knows their purchase landed even before the RTDN fires.
+    private val _billingActivationPending = MutableStateFlow(false)
+    val billingActivationPending: StateFlow<Boolean> = _billingActivationPending.asStateFlow()
+
     fun clearBillingMessages() {
         _billingError.value = null
         _billingSuccess.value = null
@@ -251,6 +270,20 @@ class ProHostViewModel(
             _billingError.value = "You must be signed in to subscribe."
             return
         }
+
+        // Persist the pending draft ID before the billing sheet opens so the RTDN
+        // Cloud Function can auto-publish it when the subscription is confirmed.
+        val draftId = _pendingAutoPublishDraftId.value
+        if (draftId != null) {
+            viewModelScope.launch {
+                try {
+                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                        .collection("user_profiles").document(uid)
+                        .update("pendingPlayPublishDraftId", draftId).await()
+                } catch (_: Exception) { /* non-fatal; RTDN will just skip the auto-publish */ }
+            }
+        }
+
         val manager = com.example.data.billing.PlayBillingManager(activity, uid)
             .also { playBillingManager?.endConnection(); playBillingManager = it }
 
@@ -264,6 +297,7 @@ class ProHostViewModel(
                     }
                     val result = manager.launchBillingFlow(product) { billingResult, _ ->
                         if (billingResult.responseCode == com.android.billingclient.api.BillingClient.BillingResponseCode.OK) {
+                            _billingActivationPending.value = true
                             _billingSuccess.value = "Purchase submitted! Your Pro Host subscription will activate shortly."
                         } else if (billingResult.responseCode != com.android.billingclient.api.BillingClient.BillingResponseCode.USER_CANCELED) {
                             _billingError.value = "Google Play checkout failed (${billingResult.responseCode}). Please try again."
