@@ -47,13 +47,43 @@ fun MyFavoritesScreen(
     // with a Remove action that actually clears the stale id.
     val unavailableIds = savedIds - savedSpaces.map { it.id }.toSet()
 
+    // Grouped by category (Private Office/Center/Polyclinic/Co-working, or any
+    // admin-added category) rather than one flat list — the same
+    // spaceCategoryName-with-legacy-fallback every other category-aware screen
+    // in the app already reads (see OwnerAnalyticsScreen), so a listing under a
+    // newly admin-added category groups correctly too, not just the original 4.
+    val groupedSavedSpaces = savedSpaces
+        .groupBy { it.spaceCategoryName ?: it.spaceType.displayName }
+        .toSortedMap()
+
     Scaffold(
         // Nested inside the app-shell Scaffold's already-inset content area — its
         // default contentWindowInsets would otherwise re-apply the status-bar-height
         // top inset a second time, producing extra blank space above this TopAppBar.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(title = { Text("My Favorites", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold) })
+            TopAppBar(
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("My Favorites", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                        if (savedSpaces.isNotEmpty()) {
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Text(
+                                    text = "${savedSpaces.size} Saved",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                                )
+                            }
+                        }
+                    }
+                }
+            )
         }
     ) { innerPadding ->
         if (savedSpaces.isEmpty() && unavailableIds.isEmpty()) {
@@ -74,19 +104,41 @@ fun MyFavoritesScreen(
                 contentPadding = PaddingValues(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
-                items(savedSpaces, key = { it.id }) { space ->
-                    SpaceListingCard(
-                        space = space,
-                        onClick = { onSelectSpace(space) },
-                        onQuickWhatsApp = { viewModel.launchWhatsAppInquiry(context, space, null) },
-                        isSaved = true,
-                        onToggleSave = { viewModel.toggleSavedSpace(space.id) }
-                    )
+                groupedSavedSpaces.forEach { (category, spacesInCategory) ->
+                    item(key = "header_$category") {
+                        Text(
+                            text = "$category (${spacesInCategory.size})",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = if (category == groupedSavedSpaces.firstKey()) 0.dp else Spacing.sm)
+                        )
+                    }
+                    items(spacesInCategory, key = { it.id }) { space ->
+                        SpaceListingCard(
+                            space = space,
+                            onClick = { onSelectSpace(space) },
+                            onQuickWhatsApp = { viewModel.launchWhatsAppInquiry(context, space, null) },
+                            isSaved = true,
+                            onToggleSave = { viewModel.toggleSavedSpace(space.id) }
+                        )
+                    }
                 }
-                items(unavailableIds.toList(), key = { it }) { spaceId ->
-                    UnavailableFavoriteCard(
-                        onRemove = { viewModel.toggleSavedSpace(spaceId) }
-                    )
+                if (unavailableIds.isNotEmpty()) {
+                    item(key = "header_unavailable") {
+                        Text(
+                            text = "No Longer Available (${unavailableIds.size})",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = if (groupedSavedSpaces.isEmpty()) 0.dp else Spacing.sm)
+                        )
+                    }
+                    items(unavailableIds.toList(), key = { it }) { spaceId ->
+                        UnavailableFavoriteCard(
+                            onRemove = { viewModel.toggleSavedSpace(spaceId) }
+                        )
+                    }
                 }
             }
         }
