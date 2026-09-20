@@ -182,6 +182,7 @@ class FirestoreService(
                     .whereEqualTo("status", "ACTIVE")
                     .whereEqualTo("isOwnerSuspended", false)
                     .whereEqualTo("isOwnerPackageLapsed", false)
+                    .whereEqualTo("isOwnerIdRejected", false)
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
                             Log.w(TAG, "Public workspaces sync note: ${error.message}")

@@ -879,6 +879,10 @@ data class SpaceListing(
     // restoreListingsAfterRenewal). Admin-SDK-only, same protected-field
     // pattern as isOwnerSuspended — see firestore.rules.
     val isOwnerPackageLapsed: Boolean = false,
+    // Set by reviewIdDocument.ts (Admin SDK) when an admin rejects a PRO_HOST's
+    // ID document. Hides listings from Discovery until the host re-submits a valid
+    // ID (submitIdDocument.ts clears it). Same server-only pattern as isOwnerSuspended.
+    val isOwnerIdRejected: Boolean = false,
     val subscriptionExpiryMillis: Long = 0L,
     val imageUrls: List<String> = emptyList(),
     val videoTourDurationSec: Int = 10,
@@ -1152,6 +1156,7 @@ data class SpaceListing(
                 isActiveSubscription = data["isActiveSubscription"] as? Boolean ?: true,
                 isOwnerSuspended = data["isOwnerSuspended"] as? Boolean ?: false,
                 isOwnerPackageLapsed = data["isOwnerPackageLapsed"] as? Boolean ?: false,
+                isOwnerIdRejected = data["isOwnerIdRejected"] as? Boolean ?: false,
                 subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong() ?: 0L,
                 imageUrls = (data["imageUrls"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                 videoTourDurationSec = (data["videoTourDurationSec"] as? Number)?.toInt() ?: 10,

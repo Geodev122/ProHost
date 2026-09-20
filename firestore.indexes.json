@@ -6,7 +6,8 @@
       "fields": [
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "isOwnerSuspended", "order": "ASCENDING" },
-        { "fieldPath": "isOwnerPackageLapsed", "order": "ASCENDING" }
+        { "fieldPath": "isOwnerPackageLapsed", "order": "ASCENDING" },
+        { "fieldPath": "isOwnerIdRejected", "order": "ASCENDING" }
       ]
     },
     {
@@ -15,6 +16,14 @@
       "fields": [
         { "fieldPath": "ownerId", "order": "ASCENDING" },
         { "fieldPath": "isOwnerPackageLapsed", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "workspace_listings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerId", "order": "ASCENDING" },
+        { "fieldPath": "isOwnerIdRejected", "order": "ASCENDING" }
       ]
     },
     {

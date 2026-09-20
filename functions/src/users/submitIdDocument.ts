@@ -84,6 +84,24 @@ export const submitIdDocument = onCall(
       status: "PENDING_REVIEW",
     });
 
+    // If this is a re-submission after a rejection, restore listings that were
+    // hidden via isOwnerIdRejected. Only PRO_HOST users have listings.
+    if (profileData.role === "PRO_HOST") {
+      const rejectedListings = await db
+        .collection("workspace_listings")
+        .where("ownerId", "==", uid)
+        .where("isOwnerIdRejected", "==", true)
+        .get();
+      if (!rejectedListings.empty) {
+        const bw = db.bulkWriter();
+        rejectedListings.docs.forEach((doc) =>
+          bw.set(doc.ref, { isOwnerIdRejected: false, ownerIsIdVerified: true }, { merge: true })
+        );
+        await bw.close();
+        logger.info("id_document_resubmit_listings_restored", { uid, count: rejectedListings.size });
+      }
+    }
+
     logger.info("id_document_submitted", { uid });
 
     const userCtx: UserContext = {

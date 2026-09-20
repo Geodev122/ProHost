@@ -335,8 +335,8 @@ fun OwnerSubscriptionsScreen(
                         },
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            if (kycLevel < 1) {
-                                Toast.makeText(context, "Please add a profile picture first (Security ID tab).", Toast.LENGTH_LONG).show()
+                            if (kycLevel < 3) {
+                                Toast.makeText(context, "Complete identity verification in the Security ID tab first.", Toast.LENGTH_LONG).show()
                             } else {
                                 upsellPlan?.let { plan ->
                                     val productId = plan.googlePlayProductId.ifBlank { plan.id }
@@ -356,10 +356,19 @@ fun OwnerSubscriptionsScreen(
             }
         }
 
-        // B3: KYC gate — a profile picture is required before purchasing a Pro Host package.
-        // kycLevel 0 means no profile pic yet. Show a blocking notice card.
+        // B3: KYC gate — full identity verification (level 3: profile pic + email + ID
+        // upload) is required before purchasing a Pro Host package. Show a blocking
+        // notice card describing the specific missing step so the user knows what to do.
         val kycLevel = currentUser?.kycLevel ?: 0
-        if (kycLevel < 1) {
+        if (kycLevel < 3) {
+            val (kycTitle, kycBody) = when (kycLevel) {
+                0 -> "Profile picture required" to
+                        "Add a profile picture in the Security ID tab to continue."
+                1 -> "Email verification required" to
+                        "Verify your email address in the Security ID tab to continue."
+                else -> "ID document required" to
+                        "Upload a government-issued ID in the Security ID tab to unlock subscription purchases."
+            }
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
@@ -373,13 +382,13 @@ fun OwnerSubscriptionsScreen(
                     Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "Profile picture required",
+                            kycTitle,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
                         Text(
-                            "Add a profile picture in your Security ID tab to unlock package purchases.",
+                            kycBody,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.75f)
                         )
@@ -413,8 +422,8 @@ fun OwnerSubscriptionsScreen(
                 priceLoading = pricesLoading,
                 onSelect = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    if (kycLevel < 1) {
-                        Toast.makeText(context, "Please add a profile picture first (Security ID tab).", Toast.LENGTH_LONG).show()
+                    if (kycLevel < 3) {
+                        Toast.makeText(context, "Complete identity verification in the Security ID tab first.", Toast.LENGTH_LONG).show()
                     } else if (activity != null) {
                         viewModel.launchGooglePaySubscription(activity, playProductId)
                     } else {

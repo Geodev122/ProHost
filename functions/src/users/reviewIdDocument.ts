@@ -3,6 +3,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import { sendEmail, hostingerSmtpSecret } from "../lib/email";
 import { idDocumentApprovedTemplate, idDocumentRejectedTemplate, UserContext } from "../lib/emailTemplates";
+import { sendPushToUser } from "../lib/push";
 import "../lib/admin";
 
 /**
@@ -59,6 +60,32 @@ export const reviewIdDocument = onCall(
       reviewerUid: request.auth!.uid,
       ...(reason ? { rejectionReason: reason } : {}),
     });
+
+    // On rejection, hide all listings belonging to a PRO_HOST user until they
+    // re-submit a valid ID document. isOwnerIdRejected mirrors isOwnerSuspended/
+    // isOwnerPackageLapsed: a server-only field filtered out of Discovery.
+    // Only relevant for PRO_HOST — Specialists have no listings and are not
+    // required to complete KYC.
+    if (decision === "REJECTED" && profileData.role === "PRO_HOST") {
+      const ownedListings = await db
+        .collection("workspace_listings")
+        .where("ownerId", "==", userId)
+        .get();
+      if (!ownedListings.empty) {
+        const bw = db.bulkWriter();
+        ownedListings.docs.forEach((doc) =>
+          bw.set(doc.ref, { isOwnerIdRejected: true, ownerIsIdVerified: false }, { merge: true })
+        );
+        await bw.close();
+        logger.info("id_document_rejected_listings_hidden", { userId, count: ownedListings.size });
+      }
+      await sendPushToUser(
+        userId,
+        "ID Document Rejected",
+        `Your ID document was not accepted${reason ? `: ${reason}` : ""}. Please re-upload a clear, valid government-issued ID to restore your listings.`,
+        { category: "KYC_REJECTED", targetTab: "specialist_profile" }
+      );
+    }
 
     logger.info("id_document_reviewed", { userId, decision, reviewer: request.auth!.uid });
 

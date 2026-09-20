@@ -15,7 +15,11 @@ import "../lib/admin";
  * stale / missing kycLevel value.
  */
 function computeKycLevel(data: Record<string, unknown>): number {
-  if (data.idDocumentVerificationStatus === "APPROVED") return 3;
+  // Level 3 = ID document uploaded (url present). Admin approval is not required
+  // for the KYC level itself — rejection clears idDocumentUrl so the level drops
+  // back naturally. Listing visibility during rejection is enforced separately via
+  // isOwnerIdRejected (see reviewIdDocument.ts / submitIdDocument.ts).
+  if (data.idDocumentUrl) return 3;
   if (data.emailVerified === true) return 2;
   if (data.profilePictureUrl) return 1;
   return 0;
