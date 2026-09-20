@@ -20,8 +20,9 @@ function generateSalt(): string {
  * and whether a PIN has been set. The app uses this to decide which auth
  * step to show next (PIN entry for returning users, OTP for new signups).
  */
-export const checkPhoneRegistered = onCall(async (request) => {
-  const { phone } = request.data as { phone?: string };
+export const checkPhoneRegistered = onCall({ invoker: "public" }, async (request) => {
+  const rawPhone = (request.data as { phone?: string })?.phone;
+  const phone = rawPhone ? rawPhone.trim().replace(/\s+/g, "") : "";
   if (!phone || !/^\+[1-9]\d{5,14}$/.test(phone)) {
     throw new HttpsError("invalid-argument", "A valid E.164 phone number is required.");
   }
@@ -47,8 +48,9 @@ export const checkPhoneRegistered = onCall(async (request) => {
  * returns a Firebase custom auth token. The client immediately calls
  * signInWithCustomToken() — no OTP SMS required for returning users.
  */
-export const verifyPinAndIssueToken = onCall(async (request) => {
-  const { phone, pin } = request.data as { phone?: string; pin?: string };
+export const verifyPinAndIssueToken = onCall({ invoker: "public" }, async (request) => {
+  const { phone: rawPhone, pin } = request.data as { phone?: string; pin?: string };
+  const phone = rawPhone ? rawPhone.trim().replace(/\s+/g, "") : "";
 
   if (!phone || !/^\+[1-9]\d{5,14}$/.test(phone)) {
     throw new HttpsError("invalid-argument", "A valid E.164 phone number is required.");
