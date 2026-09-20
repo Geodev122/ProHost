@@ -1,6 +1,6 @@
 {
   "name": "prohost-functions",
-  "description": "ProHost Cloud Functions: server-verified auth/role claims and Whish Money payment signing.",
+  "description": "ProHost Cloud Functions: server-verified auth/role claims, Play Integrity enforcement, and Google Play Billing.",
   "engines": {
     "node": "20"
   },
@@ -16,7 +16,6 @@
     "test": "npm run build && node --test lib/**/*.test.js"
   },
   "dependencies": {
-    "@prohost/dataconnect-generated": "file:src/dataconnect-generated",
     "firebase-admin": "^13.0.0",
     "firebase-functions": "^6.1.0",
     "googleapis": "^144.0.0"
