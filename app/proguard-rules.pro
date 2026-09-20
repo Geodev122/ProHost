@@ -70,3 +70,18 @@
     public static int v(...);
     public static int i(...);
 }
+
+# Kotlin Metadata — required by reflection-based libraries (Moshi codegen, Room, etc.)
+-keepattributes kotlin.Metadata
+
+# kotlinx.serialization — R8 strips generated serializers without these keeps
+-keep class kotlinx.serialization.** { *; }
+-keepclassmembers class * {
+    @kotlinx.serialization.SerialName <fields>;
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-keepclasseswithmembers @kotlinx.serialization.Serializable class * { *; }
+
+# Google Play Billing — consumer rules may not cover all internal API surface
+-keep class com.android.billingclient.api.** { *; }
+-dontwarn com.android.billingclient.**

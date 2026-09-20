@@ -146,12 +146,12 @@ dependencies {
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
   implementation(libs.coil.compose)
-  implementation(libs.firebase.ai)
+  // implementation(libs.firebase.ai)  // unused — auto-inits and may crash without config
   // Uncomment to use Firestore:
   implementation(libs.firebase.firestore)
   implementation(libs.firebase.messaging)
   implementation(libs.firebase.storage)
-  implementation(libs.firebase.dataconnect)
+  // implementation(libs.firebase.dataconnect)  // unused — auto-inits and may crash without config
 
   // Firebase Auth: phone-number SMS OTP is the app's only sign-in method (no Google
   // Sign-In / Credential Manager — removed by design, every account is phone-verified).

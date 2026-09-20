@@ -141,20 +141,6 @@ class ProHostViewModel(
         }
     }
 
-    // Clears billingActivationPending as soon as the user profile confirms a valid
-    // package — the RTDN fires seconds after the Play sheet closes, so the banner
-    // stays visible for only a brief window.
-    init {
-        viewModelScope.launch {
-            currentUser.collectLatest { user ->
-                if (user?.ownerPackageExpiryMillis != null && _billingActivationPending.value) {
-                    billingActivationTimeoutJob?.cancel()
-                    _billingActivationPending.value = false
-                }
-            }
-        }
-    }
-
     val pricingState: StateFlow<AdminPricingState> = repository.pricingState
     // Admin-managed, purchasable Pro Host packages — see PackagePlan/PackagePlanCatalog.
     val packagePlans: StateFlow<PackagePlanCatalog> = repository.packagePlans
@@ -277,6 +263,20 @@ class ProHostViewModel(
     private val _billingActivationPending = MutableStateFlow(false)
     val billingActivationPending: StateFlow<Boolean> = _billingActivationPending.asStateFlow()
     private var billingActivationTimeoutJob: kotlinx.coroutines.Job? = null
+
+    // Clears billingActivationPending as soon as the user profile confirms a valid
+    // package — the RTDN fires seconds after the Play sheet closes, so the banner
+    // stays visible for only a brief window.
+    init {
+        viewModelScope.launch {
+            currentUser.collectLatest { user ->
+                if (user?.ownerPackageExpiryMillis != null && _billingActivationPending.value) {
+                    billingActivationTimeoutJob?.cancel()
+                    _billingActivationPending.value = false
+                }
+            }
+        }
+    }
 
     fun clearBillingMessages() {
         _billingError.value = null
