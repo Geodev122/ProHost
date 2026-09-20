@@ -545,6 +545,8 @@ private fun AdminRevenueTab(
                         var limitInput by remember(plan.id, plan.listingLimit) { mutableStateOf((plan.listingLimit ?: 3).toString()) }
                         var validityInput by remember(plan.id, plan.validityDays) { mutableStateOf(plan.validityDays.toString()) }
                         var googlePlayProductIdInput by remember(plan.id, plan.googlePlayProductId) { mutableStateOf(plan.googlePlayProductId) }
+                        var isFetchingPlay by remember(plan.id) { mutableStateOf(false) }
+                        var playFetchStatus by remember(plan.id) { mutableStateOf<String?>(null) }
 
                         Column(
                             modifier = Modifier
@@ -653,21 +655,67 @@ private fun AdminRevenueTab(
                                     shape = MaterialTheme.shapes.small
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                        modifier = Modifier
+                                            .padding(horizontal = 10.dp, vertical = 8.dp)
+                                            .fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Icon(Icons.Default.Lock, contentDescription = null,
-                                            tint = FreshGreen, modifier = Modifier.size(14.dp))
-                                        Column {
-                                            Text("Google Play Product ID", style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                            Text(plan.googlePlayProductId,
-                                                style = MaterialTheme.typography.labelMedium,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.onSurface)
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Icon(Icons.Default.Lock, contentDescription = null,
+                                                tint = FreshGreen, modifier = Modifier.size(14.dp))
+                                            Column {
+                                                Text("Google Play Product ID", style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                Text(plan.googlePlayProductId,
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.onSurface)
+                                            }
+                                        }
+                                        if (isFetchingPlay) {
+                                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                                        } else {
+                                            TextButton(
+                                                onClick = {
+                                                    isFetchingPlay = true
+                                                    playFetchStatus = null
+                                                    viewModel.fetchPlayProductDetails(context, plan.googlePlayProductId) { details ->
+                                                        isFetchingPlay = false
+                                                        if (details != null) {
+                                                            // Use `name` (clean) not `title` (has " (AppName)" suffix)
+                                                            if (details.name.isNotBlank()) nameInput = details.name
+                                                            val formattedPrice = details.subscriptionOfferDetails
+                                                                ?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice
+                                                            if (!formattedPrice.isNullOrBlank()) {
+                                                                val numeric = formattedPrice.replace(Regex("[^0-9.]"), "")
+                                                                if (numeric.isNotBlank()) priceInput = numeric
+                                                            }
+                                                            playFetchStatus = "✓ Refreshed: ${details.name} · ${formattedPrice ?: "—"}"
+                                                        } else {
+                                                            playFetchStatus = "Could not fetch from Play — check the product ID"
+                                                        }
+                                                    }
+                                                },
+                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                                                Spacer(Modifier.width(4.dp))
+                                                Text("Refresh from Play", style = MaterialTheme.typography.labelSmall)
+                                            }
                                         }
                                     }
+                                }
+                                if (playFetchStatus != null) {
+                                    Text(
+                                        playFetchStatus!!,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (playFetchStatus!!.startsWith("✓")) FreshGreen else StatusError
+                                    )
                                 }
                             } else {
                                 OutlinedTextField(

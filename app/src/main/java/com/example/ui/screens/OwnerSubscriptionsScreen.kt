@@ -34,19 +34,25 @@ fun OwnerSubscriptionsScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val packagePlans by viewModel.packagePlans.collectAsState()
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
-    // Set by OwnerHubScreen when a Publish attempt hit the listing limit and got
-    // saved as a Draft instead — whichever package the host buys next auto-publishes
-    // this exact Draft so the host doesn't need to re-open the wizard.
     val pendingAutoPublishDraftId by viewModel.pendingAutoPublishDraftId.collectAsState()
     val billingActivationPending by viewModel.billingActivationPending.collectAsState()
     val billingError by viewModel.billingError.collectAsState()
     val billingSuccess by viewModel.billingSuccess.collectAsState()
+    val playBillingProducts by viewModel.playBillingProducts.collectAsState()
+    val billingConnected by viewModel.playBillingConnected.collectAsState()
 
     val enabledPlans = remember(packagePlans) { packagePlans.packages.values.filter { it.isEnabled }.sortedBy { it.sortOrder } }
     val currentPlan = currentUser?.ownerPackageId?.let { packagePlans.packages[it] }
 
-    var showSubscribeDialog by remember { mutableStateOf(false) }
-    var selectedPlanToSubscribe by remember { mutableStateOf<PackagePlan?>(null) }
+    // Map Play product ID → live formatted price string (e.g. "$4.99") from the Play Store catalog.
+    // Falls back to PackagePlan.priceUsd when Play hasn't loaded yet.
+    val playPriceMap: Map<String, String?> = remember(playBillingProducts) {
+        playBillingProducts.associate { d ->
+            d.productId to d.subscriptionOfferDetails
+                ?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice
+        }
+    }
+    val pricesLoading = !billingConnected && playBillingProducts.isEmpty()
 
     val expiryMillis = currentUser?.ownerPackageExpiryMillis
     val remainingDays = if (expiryMillis != null && expiryMillis > System.currentTimeMillis()) {
@@ -54,6 +60,9 @@ fun OwnerSubscriptionsScreen(
     } else {
         null
     }
+    // True when the host previously had a package that has now lapsed (expiry passed but the
+    // sweep hasn't cleared ownerPackageId yet, or they just hit the limit cutover).
+    val isSubscriptionExpired = currentPlan != null && remainingDays == null
 
     Column(
         modifier = Modifier
@@ -228,8 +237,22 @@ fun OwnerSubscriptionsScreen(
                             )
                         }
                     }
-                    if (remainingDays != null) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    when {
+                        isSubscriptionExpired -> Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError, modifier = Modifier.size(14.dp))
+                            Text(
+                                "Subscription expired — your listings are hidden until you renew",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = StatusError
+                            )
+                        }
+                        remainingDays != null -> Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
                             Icon(Icons.Default.Autorenew, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(14.dp))
                             Text(
                                 "Auto-renews monthly via Google Play",
@@ -237,6 +260,7 @@ fun OwnerSubscriptionsScreen(
                                 color = FreshGreen
                             )
                         }
+                        else -> Unit
                     }
                 }
 
@@ -247,7 +271,7 @@ fun OwnerSubscriptionsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (currentPlan != null && activity != null) {
+                    if (currentPlan != null && !isSubscriptionExpired && activity != null) {
                         OutlinedButton(
                             onClick = { viewModel.openManageSubscriptions(activity, currentPlan.id) },
                             modifier = Modifier.weight(1f),
@@ -276,13 +300,22 @@ fun OwnerSubscriptionsScreen(
                     }
                 }
 
-                if ((currentPlan == null || atCap) && enabledPlans.isNotEmpty()) {
-                    val upsellPlan = enabledPlans
-                        .filter { it.listingLimit == null || it.listingLimit > (currentPlan?.listingLimit ?: 0) }
-                        .minByOrNull { it.priceUsd }
-                        ?: enabledPlans.firstOrNull()
+                if ((currentPlan == null || atCap || isSubscriptionExpired) && enabledPlans.isNotEmpty()) {
+                    // Renewal: re-subscribe to the same plan. Upsell: cheapest plan with more capacity.
+                    val upsellPlan = if (isSubscriptionExpired) {
+                        enabledPlans.firstOrNull { it.id == currentPlan?.id } ?: enabledPlans.firstOrNull()
+                    } else {
+                        enabledPlans
+                            .filter { it.listingLimit == null || it.listingLimit > (currentPlan?.listingLimit ?: 0) }
+                            .minByOrNull { it.priceUsd }
+                            ?: enabledPlans.firstOrNull()
+                    }
                     CustomButton(
-                        text = if (currentPlan == null) "Choose a Package" else "Package Limit Reached — Upgrade Package",
+                        text = when {
+                            isSubscriptionExpired -> "Renew Subscription"
+                            currentPlan == null -> "Choose a Package"
+                            else -> "Package Limit Reached — Upgrade Package"
+                        },
                         onClick = {
                             upsellPlan?.let { plan ->
                                 val productId = plan.googlePlayProductId.ifBlank { plan.id }
@@ -318,13 +351,15 @@ fun OwnerSubscriptionsScreen(
         }
 
         enabledPlans.forEach { plan ->
+            val playProductId = plan.googlePlayProductId.ifBlank { plan.id }
             PackageOptionCard(
                 plan = plan,
-                isCurrent = currentPlan?.id == plan.id,
+                isCurrent = currentPlan?.id == plan.id && !isSubscriptionExpired,
+                playFormattedPrice = playPriceMap[playProductId],
+                priceLoading = pricesLoading,
                 onSelect = {
-                    val productId = plan.googlePlayProductId.ifBlank { plan.id }
                     if (activity != null) {
-                        viewModel.launchGooglePaySubscription(activity, productId)
+                        viewModel.launchGooglePaySubscription(activity, playProductId)
                     } else {
                         Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
                     }
@@ -332,52 +367,14 @@ fun OwnerSubscriptionsScreen(
             )
         }
     }
-
-    // Subscribe Dialog with Google Pay Billing
-    if (showSubscribeDialog) {
-        val targetPlan = selectedPlanToSubscribe
-        val dialogActivity = androidx.activity.compose.LocalActivity.current
-        AlertDialog(
-            onDismissRequest = { showSubscribeDialog = false },
-            title = { Text("Subscribe to ${targetPlan?.name ?: "Package"}", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (targetPlan != null) {
-                        Text("Price: $${String.format(Locale.US, "%.2f", targetPlan.priceUsd)} / ${targetPlan.validityDays} Days")
-                        Text("Secured via Google Play Store & Google Pay. Cancel or manage anytime in Play Store settings.", style = MaterialTheme.typography.bodySmall, color = CoolGray)
-                    }
-                }
-            },
-            confirmButton = {
-                CustomButton(
-                    text = "Subscribe with Google Pay",
-                    onClick = {
-                        targetPlan?.let { plan ->
-                            dialogActivity?.let { act ->
-                                viewModel.launchGooglePaySubscription(act, plan.id)
-                            }
-                        }
-                        showSubscribeDialog = false
-                    },
-                    variant = CustomButtonVariant.SUCCESS,
-                    icon = Icons.Default.ShoppingCart,
-                    enabled = targetPlan != null && dialogActivity != null,
-                    compact = true
-                )
-            },
-            dismissButton = {
-                TextButton(onClick = { showSubscribeDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
 }
 
 @Composable
 fun PackageOptionCard(
     plan: PackagePlan,
     isCurrent: Boolean,
+    playFormattedPrice: String? = null,
+    priceLoading: Boolean = false,
     onSelect: () -> Unit
 ) {
     Card(
@@ -401,12 +398,21 @@ fun PackageOptionCard(
                     fontWeight = FontWeight.Bold,
                     color = OxfordBlue
                 )
-                Text(
-                    text = "$${String.format(Locale.US, "%.2f", plan.priceUsd)} / mo",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Black,
-                    color = CarnationOrange
-                )
+                if (priceLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = CarnationOrange
+                    )
+                } else {
+                    // Prefer Play's live price; fall back to the admin-configured Firestore value
+                    Text(
+                        text = playFormattedPrice ?: "$${String.format(Locale.US, "%.2f", plan.priceUsd)} / mo",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Black,
+                        color = CarnationOrange
+                    )
+                }
             }
 
             if (plan.description.isNotBlank()) {

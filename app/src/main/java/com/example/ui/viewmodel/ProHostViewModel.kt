@@ -230,6 +230,11 @@ class ProHostViewModel(
     val playBillingProducts = MutableStateFlow<List<com.android.billingclient.api.ProductDetails>>(emptyList())
     val playBillingConnected = MutableStateFlow(false)
 
+    // Holds a deferred launch when billing was not yet connected at the time the user tapped
+    // "Subscribe via Google Play". Cleared and retried once products arrive from Play.
+    private var _pendingRetryProductId: String? = null
+    private var _pendingRetryActivity: java.lang.ref.WeakReference<android.app.Activity>? = null
+
     fun initPlayBilling(context: Context) {
         if (playBillingManager == null) {
             val manager = com.example.data.billing.PlayBillingManager(context.applicationContext, viewModelScope)
@@ -242,6 +247,14 @@ class ProHostViewModel(
             viewModelScope.launch {
                 manager.productDetailsList.collect { products ->
                     playBillingProducts.value = products
+                    // Retry a deferred billing launch once the target product is available
+                    val retryId = _pendingRetryProductId
+                    val retryActivity = _pendingRetryActivity?.get()
+                    if (retryId != null && retryActivity != null && products.any { it.productId == retryId }) {
+                        _pendingRetryProductId = null
+                        _pendingRetryActivity = null
+                        launchGooglePaySubscription(retryActivity, retryId)
+                    }
                 }
             }
             viewModelScope.launch {
@@ -280,6 +293,10 @@ class ProHostViewModel(
                 ) {
                     billingActivationTimeoutJob?.cancel()
                     _billingActivationPending.value = false
+                    // Force-refresh the ID token so the new PRO_HOST claim takes effect
+                    // immediately — without this the user sees SPECIALIST navigation for
+                    // up to an hour until the token naturally expires.
+                    refreshCurrentUserRoleAfterEntitlement()
                 }
             }
         }
@@ -319,7 +336,14 @@ class ProHostViewModel(
         }
         val product = manager?.productDetailsList?.value?.find { it.productId == productId }
         if (product != null) {
-            manager.launchSubscriptionPurchase(activity, product, userId = uid)
+            // For upgrades/downgrades: pass the current active subscription's purchase token so
+            // Play can perform a proper subscription replacement (prorated billing, immediate effect).
+            val currentPlanId = currentUser.value?.ownerPackageId
+            val oldPurchaseToken = if (!currentPlanId.isNullOrBlank() && currentPlanId != productId) {
+                manager.activePurchases.value.firstOrNull { it.products.any { id -> id == currentPlanId } }?.purchaseToken
+            } else null
+
+            manager.launchSubscriptionPurchase(activity, product, userId = uid, oldPurchaseToken = oldPurchaseToken)
             _billingPriorExpiryMillis.value = currentUser.value?.ownerPackageExpiryMillis
             _billingActivationPending.value = true
             billingActivationTimeoutJob?.cancel()
@@ -328,7 +352,10 @@ class ProHostViewModel(
                 _billingActivationPending.value = false
             }
         } else {
-            Toast.makeText(activity, "Connecting to Google Play Store...", Toast.LENGTH_SHORT).show()
+            // Store the intent and retry automatically once products load from Play
+            _pendingRetryProductId = productId
+            _pendingRetryActivity = java.lang.ref.WeakReference(activity)
+            Toast.makeText(activity, "Connecting to Google Play Store…", Toast.LENGTH_SHORT).show()
             manager?.querySubscriptionProducts()
         }
     }
@@ -348,6 +375,17 @@ class ProHostViewModel(
         playBillingManager?.openRedeemPromoCode(activity) ?: run {
             activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/redeem")))
         }
+    }
+
+    /**
+     * Fetches a single Play subscription product by its Play Console product ID. Used by the
+     * Admin Console "Refresh from Play" button to auto-populate plan name and price from the
+     * live Play Store catalog. Initialises the billing client if not already connected.
+     * Callback is invoked on the main thread.
+     */
+    fun fetchPlayProductDetails(context: Context, productId: String, onResult: (com.android.billingclient.api.ProductDetails?) -> Unit) {
+        val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager }
+        manager?.queryProductDetailsForId(productId, onResult) ?: onResult(null)
     }
 
     // --- Whish Pay Settlement ---

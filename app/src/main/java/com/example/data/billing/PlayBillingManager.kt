@@ -250,6 +250,46 @@ class PlayBillingManager(
         }
     }
 
+    /**
+     * Queries a single subscription product by ID. Useful for fetching Play pricing on demand
+     * (e.g. admin "Refresh from Play" button) without re-querying the full catalog. Merges the
+     * result into [productDetailsList] so subsequent launch calls find the product immediately.
+     * Connects the billing client first if it is not already ready.
+     */
+    fun queryProductDetailsForId(productId: String, onResult: (ProductDetails?) -> Unit) {
+        val doQuery = {
+            val params = QueryProductDetailsParams.newBuilder()
+                .setProductList(
+                    listOf(
+                        QueryProductDetailsParams.Product.newBuilder()
+                            .setProductId(productId)
+                            .setProductType(BillingClient.ProductType.SUBS)
+                            .build()
+                    )
+                )
+                .build()
+            billingClient.queryProductDetailsAsync(params) { billingResult, results ->
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    val found = results.productDetailsList.firstOrNull()
+                    // Merge into the main list so future launch calls don't need a re-query
+                    if (found != null) {
+                        val merged = _productDetailsList.value.filter { it.productId != productId } + found
+                        _productDetailsList.value = merged
+                    }
+                    onResult(found)
+                } else {
+                    Log.e(TAG, "queryProductDetailsForId failed for $productId: ${billingResult.debugMessage}")
+                    onResult(null)
+                }
+            }
+        }
+        if (billingClient.isReady) {
+            doQuery()
+        } else {
+            startConnection { doQuery() }
+        }
+    }
+
     fun openManageSubscriptions(activity: Activity, productId: String? = null) {
         val uriStr = if (!productId.isNullOrBlank()) {
             "https://play.google.com/store/account/subscriptions?sku=$productId&package=${context.packageName}"
