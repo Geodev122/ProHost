@@ -18,7 +18,7 @@ android {
 
   defaultConfig {
     applicationId = "app.geonajjar.prohost"
-    minSdk = 24
+    minSdk = 21
     targetSdk = 36
     versionCode = 6
     versionName = "1.0.5"
@@ -167,7 +167,6 @@ dependencies {
   implementation(libs.play.billing)
   implementation(libs.play.billing.ktx)
   implementation(libs.play.integrity)
-  implementation(libs.play.billing.ktx)
   implementation(libs.play.services.location)
   implementation(libs.maps.compose)
   implementation(libs.play.services.maps)
