@@ -1460,7 +1460,16 @@ data class AppUser(
     // Client-writable — a personal shortlist, not a protected/server-only field, so it's
     // simply absent from firestore.rules' user_profiles protected-key list and writable
     // by the owner like any other profile field. See ProHostRepository.toggleSavedSpace.
-    val savedSpaceIds: List<String> = emptyList()
+    val savedSpaceIds: List<String> = emptyList(),
+    // Server-only KYC fields — all written exclusively by Cloud Functions (Admin SDK);
+    // firestore.rules blocks direct client writes to these fields.
+    // kycLevel: recomputeKycLevel.ts trigger keeps this in sync (0–3).
+    // emailVerified: verifyEmailLink HTTP function sets this on link click.
+    // idDocumentVerificationStatus: submitIdDocument (PENDING_REVIEW) and reviewIdDocument
+    //   (APPROVED | REJECTED) are the only writers.
+    val kycLevel: Int = 0,
+    val emailVerified: Boolean = false,
+    val idDocumentVerificationStatus: String? = null  // null | PENDING_REVIEW | APPROVED | REJECTED
 ) {
     // Full map — only for admin/server-side contexts (e.g. bootstrapping a new profile
     // from an admin console write). NEVER use for client-initiated profile updates;
@@ -1538,9 +1547,46 @@ data class AppUser(
                 consentVersion = data["consentVersion"] as? String,
                 isSuspended = data["isSuspended"] as? Boolean ?: false,
                 activeListingCount = (data["activeListingCount"] as? Number)?.toInt() ?: 0,
-                savedSpaceIds = (data["savedSpaceIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                savedSpaceIds = (data["savedSpaceIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                kycLevel = (data["kycLevel"] as? Number)?.toInt() ?: 0,
+                emailVerified = data["emailVerified"] as? Boolean ?: false,
+                idDocumentVerificationStatus = data["idDocumentVerificationStatus"] as? String
             )
         }
+    }
+}
+
+/**
+ * A pending ID document review entry in the id_review_queue Firestore collection.
+ * Created by submitIdDocument Cloud Function; read by the Admin Console ID Review tab.
+ */
+data class IdReviewEntry(
+    val userId: String,
+    val fullName: String,
+    val email: String,
+    val phone: String,
+    val role: String,
+    val storageUrl: String,
+    val submittedAt: Long,
+    val status: String,          // PENDING_REVIEW | APPROVED | REJECTED
+    val reviewedAt: Long? = null,
+    val rejectionReason: String? = null
+) {
+    companion object {
+        const val COLLECTION_PATH = "id_review_queue"
+
+        fun fromFirestoreMap(docId: String, data: Map<String, Any?>): IdReviewEntry = IdReviewEntry(
+            userId = docId,
+            fullName = data["fullName"] as? String ?: "Unknown",
+            email = data["email"] as? String ?: "",
+            phone = data["phone"] as? String ?: "",
+            role = data["role"] as? String ?: "SPECIALIST",
+            storageUrl = data["storageUrl"] as? String ?: "",
+            submittedAt = (data["submittedAt"] as? Number)?.toLong() ?: 0L,
+            status = data["status"] as? String ?: "PENDING_REVIEW",
+            reviewedAt = (data["reviewedAt"] as? Number)?.toLong(),
+            rejectionReason = data["rejectionReason"] as? String
+        )
     }
 }
 

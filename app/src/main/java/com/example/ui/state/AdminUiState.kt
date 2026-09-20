@@ -88,7 +88,14 @@ data class AdminUiState(
     // refreshLegalDocuments/uploadLegalDocument) — not a live listener, since this
     // content changes rarely and a fresh one-shot read on demand is plenty.
     val legalDocuments: Map<String, LegalDocumentVersion?> = emptyMap(),
-    val isUploadingLegalDocument: String? = null // the docId currently mid-upload, if any
+    val isUploadingLegalDocument: String? = null, // the docId currently mid-upload, if any
+
+    // ID document review queue (tab 7). Loaded on demand by AdminViewModel.
+    val idReviewQueue: List<IdReviewEntry> = emptyList(),
+    val isIdReviewLoading: Boolean = false,
+    val idReviewDecisionInProgress: String? = null, // userId currently being approved/rejected
+    val isRejectIdDialogOpen: Boolean = false,
+    val rejectingIdUserId: String? = null
 ) {
     val filteredUsers: List<AppUser>
         get() = allUsers.filter { user ->

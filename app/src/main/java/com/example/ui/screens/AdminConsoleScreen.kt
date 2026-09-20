@@ -236,6 +236,18 @@ fun AdminConsoleScreen(
                         onClick = { adminViewModel.setSelectedTab(6) },
                         text = { Text("Transactions", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                     )
+                    Tab(
+                        selected = uiState.selectedTab == 7,
+                        onClick = { adminViewModel.setSelectedTab(7) },
+                        text = {
+                            val pendingCount = uiState.idReviewQueue.count { it.status == "PENDING_REVIEW" }
+                            Text(
+                                if (pendingCount > 0) "ID Review ($pendingCount)" else "ID Review",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    )
                 }
             }
         }
@@ -264,6 +276,7 @@ fun AdminConsoleScreen(
                     // nesting two scrollables) now that Package Revenue is no longer
                     // a separate top-level destination outside Admin Console.
                     6 -> AdminRevenueScreen(adminViewModel = adminViewModel)
+                    7 -> AdminIdReviewTab(uiState = uiState, adminViewModel = adminViewModel)
                 }
             }
             if (uiState.selectedTab == 2) {
@@ -390,6 +403,15 @@ fun AdminConsoleScreen(
             subscriberCount = uiState.pendingDeletePlanSubscriberCount,
             onDismiss = { adminViewModel.cancelDeletePackagePlan() },
             onConfirm = { adminViewModel.confirmDeletePackagePlan() }
+        )
+    }
+
+    // 9. Reject ID Document Dialog
+    if (uiState.isRejectIdDialogOpen && uiState.rejectingIdUserId != null) {
+        AdminRejectIdDocumentDialog(
+            userId = uiState.rejectingIdUserId!!,
+            onDismiss = { adminViewModel.closeRejectIdDialog() },
+            onConfirm = { userId, reason -> adminViewModel.rejectIdDocument(userId, reason) }
         )
     }
 
@@ -2923,4 +2945,229 @@ private fun AdminAddPackagePlanDialog(
             }
         }
     }
+}
+
+// =========================================================================
+// TAB 7: ID DOCUMENT REVIEW QUEUE
+// =========================================================================
+@Composable
+private fun AdminIdReviewTab(
+    uiState: com.example.ui.state.AdminUiState,
+    adminViewModel: AdminViewModel
+) {
+    val sdf = remember { java.text.SimpleDateFormat("dd MMM yyyy HH:mm", java.util.Locale.US) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                "ID Document Review Queue",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            IconButton(onClick = { adminViewModel.loadIdReviewQueue() }) {
+                Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.primary)
+            }
+        }
+
+        if (uiState.isIdReviewLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            return@Column
+        }
+
+        val pending = uiState.idReviewQueue.filter { it.status == "PENDING_REVIEW" }
+        val reviewed = uiState.idReviewQueue.filter { it.status != "PENDING_REVIEW" }
+
+        if (uiState.idReviewQueue.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No ID submissions yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            return@Column
+        }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            if (pending.isNotEmpty()) {
+                item {
+                    Text(
+                        "Pending Review (${pending.size})",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                }
+                items(pending, key = { it.userId }) { entry ->
+                    IdReviewCard(
+                        entry = entry,
+                        sdf = sdf,
+                        decisionInProgress = uiState.idReviewDecisionInProgress == entry.userId,
+                        onApprove = { adminViewModel.approveIdDocument(entry.userId) },
+                        onReject = { adminViewModel.openRejectIdDialog(entry.userId) }
+                    )
+                }
+            }
+            if (reviewed.isNotEmpty()) {
+                item {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Reviewed (${reviewed.size})",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                }
+                items(reviewed, key = { it.userId + it.status }) { entry ->
+                    IdReviewCard(
+                        entry = entry,
+                        sdf = sdf,
+                        decisionInProgress = false,
+                        onApprove = null,
+                        onReject = null
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun IdReviewCard(
+    entry: com.example.data.model.IdReviewEntry,
+    sdf: java.text.SimpleDateFormat,
+    decisionInProgress: Boolean,
+    onApprove: (() -> Unit)?,
+    onReject: (() -> Unit)?
+) {
+    val context = LocalContext.current
+    val statusColor = when (entry.status) {
+        "APPROVED" -> Color(0xFF2E7D32)
+        "REJECTED" -> MaterialTheme.colorScheme.error
+        else -> Color(0xFFE65100)
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(entry.fullName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text(entry.email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(entry.phone, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = statusColor.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        entry.status.replace("_", " "),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = statusColor,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Submitted: ${sdf.format(java.util.Date(entry.submittedAt))}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (entry.rejectionReason != null) {
+                Text(
+                    "Rejection reason: ${entry.rejectionReason}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            TextButton(
+                onClick = {
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(entry.storageUrl))
+                    context.startActivity(intent)
+                },
+                modifier = Modifier.padding(top = 2.dp)
+            ) {
+                Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("View Document", style = MaterialTheme.typography.labelSmall)
+            }
+            if (onApprove != null && onReject != null) {
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (decisionInProgress) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    } else {
+                        Button(
+                            onClick = onApprove,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Approve", style = MaterialTheme.typography.labelMedium)
+                        }
+                        OutlinedButton(onClick = onReject, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Reject", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdminRejectIdDocumentDialog(
+    userId: String,
+    onDismiss: () -> Unit,
+    onConfirm: (userId: String, reason: String) -> Unit
+) {
+    var reason by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Reject ID Document") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "Optionally provide a reason — the user will receive this in their email.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = reason,
+                    onValueChange = { reason = it },
+                    placeholder = { Text("e.g. Photo too blurry, use a clearer image") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 3
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(userId, reason) },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) { Text("Reject & Notify User") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }

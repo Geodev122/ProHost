@@ -366,6 +366,46 @@ class FirebaseFunctionsClient {
         }
     }
 
+    /** Submit the caller's own ID document for admin review (functions/src/users/submitIdDocument.ts). */
+    suspend fun submitIdDocument(storageUrl: String): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("submitIdDocument")
+                .call(mapOf("storageUrl" to storageUrl))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "submitIdDocument failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /** Admin-only: approve or reject an ID document submission (functions/src/users/reviewIdDocument.ts). */
+    suspend fun reviewIdDocument(userId: String, decision: String, reason: String? = null): Result<Unit> {
+        return try {
+            val payload = buildMap<String, Any?> {
+                put("userId", userId)
+                put("decision", decision)
+                if (reason != null) put("reason", reason)
+            }
+            functions.getHttpsCallable("reviewIdDocument").call(payload).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "reviewIdDocument failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /** Request a new email verification link (functions/src/auth/emailVerification.ts). */
+    suspend fun resendEmailVerification(): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("resendEmailVerification").call(null).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "resendEmailVerification failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     companion object {
         /**
          * Reads the role custom claim from the given user's current ID token,

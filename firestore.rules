@@ -270,13 +270,22 @@ service cloud.firestore {
       // Cloud Function) — blocking direct client writes prevents a client from computing
       // their own SHA-256 hash and overwriting the server-stored hash with a PIN they chose
       // outside the verified OTP flow.
+      // kycLevel: recomputeKycLevel.ts Firestore trigger (Admin SDK) — a client-writable
+      // counter would let users self-upgrade their KYC tier.
+      // emailVerified/emailVerifiedAt: verifyEmailLink HTTP function (Admin SDK) sets these
+      // after validating the HMAC-signed token; a client write would let anyone claim
+      // email-verified status without clicking the link.
+      // idDocumentUrl/idDocumentVerificationStatus: submitIdDocument + reviewIdDocument
+      // Cloud Functions own these entirely — client can't self-assert ID verified status.
       allow update: if (isOwner(userId) || isAdmin()) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
           ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
            "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount",
            "tosAcceptedAtMillis", "consentVersion",
            "pinHash", "pinSalt", "pinSetAtMillis",
-           "pinFailedAttempts", "pinLockedUntilMillis"]
+           "pinFailedAttempts", "pinLockedUntilMillis",
+           "kycLevel", "emailVerified", "emailVerifiedAt",
+           "idDocumentUrl", "idDocumentVerificationStatus", "idDocumentSubmittedAt", "idDocumentReviewedAt"]
         );
 
       allow delete: if isAdmin();
@@ -477,6 +486,17 @@ service cloud.firestore {
         allow create: if isAdmin();
         allow update, delete: if false;
       }
+    }
+
+    // ---------------------------------------------------------------
+    // id_review_queue — admin-only KYC review queue.
+    // Created / updated exclusively by submitIdDocument and reviewIdDocument
+    // Cloud Functions (Admin SDK). Admins read to work the review queue;
+    // nobody writes directly (all writes go through the Cloud Functions).
+    // ---------------------------------------------------------------
+    match /id_review_queue/{userId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // Default deny for anything not explicitly matched above.

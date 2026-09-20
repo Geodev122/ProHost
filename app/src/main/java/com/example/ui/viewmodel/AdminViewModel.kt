@@ -117,6 +117,7 @@ class AdminViewModel(
     // --- Navigation & Pricing ---
     fun setSelectedTab(tabIndex: Int) {
         _uiState.update { it.copy(selectedTab = tabIndex) }
+        if (tabIndex == 7) loadIdReviewQueue()
     }
 
     fun setSubscriptionFee(fee: Double) {
@@ -712,4 +713,53 @@ class AdminViewModel(
      * AdminExportDataDialog every other export button on this screen still uses. */
     fun getFullAuditReport(): String = repository.exportToAuditText()
     fun getMasterJsonExport(): String = repository.exportToJson()
+
+    // ── ID Document Review Queue (tab 7) ─────────────────────────────────────
+
+    fun loadIdReviewQueue() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isIdReviewLoading = true) }
+            val result = repository.loadIdReviewQueue()
+            _uiState.update { it.copy(
+                idReviewQueue = result,
+                isIdReviewLoading = false
+            ) }
+        }
+    }
+
+    fun approveIdDocument(userId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(idReviewDecisionInProgress = userId) }
+            val result = functionsClient.reviewIdDocument(userId, "APPROVED")
+            _uiState.update { it.copy(idReviewDecisionInProgress = null) }
+            if (result.isSuccess) {
+                loadIdReviewQueue()
+                _events.emit(AdminUiEvent.ShowSnackbar("ID document approved — user notified."))
+            } else {
+                _events.emit(AdminUiEvent.ShowSnackbar("Failed: ${result.exceptionOrNull()?.message}"))
+            }
+        }
+    }
+
+    fun openRejectIdDialog(userId: String) {
+        _uiState.update { it.copy(isRejectIdDialogOpen = true, rejectingIdUserId = userId) }
+    }
+
+    fun closeRejectIdDialog() {
+        _uiState.update { it.copy(isRejectIdDialogOpen = false, rejectingIdUserId = null) }
+    }
+
+    fun rejectIdDocument(userId: String, reason: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(idReviewDecisionInProgress = userId, isRejectIdDialogOpen = false) }
+            val result = functionsClient.reviewIdDocument(userId, "REJECTED", reason.takeIf { it.isNotBlank() })
+            _uiState.update { it.copy(idReviewDecisionInProgress = null, rejectingIdUserId = null) }
+            if (result.isSuccess) {
+                loadIdReviewQueue()
+                _events.emit(AdminUiEvent.ShowSnackbar("ID document rejected — user notified."))
+            } else {
+                _events.emit(AdminUiEvent.ShowSnackbar("Failed: ${result.exceptionOrNull()?.message}"))
+            }
+        }
+    }
 }
