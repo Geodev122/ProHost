@@ -395,6 +395,22 @@ class FirebaseFunctionsClient {
         }
     }
 
+    /**
+     * Sends an in-app email inquiry to the owner of [spaceId]
+     * (functions/src/users/sendInquiryEmail.ts). Rate-limited to 3 per 24h server-side.
+     */
+    suspend fun sendInquiryEmail(spaceId: String, message: String): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("sendInquiryEmail")
+                .call(mapOf("spaceId" to spaceId, "message" to message))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "sendInquiryEmail failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     /** Request a new email verification link (functions/src/auth/emailVerification.ts). */
     suspend fun resendEmailVerification(): Result<Unit> {
         return try {

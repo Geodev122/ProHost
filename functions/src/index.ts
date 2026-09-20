@@ -43,3 +43,4 @@ export { playBillingRtdn } from "./billing/playBillingRtdn";
 export { recomputeKycLevel } from "./users/kycLevel";
 export { submitIdDocument } from "./users/submitIdDocument";
 export { reviewIdDocument } from "./users/reviewIdDocument";
+export { sendInquiryEmail } from "./users/sendInquiryEmail";

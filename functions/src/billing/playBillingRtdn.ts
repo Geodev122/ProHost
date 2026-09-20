@@ -6,6 +6,8 @@ import { google } from "googleapis";
 import { recordAuditLog } from "../lib/auditLog";
 import { sendPushToUser } from "../lib/push";
 import { setClaimsThenFirestore } from "../lib/roles";
+import { sendEmail, hostingerSmtpSecret } from "../lib/email";
+import { subscriptionActivatedTemplate, subscriptionRenewedTemplate, UserContext } from "../lib/emailTemplates";
 import { validateListingForPublish } from "../listings/publishValidation";
 import "../lib/admin";
 
@@ -221,7 +223,7 @@ async function revokeSubscription(
  * handler can find the right plan without an extra lookup.
  */
 export const playBillingRtdn = onMessagePublished(
-  { topic: "play-billing-rtdn" },
+  { topic: "play-billing-rtdn", secrets: [hostingerSmtpSecret] },
   async (event) => {
     // 1. Decode the DeveloperNotification envelope
     let notification: Record<string, unknown>;
@@ -299,6 +301,21 @@ export const playBillingRtdn = onMessagePublished(
             category: "PACKAGE_ACTIVATED",
             targetTab: "owner_hub",
           });
+          try {
+            const db = getFirestore();
+            const userSnap = await db.collection("user_profiles").doc(uid).get();
+            const userData = userSnap.data();
+            if (userData?.email) {
+              const ctx: UserContext = {
+                fullName: userData.fullName ?? "Member",
+                email: userData.email,
+                role: "PRO_HOST",
+                activeListingCount: (userData.activeListingCount ?? 0) as number,
+              };
+              const tpl = subscriptionActivatedTemplate(ctx, productId);
+              await sendEmail({ to: userData.email, ...tpl });
+            }
+          } catch (_) { /* email is best-effort */ }
         } else {
           logger.warn(`playBillingRtdn: type=${notificationType} has no expiryTimeMillis, skipping grant`);
         }
@@ -311,6 +328,21 @@ export const playBillingRtdn = onMessagePublished(
             category: "PACKAGE_RENEWED",
             targetTab: "owner_hub",
           });
+          try {
+            const db = getFirestore();
+            const userSnap = await db.collection("user_profiles").doc(uid).get();
+            const userData = userSnap.data();
+            if (userData?.email) {
+              const ctx: UserContext = {
+                fullName: userData.fullName ?? "Member",
+                email: userData.email,
+                role: "PRO_HOST",
+              };
+              const expiryDate = new Date(expiryMs).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+              const tpl = subscriptionRenewedTemplate(ctx, productId, expiryDate);
+              await sendEmail({ to: userData.email, ...tpl });
+            }
+          } catch (_) { /* email is best-effort */ }
         } else {
           logger.warn(`playBillingRtdn: type=${notificationType} has no expiryTimeMillis, skipping grant`);
         }

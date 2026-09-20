@@ -329,6 +329,24 @@ class ProHostViewModel(
         }
     }
 
+    fun sendInquiryEmail(context: android.content.Context, spaceId: String, message: String) {
+        viewModelScope.launch {
+            val result = functionsClient.sendInquiryEmail(spaceId, message)
+            val msg = if (result.isSuccess) {
+                "Inquiry sent to the space owner."
+            } else {
+                val err = result.exceptionOrNull()?.message ?: "Unknown error"
+                when {
+                    err.contains("resource-exhausted", ignoreCase = true) ->
+                        "You've reached the daily inquiry limit (3 per day). Try again tomorrow."
+                    err.contains("not-found", ignoreCase = true) -> "Listing not found."
+                    else -> "Could not send inquiry: $err"
+                }
+            }
+            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
     fun launchGooglePaySubscription(
         activity: android.app.Activity,
         productId: String

@@ -141,6 +141,9 @@ fun SpaceDetailsScreenContent(
     val currentUser by viewModel.currentUser.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showShareMenu by remember { mutableStateOf(false) }
+    var showInquiryDialog by remember { mutableStateOf(false) }
+    var inquiryMessage by remember { mutableStateOf("") }
+    var isSendingInquiry by remember { mutableStateOf(false) }
     var showAvailabilityPanel by remember { mutableStateOf(false) }
     // The slot a specialist has tapped inside the Check Availability sheet —
     // driving the "Send Request" bar and the confirm popup below. Cleared
@@ -300,6 +303,25 @@ fun SpaceDetailsScreenContent(
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1
                                 )
+                            }
+
+                            // Email Inquiry Button (only for non-owner authenticated users)
+                            if (currentUserRole != null && liveSpace.ownerId != currentUser?.id) {
+                                OutlinedButton(
+                                    onClick = { showInquiryDialog = true },
+                                    shape = MaterialTheme.shapes.medium,
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)
+                                ) {
+                                    Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        "Email",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1
+                                    )
+                                }
                             }
                         }
                     }
@@ -1247,6 +1269,52 @@ fun SpaceDetailsScreenContent(
             },
             dismissButton = {
                 TextButton(onClick = { showSendConfirm = false }, enabled = !isSendingSlotRequest) { Text("Cancel") }
+            }
+        )
+    }
+
+    // Email Inquiry Dialog
+    if (showInquiryDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!isSendingInquiry) { showInquiryDialog = false; inquiryMessage = "" } },
+            title = { Text("Email the Host") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Your message will be sent to the space owner by email. They can reply directly to you.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = inquiryMessage,
+                        onValueChange = { inquiryMessage = it },
+                        label = { Text("Message") },
+                        placeholder = { Text("Hi, I'm interested in your space…") },
+                        minLines = 4,
+                        maxLines = 8,
+                        enabled = !isSendingInquiry,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        isSendingInquiry = true
+                        viewModel.sendInquiryEmail(context, liveSpace.id, inquiryMessage)
+                        showInquiryDialog = false
+                        inquiryMessage = ""
+                        isSendingInquiry = false
+                    },
+                    enabled = inquiryMessage.trim().length >= 5 && !isSendingInquiry
+                ) {
+                    Text("Send")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showInquiryDialog = false; inquiryMessage = "" }, enabled = !isSendingInquiry) {
+                    Text("Cancel")
+                }
             }
         )
     }

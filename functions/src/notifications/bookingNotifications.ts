@@ -1,5 +1,15 @@
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 import { sendPushToUser } from "../lib/push";
+import { sendEmail, hostingerSmtpSecret } from "../lib/email";
+import {
+  newBookingRequestTemplate,
+  bookingAcceptedTemplate,
+  bookingRejectedTemplate,
+  UserContext,
+  BookingContext,
+} from "../lib/emailTemplates";
+import "../lib/admin";
 
 /**
  * Real cross-device push the moment a Specialist fires a booking request — the
@@ -9,7 +19,7 @@ import { sendPushToUser } from "../lib/push";
  * Firestore listener. This is the server side that was missing.
  */
 export const onBookingRequestCreated = onDocumentCreated(
-  "booking_requests/{bookingId}",
+  { document: "booking_requests/{bookingId}", secrets: [hostingerSmtpSecret] },
   async (event) => {
     const booking = event.data?.data();
     if (!booking) return;
@@ -24,6 +34,29 @@ export const onBookingRequestCreated = onDocumentCreated(
         bookingId: event.params.bookingId,
       }
     );
+
+    try {
+      const db = getFirestore();
+      const ownerSnap = await db.collection("user_profiles").doc(booking.ownerId).get();
+      const ownerData = ownerSnap.data();
+      if (ownerData?.email) {
+        const ownerCtx: UserContext = {
+          fullName: ownerData.fullName ?? "Host",
+          email: ownerData.email,
+          role: (ownerData.role ?? "PRO_HOST") as UserContext["role"],
+        };
+        const bookingCtx: BookingContext = {
+          bookingId: event.params.bookingId,
+          listingTitle: booking.spaceTitle ?? "your workspace",
+          specialistName: booking.practitionerName ?? "A specialist",
+          ownerName: booking.ownerName ?? ownerData.fullName ?? "Host",
+          dateRange: booking.selectedDateTimeRange ?? "",
+          totalUsd: (booking.totalAmount ?? booking.totalUsd ?? 0) as number,
+        };
+        const tpl = newBookingRequestTemplate(ownerCtx, bookingCtx);
+        await sendEmail({ to: ownerData.email, ...tpl });
+      }
+    } catch (_) { /* email is best-effort */ }
   }
 );
 
@@ -32,7 +65,7 @@ export const onBookingRequestCreated = onDocumentCreated(
  * accept/reject in real time too, not just whenever they next open the app.
  */
 export const onBookingRequestStatusChanged = onDocumentUpdated(
-  "booking_requests/{bookingId}",
+  { document: "booking_requests/{bookingId}", secrets: [hostingerSmtpSecret] },
   async (event) => {
     const before = event.data?.before?.data();
     const after = event.data?.after?.data();
@@ -50,6 +83,28 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
           bookingId: event.params.bookingId,
         }
       );
+      try {
+        const db = getFirestore();
+        const practSnap = await db.collection("user_profiles").doc(after.practitionerId).get();
+        const practData = practSnap.data();
+        if (practData?.email) {
+          const specialistCtx: UserContext = {
+            fullName: practData.fullName ?? "Specialist",
+            email: practData.email,
+            role: (practData.role ?? "SPECIALIST") as UserContext["role"],
+          };
+          const bookingCtx: BookingContext = {
+            bookingId: event.params.bookingId,
+            listingTitle: after.spaceTitle ?? "the workspace",
+            specialistName: practData.fullName ?? after.practitionerName ?? "Specialist",
+            ownerName: after.ownerName ?? "Host",
+            dateRange: after.selectedDateTimeRange ?? "",
+            totalUsd: (after.totalAmount ?? after.totalUsd ?? 0) as number,
+          };
+          const tpl = bookingAcceptedTemplate(specialistCtx, bookingCtx);
+          await sendEmail({ to: practData.email, ...tpl });
+        }
+      } catch (_) { /* email is best-effort */ }
     } else if (after.status === "REJECTED") {
       await sendPushToUser(
         after.practitionerId,
@@ -61,6 +116,28 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
           bookingId: event.params.bookingId,
         }
       );
+      try {
+        const db = getFirestore();
+        const practSnap = await db.collection("user_profiles").doc(after.practitionerId).get();
+        const practData = practSnap.data();
+        if (practData?.email) {
+          const specialistCtx: UserContext = {
+            fullName: practData.fullName ?? "Specialist",
+            email: practData.email,
+            role: (practData.role ?? "SPECIALIST") as UserContext["role"],
+          };
+          const bookingCtx: BookingContext = {
+            bookingId: event.params.bookingId,
+            listingTitle: after.spaceTitle ?? "the workspace",
+            specialistName: practData.fullName ?? after.practitionerName ?? "Specialist",
+            ownerName: after.ownerName ?? "Host",
+            dateRange: after.selectedDateTimeRange ?? "",
+            totalUsd: (after.totalAmount ?? after.totalUsd ?? 0) as number,
+          };
+          const tpl = bookingRejectedTemplate(specialistCtx, bookingCtx);
+          await sendEmail({ to: practData.email, ...tpl });
+        }
+      } catch (_) { /* email is best-effort */ }
     } else if (after.status === "CANCELLED" && before.status === "ACCEPTED") {
       // Early termination (ProSpaceRepository.cancelAcceptedBooking) — notify
       // whichever side didn't initiate it. cancelledByRole is stamped by that
