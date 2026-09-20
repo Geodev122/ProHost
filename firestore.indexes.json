@@ -6,7 +6,32 @@
       "fields": [
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "isOwnerSuspended", "order": "ASCENDING" },
+        { "fieldPath": "isOwnerPackageLapsed", "order": "ASCENDING" },
+        { "fieldPath": "isOwnerIdRejected", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "workspace_listings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerId", "order": "ASCENDING" },
         { "fieldPath": "isOwnerPackageLapsed", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "workspace_listings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerId", "order": "ASCENDING" },
+        { "fieldPath": "isOwnerIdRejected", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "booking_requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "spaceId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
       ]
     }
   ],

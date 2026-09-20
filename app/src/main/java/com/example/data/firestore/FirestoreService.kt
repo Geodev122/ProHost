@@ -182,6 +182,7 @@ class FirestoreService(
                     .whereEqualTo("status", "ACTIVE")
                     .whereEqualTo("isOwnerSuspended", false)
                     .whereEqualTo("isOwnerPackageLapsed", false)
+                    .whereEqualTo("isOwnerIdRejected", false)
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
                             Log.w(TAG, "Public workspaces sync note: ${error.message}")
@@ -1120,5 +1121,19 @@ class FirestoreService(
             timestamp = System.currentTimeMillis(),
             checks = checks
         )
+    }
+
+    /** One-shot read of the full id_review_queue collection — admin-only. */
+    suspend fun loadIdReviewQueue(): List<IdReviewEntry> {
+        return try {
+            val db = firestore ?: return emptyList()
+            val snap = db.collection(IdReviewEntry.COLLECTION_PATH).get().await()
+            snap.documents.mapNotNull { doc ->
+                doc.data?.let { IdReviewEntry.fromFirestoreMap(doc.id, it) }
+            }.sortedByDescending { it.submittedAt }
+        } catch (e: Exception) {
+            Log.e(TAG, "loadIdReviewQueue failed: ${e.message}", e)
+            emptyList()
+        }
     }
 }

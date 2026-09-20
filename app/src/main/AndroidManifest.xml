@@ -91,6 +91,21 @@
                     android:scheme="prohost"
                     android:host="payment" />
             </intent-filter>
+
+            <!-- Email verification return link: prohost://verify-email/success
+                 The verifyEmailLink Cloud Function (functions/src/auth/emailVerification.ts)
+                 redirects to this URI on successful JWT verification so the app can
+                 show the user a confirmation and refresh their KYC level. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="prohost"
+                    android:host="verify-email" />
+            </intent-filter>
         </activity>
 
         <service

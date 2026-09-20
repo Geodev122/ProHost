@@ -117,6 +117,7 @@ service cloud.firestore {
       allow read: if (
         isSignedIn() &&
         resource.data.get('isOwnerSuspended', false) == false &&
+        resource.data.get('isOwnerIdRejected', false) == false &&
         resource.data.get('status', 'ACTIVE') == 'ACTIVE'
       ) ||
         isAdmin() ||
@@ -149,7 +150,10 @@ service cloud.firestore {
               (get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.get('idDocumentUrl', null) != null))) &&
         // Same "can't start inflated" reasoning as isVerified above —
         // favoriteCount only ever grows via the onUserFavoritesChanged trigger.
-        (isAdmin() || request.resource.data.get('favoriteCount', 0) == 0);
+        (isAdmin() || request.resource.data.get('favoriteCount', 0) == 0) &&
+        // isOwnerIdRejected is set exclusively by reviewIdDocument.ts (Admin SDK)
+        // on rejection — a client create must start as false.
+        (isAdmin() || request.resource.data.get('isOwnerIdRejected', false) == false);
 
       // isVerified / isActiveSubscription / subscriptionExpiryMillis are
       // money- and verification-status fields — only setListingVerification /
@@ -169,7 +173,7 @@ service cloud.firestore {
         (
           (isAdmin() || (role() == "PRO_HOST" && resource.data.ownerId == request.auth.uid)) &&
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-            ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended", "isOwnerPackageLapsed", "ownerIsIdVerified", "favoriteCount"]
+            ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended", "isOwnerPackageLapsed", "isOwnerIdRejected", "ownerIsIdVerified", "favoriteCount"]
           ) &&
           // Publishing a Draft or resuming a Paused listing (status -> ACTIVE)
           // is the moment it starts consuming the host's quota — gate that
@@ -270,13 +274,22 @@ service cloud.firestore {
       // Cloud Function) — blocking direct client writes prevents a client from computing
       // their own SHA-256 hash and overwriting the server-stored hash with a PIN they chose
       // outside the verified OTP flow.
+      // kycLevel: recomputeKycLevel.ts Firestore trigger (Admin SDK) — a client-writable
+      // counter would let users self-upgrade their KYC tier.
+      // emailVerified/emailVerifiedAt: verifyEmailLink HTTP function (Admin SDK) sets these
+      // after validating the HMAC-signed token; a client write would let anyone claim
+      // email-verified status without clicking the link.
+      // idDocumentUrl/idDocumentVerificationStatus: submitIdDocument + reviewIdDocument
+      // Cloud Functions own these entirely — client can't self-assert ID verified status.
       allow update: if (isOwner(userId) || isAdmin()) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
           ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
            "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount",
            "tosAcceptedAtMillis", "consentVersion",
            "pinHash", "pinSalt", "pinSetAtMillis",
-           "pinFailedAttempts", "pinLockedUntilMillis"]
+           "pinFailedAttempts", "pinLockedUntilMillis",
+           "kycLevel", "emailVerified", "emailVerifiedAt",
+           "idDocumentUrl", "idDocumentVerificationStatus", "idDocumentSubmittedAt", "idDocumentReviewedAt"]
         );
 
       allow delete: if isAdmin();
@@ -417,6 +430,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // inquiry_rate_limits — server-only; written exclusively by the
+    // sendInquiryEmail Cloud Function via Admin SDK (bypasses rules).
+    // ---------------------------------------------------------------
+    match /inquiry_rate_limits/{userId} {
+      allow read, write: if false;
+    }
+
     // ---------------------------------------------------------------
     // system_metadata — server-only (updatePricing Cloud Function is the
     // only writer; FirestoreService.initializeSchema, which would have
@@ -477,6 +497,17 @@ service cloud.firestore {
         allow create: if isAdmin();
         allow update, delete: if false;
       }
+    }
+
+    // ---------------------------------------------------------------
+    // id_review_queue — admin-only KYC review queue.
+    // Created / updated exclusively by submitIdDocument and reviewIdDocument
+    // Cloud Functions (Admin SDK). Admins read to work the review queue;
+    // nobody writes directly (all writes go through the Cloud Functions).
+    // ---------------------------------------------------------------
+    match /id_review_queue/{userId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // Default deny for anything not explicitly matched above.

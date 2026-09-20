@@ -2193,4 +2193,7 @@ ${_spaces.value.joinToString("\n") { sp ->
     // real payout flow (does Whish's API even support merchant-to-user transfers?
     // is this a manual settlement admins confirm, like most local integrations?) is
     // a product decision, not a security patch.
+
+    /** One-shot fetch of the KYC ID review queue for the Admin Console ID Review tab. */
+    suspend fun loadIdReviewQueue(): List<IdReviewEntry> = firestoreService.loadIdReviewQueue()
 }

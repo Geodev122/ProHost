@@ -4,6 +4,9 @@ import { getFirestore } from "firebase-admin/firestore";
 import { DEFAULT_ROLE, isAppRole } from "../lib/roles";
 import { recordAuditLog } from "../lib/auditLog";
 import { enforcePlayIntegrity } from "../lib/playIntegrity";
+import { hostingerSmtpSecret } from "../lib/email";
+import { emailVerificationSecret, sendEmailVerificationInternal } from "../auth/emailVerification";
+import * as logger from "firebase-functions/logger";
 import "../lib/admin";
 
 /**
@@ -110,8 +113,10 @@ async function validateRegistrationDraft(draft: RegistrationDraft, callerUid: st
   }
 }
 
-export const assignInitialRole = onCall(async (request) => {
-  const auth = request.auth;
+export const assignInitialRole = onCall(
+  { secrets: [hostingerSmtpSecret, emailVerificationSecret] },
+  async (request) => {
+    const auth = request.auth;
   if (!auth) {
     throw new HttpsError("unauthenticated", "Sign in required.");
   }
@@ -175,5 +180,13 @@ export const assignInitialRole = onCall(async (request) => {
     severity: "INFO",
   });
 
+  // Send email verification link on first-time registration (non-blocking — never fails the sign-in)
+  if (registration) {
+    sendEmailVerificationInternal(auth.uid).catch((e) =>
+      logger.warn("email_verification_send_failed", { uid: auth.uid, error: String(e) })
+    );
+  }
+
   return { role: DEFAULT_ROLE, assigned: true };
-});
+  }
+);

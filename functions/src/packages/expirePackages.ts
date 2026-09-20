@@ -5,6 +5,8 @@ import { logger } from "firebase-functions/v2";
 import { recordAuditLog } from "../lib/auditLog";
 import { sendPushToUser } from "../lib/push";
 import { setClaimsThenFirestore } from "../lib/roles";
+import { sendEmail, hostingerSmtpSecret } from "../lib/email";
+import { subscriptionExpiringTemplate, subscriptionExpiredTemplate, UserContext } from "../lib/emailTemplates";
 import "../lib/admin";
 
 /**
@@ -28,7 +30,7 @@ import "../lib/admin";
  * that's lapsed but not yet swept by this function is still correctly treated as
  * "no package" for publish-quota purposes in the meantime.
  */
-export const expirePackages = onSchedule("0 * * * *", async () => {
+export const expirePackages = onSchedule({ schedule: "0 * * * *", secrets: [hostingerSmtpSecret] }, async () => {
   const db = getFirestore();
   const now = Date.now();
 
@@ -59,6 +61,19 @@ export const expirePackages = onSchedule("0 * * * *", async () => {
           targetTab: "owner_subscriptions",
         }
       );
+      try {
+        if (data.email) {
+          const ctx: UserContext = {
+            fullName: data.fullName ?? "Member",
+            email: data.email as string,
+            role: "PRO_HOST",
+            activeListingCount: (data.activeListingCount ?? 0) as number,
+          };
+          const expiryDate = new Date(expiry).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+          const tpl = subscriptionExpiringTemplate(ctx, (data.ownerPackageId as string) ?? "Pro Host", daysLeft, expiryDate);
+          await sendEmail({ to: data.email as string, ...tpl });
+        }
+      } catch (_) { /* email is best-effort */ }
       await doc.ref.set({ expiryWarningSent: true }, { merge: true });
     }
     if (warningSnap.docs.length < 500) break;
@@ -122,6 +137,18 @@ export const expirePackages = onSchedule("0 * * * *", async () => {
             "Your ProHost package has expired and your Pro Host status was paused. Renew a package to restore it and your listings.",
             { category: "PACKAGE_EXPIRED", targetTab: "owner_subscriptions" }
           );
+          try {
+            const expiredData = doc.data();
+            if (expiredData?.email) {
+              const ctx: UserContext = {
+                fullName: expiredData.fullName ?? "Member",
+                email: expiredData.email as string,
+                role: "SPECIALIST",
+              };
+              const tpl = subscriptionExpiredTemplate(ctx);
+              await sendEmail({ to: expiredData.email as string, ...tpl });
+            }
+          } catch (_) { /* email is best-effort */ }
         } else {
           // Not currently PRO_HOST (e.g. already SPECIALIST with a stray expiry
           // value on file) — just clear the baseline, nothing to demote or hide.

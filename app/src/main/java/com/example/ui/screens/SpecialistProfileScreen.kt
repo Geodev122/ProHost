@@ -122,6 +122,15 @@ fun SpecialistProfileScreen(
                 currentPackage = user.ownerPackageId?.let { packagePlans.packages[it] }
             )
 
+            // KYC completion banner — shown for all non-ADMIN roles at levels 0–2
+            if (user.role != UserRole.ADMIN) {
+                com.example.ui.components.KycCompletionBanner(
+                    user = user,
+                    onResendVerificationEmail = { viewModel.resendEmailVerification(context) },
+                    onNavigateToIdUpload = { /* ID upload is in the Security ID section below — scroll to it */ }
+                )
+            }
+
             // "Become a Pro Host" upgrade CTA — only for SPECIALIST users
             if (user.role == UserRole.SPECIALIST) {
                 Surface(

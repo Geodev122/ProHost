@@ -141,6 +141,8 @@ fun SpaceDetailsScreenContent(
     val currentUser by viewModel.currentUser.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showShareMenu by remember { mutableStateOf(false) }
+    var showInquiryDialog by remember { mutableStateOf(false) }
+    var inquiryMessage by remember { mutableStateOf("") }
     var showAvailabilityPanel by remember { mutableStateOf(false) }
     // The slot a specialist has tapped inside the Check Availability sheet —
     // driving the "Send Request" bar and the confirm popup below. Cleared
@@ -300,6 +302,25 @@ fun SpaceDetailsScreenContent(
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1
                                 )
+                            }
+
+                            // Email Inquiry Button (only for non-owner authenticated users)
+                            if (currentUserRole != null && liveSpace.ownerId != currentUser?.id) {
+                                OutlinedButton(
+                                    onClick = { showInquiryDialog = true },
+                                    shape = MaterialTheme.shapes.medium,
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)
+                                ) {
+                                    Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        "Email",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1
+                                    )
+                                }
                             }
                         }
                     }
@@ -844,6 +865,11 @@ fun SpaceDetailsScreenContent(
         val user = currentUser
         val strategyType = slot.strategyType
         if (user == null || strategyType == null) return
+        // B4: KYC gate — require at least a profile picture before booking
+        if (user.kycLevel < 1) {
+            android.widget.Toast.makeText(context, "Please add a profile picture before making booking requests.", android.widget.Toast.LENGTH_LONG).show()
+            return
+        }
         isSendingSlotRequest = true
         coroutineScope.launch {
             val formula = SpaceCalculationUtils.representativeFormula(listOf(slot), BookingRecurrence.FLAT)
@@ -1242,6 +1268,49 @@ fun SpaceDetailsScreenContent(
             },
             dismissButton = {
                 TextButton(onClick = { showSendConfirm = false }, enabled = !isSendingSlotRequest) { Text("Cancel") }
+            }
+        )
+    }
+
+    // Email Inquiry Dialog
+    if (showInquiryDialog) {
+        AlertDialog(
+            onDismissRequest = { showInquiryDialog = false; inquiryMessage = "" },
+            title = { Text("Email the Host") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Your message will be sent to the space owner by email. They can reply directly to you.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = inquiryMessage,
+                        onValueChange = { inquiryMessage = it },
+                        label = { Text("Message") },
+                        placeholder = { Text("Hi, I'm interested in your space…") },
+                        minLines = 4,
+                        maxLines = 8,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.sendInquiryEmail(context, liveSpace.id, inquiryMessage)
+                        showInquiryDialog = false
+                        inquiryMessage = ""
+                    },
+                    enabled = inquiryMessage.trim().length >= 5
+                ) {
+                    Text("Send")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showInquiryDialog = false; inquiryMessage = "" }) {
+                    Text("Cancel")
+                }
             }
         )
     }

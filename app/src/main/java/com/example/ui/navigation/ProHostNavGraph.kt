@@ -118,9 +118,11 @@ fun ProHostAppRoot(
     deepLinkTab: String? = null,
     deepLinkBookingId: String? = null,
     deepLinkSpaceId: String? = null,
+    emailVerifiedDeepLink: Boolean = false,
     inAppUpdateManager: InAppUpdateManager? = null,
     viewModel: ProHostViewModel = viewModel()
 ) {
+    val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
     val currentUser by viewModel.currentUser.collectAsState()
     val drawerPackagePlans by viewModel.packagePlans.collectAsState()
     val deepLinkSpaces by viewModel.spaces.collectAsState()
@@ -201,6 +203,20 @@ fun ProHostAppRoot(
                 UserRole.SPECIALIST -> navigateTo("search_map")
                 null -> activeTabId = "auth"
             }
+        }
+    }
+
+    // Email verification deep link: prohost://verify-email/success — show a one-shot toast
+    // once the user is signed in, so they know their address is now verified.
+    val emailVerifiedConsumed = remember { mutableStateOf(false) }
+    LaunchedEffect(emailVerifiedDeepLink, currentUser?.id) {
+        if (emailVerifiedDeepLink && !emailVerifiedConsumed.value && currentUser != null) {
+            emailVerifiedConsumed.value = true
+            android.widget.Toast.makeText(
+                appContext,
+                "Email verified! Your account is now Level 2.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
         }
     }
 
@@ -695,6 +711,8 @@ private fun PinReauthOverlay(
     var pin by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var isVerifying by remember { mutableStateOf(false) }
+    // Brute-force lockout detected when server returns resource-exhausted (H2/A1)
+    var isLockedOut by remember { mutableStateOf(false) }
 
     Scaffold { padding ->
         Column(
@@ -713,11 +731,12 @@ private fun PinReauthOverlay(
             Spacer(modifier = Modifier.height(24.dp))
             OutlinedTextField(
                 value = pin,
-                onValueChange = { if (it.length <= 6 && it.all { c -> c.isDigit() }) pin = it },
+                onValueChange = { if (!isLockedOut && it.length <= 6 && it.all { c -> c.isDigit() }) pin = it },
                 label = { Text("PIN") },
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                 isError = error != null,
+                enabled = !isLockedOut,
                 supportingText = error?.let { msg -> { Text(msg, color = MaterialTheme.colorScheme.error) } },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
@@ -729,10 +748,17 @@ private fun PinReauthOverlay(
                     error = null
                     authViewModel.verifyPinForReauth(pin) { success, message ->
                         isVerifying = false
-                        if (success) onAuthenticated() else error = message ?: "Incorrect PIN"
+                        if (success) {
+                            onAuthenticated()
+                        } else {
+                            val msg = message ?: "Incorrect PIN"
+                            isLockedOut = msg.contains("Too many", ignoreCase = true) ||
+                                msg.contains("locked", ignoreCase = true)
+                            error = msg
+                        }
                     }
                 },
-                enabled = pin.length >= 4 && !isVerifying,
+                enabled = pin.length >= 4 && !isVerifying && !isLockedOut,
                 modifier = Modifier.fillMaxWidth()
             ) { Text(if (isVerifying) "Verifying..." else "Unlock") }
             Spacer(modifier = Modifier.height(8.dp))
