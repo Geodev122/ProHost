@@ -49,9 +49,9 @@ val ProHostSecondaryText = OxfordBlue.copy(alpha = 0.70f)
 
 val PremiumBackgroundGradient = Brush.verticalGradient(
     colors = listOf(
-        PureWhite,
-        LightGraySurface,
-        LightGray.copy(alpha = 0.40f)
+        OxfordBlueContainer.copy(alpha = 0.35f),   // #ECEFF4 at 35% — subtle navy tint at top
+        LightGraySurface,                           // clean mid-surface
+        LightGray.copy(alpha = 0.55f)              // slightly deeper at bottom
     )
 )
 

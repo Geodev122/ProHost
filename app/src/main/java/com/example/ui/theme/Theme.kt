@@ -36,12 +36,12 @@ private val LightColorScheme = lightColorScheme(
     tertiaryContainer = StatusSuccessContainer,
     onTertiaryContainer = StatusOnSuccessContainer,
 
-    background = PureWhite,
+    background = LightGraySurface,
     onBackground = CoolGray,
 
     surface = PureWhite,
     onSurface = CoolGray,
-    surfaceVariant = LightGraySurface,
+    surfaceVariant = OxfordBlueContainer,
     onSurfaceVariant = ProHostSecondaryText,
     surfaceTint = OxfordBlue,
     inverseSurface = CoolGrayDark,

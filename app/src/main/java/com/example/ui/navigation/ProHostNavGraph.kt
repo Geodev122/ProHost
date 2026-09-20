@@ -342,8 +342,8 @@ fun ProHostAppRoot(
                     modifier = Modifier
                         .fillMaxWidth(0.86f)
                         .widthIn(max = 320.dp),
-                    drawerContainerColor = MaterialTheme.colorScheme.surface,
-                    drawerTonalElevation = 4.dp
+                    drawerContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                    drawerTonalElevation = 0.dp
                 ) {
                     when (currentRole) {
                         UserRole.SPECIALIST, UserRole.PRO_HOST -> {

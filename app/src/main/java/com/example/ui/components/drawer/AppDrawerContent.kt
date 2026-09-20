@@ -98,11 +98,31 @@ fun SpecialistDrawerContent(
             .verticalScroll(rememberScrollState())
             .padding(Spacing.lg)
     ) {
-        DrawerIdentityCard(
-            user = currentUser,
-            currentPackage = currentUser?.ownerPackageId?.let { packagePlans.packages[it] },
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        // Compact brand strip — identity card lives on the Profile page
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            ProHostCedarBadge()
+            Column {
+                Text(
+                    text = "ProHost",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = OxfordBlue
+                )
+                Text(
+                    text = currentUser?.fullName ?: "",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = CoolGray,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+            }
+        }
 
         if (isProHost) {
             Text(
@@ -148,30 +168,6 @@ fun SpecialistDrawerContent(
                     unselectedTextColor = CoolGray
                 )
             )
-        } else {
-            Surface(
-                onClick = { onTabSelected("owner_subscriptions") },
-                shape = MaterialTheme.shapes.medium,
-                color = FreshGreen,
-                shadowElevation = 3.dp,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = PureWhite)
-                    Text(
-                        text = "Become a Pro Host",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = PureWhite,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
-                }
-            }
         }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
@@ -267,10 +263,31 @@ fun AdminDrawerContent(
             .verticalScroll(rememberScrollState())
             .padding(Spacing.lg)
     ) {
-        DrawerIdentityCard(
-            user = currentUser,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        // Compact brand strip — identity card lives on the Profile page
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            ProHostCedarBadge()
+            Column {
+                Text(
+                    text = "ProHost",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = OxfordBlue
+                )
+                Text(
+                    text = currentUser?.fullName ?: "",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = CoolGray,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+            }
+        }
 
         Text(
             text = "CENTRAL SECURITY CORES",
