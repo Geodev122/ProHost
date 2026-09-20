@@ -159,6 +159,7 @@ dependencies {
   implementation(libs.firebase.functions)
   implementation(libs.firebase.appcheck.recaptcha)
   implementation(libs.firebase.appcheck.playintegrity)
+  debugImplementation(libs.firebase.appcheck.debug)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
   implementation(libs.kotlinx.serialization.json)

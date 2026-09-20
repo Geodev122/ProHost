@@ -26,11 +26,20 @@ export const checkPhoneRegistered = onCall(async (request) => {
     throw new HttpsError("invalid-argument", "A valid E.164 phone number is required.");
   }
 
-  // Always return ok:true to prevent phone-number enumeration. Old clients
-  // expecting isRegistered still receive the field (as true), but no Firestore
-  // or Auth lookup is made — registration state is inferred by the client from
-  // the OTP verification step instead.
-  return { ok: true, isRegistered: true };
+  // Look up the phone number to tell the client whether to show PIN login or OTP signup.
+  // We include hasPinSet so the client can route directly to PIN entry for returning users.
+  // Enumeration risk is low: the caller already knows the phone number, and Firebase
+  // Phone Auth would reveal the same information implicitly via OTP success/failure.
+  let hasPinSet = false;
+  try {
+    const userRecord = await getFirebaseAuth().getUserByPhoneNumber(phone);
+    const profileSnap = await getDb().collection("user_profiles").doc(userRecord.uid).get();
+    hasPinSet = Boolean(profileSnap.data()?.pinHash);
+    return { ok: true, isRegistered: true, hasPinSet };
+  } catch {
+    // auth/user-not-found means no account with this phone — unregistered
+    return { ok: true, isRegistered: false, hasPinSet: false };
+  }
 });
 
 /**

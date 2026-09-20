@@ -67,7 +67,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // shown.
 const CURRENT_CONSENT_VERSION = "September 6, 2026";
 
-function validateRegistrationDraft(draft: RegistrationDraft): void {
+async function validateRegistrationDraft(draft: RegistrationDraft, callerUid: string): Promise<void> {
   const fullName = typeof draft.fullName === "string" ? draft.fullName.trim() : "";
   if (fullName.length < 2 || fullName.length > 100) {
     throw new HttpsError("invalid-argument", "Full name must be between 2 and 100 characters.");
@@ -76,6 +76,19 @@ function validateRegistrationDraft(draft: RegistrationDraft): void {
   const email = typeof draft.email === "string" ? draft.email.trim() : "";
   if (!EMAIL_RE.test(email) || email.length > 200) {
     throw new HttpsError("invalid-argument", "A valid email address is required.");
+  }
+
+  // Email uniqueness: prevent two accounts from sharing the same email.
+  try {
+    const existing = await getAuth().getUserByEmail(email);
+    if (existing.uid !== callerUid) {
+      throw new HttpsError("already-exists", "An account with this email already exists.");
+    }
+  } catch (e: unknown) {
+    // getUserByEmail throws "auth/user-not-found" when no account has this email — that's fine.
+    if (e instanceof HttpsError) throw e;
+    const code = (e as { code?: string })?.code;
+    if (code !== "auth/user-not-found") throw e;
   }
 
   // idDocumentUrl is optional at the type level but required by the registration
@@ -106,7 +119,7 @@ export const assignInitialRole = onCall(async (request) => {
   const data = request.data as { registration?: RegistrationDraft; integrityToken?: unknown } | undefined;
   const registration = data?.registration;
   if (registration) {
-    validateRegistrationDraft(registration);
+    await validateRegistrationDraft(registration, auth.uid);
   }
 
   // Integrity is enforced when a token is present: UNRECOGNIZED_VERSION and UNLICENSED
@@ -144,11 +157,12 @@ export const assignInitialRole = onCall(async (request) => {
       isVerified,
       createdAtMillis: now,
       lastSignInAtMillis: now,
-      // Only stamped when a registration draft actually arrived (and, by this
-      // point, already passed validateRegistrationDraft's tosAccepted check) —
-      // left unset rather than fabricated for the rare path where an account
-      // gets its first role claim with no registration payload at all.
-      ...(registration ? { tosAcceptedAtMillis: now, consentVersion: CURRENT_CONSENT_VERSION } : {}),
+      // Only stamped on the FIRST registration (when the field doesn't exist yet).
+      // If completeVerifiedRegistration is retried after a network error, the
+      // original timestamp is preserved — we never overwrite a recorded consent.
+      ...(registration && !profileSnap.data()?.tosAcceptedAtMillis
+        ? { tosAcceptedAtMillis: now, consentVersion: CURRENT_CONSENT_VERSION }
+        : {}),
       updatedAt: now,
     },
     { merge: true }
