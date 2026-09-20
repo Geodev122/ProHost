@@ -65,6 +65,7 @@ fun OwnerHubScreen(
         val user = currentUser
         if (user != null) {
             spaces.filter { it.ownerId == user.id || user.role == UserRole.ADMIN }
+                .sortedByDescending { it.createdAtMillis ?: 0L }
         } else {
             emptyList()
         }
@@ -590,7 +591,7 @@ fun OwnerHubScreenContent(
         item {
             ProSectionHeader(
                 title = "My Listings (${ownerSpaces.size})",
-                subtitle = "Manage facilities, pricing formulas, and availability schedules",
+                subtitle = "Your listings & availability",
                 icon = Icons.Default.HomeWork
             )
         }
@@ -936,6 +937,16 @@ fun OwnerHubScreenContent(
                     }
                 }
             }
+        }
+        FloatingActionButton(
+            onClick = onOpenCreateListing,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 80.dp, end = 16.dp),
+            containerColor = CarnationOrange,
+            contentColor = Color.White
+        ) {
+            Icon(Icons.Default.Settings, contentDescription = "Listing Actions")
         }
     }
 }

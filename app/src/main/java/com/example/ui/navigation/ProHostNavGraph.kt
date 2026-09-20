@@ -1,5 +1,6 @@
 package com.example.ui.navigation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -11,6 +12,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.text.font.FontWeight
@@ -26,6 +29,8 @@ import com.example.ui.components.dialogs.DrawerDialogsHandler
 import com.example.ui.components.drawer.AdminDrawerContent
 import com.example.ui.components.drawer.SpecialistDrawerContent
 import com.example.ui.screens.*
+import com.example.ui.theme.CarnationOrange
+import com.example.ui.theme.VibrantBlue
 import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.InAppUpdateManager
 import com.example.util.UpdateState
@@ -428,24 +433,66 @@ fun ProHostAppRoot(
                     // none at all for Admin (roleTabs is empty for that role) — only the
                     // top bar's menu icon (reopen the drawer) is offered either way.
                     if (detailedSpace == null && safeFullScreenDrawerTab == null && roleTabs.isNotEmpty()) {
-                        NavigationBar(
-                            tonalElevation = 6.dp,
-                            modifier = Modifier.testTag("bottom_navigation_bar")
-                        ) {
-                            roleTabs.forEach { tab ->
-                                val isSelected = activeTabId == tab.id
-                                NavigationBarItem(
-                                    selected = isSelected,
-                                    onClick = { activeTabId = tab.id },
-                                    icon = {
-                                        Icon(
-                                            imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                                            contentDescription = tab.title
+                        val roleAccentColor = if (currentRole == UserRole.PRO_HOST) CarnationOrange else VibrantBlue
+                        Column {
+                            // Glowing role-colored strip at the very top of the nav bar
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(2.dp)
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(
+                                                Color.Transparent,
+                                                roleAccentColor.copy(alpha = 0.6f),
+                                                roleAccentColor,
+                                                roleAccentColor.copy(alpha = 0.6f),
+                                                Color.Transparent
+                                            )
                                         )
-                                    },
-                                    label = { Text(tab.title, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
-                                    modifier = Modifier.testTag("nav_item_${tab.id}")
-                                )
+                                    )
+                            )
+                            // Soft glow bloom below the strip
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                roleAccentColor.copy(alpha = 0.14f),
+                                                Color.Transparent
+                                            )
+                                        )
+                                    )
+                            )
+                            NavigationBar(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                tonalElevation = 0.dp,
+                                modifier = Modifier.testTag("bottom_navigation_bar")
+                            ) {
+                                roleTabs.forEach { tab ->
+                                    val isSelected = activeTabId == tab.id
+                                    NavigationBarItem(
+                                        selected = isSelected,
+                                        onClick = { activeTabId = tab.id },
+                                        icon = {
+                                            Icon(
+                                                imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+                                                contentDescription = tab.title
+                                            )
+                                        },
+                                        label = { Text(tab.title, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            selectedIconColor = roleAccentColor,
+                                            selectedTextColor = roleAccentColor,
+                                            indicatorColor = roleAccentColor.copy(alpha = 0.12f),
+                                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
+                                        modifier = Modifier.testTag("nav_item_${tab.id}")
+                                    )
+                                }
                             }
                         }
                     }

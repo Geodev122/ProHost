@@ -477,6 +477,7 @@ fun LebanonMapCanvas(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
+                .background(Color.Black.copy(alpha = 0.10f))
                 .padding(bottom = Spacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -541,7 +542,7 @@ fun LebanonMapCanvas(
                                 },
                             shape = MaterialTheme.shapes.medium,
                             colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f) else MaterialTheme.colorScheme.surface
+                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.90f) else Color.White.copy(alpha = 0.90f)
                             )
                         ) {
                             Row(

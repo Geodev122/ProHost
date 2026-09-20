@@ -266,6 +266,18 @@ fun AdminConsoleScreen(
                     6 -> AdminRevenueScreen(adminViewModel = adminViewModel)
                 }
             }
+            if (uiState.selectedTab == 2) {
+                FloatingActionButton(
+                    onClick = { adminViewModel.setListingStatusFilter("ALL") },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 16.dp, end = 16.dp),
+                    containerColor = VibrantBlue,
+                    contentColor = Color.White
+                ) {
+                    Icon(Icons.Default.Settings, contentDescription = "Listing Filters")
+                }
+            }
         }
     }
 
@@ -475,7 +487,7 @@ private fun AdminRevenueTab(
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     ProSectionHeader(
                         title = "Packages Configuration",
-                        subtitle = "Create and edit Pro Host packages, and the Control Tag",
+                        subtitle = "Packages & Control Tag",
                         icon = Icons.Default.AdminPanelSettings
                     )
 
@@ -763,7 +775,7 @@ private fun AdminRevenueTab(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     ProSectionHeader(
                         title = "One-Click System Exports",
-                        subtitle = "Download instant CSV & JSON snapshots for auditing",
+                        subtitle = "CSV & JSON snapshots",
                         icon = Icons.Default.CloudDownload
                     )
 
@@ -818,7 +830,7 @@ private fun AdminUsersDirectoryTab(
                     ) {
                         ProSectionHeader(
                             title = "Users Governance Directory",
-                            subtitle = "Inspect, edit, verify, or remove user records",
+                            subtitle = "Manage user records",
                             icon = Icons.Default.People
                         )
 
@@ -1534,7 +1546,7 @@ private fun AdminOwnersAndPaymentsTab(
         item {
             ProSectionHeader(
                 title = "Live Audit Transactions (${uiState.filteredTransactions.size})",
-                subtitle = "Cryptographically signed checkout events with SHA-256 signatures",
+                subtitle = "Signed checkout events",
                 icon = Icons.AutoMirrored.Filled.ReceiptLong
             )
         }
@@ -1889,7 +1901,7 @@ private fun AdminSchemaArchitectureTab(
                     ) {
                         ProSectionHeader(
                             title = "Renting Formulas",
-                            subtitle = "Reference labels only — real per-listing pricing is configured in the listing wizard",
+                            subtitle = "Reference labels only",
                             icon = Icons.Default.Schedule
                         )
                         CustomButton(
@@ -2027,7 +2039,7 @@ private fun AdminSecurityAuditTab(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     ProSectionHeader(
                         title = "Legal Documents",
-                        subtitle = "Upload a new file to publish a new version — prior versions are kept, never overwritten",
+                        subtitle = "Upload to publish new version",
                         icon = Icons.Default.Gavel
                     )
                     data class LegalDocSlot(val docId: String, val title: String, val mimeType: String, val extension: String, val noPublishedCopyIsBlocking: Boolean)
