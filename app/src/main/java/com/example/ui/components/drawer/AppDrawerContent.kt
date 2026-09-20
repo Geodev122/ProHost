@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.data.model.AppUser
 import com.example.data.model.UserRole
 import com.example.ui.components.ProHostBrandLogo
@@ -130,6 +131,7 @@ fun SpecialistDrawerContent(
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = FreshGreen,
+                letterSpacing = 1.2.sp,
                 modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
             )
 
@@ -170,7 +172,11 @@ fun SpecialistDrawerContent(
             )
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = Spacing.lg),
+            thickness = 0.5.dp,
+            color = OxfordBlue.copy(alpha = 0.08f)
+        )
 
         // "PRACTICE RESOURCES" and "CONFIGURATION & SETTINGS" used to be two
         // separate sections for what's really one kind of destination — things a
@@ -182,6 +188,7 @@ fun SpecialistDrawerContent(
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = CarnationOrange,
+            letterSpacing = 1.2.sp,
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
 
@@ -294,6 +301,7 @@ fun AdminDrawerContent(
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = CoolGray,
+            letterSpacing = 1.2.sp,
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
 
@@ -321,7 +329,11 @@ fun AdminDrawerContent(
             )
         )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = Spacing.lg),
+            thickness = 0.5.dp,
+            color = OxfordBlue.copy(alpha = 0.08f)
+        )
 
         // Admin gets every Pro Host capability unconditionally — unlimited listings,
         // no package to buy (see ProHostRepository's admin bypass) — so these route
@@ -331,6 +343,7 @@ fun AdminDrawerContent(
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = OxfordBlue,
+            letterSpacing = 1.2.sp,
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
 
@@ -375,13 +388,18 @@ fun AdminDrawerContent(
             icon = { Icon(Icons.Default.Analytics, contentDescription = null, tint = if (activeTabId == "stats") CarnationOrange else OxfordBlue) }
         )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = Spacing.lg),
+            thickness = 0.5.dp,
+            color = OxfordBlue.copy(alpha = 0.08f)
+        )
 
         Text(
             text = "SYSTEM AUDIT & PRICING",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = OxfordBlue,
+            letterSpacing = 1.2.sp,
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
 

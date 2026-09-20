@@ -300,12 +300,17 @@ fun MyBookingsScreen(
         }
 
         // Main Bookings Content List
+        val roleAccent = when (currentUser?.role) {
+            UserRole.PRO_HOST -> CarnationOrange
+            UserRole.ADMIN -> BrightOrange
+            else -> VibrantBlue
+        }
         if (!hasLoadedBookingsOnce) {
             // The first Firestore snapshot hasn't arrived yet — without this, an
             // account with real bookings briefly showed "No bookings" before the
             // real list streamed in, indistinguishable from actually having none.
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = roleAccent)
             }
         } else if (filteredBookings.isEmpty()) {
             Box(
@@ -625,6 +630,12 @@ fun BookingReservationCard(
     onMarkPaid: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val statusAccent = when (booking.status) {
+        BookingRequestStatus.ACCEPTED -> FreshGreen
+        BookingRequestStatus.PENDING -> BrightOrange
+        BookingRequestStatus.CANCELLED -> CoolGray
+        BookingRequestStatus.REJECTED -> CrimsonRed
+    }
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -633,9 +644,16 @@ fun BookingReservationCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(statusAccent, RoundedCornerShape(topStart = 18.dp, bottomStart = 18.dp))
+            )
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .weight(1f)
                 .padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -885,6 +903,7 @@ fun BookingReservationCard(
                     }
                 }
             }
+        }
         }
     }
 }

@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -215,7 +216,7 @@ fun DiscoveryScreenContent(
             // List View
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else if (spaces.isEmpty()) {
                 ProEmptyState(
@@ -298,7 +299,17 @@ fun DiscoveryScreenContent(
     if (showFilterSheet) {
         ModalBottomSheet(
             onDismissRequest = { onSetFilterSheetVisible(false) },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            scrimColor = Color.Black.copy(alpha = 0.35f),
+            dragHandle = {
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 8.dp)
+                        .width(28.dp)
+                        .height(4.dp)
+                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f), RoundedCornerShape(2.dp))
+                )
+            }
         ) {
             Column(
                 modifier = Modifier

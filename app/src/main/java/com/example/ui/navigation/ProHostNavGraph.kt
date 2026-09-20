@@ -333,6 +333,7 @@ fun ProHostAppRoot(
         ModalNavigationDrawer(
             drawerState = drawerState,
             gesturesEnabled = detailedSpace == null,
+            scrimColor = Color.Black.copy(alpha = 0.35f),
             drawerContent = {
                 ModalDrawerSheet(
                     // Was a hard 310.dp — on narrow phones that alone ate most of the

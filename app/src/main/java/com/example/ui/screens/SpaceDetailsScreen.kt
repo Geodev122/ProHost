@@ -906,7 +906,17 @@ fun SpaceDetailsScreenContent(
                 showAvailabilityPanel = false
                 selectedAvailableSlot = null
             },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            scrimColor = Color.Black.copy(alpha = 0.35f),
+            dragHandle = {
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 8.dp)
+                        .width(28.dp)
+                        .height(4.dp)
+                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f), RoundedCornerShape(2.dp))
+                )
+            }
         ) {
             Column(
                 modifier = Modifier

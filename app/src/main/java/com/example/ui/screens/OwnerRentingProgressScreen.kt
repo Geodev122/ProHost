@@ -262,7 +262,7 @@ fun OwnerRentingProgressScreenContent(
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.lg),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = CarnationOrange)
                 }
             }
         } else if (activeBookings.isEmpty()) {

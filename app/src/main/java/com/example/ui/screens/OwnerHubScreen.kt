@@ -615,8 +615,23 @@ fun OwnerHubScreenContent(
                 val totalH = dailyH * totalOperatingDays
                 val openH = (totalH - rentedH - blackoutH).coerceAtLeast(0)
 
-                ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                val statusAccent = when (space.status) {
+                    ListingStatus.ACTIVE -> FreshGreen
+                    ListingStatus.DRAFT -> MaterialTheme.colorScheme.onSurfaceVariant
+                    ListingStatus.PAUSED -> BrightOrange
+                }
+                ProSurfaceCard(contentPadding = PaddingValues(0.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Box(
+                            modifier = Modifier
+                                .width(4.dp)
+                                .fillMaxHeight()
+                                .background(statusAccent, RoundedCornerShape(topStart = 18.dp, bottomStart = 18.dp))
+                        )
+                        Column(
+                            modifier = Modifier.weight(1f).padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -933,6 +948,7 @@ fun OwnerHubScreenContent(
                                     Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Listing", tint = MaterialTheme.colorScheme.error)
                                 }
                             }
+                        }
                         }
                     }
                 }

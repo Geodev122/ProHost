@@ -690,7 +690,7 @@ private fun AdminRevenueTab(
                                             }
                                         }
                                         if (isFetchingPlay) {
-                                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = BrightOrange)
                                         } else {
                                             TextButton(
                                                 onClick = {

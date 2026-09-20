@@ -2,7 +2,14 @@ package com.example.ui.components
 
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -235,6 +242,13 @@ fun ProSectionHeader(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.weight(1f, fill = false)
         ) {
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height(20.dp)
+                    .background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(2.dp))
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             if (icon != null) {
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer,
@@ -302,6 +316,13 @@ fun ProMetricTile(
         border = BorderStroke(1.dp, borderColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(iconTint)
+            )
         Column(
             modifier = Modifier.padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -344,6 +365,7 @@ fun ProMetricTile(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
         }
     }
 }
@@ -1667,6 +1689,42 @@ fun ProHostTopAppBar(
             }
         }
     }
+}
+
+/**
+ * Animated shimmer placeholder for lists loading their first snapshot.
+ * Shows a sweeping highlight across a card-shaped box to replace blank→content flash.
+ */
+@Composable
+fun ShimmerLoadingCard(
+    modifier: Modifier = Modifier,
+    height: Dp = 80.dp
+) {
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val translateAnim by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1200f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing)
+        ),
+        label = "shimmer_translate"
+    )
+    val shimmerBrush = Brush.horizontalGradient(
+        colors = listOf(
+            LightGray,
+            PureWhite.copy(alpha = 0.90f),
+            LightGray
+        ),
+        startX = translateAnim - 600f,
+        endX = translateAnim + 600f
+    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(MaterialTheme.shapes.large)
+            .background(shimmerBrush)
+    )
 }
 
 /**

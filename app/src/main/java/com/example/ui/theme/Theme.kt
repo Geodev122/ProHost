@@ -39,7 +39,7 @@ private val LightColorScheme = lightColorScheme(
     background = LightGraySurface,
     onBackground = CoolGray,
 
-    surface = PureWhite,
+    surface = LightGraySurface,
     onSurface = CoolGray,
     surfaceVariant = OxfordBlueContainer,
     onSurfaceVariant = ProHostSecondaryText,

@@ -10,6 +10,7 @@ import android.location.Location
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -94,13 +95,22 @@ private fun getMarkerPalette(space: SpaceListing, isSelected: Boolean): MarkerPa
 
 private fun createCustomMarker(context: Context, space: SpaceListing, isSelected: Boolean): BitmapDescriptor {
     val scale = context.resources.displayMetrics.density
-    val width = (36 * scale).toInt() // Reduced by 50%
-    val height = (54 * scale).toInt() // Reduced by 50%
+    val pinScale = if (isSelected) 1.25f else 1.0f
+    val width = (36 * scale * pinScale).toInt()
+    val height = (54 * scale * pinScale).toInt()
     val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
 
     // Scale canvas to match SVG 200x300 viewBox
     canvas.scale(width / 200f, height / 300f)
+
+    // Ground shadow — drawn first so the pin renders on top
+    val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = android.graphics.Color.argb(55, 0, 0, 0)
+        maskFilter = android.graphics.BlurMaskFilter(10f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+    }
+    canvas.drawOval(android.graphics.RectF(65f, 248f, 135f, 265f), shadowPaint)
 
     val palette = getMarkerPalette(space, isSelected)
     val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -325,7 +335,7 @@ fun LebanonMapCanvas(
             shape = CircleShape
         ) {
             if (isLocating) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = VibrantBlue)
             } else {
                 Icon(Icons.Default.MyLocation, contentDescription = "High-Accuracy GPS Locate")
             }
@@ -529,6 +539,7 @@ fun LebanonMapCanvas(
                         val minPrice = lowestPrice.amount
                         val minUnit = lowestPrice.unitLabel
 
+                        val typePalette = getMarkerPalette(space, false)
                         Card(
                             modifier = Modifier
                                 .width(260.dp)
@@ -543,7 +554,8 @@ fun LebanonMapCanvas(
                             shape = MaterialTheme.shapes.medium,
                             colors = CardDefaults.cardColors(
                                 containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.90f) else Color.White.copy(alpha = 0.90f)
-                            )
+                            ),
+                            border = if (isSelected) BorderStroke(2.dp, Color(typePalette.baseColor)) else null
                         ) {
                             Row(
                                 modifier = Modifier.padding(10.dp),
