@@ -3,7 +3,7 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { DEFAULT_ROLE, isAppRole } from "../lib/roles";
 import { recordAuditLog } from "../lib/auditLog";
-import { checkPlayIntegrityLogOnly } from "../lib/playIntegrity";
+import { enforcePlayIntegrity } from "../lib/playIntegrity";
 import "../lib/admin";
 
 /**
@@ -109,14 +109,13 @@ export const assignInitialRole = onCall(async (request) => {
     validateRegistrationDraft(registration);
   }
 
-  // Awaited (not fire-and-forget — a Cloud Functions instance can freeze right
-  // after this handler returns, which would silently drop an un-awaited async
-  // call before its log line ever writes) but never allowed to throw or block
-  // sign-in — see checkPlayIntegrityLogOnly's own doc comment for the
-  // log-only design.
+  // Integrity is enforced when a token is present: UNRECOGNIZED_VERSION and UNLICENSED
+  // verdicts throw HttpsError("failed-precondition") so the sign-in is rejected.
+  // A missing token (no Play Services, test devices) is still allowed so a transient
+  // client-side failure doesn't permanently lock out real users.
   const integrityToken = typeof data?.integrityToken === "string" ? data.integrityToken : undefined;
   if (integrityToken) {
-    await checkPlayIntegrityLogOnly(integrityToken, auth.uid);
+    await enforcePlayIntegrity(integrityToken, auth.uid);
   }
 
   const db = getFirestore();

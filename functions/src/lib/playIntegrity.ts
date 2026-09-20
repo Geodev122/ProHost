@@ -1,4 +1,5 @@
 import * as logger from "firebase-functions/logger";
+import { HttpsError } from "firebase-functions/v2/https";
 import { adminApp } from "./admin";
 
 // Matches app/build.gradle.kts's applicationId.
@@ -6,20 +7,30 @@ const PACKAGE_NAME = "app.geonajjar.prohost";
 
 interface DecodedIntegrityToken {
   tokenPayloadExternal?: {
-    appIntegrity?: { appRecognitionVerdict?: string; packageName?: string; certificateSha256Digest?: string[] };
+    appIntegrity?: {
+      appRecognitionVerdict?: string;
+      packageName?: string;
+      certificateSha256Digest?: string[];
+    };
     deviceIntegrity?: { deviceRecognitionVerdict?: string[] };
     accountDetails?: { appLicensingVerdict?: string };
-    environmentDetails?: { playProtectVerdict?: string; appAccessRiskVerdict?: { appsDetected?: string[] } };
+    environmentDetails?: {
+      playProtectVerdict?: string;
+      appAccessRiskVerdict?: { appsDetected?: string[] };
+    };
   };
 }
 
-export async function checkPlayIntegrityLogOnly(token: string, uid: string): Promise<void> {
+async function decodeIntegrityToken(
+  token: string,
+  uid: string
+): Promise<DecodedIntegrityToken | null> {
   try {
     const credential = adminApp.options.credential;
     const accessToken = await credential?.getAccessToken();
     if (!accessToken) {
       logger.warn("play_integrity_check_skipped", { uid, reason: "no_access_token" });
-      return;
+      return null;
     }
 
     const response = await fetch(
@@ -35,38 +46,149 @@ export async function checkPlayIntegrityLogOnly(token: string, uid: string): Pro
     );
 
     if (!response.ok) {
-      logger.warn("play_integrity_check_failed", { uid, status: response.status, statusText: response.statusText });
-      return;
-    }
-
-    const decoded = (await response.json()) as DecodedIntegrityToken;
-    const appVerdict = decoded.tokenPayloadExternal?.appIntegrity?.appRecognitionVerdict;
-    const deviceVerdicts = decoded.tokenPayloadExternal?.deviceIntegrity?.deviceRecognitionVerdict || [];
-    const licensingVerdict = decoded.tokenPayloadExternal?.accountDetails?.appLicensingVerdict;
-    const playProtectVerdict = decoded.tokenPayloadExternal?.environmentDetails?.playProtectVerdict;
-
-    const meetsDeviceIntegrity = deviceVerdicts.includes("MEETS_DEVICE_INTEGRITY") || deviceVerdicts.includes("MEETS_STRONG_INTEGRITY");
-
-    logger.info("play_integrity_evaluation", {
-      uid,
-      appVerdict,
-      deviceVerdicts,
-      licensingVerdict,
-      playProtectVerdict,
-      meetsDeviceIntegrity,
-      isAuthenticPlayBinary: appVerdict === "PLAY_RECOGNIZED"
-    });
-
-    if (appVerdict !== "PLAY_RECOGNIZED" || !meetsDeviceIntegrity) {
-      logger.warn("play_integrity_verdict_anomaly", {
+      logger.warn("play_integrity_decode_failed", {
         uid,
-        appVerdict,
-        deviceVerdicts,
-        licensingVerdict,
-        playProtectVerdict
+        status: response.status,
+        statusText: response.statusText,
       });
+      return null;
     }
+
+    return (await response.json()) as DecodedIntegrityToken;
   } catch (e) {
-    logger.warn("play_integrity_check_error", { uid, error: e instanceof Error ? e.message : String(e) });
+    logger.warn("play_integrity_check_error", {
+      uid,
+      error: e instanceof Error ? e.message : String(e),
+    });
+    return null;
   }
+}
+
+/**
+ * Enforces Play Integrity verdicts matching the enabled checks in Play Console:
+ *
+ *   ON  — App integrity checks:   appRecognitionVerdict must be PLAY_RECOGNIZED or UNEVALUATED.
+ *                                  UNRECOGNIZED_VERSION (modified / unofficial binary) is blocked.
+ *   ON  — Play licence checks:    appLicensingVerdict UNLICENSED is blocked.
+ *                                  UNEVALUATED is allowed (first install, no Google account, etc.).
+ *   ON  — Virtual integrity:      logged only; MEETS_VIRTUAL_INTEGRITY = Play Games for PC —
+ *                                  not blocked because host owners on PC is a valid use case.
+ *   OFF — Device integrity:       logged for observability, never enforced.
+ *   OFF — Play Protect status:    logged for observability, never enforced.
+ *   OFF — App access risk:        logged for observability, never enforced.
+ *
+ * Decode failures (network errors, missing credentials) are non-fatal so a transient
+ * infrastructure issue never locks real users out. The absence of a token (e.g. on a
+ * device with no Play Services) is also allowed — the caller decides whether a token
+ * is required before calling this.
+ *
+ * Throws HttpsError("failed-precondition") when an enforced verdict fails.
+ */
+export async function enforcePlayIntegrity(token: string, uid: string): Promise<void> {
+  const decoded = await decodeIntegrityToken(token, uid);
+  if (!decoded) return; // decode failure is non-blocking
+
+  const payload = decoded.tokenPayloadExternal;
+  const appVerdict = payload?.appIntegrity?.appRecognitionVerdict;
+  const deviceVerdicts = payload?.deviceIntegrity?.deviceRecognitionVerdict ?? [];
+  const licensingVerdict = payload?.accountDetails?.appLicensingVerdict;
+  const playProtectVerdict = payload?.environmentDetails?.playProtectVerdict;
+  const appAccessRisk = payload?.environmentDetails?.appAccessRiskVerdict?.appsDetected ?? [];
+  const isVirtualEnv = deviceVerdicts.includes("MEETS_VIRTUAL_INTEGRITY");
+
+  logger.info("play_integrity_evaluation", {
+    uid,
+    appVerdict,
+    deviceVerdicts,
+    licensingVerdict,
+    playProtectVerdict,
+    appAccessRisk,
+    isVirtualEnv,
+  });
+
+  // Enforce app integrity (Play Console: App integrity checks ON).
+  // UNRECOGNIZED_VERSION = binary not in Play Store — modified or unofficial APK.
+  // UNEVALUATED = Play couldn't evaluate (first install, no account) — allowed with a warning.
+  if (appVerdict === "UNRECOGNIZED_VERSION") {
+    logger.warn("play_integrity_app_verdict_blocked", { uid, appVerdict });
+    throw new HttpsError(
+      "failed-precondition",
+      "App integrity check failed. Please install ProHost from the Google Play Store."
+    );
+  }
+  if (appVerdict !== "PLAY_RECOGNIZED" && appVerdict !== "UNEVALUATED") {
+    logger.warn("play_integrity_app_verdict_unknown", { uid, appVerdict });
+    throw new HttpsError(
+      "failed-precondition",
+      "App integrity check failed. Please install ProHost from the Google Play Store."
+    );
+  }
+  if (appVerdict === "UNEVALUATED") {
+    logger.info("play_integrity_app_unevaluated", { uid, note: "allowed during transition" });
+  }
+
+  // Enforce Play licence (Play Console: Play licence checks ON).
+  // UNLICENSED = not installed via Play Store for this account.
+  // UNEVALUATED = couldn't check — allowed (common on fresh installs before Play syncs).
+  if (licensingVerdict === "UNLICENSED") {
+    logger.warn("play_integrity_licence_blocked", { uid, licensingVerdict });
+    throw new HttpsError(
+      "failed-precondition",
+      "Licence check failed. Please install ProHost from the Google Play Store."
+    );
+  }
+
+  // Log device integrity (Play Console: Device integrity checks OFF — not enforced).
+  const meetsDeviceIntegrity =
+    deviceVerdicts.includes("MEETS_DEVICE_INTEGRITY") ||
+    deviceVerdicts.includes("MEETS_STRONG_INTEGRITY");
+  if (!meetsDeviceIntegrity && !isVirtualEnv && deviceVerdicts.length > 0) {
+    logger.info("play_integrity_device_not_enforced", {
+      uid,
+      deviceVerdicts,
+      note: "device integrity is OFF in Play Console",
+    });
+  }
+
+  // Log Play Games for PC / virtual environment (Play Console: Virtual integrity ON — logged only).
+  if (isVirtualEnv) {
+    logger.info("play_integrity_virtual_env", {
+      uid,
+      note: "request from Play Games for PC or virtual device — allowed",
+    });
+  }
+
+  // Log Play Protect & app access risk (Play Console: both OFF — not enforced).
+  if (playProtectVerdict && playProtectVerdict !== "NO_ISSUES") {
+    logger.info("play_integrity_play_protect_info", {
+      uid,
+      playProtectVerdict,
+      note: "Play Protect status is OFF in Play Console",
+    });
+  }
+  if (appAccessRisk.length > 0) {
+    logger.info("play_integrity_app_access_risk_info", {
+      uid,
+      appAccessRisk,
+      note: "app access risk is OFF in Play Console",
+    });
+  }
+}
+
+/**
+ * Decode-and-log only — no enforcement. Kept for callers still in observation mode
+ * or for testing new verdict categories before enabling enforcement.
+ */
+export async function checkPlayIntegrityLogOnly(token: string, uid: string): Promise<void> {
+  const decoded = await decodeIntegrityToken(token, uid);
+  if (!decoded) return;
+
+  const payload = decoded.tokenPayloadExternal;
+  logger.info("play_integrity_evaluation", {
+    uid,
+    appVerdict: payload?.appIntegrity?.appRecognitionVerdict,
+    deviceVerdicts: payload?.deviceIntegrity?.deviceRecognitionVerdict,
+    licensingVerdict: payload?.accountDetails?.appLicensingVerdict,
+    playProtectVerdict: payload?.environmentDetails?.playProtectVerdict,
+  });
 }
