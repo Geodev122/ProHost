@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import android.widget.Toast
@@ -210,7 +211,7 @@ fun OwnerSubscriptionsScreen(
                         Column {
                             Text("Days Until Renewal", style = MaterialTheme.typography.bodySmall, color = LightGray)
                             Text(
-                                remainingDays?.let { if (it == 0L || it == 0) "< 1 day" else "$it days" } ?: "—",
+                                remainingDays?.let { if (it == 0) "< 1 day" else "$it days" } ?: "—",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = PureWhite

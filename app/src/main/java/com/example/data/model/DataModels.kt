@@ -1501,11 +1501,9 @@ data class AppUser(
             "phone" to phone,
             "profilePictureUrl" to profilePictureUrl,
             "idDocumentUrl" to idDocumentUrl,
-            "proofOfOwnershipUrl" to proofOfOwnershipUrl,
             "country" to country,
             "governorate" to governorate,
             "city" to city,
-            "bio" to bio,
             "savedSpaceIds" to savedSpaceIds,
             "updatedAt" to System.currentTimeMillis()
         )
