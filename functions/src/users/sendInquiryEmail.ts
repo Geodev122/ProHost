@@ -31,21 +31,24 @@ export const sendInquiryEmail = onCall(
     const db = getFirestore();
     const now = Date.now();
 
-    // Rate limit: max 3 inquiries per 24h
+    // Rate limit: max 3 inquiries per 24h — use a transaction to prevent
+    // concurrent requests from bypassing the limit via a TOCTOU race.
     const rateLimitRef = db.collection("inquiry_rate_limits").doc(uid);
-    const rateLimitSnap = await rateLimitRef.get();
-    const rateData = rateLimitSnap.data();
-    if (rateData && rateData.windowStart && now - (rateData.windowStart as number) < WINDOW_MS) {
-      if ((rateData.count as number) >= MAX_INQUIRIES_PER_DAY) {
-        throw new HttpsError(
-          "resource-exhausted",
-          `You can send up to ${MAX_INQUIRIES_PER_DAY} inquiries per day. Try again tomorrow.`
-        );
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(rateLimitRef);
+      const rateData = snap.data();
+      if (rateData && rateData.windowStart && now - (rateData.windowStart as number) < WINDOW_MS) {
+        if ((rateData.count as number) >= MAX_INQUIRIES_PER_DAY) {
+          throw new HttpsError(
+            "resource-exhausted",
+            `You can send up to ${MAX_INQUIRIES_PER_DAY} inquiries per day. Try again tomorrow.`
+          );
+        }
+        tx.set(rateLimitRef, { count: (rateData.count as number) + 1 }, { merge: true });
+      } else {
+        tx.set(rateLimitRef, { count: 1, windowStart: now });
       }
-      await rateLimitRef.set({ count: (rateData.count as number) + 1 }, { merge: true });
-    } else {
-      await rateLimitRef.set({ count: 1, windowStart: now });
-    }
+    });
 
     // Look up the listing
     const spaceSnap = await db.collection("workspace_listings").doc(spaceId).get();

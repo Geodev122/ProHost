@@ -426,6 +426,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // inquiry_rate_limits — server-only; written exclusively by the
+    // sendInquiryEmail Cloud Function via Admin SDK (bypasses rules).
+    // ---------------------------------------------------------------
+    match /inquiry_rate_limits/{userId} {
+      allow read, write: if false;
+    }
+
     // ---------------------------------------------------------------
     // system_metadata — server-only (updatePricing Cloud Function is the
     // only writer; FirestoreService.initializeSchema, which would have

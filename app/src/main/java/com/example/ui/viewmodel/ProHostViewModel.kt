@@ -313,6 +313,7 @@ class ProHostViewModel(
     }
 
     fun resendEmailVerification(context: android.content.Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val result = functionsClient.resendEmailVerification()
             val msg = if (result.isSuccess) {
@@ -325,11 +326,12 @@ class ProHostViewModel(
                     else -> "Could not send email: $err"
                 }
             }
-            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+            android.widget.Toast.makeText(appContext, msg, android.widget.Toast.LENGTH_LONG).show()
         }
     }
 
     fun sendInquiryEmail(context: android.content.Context, spaceId: String, message: String) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val result = functionsClient.sendInquiryEmail(spaceId, message)
             val msg = if (result.isSuccess) {
@@ -343,7 +345,7 @@ class ProHostViewModel(
                     else -> "Could not send inquiry: $err"
                 }
             }
-            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+            android.widget.Toast.makeText(appContext, msg, android.widget.Toast.LENGTH_LONG).show()
         }
     }
 
@@ -539,6 +541,7 @@ class ProHostViewModel(
 
     /** Bounded polling fallback in case the server-to-server webhook is slow/missed. */
     private fun pollWhishPaymentStatus(txId: String, purpose: String, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             repeat(24) {
                 kotlinx.coroutines.delay(5000)
@@ -547,10 +550,10 @@ class ProHostViewModel(
                     if (purpose == "OWNER_PACKAGE") {
                         refreshCurrentUserRoleAfterEntitlement()
                     }
-                    Toast.makeText(context, "Payment confirmed! Your entitlement is now active.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(appContext, "Payment confirmed! Your entitlement is now active.", Toast.LENGTH_LONG).show()
                     return@launch
                 } else if (status == "FAILED") {
-                    Toast.makeText(context, "Whish reported this payment did not complete.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(appContext, "Whish reported this payment did not complete.", Toast.LENGTH_LONG).show()
                     return@launch
                 }
             }
@@ -559,6 +562,7 @@ class ProHostViewModel(
 
     /** Manually triggered re-check, e.g. from a "Verify Payment" button in the UI. */
     fun checkWhishPaymentStatus(txId: String, purpose: String, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val status = functionsClient.checkWhishStatus(txId).getOrNull()
             if (status == "SUCCESS" && purpose == "OWNER_PACKAGE") {
@@ -569,7 +573,7 @@ class ProHostViewModel(
                 "FAILED" -> "Whish reported this payment did not complete."
                 else -> "Still waiting for Whish to confirm this payment."
             }
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            Toast.makeText(appContext, message, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -887,6 +891,7 @@ class ProHostViewModel(
             return
         }
 
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val (request, synced) = repository.createBookingRequest(
                 space = space,
@@ -907,7 +912,7 @@ class ProHostViewModel(
             )
 
             Toast.makeText(
-                context,
+                appContext,
                 if (synced) {
                     if (replacesBookingId != null) {
                         "Edit Request #${request.id} Sent! Your current booking stays active until the host approves this change."
@@ -936,12 +941,13 @@ class ProHostViewModel(
      * this device, so nothing needs to be posted here.
      */
     fun acceptBookingRequest(context: Context, requestId: String, agreementUri: Uri) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             // Refuse before the upload: accepting this would double-book a slot an
             // ACCEPTED booking already holds. Named so the host knows which one.
             repository.findAcceptConflict(requestId)?.let { clash ->
                 Toast.makeText(
-                    context,
+                    appContext,
                     "Can't accept #$requestId — it overlaps accepted booking #${clash.id} (${clash.practitionerName}, ${clash.selectedDateTimeRange}).",
                     Toast.LENGTH_LONG
                 ).show()
@@ -951,14 +957,14 @@ class ProHostViewModel(
             val ext = guessFileExtension(context, agreementUri, "pdf")
             val agreementUrl = storageService.uploadBookingAgreement(requestId, agreementUri, ext)
             if (agreementUrl == null) {
-                Toast.makeText(context, "Could not upload the agreement. Please try again.", Toast.LENGTH_LONG).show()
+                Toast.makeText(appContext, "Could not upload the agreement. Please try again.", Toast.LENGTH_LONG).show()
                 return@launch
             }
             val success = repository.acceptBookingRequest(requestId, agreementUrl)
             if (success) {
-                Toast.makeText(context, "Booking Request #$requestId ACCEPTED! Agreement saved.", Toast.LENGTH_LONG).show()
+                Toast.makeText(appContext, "Booking Request #$requestId ACCEPTED! Agreement saved.", Toast.LENGTH_LONG).show()
             } else {
-                Toast.makeText(context, "Could not finalize acceptance. Please try again.", Toast.LENGTH_LONG).show()
+                Toast.makeText(appContext, "Could not finalize acceptance. Please try again.", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -969,34 +975,37 @@ class ProHostViewModel(
      * host's own device's alert tray and never reached the specialist at all.
      */
     fun sendPaymentReminder(bookingId: String, practitionerName: String, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val result = functionsClient.sendPaymentReminder(bookingId)
             if (result.isSuccess) {
-                Toast.makeText(context, "Payment Reminder Sent to $practitionerName!", Toast.LENGTH_LONG).show()
+                Toast.makeText(appContext, "Payment Reminder Sent to $practitionerName!", Toast.LENGTH_LONG).show()
             } else {
-                Toast.makeText(context, "Could not send the reminder. Please try again.", Toast.LENGTH_LONG).show()
+                Toast.makeText(appContext, "Could not send the reminder. Please try again.", Toast.LENGTH_LONG).show()
             }
         }
     }
 
     fun rejectBookingRequest(requestId: String, note: String? = null, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.rejectBookingRequest(requestId, note)
             if (success) {
-                Toast.makeText(context, "Booking Request #${requestId} Declined. Space hours remain available.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(appContext, "Booking Request #${requestId} Declined. Space hours remain available.", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(context, "Could not decline the request — check your connection and try again.", Toast.LENGTH_LONG).show()
+                Toast.makeText(appContext, "Could not decline the request — check your connection and try again.", Toast.LENGTH_LONG).show()
             }
         }
     }
 
     fun cancelBookingRequest(requestId: String, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.cancelBookingRequest(requestId)
             if (success) {
-                Toast.makeText(context, "Booking Request #${requestId} Cancelled", Toast.LENGTH_SHORT).show()
+                Toast.makeText(appContext, "Booking Request #${requestId} Cancelled", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(context, "Could not cancel the request — check your connection and try again.", Toast.LENGTH_LONG).show()
+                Toast.makeText(appContext, "Could not cancel the request — check your connection and try again.", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -1014,6 +1023,7 @@ class ProHostViewModel(
         context: Context
     ) {
         val user = currentUser.value ?: return
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.cancelAcceptedBooking(
                 requestId = requestId,
@@ -1023,7 +1033,7 @@ class ProHostViewModel(
                 cancelledByRole = user.role.name
             )
             Toast.makeText(
-                context,
+                appContext,
                 if (success) "Booking cancelled. The other party has been notified." else "Could not cancel this booking — please try again.",
                 Toast.LENGTH_LONG
             ).show()
@@ -1032,10 +1042,11 @@ class ProHostViewModel(
 
     /** "Mark as Paid" — record-keeping only; asHost decides which side's own flag gets set. */
     fun acknowledgePayment(requestId: String, asHost: Boolean, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.acknowledgePayment(requestId, asHost)
             if (!success) {
-                Toast.makeText(context, "Couldn't save that — please try again.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(appContext, "Couldn't save that — please try again.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -1065,10 +1076,11 @@ class ProHostViewModel(
 
     /** Pause/Resume a published listing, or publish a Draft — see setListingStatus's doc comment. */
     fun setListingStatus(spaceId: String, status: ListingStatus, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.setListingStatus(spaceId, status)
             if (!success) {
-                Toast.makeText(context, "Couldn't update this listing — please try again.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(appContext, "Couldn't update this listing — please try again.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -1083,10 +1095,11 @@ class ProHostViewModel(
             endTime = endTime,
             reason = reason
         )
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.addBlackoutSlot(spaceId, slot)
             Toast.makeText(
-                context,
+                appContext,
                 if (success) "$dayOfWeek $startTime - $endTime is no longer offered" else "Couldn't switch that slot off — please try again",
                 Toast.LENGTH_SHORT
             ).show()
@@ -1094,10 +1107,11 @@ class ProHostViewModel(
     }
 
     fun removeBlackoutSlot(spaceId: String, slotId: String, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.removeBlackoutSlot(spaceId, slotId)
             Toast.makeText(
-                context,
+                appContext,
                 if (success) "Slot is back on offer" else "Couldn't switch that slot on — please try again",
                 Toast.LENGTH_SHORT
             ).show()
@@ -1125,10 +1139,11 @@ class ProHostViewModel(
             operatingDays = operatingDays,
             isSundayOperating = isSundayOperating
         )
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.updateSpaceSchedule(spaceId, updatedSchedule)
             Toast.makeText(
-                context,
+                appContext,
                 if (success) "Operating schedule updated!" else "Failed to update schedule — please try again",
                 Toast.LENGTH_SHORT
             ).show()
@@ -1162,10 +1177,11 @@ class ProHostViewModel(
             minHours = minHours,
             shiftName = shiftName
         )
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.addRentalFormula(spaceId, formula)
             Toast.makeText(
-                context,
+                appContext,
                 if (success) "New formula '${type.displayName}' added!" else "Failed to add formula — please try again",
                 Toast.LENGTH_SHORT
             ).show()
@@ -1173,10 +1189,11 @@ class ProHostViewModel(
     }
 
     fun deleteFormula(spaceId: String, formulaId: String, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.deleteRentalFormula(spaceId, formulaId)
             Toast.makeText(
-                context,
+                appContext,
                 if (success) "Rental formula deleted" else "Failed to delete formula — please try again",
                 Toast.LENGTH_SHORT
             ).show()
@@ -1185,19 +1202,21 @@ class ProHostViewModel(
 
     /** Adds one room/desk to an already-published listing — see SubdivisionEditorSection. */
     fun addSubdivision(spaceId: String, subdivision: Subdivision, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.addSubdivision(spaceId, subdivision)
             if (!success) {
-                Toast.makeText(context, "Couldn't add this room — please try again", Toast.LENGTH_SHORT).show()
+                Toast.makeText(appContext, "Couldn't add this room — please try again", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     fun removeSubdivision(spaceId: String, subdivisionId: String, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.removeSubdivision(spaceId, subdivisionId)
             if (!success) {
-                Toast.makeText(context, "Couldn't remove this room — please try again", Toast.LENGTH_SHORT).show()
+                Toast.makeText(appContext, "Couldn't remove this room — please try again", Toast.LENGTH_SHORT).show()
             }
         }
     }
