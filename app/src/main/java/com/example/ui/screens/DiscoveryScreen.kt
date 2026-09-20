@@ -299,7 +299,7 @@ fun DiscoveryScreenContent(
     if (showFilterSheet) {
         ModalBottomSheet(
             onDismissRequest = { onSetFilterSheetVisible(false) },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
             scrimColor = Color.Black.copy(alpha = 0.35f),
             dragHandle = {
                 Box(

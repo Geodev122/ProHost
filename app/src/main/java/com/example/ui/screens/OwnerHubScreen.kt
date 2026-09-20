@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.ContextWrapper
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -954,8 +956,12 @@ fun OwnerHubScreenContent(
                 }
             }
         }
+        val hubHaptic = LocalHapticFeedback.current
         FloatingActionButton(
-            onClick = onOpenCreateListing,
+            onClick = {
+                hubHaptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onOpenCreateListing()
+            },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 80.dp, end = 16.dp),

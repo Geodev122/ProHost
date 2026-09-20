@@ -906,7 +906,7 @@ fun SpaceDetailsScreenContent(
                 showAvailabilityPanel = false
                 selectedAvailableSlot = null
             },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
             scrimColor = Color.Black.copy(alpha = 0.35f),
             dragHandle = {
                 Box(

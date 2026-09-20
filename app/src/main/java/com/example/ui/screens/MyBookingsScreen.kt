@@ -23,8 +23,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
+import android.media.MediaPlayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,6 +48,7 @@ fun MyBookingsScreen(
     onSelectSpace: (SpaceListing) -> Unit
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val currentUser by viewModel.currentUser.collectAsState()
     val allSpaces by viewModel.spaces.collectAsState()
     val allBookingRequests by viewModel.bookingRequests.collectAsState()
@@ -77,6 +81,23 @@ fun MyBookingsScreen(
     val pastBookings = remember(userBookings) {
         userBookings.filter {
             it.status == BookingRequestStatus.REJECTED || it.status == BookingRequestStatus.CANCELLED
+        }
+    }
+
+    // SO2: Play a notification sound when a booking transitions to ACCEPTED or REJECTED.
+    val prevBookingStatuses = remember { mutableStateMapOf<String, BookingRequestStatus>() }
+    LaunchedEffect(allBookingRequests) {
+        allBookingRequests.forEach { booking ->
+            val prev = prevBookingStatuses[booking.id]
+            if (prev != null && prev != booking.status &&
+                (booking.status == BookingRequestStatus.ACCEPTED || booking.status == BookingRequestStatus.REJECTED)) {
+                try {
+                    val mp = MediaPlayer.create(context, android.provider.Settings.System.DEFAULT_NOTIFICATION_URI)
+                    mp?.setOnCompletionListener { it.release() }
+                    mp?.start()
+                } catch (_: Exception) {}
+            }
+            prevBookingStatuses[booking.id] = booking.status
         }
     }
 
@@ -484,6 +505,7 @@ fun MyBookingsScreen(
             text = { Text("Your rental request for \"${target.spaceTitle}\" will be withdrawn. The host will no longer be able to accept it.") },
             confirmButton = {
                 TextButton(onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     viewModel.cancelBookingRequest(target.id, context)
                     pendingCancelTarget = null
                 }) {

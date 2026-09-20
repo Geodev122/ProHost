@@ -3,8 +3,11 @@ package com.example.ui.screens
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.media.MediaPlayer
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -31,6 +34,7 @@ fun OwnerSubscriptionsScreen(
 ) {
     val context = LocalContext.current
     val activity = context.findActivity()
+    val haptic = LocalHapticFeedback.current
     val currentUser by viewModel.currentUser.collectAsState()
     val packagePlans by viewModel.packagePlans.collectAsState()
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
@@ -40,6 +44,20 @@ fun OwnerSubscriptionsScreen(
     val billingSuccess by viewModel.billingSuccess.collectAsState()
     val playBillingProducts by viewModel.playBillingProducts.collectAsState()
     val billingConnected by viewModel.playBillingConnected.collectAsState()
+
+    // SO3: Play a chime when a purchase completes (billingSuccess transitions to non-null).
+    // Replace res/raw/purchase_success.mp3 with a custom asset for a branded sound.
+    LaunchedEffect(billingSuccess) {
+        if (billingSuccess != null) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            try {
+                val uri = android.provider.Settings.System.DEFAULT_NOTIFICATION_URI
+                val mp = MediaPlayer.create(context, uri)
+                mp?.setOnCompletionListener { it.release() }
+                mp?.start()
+            } catch (_: Exception) {}
+        }
+    }
 
     val enabledPlans = remember(packagePlans) { packagePlans.packages.values.filter { it.isEnabled }.sortedBy { it.sortOrder } }
     val currentPlan = currentUser?.ownerPackageId?.let { packagePlans.packages[it] }
@@ -317,6 +335,7 @@ fun OwnerSubscriptionsScreen(
                             else -> "Package Limit Reached — Upgrade Package"
                         },
                         onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             upsellPlan?.let { plan ->
                                 val productId = plan.googlePlayProductId.ifBlank { plan.id }
                                 if (activity != null) {
@@ -358,6 +377,7 @@ fun OwnerSubscriptionsScreen(
                 playFormattedPrice = playPriceMap[playProductId],
                 priceLoading = pricesLoading,
                 onSelect = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     if (activity != null) {
                         viewModel.launchGooglePaySubscription(activity, playProductId)
                     } else {
