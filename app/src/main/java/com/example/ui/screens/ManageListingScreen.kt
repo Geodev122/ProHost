@@ -10,7 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -277,7 +277,7 @@ private fun DivisionPerformanceCard(
                         val delta = thisMonthYield - lastMonthYield
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                if (delta >= 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                                if (delta >= 0) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
                                 contentDescription = null,
                                 tint = if (delta >= 0) FreshGreen else MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(12.dp)
