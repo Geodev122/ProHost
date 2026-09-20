@@ -172,7 +172,7 @@ fun LebanonMapCanvas(
     var isLocating by remember { mutableStateOf(false) }
     var activePinSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var isStripCollapsed by remember { mutableStateOf(false) }
-    val arrivedPinIds = remember { mutableStateSetOf<String>() }
+    val arrivedPinIds = remember { mutableStateListOf<String>() }
     
     val defaultCenter = LatLng(33.8886, 35.5184) // Beirut
     val cameraPositionState = rememberCameraPositionState {
