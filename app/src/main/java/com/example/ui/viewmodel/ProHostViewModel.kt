@@ -268,10 +268,46 @@ class ProHostViewModel(
         }
     }
 
+    private val _billingError = MutableStateFlow<String?>(null)
+    val billingError: StateFlow<String?> = _billingError.asStateFlow()
+
+    private val _billingSuccess = MutableStateFlow<String?>(null)
+    val billingSuccess: StateFlow<String?> = _billingSuccess.asStateFlow()
+
+    private val _billingActivationPending = MutableStateFlow(false)
+    val billingActivationPending: StateFlow<Boolean> = _billingActivationPending.asStateFlow()
+    private var billingActivationTimeoutJob: kotlinx.coroutines.Job? = null
+
+    fun clearBillingMessages() {
+        _billingError.value = null
+        _billingSuccess.value = null
+    }
+
+    fun dismissBillingActivationPending() {
+        billingActivationTimeoutJob?.cancel()
+        _billingActivationPending.value = false
+    }
+
     fun launchGooglePaySubscription(
         activity: android.app.Activity,
         productId: String
     ) {
+        val uid = currentUser.value?.id
+        // Persist the pending draft ID before the billing sheet opens so the RTDN
+        // Cloud Function can auto-publish it when the subscription is confirmed.
+        if (uid != null) {
+            val draftId = _pendingAutoPublishDraftId.value
+            if (draftId != null) {
+                viewModelScope.launch {
+                    try {
+                        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                            .collection("user_profiles").document(uid)
+                            .update("pendingPlayPublishDraftId", draftId).await()
+                    } catch (_: Exception) { /* non-fatal; RTDN will skip auto-publish */ }
+                }
+            }
+        }
+
         val manager = playBillingManager ?: run {
             initPlayBilling(activity)
             playBillingManager
@@ -279,6 +315,12 @@ class ProHostViewModel(
         val product = manager?.productDetailsList?.value?.find { it.productId == productId }
         if (product != null) {
             manager.launchSubscriptionPurchase(activity, product)
+            _billingActivationPending.value = true
+            billingActivationTimeoutJob?.cancel()
+            billingActivationTimeoutJob = viewModelScope.launch {
+                kotlinx.coroutines.delay(5 * 60 * 1000L)
+                _billingActivationPending.value = false
+            }
         } else {
             Toast.makeText(activity, "Connecting to Google Play Store...", Toast.LENGTH_SHORT).show()
             manager?.querySubscriptionProducts()
@@ -319,95 +361,6 @@ class ProHostViewModel(
     // flight, on top of the hard guard below.
     private val _isWhishCheckoutInFlight = MutableStateFlow(false)
     val isWhishCheckoutInFlight: StateFlow<Boolean> = _isWhishCheckoutInFlight.asStateFlow()
-
-    // --- Google Play Billing ---
-    private var playBillingManager: com.example.data.billing.PlayBillingManager? = null
-
-    private val _billingError = MutableStateFlow<String?>(null)
-    val billingError: StateFlow<String?> = _billingError.asStateFlow()
-
-    private val _billingSuccess = MutableStateFlow<String?>(null)
-    val billingSuccess: StateFlow<String?> = _billingSuccess.asStateFlow()
-
-    // True from the moment the Play sheet returns OK until the user_profiles snapshot
-    // delivers a valid ownerPackageExpiryMillis — drives an "activating…" banner so
-    // the host knows their purchase landed even before the RTDN fires.
-    // Auto-clears after 5 minutes so the banner never stays stuck (H5).
-    private val _billingActivationPending = MutableStateFlow(false)
-    val billingActivationPending: StateFlow<Boolean> = _billingActivationPending.asStateFlow()
-    private var billingActivationTimeoutJob: kotlinx.coroutines.Job? = null
-
-    fun clearBillingMessages() {
-        _billingError.value = null
-        _billingSuccess.value = null
-    }
-
-    fun dismissBillingActivationPending() {
-        billingActivationTimeoutJob?.cancel()
-        _billingActivationPending.value = false
-    }
-
-    /**
-     * Opens the Google Play subscription sheet for [planId]. The entitlement is
-     * granted server-side by the playBillingRtdn Cloud Function (Pub/Sub RTDN) —
-     * this only initiates the purchase flow and acknowledges the token.
-     *
-     * [planId] must match both the Google Play product ID and the Firestore
-     * package_plans document key exactly.
-     */
-    fun launchGooglePaySubscription(activity: android.app.Activity, planId: String) {
-        val uid = currentUser.value?.id ?: run {
-            _billingError.value = "You must be signed in to subscribe."
-            return
-        }
-
-        // Persist the pending draft ID before the billing sheet opens so the RTDN
-        // Cloud Function can auto-publish it when the subscription is confirmed.
-        val draftId = _pendingAutoPublishDraftId.value
-        if (draftId != null) {
-            viewModelScope.launch {
-                try {
-                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                        .collection("user_profiles").document(uid)
-                        .update("pendingPlayPublishDraftId", draftId).await()
-                } catch (_: Exception) { /* non-fatal; RTDN will just skip the auto-publish */ }
-            }
-        }
-
-        val manager = com.example.data.billing.PlayBillingManager(activity, uid)
-            .also { playBillingManager?.endConnection(); playBillingManager = it }
-
-        manager.startConnection(
-            onReady = {
-                viewModelScope.launch {
-                    val product = manager.querySubscriptionProduct(planId)
-                    if (product == null) {
-                        _billingError.value = "This subscription plan is not available in Google Play yet. Please try again later."
-                        return@launch
-                    }
-                    val result = manager.launchBillingFlow(product) { billingResult, _ ->
-                        if (billingResult.responseCode == com.android.billingclient.api.BillingClient.BillingResponseCode.OK) {
-                            _billingActivationPending.value = true
-                            billingActivationTimeoutJob?.cancel()
-                            billingActivationTimeoutJob = viewModelScope.launch {
-                                kotlinx.coroutines.delay(5 * 60 * 1000L)
-                                _billingActivationPending.value = false
-                            }
-                            _billingSuccess.value = "Purchase submitted! Your Pro Host subscription will activate shortly."
-                        } else if (billingResult.responseCode != com.android.billingclient.api.BillingClient.BillingResponseCode.USER_CANCELED) {
-                            _billingError.value = "Google Play checkout failed (${billingResult.responseCode}). Please try again."
-                        }
-                    }
-                    if (result.responseCode != com.android.billingclient.api.BillingClient.BillingResponseCode.OK) {
-                        _billingError.value = "Could not launch Google Play. Please try again."
-                    }
-                }
-            },
-            onFailed = { message ->
-                _billingError.value = "Google Play Billing is not available on this device: $message"
-            }
-        )
-    }
 
     // The Whish checkout URL to show in an in-app WebView (see WhishCheckoutWebView.kt,
     // hosted globally by ProHostNavGraph so it renders regardless of which screen
