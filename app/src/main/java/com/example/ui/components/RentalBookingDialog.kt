@@ -1001,7 +1001,7 @@ private fun BookingSlotSelectorDialog(
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Assignment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                                Icon(Icons.AutoMirrored.Filled.Assignment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "Selected Slot: $chosenSlotSummary",

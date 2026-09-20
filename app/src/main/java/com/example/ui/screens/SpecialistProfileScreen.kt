@@ -488,7 +488,7 @@ fun SpecialistProfileScreen(
                                             val shiftDetail = if (req.selectedShift.isNotBlank()) " (${req.selectedShift})" else ""
 
                                             Row(verticalAlignment = Alignment.Top) {
-                                                Icon(Icons.Default.Assignment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                                                Icon(Icons.AutoMirrored.Filled.Assignment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Text(
                                                     text = "Formula: ${req.formula.type.displayName} • $chosenDaysStr @ $chosenHoursStr$shiftDetail",
