@@ -844,6 +844,11 @@ fun SpaceDetailsScreenContent(
         val user = currentUser
         val strategyType = slot.strategyType
         if (user == null || strategyType == null) return
+        // B4: KYC gate — require at least a profile picture before booking
+        if (user.kycLevel < 1) {
+            android.widget.Toast.makeText(context, "Please add a profile picture before making booking requests.", android.widget.Toast.LENGTH_LONG).show()
+            return
+        }
         isSendingSlotRequest = true
         coroutineScope.launch {
             val formula = SpaceCalculationUtils.representativeFormula(listOf(slot), BookingRecurrence.FLAT)

@@ -312,6 +312,23 @@ class ProHostViewModel(
         _billingActivationPending.value = false
     }
 
+    fun resendEmailVerification(context: android.content.Context) {
+        viewModelScope.launch {
+            val result = functionsClient.resendEmailVerification()
+            val msg = if (result.isSuccess) {
+                "Verification email sent. Check your inbox."
+            } else {
+                val err = result.exceptionOrNull()?.message ?: "Unknown error"
+                when {
+                    err.contains("resource-exhausted", ignoreCase = true) ||
+                    err.contains("3 times", ignoreCase = true) -> "You've already requested 3 emails today. Try again tomorrow."
+                    else -> "Could not send email: $err"
+                }
+            }
+            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
     fun launchGooglePaySubscription(
         activity: android.app.Activity,
         productId: String
@@ -844,6 +861,11 @@ class ProHostViewModel(
         val user = currentUser.value
         if (user == null) {
             Toast.makeText(context, "Please log in to submit a rental request", Toast.LENGTH_SHORT).show()
+            return
+        }
+        // B4: KYC gate — require at least a profile picture before booking
+        if (user.kycLevel < 1) {
+            Toast.makeText(context, "Please add a profile picture before making booking requests.", Toast.LENGTH_LONG).show()
             return
         }
 

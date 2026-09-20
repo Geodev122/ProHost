@@ -336,12 +336,16 @@ fun OwnerSubscriptionsScreen(
                         },
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            upsellPlan?.let { plan ->
-                                val productId = plan.googlePlayProductId.ifBlank { plan.id }
-                                if (activity != null) {
-                                    viewModel.launchGooglePaySubscription(activity, productId)
-                                } else {
-                                    Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
+                            if (kycLevel < 1) {
+                                Toast.makeText(context, "Please add a profile picture first (Security ID tab).", Toast.LENGTH_LONG).show()
+                            } else {
+                                upsellPlan?.let { plan ->
+                                    val productId = plan.googlePlayProductId.ifBlank { plan.id }
+                                    if (activity != null) {
+                                        viewModel.launchGooglePaySubscription(activity, productId)
+                                    } else {
+                                        Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
+                                    }
                                 }
                             }
                         },
@@ -349,6 +353,38 @@ fun OwnerSubscriptionsScreen(
                         icon = Icons.Default.AddCircle,
                         modifier = Modifier.fillMaxWidth()
                     )
+                }
+            }
+        }
+
+        // B3: KYC gate — a profile picture is required before purchasing a Pro Host package.
+        // kycLevel 0 means no profile pic yet. Show a blocking notice card.
+        val kycLevel = currentUser?.kycLevel ?: 0
+        if (kycLevel < 1) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Profile picture required",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Text(
+                            "Add a profile picture in your Security ID tab to unlock package purchases.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.75f)
+                        )
+                    }
                 }
             }
         }
@@ -378,7 +414,9 @@ fun OwnerSubscriptionsScreen(
                 priceLoading = pricesLoading,
                 onSelect = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    if (activity != null) {
+                    if (kycLevel < 1) {
+                        Toast.makeText(context, "Please add a profile picture first (Security ID tab).", Toast.LENGTH_LONG).show()
+                    } else if (activity != null) {
                         viewModel.launchGooglePaySubscription(activity, playProductId)
                     } else {
                         Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()

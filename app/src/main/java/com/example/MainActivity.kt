@@ -18,6 +18,7 @@ class MainActivity : ComponentActivity() {
     private var targetTab by mutableStateOf<String?>(null)
     private var targetBookingId by mutableStateOf<String?>(null)
     private var targetSpaceId by mutableStateOf<String?>(null)
+    private var emailVerifiedDeepLink by mutableStateOf(false)
     private var inAppUpdateManager: InAppUpdateManager? = null
     private var backgroundedAtMillis: Long = 0L
 
@@ -56,6 +57,7 @@ class MainActivity : ComponentActivity() {
                     deepLinkTab = targetTab,
                     deepLinkBookingId = targetBookingId,
                     deepLinkSpaceId = targetSpaceId,
+                    emailVerifiedDeepLink = emailVerifiedDeepLink,
                     inAppUpdateManager = inAppUpdateManager
                 )
             }
@@ -143,6 +145,14 @@ class MainActivity : ComponentActivity() {
             data.host == "pro-host.tech" && data.path?.startsWith("/listing/") == true
         if (isListingShareLink) {
             targetSpaceId = data.path?.removePrefix("/listing/")?.trim('/')?.takeIf { it.isNotBlank() }
+        }
+
+        // Email verification return: prohost://verify-email/success (from verifyEmailLink
+        // Cloud Function — redirects the browser to this deep link on success).
+        val isEmailVerified = data != null && data.scheme == "prohost" &&
+            data.host == "verify-email" && data.path?.startsWith("/success") == true
+        if (isEmailVerified) {
+            emailVerifiedDeepLink = true
         }
     }
 }
