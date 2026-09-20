@@ -965,21 +965,6 @@ fun OwnerHubScreenContent(
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 80.dp, end = 16.dp),
-            containerColor = CarnationOrange,
-            contentColor = Color.White
-        ) {
-            Icon(Icons.Default.Settings, contentDescription = "Listing Actions")
         }
     }
-}
-}
-
-private fun Context.findActivity(): android.app.Activity? {
-    var ctx = this
-    while (ctx is ContextWrapper) {
-        if (ctx is android.app.Activity) return ctx
-        ctx = ctx.baseContext
-    }
-    return null
 }

@@ -78,14 +78,7 @@ private val DocumentPickerStateSaver = Saver<DocumentPickerState, List<String?>>
     restore = { DocumentPickerState(it.getOrNull(0)?.let(Uri::parse), it.getOrNull(1)) }
 )
 
-private fun android.content.Context.findActivity(): Activity? {
-    var ctx = this
-    while (ctx is android.content.ContextWrapper) {
-        if (ctx is Activity) return ctx
-        ctx = ctx.baseContext
-    }
-    return null
-}
+import com.example.ui.util.findActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

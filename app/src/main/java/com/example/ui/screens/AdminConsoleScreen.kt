@@ -401,8 +401,10 @@ fun AdminConsoleScreen(
 @Composable
 private fun AdminRevenueTab(
     uiState: com.example.ui.state.AdminUiState,
-    adminViewModel: AdminViewModel
+    adminViewModel: AdminViewModel,
+    viewModel: ProHostViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
+    val context = LocalContext.current
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),

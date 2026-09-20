@@ -467,12 +467,3 @@ fun PackageOptionCard(
         }
     }
 }
-
-private fun Context.findActivity(): Activity? {
-    var ctx = this
-    while (ctx is ContextWrapper) {
-        if (ctx is Activity) return ctx
-        ctx = ctx.baseContext
-    }
-    return null
-}
