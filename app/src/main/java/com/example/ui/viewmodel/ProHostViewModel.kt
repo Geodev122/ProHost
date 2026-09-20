@@ -247,7 +247,7 @@ class ProHostViewModel(
             viewModelScope.launch {
                 manager.purchaseEvents.collect { purchase ->
                     val productId = purchase.products.firstOrNull() ?: com.example.data.billing.PlayBillingManager.PRODUCT_ID_GROWTH
-                    repository.updateUserSubscriptionPackage(productId, purchase.purchaseToken)
+                    repository.recordActivePurchaseToken(productId, purchase.purchaseToken)
                 }
             }
             manager.startConnection()
@@ -264,13 +264,20 @@ class ProHostViewModel(
     val billingActivationPending: StateFlow<Boolean> = _billingActivationPending.asStateFlow()
     private var billingActivationTimeoutJob: kotlinx.coroutines.Job? = null
 
-    // Clears billingActivationPending as soon as the user profile confirms a valid
-    // package — the RTDN fires seconds after the Play sheet closes, so the banner
-    // stays visible for only a brief window.
+    // Tracks the expiry the user had BEFORE launching a Play billing flow so the
+    // collectLatest observer can distinguish "RTDN updated the expiry" from
+    // "profile updated for some other reason (existing subscriber)".
+    private val _billingPriorExpiryMillis = MutableStateFlow<Long?>(null)
+
+    // Clears billingActivationPending once the Firestore listener reflects the RTDN
+    // grant — i.e. ownerPackageExpiryMillis changed from what it was at launch time.
     init {
         viewModelScope.launch {
             currentUser.collectLatest { user ->
-                if (user?.ownerPackageExpiryMillis != null && _billingActivationPending.value) {
+                if (user?.ownerPackageExpiryMillis != null &&
+                    user.ownerPackageExpiryMillis != _billingPriorExpiryMillis.value &&
+                    _billingActivationPending.value
+                ) {
                     billingActivationTimeoutJob?.cancel()
                     _billingActivationPending.value = false
                 }
@@ -292,19 +299,17 @@ class ProHostViewModel(
         activity: android.app.Activity,
         productId: String
     ) {
-        val uid = currentUser.value?.id
+        val uid = currentUser.value?.id ?: return
         // Persist the pending draft ID before the billing sheet opens so the RTDN
         // Cloud Function can auto-publish it when the subscription is confirmed.
-        if (uid != null) {
-            val draftId = _pendingAutoPublishDraftId.value
-            if (draftId != null) {
-                viewModelScope.launch {
-                    try {
-                        com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                            .collection("user_profiles").document(uid)
-                            .update("pendingPlayPublishDraftId", draftId).await()
-                    } catch (_: Exception) { /* non-fatal; RTDN will skip auto-publish */ }
-                }
+        val draftId = _pendingAutoPublishDraftId.value
+        if (draftId != null) {
+            viewModelScope.launch {
+                try {
+                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                        .collection("user_profiles").document(uid)
+                        .update("pendingPlayPublishDraftId", draftId).await()
+                } catch (_: Exception) { /* non-fatal; RTDN will skip auto-publish */ }
             }
         }
 
@@ -314,7 +319,8 @@ class ProHostViewModel(
         }
         val product = manager?.productDetailsList?.value?.find { it.productId == productId }
         if (product != null) {
-            manager.launchSubscriptionPurchase(activity, product)
+            manager.launchSubscriptionPurchase(activity, product, userId = uid)
+            _billingPriorExpiryMillis.value = currentUser.value?.ownerPackageExpiryMillis
             _billingActivationPending.value = true
             billingActivationTimeoutJob?.cancel()
             billingActivationTimeoutJob = viewModelScope.launch {
@@ -958,25 +964,14 @@ class ProHostViewModel(
 
     /**
      * Saves whichever verification document the host just uploaded and requests
-     * the Listing Verified badge (functions/src/admin/listings.ts's
-     * requestListingVerification, auto-granted — no manual review). Optional;
-     * this is never called as part of publishing a listing.
+     * the Listing Verified badge. Returns true on success; the caller is responsible
+     * for dismissing the dialog (on success) or showing an inline retry error (on failure).
      */
-    fun requestListingVerification(
+    suspend fun requestListingVerification(
         spaceId: String,
         docUrl: String,
-        docType: ListingVerificationDocType,
-        context: Context
-    ) {
-        viewModelScope.launch {
-            val success = repository.requestOwnListingVerification(spaceId, docUrl, docType)
-            Toast.makeText(
-                context,
-                if (success) "Submitted for review — an Admin will verify it shortly." else "Couldn't submit this listing for verification — please try again.",
-                Toast.LENGTH_LONG
-            ).show()
-        }
-    }
+        docType: ListingVerificationDocType
+    ): Boolean = repository.requestOwnListingVerification(spaceId, docUrl, docType)
 
     /** Toggles [spaceId] in the current user's personal saved/favorites list. */
     fun toggleSavedSpace(spaceId: String) {

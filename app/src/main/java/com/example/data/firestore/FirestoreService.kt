@@ -76,17 +76,19 @@ class FirestoreService(
                         .set(formula.toFirestoreMap(), SetOptions.merge())
                         .await()
                 }
-                initialSpaces.forEach { space ->
-                    db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
-                        .document(space.id)
-                        .set(space.toFirestoreMap(), SetOptions.merge())
-                        .await()
-                }
-                initialUsers.forEach { user ->
-                    db.collection(FirestoreSchema.Collections.USER_PROFILES)
-                        .document(user.id)
-                        .set(user.toFirestoreMap(), SetOptions.merge())
-                        .await()
+                if (com.example.BuildConfig.DEBUG) {
+                    initialSpaces.forEach { space ->
+                        db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
+                            .document(space.id)
+                            .set(space.toFirestoreMap(), SetOptions.merge())
+                            .await()
+                    }
+                    initialUsers.forEach { user ->
+                        db.collection(FirestoreSchema.Collections.USER_PROFILES)
+                            .document(user.id)
+                            .set(user.toFirestoreMap(), SetOptions.merge())
+                            .await()
+                    }
                 }
                 Log.d(TAG, "Initial data seed complete.")
             } catch (e: Exception) {
@@ -179,6 +181,7 @@ class FirestoreService(
                 val publicListener = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
                     .whereEqualTo("status", "ACTIVE")
                     .whereEqualTo("isOwnerSuspended", false)
+                    .whereEqualTo("isOwnerPackageLapsed", false)
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
                             Log.w(TAG, "Public workspaces sync note: ${error.message}")

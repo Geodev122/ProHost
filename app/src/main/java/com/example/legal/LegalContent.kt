@@ -32,6 +32,7 @@ data class LegalDocument(
     val sections: List<LegalSection>
 )
 
+// SYNC: must match CURRENT_CONSENT_VERSION in functions/src/roles/assignInitialRole.ts
 private const val EFFECTIVE_DATE = "September 6, 2026"
 private const val OPERATOR_LINE = "ProHost (\"the Platform\", \"we\", \"us\") is a Lebanon-focused marketplace connecting independent healthcare and professional-services specialists (\"Specialists\") with workspace hosts (\"Pro Hosts\") who list clinics, offices, and shared practice spaces (\"Listings\") for rent."
 

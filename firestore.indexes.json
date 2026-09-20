@@ -1,4 +1,14 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "workspace_listings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "isOwnerSuspended", "order": "ASCENDING" },
+        { "fieldPath": "isOwnerPackageLapsed", "order": "ASCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

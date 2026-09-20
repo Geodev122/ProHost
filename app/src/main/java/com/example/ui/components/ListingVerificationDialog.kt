@@ -57,6 +57,7 @@ fun ListingVerificationDialog(
     // surfaces that instead of leaving the Submit button silently disabled with
     // no explanation, same pattern as CreateListingDialog's upload error state.
     var uploadError by remember { mutableStateOf<String?>(null) }
+    var submitError by remember { mutableStateOf<String?>(null) }
 
     if (showTemplateDialog) {
         LegalDocumentDialog(
@@ -228,8 +229,16 @@ fun ListingVerificationDialog(
                         val docType = chosenPath ?: return@Button
                         val url = uploadedUrl ?: return@Button
                         isSubmitting = true
-                        viewModel.requestListingVerification(space.id, url, docType, context)
-                        onDismiss()
+                        submitError = null
+                        coroutineScope.launch {
+                            val success = viewModel.requestListingVerification(space.id, url, docType)
+                            if (success) {
+                                onDismiss()
+                            } else {
+                                submitError = "Couldn't reach server. Your document is saved — tap Submit again to notify admins."
+                                isSubmitting = false
+                            }
+                        }
                     },
                     enabled = chosenPath != null && uploadedUrl != null && !isUploading && !isSubmitting,
                     modifier = Modifier.fillMaxWidth(),
@@ -238,6 +247,14 @@ fun ListingVerificationDialog(
                     Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(Spacing.sm))
                     Text("Submit for Admin Review")
+                }
+                if (submitError != null) {
+                    Text(
+                        submitError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = Spacing.xs)
+                    )
                 }
             }
         }

@@ -1881,30 +1881,17 @@ class ProHostRepository {
     }
 
     /**
-     * Updates the user's subscription package and elevates role to PRO_HOST upon Google Play purchase.
+     * Records the purchase token so the RTDN handler can look up this user by token
+     * as a fallback. Role promotion and expiry are written exclusively by the server
+     * (billing/playBillingRtdn.ts grantSubscription) using Play's canonical expiryTimeMillis —
+     * never set from the client to avoid clock skew and protected-field rule rejections.
      */
-    suspend fun updateUserSubscriptionPackage(packageId: String, purchaseToken: String): Boolean {
+    suspend fun recordActivePurchaseToken(packageId: String, purchaseToken: String): Boolean {
         val current = _currentUser.value ?: return false
-        val expiryMillis = System.currentTimeMillis() + 30 * 24 * 3600 * 1000L
-        val updated = current.copy(
-            role = UserRole.PRO_HOST,
-            ownerPackageId = packageId,
-            ownerPackageExpiryMillis = expiryMillis
-        )
-        val success = firestoreService.updateUserProfileFields(
+        return firestoreService.updateUserProfileFields(
             current.id,
-            mapOf(
-                "role" to UserRole.PRO_HOST.name,
-                "ownerPackageId" to packageId,
-                "ownerPackageExpiryMillis" to expiryMillis,
-                "activePurchaseToken" to purchaseToken
-            )
+            mapOf("activePurchaseToken" to purchaseToken)
         )
-        if (success) {
-            _currentUser.value = updated
-            _users.value = _users.value.map { if (it.id == updated.id) updated else it }
-        }
-        return success
     }
 
     /**

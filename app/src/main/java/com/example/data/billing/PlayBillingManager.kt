@@ -68,7 +68,12 @@ class PlayBillingManager(
 
     private val billingClient: BillingClient = BillingClient.newBuilder(context)
         .setListener(this)
-        .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
+        .enablePendingPurchases(
+            PendingPurchasesParams.newBuilder()
+                .enableOneTimeProducts()
+                .enablePrepaidPlans()
+                .build()
+        )
         .build()
 
     fun startConnection(onConnected: (() -> Unit)? = null) {
@@ -130,6 +135,7 @@ class PlayBillingManager(
     fun launchSubscriptionPurchase(
         activity: Activity,
         productDetails: ProductDetails,
+        userId: String,
         selectedOfferToken: String? = null,
         oldPurchaseToken: String? = null
     ) {
@@ -146,6 +152,7 @@ class PlayBillingManager(
             .build()
 
         val billingFlowParamsBuilder = BillingFlowParams.newBuilder()
+            .setObfuscatedAccountId(userId)
             .setProductDetailsParamsList(listOf(productDetailsParams))
 
         // Handle upgrade/downgrade replacement mode

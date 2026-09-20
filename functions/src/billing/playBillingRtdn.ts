@@ -6,6 +6,7 @@ import { google } from "googleapis";
 import { recordAuditLog } from "../lib/auditLog";
 import { sendPushToUser } from "../lib/push";
 import { setClaimsThenFirestore } from "../lib/roles";
+import { validateListingForPublish } from "../listings/publishValidation";
 import "../lib/admin";
 
 // Must match applicationId in app/build.gradle.kts
@@ -108,12 +109,25 @@ async function grantSubscription(
   const pendingDraftId = userData?.pendingPlayPublishDraftId as string | undefined;
   if (pendingDraftId) {
     try {
-      await db.collection("workspace_listings").doc(pendingDraftId).set(
-        { status: "ACTIVE", isOwnerPackageLapsed: false, updatedAt: now },
-        { merge: true }
-      );
-      await userRef.set({ pendingPlayPublishDraftId: null }, { merge: true });
-      logger.info(`playBillingRtdn: auto-published draft ${pendingDraftId} for uid=${uid}`);
+      const draftRef = db.collection("workspace_listings").doc(pendingDraftId);
+      const draftSnap = await draftRef.get();
+      if (draftSnap.exists) {
+        const draftData = draftSnap.data() ?? {};
+        if (draftData.ownerId === uid && draftData.status === "DRAFT") {
+          const problems = validateListingForPublish(draftData as any);
+          if (problems.length > 0) {
+            await draftRef.set({ publishBlockedReasons: problems, updatedAt: now }, { merge: true });
+            logger.warn(`playBillingRtdn: draft ${pendingDraftId} NOT auto-published for uid=${uid} — missing: ${problems.join(", ")}`);
+          } else {
+            await draftRef.set(
+              { status: "ACTIVE", isOwnerPackageLapsed: false, publishBlockedReasons: [], updatedAt: now },
+              { merge: true }
+            );
+            logger.info(`playBillingRtdn: auto-published draft ${pendingDraftId} for uid=${uid}`);
+          }
+          await userRef.set({ pendingPlayPublishDraftId: null }, { merge: true });
+        }
+      }
     } catch (e) {
       logger.warn(`playBillingRtdn: failed to auto-publish draft for uid=${uid}:`, e);
     }
