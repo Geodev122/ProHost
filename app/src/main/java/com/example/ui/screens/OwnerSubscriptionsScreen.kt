@@ -33,6 +33,7 @@ fun OwnerSubscriptionsScreen(
     viewModel: ProHostViewModel
 ) {
     val context = LocalContext.current
+    val activity = androidx.activity.compose.LocalActivity.current
     val haptic = LocalHapticFeedback.current
     val currentUser by viewModel.currentUser.collectAsState()
     val packagePlans by viewModel.packagePlans.collectAsState()
@@ -335,16 +336,12 @@ fun OwnerSubscriptionsScreen(
                         },
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            if (kycLevel < 3) {
-                                Toast.makeText(context, "Complete identity verification in the Security ID tab first.", Toast.LENGTH_LONG).show()
-                            } else {
-                                upsellPlan?.let { plan ->
-                                    val productId = plan.googlePlayProductId.ifBlank { plan.id }
-                                    if (activity != null) {
-                                        viewModel.launchGooglePaySubscription(activity, productId)
-                                    } else {
-                                        Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
-                                    }
+                            upsellPlan?.let { plan ->
+                                val productId = plan.googlePlayProductId.ifBlank { plan.id }
+                                if (activity != null) {
+                                    viewModel.launchGooglePaySubscription(activity, productId)
+                                } else {
+                                    Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
                                 }
                             }
                         },
@@ -422,9 +419,7 @@ fun OwnerSubscriptionsScreen(
                 priceLoading = pricesLoading,
                 onSelect = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    if (kycLevel < 3) {
-                        Toast.makeText(context, "Complete identity verification in the Security ID tab first.", Toast.LENGTH_LONG).show()
-                    } else if (activity != null) {
+                    if (activity != null) {
                         viewModel.launchGooglePaySubscription(activity, playProductId)
                     } else {
                         Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()

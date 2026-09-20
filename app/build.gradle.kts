@@ -151,7 +151,7 @@ dependencies {
   implementation(libs.firebase.firestore)
   implementation(libs.firebase.messaging)
   implementation(libs.firebase.storage)
-  // implementation(libs.firebase.dataconnect)  // unused — auto-inits and may crash without config
+  implementation(libs.firebase.dataconnect)
 
   // Firebase Auth: phone-number SMS OTP is the app's only sign-in method (no Google
   // Sign-In / Credential Manager — removed by design, every account is phone-verified).

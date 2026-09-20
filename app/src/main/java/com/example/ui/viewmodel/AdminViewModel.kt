@@ -734,9 +734,9 @@ class AdminViewModel(
             _uiState.update { it.copy(idReviewDecisionInProgress = null) }
             if (result.isSuccess) {
                 loadIdReviewQueue()
-                _events.emit(AdminUiEvent.ShowSnackbar("ID document approved — user notified."))
+                _events.emit(AdminUiEvent.ShowToast("ID document approved — user notified."))
             } else {
-                _events.emit(AdminUiEvent.ShowSnackbar("Failed: ${result.exceptionOrNull()?.message}"))
+                _events.emit(AdminUiEvent.ShowToast("Failed: ${result.exceptionOrNull()?.message}"))
             }
         }
     }
@@ -756,9 +756,9 @@ class AdminViewModel(
             _uiState.update { it.copy(idReviewDecisionInProgress = null, rejectingIdUserId = null) }
             if (result.isSuccess) {
                 loadIdReviewQueue()
-                _events.emit(AdminUiEvent.ShowSnackbar("ID document rejected — user notified."))
+                _events.emit(AdminUiEvent.ShowToast("ID document rejected — user notified."))
             } else {
-                _events.emit(AdminUiEvent.ShowSnackbar("Failed: ${result.exceptionOrNull()?.message}"))
+                _events.emit(AdminUiEvent.ShowToast("Failed: ${result.exceptionOrNull()?.message}"))
             }
         }
     }

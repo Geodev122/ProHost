@@ -4,7 +4,6 @@ import android.app.Application
 import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
-import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 
 class ProHostApplication : Application() {
@@ -17,13 +16,15 @@ class ProHostApplication : Application() {
             }
             val firebaseAppCheck = FirebaseAppCheck.getInstance()
             if (BuildConfig.DEBUG) {
-                // Debug builds (emulator / CI) use the debug provider so App Check
-                // does not block Firestore/Functions calls on non-hardware devices.
-                // Register the matching debug token in Firebase Console → App Check.
-                firebaseAppCheck.installAppCheckProviderFactory(
-                    DebugAppCheckProviderFactory.getInstance()
-                )
-                Log.d("ProHostApplication", "FirebaseAppCheck DEBUG provider initialized")
+                try {
+                    val debugFactoryClass = Class.forName("com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory")
+                    val getInstanceMethod = debugFactoryClass.getMethod("getInstance")
+                    val debugFactory = getInstanceMethod.invoke(null) as com.google.firebase.appcheck.AppCheckProviderFactory
+                    firebaseAppCheck.installAppCheckProviderFactory(debugFactory)
+                    Log.d("ProHostApplication", "FirebaseAppCheck DEBUG provider initialized")
+                } catch (e: Exception) {
+                    firebaseAppCheck.installAppCheckProviderFactory(PlayIntegrityAppCheckProviderFactory.getInstance())
+                }
             } else {
                 firebaseAppCheck.installAppCheckProviderFactory(
                     PlayIntegrityAppCheckProviderFactory.getInstance()

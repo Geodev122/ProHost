@@ -3,6 +3,7 @@ package com.example.ui.screens
 import android.Manifest
 import android.app.Activity
 import android.net.Uri
+import com.example.ui.util.findActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -77,8 +78,6 @@ private val DocumentPickerStateSaver = Saver<DocumentPickerState, List<String?>>
     save = { listOf(it.uri?.toString(), it.fileName) },
     restore = { DocumentPickerState(it.getOrNull(0)?.let(Uri::parse), it.getOrNull(1)) }
 )
-
-import com.example.ui.util.findActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
