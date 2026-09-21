@@ -1179,6 +1179,7 @@ fun CreateListingDialog(
                         subdivisions = if (hasSubdivisions) subdivisionsList else emptyList(),
                         imageUrls = uploadedPhotoUrls,
                         ownerIsIdVerified = activeUser.idDocumentUrl != null,
+                        ownerProfilePictureUrl = activeUser.profilePictureUrl,
                         status = status
                     )
                 }

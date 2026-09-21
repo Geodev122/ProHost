@@ -33,7 +33,15 @@ fun OwnerSubscriptionsScreen(
     viewModel: ProHostViewModel
 ) {
     val context = LocalContext.current
-    val activity = androidx.activity.compose.LocalActivity.current
+    val activityFromLocal = androidx.activity.compose.LocalActivity.current
+    val activity: android.app.Activity? = activityFromLocal ?: run {
+        var ctx = context
+        while (ctx is ContextWrapper) {
+            if (ctx is android.app.Activity) return@run ctx
+            ctx = ctx.baseContext
+        }
+        null
+    }
     val haptic = LocalHapticFeedback.current
     val currentUser by viewModel.currentUser.collectAsState()
     val packagePlans by viewModel.packagePlans.collectAsState()
@@ -45,14 +53,12 @@ fun OwnerSubscriptionsScreen(
     val playBillingProducts by viewModel.playBillingProducts.collectAsState()
     val billingConnected by viewModel.playBillingConnected.collectAsState()
 
-    // SO3: Play a chime when a purchase completes (billingSuccess transitions to non-null).
-    // Replace res/raw/purchase_success.mp3 with a custom asset for a branded sound.
+    // SO3: Play branded chime when a purchase completes (billingSuccess transitions to non-null).
     LaunchedEffect(billingSuccess) {
         if (billingSuccess != null) {
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             try {
-                val uri = android.provider.Settings.System.DEFAULT_NOTIFICATION_URI
-                val mp = MediaPlayer.create(context, uri)
+                val mp = MediaPlayer.create(context, com.example.R.raw.purchase_success)
                 mp?.setOnCompletionListener { it.release() }
                 mp?.start()
             } catch (_: Exception) {}

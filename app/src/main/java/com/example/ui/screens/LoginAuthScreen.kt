@@ -1,11 +1,8 @@
 package com.example.ui.screens
 
-import android.Manifest
 import android.app.Activity
 import android.net.Uri
 import com.example.ui.util.findActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -101,23 +98,7 @@ fun LoginAuthScreen(
     var phoneNumber by rememberSaveable { mutableStateOf("") }
     var hasAutoDetectedCountry by rememberSaveable { mutableStateOf(false) }
 
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) {
-        coroutineScope.launch {
-            if (!hasAutoDetectedCountry) {
-                phoneCountry = PhoneCountryDetector.detectCountry(context)
-                hasAutoDetectedCountry = true
-            }
-        }
-    }
-
     LaunchedEffect(Unit) {
-        if (!PhoneCountryDetector.hasLocationPermission(context)) {
-            locationPermissionLauncher.launch(
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-            )
-        }
         if (!hasAutoDetectedCountry) {
             phoneCountry = PhoneCountryDetector.detectCountry(context)
             hasAutoDetectedCountry = true

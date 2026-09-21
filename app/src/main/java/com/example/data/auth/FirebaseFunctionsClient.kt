@@ -103,6 +103,19 @@ class FirebaseFunctionsClient {
         }
     }
 
+    /** functions/src/admin/grantPackage.ts — Admin-only: grants a package plan to a user. */
+    suspend fun grantPackageToUser(targetUserId: String, packageId: String, durationDays: Int): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("grantPackageToUser")
+                .call(mapOf("targetUserId" to targetUserId, "packageId" to packageId, "durationDays" to durationDays))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "grantPackageToUser failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     /** functions/src/roles/revokeProHostRole.ts — Admin-only downgrade to SPECIALIST. */
     suspend fun revokeProHostRole(targetUid: String): Result<Unit> {
         return try {

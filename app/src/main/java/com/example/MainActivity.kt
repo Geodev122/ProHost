@@ -1,10 +1,13 @@
 package com.example
 
+import android.Manifest
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,6 +18,10 @@ import com.example.util.InAppUpdateManager
 import com.example.util.NotificationPermissionManager
 
 class MainActivity : ComponentActivity() {
+    private val permLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { /* OS handles rationale; no action needed here */ }
+
     private var targetTab by mutableStateOf<String?>(null)
     private var targetBookingId by mutableStateOf<String?>(null)
     private var targetSpaceId by mutableStateOf<String?>(null)
@@ -49,6 +56,24 @@ class MainActivity : ComponentActivity() {
             NotificationPermissionManager(this).requestIfNeeded()
         } catch (e: Exception) {
             android.util.Log.w("MainActivity", "NotificationPermissionManager request failed: ${e.message}")
+        }
+
+        // Request location, camera, and media permissions up-front so they are
+        // available for the map, listing photos, and profile picture flows without
+        // a second dialog mid-task. Centralised here; LoginAuthScreen's duplicate
+        // location request has been removed.
+        try {
+            val mediaPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                Manifest.permission.READ_MEDIA_IMAGES
+            else
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            permLauncher.launch(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.CAMERA,
+                mediaPermission
+            ))
+        } catch (e: Exception) {
+            android.util.Log.w("MainActivity", "Permission request failed: ${e.message}")
         }
 
         setContent {

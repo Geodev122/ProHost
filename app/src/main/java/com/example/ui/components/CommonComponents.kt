@@ -445,21 +445,31 @@ private fun AvatarCircle(
     isVerified: Boolean,
     isIdVerified: Boolean,
     size: Dp,
+    imageUrl: String? = null,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.size(size)) {
-        Surface(
-            color = MaterialTheme.colorScheme.primary,
-            shape = CircleShape,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = initials,
-                    color = Color.White,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = (size.value * 0.38f).sp
-                )
+        if (imageUrl != null) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Surface(
+                color = MaterialTheme.colorScheme.primary,
+                shape = CircleShape,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = initials,
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = (size.value * 0.38f).sp
+                    )
+                }
             }
         }
         if (isVerified) {
@@ -508,13 +518,9 @@ fun ProMemberAvatar(
     name: String,
     specialty: String? = null,
     isVerified: Boolean = true,
-    // A second, distinct trust signal from isVerified (which means only "completed
-    // phone OTP") — true when the person actually has an ID document on file
-    // (AppUser.idDocumentUrl != null). Deliberately never reuses the green
-    // check-badge/Icons.Default.Verified styling isVerified already claims on this
-    // same avatar, so the two can't be visually confused for one another.
     isIdVerified: Boolean = false,
     size: Dp = 40.dp,
+    imageUrl: String? = null,
     modifier: Modifier = Modifier
 ) {
     val initials = name.split(" ")
@@ -530,7 +536,7 @@ fun ProMemberAvatar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            AvatarCircle(initials = initials, isVerified = isVerified, isIdVerified = isIdVerified, size = size, modifier = Modifier)
+            AvatarCircle(initials = initials, isVerified = isVerified, isIdVerified = isIdVerified, size = size, imageUrl = imageUrl, modifier = Modifier)
 
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -572,6 +578,7 @@ fun ProMemberAvatar(
             isVerified = isVerified,
             isIdVerified = isIdVerified,
             size = size,
+            imageUrl = imageUrl,
             modifier = modifier
         )
     }
@@ -587,9 +594,10 @@ fun ProDoctorAvatar(
     isVerified: Boolean = true,
     isIdVerified: Boolean = false,
     size: Dp = 40.dp,
+    imageUrl: String? = null,
     modifier: Modifier = Modifier
 ) {
-    ProMemberAvatar(name, specialty, isVerified, isIdVerified, size, modifier)
+    ProMemberAvatar(name, specialty, isVerified, isIdVerified, size, imageUrl, modifier)
 }
 
 /**
@@ -1595,6 +1603,7 @@ fun ProHostTopAppBar(
     onMenuClick: () -> Unit,
     onAlertsClick: () -> Unit,
     pageTitle: String? = null,
+    showBrand: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -1628,14 +1637,11 @@ fun ProHostTopAppBar(
                     )
                 }
 
-                ProHostBrandLogo(size = 34.dp)
+                if (showBrand) {
+                    ProHostBrandLogo(size = 34.dp)
 
-                Column(
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    Column(
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Text(
                             text = "ProHost",
@@ -1643,19 +1649,18 @@ fun ProHostTopAppBar(
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        ProHostCedarBadge(text = "LB", isCompact = true)
-                    }
 
-                    Text(
-                        text = pageTitle ?: when (currentRole) {
-                            UserRole.ADMIN -> "Super Admin Node"
-                            UserRole.PRO_HOST -> "Host & Owner Hub"
-                            UserRole.SPECIALIST -> "Practitioner Circle"
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                        Text(
+                            text = pageTitle ?: when (currentRole) {
+                                UserRole.ADMIN -> "Super Admin Node"
+                                UserRole.PRO_HOST -> "Host & Owner Hub"
+                                UserRole.SPECIALIST -> "Practitioner Circle"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
 

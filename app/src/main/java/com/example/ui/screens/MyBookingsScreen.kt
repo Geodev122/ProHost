@@ -2,13 +2,11 @@ package com.example.ui.screens
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -71,20 +69,11 @@ fun MyBookingsScreen(
         }
     }
 
-    // Partition upcoming / active vs past
-    val upcomingAndActiveBookings = remember(userBookings) {
-        userBookings.filter {
-            it.status == BookingRequestStatus.ACCEPTED || it.status == BookingRequestStatus.PENDING
-        }
-    }
+    val activeBookings = remember(userBookings) { userBookings.filter { it.status == BookingRequestStatus.ACCEPTED } }
+    val pendingBookings = remember(userBookings) { userBookings.filter { it.status == BookingRequestStatus.PENDING } }
+    val pastBookings = remember(userBookings) { userBookings.filter { it.status == BookingRequestStatus.REJECTED || it.status == BookingRequestStatus.CANCELLED } }
 
-    val pastBookings = remember(userBookings) {
-        userBookings.filter {
-            it.status == BookingRequestStatus.REJECTED || it.status == BookingRequestStatus.CANCELLED
-        }
-    }
-
-    // SO2: Play a notification sound when a booking transitions to ACCEPTED or REJECTED.
+    // SO2: Play branded notification sound when booking transitions to ACCEPTED or REJECTED.
     val prevBookingStatuses = remember { mutableStateMapOf<String, BookingRequestStatus>() }
     LaunchedEffect(allBookingRequests) {
         allBookingRequests.forEach { booking ->
@@ -92,7 +81,7 @@ fun MyBookingsScreen(
             if (prev != null && prev != booking.status &&
                 (booking.status == BookingRequestStatus.ACCEPTED || booking.status == BookingRequestStatus.REJECTED)) {
                 try {
-                    val mp = MediaPlayer.create(context, android.provider.Settings.System.DEFAULT_NOTIFICATION_URI)
+                    val mp = MediaPlayer.create(context, com.example.R.raw.booking_update)
                     mp?.setOnCompletionListener { it.release() }
                     mp?.start()
                 } catch (_: Exception) {}
@@ -101,10 +90,8 @@ fun MyBookingsScreen(
         }
     }
 
-    // State
-    var selectedMainTab by remember { mutableStateOf(0) } // 0: Upcoming & Active, 1: Past & History
-    var selectedFilterChip by remember { mutableStateOf("ALL") } // ALL, ACCEPTED, PENDING, CANCELLED, REJECTED
-    var searchQuery by remember { mutableStateOf("") }
+    // State — 0: Active, 1: Pending, 2: Past
+    var selectedMainTab by remember { mutableStateOf(0) }
 
     // Dialog state for Re-booking with interactive calendar. Stores just the
     // space's id, not the SpaceListing itself — RentalBookingDialog's own slot/
@@ -126,26 +113,10 @@ fun MyBookingsScreen(
     var cancelTargetBooking by remember { mutableStateOf<BookingRequest?>(null) }
     var pendingCancelTarget by remember { mutableStateOf<BookingRequest?>(null) }
 
-    // Filter current list
-    val currentTabBookings = if (selectedMainTab == 0) upcomingAndActiveBookings else pastBookings
-    val filteredBookings = remember(currentTabBookings, selectedFilterChip, searchQuery) {
-        currentTabBookings.filter { booking ->
-            val matchesFilter = when (selectedFilterChip) {
-                "ALL" -> true
-                "ACCEPTED" -> booking.status == BookingRequestStatus.ACCEPTED
-                "PENDING" -> booking.status == BookingRequestStatus.PENDING
-                "CANCELLED" -> booking.status == BookingRequestStatus.CANCELLED
-                "REJECTED" -> booking.status == BookingRequestStatus.REJECTED
-                else -> true
-            }
-            val matchesSearch = searchQuery.isBlank() ||
-                    booking.spaceTitle.contains(searchQuery, ignoreCase = true) ||
-                    booking.spaceDistrict.contains(searchQuery, ignoreCase = true) ||
-                    booking.ownerName.contains(searchQuery, ignoreCase = true) ||
-                    booking.id.contains(searchQuery, ignoreCase = true)
-
-            matchesFilter && matchesSearch
-        }
+    val filteredBookings = when (selectedMainTab) {
+        0 -> activeBookings
+        1 -> pendingBookings
+        else -> pastBookings
     }
 
     Column(
@@ -154,169 +125,35 @@ fun MyBookingsScreen(
             .background(PremiumBackgroundGradient)
             .testTag("my_bookings_screen")
     ) {
-        // Top Header
+        // 3-tab segmented toggle: Active / Pending / Past
         Surface(
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(
+            SingleChoiceSegmentedButtonRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                // Header Title
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "My Rentals",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.width(Spacing.sm))
-                        Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = MaterialTheme.shapes.small
-                        ) {
-                            Text(
-                                text = "${userBookings.size} Total",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-                            )
-                        }
-                    }
-                    Text(
-                        text = "${currentUser?.fullName ?: "Licensed Member"} • ${currentUser?.specialty ?: "Practitioner"}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                // Book Space — its own full-width row so it never competes with the
-                // title block for space on narrow screens.
-                FilledTonalButton(
-                    onClick = onNavigateToDiscovery,
-                    shape = MaterialTheme.shapes.medium,
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("explore_new_spaces_button")
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Book a Space", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                }
-
-                // Primary Tab Switcher: Upcoming & Active vs Past & History — a
-                // segmented control (bordered container, filled + shadowed selected
-                // pill) so the two tabs are visually distinguishable, not just a
-                // color-only indicator underline.
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-                ) {
-                    Row(modifier = Modifier.padding(4.dp)) {
-                        val tabs = listOf(
-                            Triple(0, Icons.Default.Upcoming, "Upcoming & Active (${upcomingAndActiveBookings.size})"),
-                            Triple(1, Icons.Default.History, "Past & History (${pastBookings.size})")
-                        )
-                        tabs.forEach { (index, icon, label) ->
-                            val isSelected = selectedMainTab == index
-                            Surface(
-                                onClick = {
-                                    selectedMainTab = index
-                                    selectedFilterChip = "ALL"
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .then(if (isSelected) Modifier.shadow(2.dp, MaterialTheme.shapes.small) else Modifier),
-                                shape = MaterialTheme.shapes.small,
-                                color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
-                                contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(vertical = 10.dp),
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        label,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Search Bar and Filter Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search...", style = MaterialTheme.typography.labelMedium) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                        trailingIcon = if (searchQuery.isNotEmpty()) {
-                            {
-                                IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(24.dp)) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Clear", modifier = Modifier.size(14.dp))
-                                }
-                            }
-                        } else null,
-                        singleLine = true,
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                            focusedContainerColor = MaterialTheme.colorScheme.surface
-                        )
-                    )
-                }
-
-                // Filter Chips Row
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    val filterOptions = if (selectedMainTab == 0) {
-                        listOf("ALL" to "All Bookings", "ACCEPTED" to "Active / Confirmed", "PENDING" to "Pending Review")
-                    } else {
-                        listOf("ALL" to "All History", "CANCELLED" to "Cancelled", "REJECTED" to "Declined / Expired")
-                    }
-
-                    items(filterOptions) { (key, label) ->
-                        val isSelected = selectedFilterChip == key
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { selectedFilterChip = key },
-                            label = { Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                            leadingIcon = if (isSelected) {
-                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
-                            } else null,
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        )
-                    }
-                }
+                SegmentedButton(
+                    selected = selectedMainTab == 0,
+                    onClick = { selectedMainTab = 0 },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
+                    label = { Text("Active (${activeBookings.size})", style = MaterialTheme.typography.labelSmall) }
+                )
+                SegmentedButton(
+                    selected = selectedMainTab == 1,
+                    onClick = { selectedMainTab = 1 },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
+                    label = { Text("Pending (${pendingBookings.size})", style = MaterialTheme.typography.labelSmall) }
+                )
+                SegmentedButton(
+                    selected = selectedMainTab == 2,
+                    onClick = { selectedMainTab = 2 },
+                    shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+                    label = { Text("Past (${pastBookings.size})", style = MaterialTheme.typography.labelSmall) }
+                )
             }
         }
 
@@ -359,9 +196,11 @@ fun MyBookingsScreen(
                         }
                     }
                     Text(
-                        text = if (searchQuery.isNotEmpty()) "No bookings match '$searchQuery'"
-                        else if (selectedMainTab == 0) "No active or upcoming reservations found"
-                        else "No past reservation history",
+                        text = when (selectedMainTab) {
+                            0 -> "No active reservations found"
+                            1 -> "No pending requests"
+                            else -> "No past reservation history"
+                        },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -372,14 +211,13 @@ fun MyBookingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
-                    Button(
+                    TextButton(
                         onClick = onNavigateToDiscovery,
-                        shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.testTag("empty_state_browse_button")
                     ) {
                         Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text("Book a Space", fontWeight = FontWeight.Bold)
+                        Text("Browse Workspaces", fontWeight = FontWeight.Bold)
                     }
                 }
             }

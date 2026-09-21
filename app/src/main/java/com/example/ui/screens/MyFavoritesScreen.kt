@@ -64,22 +64,18 @@ fun MyFavoritesScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("My Favorites", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                        if (savedSpaces.isNotEmpty()) {
-                            Spacer(modifier = Modifier.width(Spacing.sm))
-                            Surface(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                Text(
-                                    text = "${savedSpaces.size} Saved",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-                                )
-                            }
+                    if (savedSpaces.isNotEmpty()) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Text(
+                                text = "${savedSpaces.size} Saved",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                            )
                         }
                     }
                 }
@@ -101,7 +97,7 @@ fun MyFavoritesScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
-                contentPadding = PaddingValues(Spacing.lg),
+                contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, top = Spacing.lg, bottom = 80.dp),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 groupedSavedSpaces.forEach { (category, spacesInCategory) ->

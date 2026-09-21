@@ -15,6 +15,8 @@ import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.PurchaseHistoryRecord
+import com.android.billingclient.api.QueryPurchaseHistoryParams
 import com.android.billingclient.api.QueryPurchasesParams
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -308,6 +310,19 @@ class PlayBillingManager(
     private fun emitMessage(msg: String) {
         coroutineScope.launch {
             _billingMessages.emit(msg)
+        }
+    }
+
+    suspend fun queryPurchaseHistory(): List<PurchaseHistoryRecord> {
+        if (!billingClient.isReady) return emptyList()
+        val params = QueryPurchaseHistoryParams.newBuilder()
+            .setProductType(BillingClient.ProductType.SUBS)
+            .build()
+        val result = billingClient.queryPurchaseHistory(params)
+        return if (result.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+            result.purchaseHistoryRecordList ?: emptyList()
+        } else {
+            emptyList()
         }
     }
 

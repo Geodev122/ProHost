@@ -10,12 +10,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.example.data.model.AppUser
 import com.example.data.model.PackagePlan
 import com.example.data.model.UserRole
@@ -138,24 +141,36 @@ fun DrawerIdentityCard(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Box(modifier = Modifier.size(64.dp)) {
-                        Surface(
-                            color = primaryAccent,
-                            shape = CircleShape,
-                            modifier = Modifier.fillMaxSize(),
-                            border = BorderStroke(2.5.dp, Color.White.copy(alpha = 0.9f))
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = (user?.fullName ?: "").split(" ")
-                                        .filter { it.isNotBlank() }
-                                        .take(2)
-                                        .mapNotNull { it.firstOrNull()?.uppercase() }
-                                        .joinToString("")
-                                        .ifEmpty { "PS" },
-                                    color = Color.White,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    style = MaterialTheme.typography.headlineMedium
-                                )
+                        val picUrl = user?.profilePictureUrl
+                        if (picUrl != null) {
+                            AsyncImage(
+                                model = picUrl,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Surface(
+                                color = primaryAccent,
+                                shape = CircleShape,
+                                modifier = Modifier.fillMaxSize(),
+                                border = BorderStroke(2.5.dp, Color.White.copy(alpha = 0.9f))
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = (user?.fullName ?: "").split(" ")
+                                            .filter { it.isNotBlank() }
+                                            .take(2)
+                                            .mapNotNull { it.firstOrNull()?.uppercase() }
+                                            .joinToString("")
+                                            .ifEmpty { "PS" },
+                                        color = Color.White,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        style = MaterialTheme.typography.headlineMedium
+                                    )
+                                }
                             }
                         }
                         if (user?.isVerified == true) {

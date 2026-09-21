@@ -94,7 +94,7 @@ fun DrawerDialogsHandler(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val title = when (dialogId) {
-                        "owner_whish" -> "Whish Money Transactions"
+                        "owner_whish" -> "Transactions"
                         "admin_audit" -> "Central Security Audits"
                         "admin_gov" -> "Governorate Node Status"
                         // One title carrying the live unread count — this used to be a
@@ -135,58 +135,150 @@ fun DrawerDialogsHandler(
                         // button with no cancellation option, etc.). All four now route
                         // straight to the real screen instead (see AppDrawerContent.kt).
                         "owner_whish" -> {
-                            val hostTxs = transactions.filter {
-                                val user = currentUser
-                                user != null && (it.payerName.contains(user.fullName, ignoreCase = true) || it.payerPhone == user.phone || user.role == UserRole.ADMIN)
+                            var txTab by remember { mutableStateOf(0) } // 0: Whish, 1: Google Play
+                            val playHistory by viewModel.playPurchaseHistory.collectAsState()
+                            val playProducts by viewModel.playBillingProducts.collectAsState()
+                            val sdf = remember { SimpleDateFormat("MMM d, yyyy", Locale.US) }
+
+                            androidx.compose.runtime.LaunchedEffect(txTab) {
+                                if (txTab == 1) viewModel.loadPlayHistory(context)
                             }
-                            if (hostTxs.isEmpty()) {
-                                Text("No recorded Whish settlements. Subscription fees paid via Whish Pay will populate here immediately.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            } else {
-                                LazyColumn(
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    items(hostTxs) { tx ->
-                                        Card(
+
+                            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TabRow(selectedTabIndex = txTab) {
+                                    Tab(selected = txTab == 0, onClick = { txTab = 0 }, text = { Text("Whish") })
+                                    Tab(selected = txTab == 1, onClick = { txTab = 1 }, text = { Text("Google Play") })
+                                }
+
+                                if (txTab == 0) {
+                                    // Whish transactions
+                                    val hostTxs = transactions.filter {
+                                        val user = currentUser
+                                        user != null && (it.payerName.contains(user.fullName, ignoreCase = true) || it.payerPhone == user.phone || user.role == UserRole.ADMIN)
+                                    }
+                                    if (hostTxs.isEmpty()) {
+                                        Text("No recorded Whish settlements. Subscription fees paid via Whish Pay will populate here immediately.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    } else {
+                                        LazyColumn(
+                                            verticalArrangement = Arrangement.spacedBy(8.dp),
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            Column(modifier = Modifier.padding(Spacing.md)) {
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Column {
-                                                        Text("Order #${tx.orderId}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                                        Text("Space: ${tx.spaceTitle}", style = MaterialTheme.typography.labelSmall)
-                                                        Text("Channel ID: ${tx.channelId}", style = MaterialTheme.typography.labelSmall)
-                                                    }
-                                                    Column(horizontalAlignment = Alignment.End) {
-                                                        Text("$${tx.amountUsd.toInt()} USD", fontWeight = FontWeight.ExtraBold, color = StatusSuccess)
-                                                        Text(tx.status.name, color = StatusSuccess, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                            items(hostTxs) { tx ->
+                                                Card(modifier = Modifier.fillMaxWidth()) {
+                                                    Column(modifier = Modifier.padding(Spacing.md)) {
+                                                        Row(
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                                            verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                            Column {
+                                                                Text("Order #${tx.orderId}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                                                Text("Space: ${tx.spaceTitle}", style = MaterialTheme.typography.labelSmall)
+                                                                Text("Channel ID: ${tx.channelId}", style = MaterialTheme.typography.labelSmall)
+                                                            }
+                                                            Column(horizontalAlignment = Alignment.End) {
+                                                                Text("$${tx.amountUsd.toInt()} USD", fontWeight = FontWeight.ExtraBold, color = StatusSuccess)
+                                                                Text(tx.status.name, color = StatusSuccess, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                                            }
+                                                        }
+                                                        Spacer(modifier = Modifier.height(8.dp))
+                                                        CustomButton(
+                                                            text = "Download Bill (A6 PDF)",
+                                                            onClick = {
+                                                                val file = com.example.legal.WhishReceiptPdfGenerator.generate(context, tx)
+                                                                if (file != null) {
+                                                                    try {
+                                                                        val intent = com.example.legal.WhishReceiptPdfGenerator.buildOpenIntent(context, file)
+                                                                        context.startActivity(intent)
+                                                                    } catch (e: Exception) {
+                                                                        Toast.makeText(context, "Bill generated, but no PDF viewer found.", Toast.LENGTH_SHORT).show()
+                                                                    }
+                                                                } else {
+                                                                    Toast.makeText(context, "Failed to generate PDF bill.", Toast.LENGTH_SHORT).show()
+                                                                }
+                                                            },
+                                                            variant = CustomButtonVariant.OUTLINED,
+                                                            icon = Icons.Default.PictureAsPdf,
+                                                            compact = true,
+                                                            modifier = Modifier.fillMaxWidth()
+                                                        )
                                                     }
                                                 }
-                                                Spacer(modifier = Modifier.height(8.dp))
-                                                CustomButton(
-                                                    text = "Download Bill (A6 PDF)",
-                                                    onClick = {
-                                                        val file = com.example.legal.WhishReceiptPdfGenerator.generate(context, tx)
-                                                        if (file != null) {
-                                                            try {
-                                                                val intent = com.example.legal.WhishReceiptPdfGenerator.buildOpenIntent(context, file)
-                                                                context.startActivity(intent)
-                                                            } catch (e: Exception) {
-                                                                Toast.makeText(context, "Bill generated, but no PDF viewer found.", Toast.LENGTH_SHORT).show()
-                                                            }
-                                                        } else {
-                                                            Toast.makeText(context, "Failed to generate PDF bill.", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    // Google Play purchase history
+                                    if (playHistory.isEmpty()) {
+                                        Text("No Google Play subscription history found.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    } else {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.End
+                                        ) {
+                                            IconButton(onClick = {
+                                                // Export Play history to PDF
+                                                try {
+                                                    val doc = android.graphics.pdf.PdfDocument()
+                                                    val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(595, 842, 1).create()
+                                                    val page = doc.startPage(pageInfo)
+                                                    val paint = android.graphics.Paint().apply { textSize = 12f; color = android.graphics.Color.BLACK }
+                                                    var y = 50f
+                                                    page.canvas.drawText("Google Play Purchase History", 40f, y, paint.apply { textSize = 16f; isFakeBoldText = true })
+                                                    y += 30f
+                                                    paint.textSize = 11f; paint.isFakeBoldText = false
+                                                    playHistory.forEach { record ->
+                                                        val productId = record.products.firstOrNull() ?: ""
+                                                        val productName = playProducts.find { it.productId == productId }?.name ?: productId
+                                                        val date = sdf.format(Date(record.purchaseTime))
+                                                        page.canvas.drawText("$date  $productName  (Token: ${record.purchaseToken.take(12)}…)", 40f, y, paint)
+                                                        y += 20f
+                                                        if (y > 800f) y = 50f
+                                                    }
+                                                    doc.finishPage(page)
+                                                    val filename = "play_history_${System.currentTimeMillis()}.pdf"
+                                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                                                        val values = android.content.ContentValues().apply {
+                                                            put(android.provider.MediaStore.Downloads.DISPLAY_NAME, filename)
+                                                            put(android.provider.MediaStore.Downloads.MIME_TYPE, "application/pdf")
+                                                            put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
                                                         }
-                                                    },
-                                                    variant = CustomButtonVariant.OUTLINED,
-                                                    icon = Icons.Default.PictureAsPdf,
-                                                    compact = true,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                )
+                                                        val uri = context.contentResolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                                                        if (uri != null) {
+                                                            context.contentResolver.openOutputStream(uri)?.use { doc.writeTo(it) }
+                                                            values.clear(); values.put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
+                                                            context.contentResolver.update(uri, values, null, null)
+                                                            val shareIntent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply { setDataAndType(uri, "application/pdf"); addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+                                                            context.startActivity(android.content.Intent.createChooser(shareIntent, "Open PDF"))
+                                                        }
+                                                    } else {
+                                                        @Suppress("DEPRECATION")
+                                                        val file = java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), filename)
+                                                        doc.writeTo(java.io.FileOutputStream(file))
+                                                        Toast.makeText(context, "Saved to Downloads/$filename", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                    doc.close()
+                                                } catch (e: Exception) {
+                                                    Toast.makeText(context, "PDF export failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }) {
+                                                Icon(Icons.Default.PictureAsPdf, contentDescription = "Export PDF")
+                                            }
+                                        }
+                                        LazyColumn(
+                                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            items(playHistory) { record ->
+                                                Card(modifier = Modifier.fillMaxWidth()) {
+                                                    Column(modifier = Modifier.padding(Spacing.md)) {
+                                                        val productId = record.products.firstOrNull() ?: ""
+                                                        val productName = playProducts.find { it.productId == productId }?.name ?: productId
+                                                        Text(productName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                                        Text(sdf.format(Date(record.purchaseTime)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                        Text("Token: ${record.purchaseToken.take(16)}…", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                    }
+                                                }
                                             }
                                         }
                                     }

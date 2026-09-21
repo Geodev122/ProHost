@@ -650,7 +650,8 @@ class ProHostRepository {
                 isActiveSubscription = current.isActiveSubscription,
                 subscriptionExpiryMillis = current.subscriptionExpiryMillis,
                 isOwnerSuspended = current.isOwnerSuspended,
-                ownerIsIdVerified = current.ownerIsIdVerified
+                ownerIsIdVerified = current.ownerIsIdVerified,
+                ownerProfilePictureUrl = current.ownerProfilePictureUrl
             )
         } else {
             listing
@@ -708,7 +709,8 @@ class ProHostRepository {
                 isActiveSubscription = current.isActiveSubscription,
                 subscriptionExpiryMillis = current.subscriptionExpiryMillis,
                 isOwnerSuspended = current.isOwnerSuspended,
-                ownerIsIdVerified = current.ownerIsIdVerified
+                ownerIsIdVerified = current.ownerIsIdVerified,
+                ownerProfilePictureUrl = current.ownerProfilePictureUrl
             )
         } else {
             listing.copy(status = ListingStatus.DRAFT)
@@ -748,7 +750,8 @@ class ProHostRepository {
                 isVerified = current.isVerified,
                 isActiveSubscription = current.isActiveSubscription,
                 subscriptionExpiryMillis = current.subscriptionExpiryMillis,
-                ownerIsIdVerified = current.ownerIsIdVerified
+                ownerIsIdVerified = current.ownerIsIdVerified,
+                ownerProfilePictureUrl = current.ownerProfilePictureUrl
             )
         } else {
             updated
@@ -1480,7 +1483,8 @@ class ProHostRepository {
                 isVerified = current.isVerified,
                 isActiveSubscription = current.isActiveSubscription,
                 subscriptionExpiryMillis = current.subscriptionExpiryMillis,
-                ownerIsIdVerified = current.ownerIsIdVerified
+                ownerIsIdVerified = current.ownerIsIdVerified,
+                ownerProfilePictureUrl = current.ownerProfilePictureUrl
             )
         } else {
             updated

@@ -229,6 +229,7 @@ class ProHostViewModel(
 
     val playBillingProducts = MutableStateFlow<List<com.android.billingclient.api.ProductDetails>>(emptyList())
     val playBillingConnected = MutableStateFlow(false)
+    val playPurchaseHistory = MutableStateFlow<List<com.android.billingclient.api.PurchaseHistoryRecord>>(emptyList())
 
     // Holds a deferred launch when billing was not yet connected at the time the user tapped
     // "Subscribe via Google Play". Cleared and retried once products arrive from Play.
@@ -423,6 +424,17 @@ class ProHostViewModel(
     fun fetchPlayProductDetails(context: Context, productId: String, onResult: (com.android.billingclient.api.ProductDetails?) -> Unit) {
         val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager }
         manager?.queryProductDetailsForId(productId, onResult) ?: onResult(null)
+    }
+
+    fun loadPlayHistory(context: Context) {
+        val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager } ?: return
+        viewModelScope.launch {
+            try {
+                playPurchaseHistory.value = manager.queryPurchaseHistory()
+            } catch (e: Exception) {
+                android.util.Log.w("ProHostViewModel", "loadPlayHistory failed: ${e.message}")
+            }
+        }
     }
 
     // --- Whish Pay Settlement ---

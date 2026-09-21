@@ -545,6 +545,7 @@ fun SpaceDetailsScreenContent(
                             specialty = "Space Host • WhatsApp: ${liveSpace.ownerPhone}",
                             isVerified = liveSpace.isVerified,
                             isIdVerified = liveSpace.ownerIsIdVerified,
+                            imageUrl = liveSpace.ownerProfilePictureUrl,
                             size = 40.dp,
                             modifier = Modifier.weight(1f)
                         )

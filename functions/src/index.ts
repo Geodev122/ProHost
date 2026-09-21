@@ -20,6 +20,7 @@ export { bootstrapSuperAdmin } from "./roles/bootstrapSuperAdmin";
 export { deleteOwnAccount } from "./roles/deleteOwnAccount";
 
 export { updatePricing } from "./admin/pricing";
+export { grantPackageToUser } from "./admin/grantPackage";
 export { setListingVerification, setListingSubscriptionActive, requestListingVerification } from "./admin/listings";
 
 export { recordClientAuditLog } from "./audit/recordClientAuditLog";

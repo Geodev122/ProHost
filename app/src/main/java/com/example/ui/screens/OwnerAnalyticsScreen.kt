@@ -18,11 +18,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.BookingRequestStatus
 import com.example.data.model.ListingStatus
 import com.example.data.model.SpaceListing
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
+import java.util.Calendar
 
 @Composable
 fun OwnerAnalyticsScreen(
@@ -185,6 +187,99 @@ fun OwnerAnalyticsScreen(
 
         items(displayListings, key = { it.id }) { space ->
             ListingHealthCard(space = space)
+        }
+
+        // Listings Yield — accepted booking revenue per active listing, current month vs prior month
+        item {
+            val now = System.currentTimeMillis()
+            val cal = remember { Calendar.getInstance() }
+
+            val currentMonthStart = remember(now) {
+                cal.apply { timeInMillis = now; set(Calendar.DAY_OF_MONTH, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
+                cal.timeInMillis
+            }
+            val prevMonthSameDay = remember(now) {
+                cal.apply { timeInMillis = now; add(Calendar.MONTH, -1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
+                cal.timeInMillis
+            }
+            val prevMonthStart = remember(prevMonthSameDay) {
+                cal.apply { timeInMillis = prevMonthSameDay; set(Calendar.DAY_OF_MONTH, 1) }
+                cal.timeInMillis
+            }
+
+            val acceptedBookings = remember(bookingRequests) {
+                bookingRequests.filter { it.status == BookingRequestStatus.ACCEPTED }
+            }
+
+            ProSurfaceCard {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ProSectionHeader(
+                        title = "Listings Yield",
+                        subtitle = "Accepted bookings this month",
+                        icon = Icons.Default.TrendingUp
+                    )
+
+                    val yieldListings = activeListings.ifEmpty { displayListings }
+                    if (yieldListings.isEmpty()) {
+                        Text(
+                            text = "Publish an active listing to see yield data.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        yieldListings.forEach { listing ->
+                            val thisMonth = acceptedBookings
+                                .filter { it.spaceId == listing.id && it.createdAt in currentMonthStart..now }
+                                .sumOf { it.totalAmountUsd }
+                            val prevMonth = acceptedBookings
+                                .filter { it.spaceId == listing.id && it.createdAt in prevMonthStart..prevMonthSameDay }
+                                .sumOf { it.totalAmountUsd }
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = listing.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "This month: $${thisMonth.toInt()}",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = if (thisMonth >= prevMonth) StatusSuccess else MaterialTheme.colorScheme.error
+                                    )
+                                    val diff = thisMonth - prevMonth
+                                    Text(
+                                        text = if (diff >= 0) "+$${diff.toInt()} vs last month" else "-$${(-diff).toInt()} vs last month",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (diff >= 0) StatusSuccess else MaterialTheme.colorScheme.error
+                                    )
+                                }
+                                if (thisMonth == 0.0 && prevMonth == 0.0) {
+                                    Text(
+                                        text = "No accepted bookings yet this month",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                HorizontalDivider(
+                                    thickness = 0.5.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

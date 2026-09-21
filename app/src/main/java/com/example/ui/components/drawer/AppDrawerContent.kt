@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.AppUser
 import com.example.data.model.UserRole
 import com.example.ui.components.ProHostBrandLogo
-import com.example.ui.components.ProHostCedarBadge
 import com.example.ui.theme.*
 
 // Published as ProHost's real support/data-privacy contact on the public
@@ -99,31 +98,41 @@ fun SpecialistDrawerContent(
             .verticalScroll(rememberScrollState())
             .padding(Spacing.lg)
     ) {
-        // Compact brand strip — identity card lives on the Profile page
-        Row(
+        // Branded drawer header: logo + user name + country market label
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(bottom = 0.dp),
+            color = OxfordBlue
         ) {
-            ProHostCedarBadge()
-            Column {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ProHostBrandLogo(size = 28.dp)
+                    Text(
+                        text = currentUser?.fullName ?: "ProHost",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = androidx.compose.ui.graphics.Color.White,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
                 Text(
-                    text = "ProHost",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = OxfordBlue
-                )
-                Text(
-                    text = currentUser?.fullName ?: "",
+                    text = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
                     style = MaterialTheme.typography.labelSmall,
-                    color = CoolGray,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    color = CoolGray.copy(alpha = 0.9f),
+                    maxLines = 1
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         if (isProHost) {
             Text(
@@ -136,7 +145,7 @@ fun SpecialistDrawerContent(
             )
 
             NavigationDrawerItem(
-                label = { Text("Financial Stats & Yields", fontWeight = FontWeight.Bold) },
+                label = { Text("Financials", fontWeight = FontWeight.Bold) },
                 selected = activeProHostTabId == "stats",
                 onClick = { onTabSelected("stats") },
                 icon = { Icon(Icons.Default.Analytics, contentDescription = null, tint = if (activeProHostTabId == "stats") FreshGreen else OxfordBlue) },
@@ -148,7 +157,7 @@ fun SpecialistDrawerContent(
             )
             Spacer(modifier = Modifier.height(Spacing.xs))
             NavigationDrawerItem(
-                label = { Text("Subscription & Packages", fontWeight = FontWeight.Bold) },
+                label = { Text("Subscriptions", fontWeight = FontWeight.Bold) },
                 selected = activeProHostTabId == "owner_subscriptions",
                 onClick = { onTabSelected("owner_subscriptions") },
                 icon = { Icon(Icons.Default.Layers, contentDescription = null, tint = if (activeProHostTabId == "owner_subscriptions") FreshGreen else OxfordBlue) },
@@ -160,7 +169,7 @@ fun SpecialistDrawerContent(
             )
             Spacer(modifier = Modifier.height(Spacing.xs))
             NavigationDrawerItem(
-                label = { Text("Whish Money Transactions", fontWeight = FontWeight.Bold) },
+                label = { Text("Transactions", fontWeight = FontWeight.Bold) },
                 selected = false,
                 onClick = { onDrawerAction("owner_whish") },
                 icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = OxfordBlue) },
@@ -270,31 +279,39 @@ fun AdminDrawerContent(
             .verticalScroll(rememberScrollState())
             .padding(Spacing.lg)
     ) {
-        // Compact brand strip — identity card lives on the Profile page
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        // Branded drawer header: logo + user name + country market label
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = OxfordBlue
         ) {
-            ProHostCedarBadge()
-            Column {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ProHostBrandLogo(size = 28.dp)
+                    Text(
+                        text = currentUser?.fullName ?: "System Admin",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = androidx.compose.ui.graphics.Color.White,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
                 Text(
-                    text = "ProHost",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = OxfordBlue
-                )
-                Text(
-                    text = currentUser?.fullName ?: "",
+                    text = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
                     style = MaterialTheme.typography.labelSmall,
-                    color = CoolGray,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    color = CoolGray.copy(alpha = 0.9f),
+                    maxLines = 1
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(
             text = "CENTRAL SECURITY CORES",
@@ -359,19 +376,6 @@ fun AdminDrawerContent(
             selected = activeTabId == "search_map",
             onClick = { onTabSelected("search_map") },
             icon = { Icon(Icons.Default.TravelExplore, contentDescription = null, tint = if (activeTabId == "search_map") CarnationOrange else OxfordBlue) }
-        )
-        Spacer(modifier = Modifier.height(Spacing.xs))
-        NavigationDrawerItem(
-            label = { Text("Renting Requests", fontWeight = FontWeight.SemiBold) },
-            selected = activeTabId == "owner_requests",
-            onClick = { onTabSelected("owner_requests") },
-            icon = {
-                DrawerBadgedIcon(
-                    icon = Icons.Default.Inbox,
-                    tint = if (activeTabId == "owner_requests") CarnationOrange else OxfordBlue,
-                    showDot = pendingRequestsCount > 0
-                )
-            }
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
