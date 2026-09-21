@@ -1,13 +1,19 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "app.geonajjar.prohost",
       "sha256_cert_fingerprints": [
         "90:5D:E4:5E:8D:08:CF:FB:BF:FD:00:44:26:31:CF:46:59:73:8D:CD:81:3F:57:69:3A:C7:88:DF:98:26:10:07",
         "35:06:F5:EC:73:7C:AB:0B:03:86:61:D6:1A:D9:13:0F:46:CC:52:44:D4:79:1C:5D:34:0D:8E:B9:34:C1:AE:C5",
-        "2C:A9:C2:D8:7C:A8:AA:26:5E:0B:E5:DF:BC:4F:A8:46:06:48:9D:15:38:82:3E:90:3E:36:6F:F6:05:C9:1B:CC"
+        "2C:A9:C2:D8:7C:A8:AA:26:5E:0B:E5:DF:BC:4F:A8:46:06:48:9D:15:38:82:3E:90:3E:36:6F:F6:05:C9:1B:CC",
+        "49:E8:A9:C3:E2:D3:A4:5A:06:56:70:7A:38:AC:EF:3E:FE:C8:0F:D3:99:79:58:BF:92:76:F7:C2:33:EE:A3:2D",
+        "5B:A6:22:5B:60:D3:36:D7:74:87:BE:26:A9:09:B0:D8:61:7A:29:88:CD:49:5B:D3:50:DF:7C:F6:B0:E4:14:15",
+        "7D:BC:9E:FF:D5:43:98:92:54:47:29:DC:A8:4F:0D:F2:76:2D:E4:32:F4:04:98:D4:7F:2E:3C:5F:7A:A1:85:AA"
       ]
     }
   }
