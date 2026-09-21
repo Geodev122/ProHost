@@ -153,9 +153,10 @@ dependencies {
   implementation(libs.firebase.storage)
   implementation(libs.firebase.dataconnect)
 
-  // Firebase Auth: phone-number SMS OTP is the app's only sign-in method (no Google
-  // Sign-In / Credential Manager — removed by design, every account is phone-verified).
+  // Firebase Auth: phone-number SMS OTP for new-user signup and PIN reset;
+  // Google Sign-In (play-services-auth) for one-tap sign-in via Google account.
   implementation(libs.firebase.auth)
+  implementation(libs.play.services.auth)
   implementation(libs.firebase.functions)
   implementation(libs.firebase.appcheck.recaptcha)
   implementation(libs.firebase.appcheck.playintegrity)

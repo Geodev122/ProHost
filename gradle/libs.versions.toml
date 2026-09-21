@@ -44,6 +44,7 @@ googleServices = "4.4.2"
 playAppUpdate = "2.1.0"
 playBilling = "8.0.0"
 playIntegrity = "1.4.0"
+playServicesAuth = "21.3.0"
 coreSplashscreen = "1.0.1"
 
 [libraries]
@@ -112,6 +113,7 @@ play-app-update-ktx = { group = "com.google.android.play", name = "app-update-kt
 play-billing = { group = "com.android.billingclient", name = "billing", version.ref = "playBilling" }
 play-billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "playBilling" }
 play-integrity = { group = "com.google.android.play", name = "integrity", version.ref = "playIntegrity" }
+play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

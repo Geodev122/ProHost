@@ -33,6 +33,16 @@ class AuthViewModel(
     private val _isAuthenticating = MutableStateFlow(false)
     val isAuthenticating: StateFlow<Boolean> = _isAuthenticating.asStateFlow()
 
+    // Holds pre-filled Google profile data between the sign-in result and the
+    // registration form that the user must complete for new Google accounts.
+    data class PendingGoogleProfile(
+        val displayName: String?,
+        val email: String?,
+        val photoUrl: String?
+    )
+    var pendingGoogleProfile: PendingGoogleProfile? = null
+        private set
+
     private val _authErrorMessage = MutableStateFlow<String?>(null)
     val authErrorMessage: StateFlow<String?> = _authErrorMessage.asStateFlow()
 
@@ -447,6 +457,143 @@ class AuthViewModel(
                     } ?: "Failed to set PIN. Please try again."
                 }
             )
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Google Sign-In path
+    // -------------------------------------------------------------------------
+
+    /**
+     * Processes a Google Sign-In activity result (from [GoogleSignInHelper.getSignInIntent]).
+     * - Existing Google account → completes login and calls [onSuccess].
+     * - Brand-new Google account → stores profile data in [pendingGoogleProfile] and
+     *   calls [onNeedsRegistration] so the screen can pre-fill and show the form.
+     */
+    fun handleGoogleSignInResult(
+        activity: android.app.Activity,
+        data: android.content.Intent?,
+        onSuccess: () -> Unit,
+        onNeedsRegistration: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val accountResult = com.example.data.auth.GoogleSignInHelper.parseResult(data)
+        val account = accountResult.getOrElse {
+            val msg = com.example.data.auth.GoogleSignInHelper.friendlyError(it)
+            onError(msg)
+            return
+        }
+        val idToken = account.idToken ?: run { onError("Google sign-in did not return an ID token. Please try again."); return }
+
+        _isAuthenticating.value = true
+        _authErrorMessage.value = null
+        viewModelScope.launch {
+            val authService = com.example.data.auth.FirebaseAuthService(activity)
+            val result = authService.signInWithGoogleIdToken(idToken)
+            when (result) {
+                is com.example.data.auth.AuthResult.Success -> {
+                    val firebaseUser = result.firebaseUser
+                    if (firebaseUser == null) {
+                        _isAuthenticating.value = false
+                        onError("Sign-in session could not be established. Please try again.")
+                        return@launch
+                    }
+                    if (result.isNewUser) {
+                        // First-time Google sign-in — user must complete the registration form.
+                        pendingGoogleProfile = PendingGoogleProfile(
+                            displayName = result.displayName,
+                            email = result.email.ifBlank { null },
+                            photoUrl = result.photoUrl
+                        )
+                        _isAuthenticating.value = false
+                        onNeedsRegistration()
+                    } else {
+                        // Returning Google user — complete login directly.
+                        try {
+                            val integrityToken = com.example.util.PlayIntegrityManager(activity)
+                                .requestIntegrityToken().getOrNull()
+                            val user = com.example.data.auth.completeGoogleSignIn(
+                                repository, functionsClient, firebaseUser, integrityToken
+                            )
+                            _isAuthenticating.value = false
+                            registerFcmTokenForCurrentUser(user.id)
+                            _authSuccessMessage.value = "Welcome back, ${user.fullName}!"
+                            onSuccess()
+                        } catch (e: com.example.data.auth.AccountSuspendedException) {
+                            authService.signOut()
+                            _isAuthenticating.value = false
+                            onError(e.message ?: "Account suspended.")
+                        } catch (e: Exception) {
+                            _isAuthenticating.value = false
+                            onError("Sign-in failed. Please try again.")
+                        }
+                    }
+                }
+                is com.example.data.auth.AuthResult.Error -> {
+                    _isAuthenticating.value = false
+                    onError(result.message)
+                }
+                com.example.data.auth.AuthResult.Cancelled -> {
+                    _isAuthenticating.value = false
+                }
+            }
+        }
+    }
+
+    /**
+     * Completes registration for a user who signed up via Google. Call this after the
+     * registration form is submitted — [pendingGoogleProfile] provides the pre-filled values.
+     */
+    fun completeGoogleRegistration(
+        activity: android.app.Activity,
+        registration: PendingPhoneRegistration,
+        onSuccess: () -> Unit
+    ) {
+        val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+        if (firebaseUser == null) {
+            _authErrorMessage.value = "Your Google sign-in session expired — please try again."
+            return
+        }
+        _isAuthenticating.value = true
+        _authErrorMessage.value = null
+        viewModelScope.launch {
+            try {
+                val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
+                val profilePictureUrl = registration.profilePictureUri?.let { uri ->
+                    storageService.uploadProfilePicture(firebaseUser.uid, uri, com.example.util.guessFileExtension(activity, uri, "jpg"))
+                } ?: pendingGoogleProfile?.photoUrl
+                val idDocumentUrl = registration.idDocumentUri?.let { uri ->
+                    storageService.uploadIdDocument(firebaseUser.uid, uri, com.example.util.guessFileExtension(activity, uri, "pdf"))
+                }
+                val integrityToken = com.example.util.PlayIntegrityManager(activity).requestIntegrityToken().getOrNull()
+                val user = com.example.data.auth.completeGoogleRegistration(
+                    repository = repository,
+                    functionsClient = functionsClient,
+                    firebaseUser = firebaseUser,
+                    fullName = registration.fullName,
+                    email = registration.email,
+                    specialty = registration.specialty,
+                    profilePictureUrl = profilePictureUrl,
+                    idDocumentUrl = idDocumentUrl,
+                    country = registration.country,
+                    governorate = registration.governorate,
+                    city = registration.city,
+                    tosAccepted = registration.tosAccepted,
+                    integrityToken = integrityToken
+                )
+                pendingGoogleProfile = null
+                _isAuthenticating.value = false
+                registerFcmTokenForCurrentUser(user.id)
+                _authSuccessMessage.value = "Account created for ${user.fullName}! Now set your 6-digit PIN."
+                onSuccess()
+            } catch (e: com.example.data.auth.AccountSuspendedException) {
+                com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                _isAuthenticating.value = false
+                _authErrorMessage.value = e.message
+            } catch (e: Exception) {
+                _isAuthenticating.value = false
+                _authErrorMessage.value = friendlyRegistrationErrorMessage(e)
+            }
         }
     }
 

@@ -164,6 +164,44 @@ class FirebaseAuthService(private val context: Context) {
         PhoneAuthProvider.verifyPhoneNumber(builder.build())
     }
 
+    /**
+     * Exchanges a Google ID token (obtained via GoogleSignIn + [GoogleSignInHelper]) for
+     * a Firebase Auth session. Returns [AuthResult.Success] with `isNewUser = true` when
+     * this Google account has never signed into this Firebase project before.
+     *
+     * A [com.google.firebase.auth.FirebaseAuthUserCollisionException] (account-exists-
+     * with-different-credential) means the email is already registered via phone OTP —
+     * the error message guides the user to log in with their phone number instead.
+     */
+    suspend fun signInWithGoogleIdToken(idToken: String): AuthResult {
+        val auth = firebaseAuth
+            ?: return AuthResult.Error("Authentication service unavailable. Please check your connection and try again.")
+        return try {
+            val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(idToken, null)
+            val result = auth.signInWithCredential(credential).awaitTask()
+            val user = result.user
+                ?: return AuthResult.Error("Google sign-in did not return a user. Please try again.")
+            AuthResult.Success(
+                firebaseUser = user,
+                email = user.email ?: "",
+                displayName = user.displayName,
+                photoUrl = user.photoUrl?.toString(),
+                isNewUser = result.additionalUserInfo?.isNewUser ?: false
+            )
+        } catch (e: Exception) {
+            Log.e(tag, "Google sign-in failed: ${e.message}", e)
+            val msg = e.message.orEmpty()
+            when {
+                msg.contains("account-exists-with-different-credential", ignoreCase = true) ->
+                    AuthResult.Error("This email is already registered via phone number. Please sign in with your phone number instead.")
+                msg.contains("network", ignoreCase = true) ->
+                    AuthResult.Error("Network error. Check your connection and try again.")
+                else ->
+                    AuthResult.Error("Google sign-in failed. Please try again.")
+            }
+        }
+    }
+
     /** Builds the credential from a verification id and the SMS code typed in. */
     fun buildPhoneAuthCredential(verificationId: String, smsCode: String): PhoneAuthCredential =
         PhoneAuthProvider.getCredential(verificationId, smsCode)

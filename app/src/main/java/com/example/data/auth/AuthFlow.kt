@@ -88,6 +88,55 @@ suspend fun completeVerifiedRegistration(
     )
 }
 
+/**
+ * Completes sign-in for an existing user who authenticated via Google Sign-In.
+ * Functionally identical to [completeVerifiedLogin] — reuses the same role-resolution
+ * and repository.login() path. The distinction exists for call-site clarity.
+ */
+suspend fun completeGoogleSignIn(
+    repository: ProHostRepository,
+    functionsClient: FirebaseFunctionsClient,
+    firebaseUser: FirebaseUser,
+    integrityToken: String? = null
+): AppUser = completeVerifiedLogin(repository, functionsClient, firebaseUser, integrityToken)
+
+/**
+ * Registers a brand-new user who signed up via Google Sign-In.
+ * The Google account provides email, display name, and photo — the caller
+ * should pre-fill the registration form with these values and pass them here
+ * after the user completes the remaining required fields (specialty, location, ID doc).
+ */
+suspend fun completeGoogleRegistration(
+    repository: ProHostRepository,
+    functionsClient: FirebaseFunctionsClient,
+    firebaseUser: FirebaseUser,
+    fullName: String,
+    email: String,
+    specialty: String,
+    profilePictureUrl: String?,
+    idDocumentUrl: String?,
+    country: String,
+    governorate: String,
+    city: String,
+    tosAccepted: Boolean,
+    integrityToken: String? = null
+): AppUser = completeVerifiedRegistration(
+    repository = repository,
+    functionsClient = functionsClient,
+    firebaseUser = firebaseUser,
+    fullName = fullName,
+    email = email,
+    phone = firebaseUser.phoneNumber ?: "",
+    specialty = specialty,
+    profilePictureUrl = profilePictureUrl,
+    idDocumentUrl = idDocumentUrl,
+    country = country,
+    governorate = governorate,
+    city = city,
+    tosAccepted = tosAccepted,
+    integrityToken = integrityToken
+)
+
 private suspend fun resolveVerifiedRole(
     functionsClient: FirebaseFunctionsClient,
     firebaseUser: FirebaseUser,

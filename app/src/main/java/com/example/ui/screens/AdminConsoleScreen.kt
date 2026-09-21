@@ -61,6 +61,7 @@ fun AdminConsoleScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val isOffline by viewModel.isOfflineMode.collectAsState()
     val syncStatusMessage by viewModel.syncStatusMessage.collectAsState()
+    var showListingFilterMenu by remember { mutableStateOf(false) }
 
     // Listen to admin events (Toasts)
     LaunchedEffect(adminViewModel) {
@@ -280,15 +281,41 @@ fun AdminConsoleScreen(
                 }
             }
             if (uiState.selectedTab == 2) {
-                FloatingActionButton(
-                    onClick = { adminViewModel.setListingStatusFilter("ALL") },
+                Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(bottom = 16.dp, end = 16.dp),
-                    containerColor = VibrantBlue,
-                    contentColor = Color.White
+                        .padding(bottom = 16.dp, end = 16.dp)
                 ) {
-                    Icon(Icons.Default.Settings, contentDescription = "Listing Filters")
+                    FloatingActionButton(
+                        onClick = { showListingFilterMenu = true },
+                        containerColor = VibrantBlue,
+                        contentColor = Color.White
+                    ) {
+                        Icon(Icons.Default.FilterList, contentDescription = "Listing Filters")
+                    }
+                    DropdownMenu(
+                        expanded = showListingFilterMenu,
+                        onDismissRequest = { showListingFilterMenu = false }
+                    ) {
+                        listOf(
+                            "ALL" to "All Listings",
+                            "ACTIVE_30D" to "Active (Last 30d)",
+                            "EXPIRED" to "Expired",
+                            "VERIFIED" to "Verified",
+                            "PENDING_VERIFICATION" to "Pending Review"
+                        ).forEach { (key, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    adminViewModel.setListingStatusFilter(key)
+                                    showListingFilterMenu = false
+                                },
+                                leadingIcon = if (uiState.selectedListingStatusFilter == key) {
+                                    { Icon(Icons.Default.Check, contentDescription = null) }
+                                } else null
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -396,7 +423,19 @@ fun AdminConsoleScreen(
         )
     }
 
-    // 8. Delete Package Plan Confirmation Dialog (BUG-C3)
+    // 8. Add Package Plan Dialog
+    if (uiState.isAddPackagePlanDialogOpen) {
+        AdminAddPackagePlanDialog(
+            existingIds = uiState.packagePlans.packages.keys,
+            onDismiss = { adminViewModel.closeAddPackagePlanDialog() },
+            onAdd = { plan ->
+                adminViewModel.addPackagePlan(plan)
+                adminViewModel.closeAddPackagePlanDialog()
+            }
+        )
+    }
+
+    // 9. Delete Package Plan Confirmation Dialog
     if (uiState.isDeletePackagePlanDialogOpen && uiState.pendingDeletePlanId != null) {
         AdminDeletePackagePlanDialog(
             planId = uiState.pendingDeletePlanId!!,
@@ -406,7 +445,7 @@ fun AdminConsoleScreen(
         )
     }
 
-    // 9. Reject ID Document Dialog
+    // 10. Reject ID Document Dialog
     if (uiState.isRejectIdDialogOpen && uiState.rejectingIdUserId != null) {
         AdminRejectIdDocumentDialog(
             userId = uiState.rejectingIdUserId!!,
