@@ -5,8 +5,14 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.media.AudioAttributes
 import android.media.MediaPlayer
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.rememberScrollState
@@ -17,8 +23,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import android.widget.Toast
 import com.example.data.model.*
@@ -405,117 +414,220 @@ fun OwnerSubscriptionsScreen(
             }
         }
 
-        Text(
-            text = "AVAILABLE SUBSCRIPTION PLANS",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = CoolGray,
-            modifier = Modifier.padding(start = 4.dp, top = 8.dp)
-        )
+        // Section header
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 4.dp, top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "CHOOSE YOUR PLAN",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = CoolGray
+            )
+            if (pricesLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = CarnationOrange)
+            }
+        }
 
         if (enabledPlans.isEmpty()) {
             Text(
-                "No packages are available right now — please check back later.",
+                "No packages available right now — check back soon.",
                 style = MaterialTheme.typography.bodySmall,
-                color = CoolGray
+                color = CoolGray,
+                modifier = Modifier.padding(start = 4.dp)
             )
+        } else {
+            // Horizontal scrollable plan cards (sorted by price ascending — least to most desirable)
+            val sortedPlans = enabledPlans.sortedWith(compareBy({ !it.isFeatured }, { it.sortOrder }))
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(horizontal = 4.dp)
+            ) {
+                items(sortedPlans) { plan ->
+                    val playProductId = plan.googlePlayProductId.ifBlank { plan.id }
+                    val isCurrent = currentPlan?.id == plan.id && !isSubscriptionExpired
+                    CompactPlanCard(
+                        plan = plan,
+                        isCurrent = isCurrent,
+                        playFormattedPrice = playPriceMap[playProductId],
+                        onSelect = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            if (activity != null) {
+                                viewModel.launchGooglePaySubscription(activity, playProductId)
+                            } else {
+                                Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
+                }
+            }
         }
 
-        enabledPlans.forEach { plan ->
-            val playProductId = plan.googlePlayProductId.ifBlank { plan.id }
-            PackageOptionCard(
-                plan = plan,
-                isCurrent = currentPlan?.id == plan.id && !isSubscriptionExpired,
-                playFormattedPrice = playPriceMap[playProductId],
-                priceLoading = pricesLoading,
-                onSelect = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    if (activity != null) {
-                        viewModel.launchGooglePaySubscription(activity, playProductId)
-                    } else {
-                        Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
+        // Listing-limit enforcement notice when at cap
+        val atCap = currentPlan != null && currentPlan.listingLimit != null && ownerSpaces.size >= currentPlan.listingLimit
+        if (atCap) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = CarnationOrangeContainer
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(Icons.Default.UploadFile, contentDescription = null, tint = CarnationOrange, modifier = Modifier.size(20.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Listing limit reached", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = OxfordBlue)
+                        Text(
+                            "You've used all ${currentPlan?.listingLimit} listing slots. Upgrade to publish more.",
+                            style = MaterialTheme.typography.bodySmall, color = OxfordBlue.copy(alpha = 0.8f)
+                        )
                     }
                 }
-            )
+            }
         }
+
+        Spacer(modifier = Modifier.height(Spacing.sm))
     }
 }
 
 @Composable
-fun PackageOptionCard(
+fun CompactPlanCard(
     plan: PackagePlan,
     isCurrent: Boolean,
     playFormattedPrice: String? = null,
-    priceLoading: Boolean = false,
     onSelect: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = if (isCurrent) OxfordBlue.copy(alpha = 0.04f) else MaterialTheme.colorScheme.surface
-        ),
-        border = if (isCurrent) BorderStroke(2.dp, CarnationOrange) else null,
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+    val cardWidth = 200.dp
+    val isFeatured = plan.isFeatured
+
+    Box(modifier = Modifier.width(cardWidth)) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = when {
+                    isCurrent -> OxfordBlue
+                    isFeatured -> OxfordBlue.copy(alpha = 0.06f)
+                    else -> MaterialTheme.colorScheme.surface
+                }
+            ),
+            border = when {
+                isCurrent -> null
+                isFeatured -> BorderStroke(2.dp, CarnationOrange)
+                else -> BorderStroke(1.dp, LightGray.copy(alpha = 0.4f))
+            },
+            elevation = CardDefaults.cardElevation(if (isFeatured || isCurrent) 6.dp else 2.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(
-                    text = plan.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = OxfordBlue
-                )
-                if (priceLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = CarnationOrange
-                    )
-                } else {
-                    // Prefer Play's live price; fall back to the admin-configured Firestore value
+                // Plan name + featured badge
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text(
-                        text = playFormattedPrice ?: "$${String.format(Locale.US, "%.2f", plan.priceUsd)} / mo",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Black,
-                        color = CarnationOrange
+                        text = plan.badgeName.ifBlank { plan.name },
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isCurrent) PureWhite else OxfordBlue,
+                        maxLines = 1
+                    )
+                    if (isCurrent) {
+                        Icon(Icons.Default.Verified, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(18.dp))
+                    }
+                }
+
+                // Price — large and bold
+                Text(
+                    text = playFormattedPrice ?: "$${String.format(Locale.US, "%.2f", plan.priceUsd)}",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Black,
+                    color = if (isCurrent) PureWhite else CarnationOrange
+                )
+                Text(
+                    text = "/ month",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isCurrent) LightGray else CoolGray,
+                    modifier = Modifier.offset(y = (-6).dp)
+                )
+
+                HorizontalDivider(color = if (isCurrent) PureWhite.copy(alpha = 0.2f) else LightGray.copy(alpha = 0.5f))
+
+                // Listing limit row
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = if (isCurrent) FreshGreen else FreshGreen, modifier = Modifier.size(14.dp))
+                    Text(
+                        text = plan.listingLimit?.let { "$it listing${if (it == 1) "" else "s"}" } ?: "Unlimited",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isCurrent) PureWhite else OxfordBlue,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                if (plan.description.isNotBlank()) {
+                    Text(
+                        text = plan.description,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isCurrent) LightGray else CoolGray,
+                        maxLines = 2
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // CTA button
+                Button(
+                    onClick = onSelect,
+                    enabled = !isCurrent,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isFeatured && !isCurrent) CarnationOrange else OxfordBlue,
+                        disabledContainerColor = FreshGreen.copy(alpha = 0.18f)
+                    ),
+                    contentPadding = PaddingValues(vertical = 10.dp)
+                ) {
+                    Icon(
+                        if (isCurrent) Icons.Default.Verified else Icons.Default.ShoppingCart,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (isCurrent) "Active" else "Select",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isCurrent) FreshGreen else PureWhite
                     )
                 }
             }
+        }
 
-            if (plan.description.isNotBlank()) {
+        // "Most Popular" badge on featured plans
+        if (isFeatured && !isCurrent) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 8.dp, y = (-8).dp),
+                color = CarnationOrange,
+                shape = RoundedCornerShape(6.dp),
+                shadowElevation = 4.dp
+            ) {
                 Text(
-                    text = plan.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = CoolGray
+                    text = "★ POPULAR",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Black,
+                    color = PureWhite,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                 )
             }
-
-            HorizontalDivider(color = LightGray.copy(alpha = 0.5f))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(16.dp))
-                Text(
-                    text = plan.listingLimit?.let { "Host up to $it active workspace${if (it == 1) "" else "s"}" } ?: "Unlimited active workspace listings",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = OxfordBlue
-                )
-            }
-
-            Spacer(modifier = Modifier.height(Spacing.xs))
-
-            CustomButton(
-                text = if (isCurrent) "Current Active Package" else "Subscribe via Google Play",
-                onClick = onSelect,
-                variant = CustomButtonVariant.PRIMARY,
-                icon = if (isCurrent) Icons.Default.Verified else Icons.Default.ShoppingCart,
-                enabled = !isCurrent,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
     }
 }

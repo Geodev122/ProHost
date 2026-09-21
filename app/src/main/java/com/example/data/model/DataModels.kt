@@ -1618,6 +1618,8 @@ data class PackagePlan(
     val validityDays: Int = 30,
     val isEnabled: Boolean = true,
     val sortOrder: Int = 0,
+    /** Admin-set: featured plans receive a "Most Popular" highlight on the Subscriptions screen. */
+    val isFeatured: Boolean = false,
     /** Subscription product ID in Google Play Console (e.g. "prohost_starter_30d"). Empty means Whish-only. */
     val googlePlayProductId: String = ""
 ) {
@@ -1631,6 +1633,7 @@ data class PackagePlan(
         "validityDays" to validityDays,
         "isEnabled" to isEnabled,
         "sortOrder" to sortOrder,
+        "isFeatured" to isFeatured,
         "googlePlayProductId" to googlePlayProductId
     )
 
@@ -1645,6 +1648,7 @@ data class PackagePlan(
             validityDays = (data["validityDays"] as? Number)?.toInt() ?: 30,
             isEnabled = data["isEnabled"] as? Boolean ?: true,
             sortOrder = (data["sortOrder"] as? Number)?.toInt() ?: 0,
+            isFeatured = data["isFeatured"] as? Boolean ?: false,
             googlePlayProductId = data["googlePlayProductId"] as? String ?: ""
         )
     }

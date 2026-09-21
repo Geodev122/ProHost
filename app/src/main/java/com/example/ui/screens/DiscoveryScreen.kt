@@ -144,13 +144,15 @@ fun DiscoveryScreenContent(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else if (spaces.isEmpty()) {
-                ProEmptyState(
-                    title = "No Workspaces Found",
-                    description = "Try adjusting your search query, governorate, or category filter.",
-                    icon = Icons.Default.SearchOff,
-                    actionButtonText = "Reset All Filters",
-                    onActionClick = onResetFilters
-                )
+                Box(modifier = Modifier.fillMaxSize().padding(top = 72.dp)) {
+                    ProEmptyState(
+                        title = "No Workspaces Found",
+                        description = "Try adjusting your search query, governorate, or category filter.",
+                        icon = Icons.Default.SearchOff,
+                        actionButtonText = "Reset All Filters",
+                        onActionClick = onResetFilters
+                    )
+                }
             } else {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -160,7 +162,7 @@ fun DiscoveryScreenContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .widthIn(max = 840.dp),
-                        contentPadding = PaddingValues(16.dp),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 72.dp, bottom = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                     item {
@@ -218,6 +220,7 @@ fun DiscoveryScreenContent(
             }
         }
         // Floating 3-button row: [toggle] [search icon / expanded field] [filter]
+        // Uses Modifier.align so it's always at the TOP of the outer Box in BOTH map and list views.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -229,7 +232,8 @@ fun DiscoveryScreenContent(
             SmallFloatingActionButton(
                 onClick = onToggleMapView,
                 containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
             ) {
                 Icon(
                     imageVector = if (isMapView) Icons.AutoMirrored.Filled.FormatListBulleted else Icons.Default.Map,
@@ -251,7 +255,8 @@ fun DiscoveryScreenContent(
                             SmallFloatingActionButton(
                                 onClick = { searchExpanded = true },
                                 containerColor = MaterialTheme.colorScheme.surface,
-                                contentColor = MaterialTheme.colorScheme.primary
+                                contentColor = MaterialTheme.colorScheme.primary,
+                                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
                             ) {
                                 Icon(Icons.Default.Search, contentDescription = "Search workspaces")
                             }
@@ -266,6 +271,7 @@ fun DiscoveryScreenContent(
                     Surface(
                         shape = RoundedCornerShape(28.dp),
                         tonalElevation = 4.dp,
+                        shadowElevation = 4.dp,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -315,13 +321,13 @@ fun DiscoveryScreenContent(
                 SmallFloatingActionButton(
                     onClick = { onSetFilterSheetVisible(true) },
                     containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary
+                    contentColor = MaterialTheme.colorScheme.onSecondary,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
                 ) {
                     Icon(Icons.Default.FilterList, contentDescription = "Filters")
                 }
             }
         }
-    }
     }
 
     // Filter Bottom Sheet

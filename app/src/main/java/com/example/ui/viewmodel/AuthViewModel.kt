@@ -43,6 +43,7 @@ class AuthViewModel(
     enum class OtpPurpose { SIGNUP, PIN_RESET }
 
     private var pendingVerificationId: String? = null
+    private var pendingResendToken: com.google.firebase.auth.PhoneAuthProvider.ForceResendingToken? = null
 
     /** The purpose of the current OTP — drives routing after OTP success. */
     var pendingOtpPurpose: OtpPurpose = OtpPurpose.SIGNUP
@@ -243,8 +244,9 @@ class AuthViewModel(
         authService.sendPhoneVerificationCode(
             activity = activity,
             e164PhoneNumber = e164Phone,
-            onCodeSent = { verificationId ->
+            onCodeSent = { verificationId, resendToken ->
                 pendingVerificationId = verificationId
+                pendingResendToken = resendToken
                 _isAuthenticating.value = false
                 onCodeSent()
             },
@@ -254,7 +256,8 @@ class AuthViewModel(
             onError = { message ->
                 _isAuthenticating.value = false
                 _authErrorMessage.value = message
-            }
+            },
+            resendToken = pendingResendToken
         )
     }
 
