@@ -222,7 +222,7 @@ fun DiscoveryScreenContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopStart)
-                .padding(horizontal = 8.dp, top = 8.dp),
+                .padding(start = 8.dp, end = 8.dp, top = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -239,7 +239,7 @@ fun DiscoveryScreenContent(
 
             // Center: expandable search — collapsed = icon, expanded = text field
             Box(modifier = Modifier.weight(1f).padding(horizontal = 6.dp)) {
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = !searchExpanded,
                     enter = fadeIn(),
                     exit = fadeOut()
@@ -258,7 +258,7 @@ fun DiscoveryScreenContent(
                         }
                     }
                 }
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = searchExpanded,
                     enter = fadeIn() + expandHorizontally(expandFrom = androidx.compose.ui.Alignment.CenterHorizontally),
                     exit = fadeOut() + shrinkHorizontally(shrinkTowards = androidx.compose.ui.Alignment.CenterHorizontally)
@@ -278,7 +278,7 @@ fun DiscoveryScreenContent(
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(start = 12.dp).size(18.dp)
                             )
-                            Box(modifier = Modifier.weight(1f).padding(vertical = 10.dp, start = 8.dp)) {
+                            Box(modifier = Modifier.weight(1f).padding(start = 8.dp, top = 10.dp, bottom = 10.dp)) {
                                 if (searchQuery.isEmpty()) {
                                     Text(
                                         "Search workspaces…",

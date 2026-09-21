@@ -393,9 +393,14 @@ class FirestoreService(
                         return@addSnapshotListener
                     }
                     val data = snapshot?.data
-                    onPackagePlansUpdated(
-                        if (data != null) PackagePlanCatalog.fromFirestoreMap(data) else PackagePlanCatalog.DEFAULT_CATALOG
-                    )
+                    if (data == null || data.isEmpty()) {
+                        db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
+                            .document(PackagePlanCatalog.DOCUMENT_ID)
+                            .set(PackagePlanCatalog.DEFAULT_CATALOG.toFirestoreMap(), SetOptions.merge())
+                        onPackagePlansUpdated(PackagePlanCatalog.DEFAULT_CATALOG)
+                    } else {
+                        onPackagePlansUpdated(PackagePlanCatalog.fromFirestoreMap(data))
+                    }
                 }
             activeListeners.add(packagePlansListener)
 

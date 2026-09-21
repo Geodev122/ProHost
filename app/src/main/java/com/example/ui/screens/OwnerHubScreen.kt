@@ -116,18 +116,17 @@ fun OwnerHubScreen(
     }
 
     // SO4: Branded ping when a new PENDING booking request arrives for this host.
-    val prevPendingIds = remember { mutableStateSetOf<String>() }
+    val prevPendingIds = remember { mutableStateOf(emptySet<String>()) }
     val pendingInitialized = remember { mutableStateOf(false) }
     LaunchedEffect(allBookingRequests) {
         val ownedIds = ownerSpaces.map { it.id }.toSet()
         val currentPending = allBookingRequests
             .filter { it.status == BookingRequestStatus.PENDING && ownedIds.contains(it.spaceId) }
             .map { it.id }.toSet()
-        if (pendingInitialized.value && (currentPending - prevPendingIds).isNotEmpty()) {
+        if (pendingInitialized.value && (currentPending - prevPendingIds.value).isNotEmpty()) {
             playSound(com.example.R.raw.booking_request_in)
         }
-        prevPendingIds.clear()
-        prevPendingIds.addAll(currentPending)
+        prevPendingIds.value = currentPending
         pendingInitialized.value = true
     }
 
