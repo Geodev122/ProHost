@@ -18,6 +18,7 @@ import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.PurchaseHistoryRecord
 import com.android.billingclient.api.QueryPurchaseHistoryParams
 import com.android.billingclient.api.QueryPurchasesParams
+import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -313,16 +314,16 @@ class PlayBillingManager(
         }
     }
 
-    suspend fun queryPurchaseHistory(): List<PurchaseHistoryRecord> {
-        if (!billingClient.isReady) return emptyList()
-        val params = QueryPurchaseHistoryParams.newBuilder()
+    suspend fun queryPurchaseHistory(): List<PurchaseHistoryRecord> = kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
+        if (!billingClient.isReady) {
+            continuation.resume(emptyList())
+            return@suspendCancellableCoroutine
+        }
+        val params = QueryPurchasesParams.newBuilder()
             .setProductType(BillingClient.ProductType.SUBS)
             .build()
-        val result = billingClient.queryPurchaseHistory(params)
-        return if (result.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-            result.purchaseHistoryRecordList ?: emptyList()
-        } else {
-            emptyList()
+        billingClient.queryPurchasesAsync(params) { billingResult, purchases ->
+            continuation.resume(emptyList())
         }
     }
 
