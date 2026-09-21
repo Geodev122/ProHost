@@ -73,7 +73,7 @@ fun MyBookingsScreen(
     val pendingBookings = remember(userBookings) { userBookings.filter { it.status == BookingRequestStatus.PENDING } }
     val pastBookings = remember(userBookings) { userBookings.filter { it.status == BookingRequestStatus.REJECTED || it.status == BookingRequestStatus.CANCELLED } }
 
-    // SO2: Play a notification sound when a booking transitions to ACCEPTED or REJECTED.
+    // SO2: Play branded notification sound when booking transitions to ACCEPTED or REJECTED.
     val prevBookingStatuses = remember { mutableStateMapOf<String, BookingRequestStatus>() }
     LaunchedEffect(allBookingRequests) {
         allBookingRequests.forEach { booking ->
@@ -81,7 +81,7 @@ fun MyBookingsScreen(
             if (prev != null && prev != booking.status &&
                 (booking.status == BookingRequestStatus.ACCEPTED || booking.status == BookingRequestStatus.REJECTED)) {
                 try {
-                    val mp = MediaPlayer.create(context, android.provider.Settings.System.DEFAULT_NOTIFICATION_URI)
+                    val mp = MediaPlayer.create(context, com.example.R.raw.booking_update)
                     mp?.setOnCompletionListener { it.release() }
                     mp?.start()
                 } catch (_: Exception) {}
