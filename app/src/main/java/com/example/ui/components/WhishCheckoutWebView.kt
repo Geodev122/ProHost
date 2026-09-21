@@ -3,6 +3,7 @@ package com.example.ui.components
 import android.annotation.SuppressLint
 import android.net.Uri
 import android.view.ViewGroup
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -10,8 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -80,10 +80,28 @@ private fun WhishWebViewContent(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val loadingState = remember { mutableStateOf(true) }
+    val errorState = remember { mutableStateOf<String?>(null) }
+
     val client = remember {
         object : WebViewClient() {
             private fun isWhishRedirect(url: Uri?): Boolean =
                 url?.host == WHISH_REDIRECT_HOST && url.path?.startsWith("/payment") == true
+
+            override fun onPageFinished(view: WebView?, url: String?) {
+                loadingState.value = false
+            }
+
+            override fun onReceivedError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                error: WebResourceError?
+            ) {
+                if (request?.isForMainFrame == true) {
+                    loadingState.value = false
+                    errorState.value = "Page failed to load. Check your connection and try again."
+                }
+            }
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val url = request?.url
@@ -102,16 +120,48 @@ private fun WhishWebViewContent(
         }
     }
 
-    AndroidView(
-        modifier = modifier.fillMaxSize(),
-        factory = { context ->
-            WebView(context).apply {
-                layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                webViewClient = client
-                loadUrl(collectUrl)
+    val isLoading = loadingState.value
+    val loadError = errorState.value
+
+    Box(modifier = modifier.fillMaxSize()) {
+        AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { ctx ->
+                WebView(ctx).apply {
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    settings.javaScriptEnabled = true
+                    settings.domStorageEnabled = true
+                    webViewClient = client
+                    loadUrl(collectUrl)
+                }
+            }
+        )
+        if (isLoading) {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+            )
+        }
+        if (loadError != null) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.errorContainer
+            ) {
+                Text(
+                    text = loadError,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
             }
         }
-    )
+    }
 }

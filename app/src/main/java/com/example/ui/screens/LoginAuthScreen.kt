@@ -2,6 +2,8 @@ package com.example.ui.screens
 
 import android.app.Activity
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import com.example.ui.util.findActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -20,6 +22,7 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -30,6 +33,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.data.auth.GoogleSignInHelper
 import com.example.data.model.findCountryByName
 import com.example.ui.components.*
 import com.example.ui.theme.*
@@ -127,6 +131,32 @@ fun LoginAuthScreen(
     var newPinVisible by rememberSaveable { mutableStateOf(false) }
     // Whether we entered SET_PIN after a forgot-PIN OTP (vs. fresh signup)
     var isForgotPinReset by rememberSaveable { mutableStateOf(false) }
+
+    // --- Google Sign-In ---
+    // Whether the current registration form session came from a Google Sign-In.
+    var isGoogleRegistrationFlow by rememberSaveable { mutableStateOf(false) }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val currentActivity = activity ?: return@rememberLauncherForActivityResult
+            authViewModel.handleGoogleSignInResult(
+                activity = currentActivity,
+                data = result.data,
+                onSuccess = onLoginSuccess,
+                onNeedsRegistration = {
+                    // Pre-fill form from Google profile
+                    val profile = authViewModel.pendingGoogleProfile
+                    regFullName = profile?.displayName ?: ""
+                    regEmail = profile?.email ?: ""
+                    isGoogleRegistrationFlow = true
+                    step = AuthStep.REGISTRATION_FORM
+                },
+                onError = { msg -> localErrorMessage = msg }
+            )
+        }
+    }
 
     // --- Registration form ---
     var regProfilePicUri by rememberSaveable { mutableStateOf<Uri?>(null) }
@@ -286,6 +316,51 @@ fun LoginAuthScreen(
                     icon = Icons.AutoMirrored.Filled.ArrowForward,
                     modifier = Modifier.fillMaxWidth().testTag("submit_login_button")
                 )
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                // ── OR divider ──────────────────────────────────────
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+                    Text("or", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                // ── Google Sign-In button ────────────────────────────
+                OutlinedButton(
+                    onClick = {
+                        clearErrors()
+                        val intent = GoogleSignInHelper.getSignInIntent(context)
+                        googleSignInLauncher.launch(intent)
+                    },
+                    enabled = !isAuthenticating,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.White,
+                        contentColor = Color(0xFF1F1F1F)
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Icon(
+                        painter = painterResource(id = com.example.R.drawable.ic_google),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = Color.Unspecified
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.sm))
+                    Text(
+                        "Continue with Google",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             // ------------------------------------------------------------------
@@ -508,19 +583,26 @@ fun LoginAuthScreen(
                         if (regGovernorateArea.isBlank()) { localErrorMessage = "Please enter your governorate / area"; return@ProPrimaryButton }
                         if (regCity.isBlank()) { localErrorMessage = "Please enter your city"; return@ProPrimaryButton }
                         if (!tosAccepted) { localErrorMessage = "Please agree to the Terms of Use and Privacy Policy to continue"; return@ProPrimaryButton }
-                        authViewModel.completePendingRegistration(
-                            activity = currentActivity,
-                            registration = AuthViewModel.PendingPhoneRegistration(
-                                fullName = regFullName, email = regEmail, phoneE164 = verifiedPhoneE164,
-                                specialty = regSpecialty, country = regCountry.name, governorate = regGovernorateArea,
-                                city = regCity, profilePictureUri = regProfilePicUri, idDocumentUri = regIdDocState.uri,
-                                tosAccepted = tosAccepted
-                            ),
-                            onSuccess = {
-                                newPin = ""; confirmPin = ""
-                                step = AuthStep.SET_PIN
-                            }
+                        val registration = AuthViewModel.PendingPhoneRegistration(
+                            fullName = regFullName, email = regEmail,
+                            phoneE164 = if (isGoogleRegistrationFlow) "" else verifiedPhoneE164,
+                            specialty = regSpecialty, country = regCountry.name, governorate = regGovernorateArea,
+                            city = regCity, profilePictureUri = regProfilePicUri, idDocumentUri = regIdDocState.uri,
+                            tosAccepted = tosAccepted
                         )
+                        if (isGoogleRegistrationFlow) {
+                            authViewModel.completeGoogleRegistration(
+                                activity = currentActivity,
+                                registration = registration,
+                                onSuccess = { newPin = ""; confirmPin = ""; step = AuthStep.SET_PIN }
+                            )
+                        } else {
+                            authViewModel.completePendingRegistration(
+                                activity = currentActivity,
+                                registration = registration,
+                                onSuccess = { newPin = ""; confirmPin = ""; step = AuthStep.SET_PIN }
+                            )
+                        }
                     },
                     enabled = !isAuthenticating,
                     icon = Icons.Default.CheckCircle,
@@ -532,6 +614,7 @@ fun LoginAuthScreen(
                         com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
                         phoneNumber = ""; otpCode = ""
                         isForgotPinReset = false
+                        isGoogleRegistrationFlow = false
                         clearErrors()
                         step = AuthStep.PHONE_ENTRY
                         onCancelResume?.invoke()
@@ -540,7 +623,11 @@ fun LoginAuthScreen(
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Start over with a different number", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (isGoogleRegistrationFlow) "Cancel Google sign-up" else "Start over with a different number",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
 
