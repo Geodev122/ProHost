@@ -162,7 +162,8 @@ fun LebanonMapCanvas(
     spaces: List<SpaceListing>,
     onSpaceSelected: (SpaceListing?) -> Unit,
     onNavigateToDetails: (SpaceListing) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    topControls: (@Composable BoxScope.() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -279,6 +280,26 @@ fun LebanonMapCanvas(
         }
     }
 
+    // Carousel swipe → update selected map marker when the user scrolls the strip.
+    LaunchedEffect(listState, sortedSpaces) {
+        androidx.compose.runtime.snapshotFlow {
+            listState.firstVisibleItemIndex to listState.isScrollInProgress
+        }.collect { (index, isScrolling) ->
+            if (!isScrolling && sortedSpaces.isNotEmpty()) {
+                val space = sortedSpaces.getOrNull(index)
+                if (space != null && activePinSpace?.id != space.id) {
+                    activePinSpace = space
+                    onSpaceSelected(space)
+                    coroutineScope.launch {
+                        cameraPositionState.animate(
+                            CameraUpdateFactory.newLatLng(LatLng(space.lat - 0.012, space.lng))
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     Box(
         modifier = modifier.fillMaxSize().clipToBounds()
     ) {
@@ -323,8 +344,11 @@ fun LebanonMapCanvas(
                             activePinSpace = space
                             onSpaceSelected(space)
                             coroutineScope.launch {
-                                val projection = CameraUpdateFactory.newLatLng(LatLng(space.lat - 0.012, space.lng))
-                                cameraPositionState.animate(projection)
+                                cameraPositionState.animate(
+                                    CameraUpdateFactory.newLatLng(LatLng(space.lat - 0.012, space.lng))
+                                )
+                                val idx = sortedSpaces.indexOfFirst { it.id == space.id }
+                                if (idx >= 0) listState.animateScrollToItem(idx)
                             }
                             true
                         }
@@ -651,5 +675,8 @@ fun LebanonMapCanvas(
                 }
             }
         }
+
+        // Overlay slot for controls that must render above the AndroidView GoogleMap layer.
+        topControls?.invoke(this)
     }
 }

@@ -68,6 +68,15 @@ class ProHostViewModel(
     private val _pinReauthRequired = MutableStateFlow(false)
     val pinReauthRequired: StateFlow<Boolean> = _pinReauthRequired.asStateFlow()
 
+    // Set during session restore when we detect the user has no PIN yet (registered before
+    // PIN was introduced). Gates the app behind PIN creation, same pattern as pinReauthRequired.
+    private val _requiresPinSetup = MutableStateFlow(false)
+    val requiresPinSetup: StateFlow<Boolean> = _requiresPinSetup.asStateFlow()
+
+    fun clearRequiresPinSetup() {
+        _requiresPinSetup.value = false
+    }
+
     fun requestPinReauth() {
         // Skip for ADMIN accounts — they have no phone-OTP registration and cannot verify PIN (NF1).
         val user = currentUser.value ?: return
@@ -120,6 +129,15 @@ class ProHostViewModel(
                     if (user.role != UserRole.ADMIN && user.phone.isBlank()) {
                         repository.discardIncompleteSession()
                         _pendingRegistrationPhone.value = firebaseUser.phoneNumber
+                    } else if (user.role != UserRole.ADMIN && user.phone.isNotBlank()) {
+                        // Check if this account pre-dates PIN enforcement — if so, gate
+                        // the app behind PIN creation before letting them in.
+                        val pinCheck = runCatching {
+                            functionsClient.checkPhoneRegistered(user.phone).getOrNull()
+                        }.getOrNull()
+                        if (pinCheck != null && !pinCheck.hasPinSet) {
+                            _requiresPinSetup.value = true
+                        }
                     }
                 } catch (e: com.example.data.auth.AccountSuspendedException) {
                     // Same handling the explicit sign-in flow uses for this exception — the
@@ -437,83 +455,7 @@ class ProHostViewModel(
         }
     }
 
-    // --- Whish Pay Settlement ---
-    // All four flows below used to build a "SUCCESS" WhishTransaction locally and grant
-    // the entitlement immediately — the client both set the price and self-reported
-    // success, with no actual payment required. They now call initiateWhishPayment
-    // (Cloud Function), which computes the real amount server-side and returns a
-    // collectUrl to open; nothing is granted until whishWebhook/checkWhishStatus
-    // independently confirms success with Whish itself. See
-    // functions/src/payments/initiateWhishPayment.ts.
-
-    // Guards against a double-submit launching two separate Whish transactions for
-    // the same purchase (e.g. a rapid double-tap on "Go to Whish Pay" before the
-    // confirmation dialog closes) — each would be a real, independently-charged
-    // order server-side, not a harmless duplicate click. Exposed so the buttons
-    // that call payOwnerPackageViaWhish can grey out while one is already in
-    // flight, on top of the hard guard below.
-    private val _isWhishCheckoutInFlight = MutableStateFlow(false)
-    val isWhishCheckoutInFlight: StateFlow<Boolean> = _isWhishCheckoutInFlight.asStateFlow()
-
-    // The Whish checkout URL to show in an in-app WebView (see WhishCheckoutWebView.kt,
-    // hosted globally by ProHostNavGraph so it renders regardless of which screen
-    // started the payment). Replaces launching an external browser Intent — that
-    // depended on the hopebearer-award.com Android App Link reliably intercepting the
-    // post-checkout redirect, which isn't guaranteed (exact signing-cert fingerprint
-    // match, network access at install time). A WebView this app fully controls can
-    // detect that same redirect itself via shouldOverrideUrlLoading, with no
-    // dependency on OS-level App Link verification. checkWhishStatus polling (started
-    // right below, independent of the WebView) remains the actual source of truth for
-    // whether the payment settled — the WebView closing early is a UX nicety only.
-    private val _pendingCheckoutUrl = MutableStateFlow<String?>(null)
-    val pendingCheckoutUrl: StateFlow<String?> = _pendingCheckoutUrl.asStateFlow()
-
-    fun clearPendingCheckoutUrl() {
-        _pendingCheckoutUrl.value = null
-    }
-
-    private fun launchWhishCheckout(
-        purpose: String,
-        targetId: String? = null,
-        payerName: String,
-        payerPhone: String,
-        context: Context,
-        draftListingId: String? = null
-    ) {
-        if (_isWhishCheckoutInFlight.value) return
-        _isWhishCheckoutInFlight.value = true
-        viewModelScope.launch {
-            val result = try {
-                functionsClient.initiateWhishPayment(purpose, targetId, payerName, payerPhone, draftListingId)
-            } finally {
-                _isWhishCheckoutInFlight.value = false
-            }
-            result.onSuccess { init ->
-                _pendingCheckoutUrl.value = init.collectUrl
-                Toast.makeText(
-                    context,
-                    if (draftListingId != null) {
-                        "Complete your payment. Your pending Draft will publish automatically once Whish settles it."
-                    } else {
-                        "Complete your payment. We'll confirm automatically once Whish settles it."
-                    },
-                    Toast.LENGTH_LONG
-                ).show()
-                // The correlation is now recorded server-side on the transaction
-                // itself (see entitlements.ts's autoPublishDraftIfNeeded) — clearing
-                // it here just stops OwnerSubscriptionsScreen's banner from re-firing
-                // a second, unrelated purchase against the same draft.
-                if (draftListingId != null) clearPendingAutoPublishDraft()
-                pollWhishPaymentStatus(init.txId, purpose, context)
-            }.onFailure { e ->
-                Toast.makeText(
-                    context,
-                    com.example.util.friendlyErrorMessage(e, "Could not start payment. Please check your connection and try again."),
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
+    // Whish Pay settlement was removed — app is fully on Google Play Billing.
 
     // Set by OwnerHubScreen right before redirecting to Subscriptions after a
     // PackageLimitReached Publish rejection — the id of
@@ -549,44 +491,6 @@ class ProHostViewModel(
         val claim = com.example.data.auth.FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true) ?: return
         val role = runCatching { UserRole.valueOf(claim) }.getOrNull() ?: return
         repository.login(uid = firebaseUser.uid, email = firebaseUser.email ?: "", verifiedRole = role)
-    }
-
-    /** Bounded polling fallback in case the server-to-server webhook is slow/missed. */
-    private fun pollWhishPaymentStatus(txId: String, purpose: String, context: Context) {
-        val appContext = context.applicationContext
-        viewModelScope.launch {
-            repeat(24) {
-                kotlinx.coroutines.delay(5000)
-                val status = functionsClient.checkWhishStatus(txId).getOrNull()
-                if (status == "SUCCESS") {
-                    if (purpose == "OWNER_PACKAGE") {
-                        refreshCurrentUserRoleAfterEntitlement()
-                    }
-                    Toast.makeText(appContext, "Payment confirmed! Your entitlement is now active.", Toast.LENGTH_LONG).show()
-                    return@launch
-                } else if (status == "FAILED") {
-                    Toast.makeText(appContext, "Whish reported this payment did not complete.", Toast.LENGTH_LONG).show()
-                    return@launch
-                }
-            }
-        }
-    }
-
-    /** Manually triggered re-check, e.g. from a "Verify Payment" button in the UI. */
-    fun checkWhishPaymentStatus(txId: String, purpose: String, context: Context) {
-        val appContext = context.applicationContext
-        viewModelScope.launch {
-            val status = functionsClient.checkWhishStatus(txId).getOrNull()
-            if (status == "SUCCESS" && purpose == "OWNER_PACKAGE") {
-                refreshCurrentUserRoleAfterEntitlement()
-            }
-            val message = when (status) {
-                "SUCCESS" -> "Payment confirmed! Your entitlement is now active."
-                "FAILED" -> "Whish reported this payment did not complete."
-                else -> "Still waiting for Whish to confirm this payment."
-            }
-            Toast.makeText(appContext, message, Toast.LENGTH_LONG).show()
-        }
     }
 
     // payBookingViaWhish (booking rent settlement inside the app) is gone —
@@ -674,16 +578,6 @@ class ProHostViewModel(
 
     suspend fun deleteOwnerListing(spaceId: String): Boolean {
         return repository.deleteSpaceListing(spaceId)
-    }
-
-    fun payOwnerPackageViaWhish(
-        packageId: String,
-        payerName: String,
-        payerPhone: String,
-        context: Context,
-        draftListingId: String? = null
-    ) {
-        launchWhishCheckout("OWNER_PACKAGE", packageId, payerName, payerPhone, context, draftListingId)
     }
 
     // Sign-in/registration (phone OTP + Google Sign-In) moved to AuthViewModel —

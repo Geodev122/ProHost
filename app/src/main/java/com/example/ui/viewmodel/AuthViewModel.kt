@@ -316,11 +316,11 @@ class AuthViewModel(
                     return
                 }
                 pendingVerificationId = null
-                _isAuthenticating.value = false
 
                 when (pendingOtpPurpose) {
                     OtpPurpose.PIN_RESET -> {
                         // Existing user resetting their PIN after OTP — skip registration form.
+                        _isAuthenticating.value = false
                         onVerified(false)
                     }
                     OtpPurpose.SIGNUP -> {
@@ -334,18 +334,22 @@ class AuthViewModel(
                                 )
                                 if (user.role != com.example.data.model.UserRole.ADMIN && user.phone.isBlank()) {
                                     repository.discardIncompleteSession()
+                                    _isAuthenticating.value = false
                                     onVerified(true)
                                 } else {
                                     registerFcmTokenForCurrentUser(user.id)
+                                    _isAuthenticating.value = false
                                     // Send to PIN setup for existing accounts with no PIN
                                     onVerified(false)
                                 }
                             } catch (e: com.example.data.auth.AccountSuspendedException) {
                                 authService.signOut()
+                                _isAuthenticating.value = false
                                 _authErrorMessage.value = e.message
                             }
                         } else {
                             // Brand-new account — fill in profile first, then set PIN.
+                            _isAuthenticating.value = false
                             onVerified(true)
                         }
                     }
