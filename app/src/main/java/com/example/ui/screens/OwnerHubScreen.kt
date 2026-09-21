@@ -2,6 +2,8 @@ package com.example.ui.screens
 
 import android.content.Context
 import android.content.ContextWrapper
+import android.media.AudioAttributes
+import android.media.MediaPlayer
 import com.example.ui.util.findActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
@@ -86,6 +88,48 @@ fun OwnerHubScreen(
     // package's cap sees that immediately on the "Add New Workspace Listing" card
     // instead of only discovering it after completing the whole multi-step form.
     val atListingLimit = remember(currentUser, packagePlans) { viewModel.isAtListingLimit() }
+
+    fun playSound(resId: Int) {
+        try {
+            val mp = MediaPlayer.create(context, resId)
+            mp?.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            mp?.setOnCompletionListener { it.release() }
+            mp?.start()
+        } catch (_: Exception) {}
+    }
+
+    // SO1: Branded chime when any owned listing transitions to ACTIVE (published).
+    val prevSpaceStatuses = remember { mutableStateMapOf<String, ListingStatus>() }
+    LaunchedEffect(ownerSpaces) {
+        ownerSpaces.forEach { space ->
+            val prev = prevSpaceStatuses[space.id]
+            if (prev != null && prev != space.status && space.status == ListingStatus.ACTIVE) {
+                playSound(com.example.R.raw.listing_published)
+            }
+            prevSpaceStatuses[space.id] = space.status
+        }
+    }
+
+    // SO4: Branded ping when a new PENDING booking request arrives for this host.
+    val prevPendingIds = remember { mutableStateSetOf<String>() }
+    val pendingInitialized = remember { mutableStateOf(false) }
+    LaunchedEffect(allBookingRequests) {
+        val ownedIds = ownerSpaces.map { it.id }.toSet()
+        val currentPending = allBookingRequests
+            .filter { it.status == BookingRequestStatus.PENDING && ownedIds.contains(it.spaceId) }
+            .map { it.id }.toSet()
+        if (pendingInitialized.value && (currentPending - prevPendingIds).isNotEmpty()) {
+            playSound(com.example.R.raw.booking_request_in)
+        }
+        prevPendingIds.clear()
+        prevPendingIds.addAll(currentPending)
+        pendingInitialized.value = true
+    }
 
     OwnerHubScreenContent(
         ownerSpaces = ownerSpaces,
@@ -513,6 +557,35 @@ fun OwnerHubScreenContent(
                                     }
                                 }
                             }
+                        }
+                    }
+                    // Add Listing shortcut anchored to the hero card's bottom-right corner —
+                    // visible without scrolling, regardless of list length.
+                    if (!atListingLimit) {
+                        SmallFloatingActionButton(
+                            onClick = onOpenCreateListing,
+                            containerColor = CarnationOrange,
+                            contentColor = Color.White,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(12.dp)
+                        ) {
+                            Icon(Icons.Default.AddBusiness, contentDescription = "Add Listing")
+                        }
+                    } else {
+                        Surface(
+                            color = Color.White.copy(alpha = 0.18f),
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(14.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = "Listing limit reached",
+                                tint = Color.White,
+                                modifier = Modifier.padding(8.dp).size(18.dp)
+                            )
                         }
                     }
                 }

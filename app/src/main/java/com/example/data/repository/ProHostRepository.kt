@@ -25,13 +25,18 @@ class ProHostRepository {
 
         // Must stay in sync with firestore.rules' user_profiles update rule's own
         // protected-fields list — every one of these is exclusively server-maintained
-        // (assignInitialRole/grantAdminRole/setAccountSuspended/the Whish entitlement
-        // grant). Used by registerMember to filter its write down to a safe subset —
-        // see that function's own doc comment for the exact bug this prevents.
+        // (assignInitialRole/grantAdminRole/setAccountSuspended/pinAuth/kycLevel/
+        // emailVerification/idDocument functions). Used by registerMember to filter its
+        // write down to a safe subset — see that function's own doc comment.
         private val PROTECTED_UPDATE_FIELDS = setOf(
             "role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
             "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount",
-            "tosAcceptedAtMillis", "consentVersion"
+            "tosAcceptedAtMillis", "consentVersion",
+            // PIN auth fields (pinAuth Cloud Function)
+            "pinHash", "pinSalt", "pinSetAtMillis", "pinFailedAttempts", "pinLockedUntilMillis",
+            // KYC / identity verification fields
+            "kycLevel", "emailVerified", "emailVerifiedAt",
+            "idDocumentUrl", "idDocumentVerificationStatus", "idDocumentSubmittedAt", "idDocumentReviewedAt"
         )
 
         @Volatile

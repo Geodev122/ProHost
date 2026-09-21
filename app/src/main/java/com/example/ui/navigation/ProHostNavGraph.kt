@@ -431,7 +431,7 @@ fun ProHostAppRoot(
                                 onMenuClick = { scope.launch { drawerState.open() } }
                             )
                         } else if (activeTabId == AppNavTab.SearchMap.id) {
-                            // Explore tab — minimal bar: no brand name, no logo, no LB badge
+                            // Explore tab — keep title for context but suppress brand/logo
                             val alertsList = viewModel.fcmAlerts.collectAsState().value
                             val unreadCount = alertsList.count { !it.isRead }
                             ProHostTopAppBar(
@@ -439,7 +439,7 @@ fun ProHostAppRoot(
                                 unreadAlertCount = unreadCount,
                                 onMenuClick = { scope.launch { drawerState.open() } },
                                 onAlertsClick = { activeDrawerTabDialog = "fcm_alerts" },
-                                pageTitle = null,
+                                pageTitle = "Explore",
                                 showBrand = false
                             )
                         } else {

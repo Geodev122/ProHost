@@ -1,7 +1,12 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -112,55 +117,17 @@ fun DiscoveryScreenContent(
     onQuickWhatsApp: (SpaceListing) -> Unit
 ) {
     val context = LocalContext.current
+    var searchExpanded by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(PremiumBackgroundGradient)
-    ) {
-        // Branded search header
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 3.dp,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                placeholder = { Text("Search by type, location, hashtag, pricing…", fontSize = MaterialTheme.typography.bodySmall.fontSize) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { onSearchQueryChange("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear")
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-                shape = MaterialTheme.shapes.medium,
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-                    unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            )
-        }
-
-        // Body Content: Map or List — with floating toggle + filter overlaid
-        val hasActiveFilter = selectedGovernorate != null ||
-                selectedCategoryId != null ||
-                selectedStrategyType != null ||
-                onlyVerified ||
-                onlySaved
-        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+    // Body Content: Map or List — with floating 3-button row overlaid (toggle | search | filter)
+    val hasActiveFilter = selectedGovernorate != null ||
+            selectedCategoryId != null ||
+            selectedStrategyType != null ||
+            onlyVerified ||
+            onlySaved
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .background(PremiumBackgroundGradient)) {
         if (isMapView) {
             Box(modifier = Modifier.fillMaxSize().clipToBounds()) {
                 LebanonMapCanvas(
@@ -250,13 +217,14 @@ fun DiscoveryScreenContent(
                 }
             }
         }
-        // Floating map/list toggle (left) and filter (right)
+        // Floating 3-button row: [toggle] [search icon / expanded field] [filter]
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopStart)
-                .padding(horizontal = 12.dp, top = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 8.dp, top = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             SmallFloatingActionButton(
                 onClick = onToggleMapView,
@@ -268,6 +236,77 @@ fun DiscoveryScreenContent(
                     contentDescription = if (isMapView) "Switch to List View" else "Switch to Map View"
                 )
             }
+
+            // Center: expandable search — collapsed = icon, expanded = text field
+            Box(modifier = Modifier.weight(1f).padding(horizontal = 6.dp)) {
+                AnimatedVisibility(
+                    visible = !searchExpanded,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        BadgedBox(badge = {
+                            if (searchQuery.isNotEmpty()) Badge(containerColor = MaterialTheme.colorScheme.error)
+                        }) {
+                            SmallFloatingActionButton(
+                                onClick = { searchExpanded = true },
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                contentColor = MaterialTheme.colorScheme.primary
+                            ) {
+                                Icon(Icons.Default.Search, contentDescription = "Search workspaces")
+                            }
+                        }
+                    }
+                }
+                AnimatedVisibility(
+                    visible = searchExpanded,
+                    enter = fadeIn() + expandHorizontally(expandFrom = androidx.compose.ui.Alignment.CenterHorizontally),
+                    exit = fadeOut() + shrinkHorizontally(shrinkTowards = androidx.compose.ui.Alignment.CenterHorizontally)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(28.dp),
+                        tonalElevation = 4.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 12.dp).size(18.dp)
+                            )
+                            Box(modifier = Modifier.weight(1f).padding(vertical = 10.dp, start = 8.dp)) {
+                                if (searchQuery.isEmpty()) {
+                                    Text(
+                                        "Search workspaces…",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                BasicTextField(
+                                    value = searchQuery,
+                                    onValueChange = onSearchQueryChange,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    textStyle = MaterialTheme.typography.bodySmall.copy(
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                )
+                            }
+                            IconButton(
+                                onClick = { onSearchQueryChange(""); searchExpanded = false },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Close search", modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                }
+            }
+
             BadgedBox(
                 badge = {
                     if (hasActiveFilter) Badge(containerColor = MaterialTheme.colorScheme.error)
@@ -282,7 +321,6 @@ fun DiscoveryScreenContent(
                 }
             }
         }
-        } // closes outer content Box
     }
     }
 

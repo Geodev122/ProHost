@@ -38,5 +38,11 @@ object FirestoreSchema {
         // Terms of Use / Revocation Policy) — see LegalDocumentVersion's own doc
         // comment for the parent-doc-plus-versions-subcollection shape.
         const val LEGAL_DOCUMENTS = "legal_documents"
+        // ID verification review queue — written by submitIdDocument / reviewIdDocument
+        // Cloud Functions only; read by Admin role only.
+        const val ID_REVIEW_QUEUE = "id_review_queue"
+        // Unresolvable Play Billing RTDN events (no obfuscatedExternalAccountId) —
+        // written by playBillingRtdn Cloud Function (Admin SDK) for manual admin triage.
+        const val PLAY_BILLING_UNRESOLVED = "play_billing_unresolved"
     }
 }

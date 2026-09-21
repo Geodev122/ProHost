@@ -1499,8 +1499,10 @@ data class AppUser(
             "city" to city,
             "isVerified" to isVerified,
             "subscriptionExpiryMillis" to subscriptionExpiryMillis,
-            "ownerPackageId" to ownerPackageId,
-            "ownerPackageExpiryMillis" to ownerPackageExpiryMillis,
+            // ownerPackageId and ownerPackageExpiryMillis are written only by Cloud Functions
+            // (playBillingRtdn, grantPackageToUser, expirePackages) — never by client writes.
+            // Including them here would overwrite entitlement state on any admin-context full
+            // document write, so they are intentionally excluded.
             "savedSpaceIds" to savedSpaceIds,
             "updatedAt" to System.currentTimeMillis()
         )

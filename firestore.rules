@@ -510,6 +510,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Unresolvable Play Billing RTDN entries — written by playBillingRtdn Cloud Function
+    // (Admin SDK, bypasses rules). No client read or write; admin triage via console only.
+    match /play_billing_unresolved/{docId} {
+      allow read, write: if false;
+    }
+
     // Default deny for anything not explicitly matched above.
     match /{document=**} {
       allow read, write: if false;

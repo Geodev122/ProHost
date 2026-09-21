@@ -3,6 +3,7 @@ package com.example.ui.screens
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.media.AudioAttributes
 import android.media.MediaPlayer
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
@@ -59,6 +60,10 @@ fun OwnerSubscriptionsScreen(
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             try {
                 val mp = MediaPlayer.create(context, com.example.R.raw.purchase_success)
+                mp?.setAudioAttributes(AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build())
                 mp?.setOnCompletionListener { it.release() }
                 mp?.start()
             } catch (_: Exception) {}
