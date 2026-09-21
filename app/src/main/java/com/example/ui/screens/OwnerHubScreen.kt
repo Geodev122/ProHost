@@ -1,4 +1,4 @@
-package com.example.ui.screens
+﻿package com.example.ui.screens
 
 import android.content.Context
 import android.content.ContextWrapper
@@ -56,13 +56,13 @@ fun OwnerHubScreen(
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
     val availableFacilities = remember(architectureSchema) {
         // Falls back to the old hardcoded catalog only if Firestore hasn't delivered
-        // a real schema yet (or an admin has disabled every amenity) — never leaves
+        // a real schema yet (or an admin has disabled every amenity) â€” never leaves
         // the facility picker with zero options.
         architectureSchema.amenities.filter { it.isEnabled }.map { it.name }
             .ifEmpty { FacilityCatalog.standard }
     }
 
-    // ownerId is the sole, authoritative match — a substring "ownerName contains
+    // ownerId is the sole, authoritative match â€” a substring "ownerName contains
     // fullName" fallback used to sit here too, which is a real cross-tenant
     // privacy bug: any host whose name is a substring of another host's listed
     // owner name (e.g. "Sara" inside "Sara Khalil Clinic") would see that other
@@ -116,7 +116,7 @@ fun OwnerHubScreen(
     }
 
     // SO4: Branded ping when a new PENDING booking request arrives for this host.
-    val prevPendingIds = remember { mutableStateOf(emptySet<String>()) }
+    val prevPendingIds = remember { mutableSetOf<String>() }
     val pendingInitialized = remember { mutableStateOf(false) }
     LaunchedEffect(allBookingRequests) {
         val ownedIds = ownerSpaces.map { it.id }.toSet()
@@ -135,9 +135,9 @@ fun OwnerHubScreen(
         allBookingRequests = allBookingRequests,
         currentPackage = currentUser?.ownerPackageId?.let { packagePlans.packages[it] },
         ownerPackageExpiryMillis = currentUser?.ownerPackageExpiryMillis,
-        // Admin's listing/booking capability is unconditional — never a purchased
+        // Admin's listing/booking capability is unconditional â€” never a purchased
         // package (see ProHostNavGraph excluding OwnerSubscriptions from Admin's
-        // allowed tabs) — so the package/renewal banner never shows for Admin.
+        // allowed tabs) â€” so the package/renewal banner never shows for Admin.
         isAdminUnlimited = currentUser?.role == UserRole.ADMIN,
         atListingLimit = atListingLimit,
         onSelectSpace = onSelectSpace,
@@ -145,7 +145,7 @@ fun OwnerHubScreen(
         onOpenWhishRenewal = {
             val expiry = currentUser?.ownerPackageExpiryMillis
             if (expiry != null && expiry > System.currentTimeMillis()) {
-                // Active Play subscription — open Play Store subscription management
+                // Active Play subscription â€” open Play Store subscription management
                 // Include the specific product ID so Play Store deep-links directly
                 // to this subscription rather than the generic subscriptions list.
                 val productId = currentUser?.ownerPackageId
@@ -167,7 +167,7 @@ fun OwnerHubScreen(
                     onOpenSubscriptions?.invoke()
                 }
             } else {
-                // Expired or no subscription — navigate to subscriptions screen to pick a Play plan
+                // Expired or no subscription â€” navigate to subscriptions screen to pick a Play plan
                 onOpenSubscriptions?.invoke()
             }
         },
@@ -186,7 +186,7 @@ fun OwnerHubScreen(
         }
     )
 
-    // Get Listing Verified — optional, not part of the create/publish flow. See
+    // Get Listing Verified â€” optional, not part of the create/publish flow. See
     // ListingVerificationDialog.kt.
     verifyingSpace?.let { space ->
         ListingVerificationDialog(
@@ -199,10 +199,10 @@ fun OwnerHubScreen(
     // Used by the package-limit rejection branch below: save exactly what the host
     // built as a Draft (reusing the same listingId Publish would have used) instead
     // of losing the whole wizard, then send them straight to whatever purchase
-    // unblocks it — entitlements.ts auto-publishes this same Draft the moment that
+    // unblocks it â€” entitlements.ts auto-publishes this same Draft the moment that
     // payment settles (see ProHostViewModel.pendingAutoPublishDraftId).
     // Only actually redirects/arms the correlation once the Draft save is confirmed
-    // persisted — a failed save here would otherwise point the correlation at a
+    // persisted â€” a failed save here would otherwise point the correlation at a
     // Draft that doesn't exist yet.
     suspend fun redirectBlockedListingToPayment(newListing: SpaceListing, successMessage: String, failureMessage: String) {
         val saved = viewModel.saveListingDraft(newListing.copy(status = ListingStatus.DRAFT))
@@ -215,7 +215,7 @@ fun OwnerHubScreen(
         }
     }
 
-    // Create Granular Space Listing Dialog — also reused for "Continue Editing" a
+    // Create Granular Space Listing Dialog â€” also reused for "Continue Editing" a
     // Draft (draftToEdit), since both are the same multi-step wizard pre-populated
     // from an existing SpaceListing or not.
     if (showCreateListingDialog || draftToEdit != null) {
@@ -235,12 +235,12 @@ fun OwnerHubScreen(
                     draftToEdit = null
                     android.widget.Toast.makeText(
                         context,
-                        if (success) "Draft saved — continue it anytime from My Listings." else "Couldn't save this draft — please try again.",
+                        if (success) "Draft saved â€” continue it anytime from My Listings." else "Couldn't save this draft â€” please try again.",
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
                 }
             },
-            // Silent — unlike onSaveDraft above, never closes the dialog or toasts;
+            // Silent â€” unlike onSaveDraft above, never closes the dialog or toasts;
             // just persists progress in the background while the host keeps typing.
             onAutoSaveDraft = { draft ->
                 coroutineScope.launch { viewModel.saveListingDraft(draft) }
@@ -256,21 +256,21 @@ fun OwnerHubScreen(
                         is ListingCreateResult.PackageLimitReached -> {
                             redirectBlockedListingToPayment(
                                 newListing,
-                                "Saved as a Draft — you've reached your listing limit. Upgrade your package to publish it automatically.",
-                                "Couldn't save this as a Draft — check your connection and try Publish again once you've upgraded."
+                                "Saved as a Draft â€” you've reached your listing limit. Upgrade your package to publish it automatically.",
+                                "Couldn't save this as a Draft â€” check your connection and try Publish again once you've upgraded."
                             )
                         }
                         is ListingCreateResult.Failed -> {
                             android.widget.Toast.makeText(
                                 context,
-                                "Couldn't publish this listing — check your connection and try again.",
+                                "Couldn't publish this listing â€” check your connection and try again.",
                                 android.widget.Toast.LENGTH_LONG
                             ).show()
                         }
                         else -> {
                             android.widget.Toast.makeText(
                                 context,
-                                "Couldn't publish this listing — check your connection and try again.",
+                                "Couldn't publish this listing â€” check your connection and try again.",
                                 android.widget.Toast.LENGTH_LONG
                             ).show()
                         }
@@ -280,12 +280,12 @@ fun OwnerHubScreen(
         )
     }
 
-    // Edit Listing Dialog — reuses the real wizard (photos, subdivisions, pricing
+    // Edit Listing Dialog â€” reuses the real wizard (photos, subdivisions, pricing
     // config, ownership doc, everything), the same "existingDraft + onListingUpdated"
     // admin-edit mode CreateListingDialog already supports for the Admin Console's
     // own Edit action (AdminConsoleScreen.kt). This replaces the bare six-field
     // OwnerEditListingDialog (title/district/street/floor/price/phone only) that
-    // used to be a host's sole edit path once a listing was past Draft — subdivisions,
+    // used to be a host's sole edit path once a listing was past Draft â€” subdivisions,
     // pricing strategies, photos, facilities, description, house rules, and equipment
     // were all simply unreachable on a host's own published listing.
     editingSpace?.let { space ->
@@ -304,7 +304,7 @@ fun OwnerHubScreen(
                     editingSpace = null
                     android.widget.Toast.makeText(
                         context,
-                        if (success) "Listing updated successfully!" else "Failed to update listing — please try again",
+                        if (success) "Listing updated successfully!" else "Failed to update listing â€” please try again",
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -323,7 +323,7 @@ fun OwnerHubScreen(
                     deletingSpace = null
                     android.widget.Toast.makeText(
                         context,
-                        if (success) "Listing removed" else "Failed to remove listing — please try again",
+                        if (success) "Listing removed" else "Failed to remove listing â€” please try again",
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -474,13 +474,13 @@ fun OwnerHubScreenContent(
 
                         if (isAdminUnlimited) {
                             Text(
-                                text = "Unlimited Listings — Admin Access",
+                                text = "Unlimited Listings â€” Admin Access",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
                             Text(
-                                text = "No package or subscription applies to your account — every listing, of any type, is always active.",
+                                text = "No package or subscription applies to your account â€” every listing, of any type, is always active.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xCCFFFFFF),
                                 lineHeight = 16.sp
@@ -493,7 +493,7 @@ fun OwnerHubScreenContent(
                                 text = if (currentPackage == null) {
                                     "No Active Package"
                                 } else if (daysRemaining != null) {
-                                    "${currentPackage.name} — renews in $daysRemaining days"
+                                    "${currentPackage.name} â€” renews in $daysRemaining days"
                                 } else {
                                     currentPackage.name
                                 },
@@ -558,7 +558,7 @@ fun OwnerHubScreenContent(
                             }
                         }
                     }
-                    // Add Listing shortcut anchored to the hero card's bottom-right corner —
+                    // Add Listing shortcut anchored to the hero card's bottom-right corner â€”
                     // visible without scrolling, regardless of list length.
                     if (!atListingLimit) {
                         SmallFloatingActionButton(
@@ -665,7 +665,7 @@ fun OwnerHubScreenContent(
                             )
                         }
 
-                        // The host's own lifecycle status — Active listings show no extra
+                        // The host's own lifecycle status â€” Active listings show no extra
                         // badge here (the subscription badge above already covers that
                         // case); Draft and Paused are the two states worth calling out.
                         if (space.status != ListingStatus.ACTIVE) {
@@ -687,19 +687,19 @@ fun OwnerHubScreenContent(
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Column {
                                         Text(
-                                            text = if (space.status == ListingStatus.DRAFT) "Draft — not published yet" else "Paused — hidden from Discovery",
+                                            text = if (space.status == ListingStatus.DRAFT) "Draft â€” not published yet" else "Paused â€” hidden from Discovery",
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.SemiBold,
                                             color = if (space.status == ListingStatus.DRAFT) MaterialTheme.colorScheme.onSurfaceVariant else StatusOnWarningContainer
                                         )
                                         // Set only when the server moved this back to Draft on its
-                                        // own (onWorkspaceListingPublishValidation) — e.g. it was
+                                        // own (onWorkspaceListingPublishValidation) â€” e.g. it was
                                         // auto-published after payment but never actually had real
                                         // pricing configured. Cleared automatically the next time
                                         // this listing is saved.
                                         if (space.status == ListingStatus.DRAFT && space.publishBlockedReasons.isNotEmpty()) {
                                             Text(
-                                                text = "Reverted from Active — " + space.publishBlockedReasons.joinToString(" "),
+                                                text = "Reverted from Active â€” " + space.publishBlockedReasons.joinToString(" "),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.error
                                             )
@@ -709,8 +709,8 @@ fun OwnerHubScreenContent(
                             }
                         }
 
-                        // Listing Verified is genuinely earned now — see
-                        // SpaceListing.isVerified's doc comment — so this is either a
+                        // Listing Verified is genuinely earned now â€” see
+                        // SpaceListing.isVerified's doc comment â€” so this is either a
                         // static confirmation or a tappable entry point, never a badge
                         // shown unconditionally.
                         val verificationPending = !space.isVerified && !space.verificationDocUrl.isNullOrBlank()
@@ -760,7 +760,7 @@ fun OwnerHubScreenContent(
                                 }
                                 if (!space.isVerified) {
                                     Text(
-                                        text = if (verificationPending) "Tap to Re-submit ➔" else "Tap to Submit Proof ➔",
+                                        text = if (verificationPending) "Tap to Re-submit âž”" else "Tap to Submit Proof âž”",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.primary
@@ -776,7 +776,7 @@ fun OwnerHubScreenContent(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    text = "Account suspended — this listing is hidden from Discovery until reactivated.",
+                                    text = "Account suspended â€” this listing is hidden from Discovery until reactivated.",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onErrorContainer,
@@ -785,7 +785,7 @@ fun OwnerHubScreenContent(
                             }
                         }
 
-                        // Smart Availability summary badges — 2 rows of 2 so the 4
+                        // Smart Availability summary badges â€” 2 rows of 2 so the 4
                         // values wrap instead of squeezing into one line.
                         Surface(
                             color = MaterialTheme.colorScheme.surfaceVariant,
@@ -863,7 +863,7 @@ fun OwnerHubScreenContent(
                             }
                         }
 
-                        // Action buttons — a Draft has no live schedule to manage yet, so
+                        // Action buttons â€” a Draft has no live schedule to manage yet, so
                         // its row leads with "Continue Editing" (the same wizard, pre-
                         // populated) instead of Availability/Edit.
                         if (space.status == ListingStatus.DRAFT) {
@@ -901,7 +901,7 @@ fun OwnerHubScreenContent(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                // Manage Button — opens the real performance + availability
+                                // Manage Button â€” opens the real performance + availability
                                 // page (ManageListingScreen) for this listing: per-division
                                 // occupancy, this-month-vs-last-month yield, and a calendar-
                                 // style availability table, replacing the old read-only
@@ -915,7 +915,7 @@ fun OwnerHubScreenContent(
                                     modifier = Modifier.weight(1.6f)
                                 )
 
-                                // Edit Listing Button — the sole entry point into the wizard
+                                // Edit Listing Button â€” the sole entry point into the wizard
                                 // for an already-published listing now (item 1): availability
                                 // (operating hours/days, blackout slots, rental formulas,
                                 // subdivisions) is entirely configured here, so there's no
@@ -928,7 +928,7 @@ fun OwnerHubScreenContent(
                                     Icon(Icons.Default.Edit, contentDescription = "Edit Listing", tint = MaterialTheme.colorScheme.primary)
                                 }
 
-                                // Pause/Resume Button — the host's own lifecycle control,
+                                // Pause/Resume Button â€” the host's own lifecycle control,
                                 // distinct from isActiveSubscription (billing), which the
                                 // host doesn't control directly.
                                 IconButton(
@@ -942,7 +942,7 @@ fun OwnerHubScreenContent(
                                     )
                                 }
 
-                                // Delete Listing Button — weighted like the other controls
+                                // Delete Listing Button â€” weighted like the other controls
                                 // so they all divide the row's width predictably instead of
                                 // this one's intrinsic size squeezing the rest.
                                 IconButton(

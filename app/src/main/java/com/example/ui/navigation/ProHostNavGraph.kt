@@ -31,6 +31,7 @@ import com.example.ui.components.drawer.SpecialistDrawerContent
 import com.example.ui.screens.*
 import com.example.ui.theme.CarnationOrange
 import com.example.ui.theme.VibrantBlue
+import com.example.ui.viewmodel.DiscoveryViewModel
 import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.InAppUpdateManager
 import com.example.util.UpdateState
@@ -326,6 +327,9 @@ fun ProHostAppRoot(
         )
     } else {
         val pinReauthRequired by viewModel.pinReauthRequired.collectAsState()
+        val requiresPinSetup by viewModel.requiresPinSetup.collectAsState()
+        val discoveryViewModel: DiscoveryViewModel = viewModel()
+        val isMapViewActive by discoveryViewModel.isMapViewActive.collectAsState()
         val currentRole = currentUser?.role ?: UserRole.SPECIALIST
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         val scope = rememberCoroutineScope()
@@ -335,6 +339,12 @@ fun ProHostAppRoot(
             PinReauthOverlay(
                 viewModel = viewModel,
                 onAuthenticated = { viewModel.clearPinReauth() },
+                onSignOut = { viewModel.logout() }
+            )
+        } else if (requiresPinSetup) {
+            PinSetupOverlay(
+                viewModel = viewModel,
+                onComplete = { viewModel.clearRequiresPinSetup() },
                 onSignOut = { viewModel.logout() }
             )
         } else {
@@ -461,7 +471,8 @@ fun ProHostAppRoot(
                     // No bottom nav while a full-screen drawer destination is open, and
                     // none at all for Admin (roleTabs is empty for that role) — only the
                     // top bar's menu icon (reopen the drawer) is offered either way.
-                    if (detailedSpace == null && safeFullScreenDrawerTab == null && roleTabs.isNotEmpty()) {
+                    if (detailedSpace == null && safeFullScreenDrawerTab == null && roleTabs.isNotEmpty() &&
+                        !(isMapViewActive && activeTabId == AppNavTab.SearchMap.id)) {
                         val roleAccentColor = if (currentRole == UserRole.PRO_HOST) CarnationOrange else VibrantBlue
                         Column {
                             // Glowing role-colored strip at the very top of the nav bar
@@ -634,7 +645,8 @@ fun ProHostAppRoot(
                                 when (safeActiveTabId) {
                                     AppNavTab.SearchMap.id -> DiscoveryScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { detailedSpace = it }
+                                        onSelectSpace = { detailedSpace = it },
+                                        discoveryViewModel = discoveryViewModel
                                     )
                                     AppNavTab.ManageListings.id -> OwnerHubScreen(
                                         viewModel = viewModel,
@@ -658,7 +670,8 @@ fun ProHostAppRoot(
                                     )
                                     else -> DiscoveryScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { detailedSpace = it }
+                                        onSelectSpace = { detailedSpace = it },
+                                        discoveryViewModel = discoveryViewModel
                                     )
                                 }
                             }
@@ -678,18 +691,6 @@ fun ProHostAppRoot(
             },
             onDismiss = { activeDrawerTabDialog = null }
         )
-
-        // Global Whish in-app checkout host — every purchase flow (package
-        // subscribe/renew/upgrade) funnels through ProHostViewModel's one shared
-        // launchWhishCheckout, so a single host here covers all of them regardless
-        // of which screen started the payment.
-        val pendingCheckoutUrl by viewModel.pendingCheckoutUrl.collectAsState()
-        pendingCheckoutUrl?.let { url ->
-            WhishCheckoutWebView(
-                collectUrl = url,
-                onDismiss = { viewModel.clearPendingCheckoutUrl() }
-            )
-        }
 
         if (showProHostWelcome) {
             AlertDialog(
@@ -775,6 +776,93 @@ private fun PinReauthOverlay(
             ) { Text(if (isVerifying) "Verifying..." else "Unlock") }
             Spacer(modifier = Modifier.height(8.dp))
             TextButton(onClick = onSignOut) { Text("Sign Out") }
+        }
+    }
+}
+
+/**
+ * Prompts existing users (who registered before PIN was required) to set a PIN
+ * on their first login after the PIN feature went live. Called when session restore
+ * detects hasPinSet == false for a registered, non-admin user.
+ */
+@Composable
+private fun PinSetupOverlay(
+    viewModel: ProHostViewModel,
+    onComplete: () -> Unit,
+    onSignOut: () -> Unit
+) {
+    val authViewModel: com.example.ui.viewmodel.AuthViewModel = viewModel()
+    val authError by authViewModel.authErrorMessage.collectAsState()
+    var newPin by remember { mutableStateOf("") }
+    var confirmPin by remember { mutableStateOf("") }
+    var localError by remember { mutableStateOf<String?>(null) }
+    val error = localError ?: authError
+    var isSaving by remember { mutableStateOf(false) }
+
+    Scaffold { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Set Your Security PIN", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                "ProHost now protects your account with a PIN. Please create a 4–6 digit PIN to continue.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            OutlinedTextField(
+                value = newPin,
+                onValueChange = { if (it.length <= 6 && it.all { c -> c.isDigit() }) newPin = it },
+                label = { Text("New PIN") },
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedTextField(
+                value = confirmPin,
+                onValueChange = { if (it.length <= 6 && it.all { c -> c.isDigit() }) confirmPin = it },
+                label = { Text("Confirm PIN") },
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                isError = error != null,
+                supportingText = error?.let { msg -> { Text(msg, color = MaterialTheme.colorScheme.error) } },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = {
+                    if (newPin != confirmPin) {
+                        localError = "PINs do not match"
+                        return@Button
+                    }
+                    if (newPin.length < 4) {
+                        localError = "PIN must be at least 4 digits"
+                        return@Button
+                    }
+                    localError = null
+                    isSaving = true
+                    authViewModel.setPin(newPin) {
+                        isSaving = false
+                        onComplete()
+                    }
+                },
+                enabled = newPin.length >= 4 && confirmPin.length >= 4 && !isSaving,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(if (isSaving) "Saving..." else "Set PIN") }
+            Spacer(modifier = Modifier.height(8.dp))
+            TextButton(onClick = onSignOut) { Text("Sign Out Instead") }
         }
     }
 }

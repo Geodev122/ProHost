@@ -1,10 +1,12 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.clickable
@@ -129,14 +131,87 @@ fun DiscoveryScreenContent(
         .fillMaxSize()
         .background(PremiumBackgroundGradient)) {
         if (isMapView) {
-            Box(modifier = Modifier.fillMaxSize().clipToBounds()) {
-                LebanonMapCanvas(
-                    spaces = spaces,
-                    onSpaceSelected = { space -> if (space != null) onSelectSpace(space) },
-                    onNavigateToDetails = { onSelectSpace(it) },
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+            LebanonMapCanvas(
+                spaces = spaces,
+                onSpaceSelected = { space -> if (space != null) onSelectSpace(space) },
+                onNavigateToDetails = { onSelectSpace(it) },
+                modifier = Modifier.fillMaxSize().clipToBounds(),
+                topControls = {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.TopStart)
+                            .padding(start = 8.dp, end = 8.dp, top = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        SmallFloatingActionButton(
+                            onClick = onToggleMapView,
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isMapView) Icons.AutoMirrored.Filled.FormatListBulleted else Icons.Default.Map,
+                                contentDescription = if (isMapView) "Switch to List View" else "Switch to Map View"
+                            )
+                        }
+                        AnimatedContent(
+                            targetState = searchExpanded,
+                            modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
+                            transitionSpec = { fadeIn() togetherWith fadeOut() },
+                            label = "SearchToggle"
+                        ) { expanded ->
+                            if (!expanded) {
+                                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                    BadgedBox(badge = {
+                                        if (searchQuery.isNotEmpty()) Badge(containerColor = MaterialTheme.colorScheme.error)
+                                    }) {
+                                        SmallFloatingActionButton(
+                                            onClick = { searchExpanded = true },
+                                            containerColor = MaterialTheme.colorScheme.surface,
+                                            contentColor = MaterialTheme.colorScheme.primary,
+                                            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+                                        ) {
+                                            Icon(Icons.Default.Search, contentDescription = "Search workspaces")
+                                        }
+                                    }
+                                }
+                            } else {
+                                Surface(
+                                    shape = RoundedCornerShape(28.dp),
+                                    tonalElevation = 4.dp,
+                                    shadowElevation = 4.dp,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                        Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 12.dp).size(18.dp))
+                                        Box(modifier = Modifier.weight(1f).padding(start = 8.dp, top = 10.dp, bottom = 10.dp)) {
+                                            if (searchQuery.isEmpty()) {
+                                                Text("Search workspaces…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                            BasicTextField(value = searchQuery, onValueChange = onSearchQueryChange, modifier = Modifier.fillMaxWidth(), singleLine = true, textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface))
+                                        }
+                                        IconButton(onClick = { onSearchQueryChange(""); searchExpanded = false }, modifier = Modifier.size(36.dp)) {
+                                            Icon(Icons.Default.Close, contentDescription = "Close search", modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        BadgedBox(badge = { if (hasActiveFilter) Badge(containerColor = MaterialTheme.colorScheme.error) }) {
+                            SmallFloatingActionButton(
+                                onClick = { onSetFilterSheetVisible(true) },
+                                containerColor = MaterialTheme.colorScheme.secondary,
+                                contentColor = MaterialTheme.colorScheme.onSecondary,
+                                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+                            ) {
+                                Icon(Icons.Default.FilterList, contentDescription = "Filters")
+                            }
+                        }
+                    }
+                }
+            )
         } else {
             // List View
             if (isLoading) {
@@ -216,115 +291,85 @@ fun DiscoveryScreenContent(
                             onToggleSave = { onToggleSavedSpace(space.id) }
                         )
                     }
+                    }
                 }
             }
         }
-        // Floating 3-button row: [toggle] [search icon / expanded field] [filter]
-        // Uses Modifier.align so it's always at the TOP of the outer Box in BOTH map and list views.
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopStart)
-                .padding(start = 8.dp, end = 8.dp, top = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SmallFloatingActionButton(
-                onClick = onToggleMapView,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
-            ) {
-                Icon(
-                    imageVector = if (isMapView) Icons.AutoMirrored.Filled.FormatListBulleted else Icons.Default.Map,
-                    contentDescription = if (isMapView) "Switch to List View" else "Switch to Map View"
-                )
-            }
-
-            // Center: expandable search — collapsed = icon, expanded = text field
-            Box(modifier = Modifier.weight(1f).padding(horizontal = 6.dp)) {
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = !searchExpanded,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        BadgedBox(badge = {
-                            if (searchQuery.isNotEmpty()) Badge(containerColor = MaterialTheme.colorScheme.error)
-                        }) {
-                            SmallFloatingActionButton(
-                                onClick = { searchExpanded = true },
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                contentColor = MaterialTheme.colorScheme.primary,
-                                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
-                            ) {
-                                Icon(Icons.Default.Search, contentDescription = "Search workspaces")
-                            }
-                        }
-                    }
-                }
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = searchExpanded,
-                    enter = fadeIn() + expandHorizontally(expandFrom = androidx.compose.ui.Alignment.CenterHorizontally),
-                    exit = fadeOut() + shrinkHorizontally(shrinkTowards = androidx.compose.ui.Alignment.CenterHorizontally)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(28.dp),
-                        tonalElevation = 4.dp,
-                        shadowElevation = 4.dp,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(start = 12.dp).size(18.dp)
-                            )
-                            Box(modifier = Modifier.weight(1f).padding(start = 8.dp, top = 10.dp, bottom = 10.dp)) {
-                                if (searchQuery.isEmpty()) {
-                                    Text(
-                                        "Search workspaces…",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                BasicTextField(
-                                    value = searchQuery,
-                                    onValueChange = onSearchQueryChange,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true,
-                                    textStyle = MaterialTheme.typography.bodySmall.copy(
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                )
-                            }
-                            IconButton(
-                                onClick = { onSearchQueryChange(""); searchExpanded = false },
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(Icons.Default.Close, contentDescription = "Close search", modifier = Modifier.size(16.dp))
-                            }
-                        }
-                    }
-                }
-            }
-
-            BadgedBox(
-                badge = {
-                    if (hasActiveFilter) Badge(containerColor = MaterialTheme.colorScheme.error)
-                }
+        // Floating 3-button row for list view (map view gets it via LebanonMapCanvas.topControls)
+        if (!isMapView) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopStart)
+                    .padding(start = 8.dp, end = 8.dp, top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 SmallFloatingActionButton(
-                    onClick = { onSetFilterSheetVisible(true) },
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary,
+                    onClick = onToggleMapView,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
                 ) {
-                    Icon(Icons.Default.FilterList, contentDescription = "Filters")
+                    Icon(
+                        imageVector = Icons.Default.Map,
+                        contentDescription = "Switch to Map View"
+                    )
+                }
+
+                AnimatedContent(
+                    targetState = searchExpanded,
+                    modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
+                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                    label = "SearchToggleList"
+                ) { expanded ->
+                    if (!expanded) {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            BadgedBox(badge = {
+                                if (searchQuery.isNotEmpty()) Badge(containerColor = MaterialTheme.colorScheme.error)
+                            }) {
+                                SmallFloatingActionButton(
+                                    onClick = { searchExpanded = true },
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    contentColor = MaterialTheme.colorScheme.primary,
+                                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+                                ) {
+                                    Icon(Icons.Default.Search, contentDescription = "Search workspaces")
+                                }
+                            }
+                        }
+                    } else {
+                        Surface(
+                            shape = RoundedCornerShape(28.dp),
+                            tonalElevation = 4.dp,
+                            shadowElevation = 4.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 12.dp).size(18.dp))
+                                Box(modifier = Modifier.weight(1f).padding(start = 8.dp, top = 10.dp, bottom = 10.dp)) {
+                                    if (searchQuery.isEmpty()) {
+                                        Text("Search workspaces…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    BasicTextField(value = searchQuery, onValueChange = onSearchQueryChange, modifier = Modifier.fillMaxWidth(), singleLine = true, textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface))
+                                }
+                                IconButton(onClick = { onSearchQueryChange(""); searchExpanded = false }, modifier = Modifier.size(36.dp)) {
+                                    Icon(Icons.Default.Close, contentDescription = "Close search", modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                BadgedBox(badge = { if (hasActiveFilter) Badge(containerColor = MaterialTheme.colorScheme.error) }) {
+                    SmallFloatingActionButton(
+                        onClick = { onSetFilterSheetVisible(true) },
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary,
+                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+                    ) {
+                        Icon(Icons.Default.FilterList, contentDescription = "Filters")
+                    }
                 }
             }
         }

@@ -133,8 +133,11 @@ fun LoginAuthScreen(
     var isForgotPinReset by rememberSaveable { mutableStateOf(false) }
 
     // --- Google Sign-In ---
-    // Whether the current registration form session came from a Google Sign-In.
     var isGoogleRegistrationFlow by rememberSaveable { mutableStateOf(false) }
+    // These must be declared before googleSignInLauncher because the launcher lambda captures them.
+    var regFullName by rememberSaveable { mutableStateOf("") }
+    var regEmail by rememberSaveable { mutableStateOf("") }
+    var localErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -160,8 +163,7 @@ fun LoginAuthScreen(
 
     // --- Registration form ---
     var regProfilePicUri by rememberSaveable { mutableStateOf<Uri?>(null) }
-    var regFullName by rememberSaveable { mutableStateOf("") }
-    var regEmail by rememberSaveable { mutableStateOf("") }
+    // regFullName and regEmail declared above (before googleSignInLauncher)
     var regSpecialty by rememberSaveable { mutableStateOf("") }
     var regIdDocState by rememberSaveable(stateSaver = DocumentPickerStateSaver) { mutableStateOf(DocumentPickerState()) }
     var regCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
@@ -172,7 +174,7 @@ fun LoginAuthScreen(
     val isAuthenticating by authViewModel.isAuthenticating.collectAsState()
     val authErrorMessage by authViewModel.authErrorMessage.collectAsState()
     val authSuccessMessage by authViewModel.authSuccessMessage.collectAsState()
-    var localErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    // localErrorMessage declared above (before googleSignInLauncher)
     var showLegalDocument by remember { mutableStateOf<com.example.legal.LegalDocument?>(null) }
 
     fun clearErrors() {
