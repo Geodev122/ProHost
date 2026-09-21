@@ -897,6 +897,7 @@ data class SpaceListing(
     // Mirrors the existing pattern of denormalizing ownerName/ownerPhone/etc. onto
     // the listing for exactly the same cross-role-visibility reason.
     val ownerIsIdVerified: Boolean = false,
+    val ownerProfilePictureUrl: String? = null,
     // The host's own lifecycle control (Draft while building it, Active once
     // published, Paused to take it off the market without deleting it) — distinct
     // from isActiveSubscription (billing) and isOwnerSuspended (moderation), which
@@ -1164,6 +1165,7 @@ data class SpaceListing(
                 avatarEngagementViews = (data["avatarEngagementViews"] as? Number)?.toInt() ?: 0,
                 avatarInquiryClicks = (data["avatarInquiryClicks"] as? Number)?.toInt() ?: 0,
                 ownerIsIdVerified = data["ownerIsIdVerified"] as? Boolean ?: false,
+                ownerProfilePictureUrl = data["ownerProfilePictureUrl"] as? String,
                 status = (data["status"] as? String)?.let {
                     runCatching { ListingStatus.valueOf(it) }.getOrNull()
                 } ?: ListingStatus.ACTIVE,

@@ -574,15 +574,12 @@ private fun AdminRevenueTab(
                     // doc server-side at charge time, never trusting the client.
                     uiState.packagePlans.packages.values.sortedBy { it.sortOrder }.forEach { plan ->
                         var nameInput by remember(plan.id, plan.name) { mutableStateOf(plan.name) }
-                        var descInput by remember(plan.id, plan.description) { mutableStateOf(plan.description) }
-                        var badgeInput by remember(plan.id, plan.badgeName) { mutableStateOf(plan.badgeName) }
-                        var priceInput by remember(plan.id, plan.priceUsd) { mutableStateOf(plan.priceUsd.toString()) }
                         var unlimitedInput by remember(plan.id, plan.listingLimit) { mutableStateOf(plan.listingLimit == null) }
                         var limitInput by remember(plan.id, plan.listingLimit) { mutableStateOf((plan.listingLimit ?: 3).toString()) }
-                        var validityInput by remember(plan.id, plan.validityDays) { mutableStateOf(plan.validityDays.toString()) }
                         var googlePlayProductIdInput by remember(plan.id, plan.googlePlayProductId) { mutableStateOf(plan.googlePlayProductId) }
                         var isFetchingPlay by remember(plan.id) { mutableStateOf(false) }
                         var playFetchStatus by remember(plan.id) { mutableStateOf<String?>(null) }
+                        var playLiveInfo by remember(plan.id) { mutableStateOf<String?>(null) }
 
                         Column(
                             modifier = Modifier
@@ -626,34 +623,12 @@ private fun AdminRevenueTab(
                             OutlinedTextField(
                                 value = nameInput,
                                 onValueChange = { nameInput = it },
-                                label = { Text("Name") },
+                                label = { Text("Internal Name") },
+                                supportingText = { Text("Reference label only — Play Store shows its own title.") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
-                            OutlinedTextField(
-                                value = descInput,
-                                onValueChange = { descInput = it },
-                                label = { Text("Description") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedTextField(
-                                    value = badgeInput,
-                                    onValueChange = { badgeInput = it },
-                                    label = { Text("Badge text") },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true
-                                )
-                                OutlinedTextField(
-                                    value = priceInput,
-                                    onValueChange = { priceInput = it.filter { c -> c.isDigit() || c == '.' } },
-                                    label = { Text("Price ($)") },
-                                    supportingText = if (isPlayLinked) {{ Text("The actual charge is handled by Google Play.") }} else null,
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true
-                                )
-                            }
+                            // Listing limit (the only attribute admin controls)
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                                 if (!unlimitedInput) {
                                     OutlinedTextField(
@@ -665,21 +640,27 @@ private fun AdminRevenueTab(
                                     )
                                 }
                                 Row(
-                                    modifier = if (unlimitedInput) Modifier.weight(1f) else Modifier,
+                                    modifier = if (unlimitedInput) Modifier.fillMaxWidth() else Modifier,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text("Unlimited", style = MaterialTheme.typography.labelSmall)
                                     Switch(checked = unlimitedInput, onCheckedChange = { unlimitedInput = it })
                                 }
-                                OutlinedTextField(
-                                    value = validityInput,
-                                    onValueChange = { if (!isPlayLinked) validityInput = it.filter { c -> c.isDigit() } },
-                                    label = { Text("Validity (days)") },
-                                    supportingText = if (isPlayLinked) {{ Text("Billing cycle reference only — actual billing is via Google Play.") }} else null,
-                                    readOnly = isPlayLinked,
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true
-                                )
+                            }
+                            // Live Play Store info card (shown once fetched)
+                            if (playLiveInfo != null) {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = FreshGreen.copy(alpha = 0.1f),
+                                    shape = MaterialTheme.shapes.small
+                                ) {
+                                    Text(
+                                        text = playLiveInfo!!,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = FreshGreen,
+                                        modifier = androidx.compose.ui.Modifier.padding(8.dp)
+                                    )
+                                }
                             }
                             if (plan.googlePlayProductId.isNotBlank()) {
                                 // Product ID is locked once set — it maps to a real Play subscription
@@ -723,15 +704,10 @@ private fun AdminRevenueTab(
                                                     viewModel.fetchPlayProductDetails(context, plan.googlePlayProductId) { details ->
                                                         isFetchingPlay = false
                                                         if (details != null) {
-                                                            // Use `name` (clean) not `title` (has " (AppName)" suffix)
-                                                            if (details.name.isNotBlank()) nameInput = details.name
                                                             val formattedPrice = details.subscriptionOfferDetails
                                                                 ?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice
-                                                            if (!formattedPrice.isNullOrBlank()) {
-                                                                val numeric = formattedPrice.replace(Regex("[^0-9.]"), "")
-                                                                if (numeric.isNotBlank()) priceInput = numeric
-                                                            }
-                                                            playFetchStatus = "✓ Refreshed: ${details.name} · ${formattedPrice ?: "—"}"
+                                                            playLiveInfo = "Play Store: ${details.name} · ${formattedPrice ?: "—"}"
+                                                            playFetchStatus = "✓ Synced from Google Play"
                                                         } else {
                                                             playFetchStatus = "Could not fetch from Play — check the product ID"
                                                         }
@@ -770,11 +746,7 @@ private fun AdminRevenueTab(
                                     adminViewModel.updatePackagePlan(
                                         plan.copy(
                                             name = nameInput.ifBlank { plan.name },
-                                            description = descInput,
-                                            badgeName = badgeInput,
-                                            priceUsd = priceInput.toDoubleOrNull() ?: plan.priceUsd,
                                             listingLimit = if (unlimitedInput) null else (limitInput.toIntOrNull()?.takeIf { it >= 1 } ?: plan.listingLimit),
-                                            validityDays = validityInput.toIntOrNull()?.takeIf { it >= 1 } ?: plan.validityDays,
                                             googlePlayProductId = googlePlayProductIdInput.trim()
                                         )
                                     )
@@ -1646,6 +1618,99 @@ private fun AdminOwnersAndPaymentsTab(
                                 fontSize = 10.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Grant Package to User
+        item {
+            var grantExpanded by remember { mutableStateOf(false) }
+            ProSurfaceCard {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { grantExpanded = !grantExpanded },
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ProSectionHeader(title = "Grant Package to User", icon = Icons.Default.CardGiftcard)
+                        Icon(
+                            if (grantExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    AnimatedVisibility(visible = grantExpanded) {
+                        var grantUid by remember { mutableStateOf("") }
+                        var grantDays by remember { mutableStateOf("30") }
+                        var selectedPlanId by remember { mutableStateOf<String?>(null) }
+                        var dropdownExpanded by remember { mutableStateOf(false) }
+                        val plans = uiState.packagePlans.packages.values.toList()
+                        val selectedPlanName = plans.find { it.id == selectedPlanId }?.name ?: "Select Plan"
+
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = grantUid,
+                                onValueChange = { grantUid = it },
+                                label = { Text("User UID or Email") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            Box {
+                                OutlinedTextField(
+                                    value = selectedPlanName,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Package Plan") },
+                                    trailingIcon = {
+                                        IconButton(onClick = { dropdownExpanded = true }) {
+                                            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                DropdownMenu(
+                                    expanded = dropdownExpanded,
+                                    onDismissRequest = { dropdownExpanded = false }
+                                ) {
+                                    plans.forEach { plan ->
+                                        DropdownMenuItem(
+                                            text = { Text(plan.name) },
+                                            onClick = { selectedPlanId = plan.id; dropdownExpanded = false }
+                                        )
+                                    }
+                                }
+                            }
+
+                            OutlinedTextField(
+                                value = grantDays,
+                                onValueChange = { if (it.all { c -> c.isDigit() }) grantDays = it },
+                                label = { Text("Duration (days)") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            Button(
+                                onClick = {
+                                    val planId = selectedPlanId
+                                    val days = grantDays.toIntOrNull() ?: 0
+                                    if (grantUid.isNotBlank() && planId != null && days > 0) {
+                                        adminViewModel.grantPackageToUser(grantUid.trim(), planId, days)
+                                        grantUid = ""; grantDays = "30"; selectedPlanId = null
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = grantUid.isNotBlank() && selectedPlanId != null && (grantDays.toIntOrNull() ?: 0) > 0
+                            ) {
+                                Icon(Icons.Default.CardGiftcard, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(Spacing.sm))
+                                Text("Grant Package", fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }

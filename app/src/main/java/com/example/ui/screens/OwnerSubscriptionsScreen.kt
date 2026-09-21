@@ -33,7 +33,15 @@ fun OwnerSubscriptionsScreen(
     viewModel: ProHostViewModel
 ) {
     val context = LocalContext.current
-    val activity = androidx.activity.compose.LocalActivity.current
+    val activityFromLocal = androidx.activity.compose.LocalActivity.current
+    val activity: android.app.Activity? = activityFromLocal ?: run {
+        var ctx = context
+        while (ctx is ContextWrapper) {
+            if (ctx is android.app.Activity) return@run ctx
+            ctx = ctx.baseContext
+        }
+        null
+    }
     val haptic = LocalHapticFeedback.current
     val currentUser by viewModel.currentUser.collectAsState()
     val packagePlans by viewModel.packagePlans.collectAsState()

@@ -519,79 +519,6 @@ fun OwnerHubScreenContent(
             }
         }
 
-        // Highlighted & Centered Add Workspace Action Button Card
-        item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = Spacing.xs),
-                contentAlignment = Alignment.Center
-            ) {
-                // At the Package-2 cap, this becomes an upsell instead of opening a
-                // multi-step wizard that createNewSpaceListing will just reject at the
-                // end — the host finds out immediately, not after filling the whole form.
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(6.dp, MaterialTheme.shapes.large)
-                        .clickable { if (atListingLimit) onOpenPackageSelection() else onOpenCreateListing() },
-                    shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (atListingLimit) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    border = BorderStroke(2.dp, if (atListingLimit) AmberWarning else FreshGreen)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Surface(
-                            color = if (atListingLimit) AmberWarning else MaterialTheme.colorScheme.primary,
-                            shape = CircleShape,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    if (atListingLimit) Icons.Default.Lock else Icons.Default.AddBusiness,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(Spacing.lg))
-                        Column {
-                            // Names the host's real, admin-configured package/limit
-                            // instead of a hardcoded "3-Listing"/"Package 3" — those
-                            // numbers are no longer fixed since packages became an
-                            // arbitrary admin-authored catalog (Phase 15); a listing
-                            // limit can be any number, or a package's own name can be
-                            // anything, not necessarily "Package 3".
-                            Text(
-                                text = if (atListingLimit) {
-                                    currentPackage?.listingLimit?.let { "You've Reached Your $it-Listing Limit" }
-                                        ?: "You've Reached Your Listing Limit"
-                                } else {
-                                    "Add New Workspace Listing"
-                                },
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Text(
-                                text = if (atListingLimit) "Tap to upgrade your package for more listings" else "Publish clinic, office, or studio space with smart pricing formulas",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
         // Section Title: Owner's Workspace Listings
         item {
             ProSectionHeader(
@@ -968,7 +895,7 @@ fun OwnerHubScreenContent(
                 containerColor = CarnationOrange,
                 contentColor = Color.White
             ) {
-                Icon(Icons.Default.Settings, contentDescription = "Listing Actions")
+                Icon(Icons.Default.AddBusiness, contentDescription = "Add Workspace Listing")
             }
         }
     }

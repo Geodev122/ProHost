@@ -153,6 +153,18 @@ class AdminViewModel(
         }
     }
 
+    fun grantPackageToUser(targetUserId: String, packageId: String, durationDays: Int) {
+        viewModelScope.launch {
+            val result = functionsClient.grantPackageToUser(targetUserId, packageId, durationDays)
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (result.isSuccess) "Package granted to user successfully"
+                    else "Failed to grant package: ${result.exceptionOrNull()?.message}"
+                )
+            )
+        }
+    }
+
     fun togglePackagePlan(planId: String) {
         viewModelScope.launch {
             val success = repository.togglePackagePlan(planId)

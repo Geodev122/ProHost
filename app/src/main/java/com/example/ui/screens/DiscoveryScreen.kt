@@ -118,93 +118,51 @@ fun DiscoveryScreenContent(
             .fillMaxSize()
             .background(PremiumBackgroundGradient)
     ) {
-        // Top Search Bar & View Toggle Header
+        // Branded search header
         Surface(
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 2.dp,
+            tonalElevation = 3.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.lg, vertical = Spacing.md)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = onSearchQueryChange,
-                        placeholder = { Text("Search...", fontSize = MaterialTheme.typography.bodySmall.fontSize) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { onSearchQueryChange("") }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Clear")
-                                }
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-                            unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    )
-
-                    // Map vs List Toggle Button
-                    IconButton(
-                        onClick = onToggleMapView,
-                        modifier = Modifier
-                            .clip(MaterialTheme.shapes.medium)
-                            .background(if (isMapView) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Icon(
-                            imageVector = if (isMapView) Icons.AutoMirrored.Filled.FormatListBulleted else Icons.Default.Map,
-                            contentDescription = "Toggle Map/List",
-                            tint = if (isMapView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    // Filter Button with Badge
-                    IconButton(
-                        onClick = { onSetFilterSheetVisible(true) },
-                        modifier = Modifier
-                            .clip(MaterialTheme.shapes.medium)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        val hasActiveFilter = selectedGovernorate != null ||
-                                selectedCategoryId != null ||
-                                selectedStrategyType != null ||
-                                onlyVerified ||
-                                onlySaved
-                        BadgedBox(
-                            badge = {
-                                if (hasActiveFilter) {
-                                    Badge(containerColor = MaterialTheme.colorScheme.primary)
-                                }
-                            }
-                        ) {
-                            Icon(Icons.Default.FilterList, contentDescription = "Filters")
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                placeholder = { Text("Search by type, location, hashtag, pricing…", fontSize = MaterialTheme.typography.bodySmall.fontSize) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { onSearchQueryChange("") }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Clear")
                         }
                     }
-                }
-
-            }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                shape = MaterialTheme.shapes.medium,
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
         }
 
-        // Body Content: Map or List
+        // Body Content: Map or List — with floating toggle + filter overlaid
+        val hasActiveFilter = selectedGovernorate != null ||
+                selectedCategoryId != null ||
+                selectedStrategyType != null ||
+                onlyVerified ||
+                onlySaved
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
         if (isMapView) {
-            Box(modifier = Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
+            Box(modifier = Modifier.fillMaxSize().clipToBounds()) {
                 LebanonMapCanvas(
                     spaces = spaces,
                     onSpaceSelected = { space -> if (space != null) onSelectSpace(space) },
@@ -292,6 +250,39 @@ fun DiscoveryScreenContent(
                 }
             }
         }
+        // Floating map/list toggle (left) and filter (right)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopStart)
+                .padding(horizontal = 12.dp, top = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            SmallFloatingActionButton(
+                onClick = onToggleMapView,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(
+                    imageVector = if (isMapView) Icons.AutoMirrored.Filled.FormatListBulleted else Icons.Default.Map,
+                    contentDescription = if (isMapView) "Switch to List View" else "Switch to Map View"
+                )
+            }
+            BadgedBox(
+                badge = {
+                    if (hasActiveFilter) Badge(containerColor = MaterialTheme.colorScheme.error)
+                }
+            ) {
+                SmallFloatingActionButton(
+                    onClick = { onSetFilterSheetVisible(true) },
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
+                ) {
+                    Icon(Icons.Default.FilterList, contentDescription = "Filters")
+                }
+            }
+        }
+        } // closes outer content Box
     }
     }
 

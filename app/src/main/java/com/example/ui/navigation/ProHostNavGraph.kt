@@ -359,8 +359,8 @@ fun ProHostAppRoot(
                     modifier = Modifier
                         .fillMaxWidth(0.86f)
                         .widthIn(max = 320.dp),
-                    drawerContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                    drawerTonalElevation = 0.dp
+                    drawerContainerColor = MaterialTheme.colorScheme.surface,
+                    drawerTonalElevation = 2.dp
                 ) {
                     when (currentRole) {
                         UserRole.SPECIALIST, UserRole.PRO_HOST -> {
@@ -429,6 +429,18 @@ fun ProHostAppRoot(
                             ProHostFullScreenTopAppBar(
                                 title = title,
                                 onMenuClick = { scope.launch { drawerState.open() } }
+                            )
+                        } else if (activeTabId == AppNavTab.SearchMap.id) {
+                            // Explore tab — minimal bar: no brand name, no logo, no LB badge
+                            val alertsList = viewModel.fcmAlerts.collectAsState().value
+                            val unreadCount = alertsList.count { !it.isRead }
+                            ProHostTopAppBar(
+                                currentRole = currentRole,
+                                unreadAlertCount = unreadCount,
+                                onMenuClick = { scope.launch { drawerState.open() } },
+                                onAlertsClick = { activeDrawerTabDialog = "fcm_alerts" },
+                                pageTitle = null,
+                                showBrand = false
                             )
                         } else {
                             val alertsList = viewModel.fcmAlerts.collectAsState().value
