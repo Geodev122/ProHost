@@ -175,6 +175,9 @@ export const assignInitialRole = onCall(
             idDocumentSubmittedAt: now,
           }
         : {}),
+      ...(auth.token.email_verified === true
+        ? { emailVerified: true, emailVerifiedAt: now }
+        : {}),
       updatedAt: now,
     },
     { merge: true }
@@ -187,8 +190,8 @@ export const assignInitialRole = onCall(
     severity: "INFO",
   });
 
-  // Send email verification link on first-time registration (non-blocking — never fails the sign-in)
-  if (registration) {
+  // Send email verification link on first-time registration for non-Google/unverified emails
+  if (registration && auth.token.email_verified !== true) {
     sendEmailVerificationInternal(auth.uid).catch((e) =>
       logger.warn("email_verification_send_failed", { uid: auth.uid, error: String(e) })
     );

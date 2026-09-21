@@ -726,7 +726,7 @@ private fun SearchablePickerDialog(
         Surface(
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth(0.92f).fillMaxHeight(0.85f).padding(8.dp)
+            modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.88f).padding(8.dp)
         ) {
             Column(
                 modifier = Modifier.padding(Spacing.lg),

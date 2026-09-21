@@ -1877,10 +1877,7 @@ class ProHostRepository {
      */
     suspend fun updateIdDocument(idDocumentUrl: String): Boolean {
         val current = _currentUser.value ?: return false
-        val success = firestoreService.updateUserProfileFields(
-            current.id,
-            mapOf("idDocumentUrl" to idDocumentUrl)
-        )
+        val success = functionsClient.submitIdDocument(idDocumentUrl).isSuccess
         if (success) {
             val updated = current.copy(idDocumentUrl = idDocumentUrl)
             _currentUser.value = updated

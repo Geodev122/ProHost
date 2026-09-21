@@ -576,6 +576,7 @@ class AuthViewModel(
                     firebaseUser = firebaseUser,
                     fullName = registration.fullName,
                     email = registration.email,
+                    phone = registration.phoneE164,
                     specialty = registration.specialty,
                     profilePictureUrl = profilePictureUrl,
                     idDocumentUrl = idDocumentUrl,
