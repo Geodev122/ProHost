@@ -4,13 +4,18 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.style.TextOverflow
 import com.example.ui.components.ProHostCedarBadge
 import com.example.ui.components.ProHostBrandLogo
 import androidx.compose.runtime.Composable
@@ -20,13 +25,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AppUser
 import com.example.data.model.UserRole
-import com.example.ui.components.ProHostBrandLogo
 import com.example.ui.theme.*
 
 // Published as ProHost's real support/data-privacy contact on the public
@@ -98,43 +103,83 @@ fun SpecialistDrawerContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(Spacing.lg)
     ) {
-        // Branded drawer header: logo + user name + country market label
-        Surface(
+        // Modern gradient header
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 0.dp),
-            color = OxfordBlue
+                .background(
+                    Brush.verticalGradient(listOf(OxfordBlue, OxfordBlue.copy(blue = 0.55f))),
+                    RoundedCornerShape(bottomStart = 0.dp, bottomEnd = 0.dp)
+                )
+                .padding(horizontal = 20.dp, vertical = 22.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // Avatar circle with initials
+                val initials = (currentUser?.fullName ?: "")
+                    .split(" ").take(2)
+                    .joinToString("") { it.firstOrNull()?.uppercaseChar()?.toString() ?: "" }
+                    .ifBlank { "P" }
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(CarnationOrange),
+                    contentAlignment = Alignment.Center
                 ) {
-                    ProHostBrandLogo(size = 28.dp)
                     Text(
-                        text = currentUser?.fullName ?: "ProHost",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = androidx.compose.ui.graphics.Color.White,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        text = initials,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black,
+                        color = PureWhite
                     )
                 }
-                Text(
-                    text = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = CoolGray.copy(alpha = 0.9f),
-                    maxLines = 1
-                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = currentUser?.fullName ?: "ProHost User",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = PureWhite,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            color = if (isProHost) FreshGreen.copy(alpha = 0.22f) else CarnationOrange.copy(alpha = 0.22f),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = if (isProHost) "PRO HOST" else "SPECIALIST",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isProHost) FreshGreen else CarnationOrange,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        text = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = CoolGray.copy(alpha = 0.75f),
+                        maxLines = 1
+                    )
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        Column(modifier = Modifier.padding(horizontal = Spacing.lg)) {
 
         if (isProHost) {
             Text(
@@ -261,6 +306,7 @@ fun SpecialistDrawerContent(
         // Always the last element in the drawer — see DrawerSignOutButton's own doc
         // comment for why it lives here instead of on DrawerIdentityCard.
         DrawerSignOutButton(userEmail = currentUser?.email, onSignOut = onSignOut)
+        } // end inner padding Column
     }
 }
 
@@ -279,41 +325,65 @@ fun AdminDrawerContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(Spacing.lg)
     ) {
-        // Branded drawer header: logo + user name + country market label
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = OxfordBlue
+        // Modern gradient header (Admin variant — amber/orange shield accent)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Brush.verticalGradient(listOf(OxfordBlue, OxfordBlue.copy(blue = 0.55f))))
+                .padding(horizontal = 20.dp, vertical = 22.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(AmberWarning),
+                    contentAlignment = Alignment.Center
                 ) {
-                    ProHostBrandLogo(size = 28.dp)
+                    Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = PureWhite, modifier = Modifier.size(28.dp))
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     Text(
                         text = currentUser?.fullName ?: "System Admin",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = androidx.compose.ui.graphics.Color.White,
+                        color = PureWhite,
                         maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Surface(
+                        color = AmberWarning.copy(alpha = 0.22f),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = "SYSTEM ADMIN",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = AmberWarning,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                    Text(
+                        text = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = CoolGray.copy(alpha = 0.75f),
+                        maxLines = 1
                     )
                 }
-                Text(
-                    text = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = CoolGray.copy(alpha = 0.9f),
-                    maxLines = 1
-                )
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        Column(modifier = Modifier.padding(horizontal = Spacing.lg)) {
 
         Text(
             text = "CENTRAL SECURITY CORES",
@@ -443,6 +513,7 @@ fun AdminDrawerContent(
         // Always the last element in the drawer — see DrawerSignOutButton's own doc
         // comment for why it lives here instead of on DrawerIdentityCard.
         DrawerSignOutButton(userEmail = currentUser?.email, onSignOut = onSignOut)
+        } // end inner padding Column
     }
 }
 

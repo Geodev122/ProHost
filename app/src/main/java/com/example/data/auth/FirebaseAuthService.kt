@@ -97,13 +97,23 @@ class FirebaseAuthService(private val context: Context) {
      * Kicks off Firebase Phone Auth SMS verification for [e164PhoneNumber].
      * Used for: initial signup and forgot-PIN OTP verification.
      * NOT used for returning-user login — that path goes through [signInWithCustomToken].
+     *
+     * PRODUCTION REQUIREMENT: both the debug AND release SHA-1 / SHA-256 fingerprints
+     * must be added to Firebase Console → Project Settings → Android App → SHA certificate
+     * fingerprints. Without the release SHA-256, Firebase rejects SMS for real users while
+     * test-phone-number fast-path bypasses this check (hence "test users work, new users fail").
+     * Run `./gradlew signingReport` to get the fingerprints for every build variant.
+     *
+     * [resendToken] is the token received in [onCodeSent] from a prior call. Passing it
+     * re-uses the rate-limit slot; omit (null) for a first-time send.
      */
     fun sendPhoneVerificationCode(
         activity: Activity,
         e164PhoneNumber: String,
-        onCodeSent: (verificationId: String) -> Unit,
+        onCodeSent: (verificationId: String, resendToken: PhoneAuthProvider.ForceResendingToken?) -> Unit,
         onAutoVerified: (PhoneAuthCredential) -> Unit,
-        onError: (String) -> Unit
+        onError: (String) -> Unit,
+        resendToken: PhoneAuthProvider.ForceResendingToken? = null
     ) {
         val auth = firebaseAuth
         if (auth == null) {
@@ -116,12 +126,12 @@ class FirebaseAuthService(private val context: Context) {
         if (BuildConfig.DEBUG && isTestPhoneNumber(e164PhoneNumber)) {
             Log.d(tag, "DEBUG: Using instant test verification for QA number: ${maskPhone(e164PhoneNumber)}")
             val testVerificationId = "TEST-VERIFY-ID-" + e164PhoneNumber.replace("+", "").replace(" ", "")
-            onCodeSent(testVerificationId)
+            onCodeSent(testVerificationId, null)
             return
         }
 
         Log.d(tag, "Initiating real SMS phone verification for: ${maskPhone(e164PhoneNumber)}")
-        val options = PhoneAuthOptions.newBuilder(auth)
+        val builder = PhoneAuthOptions.newBuilder(auth)
             .setPhoneNumber(e164PhoneNumber)
             .setTimeout(60L, TimeUnit.SECONDS)
             .setActivity(activity)
@@ -132,11 +142,11 @@ class FirebaseAuthService(private val context: Context) {
                 }
 
                 override fun onVerificationFailed(e: FirebaseException) {
-                    Log.e(tag, "Phone verification failed for ${maskPhone(e164PhoneNumber)}: ${e.message}", e)
-                    // No fallback for real users — surface the real error.
+                    Log.e(tag, "Phone verification failed for ${maskPhone(e164PhoneNumber)}: ${e.javaClass.simpleName} — ${e.message}")
                     val message = friendlyVerificationErrorMessage(e)
                     val debugMessage = if (BuildConfig.DEBUG) {
-                        "$message\n\n[debug] ${e::class.simpleName}: ${e.message}"
+                        "$message\n\n[debug] ${e::class.simpleName}: ${e.message}\n" +
+                            "Action needed: add the release SHA-256 fingerprint to Firebase Console → App → SHA certificates."
                     } else {
                         message
                     }
@@ -145,11 +155,13 @@ class FirebaseAuthService(private val context: Context) {
 
                 override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
                     Log.d(tag, "Verification SMS code sent to ${maskPhone(e164PhoneNumber)}, verificationId=$verificationId")
-                    onCodeSent(verificationId)
+                    onCodeSent(verificationId, token)
                 }
             })
-            .build()
-        PhoneAuthProvider.verifyPhoneNumber(options)
+        if (resendToken != null) {
+            builder.setForceResendingToken(resendToken)
+        }
+        PhoneAuthProvider.verifyPhoneNumber(builder.build())
     }
 
     /** Builds the credential from a verification id and the SMS code typed in. */

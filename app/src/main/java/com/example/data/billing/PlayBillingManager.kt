@@ -304,8 +304,26 @@ class PlayBillingManager(
     }
 
     fun openRedeemPromoCode(activity: Activity) {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/redeem"))
-        activity.startActivity(intent)
+        // Use the Play Billing in-app redemption sheet (v4+).
+        // Falls back to the market:// deep-link if the billing client isn't ready.
+        if (billingClient.isReady) {
+            try {
+                val params = com.android.billingclient.api.BillingFlowParams.newBuilder().build()
+                // launchRedeemPromoCode opens the native in-app redemption sheet
+                billingClient.launchRedeemPromoCode(
+                    com.android.billingclient.api.RedeemPromoCodeParams.newBuilder()
+                        .build()
+                )
+                return
+            } catch (_: Exception) { /* fall through to deep-link */ }
+        }
+        // Fallback: market:// opens Play Store redeem page directly without browser redirect
+        val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://redeem"))
+        if (marketIntent.resolveActivity(activity.packageManager) != null) {
+            activity.startActivity(marketIntent)
+        } else {
+            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/redeem")))
+        }
     }
 
     private fun emitMessage(msg: String) {
