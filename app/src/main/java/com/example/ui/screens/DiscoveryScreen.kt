@@ -255,7 +255,7 @@ fun DiscoveryScreenContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopStart)
-                .padding(horizontal = 12.dp, top = 8.dp),
+                .padding(start = 12.dp, end = 12.dp, top = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             SmallFloatingActionButton(
