@@ -216,7 +216,7 @@ fun OwnerAnalyticsScreen(
                     ProSectionHeader(
                         title = "Listings Yield",
                         subtitle = "Accepted bookings this month",
-                        icon = Icons.Default.TrendingUp
+                        icon = Icons.AutoMirrored.Filled.TrendingUp
                     )
 
                     val yieldListings = activeListings.ifEmpty { displayListings }

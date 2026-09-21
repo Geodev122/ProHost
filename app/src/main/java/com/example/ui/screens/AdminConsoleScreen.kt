@@ -3211,7 +3211,7 @@ private fun IdReviewCard(
                 },
                 modifier = Modifier.padding(top = 2.dp)
             ) {
-                Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))
+                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(4.dp))
                 Text("View Document", style = MaterialTheme.typography.labelSmall)
             }

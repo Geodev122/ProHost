@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.data.auth
 
 import android.content.Context

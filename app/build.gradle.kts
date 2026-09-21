@@ -20,8 +20,8 @@ android {
     applicationId = "app.geonajjar.prohost"
     minSdk = 24
     targetSdk = 36
-    versionCode = 11
-    versionName = "1.0.10"
+    versionCode = 12
+    versionName = "1.0.11"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     
@@ -57,6 +57,12 @@ android {
         keyAlias = "androiddebugkey"
         keyPassword = "android"
       }
+    }
+  }
+
+  packaging {
+    jniLibs {
+      keepDebugSymbols.add("**/*.so")
     }
   }
 
@@ -98,7 +104,12 @@ android {
   kotlin {
     compilerOptions {
       jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
-      freeCompilerArgs.add("-Xskip-metadata-version-check")
+      freeCompilerArgs.addAll(
+        "-Xskip-metadata-version-check",
+        "-Xno-call-assertions",
+        "-Xno-param-assertions",
+        "-Xno-receiver-assertions"
+      )
     }
   }
   buildFeatures {

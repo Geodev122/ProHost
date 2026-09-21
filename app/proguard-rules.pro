@@ -85,3 +85,9 @@
 # Google Play Billing — consumer rules may not cover all internal API surface
 -keep class com.android.billingclient.api.** { *; }
 -dontwarn com.android.billingclient.**
+
+# R8 DEX Code & Memory Optimizations
+-optimizationpasses 5
+-allowaccessmodification
+-repackageclasses 'com.example.opt'
+-mergeinterfacesaggressively

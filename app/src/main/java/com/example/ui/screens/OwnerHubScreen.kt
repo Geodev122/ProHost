@@ -123,10 +123,11 @@ fun OwnerHubScreen(
         val currentPending = allBookingRequests
             .filter { it.status == BookingRequestStatus.PENDING && ownedIds.contains(it.spaceId) }
             .map { it.id }.toSet()
-        if (pendingInitialized.value && (currentPending - prevPendingIds.value).isNotEmpty()) {
+        if (pendingInitialized.value && (currentPending - prevPendingIds).isNotEmpty()) {
             playSound(com.example.R.raw.booking_request_in)
         }
-        prevPendingIds.value = currentPending
+        prevPendingIds.clear()
+        prevPendingIds.addAll(currentPending)
         pendingInitialized.value = true
     }
 
