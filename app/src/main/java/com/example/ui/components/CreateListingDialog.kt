@@ -1360,11 +1360,14 @@ private fun FacilityPickerDialog(
         facilities.filter { it.contains(query, ignoreCase = true) }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.75f).padding(16.dp)
+            modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.88f).padding(8.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -1472,11 +1475,14 @@ private fun EquipmentPickerDialog(
         catalog.filter { query.isBlank() || it.name.contains(query, ignoreCase = true) }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f).padding(16.dp)
+            modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.88f).padding(8.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxSize().padding(16.dp),

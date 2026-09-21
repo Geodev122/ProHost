@@ -557,8 +557,6 @@ fun LoginAuthScreen(
                 Spacer(modifier = Modifier.height(10.dp))
                 CountryDropdownField(selectedCountry = regCountry, onCountrySelected = { regCountry = it }, modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(10.dp))
-                InputField(value = regGovernorateArea, onValueChange = { regGovernorateArea = it; localErrorMessage = null }, label = "Governorate / Area", placeholder = "e.g. Mount Lebanon", leadingIcon = Icons.Default.LocationOn, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                Spacer(modifier = Modifier.height(10.dp))
                 InputField(value = regCity, onValueChange = { regCity = it; localErrorMessage = null }, label = "City", placeholder = "e.g. Beirut", leadingIcon = Icons.Default.LocationCity, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 Spacer(modifier = Modifier.height(14.dp))
                 Row(modifier = Modifier.fillMaxWidth().clickable { tosAccepted = !tosAccepted }, verticalAlignment = Alignment.CenterVertically) {
@@ -582,13 +580,12 @@ fun LoginAuthScreen(
                         if (regFullName.isBlank()) { localErrorMessage = "Please enter your full name"; return@ProPrimaryButton }
                         if (regEmail.isBlank() || !regEmail.contains("@")) { localErrorMessage = "Please enter a valid email"; return@ProPrimaryButton }
                         if (!regIdDocState.isSelected) { localErrorMessage = "Please upload your ID document"; return@ProPrimaryButton }
-                        if (regGovernorateArea.isBlank()) { localErrorMessage = "Please enter your governorate / area"; return@ProPrimaryButton }
                         if (regCity.isBlank()) { localErrorMessage = "Please enter your city"; return@ProPrimaryButton }
                         if (!tosAccepted) { localErrorMessage = "Please agree to the Terms of Use and Privacy Policy to continue"; return@ProPrimaryButton }
                         val registration = AuthViewModel.PendingPhoneRegistration(
                             fullName = regFullName, email = regEmail,
-                            phoneE164 = if (isGoogleRegistrationFlow) "" else verifiedPhoneE164,
-                            specialty = regSpecialty, country = regCountry.name, governorate = regGovernorateArea,
+                            phoneE164 = verifiedPhoneE164,
+                            specialty = regSpecialty, country = regCountry.name, governorate = regCity,
                             city = regCity, profilePictureUri = regProfilePicUri, idDocumentUri = regIdDocState.uri,
                             tosAccepted = tosAccepted
                         )

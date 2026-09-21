@@ -168,6 +168,13 @@ export const assignInitialRole = onCall(
       ...(registration && !profileSnap.data()?.tosAcceptedAtMillis
         ? { tosAcceptedAtMillis: now, consentVersion: CURRENT_CONSENT_VERSION }
         : {}),
+      ...(registration?.idDocumentUrl
+        ? {
+            idDocumentUrl: registration.idDocumentUrl,
+            idDocumentVerificationStatus: "PENDING",
+            idDocumentSubmittedAt: now,
+          }
+        : {}),
       updatedAt: now,
     },
     { merge: true }

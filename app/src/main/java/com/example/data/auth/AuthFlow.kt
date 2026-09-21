@@ -73,6 +73,13 @@ suspend fun completeVerifiedRegistration(
         integrityToken = integrityToken
     ).getOrThrow()
     val role = resolveVerifiedRole(functionsClient, firebaseUser, integrityToken)
+    if (!idDocumentUrl.isNullOrBlank()) {
+        try {
+            functionsClient.submitIdDocument(idDocumentUrl)
+        } catch (e: Exception) {
+            android.util.Log.w("AuthFlow", "submitIdDocument note: ${e.message}")
+        }
+    }
     return repository.registerMember(
         uid = firebaseUser.uid,
         fullName = fullName,

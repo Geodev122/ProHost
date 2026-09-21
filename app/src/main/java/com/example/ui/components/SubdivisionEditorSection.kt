@@ -102,6 +102,46 @@ fun SubdivisionEditorSection(
     // Changes" and commit a replacement instead of an append.
     var editingSubdivisionIndex by remember { mutableStateOf<Int?>(null) }
 
+    val isSubFormValid = subName.isNotBlank() && subPricing.hasRealPrice()
+
+    fun resetSubdivisionForm() {
+        editingSubdivisionIndex = null
+        subName = ""
+        subType = Level2Type.ROOMS
+        subAmenitiesSelected = emptySet()
+        subImageUrls = emptyList()
+        subPricing = RentalPricingConfig.default()
+        subScheduleOverrideEnabled = false
+        subOverrideOpeningHour = openingHour
+        subOverrideClosingHour = closingHour
+        subOverrideDays = operatingDays.toSet()
+        subOverrideSundayOperating = false
+        subOverrideBlackouts = emptyList()
+        blackoutDay = operatingDays.firstOrNull() ?: "Mon"
+        blackoutStart = "18:00"
+        blackoutEnd = "22:00"
+        blackoutReason = ""
+        pendingSubId = "SUB-" + UUID.randomUUID().toString().take(6).uppercase()
+    }
+
+    fun buildCurrentSubdivision(): Subdivision = Subdivision(
+        id = pendingSubId,
+        name = subName,
+        type = subType,
+        imageUrls = subImageUrls,
+        amenities = subAmenitiesSelected.toList(),
+        pricing = subPricing,
+        scheduleOverride = if (subScheduleOverrideEnabled) {
+            SpaceOperatingSchedule(
+                openingHour = subOverrideOpeningHour,
+                closingHour = subOverrideClosingHour,
+                operatingDays = subOverrideDays.toList(),
+                isSundayOperating = subOverrideSundayOperating,
+                blackoutSlots = subOverrideBlackouts
+            )
+        } else null
+    )
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris: List<Uri> ->
@@ -255,6 +295,26 @@ fun SubdivisionEditorSection(
                                     }
                                 }
                             }
+                            if (isEditingThis) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Button(
+                                    onClick = {
+                                        val updatedSub = buildCurrentSubdivision()
+                                        onSubdivisionsChange(subdivisionsList.mapIndexed { i, existing ->
+                                            if (i == index) updatedSub else existing
+                                        })
+                                        resetSubdivisionForm()
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    enabled = isSubFormValid,
+                                    shape = MaterialTheme.shapes.small,
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                ) {
+                                    Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.xs))
+                                    Text("Save Subdivision Changes", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                }
+                            }
                         }
                     }
                 }
@@ -288,46 +348,6 @@ fun SubdivisionEditorSection(
                 onDismiss = { showAmenityPicker = false }
             )
         }
-
-        val isSubFormValid = subName.isNotBlank() && subPricing.hasRealPrice()
-
-        fun resetSubdivisionForm() {
-            editingSubdivisionIndex = null
-            subName = ""
-            subType = Level2Type.ROOMS
-            subAmenitiesSelected = emptySet()
-            subImageUrls = emptyList()
-            subPricing = RentalPricingConfig.default()
-            subScheduleOverrideEnabled = false
-            subOverrideOpeningHour = openingHour
-            subOverrideClosingHour = closingHour
-            subOverrideDays = operatingDays.toSet()
-            subOverrideSundayOperating = false
-            subOverrideBlackouts = emptyList()
-            blackoutDay = operatingDays.firstOrNull() ?: "Mon"
-            blackoutStart = "18:00"
-            blackoutEnd = "22:00"
-            blackoutReason = ""
-            pendingSubId = "SUB-" + UUID.randomUUID().toString().take(6).uppercase()
-        }
-
-        fun buildCurrentSubdivision(): Subdivision = Subdivision(
-            id = pendingSubId,
-            name = subName,
-            type = subType,
-            imageUrls = subImageUrls,
-            amenities = subAmenitiesSelected.toList(),
-            pricing = subPricing,
-            scheduleOverride = if (subScheduleOverrideEnabled) {
-                SpaceOperatingSchedule(
-                    openingHour = subOverrideOpeningHour,
-                    closingHour = subOverrideClosingHour,
-                    operatingDays = subOverrideDays.toList(),
-                    isSundayOperating = subOverrideSundayOperating,
-                    blackoutSlots = subOverrideBlackouts
-                )
-            } else null
-        )
 
         // ── Section 1: Identity ─────────────────────────────────────────────
         Surface(
@@ -699,11 +719,14 @@ private fun SearchablePickerDialog(
     var query by remember { mutableStateOf("") }
     val filtered = options.filter { query.isBlank() || it.contains(query, ignoreCase = true) }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(0.92f).fillMaxHeight(0.85f).padding(8.dp)
         ) {
             Column(
                 modifier = Modifier.padding(Spacing.lg),
@@ -733,7 +756,7 @@ private fun SearchablePickerDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
+                LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     items(filtered) { option ->
                         val isSelected = option in selected
                         Row(
