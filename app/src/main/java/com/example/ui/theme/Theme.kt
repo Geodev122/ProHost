@@ -24,7 +24,7 @@ private val LightColorScheme = lightColorScheme(
     onPrimary = PureWhite,
     primaryContainer = OxfordBlueContainer,
     onPrimaryContainer = OxfordBlueDark,
-    inversePrimary = CarnationOrangeLight,
+    inversePrimary = DarkPrimary,
 
     secondary = CarnationOrange,
     onSecondary = PureWhite,
@@ -36,19 +36,19 @@ private val LightColorScheme = lightColorScheme(
     tertiaryContainer = StatusSuccessContainer,
     onTertiaryContainer = StatusOnSuccessContainer,
 
-    background = LightGraySurface,
-    onBackground = CoolGray,
+    background = BackgroundLight,
+    onBackground = CoolGrayDark,
 
-    surface = LightGraySurface,
-    onSurface = CoolGray,
-    surfaceVariant = OxfordBlueContainer,
+    surface = SurfaceLight,
+    onSurface = CoolGrayDark,
+    surfaceVariant = SurfaceVariantLight,
     onSurfaceVariant = ProHostSecondaryText,
     surfaceTint = OxfordBlue,
-    inverseSurface = CoolGrayDark,
-    inverseOnSurface = PureWhite,
+    inverseSurface = DarkSurface,
+    inverseOnSurface = DarkOnSurface,
 
-    outline = LightGrayCardBorder,
-    outlineVariant = LightGray,
+    outline = CardBorderLight,
+    outlineVariant = OutlineVariantLight,
 
     error = CrimsonRed,
     onError = PureWhite,
@@ -62,40 +62,40 @@ private val LightColorScheme = lightColorScheme(
  * Official ProHost Material 3 Dark ColorScheme
  */
 private val DarkColorScheme = darkColorScheme(
-    primary = OxfordBlueLight,
-    onPrimary = PureWhite,
-    primaryContainer = OxfordBlue,
-    onPrimaryContainer = PureWhite,
+    primary = DarkPrimary,
+    onPrimary = CoolGrayDark,
+    primaryContainer = DarkPrimaryContainer,
+    onPrimaryContainer = DarkOnSurface,
     inversePrimary = OxfordBlue,
 
-    secondary = CarnationOrange,
-    onSecondary = PureWhite,
-    secondaryContainer = CarnationOrangeDark,
+    secondary = DarkSecondary,
+    onSecondary = CoolGrayDark,
+    secondaryContainer = DarkSecondaryContainer,
     onSecondaryContainer = CarnationOrangeContainer,
 
     tertiary = FreshGreen,
-    onTertiary = PureWhite,
-    tertiaryContainer = CoolGray,
-    onTertiaryContainer = LightGray,
+    onTertiary = CoolGrayDark,
+    tertiaryContainer = Color(0xFF1A3824),
+    onTertiaryContainer = Color(0xFFA3E8B8),
 
-    background = CoolGrayDark,
-    onBackground = PureWhite,
+    background = DarkBackground,
+    onBackground = DarkOnSurface,
 
-    surface = CoolGray,
-    onSurface = PureWhite,
-    surfaceVariant = OxfordBlue,
-    onSurfaceVariant = LightGray,
-    surfaceTint = OxfordBlueLight,
-    inverseSurface = LightGraySurface,
+    surface = DarkSurface,
+    onSurface = DarkOnSurface,
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = DarkOnSurfaceVariant,
+    surfaceTint = DarkPrimary,
+    inverseSurface = SurfaceLight,
     inverseOnSurface = CoolGrayDark,
 
-    outline = OxfordBlueLight,
-    outlineVariant = OxfordBlue,
+    outline = DarkOutline,
+    outlineVariant = DarkSurfaceVariant,
 
-    error = CrimsonRed,
-    onError = PureWhite,
-    errorContainer = StatusErrorContainer,
-    onErrorContainer = StatusOnErrorContainer,
+    error = Color(0xFFFF897A),
+    onError = Color(0xFF680003),
+    errorContainer = Color(0xFF8C1D18),
+    onErrorContainer = Color(0xFFFFDAD6),
 
     scrim = Color.Black
 )
