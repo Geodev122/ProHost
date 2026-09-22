@@ -1008,6 +1008,7 @@ data class SpaceListing(
             "isActiveSubscription" to isActiveSubscription,
             "isOwnerSuspended" to isOwnerSuspended,
             "isOwnerPackageLapsed" to isOwnerPackageLapsed,
+            "isOwnerIdRejected" to isOwnerIdRejected,
             "subscriptionExpiryMillis" to subscriptionExpiryMillis,
             "imageUrls" to imageUrls,
             "videoTourDurationSec" to videoTourDurationSec,

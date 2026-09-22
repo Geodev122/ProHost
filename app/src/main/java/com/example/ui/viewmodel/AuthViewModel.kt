@@ -519,6 +519,20 @@ class AuthViewModel(
                             val user = com.example.data.auth.completeGoogleSignIn(
                                 repository, functionsClient, firebaseUser, integrityToken
                             )
+                            if (user.fullName.isBlank()) {
+                                // Firebase Auth account exists but registration was never completed
+                                // (user abandoned the first sign-up attempt). Redirect back to
+                                // registration so they can finish — pre-fill from Google profile data.
+                                pendingGoogleProfile = PendingGoogleProfile(
+                                    displayName = result.displayName,
+                                    email = result.email.ifBlank { null },
+                                    photoUrl = result.photoUrl
+                                )
+                                authService.signOut()
+                                _isAuthenticating.value = false
+                                onNeedsRegistration()
+                                return@launch
+                            }
                             _isAuthenticating.value = false
                             registerFcmTokenForCurrentUser(user.id)
                             _authSuccessMessage.value = "Welcome back, ${user.fullName}!"

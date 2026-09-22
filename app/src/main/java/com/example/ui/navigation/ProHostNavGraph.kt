@@ -608,7 +608,7 @@ fun ProHostAppRoot(
                                 when (safeFullScreenDrawerTab) {
                                     AppNavTab.MyFavorites.id -> MyFavoritesScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { detailedSpace = it },
+                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpace = it },
                                         onNavigateToExplore = { navigateTo(AppNavTab.SearchMap.id) }
                                     )
                                     AppNavTab.OwnerRentalRequests.id -> OwnerRentalRequestsScreen(
@@ -645,12 +645,12 @@ fun ProHostAppRoot(
                                 when (safeActiveTabId) {
                                     AppNavTab.SearchMap.id -> DiscoveryScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { detailedSpace = it },
+                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpace = it },
                                         discoveryViewModel = discoveryViewModel
                                     )
                                     AppNavTab.ManageListings.id -> OwnerHubScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { detailedSpace = it },
+                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpace = it },
                                         onManageSpace = { managingSpace = it },
                                         onOpenSubscriptions = { navigateTo(AppNavTab.OwnerSubscriptions.id) }
                                     )
@@ -661,7 +661,7 @@ fun ProHostAppRoot(
                                     AppNavTab.ProfessionalRentals.id -> MyBookingsScreen(
                                         viewModel = viewModel,
                                         onNavigateToDiscovery = { activeTabId = AppNavTab.SearchMap.id },
-                                        onSelectSpace = { detailedSpace = it }
+                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpace = it }
                                     )
                                     AppNavTab.ProfessionalProfile.id -> SpecialistProfileScreen(
                                         viewModel = viewModel,
@@ -670,7 +670,7 @@ fun ProHostAppRoot(
                                     )
                                     else -> DiscoveryScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { detailedSpace = it },
+                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpace = it },
                                         discoveryViewModel = discoveryViewModel
                                     )
                                 }
