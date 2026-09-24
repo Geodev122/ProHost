@@ -351,7 +351,7 @@ fun ProHostAppRoot(
 
         ModalNavigationDrawer(
             drawerState = drawerState,
-            gesturesEnabled = detailedSpace == null,
+            gesturesEnabled = false, // Edge-swipe gestures disabled; user opens drawer manually via header 3-dots icon
             scrimColor = Color.Black.copy(alpha = 0.35f),
             drawerContent = {
                 ModalDrawerSheet(

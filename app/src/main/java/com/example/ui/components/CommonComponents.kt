@@ -1631,7 +1631,7 @@ fun ProHostTopAppBar(
                     modifier = Modifier.testTag("hamburger_menu_button")
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Menu,
+                        imageVector = Icons.Default.MoreVert,
                         contentDescription = "Open Side Navigation Drawer",
                         tint = MaterialTheme.colorScheme.onSurface
                     )
