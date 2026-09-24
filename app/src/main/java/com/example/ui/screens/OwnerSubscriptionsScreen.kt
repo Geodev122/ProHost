@@ -150,17 +150,17 @@ fun OwnerSubscriptionsScreen(
                             Text(
                                 "Activating your subscription — this usually takes a few seconds.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = OxfordBlue
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                         IconButton(onClick = { viewModel.dismissBillingActivationPending() }, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = CoolGray, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                         }
                     }
                     Text(
                         "Taking too long? Contact support via WhatsApp.",
                         style = MaterialTheme.typography.labelSmall,
-                        color = CoolGray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -429,7 +429,7 @@ fun OwnerSubscriptionsScreen(
                 text = "CHOOSE YOUR PLAN",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = CoolGray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (pricesLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = CarnationOrange)
@@ -440,7 +440,7 @@ fun OwnerSubscriptionsScreen(
             Text(
                 "No packages available right now — check back soon.",
                 style = MaterialTheme.typography.bodySmall,
-                color = CoolGray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 4.dp)
             )
         } else {

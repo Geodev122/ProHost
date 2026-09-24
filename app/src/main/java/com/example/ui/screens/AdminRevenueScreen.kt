@@ -116,12 +116,12 @@ fun AdminRevenueScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text(text = "Total Settlement Volume", style = MaterialTheme.typography.bodySmall, color = CoolGray)
+                    Text(text = "Total Settlement Volume", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(text = "$${String.format(Locale.US, "%.2f", settledVolume)}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = FreshGreen)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(text = "Verified Transactions", style = MaterialTheme.typography.bodySmall, color = CoolGray)
-                    Text(text = "${filteredTransactions.size} Records", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = OxfordBlue)
+                    Text(text = "Verified Transactions", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = "${filteredTransactions.size} Records", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
@@ -158,7 +158,7 @@ fun AdminRevenueScreen(
             text = "TRANSACTION VERIFICATION AUDIT TRAIL",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
-            color = CoolGray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 4.dp, top = 4.dp)
         )
 
@@ -169,7 +169,7 @@ fun AdminRevenueScreen(
                     .padding(40.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No transactions found matching criteria.", color = CoolGray)
+                Text("No transactions found matching criteria.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             filteredTransactions.forEach { tx ->
@@ -201,7 +201,7 @@ fun TransactionCard(tx: WhishTransaction) {
                     text = tx.id,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = OxfordBlue
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Surface(
                     color = if (tx.status.name == "SUCCESS") FreshGreen.copy(alpha = 0.15f) else AmberWarning.copy(alpha = 0.15f),
@@ -221,7 +221,7 @@ fun TransactionCard(tx: WhishTransaction) {
                 text = tx.spaceTitle,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = OxfordBlue
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Row(
@@ -229,11 +229,11 @@ fun TransactionCard(tx: WhishTransaction) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text(text = "Package ID:", style = MaterialTheme.typography.bodySmall, color = CoolGray)
+                    Text(text = "Package ID:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(text = tx.spaceId, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(text = "Amount:", style = MaterialTheme.typography.bodySmall, color = CoolGray)
+                    Text(text = "Amount:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(text = "$${String.format(Locale.US, "%.2f", tx.amountUsd)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = CarnationOrange)
                 }
             }
@@ -245,12 +245,12 @@ fun TransactionCard(tx: WhishTransaction) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text(text = "Payer / Phone:", style = MaterialTheme.typography.bodySmall, color = CoolGray)
+                    Text(text = "Payer / Phone:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(text = "${tx.payerName} (${tx.payerPhone})", style = MaterialTheme.typography.bodySmall)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(text = "Date Bought / Expiry:", style = MaterialTheme.typography.bodySmall, color = CoolGray)
-                    Text(text = "$dateStr → $expiryStr", style = MaterialTheme.typography.bodySmall, color = CoolGray)
+                    Text(text = "Date Bought / Expiry:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = "$dateStr → $expiryStr", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
