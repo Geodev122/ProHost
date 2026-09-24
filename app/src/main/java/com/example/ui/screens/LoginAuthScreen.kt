@@ -58,9 +58,7 @@ import kotlinx.coroutines.launch
 private enum class AuthStep {
     PHONE_ENTRY,
     OTP_ENTRY,
-    PIN_ENTRY,
-    REGISTRATION_FORM,
-    SET_PIN
+    REGISTRATION_FORM
 }
 
 private const val OTP_RESEND_COOLDOWN_SECONDS = 30
@@ -137,6 +135,8 @@ fun LoginAuthScreen(
     // These must be declared before googleSignInLauncher because the launcher lambda captures them.
     var regFullName by rememberSaveable { mutableStateOf("") }
     var regEmail by rememberSaveable { mutableStateOf("") }
+    var regPassword by rememberSaveable { mutableStateOf("") }
+    var regRepeatPassword by rememberSaveable { mutableStateOf("") }
     var localErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
@@ -195,26 +195,7 @@ fun LoginAuthScreen(
                 step = AuthStep.OTP_ENTRY
             },
             onVerified = { needsRegistration ->
-                if (needsRegistration) step = AuthStep.REGISTRATION_FORM else step = AuthStep.SET_PIN
-            }
-        )
-    }
-
-    fun startOtpForPinReset() {
-        val currentActivity = activity ?: run { localErrorMessage = "Unable to start verification right now."; return }
-        isForgotPinReset = true
-        authViewModel.startPhoneVerification(
-            activity = currentActivity,
-            e164Phone = verifiedPhoneE164,
-            purpose = AuthViewModel.OtpPurpose.PIN_RESET,
-            onCodeSent = {
-                otpCode = ""
-                clearErrors()
-                resendCountdownSeconds = OTP_RESEND_COOLDOWN_SECONDS
-                step = AuthStep.OTP_ENTRY
-            },
-            onVerified = {
-                step = AuthStep.SET_PIN
+                if (needsRegistration) step = AuthStep.REGISTRATION_FORM else onLoginSuccess()
             }
         )
     }
@@ -298,21 +279,7 @@ fun LoginAuthScreen(
                             return@ProPrimaryButton
                         }
                         clearErrors()
-                        authViewModel.checkPhoneRegistered(
-                            e164Phone = verifiedPhoneE164,
-                            onHasPinSet = {
-                                pinCode = ""
-                                step = AuthStep.PIN_ENTRY
-                            },
-                            onNeedsPinSetup = {
-                                // Existing account, no PIN yet — send OTP then go to SET_PIN
-                                startOtpForSignup()
-                            },
-                            onNewUser = {
-                                // New account — OTP → registration form → SET_PIN
-                                startOtpForSignup()
-                            }
-                        )
+                        startOtpForSignup()
                     },
                     enabled = !isAuthenticating,
                     icon = Icons.AutoMirrored.Filled.ArrowForward,
@@ -351,10 +318,10 @@ fun LoginAuthScreen(
                     border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Icon(
-                        painter = painterResource(id = com.example.R.drawable.ic_google),
+                        imageVector = Icons.Default.AccountCircle,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
-                        tint = Color.Unspecified
+                        tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
@@ -362,71 +329,6 @@ fun LoginAuthScreen(
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold
                     )
-                }
-            }
-
-            // ------------------------------------------------------------------
-            // STEP: PIN entry — returning users
-            // ------------------------------------------------------------------
-            AuthStep.PIN_ENTRY -> ModernCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, contentPadding = PaddingValues(20.dp), elevation = 3.dp) {
-                AuthStepHeader(
-                    icon = Icons.Default.Lock,
-                    title = "Enter Your PIN",
-                    subtitle = "Enter your 6-digit PIN to sign in as ${phoneCountry.dialCode} $phoneNumber",
-                    isBusy = isAuthenticating
-                )
-                Spacer(modifier = Modifier.height(Spacing.lg))
-                OutlinedTextField(
-                    value = pinCode,
-                    onValueChange = { pinCode = it.filter { c -> c.isDigit() }.take(6); localErrorMessage = null },
-                    label = { Text("6-Digit PIN") },
-                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                    trailingIcon = {
-                        IconButton(onClick = { pinVisible = !pinVisible }) {
-                            Icon(if (pinVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = if (pinVisible) "Hide PIN" else "Show PIN")
-                        }
-                    },
-                    visualTransformation = if (pinVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().testTag("pin_input")
-                )
-                Spacer(modifier = Modifier.height(Spacing.lg))
-                ProPrimaryButton(
-                    text = if (isAuthenticating) "Signing in..." else "Sign In",
-                    onClick = {
-                        val currentActivity = activity
-                        if (currentActivity == null) { localErrorMessage = "Unable to sign in right now."; return@ProPrimaryButton }
-                        if (pinCode.length < 6) { localErrorMessage = "Please enter your 6-digit PIN"; return@ProPrimaryButton }
-                        clearErrors()
-                        authViewModel.verifyPinAndLogin(
-                            activity = currentActivity,
-                            e164Phone = verifiedPhoneE164,
-                            pin = pinCode,
-                            onVerified = onLoginSuccess
-                        )
-                    },
-                    enabled = !isAuthenticating,
-                    icon = Icons.Default.CheckCircle,
-                    modifier = Modifier.fillMaxWidth().testTag("submit_pin_button")
-                )
-                Spacer(modifier = Modifier.height(Spacing.sm))
-                TextButton(
-                    onClick = { clearErrors(); startOtpForPinReset() },
-                    enabled = !isAuthenticating,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.LockReset, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Forgot PIN? Verify via SMS to reset", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                }
-                TextButton(
-                    onClick = { step = AuthStep.PHONE_ENTRY; pinCode = ""; clearErrors() },
-                    enabled = !isAuthenticating
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Change phone number", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -464,16 +366,10 @@ fun LoginAuthScreen(
                         val currentActivity = activity ?: run { localErrorMessage = "Unable to verify right now."; return@ProPrimaryButton }
                         if (otpCode.length < 6) { localErrorMessage = "Please enter the 6-digit code"; return@ProPrimaryButton }
                         authViewModel.submitPhoneVerificationCode(currentActivity, otpCode) { needsRegistration ->
-                            if (isForgotPinReset) {
-                                // PIN reset — skip registration form
-                                newPin = ""; confirmPin = ""
-                                step = AuthStep.SET_PIN
-                            } else if (needsRegistration) {
+                            if (needsRegistration) {
                                 step = AuthStep.REGISTRATION_FORM
                             } else {
-                                // Existing account with no PIN (migration) — go set PIN
-                                newPin = ""; confirmPin = ""
-                                step = AuthStep.SET_PIN
+                                onLoginSuccess()
                             }
                         }
                     },
@@ -502,8 +398,8 @@ fun LoginAuthScreen(
                                 purpose = purpose,
                                 onCodeSent = { otpCode = ""; resendCountdownSeconds = OTP_RESEND_COOLDOWN_SECONDS },
                                 onVerified = { needsRegistration ->
-                                    if (isForgotPinReset || !needsRegistration) step = AuthStep.SET_PIN
-                                    else step = AuthStep.REGISTRATION_FORM
+                                    if (needsRegistration) step = AuthStep.REGISTRATION_FORM
+                                    else onLoginSuccess()
                                 }
                             )
                         },
@@ -515,7 +411,7 @@ fun LoginAuthScreen(
                 }
                 TextButton(onClick = {
                     isForgotPinReset = false
-                    step = if (authViewModel.pendingOtpPurpose == AuthViewModel.OtpPurpose.PIN_RESET) AuthStep.PIN_ENTRY else AuthStep.PHONE_ENTRY
+                    step = AuthStep.PHONE_ENTRY
                     otpCode = ""
                     clearErrors()
                 }) {
@@ -551,6 +447,32 @@ fun LoginAuthScreen(
                 Spacer(modifier = Modifier.height(10.dp))
                 InputField(value = regEmail, onValueChange = { regEmail = it; localErrorMessage = null }, label = "Email", placeholder = "specialist@organization.lb", leadingIcon = Icons.Default.Email, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), singleLine = true)
                 Spacer(modifier = Modifier.height(10.dp))
+                InputField(
+                    value = regPassword,
+                    onValueChange = { regPassword = it; localErrorMessage = null },
+                    label = "Password (Optional)",
+                    placeholder = "Choose a secure password",
+                    leadingIcon = Icons.Default.Lock,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                if (regPassword.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    InputField(
+                        value = regRepeatPassword,
+                        onValueChange = { regRepeatPassword = it; localErrorMessage = null },
+                        label = "Repeat Password",
+                        placeholder = "Re-enter your password",
+                        leadingIcon = Icons.Default.LockReset,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
                 InputField(value = regSpecialty, onValueChange = { regSpecialty = it; localErrorMessage = null }, label = "Profession / Job Title (Optional)", placeholder = "e.g. Dermatologist, Architect, Coworking Manager", leadingIcon = Icons.Default.Badge, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 Spacer(modifier = Modifier.height(10.dp))
                 DocumentPickerField(label = "ID Document (National ID / Passport)", helperText = "Kept on file to verify your identity — PDF, JPG, or PNG", state = regIdDocState, onStateChanged = { regIdDocState = it }, modifier = Modifier.fillMaxWidth(), required = true)
@@ -574,11 +496,12 @@ fun LoginAuthScreen(
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 ProPrimaryButton(
-                    text = if (isAuthenticating) "Creating Account..." else "Create Account & Set PIN",
+                    text = if (isAuthenticating) "Creating Account..." else "Create Account",
                     onClick = {
                         val currentActivity = activity ?: run { localErrorMessage = "Unable to create your account right now."; return@ProPrimaryButton }
                         if (regFullName.isBlank()) { localErrorMessage = "Please enter your full name"; return@ProPrimaryButton }
                         if (regEmail.isBlank() || !regEmail.contains("@")) { localErrorMessage = "Please enter a valid email"; return@ProPrimaryButton }
+                        if (regPassword.isNotEmpty() && regPassword != regRepeatPassword) { localErrorMessage = "Passwords do not match"; return@ProPrimaryButton }
                         if (!regIdDocState.isSelected) { localErrorMessage = "Please upload your ID document"; return@ProPrimaryButton }
                         if (regCity.isBlank()) { localErrorMessage = "Please enter your city"; return@ProPrimaryButton }
                         if (!tosAccepted) { localErrorMessage = "Please agree to the Terms of Use and Privacy Policy to continue"; return@ProPrimaryButton }
@@ -593,13 +516,13 @@ fun LoginAuthScreen(
                             authViewModel.completeGoogleRegistration(
                                 activity = currentActivity,
                                 registration = registration,
-                                onSuccess = { newPin = ""; confirmPin = ""; step = AuthStep.SET_PIN }
+                                onSuccess = onLoginSuccess
                             )
                         } else {
                             authViewModel.completePendingRegistration(
                                 activity = currentActivity,
                                 registration = registration,
-                                onSuccess = { newPin = ""; confirmPin = ""; step = AuthStep.SET_PIN }
+                                onSuccess = onLoginSuccess
                             )
                         }
                     },
@@ -625,84 +548,9 @@ fun LoginAuthScreen(
                     Text(
                         if (isGoogleRegistrationFlow) "Cancel Google sign-up" else "Start over with a different number",
                         style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Bold
                     )
                 }
-            }
-
-            // ------------------------------------------------------------------
-            // STEP: Set PIN (after signup or after forgot-PIN OTP)
-            // ------------------------------------------------------------------
-            AuthStep.SET_PIN -> ModernCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, contentPadding = PaddingValues(20.dp), elevation = 3.dp) {
-                AuthStepHeader(
-                    icon = Icons.Default.LockReset,
-                    title = if (isForgotPinReset) "Set New PIN" else "Create Your PIN",
-                    subtitle = "Choose a 6-digit PIN you'll use to log in on this and future sessions",
-                    isBusy = isAuthenticating
-                )
-                Spacer(modifier = Modifier.height(Spacing.lg))
-
-                OutlinedTextField(
-                    value = newPin,
-                    onValueChange = { newPin = it.filter { c -> c.isDigit() }.take(6); localErrorMessage = null },
-                    label = { Text("6-Digit PIN") },
-                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                    trailingIcon = {
-                        IconButton(onClick = { newPinVisible = !newPinVisible }) {
-                            Icon(if (newPinVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
-                        }
-                    },
-                    visualTransformation = if (newPinVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                OutlinedTextField(
-                    value = confirmPin,
-                    onValueChange = { confirmPin = it.filter { c -> c.isDigit() }.take(6); localErrorMessage = null },
-                    label = { Text("Confirm PIN") },
-                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                    singleLine = true,
-                    isError = confirmPin.length == 6 && confirmPin != newPin,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                if (confirmPin.length == 6 && confirmPin != newPin) {
-                    Text("PINs do not match", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(start = 16.dp, top = 4.dp))
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
-                    Row(modifier = Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Do not use a sequence like 123456 or a date. Pick something only you know.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.lg))
-
-                ProPrimaryButton(
-                    text = if (isAuthenticating) "Saving PIN..." else if (isForgotPinReset) "Set New PIN" else "Save PIN & Continue",
-                    onClick = {
-                        if (newPin.length < 6) { localErrorMessage = "Please enter a 6-digit PIN"; return@ProPrimaryButton }
-                        if (confirmPin != newPin) { localErrorMessage = "PINs do not match — please re-enter"; return@ProPrimaryButton }
-                        clearErrors()
-                        authViewModel.setPin(newPin) {
-                            isForgotPinReset = false
-                            onLoginSuccess()
-                        }
-                    },
-                    enabled = !isAuthenticating && newPin.length == 6 && confirmPin.length == 6,
-                    icon = Icons.Default.CheckCircle,
-                    modifier = Modifier.fillMaxWidth().testTag("submit_set_pin_button")
-                )
             }
         }
 
@@ -713,10 +561,7 @@ fun LoginAuthScreen(
                 Icon(imageVector = Icons.Default.Security, contentDescription = null, tint = LebaneseCedarGreen, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = if (step == AuthStep.PIN_ENTRY)
-                        "Your 6-digit PIN protects your account. Never share it with anyone."
-                    else
-                        "Your phone number is your account — verified via one-time SMS.",
+                    text = "Your identity is verified via one-time SMS or Google OAuth.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -761,39 +606,21 @@ private fun AuthStepHeader(
 
 @Composable
 private fun AuthStepIndicator(step: AuthStep, isForgotPinReset: Boolean = false) {
-    // Show only the steps relevant to the current auth mode inferred from position.
-    // Login: Phone → PIN → Done
-    // Signup: Phone → Verify → Profile → PIN
-    // Forgot PIN: Phone → Verify → Set PIN
     val (steps, currentIndex) = when (step) {
         AuthStep.PHONE_ENTRY -> listOf(
             Triple(AuthStep.PHONE_ENTRY, "Phone", Icons.Default.Phone),
-            Triple(AuthStep.PIN_ENTRY, "PIN", Icons.Default.Lock),
-            Triple(AuthStep.SET_PIN, "Done", Icons.Default.CheckCircle)
+            Triple(AuthStep.OTP_ENTRY, "Verify", Icons.Default.Sms),
+            Triple(AuthStep.REGISTRATION_FORM, "Profile", Icons.Default.Person)
         ) to 0
-        AuthStep.PIN_ENTRY -> listOf(
-            Triple(AuthStep.PHONE_ENTRY, "Phone", Icons.Default.Phone),
-            Triple(AuthStep.PIN_ENTRY, "PIN", Icons.Default.Lock),
-            Triple(AuthStep.SET_PIN, "Done", Icons.Default.CheckCircle)
-        ) to 1
         AuthStep.OTP_ENTRY -> listOf(
             Triple(AuthStep.PHONE_ENTRY, "Phone", Icons.Default.Phone),
             Triple(AuthStep.OTP_ENTRY, "Verify", Icons.Default.Sms),
-            Triple(AuthStep.SET_PIN, "PIN", Icons.Default.Lock)
+            Triple(AuthStep.REGISTRATION_FORM, "Profile", Icons.Default.Person)
         ) to 1
         AuthStep.REGISTRATION_FORM -> listOf(
-            Triple(AuthStep.OTP_ENTRY, "Verify", Icons.Default.Sms),
-            Triple(AuthStep.REGISTRATION_FORM, "Profile", Icons.Default.Person),
-            Triple(AuthStep.SET_PIN, "PIN", Icons.Default.Lock)
-        ) to 1
-        AuthStep.SET_PIN -> if (isForgotPinReset) listOf(
             Triple(AuthStep.PHONE_ENTRY, "Phone", Icons.Default.Phone),
             Triple(AuthStep.OTP_ENTRY, "Verify", Icons.Default.Sms),
-            Triple(AuthStep.SET_PIN, "Set PIN", Icons.Default.Lock)
-        ) to 2 else listOf(
-            Triple(AuthStep.OTP_ENTRY, "Verify", Icons.Default.Sms),
-            Triple(AuthStep.REGISTRATION_FORM, "Profile", Icons.Default.Person),
-            Triple(AuthStep.SET_PIN, "Set PIN", Icons.Default.Lock)
+            Triple(AuthStep.REGISTRATION_FORM, "Profile", Icons.Default.Person)
         ) to 2
     }
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {

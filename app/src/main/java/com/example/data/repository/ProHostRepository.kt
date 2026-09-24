@@ -32,8 +32,6 @@ class ProHostRepository {
             "role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
             "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount",
             "tosAcceptedAtMillis", "consentVersion",
-            // PIN auth fields (pinAuth Cloud Function)
-            "pinHash", "pinSalt", "pinSetAtMillis", "pinFailedAttempts", "pinLockedUntilMillis",
             // KYC / identity verification fields
             "kycLevel", "emailVerified", "emailVerifiedAt",
             "idDocumentUrl", "idDocumentVerificationStatus", "idDocumentSubmittedAt", "idDocumentReviewedAt"

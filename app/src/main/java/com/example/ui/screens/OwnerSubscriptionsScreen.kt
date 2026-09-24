@@ -53,6 +53,8 @@ fun OwnerSubscriptionsScreen(
         null
     }
     val haptic = LocalHapticFeedback.current
+    var showKycDialog by remember { mutableStateOf(false) }
+    var pendingProductId by remember { mutableStateOf<String?>(null) }
     val currentUser by viewModel.currentUser.collectAsState()
     val packagePlans by viewModel.packagePlans.collectAsState()
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
@@ -358,7 +360,10 @@ fun OwnerSubscriptionsScreen(
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             upsellPlan?.let { plan ->
                                 val productId = plan.googlePlayProductId.ifBlank { plan.id }
-                                if (activity != null) {
+                                if (currentUser != null && !currentUser!!.isKycComplete) {
+                                    pendingProductId = productId
+                                    showKycDialog = true
+                                } else if (activity != null) {
                                     viewModel.launchGooglePaySubscription(activity, productId)
                                 } else {
                                     Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
@@ -491,6 +496,21 @@ fun OwnerSubscriptionsScreen(
         }
 
         Spacer(modifier = Modifier.height(Spacing.sm))
+    }
+
+    if (showKycDialog && currentUser != null) {
+        com.example.ui.components.KycVerificationDialog(
+            user = currentUser!!,
+            onDismiss = { showKycDialog = false },
+            onKycCompleted = {
+                showKycDialog = false
+                pendingProductId?.let { pid ->
+                    if (activity != null) {
+                        viewModel.launchGooglePaySubscription(activity, pid)
+                    }
+                }
+            }
+        )
     }
 }
 

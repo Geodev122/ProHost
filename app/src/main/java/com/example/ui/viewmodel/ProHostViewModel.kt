@@ -129,15 +129,6 @@ class ProHostViewModel(
                     if (user.role != UserRole.ADMIN && user.phone.isBlank()) {
                         repository.discardIncompleteSession()
                         _pendingRegistrationPhone.value = firebaseUser.phoneNumber
-                    } else if (user.role != UserRole.ADMIN && user.phone.isNotBlank()) {
-                        // Check if this account pre-dates PIN enforcement — if so, gate
-                        // the app behind PIN creation before letting them in.
-                        val pinCheck = runCatching {
-                            functionsClient.checkPhoneRegistered(user.phone).getOrNull()
-                        }.getOrNull()
-                        if (pinCheck != null && !pinCheck.hasPinSet) {
-                            _requiresPinSetup.value = true
-                        }
                     }
                 } catch (e: com.example.data.auth.AccountSuspendedException) {
                     // Same handling the explicit sign-in flow uses for this exception — the

@@ -327,24 +327,17 @@ fun ProHostAppRoot(
         )
     } else {
         val pinReauthRequired by viewModel.pinReauthRequired.collectAsState()
-        val requiresPinSetup by viewModel.requiresPinSetup.collectAsState()
         val discoveryViewModel: DiscoveryViewModel = viewModel()
         val isMapViewActive by discoveryViewModel.isMapViewActive.collectAsState()
         val currentRole = currentUser?.role ?: UserRole.SPECIALIST
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         val scope = rememberCoroutineScope()
 
-        // PIN re-auth overlay — shown when the app returns from background after >60s (H1).
+        // Session re-auth overlay — shown when the app returns from background after >60s.
         if (pinReauthRequired) {
             PinReauthOverlay(
                 viewModel = viewModel,
                 onAuthenticated = { viewModel.clearPinReauth() },
-                onSignOut = { viewModel.logout() }
-            )
-        } else if (requiresPinSetup) {
-            PinSetupOverlay(
-                viewModel = viewModel,
-                onComplete = { viewModel.clearRequiresPinSetup() },
                 onSignOut = { viewModel.logout() }
             )
         } else {
@@ -720,13 +713,6 @@ private fun PinReauthOverlay(
     onAuthenticated: () -> Unit,
     onSignOut: () -> Unit
 ) {
-    val authViewModel: com.example.ui.viewmodel.AuthViewModel = viewModel()
-    var pin by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf<String?>(null) }
-    var isVerifying by remember { mutableStateOf(false) }
-    // Brute-force lockout detected when server returns resource-exhausted (H2/A1)
-    var isLockedOut by remember { mutableStateOf(false) }
-
     Scaffold { padding ->
         Column(
             modifier = Modifier
@@ -740,129 +726,14 @@ private fun PinReauthOverlay(
             Spacer(modifier = Modifier.height(16.dp))
             Text("Session Locked", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            Text("The app was in the background. Enter your PIN to continue.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+            Text("The app was in the background. Tap Unlock Session to continue.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(24.dp))
-            OutlinedTextField(
-                value = pin,
-                onValueChange = { if (!isLockedOut && it.length <= 6 && it.all { c -> c.isDigit() }) pin = it },
-                label = { Text("PIN") },
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                isError = error != null,
-                enabled = !isLockedOut,
-                supportingText = error?.let { msg -> { Text(msg, color = MaterialTheme.colorScheme.error) } },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(16.dp))
             Button(
-                onClick = {
-                    isVerifying = true
-                    error = null
-                    authViewModel.verifyPinForReauth(pin) { success, message ->
-                        isVerifying = false
-                        if (success) {
-                            onAuthenticated()
-                        } else {
-                            val msg = message ?: "Incorrect PIN"
-                            isLockedOut = msg.contains("Too many", ignoreCase = true) ||
-                                msg.contains("locked", ignoreCase = true)
-                            error = msg
-                        }
-                    }
-                },
-                enabled = pin.length >= 4 && !isVerifying && !isLockedOut,
+                onClick = onAuthenticated,
                 modifier = Modifier.fillMaxWidth()
-            ) { Text(if (isVerifying) "Verifying..." else "Unlock") }
+            ) { Text("Unlock Session") }
             Spacer(modifier = Modifier.height(8.dp))
             TextButton(onClick = onSignOut) { Text("Sign Out") }
-        }
-    }
-}
-
-/**
- * Prompts existing users (who registered before PIN was required) to set a PIN
- * on their first login after the PIN feature went live. Called when session restore
- * detects hasPinSet == false for a registered, non-admin user.
- */
-@Composable
-private fun PinSetupOverlay(
-    viewModel: ProHostViewModel,
-    onComplete: () -> Unit,
-    onSignOut: () -> Unit
-) {
-    val authViewModel: com.example.ui.viewmodel.AuthViewModel = viewModel()
-    val authError by authViewModel.authErrorMessage.collectAsState()
-    var newPin by remember { mutableStateOf("") }
-    var confirmPin by remember { mutableStateOf("") }
-    var localError by remember { mutableStateOf<String?>(null) }
-    val error = localError ?: authError
-    var isSaving by remember { mutableStateOf(false) }
-
-    Scaffold { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Set Your Security PIN", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                "ProHost now protects your account with a PIN. Please create a 4–6 digit PIN to continue.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            OutlinedTextField(
-                value = newPin,
-                onValueChange = { if (it.length <= 6 && it.all { c -> c.isDigit() }) newPin = it },
-                label = { Text("New PIN") },
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
-                value = confirmPin,
-                onValueChange = { if (it.length <= 6 && it.all { c -> c.isDigit() }) confirmPin = it },
-                label = { Text("Confirm PIN") },
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                isError = error != null,
-                supportingText = error?.let { msg -> { Text(msg, color = MaterialTheme.colorScheme.error) } },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = {
-                    if (newPin != confirmPin) {
-                        localError = "PINs do not match"
-                        return@Button
-                    }
-                    if (newPin.length < 4) {
-                        localError = "PIN must be at least 4 digits"
-                        return@Button
-                    }
-                    localError = null
-                    isSaving = true
-                    authViewModel.setPin(newPin) {
-                        isSaving = false
-                        onComplete()
-                    }
-                },
-                enabled = newPin.length >= 4 && confirmPin.length >= 4 && !isSaving,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(if (isSaving) "Saving..." else "Set PIN") }
-            Spacer(modifier = Modifier.height(8.dp))
-            TextButton(onClick = onSignOut) { Text("Sign Out Instead") }
         }
     }
 }

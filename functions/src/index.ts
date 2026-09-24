@@ -38,7 +38,6 @@ export { onUserFavoritesChanged } from "./users/favoritesSync";
 
 export { expirePackages } from "./packages/expirePackages";
 
-export { checkPhoneRegistered, verifyPinAndIssueToken, setUserPin } from "./auth/pinAuth";
 export { resendEmailVerification, verifyEmailLink } from "./auth/emailVerification";
 export { playBillingRtdn } from "./billing/playBillingRtdn";
 export { recomputeKycLevel } from "./users/kycLevel";

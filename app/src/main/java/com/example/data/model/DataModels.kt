@@ -1479,6 +1479,8 @@ data class AppUser(
     val emailVerified: Boolean = false,
     val idDocumentVerificationStatus: String? = null  // null | PENDING_REVIEW | APPROVED | REJECTED
 ) {
+    val isKycComplete: Boolean
+        get() = isVerified && emailVerified && !idDocumentUrl.isNullOrBlank() && country.isNotBlank() && city.isNotBlank()
     // Full map — only for admin/server-side contexts (e.g. bootstrapping a new profile
     // from an admin console write). NEVER use for client-initiated profile updates;
     // firestore.rules blocks writes to protected fields (role, isVerified, ownerPackageId,
