@@ -154,7 +154,7 @@ fun LoginAuthScreen(
                     regFullName = profile?.displayName ?: ""
                     regEmail = profile?.email ?: ""
                     isGoogleRegistrationFlow = true
-                    step = AuthStep.PHONE_ENTRY
+                    step = AuthStep.REGISTRATION_FORM
                 },
                 onError = { msg -> localErrorMessage = msg }
             )

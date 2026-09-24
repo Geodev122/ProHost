@@ -5,6 +5,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -14,24 +15,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.text.style.TextOverflow
-import com.example.ui.components.ProHostCedarBadge
-import com.example.ui.components.ProHostBrandLogo
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AppUser
 import com.example.data.model.UserRole
+import com.example.ui.components.ProHostBrandLogo
+import com.example.ui.components.ProHostCedarBadge
 import com.example.ui.theme.*
 
 // Published as ProHost's real support/data-privacy contact on the public
@@ -116,62 +114,79 @@ fun SpecialistDrawerContent(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Avatar circle with initials
-                val initials = (currentUser?.fullName ?: "")
-                    .split(" ").take(2)
-                    .joinToString("") { it.firstOrNull()?.uppercaseChar()?.toString() ?: "" }
-                    .ifBlank { "P" }
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(CarnationOrange),
-                    contentAlignment = Alignment.Center
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = initials,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Black,
-                        color = PureWhite
-                    )
-                }
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = currentUser?.fullName ?: "ProHost User",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = PureWhite,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    // Avatar circle with initials
+                    val initials = (currentUser?.fullName ?: "")
+                        .split(" ").take(2)
+                        .joinToString("") { it.firstOrNull()?.uppercaseChar()?.toString() ?: "" }
+                        .ifBlank { "P" }
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(CarnationOrange),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Surface(
-                            color = if (isProHost) FreshGreen.copy(alpha = 0.22f) else CarnationOrange.copy(alpha = 0.22f),
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Text(
-                                text = if (isProHost) "PRO HOST" else "SPECIALIST",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isProHost) FreshGreen else CarnationOrange,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
+                        Text(
+                            text = initials,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            color = PureWhite
+                        )
                     }
-                    Text(
-                        text = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = CoolGray.copy(alpha = 0.75f),
-                        maxLines = 1
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = currentUser?.fullName ?: "ProHost User",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = PureWhite,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                color = if (isProHost) FreshGreen.copy(alpha = 0.22f) else CarnationOrange.copy(alpha = 0.22f),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = if (isProHost) "PRO HOST" else "SPECIALIST",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isProHost) FreshGreen else CarnationOrange,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = PureWhite.copy(alpha = 0.85f),
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                IconButton(
+                    onClick = { onDrawerAction("close") },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Collapse Drawer",
+                        tint = PureWhite
                     )
                 }
             }
@@ -374,8 +389,19 @@ fun AdminDrawerContent(
                     Text(
                         text = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
                         style = MaterialTheme.typography.labelSmall,
-                        color = CoolGray.copy(alpha = 0.75f),
+                        color = PureWhite.copy(alpha = 0.85f),
                         maxLines = 1
+                    )
+                }
+
+                IconButton(
+                    onClick = { onDrawerAction("close") },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Collapse Drawer",
+                        tint = PureWhite
                     )
                 }
             }
