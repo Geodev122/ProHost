@@ -401,8 +401,8 @@ fun AdminConsoleScreen(
         AdminAddSchemaItemDialog(
             initialCategory = uiState.addSchemaItemPresetCategory ?: SchemaCategory.DIVISION_TYPE,
             onDismiss = { adminViewModel.closeAddSchemaItemDialog() },
-            onAdd = { name, category, description, iconName, maxSubdivisions ->
-                adminViewModel.addSchemaItem(category, name, description, iconName, maxSubdivisions)
+            onAdd = { name, category, description, iconName, maxSubdivisions, markerColor ->
+                adminViewModel.addSchemaItem(category, name, description, iconName, maxSubdivisions, markerColor = markerColor)
             }
         )
     }
@@ -2113,6 +2113,7 @@ private fun AdminEditSchemaItemDialog(
     var maxSubs by remember { mutableStateOf(item.maxSubdivisions?.toString() ?: "") }
     var selectedScopedIds by remember { mutableStateOf(item.scopedToIds.toSet()) }
     var supportsAttendeeMode by remember { mutableStateOf(item.supportsAttendeeMode) }
+    var markerColorInput by remember { mutableStateOf(item.markerColor ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -2123,6 +2124,35 @@ private fun AdminEditSchemaItemDialog(
                 OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
                 if (item.category == SchemaCategory.SPACE_TYPE) {
                     OutlinedTextField(value = maxSubs, onValueChange = { maxSubs = it }, label = { Text("Max Subdivisions (leave blank = unlimited)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    // Marker color picker
+                    Text("Map Marker Color", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        items(MARKER_COLOR_PRESETS) { hex ->
+                            val selected = markerColorInput.equals(hex, ignoreCase = true)
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        try { Color(android.graphics.Color.parseColor(hex)) }
+                                        catch (e: Exception) { MaterialTheme.colorScheme.surfaceVariant }
+                                    )
+                                    .border(
+                                        width = if (selected) 3.dp else 1.dp,
+                                        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                        shape = CircleShape
+                                    )
+                                    .clickable { markerColorInput = hex }
+                            )
+                        }
+                    }
+                    OutlinedTextField(
+                        value = markerColorInput,
+                        onValueChange = { markerColorInput = it.take(7) },
+                        label = { Text("Hex color (e.g. #5B9BFF)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
                 }
                 if (item.category == SchemaCategory.DIVISION_TYPE) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -2159,7 +2189,8 @@ private fun AdminEditSchemaItemDialog(
                         amenityGroup = amenityGroup.trim(),
                         maxSubdivisions = if (item.category == SchemaCategory.SPACE_TYPE) maxSubs.trim().toIntOrNull() else item.maxSubdivisions,
                         scopedToIds = if (item.category == SchemaCategory.AMENITY) selectedScopedIds.toList() else item.scopedToIds,
-                        supportsAttendeeMode = if (item.category == SchemaCategory.DIVISION_TYPE) supportsAttendeeMode else item.supportsAttendeeMode
+                        supportsAttendeeMode = if (item.category == SchemaCategory.DIVISION_TYPE) supportsAttendeeMode else item.supportsAttendeeMode,
+                        markerColor = if (item.category == SchemaCategory.SPACE_TYPE) markerColorInput.takeIf { it.isNotBlank() } else item.markerColor
                     ))
                 },
                 variant = CustomButtonVariant.PRIMARY,
@@ -2810,15 +2841,21 @@ private fun AdminDeletePackagePlanDialog(
  * 6. Add Schema Node Dialog
  */
 @Composable
+private val MARKER_COLOR_PRESETS = listOf(
+    "#5B9BFF", "#FF8F73", "#7DD9A0", "#B197FC", "#E8C468", "#6FE3E3",
+    "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD"
+)
+
 private fun AdminAddSchemaItemDialog(
     initialCategory: String = SchemaCategory.DIVISION_TYPE,
     onDismiss: () -> Unit,
-    onAdd: (name: String, category: String, description: String, iconName: String, maxSubdivisions: Int?) -> Unit
+    onAdd: (name: String, category: String, description: String, iconName: String, maxSubdivisions: Int?, markerColor: String?) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(initialCategory) }
     var maxSubdivisionsInput by remember { mutableStateOf("") }
+    var markerColorInput by remember { mutableStateOf("") }
 
     val categories = listOf(
         SchemaCategory.SPACE_TYPE to "Space Type",
@@ -2886,6 +2923,35 @@ private fun AdminAddSchemaItemDialog(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
+                    // Map marker color picker
+                    Text("Map Marker Color", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        items(MARKER_COLOR_PRESETS) { hex ->
+                            val selected = markerColorInput.equals(hex, ignoreCase = true)
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        try { Color(android.graphics.Color.parseColor(hex)) }
+                                        catch (e: Exception) { MaterialTheme.colorScheme.surfaceVariant }
+                                    )
+                                    .border(
+                                        width = if (selected) 3.dp else 1.dp,
+                                        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                        shape = CircleShape
+                                    )
+                                    .clickable { markerColorInput = hex }
+                            )
+                        }
+                    }
+                    InputField(
+                        value = markerColorInput,
+                        onValueChange = { markerColorInput = it.take(7) },
+                        label = "Hex color (e.g. #5B9BFF) — optional",
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -2902,7 +2968,8 @@ private fun AdminAddSchemaItemDialog(
                         onClick = {
                             if (name.isNotBlank()) {
                                 val maxSub = if (selectedCategory == "SPACE_TYPE") maxSubdivisionsInput.toIntOrNull() else null
-                                onAdd(name, selectedCategory, description, "Category", maxSub)
+                                val colorVal = if (selectedCategory == "SPACE_TYPE") markerColorInput.takeIf { it.isNotBlank() } else null
+                                onAdd(name, selectedCategory, description, "Category", maxSub, colorVal)
                             }
                         },
                         enabled = name.isNotBlank(),

@@ -1,5 +1,11 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -145,10 +151,11 @@ fun SpaceDetailsScreenContent(
     var showShareMenu by remember { mutableStateOf(false) }
     var showInquiryDialog by remember { mutableStateOf(false) }
     var inquiryMessage by remember { mutableStateOf("") }
-    var showAvailabilityPanel by remember { mutableStateOf(false) }
-    // The slot a specialist has tapped inside the Check Availability sheet —
-    // driving the "Send Request" bar and the confirm popup below. Cleared
-    // whenever the sheet closes so a stale selection never survives a re-open.
+    // "hidden" | "peek" | "full"
+    // peek = division selected, animated slice visible above bottom of screen; press to expand
+    // full = full ModalBottomSheet open
+    var availabilityPanelState by remember { mutableStateOf("hidden") }
+    val showAvailabilityPanel = availabilityPanelState == "full"
     // Multi-select: SHIFT_BASED, DAY_BASED, MONTHLY slots
     var selectedSlots by remember { mutableStateOf(setOf<RentableSlot>()) }
     // Multi-day HOURLY selection: day → set of selected start-hour strings
@@ -218,35 +225,102 @@ fun SpaceDetailsScreenContent(
         },
         bottomBar = {
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Peek tap bar — specialists only; hidden for Pro Host / Admin preview
+                // Peek availability slice — slides up when a division card is tapped.
+                // Specialists only; hidden for Pro Host / Admin preview.
                 if (currentUserRole != UserRole.PRO_HOST && currentUserRole != UserRole.ADMIN) {
-                    Surface(
-                        color = if (availableSlots.isNotEmpty()) VibrantBlue else MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(enabled = availableSlots.isNotEmpty()) { showAvailabilityPanel = true }
+                    AnimatedVisibility(
+                        visible = availabilityPanelState == "peek",
+                        enter = slideInVertically { it } + fadeIn(animationSpec = spring()),
+                        exit = slideOutVertically { it } + fadeOut()
                     ) {
-                        Row(
+                        val peekSub = liveSpace.subdivisions.firstOrNull { it.id == selectedSubdivisionId }
+                        val peekSlotCount = if (peekSub != null) {
+                            availableSlots.count { it.sourceFormulaId == peekSub.id && !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
+                        } else {
+                            availableSlots.count { !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
+                        }
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                            modifier = Modifier.fillMaxWidth().clickable { availabilityPanelState = "full" }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = peekSub?.name ?: liveSpace.title,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = if (peekSlotCount > 0) "$peekSlotCount slot(s) available · Tap to view" else "Tap to view full availability",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
+                                    )
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.KeyboardArrowUp,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    IconButton(
+                                        onClick = { availabilityPanelState = "hidden" },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "Dismiss",
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // Generic check-availability bar — visible only when no division is selected
+                    AnimatedVisibility(
+                        visible = availabilityPanelState == "hidden",
+                        enter = slideInVertically { it } + fadeIn(),
+                        exit = slideOutVertically { it } + fadeOut()
+                    ) {
+                        Surface(
+                            color = if (availableSlots.isNotEmpty()) VibrantBlue else MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = Spacing.lg, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
+                                .clickable(enabled = availableSlots.isNotEmpty()) { availabilityPanelState = "full" }
                         ) {
-                            Icon(
-                                Icons.Default.KeyboardArrowUp,
-                                contentDescription = null,
-                                tint = if (availableSlots.isNotEmpty()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (availableSlots.isNotEmpty()) "Press to see option availability" else "No slots configured",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (availableSlots.isNotEmpty()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = Spacing.lg, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.KeyboardArrowUp,
+                                    contentDescription = null,
+                                    tint = if (availableSlots.isNotEmpty()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (availableSlots.isNotEmpty()) "Press to see option availability" else "No slots configured",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (availableSlots.isNotEmpty()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -590,7 +664,7 @@ fun SpaceDetailsScreenContent(
                                         acceptedBookings = acceptedBookings,
                                         onClick = {
                                             selectedSubdivisionId = sub.id
-                                            showAvailabilityPanel = true
+                                            availabilityPanelState = "peek"
                                         }
                                     )
                                 }
@@ -601,7 +675,7 @@ fun SpaceDetailsScreenContent(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable(enabled = wholeSlots.isNotEmpty()) { showAvailabilityPanel = true },
+                                    .clickable(enabled = wholeSlots.isNotEmpty()) { availabilityPanelState = "peek" },
                                 shape = MaterialTheme.shapes.medium,
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                             ) {
@@ -865,11 +939,11 @@ fun SpaceDetailsScreenContent(
 
         ModalBottomSheet(
             onDismissRequest = {
-                showAvailabilityPanel = false
+                availabilityPanelState = "hidden"
                 selectedSlots = emptySet()
                 selectedHoursPerDay = emptyMap()
             },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             scrimColor = Color.Black.copy(alpha = 0.35f),
             dragHandle = {
                 Box(

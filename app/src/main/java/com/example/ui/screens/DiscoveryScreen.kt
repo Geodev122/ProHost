@@ -70,6 +70,7 @@ fun DiscoveryScreen(
         isMapView = uiState.isMapViewActive,
         showFilterSheet = uiState.isFilterSheetVisible,
         isLoading = uiState.isLoading,
+        spaceTypeSchema = architectureSchema.spaceTypes,
         onSearchQueryChange = { discoveryViewModel.updateSearchQuery(it) },
         onToggleMapView = { discoveryViewModel.toggleMapView() },
         onSetFilterSheetVisible = { discoveryViewModel.setFilterSheetVisible(it) },
@@ -105,6 +106,7 @@ fun DiscoveryScreenContent(
     isMapView: Boolean,
     showFilterSheet: Boolean,
     isLoading: Boolean = false,
+    spaceTypeSchema: List<SchemaItem> = emptyList(),
     onSearchQueryChange: (String) -> Unit,
     onToggleMapView: () -> Unit,
     onSetFilterSheetVisible: (Boolean) -> Unit,
@@ -136,6 +138,7 @@ fun DiscoveryScreenContent(
                 onSpaceSelected = { space -> if (space != null) onSelectSpace(space) },
                 onNavigateToDetails = { onSelectSpace(it) },
                 modifier = Modifier.fillMaxSize().clipToBounds(),
+                spaceTypeSchema = spaceTypeSchema,
                 topControls = {
                     Row(
                         modifier = Modifier
@@ -282,14 +285,33 @@ fun DiscoveryScreenContent(
                         }
                     }
 
-                    items(spaces, key = { it.id }) { space ->
-                        SpaceListingCard(
-                            space = space,
-                            isSaved = savedSpaceIds.contains(space.id),
-                            onClick = { onSelectSpace(space) },
-                            onQuickWhatsApp = { onQuickWhatsApp(space) },
-                            onToggleSave = { onToggleSavedSpace(space.id) }
-                        )
+                    // Flatten: one card per subdivision, or one space card for whole-space listings
+                    val listCards = spaces.flatMap { space ->
+                        if (space.subdivisions.isNotEmpty()) {
+                            space.subdivisions.map { sub -> space to sub }
+                        } else {
+                            listOf(space to null)
+                        }
+                    }
+                    items(listCards, key = { (space, sub) -> "${space.id}_${sub?.id ?: "whole"}" }) { (space, sub) ->
+                        if (sub != null) {
+                            SubdivisionDiscoveryCard(
+                                space = space,
+                                subdivision = sub,
+                                isSaved = savedSpaceIds.contains(space.id),
+                                onClick = { onSelectSpace(space) },
+                                onQuickWhatsApp = { onQuickWhatsApp(space) },
+                                onToggleSave = { onToggleSavedSpace(space.id) }
+                            )
+                        } else {
+                            SpaceListingCard(
+                                space = space,
+                                isSaved = savedSpaceIds.contains(space.id),
+                                onClick = { onSelectSpace(space) },
+                                onQuickWhatsApp = { onQuickWhatsApp(space) },
+                                onToggleSave = { onToggleSavedSpace(space.id) }
+                            )
+                        }
                     }
                     }
                 }
@@ -469,6 +491,34 @@ fun DiscoveryScreenContent(
             }
         }
     }
+}
+
+@Composable
+fun SubdivisionDiscoveryCard(
+    space: SpaceListing,
+    subdivision: Subdivision,
+    isSaved: Boolean = false,
+    onClick: () -> Unit,
+    onQuickWhatsApp: () -> Unit,
+    onToggleSave: (() -> Unit)? = null
+) {
+    val lowestPrice = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
+    WorkspaceCard(
+        title = "${subdivision.name} · ${space.title}",
+        listingType = subdivision.type.displayName,
+        location = "${space.district}, ${space.governorate.displayName}",
+        rateUsd = lowestPrice.amount,
+        rateUnit = lowestPrice.unitLabel,
+        imageUrl = space.imageUrls.firstOrNull(),
+        operatingHours = "${space.schedule.openingHour} - ${space.schedule.closingHour}",
+        totalDaysOpen = "${space.schedule.operatingDays.size} days/wk",
+        formulaTypes = listOf(subdivision.pricing.strategyType.displayName),
+        isVerified = space.isVerified,
+        isSaved = isSaved,
+        onToggleSave = onToggleSave,
+        onClick = onClick,
+        onWhatsAppClick = onQuickWhatsApp
+    )
 }
 
 @Composable

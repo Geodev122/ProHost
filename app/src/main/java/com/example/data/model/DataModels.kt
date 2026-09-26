@@ -1906,7 +1906,9 @@ data class SchemaItem(
     // AMENITY only: grouping label (e.g. "Equipment", "Access", "Comfort", "Clinical").
     val amenityGroup: String = "",
     // DIVISION_TYPE only: true = this division type can use per-attendee pricing mode.
-    val supportsAttendeeMode: Boolean = false
+    val supportsAttendeeMode: Boolean = false,
+    // SPACE_TYPE only: admin-chosen hex color for map markers, e.g. "#5B9BFF". Null = auto-assigned from palette.
+    val markerColor: String? = null
 ) {
     fun toFirestoreMap(): Map<String, Any?> = mapOf(
         "id" to id,
@@ -1919,7 +1921,8 @@ data class SchemaItem(
         "maxSubdivisions" to maxSubdivisions,
         "scopedToIds" to scopedToIds,
         "amenityGroup" to amenityGroup,
-        "supportsAttendeeMode" to supportsAttendeeMode
+        "supportsAttendeeMode" to supportsAttendeeMode,
+        "markerColor" to markerColor
     )
 
     companion object {
@@ -1935,7 +1938,8 @@ data class SchemaItem(
             maxSubdivisions = (data["maxSubdivisions"] as? Number)?.toInt(),
             scopedToIds = (data["scopedToIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
             amenityGroup = data["amenityGroup"] as? String ?: "",
-            supportsAttendeeMode = data["supportsAttendeeMode"] as? Boolean ?: false
+            supportsAttendeeMode = data["supportsAttendeeMode"] as? Boolean ?: false,
+            markerColor = data["markerColor"] as? String
         )
     }
 }

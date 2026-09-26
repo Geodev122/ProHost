@@ -542,9 +542,10 @@ class AdminViewModel(
         iconName: String = "Category",
         maxSubdivisions: Int? = null,
         scopedToIds: List<String> = emptyList(),
-        amenityGroup: String = ""
+        amenityGroup: String = "",
+        markerColor: String? = null
     ) {
-        addNewSchemaItem(category, name, description, iconName, maxSubdivisions, scopedToIds, amenityGroup)
+        addNewSchemaItem(category, name, description, iconName, maxSubdivisions, scopedToIds, amenityGroup, markerColor)
     }
 
     fun addNewSchemaItem(
@@ -554,7 +555,8 @@ class AdminViewModel(
         iconName: String,
         maxSubdivisions: Int? = null,
         scopedToIds: List<String> = emptyList(),
-        amenityGroup: String = ""
+        amenityGroup: String = "",
+        markerColor: String? = null
     ) {
         viewModelScope.launch {
             val newItem = SchemaItem(
@@ -567,7 +569,8 @@ class AdminViewModel(
                 isSystemDefault = false,
                 maxSubdivisions = maxSubdivisions,
                 scopedToIds = scopedToIds,
-                amenityGroup = amenityGroup
+                amenityGroup = amenityGroup,
+                markerColor = markerColor?.takeIf { it.isNotBlank() }
             )
             val success = repository.addSchemaItem(newItem)
             closeAddSchemaItemDialog()
