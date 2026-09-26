@@ -1,13 +1,21 @@
-package com.example.ui.screens
+﻿package com.example.ui.screens
 
+import android.content.Context
+import android.content.ContextWrapper
+import android.media.AudioAttributes
+import android.media.MediaPlayer
+import com.example.ui.util.findActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
@@ -48,13 +56,13 @@ fun OwnerHubScreen(
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
     val availableFacilities = remember(architectureSchema) {
         // Falls back to the old hardcoded catalog only if Firestore hasn't delivered
-        // a real schema yet (or an admin has disabled every amenity) — never leaves
+        // a real schema yet (or an admin has disabled every amenity) â€” never leaves
         // the facility picker with zero options.
         architectureSchema.amenities.filter { it.isEnabled }.map { it.name }
             .ifEmpty { FacilityCatalog.standard }
     }
 
-    // ownerId is the sole, authoritative match — a substring "ownerName contains
+    // ownerId is the sole, authoritative match â€” a substring "ownerName contains
     // fullName" fallback used to sit here too, which is a real cross-tenant
     // privacy bug: any host whose name is a substring of another host's listed
     // owner name (e.g. "Sara" inside "Sara Khalil Clinic") would see that other
@@ -63,12 +71,12 @@ fun OwnerHubScreen(
         val user = currentUser
         if (user != null) {
             spaces.filter { it.ownerId == user.id || user.role == UserRole.ADMIN }
+                .sortedByDescending { it.createdAtMillis ?: 0L }
         } else {
             emptyList()
         }
     }
 
-    var showRenewalDialog by remember { mutableStateOf(false) }
     var showCreateListingDialog by remember { mutableStateOf(false) }
     var editingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var deletingSpace by remember { mutableStateOf<SpaceListing?>(null) }
@@ -81,19 +89,89 @@ fun OwnerHubScreen(
     // instead of only discovering it after completing the whole multi-step form.
     val atListingLimit = remember(currentUser, packagePlans) { viewModel.isAtListingLimit() }
 
+    fun playSound(resId: Int) {
+        try {
+            val mp = MediaPlayer.create(context, resId)
+            mp?.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            mp?.setOnCompletionListener { it.release() }
+            mp?.start()
+        } catch (_: Exception) {}
+    }
+
+    // SO1: Branded chime when any owned listing transitions to ACTIVE (published).
+    val prevSpaceStatuses = remember { mutableStateMapOf<String, ListingStatus>() }
+    LaunchedEffect(ownerSpaces) {
+        ownerSpaces.forEach { space ->
+            val prev = prevSpaceStatuses[space.id]
+            if (prev != null && prev != space.status && space.status == ListingStatus.ACTIVE) {
+                playSound(com.example.R.raw.listing_published)
+            }
+            prevSpaceStatuses[space.id] = space.status
+        }
+    }
+
+    // SO4: Branded ping when a new PENDING booking request arrives for this host.
+    val prevPendingIds = remember { mutableSetOf<String>() }
+    val pendingInitialized = remember { mutableStateOf(false) }
+    LaunchedEffect(allBookingRequests) {
+        val ownedIds = ownerSpaces.map { it.id }.toSet()
+        val currentPending = allBookingRequests
+            .filter { it.status == BookingRequestStatus.PENDING && ownedIds.contains(it.spaceId) }
+            .map { it.id }.toSet()
+        if (pendingInitialized.value && (currentPending - prevPendingIds).isNotEmpty()) {
+            playSound(com.example.R.raw.booking_request_in)
+        }
+        prevPendingIds.clear()
+        prevPendingIds.addAll(currentPending)
+        pendingInitialized.value = true
+    }
+
     OwnerHubScreenContent(
         ownerSpaces = ownerSpaces,
         allBookingRequests = allBookingRequests,
         currentPackage = currentUser?.ownerPackageId?.let { packagePlans.packages[it] },
         ownerPackageExpiryMillis = currentUser?.ownerPackageExpiryMillis,
-        // Admin's listing/booking capability is unconditional — never a purchased
+        // Admin's listing/booking capability is unconditional â€” never a purchased
         // package (see ProHostNavGraph excluding OwnerSubscriptions from Admin's
-        // allowed tabs) — so the package/renewal banner never shows for Admin.
+        // allowed tabs) â€” so the package/renewal banner never shows for Admin.
         isAdminUnlimited = currentUser?.role == UserRole.ADMIN,
         atListingLimit = atListingLimit,
         onSelectSpace = onSelectSpace,
         onManageSpace = onManageSpace,
-        onOpenWhishRenewal = { showRenewalDialog = true },
+        onOpenWhishRenewal = {
+            val expiry = currentUser?.ownerPackageExpiryMillis
+            if (expiry != null && expiry > System.currentTimeMillis()) {
+                // Active Play subscription â€” open Play Store subscription management
+                // Include the specific product ID so Play Store deep-links directly
+                // to this subscription rather than the generic subscriptions list.
+                val productId = currentUser?.ownerPackageId
+                    ?.let { packagePlans.packages[it]?.googlePlayProductId }
+                    ?.ifBlank { null }
+                val uri = if (productId != null)
+                    "market://subscriptions?sku=$productId&package=app.geonajjar.prohost"
+                else
+                    "market://subscriptions?package=app.geonajjar.prohost"
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(uri))
+                val activity = context.findActivity()
+                if (activity != null) {
+                    try {
+                        activity.startActivity(intent)
+                    } catch (_: Exception) {
+                        onOpenSubscriptions?.invoke()
+                    }
+                } else {
+                    onOpenSubscriptions?.invoke()
+                }
+            } else {
+                // Expired or no subscription â€” navigate to subscriptions screen to pick a Play plan
+                onOpenSubscriptions?.invoke()
+            }
+        },
         onOpenCreateListing = {
             viewModel.refreshTopHashtags()
             showCreateListingDialog = true
@@ -109,7 +187,7 @@ fun OwnerHubScreen(
         }
     )
 
-    // Get Listing Verified — optional, not part of the create/publish flow. See
+    // Get Listing Verified â€” optional, not part of the create/publish flow. See
     // ListingVerificationDialog.kt.
     verifyingSpace?.let { space ->
         ListingVerificationDialog(
@@ -119,24 +197,13 @@ fun OwnerHubScreen(
         )
     }
 
-    // Owner-level entitlement renewal — a real PAYG cart or tiered-package renewal,
-    // not tied to any one listing. See SubscriptionRenewalDialog's own doc comment
-    // for why this replaced the old per-listing WhishPayModal/flat-fee flow.
-    if (showRenewalDialog && currentUser != null) {
-        SubscriptionRenewalDialog(
-            currentUser = currentUser!!,
-            viewModel = viewModel,
-            onDismiss = { showRenewalDialog = false }
-        )
-    }
-
     // Used by the package-limit rejection branch below: save exactly what the host
     // built as a Draft (reusing the same listingId Publish would have used) instead
     // of losing the whole wizard, then send them straight to whatever purchase
-    // unblocks it — entitlements.ts auto-publishes this same Draft the moment that
+    // unblocks it â€” entitlements.ts auto-publishes this same Draft the moment that
     // payment settles (see ProHostViewModel.pendingAutoPublishDraftId).
     // Only actually redirects/arms the correlation once the Draft save is confirmed
-    // persisted — a failed save here would otherwise point the correlation at a
+    // persisted â€” a failed save here would otherwise point the correlation at a
     // Draft that doesn't exist yet.
     suspend fun redirectBlockedListingToPayment(newListing: SpaceListing, successMessage: String, failureMessage: String) {
         val saved = viewModel.saveListingDraft(newListing.copy(status = ListingStatus.DRAFT))
@@ -149,7 +216,7 @@ fun OwnerHubScreen(
         }
     }
 
-    // Create Granular Space Listing Dialog — also reused for "Continue Editing" a
+    // Create Granular Space Listing Dialog â€” also reused for "Continue Editing" a
     // Draft (draftToEdit), since both are the same multi-step wizard pre-populated
     // from an existing SpaceListing or not.
     if (showCreateListingDialog || draftToEdit != null) {
@@ -169,12 +236,12 @@ fun OwnerHubScreen(
                     draftToEdit = null
                     android.widget.Toast.makeText(
                         context,
-                        if (success) "Draft saved — continue it anytime from My Listings." else "Couldn't save this draft — please try again.",
+                        if (success) "Draft saved â€” continue it anytime from My Listings." else "Couldn't save this draft â€” please try again.",
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
                 }
             },
-            // Silent — unlike onSaveDraft above, never closes the dialog or toasts;
+            // Silent â€” unlike onSaveDraft above, never closes the dialog or toasts;
             // just persists progress in the background while the host keeps typing.
             onAutoSaveDraft = { draft ->
                 coroutineScope.launch { viewModel.saveListingDraft(draft) }
@@ -190,21 +257,21 @@ fun OwnerHubScreen(
                         is ListingCreateResult.PackageLimitReached -> {
                             redirectBlockedListingToPayment(
                                 newListing,
-                                "Saved as a Draft — you've reached your listing limit. Upgrade your package to publish it automatically.",
-                                "Couldn't save this as a Draft — check your connection and try Publish again once you've upgraded."
+                                "Saved as a Draft â€” you've reached your listing limit. Upgrade your package to publish it automatically.",
+                                "Couldn't save this as a Draft â€” check your connection and try Publish again once you've upgraded."
                             )
                         }
                         is ListingCreateResult.Failed -> {
                             android.widget.Toast.makeText(
                                 context,
-                                "Couldn't publish this listing — check your connection and try again.",
+                                "Couldn't publish this listing â€” check your connection and try again.",
                                 android.widget.Toast.LENGTH_LONG
                             ).show()
                         }
                         else -> {
                             android.widget.Toast.makeText(
                                 context,
-                                "Couldn't publish this listing — check your connection and try again.",
+                                "Couldn't publish this listing â€” check your connection and try again.",
                                 android.widget.Toast.LENGTH_LONG
                             ).show()
                         }
@@ -214,12 +281,12 @@ fun OwnerHubScreen(
         )
     }
 
-    // Edit Listing Dialog — reuses the real wizard (photos, subdivisions, pricing
+    // Edit Listing Dialog â€” reuses the real wizard (photos, subdivisions, pricing
     // config, ownership doc, everything), the same "existingDraft + onListingUpdated"
     // admin-edit mode CreateListingDialog already supports for the Admin Console's
     // own Edit action (AdminConsoleScreen.kt). This replaces the bare six-field
     // OwnerEditListingDialog (title/district/street/floor/price/phone only) that
-    // used to be a host's sole edit path once a listing was past Draft — subdivisions,
+    // used to be a host's sole edit path once a listing was past Draft â€” subdivisions,
     // pricing strategies, photos, facilities, description, house rules, and equipment
     // were all simply unreachable on a host's own published listing.
     editingSpace?.let { space ->
@@ -238,7 +305,7 @@ fun OwnerHubScreen(
                     editingSpace = null
                     android.widget.Toast.makeText(
                         context,
-                        if (success) "Listing updated successfully!" else "Failed to update listing — please try again",
+                        if (success) "Listing updated successfully!" else "Failed to update listing â€” please try again",
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -257,7 +324,7 @@ fun OwnerHubScreen(
                     deletingSpace = null
                     android.widget.Toast.makeText(
                         context,
-                        if (success) "Listing removed" else "Failed to remove listing — please try again",
+                        if (success) "Listing removed" else "Failed to remove listing â€” please try again",
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -280,17 +347,21 @@ private fun OwnerDeleteListingDialog(
             Text("Are you sure you want to permanently remove '${listing.title}' from the platform? This cannot be undone.")
         },
         confirmButton = {
-            Button(
+            CustomButton(
+                text = "Delete",
                 onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) {
-                Text("Delete")
-            }
+                variant = CustomButtonVariant.DANGER,
+                icon = Icons.Default.DeleteForever,
+                compact = true
+            )
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            CustomButton(
+                text = "Cancel",
+                onClick = onDismiss,
+                variant = CustomButtonVariant.OUTLINED,
+                compact = true
+            )
         }
     )
 }
@@ -315,6 +386,7 @@ fun OwnerHubScreenContent(
     onToggleListingStatus: (SpaceListing) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val hubHaptic = LocalHapticFeedback.current
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -383,14 +455,14 @@ fun OwnerHubScreenContent(
 
                             if (!isAdminUnlimited) {
                                 Surface(
-                                    color = WhishRed,
+                                    color = CarnationOrange,
                                     shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
                                         text = if (currentPackage == null) {
                                             "No Active Package"
                                         } else {
-                                            "$${String.format(Locale.US, "%.2f", currentPackage.priceUsd)} / ${currentPackage.validityDays}d"
+                                            "$${String.format(Locale.US, "%.2f", currentPackage.priceUsd)} / mo"
                                         },
                                         color = Color.White,
                                         style = MaterialTheme.typography.labelMedium,
@@ -403,13 +475,13 @@ fun OwnerHubScreenContent(
 
                         if (isAdminUnlimited) {
                             Text(
-                                text = "Unlimited Listings — Admin Access",
+                                text = "Unlimited Listings â€” Admin Access",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
                             Text(
-                                text = "No package or subscription applies to your account — every listing, of any type, is always active.",
+                                text = "No package or subscription applies to your account â€” every listing, of any type, is always active.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xCCFFFFFF),
                                 lineHeight = 16.sp
@@ -422,7 +494,7 @@ fun OwnerHubScreenContent(
                                 text = if (currentPackage == null) {
                                     "No Active Package"
                                 } else if (daysRemaining != null) {
-                                    "${currentPackage.name} — renews in $daysRemaining days"
+                                    "${currentPackage.name} â€” renews in $daysRemaining days"
                                 } else {
                                     currentPackage.name
                                 },
@@ -446,15 +518,26 @@ fun OwnerHubScreenContent(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                val isActiveSubscription = ownerPackageExpiryMillis != null && ownerPackageExpiryMillis > System.currentTimeMillis()
                                 Button(
                                     onClick = onOpenWhishRenewal,
                                     modifier = Modifier.weight(1f),
                                     shape = MaterialTheme.shapes.medium,
-                                    colors = ButtonDefaults.buttonColors(containerColor = WhishRed)
+                                    colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
                                 ) {
-                                    Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                    Icon(
+                                        if (isActiveSubscription) Icons.Default.Settings else Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Renew", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        if (isActiveSubscription) "Manage" else "Renew",
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
 
                                 val activeCount = ownerSpaces.count { it.status == ListingStatus.ACTIVE }
@@ -476,76 +559,32 @@ fun OwnerHubScreenContent(
                             }
                         }
                     }
-                }
-            }
-        }
-
-        // Highlighted & Centered Add Workspace Action Button Card
-        item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = Spacing.xs),
-                contentAlignment = Alignment.Center
-            ) {
-                // At the Package-2 cap, this becomes an upsell instead of opening a
-                // multi-step wizard that createNewSpaceListing will just reject at the
-                // end — the host finds out immediately, not after filling the whole form.
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(6.dp, MaterialTheme.shapes.large)
-                        .clickable { if (atListingLimit) onOpenPackageSelection() else onOpenCreateListing() },
-                    shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (atListingLimit) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    border = BorderStroke(2.dp, if (atListingLimit) AmberWarning else FreshGreen)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Surface(
-                            color = if (atListingLimit) AmberWarning else MaterialTheme.colorScheme.primary,
-                            shape = CircleShape,
-                            modifier = Modifier.size(48.dp)
+                    // Add Listing shortcut anchored to the hero card's bottom-right corner â€”
+                    // visible without scrolling, regardless of list length.
+                    if (!atListingLimit) {
+                        SmallFloatingActionButton(
+                            onClick = onOpenCreateListing,
+                            containerColor = CarnationOrange,
+                            contentColor = Color.White,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(12.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    if (atListingLimit) Icons.Default.Lock else Icons.Default.AddBusiness,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
+                            Icon(Icons.Default.AddBusiness, contentDescription = "Add Listing")
                         }
-                        Spacer(modifier = Modifier.width(Spacing.lg))
-                        Column {
-                            // Names the host's real, admin-configured package/limit
-                            // instead of a hardcoded "3-Listing"/"Package 3" — those
-                            // numbers are no longer fixed since packages became an
-                            // arbitrary admin-authored catalog (Phase 15); a listing
-                            // limit can be any number, or a package's own name can be
-                            // anything, not necessarily "Package 3".
-                            Text(
-                                text = if (atListingLimit) {
-                                    currentPackage?.listingLimit?.let { "You've Reached Your $it-Listing Limit" }
-                                        ?: "You've Reached Your Listing Limit"
-                                } else {
-                                    "Add New Workspace Listing"
-                                },
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Text(
-                                text = if (atListingLimit) "Tap to upgrade your package for more listings" else "Publish clinic, office, or studio space with smart pricing formulas",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                    } else {
+                        Surface(
+                            color = Color.White.copy(alpha = 0.18f),
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(14.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = "Listing limit reached",
+                                tint = Color.White,
+                                modifier = Modifier.padding(8.dp).size(18.dp)
                             )
                         }
                     }
@@ -557,7 +596,7 @@ fun OwnerHubScreenContent(
         item {
             ProSectionHeader(
                 title = "My Listings (${ownerSpaces.size})",
-                subtitle = "Manage facilities, pricing formulas, and availability schedules",
+                subtitle = "Your listings & availability",
                 icon = Icons.Default.HomeWork
             )
         }
@@ -581,8 +620,23 @@ fun OwnerHubScreenContent(
                 val totalH = dailyH * totalOperatingDays
                 val openH = (totalH - rentedH - blackoutH).coerceAtLeast(0)
 
-                ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                val statusAccent = when (space.status) {
+                    ListingStatus.ACTIVE -> FreshGreen
+                    ListingStatus.DRAFT -> MaterialTheme.colorScheme.onSurfaceVariant
+                    ListingStatus.PAUSED -> BrightOrange
+                }
+                ProSurfaceCard(contentPadding = PaddingValues(0.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Box(
+                            modifier = Modifier
+                                .width(4.dp)
+                                .fillMaxHeight()
+                                .background(statusAccent, RoundedCornerShape(topStart = 18.dp, bottomStart = 18.dp))
+                        )
+                        Column(
+                            modifier = Modifier.weight(1f).padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -606,13 +660,13 @@ fun OwnerHubScreenContent(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "📍 ${space.district}, ${space.governorate.displayName}",
+                                text = "${space.district}, ${space.governorate.displayName}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
-                        // The host's own lifecycle status — Active listings show no extra
+                        // The host's own lifecycle status â€” Active listings show no extra
                         // badge here (the subscription badge above already covers that
                         // case); Draft and Paused are the two states worth calling out.
                         if (space.status != ListingStatus.ACTIVE) {
@@ -634,19 +688,19 @@ fun OwnerHubScreenContent(
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Column {
                                         Text(
-                                            text = if (space.status == ListingStatus.DRAFT) "Draft — not published yet" else "Paused — hidden from Discovery",
+                                            text = if (space.status == ListingStatus.DRAFT) "Draft â€” not published yet" else "Paused â€” hidden from Discovery",
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.SemiBold,
                                             color = if (space.status == ListingStatus.DRAFT) MaterialTheme.colorScheme.onSurfaceVariant else StatusOnWarningContainer
                                         )
                                         // Set only when the server moved this back to Draft on its
-                                        // own (onWorkspaceListingPublishValidation) — e.g. it was
+                                        // own (onWorkspaceListingPublishValidation) â€” e.g. it was
                                         // auto-published after payment but never actually had real
                                         // pricing configured. Cleared automatically the next time
                                         // this listing is saved.
                                         if (space.status == ListingStatus.DRAFT && space.publishBlockedReasons.isNotEmpty()) {
                                             Text(
-                                                text = "Reverted from Active — " + space.publishBlockedReasons.joinToString(" "),
+                                                text = "Reverted from Active â€” " + space.publishBlockedReasons.joinToString(" "),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.error
                                             )
@@ -656,8 +710,8 @@ fun OwnerHubScreenContent(
                             }
                         }
 
-                        // Listing Verified is genuinely earned now — see
-                        // SpaceListing.isVerified's doc comment — so this is either a
+                        // Listing Verified is genuinely earned now â€” see
+                        // SpaceListing.isVerified's doc comment â€” so this is either a
                         // static confirmation or a tappable entry point, never a badge
                         // shown unconditionally.
                         val verificationPending = !space.isVerified && !space.verificationDocUrl.isNullOrBlank()
@@ -707,7 +761,7 @@ fun OwnerHubScreenContent(
                                 }
                                 if (!space.isVerified) {
                                     Text(
-                                        text = if (verificationPending) "Tap to Re-submit ➔" else "Tap to Submit Proof ➔",
+                                        text = if (verificationPending) "Tap to Re-submit âž”" else "Tap to Submit Proof âž”",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.primary
@@ -723,7 +777,7 @@ fun OwnerHubScreenContent(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    text = "Account suspended — this listing is hidden from Discovery until reactivated.",
+                                    text = "Account suspended â€” this listing is hidden from Discovery until reactivated.",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onErrorContainer,
@@ -732,7 +786,7 @@ fun OwnerHubScreenContent(
                             }
                         }
 
-                        // Smart Availability summary badges — 2 rows of 2 so the 4
+                        // Smart Availability summary badges â€” 2 rows of 2 so the 4
                         // values wrap instead of squeezing into one line.
                         Surface(
                             color = MaterialTheme.colorScheme.surfaceVariant,
@@ -749,15 +803,27 @@ fun OwnerHubScreenContent(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("🗓️ ${space.schedule.openingHour}-${space.schedule.closingHour}", style = MaterialTheme.typography.labelSmall)
-                                    Text("🔒 Rented: ${rentedH}h", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                        Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("${space.schedule.openingHour}-${space.schedule.closingHour}", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                        Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
+                                        Text("Rented: ${rentedH}h", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    }
                                 }
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("🚫 Closed: ${blackoutH}h", style = MaterialTheme.typography.labelSmall, color = NeutralGray500)
-                                    Text("🟢 Open: ${openH}h", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = StatusSuccess)
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                        Icon(Icons.Default.Block, contentDescription = null, modifier = Modifier.size(12.dp), tint = NeutralGray500)
+                                        Text("Closed: ${blackoutH}h", style = MaterialTheme.typography.labelSmall, color = NeutralGray500)
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                        Box(modifier = Modifier.size(8.dp).background(StatusSuccess, CircleShape))
+                                        Text("Open: ${openH}h", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = StatusSuccess)
+                                    }
                                 }
                             }
                         }
@@ -798,7 +864,7 @@ fun OwnerHubScreenContent(
                             }
                         }
 
-                        // Action buttons — a Draft has no live schedule to manage yet, so
+                        // Action buttons â€” a Draft has no live schedule to manage yet, so
                         // its row leads with "Continue Editing" (the same wizard, pre-
                         // populated) instead of Availability/Edit.
                         if (space.status == ListingStatus.DRAFT) {
@@ -806,23 +872,23 @@ fun OwnerHubScreenContent(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                OutlinedButton(
+                                CustomButton(
+                                    text = "Details",
                                     onClick = { onSelectSpace(space) },
-                                    modifier = Modifier.weight(1f),
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    Text("Details", style = MaterialTheme.typography.labelMedium)
-                                }
+                                    variant = CustomButtonVariant.OUTLINED,
+                                    icon = Icons.Default.Info,
+                                    compact = true,
+                                    modifier = Modifier.weight(1f)
+                                )
 
-                                Button(
+                                CustomButton(
+                                    text = "Continue Editing",
                                     onClick = { onContinueDraft(space) },
-                                    modifier = Modifier.weight(1.5f),
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    Icon(Icons.Default.EditNote, contentDescription = null, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text("Continue Editing", style = MaterialTheme.typography.labelMedium)
-                                }
+                                    variant = CustomButtonVariant.PRIMARY,
+                                    icon = Icons.Default.EditNote,
+                                    compact = true,
+                                    modifier = Modifier.weight(1.5f)
+                                )
 
                                 IconButton(
                                     onClick = { onDeleteSpace(space) },
@@ -836,22 +902,21 @@ fun OwnerHubScreenContent(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                // Manage Button — opens the real performance + availability
+                                // Manage Button â€” opens the real performance + availability
                                 // page (ManageListingScreen) for this listing: per-division
                                 // occupancy, this-month-vs-last-month yield, and a calendar-
                                 // style availability table, replacing the old read-only
                                 // "Details" entry point.
-                                Button(
+                                CustomButton(
+                                    text = "Manage",
                                     onClick = { onManageSpace(space) },
-                                    modifier = Modifier.weight(1.6f),
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    Icon(Icons.Default.Dashboard, contentDescription = null, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text("Manage", style = MaterialTheme.typography.labelMedium)
-                                }
+                                    variant = CustomButtonVariant.PRIMARY,
+                                    icon = Icons.Default.Dashboard,
+                                    compact = true,
+                                    modifier = Modifier.weight(1.6f)
+                                )
 
-                                // Edit Listing Button — the sole entry point into the wizard
+                                // Edit Listing Button â€” the sole entry point into the wizard
                                 // for an already-published listing now (item 1): availability
                                 // (operating hours/days, blackout slots, rental formulas,
                                 // subdivisions) is entirely configured here, so there's no
@@ -864,7 +929,7 @@ fun OwnerHubScreenContent(
                                     Icon(Icons.Default.Edit, contentDescription = "Edit Listing", tint = MaterialTheme.colorScheme.primary)
                                 }
 
-                                // Pause/Resume Button — the host's own lifecycle control,
+                                // Pause/Resume Button â€” the host's own lifecycle control,
                                 // distinct from isActiveSubscription (billing), which the
                                 // host doesn't control directly.
                                 IconButton(
@@ -878,7 +943,7 @@ fun OwnerHubScreenContent(
                                     )
                                 }
 
-                                // Delete Listing Button — weighted like the other controls
+                                // Delete Listing Button â€” weighted like the other controls
                                 // so they all divide the row's width predictably instead of
                                 // this one's intrinsic size squeezing the rest.
                                 IconButton(
@@ -892,7 +957,21 @@ fun OwnerHubScreenContent(
                     }
                 }
             }
+            FloatingActionButton(
+                onClick = {
+                    hubHaptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onOpenCreateListing()
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 80.dp, end = 16.dp),
+                containerColor = CarnationOrange,
+                contentColor = Color.White
+            ) {
+                Icon(Icons.Default.AddBusiness, contentDescription = "Add Workspace Listing")
+            }
         }
     }
+}
 }
 }

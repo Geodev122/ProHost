@@ -1,7 +1,20 @@
 package com.example.ui.screens
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.media.AudioAttributes
+import android.media.MediaPlayer
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -10,10 +23,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import android.widget.Toast
 import com.example.data.model.*
+import com.example.ui.components.CustomButton
+import com.example.ui.components.CustomButtonVariant
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
 import java.util.Locale
@@ -24,25 +43,56 @@ fun OwnerSubscriptionsScreen(
     viewModel: ProHostViewModel
 ) {
     val context = LocalContext.current
+    val activityFromLocal = androidx.activity.compose.LocalActivity.current
+    val activity: android.app.Activity? = activityFromLocal ?: run {
+        var ctx = context
+        while (ctx is ContextWrapper) {
+            if (ctx is android.app.Activity) return@run ctx
+            ctx = ctx.baseContext
+        }
+        null
+    }
+    val haptic = LocalHapticFeedback.current
+    var showKycDialog by remember { mutableStateOf(false) }
+    var pendingProductId by remember { mutableStateOf<String?>(null) }
     val currentUser by viewModel.currentUser.collectAsState()
     val packagePlans by viewModel.packagePlans.collectAsState()
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
-    // Set by OwnerHubScreen when a Publish attempt hit the listing limit and got
-    // saved as a Draft instead — whichever package the host buys next auto-publishes
-    // this exact Draft (see entitlements.ts's autoPublishDraftIfNeeded), so surface
-    // that clearly rather than leaving the host wondering what buying a package here
-    // actually does for them right now.
     val pendingAutoPublishDraftId by viewModel.pendingAutoPublishDraftId.collectAsState()
-    val isCheckoutInFlight by viewModel.isWhishCheckoutInFlight.collectAsState()
+    val billingActivationPending by viewModel.billingActivationPending.collectAsState()
+    val billingError by viewModel.billingError.collectAsState()
+    val billingSuccess by viewModel.billingSuccess.collectAsState()
+    val playBillingProducts by viewModel.playBillingProducts.collectAsState()
+    val billingConnected by viewModel.playBillingConnected.collectAsState()
+
+    // SO3: Play branded chime when a purchase completes (billingSuccess transitions to non-null).
+    LaunchedEffect(billingSuccess) {
+        if (billingSuccess != null) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            try {
+                val mp = MediaPlayer.create(context, com.example.R.raw.purchase_success)
+                mp?.setAudioAttributes(AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build())
+                mp?.setOnCompletionListener { it.release() }
+                mp?.start()
+            } catch (_: Exception) {}
+        }
+    }
 
     val enabledPlans = remember(packagePlans) { packagePlans.packages.values.filter { it.isEnabled }.sortedBy { it.sortOrder } }
     val currentPlan = currentUser?.ownerPackageId?.let { packagePlans.packages[it] }
 
-    var showSubscribeDialog by remember { mutableStateOf(false) }
-    var selectedPlanToSubscribe by remember { mutableStateOf<PackagePlan?>(null) }
-
-    var payerName by remember { mutableStateOf(currentUser?.fullName ?: "") }
-    var payerPhone by remember { mutableStateOf(currentUser?.phone ?: "+961 70 888 999") }
+    // Map Play product ID → live formatted price string (e.g. "$4.99") from the Play Store catalog.
+    // Falls back to PackagePlan.priceUsd when Play hasn't loaded yet.
+    val playPriceMap: Map<String, String?> = remember(playBillingProducts) {
+        playBillingProducts.associate { d ->
+            d.productId to d.subscriptionOfferDetails
+                ?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice
+        }
+    }
+    val pricesLoading = !billingConnected && playBillingProducts.isEmpty()
 
     val expiryMillis = currentUser?.ownerPackageExpiryMillis
     val remainingDays = if (expiryMillis != null && expiryMillis > System.currentTimeMillis()) {
@@ -50,6 +100,9 @@ fun OwnerSubscriptionsScreen(
     } else {
         null
     }
+    // True when the host previously had a package that has now lapsed (expiry passed but the
+    // sweep hasn't cleared ownerPackageId yet, or they just hit the limit cutover).
+    val isSubscriptionExpired = currentPlan != null && remainingDays == null
 
     Column(
         modifier = Modifier
@@ -75,6 +128,86 @@ fun OwnerSubscriptionsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = OxfordBlue
                     )
+                }
+            }
+        }
+
+        if (billingActivationPending) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = FreshGreen.copy(alpha = 0.12f)
+            ) {
+                Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = FreshGreen, strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Text(
+                                "Activating your subscription — this usually takes a few seconds.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        IconButton(onClick = { viewModel.dismissBillingActivationPending() }, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                        }
+                    }
+                    Text(
+                        "Taking too long? Contact support via WhatsApp.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        if (billingSuccess != null) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = FreshGreen.copy(alpha = 0.12f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(Spacing.md),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        Text(billingSuccess!!, style = MaterialTheme.typography.bodySmall, color = OxfordBlue)
+                    }
+                    IconButton(onClick = { viewModel.clearBillingMessages() }, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = CoolGray, modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+        }
+
+        if (billingError != null) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.errorContainer
+            ) {
+                Row(
+                    modifier = Modifier.padding(Spacing.md),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.Error, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        Text(billingError!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
+                    }
+                    IconButton(onClick = { viewModel.clearBillingMessages() }, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(16.dp))
+                    }
                 }
             }
         }
@@ -125,9 +258,9 @@ fun OwnerSubscriptionsScreen(
                 if (currentPlan != null) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
-                            Text("Remaining Duration", style = MaterialTheme.typography.bodySmall, color = LightGray)
+                            Text("Days Until Renewal", style = MaterialTheme.typography.bodySmall, color = LightGray)
                             Text(
-                                remainingDays?.let { "$it Days" } ?: "—",
+                                remainingDays?.let { if (it == 0) "< 1 day" else "$it days" } ?: "—",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = PureWhite
@@ -144,108 +277,237 @@ fun OwnerSubscriptionsScreen(
                             )
                         }
                     }
+                    when {
+                        isSubscriptionExpired -> Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError, modifier = Modifier.size(14.dp))
+                            Text(
+                                "Subscription expired — your listings are hidden until you renew",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = StatusError
+                            )
+                        }
+                        remainingDays != null -> Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.Autorenew, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(14.dp))
+                            Text(
+                                "Auto-renews monthly via Google Play",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = FreshGreen
+                            )
+                        }
+                        else -> Unit
+                    }
                 }
 
                 val atCap = currentPlan != null && currentPlan.listingLimit != null && ownerSpaces.size >= currentPlan.listingLimit
-                if ((currentPlan == null || atCap) && enabledPlans.isNotEmpty()) {
-                    Button(
-                        onClick = {
-                            // Prompt an upgrade to a higher package — the same
-                            // subscribe dialog below, pre-aimed at the cheapest
-                            // enabled package with more room than the current one.
-                            selectedPlanToSubscribe = enabledPlans
-                                .filter { it.listingLimit == null || it.listingLimit > (currentPlan?.listingLimit ?: 0) }
-                                .minByOrNull { it.priceUsd }
-                                ?: enabledPlans.firstOrNull()
-                            showSubscribeDialog = true
+                val activity = androidx.activity.compose.LocalActivity.current
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (currentPlan != null && !isSubscriptionExpired && activity != null) {
+                        OutlinedButton(
+                            onClick = { viewModel.openManageSubscriptions(activity, currentPlan.id) },
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PureWhite),
+                            border = BorderStroke(1.dp, PureWhite.copy(alpha = 0.5f))
+                        ) {
+                            Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Manage in Play Store", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+
+                    if (activity != null) {
+                        OutlinedButton(
+                            onClick = { viewModel.openRedeemPromoCode(activity) },
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PureWhite),
+                            border = BorderStroke(1.dp, PureWhite.copy(alpha = 0.5f))
+                        ) {
+                            Icon(Icons.Default.CardGiftcard, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Redeem Code", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+
+                if ((currentPlan == null || atCap || isSubscriptionExpired) && enabledPlans.isNotEmpty()) {
+                    // Renewal: re-subscribe to the same plan. Upsell: cheapest plan with more capacity.
+                    val upsellPlan = if (isSubscriptionExpired) {
+                        enabledPlans.firstOrNull { it.id == currentPlan?.id } ?: enabledPlans.firstOrNull()
+                    } else {
+                        enabledPlans
+                            .filter { it.listingLimit == null || it.listingLimit > (currentPlan?.listingLimit ?: 0) }
+                            .minByOrNull { it.priceUsd }
+                            ?: enabledPlans.firstOrNull()
+                    }
+                    CustomButton(
+                        text = when {
+                            isSubscriptionExpired -> "Renew Subscription"
+                            currentPlan == null -> "Choose a Package"
+                            else -> "Package Limit Reached — Upgrade Package"
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Icon(Icons.Default.AddCircle, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            upsellPlan?.let { plan ->
+                                val productId = plan.googlePlayProductId.ifBlank { plan.id }
+                                if (currentUser != null && !currentUser!!.isKycComplete) {
+                                    pendingProductId = productId
+                                    showKycDialog = true
+                                } else if (activity != null) {
+                                    viewModel.launchGooglePaySubscription(activity, productId)
+                                } else {
+                                    Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
+                        variant = CustomButtonVariant.PRIMARY,
+                        icon = Icons.Default.AddCircle,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+
+        // B3: KYC gate — full identity verification (level 3: profile pic + email + ID
+        // upload) is required before purchasing a Pro Host package. Show a blocking
+        // notice card describing the specific missing step so the user knows what to do.
+        val kycLevel = currentUser?.kycLevel ?: 0
+        if (kycLevel < 3) {
+            val (kycTitle, kycBody) = when (kycLevel) {
+                0 -> "Profile picture required" to
+                        "Add a profile picture in the Security ID tab to continue."
+                1 -> "Email verification required" to
+                        "Verify your email address in the Security ID tab to continue."
+                else -> "ID document required" to
+                        "Upload a government-issued ID in the Security ID tab to unlock subscription purchases."
+            }
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            if (currentPlan == null) "Choose a Package" else "Package Limit Reached — Upgrade Package",
+                            kycTitle,
+                            style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = PureWhite
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Text(
+                            kycBody,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.75f)
                         )
                     }
                 }
             }
         }
 
-        Text(
-            text = "AVAILABLE ADMIN PUBLISHED PACKAGES",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = CoolGray,
-            modifier = Modifier.padding(start = 4.dp, top = 8.dp)
-        )
+        // Section header
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 4.dp, top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "CHOOSE YOUR PLAN",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (pricesLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = CarnationOrange)
+            }
+        }
 
         if (enabledPlans.isEmpty()) {
             Text(
-                "No packages are available right now — please check back later.",
+                "No packages available right now — check back soon.",
                 style = MaterialTheme.typography.bodySmall,
-                color = CoolGray
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp)
             )
-        }
-
-        enabledPlans.forEach { plan ->
-            PackageOptionCard(
-                plan = plan,
-                isCurrent = currentPlan?.id == plan.id,
-                onSelect = {
-                    selectedPlanToSubscribe = plan
-                    showSubscribeDialog = true
-                }
-            )
-        }
-    }
-
-    // Subscribe Dialog with Whish Pay — a real, server-priced purchase of whichever
-    // admin-defined package the host tapped.
-    if (showSubscribeDialog) {
-        val targetPlan = selectedPlanToSubscribe
-        AlertDialog(
-            onDismissRequest = { showSubscribeDialog = false },
-            title = { Text("Subscribe to ${targetPlan?.name ?: "Package"}", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (targetPlan != null) {
-                        Text("Price: $${String.format(Locale.US, "%.2f", targetPlan.priceUsd)} for ${targetPlan.validityDays} Days")
-                    }
-                    OutlinedTextField(
-                        value = payerName,
-                        onValueChange = { payerName = it },
-                        label = { Text("Payer Full Name") },
-                        modifier = Modifier.fillMaxWidth()
+        } else {
+            // Horizontal scrollable plan cards (sorted by price ascending — least to most desirable)
+            val sortedPlans = enabledPlans.sortedWith(compareBy({ !it.isFeatured }, { it.sortOrder }))
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(horizontal = 4.dp)
+            ) {
+                items(sortedPlans) { plan ->
+                    val playProductId = plan.googlePlayProductId.ifBlank { plan.id }
+                    val isCurrent = currentPlan?.id == plan.id && !isSubscriptionExpired
+                    CompactPlanCard(
+                        plan = plan,
+                        isCurrent = isCurrent,
+                        playFormattedPrice = playPriceMap[playProductId],
+                        onSelect = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            if (activity != null) {
+                                viewModel.launchGooglePaySubscription(activity, playProductId)
+                            } else {
+                                Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     )
                 }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        targetPlan?.let {
-                            viewModel.payOwnerPackageViaWhish(
-                                packageId = it.id,
-                                payerName = payerName,
-                                payerPhone = payerPhone,
-                                context = context,
-                                draftListingId = pendingAutoPublishDraftId
-                            )
-                        }
-                        showSubscribeDialog = false
-                    },
-                    enabled = targetPlan != null && !isCheckoutInFlight,
-                    colors = ButtonDefaults.buttonColors(containerColor = FreshGreen)
+            }
+        }
+
+        // Listing-limit enforcement notice when at cap
+        val atCap = currentPlan != null && currentPlan.listingLimit != null && ownerSpaces.size >= currentPlan.listingLimit
+        if (atCap) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = CarnationOrangeContainer
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(if (isCheckoutInFlight) "Starting payment..." else "Go to Whish Pay", color = PureWhite, fontWeight = FontWeight.Bold)
+                    Icon(Icons.Default.UploadFile, contentDescription = null, tint = CarnationOrange, modifier = Modifier.size(20.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Listing limit reached", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = OxfordBlue)
+                        Text(
+                            "You've used all ${currentPlan?.listingLimit} listing slots. Upgrade to publish more.",
+                            style = MaterialTheme.typography.bodySmall, color = OxfordBlue.copy(alpha = 0.8f)
+                        )
+                    }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSubscribeDialog = false }) {
-                    Text("Cancel")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(Spacing.sm))
+    }
+
+    if (showKycDialog && currentUser != null) {
+        com.example.ui.components.KycVerificationDialog(
+            user = currentUser!!,
+            onDismiss = { showKycDialog = false },
+            onKycCompleted = {
+                showKycDialog = false
+                pendingProductId?.let { pid ->
+                    if (activity != null) {
+                        viewModel.launchGooglePaySubscription(activity, pid)
+                    }
                 }
             }
         )
@@ -253,74 +515,137 @@ fun OwnerSubscriptionsScreen(
 }
 
 @Composable
-fun PackageOptionCard(
+fun CompactPlanCard(
     plan: PackagePlan,
     isCurrent: Boolean,
+    playFormattedPrice: String? = null,
     onSelect: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = if (isCurrent) OxfordBlue.copy(alpha = 0.04f) else MaterialTheme.colorScheme.surface
-        ),
-        border = if (isCurrent) BorderStroke(2.dp, CarnationOrange) else null,
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+    val cardWidth = 200.dp
+    val isFeatured = plan.isFeatured
+
+    Box(modifier = Modifier.width(cardWidth)) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = when {
+                    isCurrent -> OxfordBlue
+                    isFeatured -> OxfordBlue.copy(alpha = 0.06f)
+                    else -> MaterialTheme.colorScheme.surface
+                }
+            ),
+            border = when {
+                isCurrent -> null
+                isFeatured -> BorderStroke(2.dp, CarnationOrange)
+                else -> BorderStroke(1.dp, LightGray.copy(alpha = 0.4f))
+            },
+            elevation = CardDefaults.cardElevation(if (isFeatured || isCurrent) 6.dp else 2.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                // Plan name + featured badge
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = plan.badgeName.ifBlank { plan.name },
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isCurrent) PureWhite else OxfordBlue,
+                        maxLines = 1
+                    )
+                    if (isCurrent) {
+                        Icon(Icons.Default.Verified, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(18.dp))
+                    }
+                }
+
+                // Price — large and bold
                 Text(
-                    text = plan.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = OxfordBlue
-                )
-                Text(
-                    text = "$${String.format(Locale.US, "%.2f", plan.priceUsd)} / ${plan.validityDays}d",
-                    style = MaterialTheme.typography.titleSmall,
+                    text = playFormattedPrice ?: "$${String.format(Locale.US, "%.2f", plan.priceUsd)}",
+                    style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Black,
-                    color = CarnationOrange
+                    color = if (isCurrent) PureWhite else CarnationOrange
                 )
-            }
-
-            if (plan.description.isNotBlank()) {
                 Text(
-                    text = plan.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = CoolGray
+                    text = "/ month",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isCurrent) LightGray else CoolGray,
+                    modifier = Modifier.offset(y = (-6).dp)
                 )
+
+                HorizontalDivider(color = if (isCurrent) PureWhite.copy(alpha = 0.2f) else LightGray.copy(alpha = 0.5f))
+
+                // Listing limit row
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = if (isCurrent) FreshGreen else FreshGreen, modifier = Modifier.size(14.dp))
+                    Text(
+                        text = plan.listingLimit?.let { "$it listing${if (it == 1) "" else "s"}" } ?: "Unlimited",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isCurrent) PureWhite else OxfordBlue,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                if (plan.description.isNotBlank()) {
+                    Text(
+                        text = plan.description,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isCurrent) LightGray else CoolGray,
+                        maxLines = 2
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // CTA button
+                Button(
+                    onClick = onSelect,
+                    enabled = !isCurrent,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isFeatured && !isCurrent) CarnationOrange else OxfordBlue,
+                        disabledContainerColor = FreshGreen.copy(alpha = 0.18f)
+                    ),
+                    contentPadding = PaddingValues(vertical = 10.dp)
+                ) {
+                    Icon(
+                        if (isCurrent) Icons.Default.Verified else Icons.Default.ShoppingCart,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (isCurrent) "Active" else "Select",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isCurrent) FreshGreen else PureWhite
+                    )
+                }
             }
+        }
 
-            HorizontalDivider(color = LightGray.copy(alpha = 0.5f))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(16.dp))
-                Text(
-                    text = plan.listingLimit?.let { "Host up to $it active workspace${if (it == 1) "" else "s"}" } ?: "Unlimited active workspace listings",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = OxfordBlue
-                )
-            }
-
-            Spacer(modifier = Modifier.height(Spacing.xs))
-
-            Button(
-                onClick = onSelect,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isCurrent,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isCurrent) CoolGray else OxfordBlue
-                ),
-                shape = MaterialTheme.shapes.medium
+        // "Most Popular" badge on featured plans
+        if (isFeatured && !isCurrent) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 8.dp, y = (-8).dp),
+                color = CarnationOrange,
+                shape = RoundedCornerShape(6.dp),
+                shadowElevation = 4.dp
             ) {
                 Text(
-                    text = if (isCurrent) "Current Active Package" else "Subscribe / Activate Package",
-                    fontWeight = FontWeight.Bold,
-                    color = PureWhite
+                    text = "★ POPULAR",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Black,
+                    color = PureWhite,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                 )
             }
         }

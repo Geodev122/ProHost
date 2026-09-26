@@ -1,15 +1,11 @@
 package com.example.util
 
 import android.content.Context
-import android.util.Base64
 import android.util.Log
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.play.core.integrity.IntegrityManagerFactory
 import com.google.android.play.core.integrity.IntegrityTokenRequest
 import com.google.android.play.core.integrity.IntegrityTokenResponse
 import kotlinx.coroutines.tasks.await
-import java.security.MessageDigest
 import java.util.UUID
 
 /**
@@ -27,30 +23,12 @@ class PlayIntegrityManager(private val context: Context) {
     }
 
     /**
-     * Checks whether Google Play Services is available and ready for Integrity API calls.
-     */
-    fun isIntegrityAvailable(): Boolean {
-        val availability = GoogleApiAvailability.getInstance()
-        val result = availability.isGooglePlayServicesAvailable(context)
-        return result == ConnectionResult.SUCCESS
-    }
-
-    /**
-     * Generates a web-safe Base64 SHA-256 hashed nonce from a raw payload string.
-     */
-    fun generateHashedNonce(rawPayload: String): String {
-        val md = MessageDigest.getInstance("SHA-256")
-        val digest = md.digest(rawPayload.toByteArray(Charsets.UTF_8))
-        return Base64.encodeToString(digest, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
-    }
-
-    /**
      * Requests a Play Integrity token signed by Google Play.
-     * Pass an optional [customNonce] or auto-generate a unique Base64 nonce.
+     * Pass an optional [customNonce] or auto-generate a unique UUID nonce.
      */
     suspend fun requestIntegrityToken(customNonce: String? = null): Result<String> {
         return try {
-            val nonce = customNonce ?: generateHashedNonce(UUID.randomUUID().toString())
+            val nonce = customNonce ?: UUID.randomUUID().toString()
             val request = IntegrityTokenRequest.builder()
                 .setCloudProjectNumber(cloudProjectNumber)
                 .setNonce(nonce)

@@ -4,23 +4,28 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.data.model.AppUser
 import com.example.data.model.UserRole
 import com.example.ui.components.ProHostBrandLogo
@@ -96,13 +101,100 @@ fun SpecialistDrawerContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(Spacing.lg)
     ) {
-        DrawerIdentityCard(
-            user = currentUser,
-            currentPackage = currentUser?.ownerPackageId?.let { packagePlans.packages[it] },
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        // Modern gradient header
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(listOf(OxfordBlue, OxfordBlue.copy(blue = 0.55f))),
+                    RoundedCornerShape(bottomStart = 0.dp, bottomEnd = 0.dp)
+                )
+                .padding(horizontal = 20.dp, vertical = 22.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    // Avatar circle with initials
+                    val initials = (currentUser?.fullName ?: "")
+                        .split(" ").take(2)
+                        .joinToString("") { it.firstOrNull()?.uppercaseChar()?.toString() ?: "" }
+                        .ifBlank { "P" }
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(CarnationOrange),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = initials,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            color = PureWhite
+                        )
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = currentUser?.fullName ?: "ProHost User",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = PureWhite,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                color = if (isProHost) FreshGreen.copy(alpha = 0.22f) else CarnationOrange.copy(alpha = 0.22f),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = if (isProHost) "PRO HOST" else "SPECIALIST",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isProHost) FreshGreen else CarnationOrange,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = PureWhite.copy(alpha = 0.85f),
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                IconButton(
+                    onClick = { onDrawerAction("close") },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Collapse Drawer",
+                        tint = PureWhite
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Column(modifier = Modifier.padding(horizontal = Spacing.lg)) {
 
         if (isProHost) {
             Text(
@@ -110,11 +202,12 @@ fun SpecialistDrawerContent(
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = FreshGreen,
+                letterSpacing = 1.2.sp,
                 modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
             )
 
             NavigationDrawerItem(
-                label = { Text("Financial Stats & Yields", fontWeight = FontWeight.Bold) },
+                label = { Text("Financials", fontWeight = FontWeight.Bold) },
                 selected = activeProHostTabId == "stats",
                 onClick = { onTabSelected("stats") },
                 icon = { Icon(Icons.Default.Analytics, contentDescription = null, tint = if (activeProHostTabId == "stats") FreshGreen else OxfordBlue) },
@@ -126,7 +219,7 @@ fun SpecialistDrawerContent(
             )
             Spacer(modifier = Modifier.height(Spacing.xs))
             NavigationDrawerItem(
-                label = { Text("Subscription & Packages", fontWeight = FontWeight.Bold) },
+                label = { Text("Subscriptions", fontWeight = FontWeight.Bold) },
                 selected = activeProHostTabId == "owner_subscriptions",
                 onClick = { onTabSelected("owner_subscriptions") },
                 icon = { Icon(Icons.Default.Layers, contentDescription = null, tint = if (activeProHostTabId == "owner_subscriptions") FreshGreen else OxfordBlue) },
@@ -138,7 +231,7 @@ fun SpecialistDrawerContent(
             )
             Spacer(modifier = Modifier.height(Spacing.xs))
             NavigationDrawerItem(
-                label = { Text("Whish Money Transactions", fontWeight = FontWeight.Bold) },
+                label = { Text("Transactions", fontWeight = FontWeight.Bold) },
                 selected = false,
                 onClick = { onDrawerAction("owner_whish") },
                 icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = OxfordBlue) },
@@ -148,33 +241,13 @@ fun SpecialistDrawerContent(
                     unselectedTextColor = CoolGray
                 )
             )
-        } else {
-            Surface(
-                onClick = { onTabSelected("owner_subscriptions") },
-                shape = MaterialTheme.shapes.medium,
-                color = FreshGreen,
-                shadowElevation = 3.dp,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = PureWhite)
-                    Text(
-                        text = "Become a Pro Host",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = PureWhite,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
-                }
-            }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = Spacing.lg),
+            thickness = 0.5.dp,
+            color = OxfordBlue.copy(alpha = 0.08f)
+        )
 
         // "PRACTICE RESOURCES" and "CONFIGURATION & SETTINGS" used to be two
         // separate sections for what's really one kind of destination — things a
@@ -186,6 +259,7 @@ fun SpecialistDrawerContent(
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = CarnationOrange,
+            letterSpacing = 1.2.sp,
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
 
@@ -247,6 +321,7 @@ fun SpecialistDrawerContent(
         // Always the last element in the drawer — see DrawerSignOutButton's own doc
         // comment for why it lives here instead of on DrawerIdentityCard.
         DrawerSignOutButton(userEmail = currentUser?.email, onSignOut = onSignOut)
+        } // end inner padding Column
     }
 }
 
@@ -265,18 +340,83 @@ fun AdminDrawerContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(Spacing.lg)
     ) {
-        DrawerIdentityCard(
-            user = currentUser,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        // Modern gradient header (Admin variant — amber/orange shield accent)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Brush.verticalGradient(listOf(OxfordBlue, OxfordBlue.copy(blue = 0.55f))))
+                .padding(horizontal = 20.dp, vertical = 22.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(AmberWarning),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = PureWhite, modifier = Modifier.size(28.dp))
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = currentUser?.fullName ?: "System Admin",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = PureWhite,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Surface(
+                        color = AmberWarning.copy(alpha = 0.22f),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = "SYSTEM ADMIN",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = AmberWarning,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                    Text(
+                        text = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PureWhite.copy(alpha = 0.85f),
+                        maxLines = 1
+                    )
+                }
+
+                IconButton(
+                    onClick = { onDrawerAction("close") },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Collapse Drawer",
+                        tint = PureWhite
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Column(modifier = Modifier.padding(horizontal = Spacing.lg)) {
 
         Text(
             text = "CENTRAL SECURITY CORES",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = CoolGray,
+            letterSpacing = 1.2.sp,
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
 
@@ -304,7 +444,11 @@ fun AdminDrawerContent(
             )
         )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = Spacing.lg),
+            thickness = 0.5.dp,
+            color = OxfordBlue.copy(alpha = 0.08f)
+        )
 
         // Admin gets every Pro Host capability unconditionally — unlimited listings,
         // no package to buy (see ProHostRepository's admin bypass) — so these route
@@ -314,6 +458,7 @@ fun AdminDrawerContent(
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = OxfordBlue,
+            letterSpacing = 1.2.sp,
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
 
@@ -332,19 +477,6 @@ fun AdminDrawerContent(
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
-            label = { Text("Renting Requests", fontWeight = FontWeight.SemiBold) },
-            selected = activeTabId == "owner_requests",
-            onClick = { onTabSelected("owner_requests") },
-            icon = {
-                DrawerBadgedIcon(
-                    icon = Icons.Default.Inbox,
-                    tint = if (activeTabId == "owner_requests") CarnationOrange else OxfordBlue,
-                    showDot = pendingRequestsCount > 0
-                )
-            }
-        )
-        Spacer(modifier = Modifier.height(Spacing.xs))
-        NavigationDrawerItem(
             label = { Text("Renting Progress", fontWeight = FontWeight.SemiBold) },
             selected = activeTabId == "owner_progress",
             onClick = { onTabSelected("owner_progress") },
@@ -358,13 +490,18 @@ fun AdminDrawerContent(
             icon = { Icon(Icons.Default.Analytics, contentDescription = null, tint = if (activeTabId == "stats") CarnationOrange else OxfordBlue) }
         )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.lg), color = LightGray)
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = Spacing.lg),
+            thickness = 0.5.dp,
+            color = OxfordBlue.copy(alpha = 0.08f)
+        )
 
         Text(
             text = "SYSTEM AUDIT & PRICING",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = OxfordBlue,
+            letterSpacing = 1.2.sp,
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
 
@@ -402,6 +539,7 @@ fun AdminDrawerContent(
         // Always the last element in the drawer — see DrawerSignOutButton's own doc
         // comment for why it lives here instead of on DrawerIdentityCard.
         DrawerSignOutButton(userEmail = currentUser?.email, onSignOut = onSignOut)
+        } // end inner padding Column
     }
 }
 

@@ -60,6 +60,33 @@ class ProHostViewModel(
         com.google.firebase.auth.FirebaseAuth.getInstance().currentUser != null
     )
     val isRestoringSession: StateFlow<Boolean> = _isRestoringSession.asStateFlow()
+    private val _sessionRestoreError = MutableStateFlow<String?>(null)
+    val sessionRestoreError: StateFlow<String?> = _sessionRestoreError.asStateFlow()
+
+    // Set to true by MainActivity.onResume when the app was in the background for >60s
+    // with a signed-in user — gates the UI behind PIN entry (H1).
+    private val _pinReauthRequired = MutableStateFlow(false)
+    val pinReauthRequired: StateFlow<Boolean> = _pinReauthRequired.asStateFlow()
+
+    // Set during session restore when we detect the user has no PIN yet (registered before
+    // PIN was introduced). Gates the app behind PIN creation, same pattern as pinReauthRequired.
+    private val _requiresPinSetup = MutableStateFlow(false)
+    val requiresPinSetup: StateFlow<Boolean> = _requiresPinSetup.asStateFlow()
+
+    fun clearRequiresPinSetup() {
+        _requiresPinSetup.value = false
+    }
+
+    fun requestPinReauth() {
+        // Skip for ADMIN accounts — they have no phone-OTP registration and cannot verify PIN (NF1).
+        val user = currentUser.value ?: return
+        if (user.role == com.example.data.model.UserRole.ADMIN) return
+        _pinReauthRequired.value = true
+    }
+
+    fun clearPinReauth() {
+        _pinReauthRequired.value = false
+    }
 
     // Set when cold-start restoration finds a Firebase-Auth-verified session whose
     // registration was never actually completed (app killed between OTP
@@ -108,14 +135,14 @@ class ProHostViewModel(
                     // account is server-confirmed suspended, so don't leave a locally-valid
                     // Firebase session around for the next cold start to just retry.
                     com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                    // Session restore took >15s — most likely a slow connection with no
+                    // cached claim. currentUser stays null → ProHostNavGraph falls through
+                    // to LoginAuthScreen, but we surface a banner so the user knows why.
+                    _sessionRestoreError.value = "Session restore timed out. Please sign in again."
                 } catch (e: Exception) {
-                    // Most likely offline with no prior custom claim to fall back on
-                    // (resolveVerifiedRole's own tolerance already covers "offline but a
-                    // claim already exists"), or the timeout above firing
-                    // (kotlinx.coroutines.TimeoutCancellationException — also an
-                    // Exception, caught here same as any other failure). repository.
-                    // currentUser stays null either way, so ProHostNavGraph correctly
-                    // falls through to LoginAuthScreen.
+                    // Offline with no prior custom claim, or other transient failure.
+                    // repository.currentUser stays null — LoginAuthScreen handles it.
                 } finally {
                     _isRestoringSession.value = false
                 }
@@ -200,83 +227,220 @@ class ProHostViewModel(
     // feedback of any kind. Both the dialog and these wrappers are removed; use
     // AdminViewModel's checked equivalents instead.
 
-    // --- Whish Pay Settlement ---
-    // All four flows below used to build a "SUCCESS" WhishTransaction locally and grant
-    // the entitlement immediately — the client both set the price and self-reported
-    // success, with no actual payment required. They now call initiateWhishPayment
-    // (Cloud Function), which computes the real amount server-side and returns a
-    // collectUrl to open; nothing is granted until whishWebhook/checkWhishStatus
-    // independently confirms success with Whish itself. See
-    // functions/src/payments/initiateWhishPayment.ts.
+    // --- Google Play Billing & Google Pay Integration ---
+    private var playBillingManager: com.example.data.billing.PlayBillingManager? = null
 
-    // Guards against a double-submit launching two separate Whish transactions for
-    // the same purchase (e.g. a rapid double-tap on "Go to Whish Pay" before the
-    // confirmation dialog closes) — each would be a real, independently-charged
-    // order server-side, not a harmless duplicate click. Exposed so the buttons
-    // that call payOwnerPackageViaWhish can grey out while one is already in
-    // flight, on top of the hard guard below.
-    private val _isWhishCheckoutInFlight = MutableStateFlow(false)
-    val isWhishCheckoutInFlight: StateFlow<Boolean> = _isWhishCheckoutInFlight.asStateFlow()
+    val playBillingProducts = MutableStateFlow<List<com.android.billingclient.api.ProductDetails>>(emptyList())
+    val playBillingConnected = MutableStateFlow(false)
+    val playPurchaseHistory = MutableStateFlow<List<com.android.billingclient.api.PurchaseHistoryRecord>>(emptyList())
 
-    // The Whish checkout URL to show in an in-app WebView (see WhishCheckoutWebView.kt,
-    // hosted globally by ProHostNavGraph so it renders regardless of which screen
-    // started the payment). Replaces launching an external browser Intent — that
-    // depended on the hopebearer-award.com Android App Link reliably intercepting the
-    // post-checkout redirect, which isn't guaranteed (exact signing-cert fingerprint
-    // match, network access at install time). A WebView this app fully controls can
-    // detect that same redirect itself via shouldOverrideUrlLoading, with no
-    // dependency on OS-level App Link verification. checkWhishStatus polling (started
-    // right below, independent of the WebView) remains the actual source of truth for
-    // whether the payment settled — the WebView closing early is a UX nicety only.
-    private val _pendingCheckoutUrl = MutableStateFlow<String?>(null)
-    val pendingCheckoutUrl: StateFlow<String?> = _pendingCheckoutUrl.asStateFlow()
+    // Holds a deferred launch when billing was not yet connected at the time the user tapped
+    // "Subscribe via Google Play". Cleared and retried once products arrive from Play.
+    private var _pendingRetryProductId: String? = null
+    private var _pendingRetryActivity: java.lang.ref.WeakReference<android.app.Activity>? = null
 
-    fun clearPendingCheckoutUrl() {
-        _pendingCheckoutUrl.value = null
+    fun initPlayBilling(context: Context) {
+        if (playBillingManager == null) {
+            val manager = com.example.data.billing.PlayBillingManager(context.applicationContext, viewModelScope)
+            playBillingManager = manager
+            viewModelScope.launch {
+                manager.isConnected.collect { connected ->
+                    playBillingConnected.value = connected
+                }
+            }
+            viewModelScope.launch {
+                manager.productDetailsList.collect { products ->
+                    playBillingProducts.value = products
+                    // Retry a deferred billing launch once the target product is available
+                    val retryId = _pendingRetryProductId
+                    val retryActivity = _pendingRetryActivity?.get()
+                    if (retryId != null && retryActivity != null && products.any { it.productId == retryId }) {
+                        _pendingRetryProductId = null
+                        _pendingRetryActivity = null
+                        launchGooglePaySubscription(retryActivity, retryId)
+                    }
+                }
+            }
+            viewModelScope.launch {
+                manager.purchaseEvents.collect { purchase ->
+                    val productId = purchase.products.firstOrNull() ?: com.example.data.billing.PlayBillingManager.PRODUCT_ID_GROWTH
+                    repository.recordActivePurchaseToken(productId, purchase.purchaseToken)
+                }
+            }
+            manager.startConnection()
+        }
     }
 
-    private fun launchWhishCheckout(
-        purpose: String,
-        targetId: String? = null,
-        payerName: String,
-        payerPhone: String,
-        context: Context,
-        draftListingId: String? = null
-    ) {
-        if (_isWhishCheckoutInFlight.value) return
-        _isWhishCheckoutInFlight.value = true
+    private val _billingError = MutableStateFlow<String?>(null)
+    val billingError: StateFlow<String?> = _billingError.asStateFlow()
+
+    private val _billingSuccess = MutableStateFlow<String?>(null)
+    val billingSuccess: StateFlow<String?> = _billingSuccess.asStateFlow()
+
+    private val _billingActivationPending = MutableStateFlow(false)
+    val billingActivationPending: StateFlow<Boolean> = _billingActivationPending.asStateFlow()
+    private var billingActivationTimeoutJob: kotlinx.coroutines.Job? = null
+
+    // Tracks the expiry the user had BEFORE launching a Play billing flow so the
+    // collectLatest observer can distinguish "RTDN updated the expiry" from
+    // "profile updated for some other reason (existing subscriber)".
+    private val _billingPriorExpiryMillis = MutableStateFlow<Long?>(null)
+
+    // Clears billingActivationPending once the Firestore listener reflects the RTDN
+    // grant — i.e. ownerPackageExpiryMillis changed from what it was at launch time.
+    init {
         viewModelScope.launch {
-            val result = try {
-                functionsClient.initiateWhishPayment(purpose, targetId, payerName, payerPhone, draftListingId)
-            } finally {
-                _isWhishCheckoutInFlight.value = false
-            }
-            result.onSuccess { init ->
-                _pendingCheckoutUrl.value = init.collectUrl
-                Toast.makeText(
-                    context,
-                    if (draftListingId != null) {
-                        "Complete your payment. Your pending Draft will publish automatically once Whish settles it."
-                    } else {
-                        "Complete your payment. We'll confirm automatically once Whish settles it."
-                    },
-                    Toast.LENGTH_LONG
-                ).show()
-                // The correlation is now recorded server-side on the transaction
-                // itself (see entitlements.ts's autoPublishDraftIfNeeded) — clearing
-                // it here just stops OwnerSubscriptionsScreen's banner from re-firing
-                // a second, unrelated purchase against the same draft.
-                if (draftListingId != null) clearPendingAutoPublishDraft()
-                pollWhishPaymentStatus(init.txId, purpose, context)
-            }.onFailure { e ->
-                Toast.makeText(
-                    context,
-                    com.example.util.friendlyErrorMessage(e, "Could not start payment. Please check your connection and try again."),
-                    Toast.LENGTH_LONG
-                ).show()
+            currentUser.collectLatest { user ->
+                if (user?.ownerPackageExpiryMillis != null &&
+                    user.ownerPackageExpiryMillis != _billingPriorExpiryMillis.value &&
+                    _billingActivationPending.value
+                ) {
+                    billingActivationTimeoutJob?.cancel()
+                    _billingActivationPending.value = false
+                    // Force-refresh the ID token so the new PRO_HOST claim takes effect
+                    // immediately — without this the user sees SPECIALIST navigation for
+                    // up to an hour until the token naturally expires.
+                    refreshCurrentUserRoleAfterEntitlement()
+                }
             }
         }
     }
+
+    fun clearBillingMessages() {
+        _billingError.value = null
+        _billingSuccess.value = null
+    }
+
+    fun dismissBillingActivationPending() {
+        billingActivationTimeoutJob?.cancel()
+        _billingActivationPending.value = false
+    }
+
+    fun resendEmailVerification(context: android.content.Context) {
+        val appContext = context.applicationContext
+        viewModelScope.launch {
+            val result = functionsClient.resendEmailVerification()
+            val msg = if (result.isSuccess) {
+                "Verification email sent. Check your inbox."
+            } else {
+                val err = result.exceptionOrNull()?.message ?: "Unknown error"
+                when {
+                    err.contains("resource-exhausted", ignoreCase = true) ||
+                    err.contains("3 times", ignoreCase = true) -> "You've already requested 3 emails today. Try again tomorrow."
+                    else -> "Could not send email: $err"
+                }
+            }
+            android.widget.Toast.makeText(appContext, msg, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
+    fun sendInquiryEmail(context: android.content.Context, spaceId: String, message: String) {
+        val appContext = context.applicationContext
+        viewModelScope.launch {
+            val result = functionsClient.sendInquiryEmail(spaceId, message)
+            val msg = if (result.isSuccess) {
+                "Inquiry sent to the space owner."
+            } else {
+                val err = result.exceptionOrNull()?.message ?: "Unknown error"
+                when {
+                    err.contains("resource-exhausted", ignoreCase = true) ->
+                        "You've reached the daily inquiry limit (3 per day). Try again tomorrow."
+                    err.contains("not-found", ignoreCase = true) -> "Listing not found."
+                    else -> "Could not send inquiry: $err"
+                }
+            }
+            android.widget.Toast.makeText(appContext, msg, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
+    fun launchGooglePaySubscription(
+        activity: android.app.Activity,
+        productId: String
+    ) {
+        val uid = currentUser.value?.id ?: return
+        // Persist the pending draft ID before the billing sheet opens so the RTDN
+        // Cloud Function can auto-publish it when the subscription is confirmed.
+        val draftId = _pendingAutoPublishDraftId.value
+        if (draftId != null) {
+            viewModelScope.launch {
+                try {
+                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                        .collection("user_profiles").document(uid)
+                        .update("pendingPlayPublishDraftId", draftId).await()
+                } catch (_: Exception) { /* non-fatal; RTDN will skip auto-publish */ }
+            }
+        }
+
+        val manager = playBillingManager ?: run {
+            initPlayBilling(activity)
+            playBillingManager
+        }
+        val product = manager?.productDetailsList?.value?.find { it.productId == productId }
+        if (product != null) {
+            // For upgrades/downgrades: pass the current active subscription's purchase token so
+            // Play can perform a proper subscription replacement (prorated billing, immediate effect).
+            val currentPlanId = currentUser.value?.ownerPackageId
+            val oldPurchaseToken = if (!currentPlanId.isNullOrBlank() && currentPlanId != productId) {
+                manager.activePurchases.value.firstOrNull { it.products.any { id -> id == currentPlanId } }?.purchaseToken
+            } else null
+
+            manager.launchSubscriptionPurchase(activity, product, userId = uid, oldPurchaseToken = oldPurchaseToken)
+            _billingPriorExpiryMillis.value = currentUser.value?.ownerPackageExpiryMillis
+            _billingActivationPending.value = true
+            billingActivationTimeoutJob?.cancel()
+            billingActivationTimeoutJob = viewModelScope.launch {
+                kotlinx.coroutines.delay(5 * 60 * 1000L)
+                _billingActivationPending.value = false
+            }
+        } else {
+            // Store the intent and retry automatically once products load from Play
+            _pendingRetryProductId = productId
+            _pendingRetryActivity = java.lang.ref.WeakReference(activity)
+            Toast.makeText(activity, "Connecting to Google Play Store…", Toast.LENGTH_SHORT).show()
+            manager?.querySubscriptionProducts()
+        }
+    }
+
+    fun openManageSubscriptions(activity: android.app.Activity, productId: String? = null) {
+        playBillingManager?.openManageSubscriptions(activity, productId) ?: run {
+            val uri = if (!productId.isNullOrBlank()) {
+                "https://play.google.com/store/account/subscriptions?sku=$productId&package=${activity.packageName}"
+            } else {
+                "https://play.google.com/store/account/subscriptions?package=${activity.packageName}"
+            }
+            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
+        }
+    }
+
+    fun openRedeemPromoCode(activity: android.app.Activity) {
+        playBillingManager?.openRedeemPromoCode(activity) ?: run {
+            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/redeem")))
+        }
+    }
+
+    /**
+     * Fetches a single Play subscription product by its Play Console product ID. Used by the
+     * Admin Console "Refresh from Play" button to auto-populate plan name and price from the
+     * live Play Store catalog. Initialises the billing client if not already connected.
+     * Callback is invoked on the main thread.
+     */
+    fun fetchPlayProductDetails(context: Context, productId: String, onResult: (com.android.billingclient.api.ProductDetails?) -> Unit) {
+        val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager }
+        manager?.queryProductDetailsForId(productId, onResult) ?: onResult(null)
+    }
+
+    fun loadPlayHistory(context: Context) {
+        val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager } ?: return
+        viewModelScope.launch {
+            try {
+                playPurchaseHistory.value = manager.queryPurchaseHistory()
+            } catch (e: Exception) {
+                android.util.Log.w("ProHostViewModel", "loadPlayHistory failed: ${e.message}")
+            }
+        }
+    }
+
+    // Whish Pay settlement was removed — app is fully on Google Play Billing.
 
     // Set by OwnerHubScreen right before redirecting to Subscriptions after a
     // PackageLimitReached Publish rejection — the id of
@@ -312,42 +476,6 @@ class ProHostViewModel(
         val claim = com.example.data.auth.FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true) ?: return
         val role = runCatching { UserRole.valueOf(claim) }.getOrNull() ?: return
         repository.login(uid = firebaseUser.uid, email = firebaseUser.email ?: "", verifiedRole = role)
-    }
-
-    /** Bounded polling fallback in case the server-to-server webhook is slow/missed. */
-    private fun pollWhishPaymentStatus(txId: String, purpose: String, context: Context) {
-        viewModelScope.launch {
-            repeat(24) {
-                kotlinx.coroutines.delay(5000)
-                val status = functionsClient.checkWhishStatus(txId).getOrNull()
-                if (status == "SUCCESS") {
-                    if (purpose == "OWNER_PACKAGE") {
-                        refreshCurrentUserRoleAfterEntitlement()
-                    }
-                    Toast.makeText(context, "Payment confirmed! Your entitlement is now active.", Toast.LENGTH_LONG).show()
-                    return@launch
-                } else if (status == "FAILED") {
-                    Toast.makeText(context, "Whish reported this payment did not complete.", Toast.LENGTH_LONG).show()
-                    return@launch
-                }
-            }
-        }
-    }
-
-    /** Manually triggered re-check, e.g. from a "Verify Payment" button in the UI. */
-    fun checkWhishPaymentStatus(txId: String, purpose: String, context: Context) {
-        viewModelScope.launch {
-            val status = functionsClient.checkWhishStatus(txId).getOrNull()
-            if (status == "SUCCESS" && purpose == "OWNER_PACKAGE") {
-                refreshCurrentUserRoleAfterEntitlement()
-            }
-            val message = when (status) {
-                "SUCCESS" -> "Payment confirmed! Your entitlement is now active."
-                "FAILED" -> "Whish reported this payment did not complete."
-                else -> "Still waiting for Whish to confirm this payment."
-            }
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-        }
     }
 
     // payBookingViaWhish (booking rent settlement inside the app) is gone —
@@ -437,16 +565,6 @@ class ProHostViewModel(
         return repository.deleteSpaceListing(spaceId)
     }
 
-    fun payOwnerPackageViaWhish(
-        packageId: String,
-        payerName: String,
-        payerPhone: String,
-        context: Context,
-        draftListingId: String? = null
-    ) {
-        launchWhishCheckout("OWNER_PACKAGE", packageId, payerName, payerPhone, context, draftListingId)
-    }
-
     // Sign-in/registration (phone OTP + Google Sign-In) moved to AuthViewModel —
     // see its doc comment. Every method/state field there had exactly one caller
     // (LoginAuthScreen) before this move.
@@ -463,6 +581,11 @@ class ProHostViewModel(
     // grantAdminRole() (Admin-to-Admin grants) or grantEntitlement() promoting a SPECIALIST
     // to PRO_HOST the moment their package/listing Whish payment settles — never a free,
     // client-invocable "upgrade" call.
+
+    override fun onCleared() {
+        super.onCleared()
+        playBillingManager?.endConnection()
+    }
 
     fun logout() {
         // repository.logout() fires the (fire-and-forget) FCM-token-clear write
@@ -653,7 +776,13 @@ class ProHostViewModel(
             Toast.makeText(context, "Please log in to submit a rental request", Toast.LENGTH_SHORT).show()
             return
         }
+        // B4: KYC gate — require at least a profile picture before booking
+        if (user.kycLevel < 1) {
+            Toast.makeText(context, "Please add a profile picture before making booking requests.", Toast.LENGTH_LONG).show()
+            return
+        }
 
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val (request, synced) = repository.createBookingRequest(
                 space = space,
@@ -674,7 +803,7 @@ class ProHostViewModel(
             )
 
             Toast.makeText(
-                context,
+                appContext,
                 if (synced) {
                     if (replacesBookingId != null) {
                         "Edit Request #${request.id} Sent! Your current booking stays active until the host approves this change."
@@ -703,12 +832,13 @@ class ProHostViewModel(
      * this device, so nothing needs to be posted here.
      */
     fun acceptBookingRequest(context: Context, requestId: String, agreementUri: Uri) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             // Refuse before the upload: accepting this would double-book a slot an
             // ACCEPTED booking already holds. Named so the host knows which one.
             repository.findAcceptConflict(requestId)?.let { clash ->
                 Toast.makeText(
-                    context,
+                    appContext,
                     "Can't accept #$requestId — it overlaps accepted booking #${clash.id} (${clash.practitionerName}, ${clash.selectedDateTimeRange}).",
                     Toast.LENGTH_LONG
                 ).show()
@@ -718,14 +848,14 @@ class ProHostViewModel(
             val ext = guessFileExtension(context, agreementUri, "pdf")
             val agreementUrl = storageService.uploadBookingAgreement(requestId, agreementUri, ext)
             if (agreementUrl == null) {
-                Toast.makeText(context, "Could not upload the agreement. Please try again.", Toast.LENGTH_LONG).show()
+                Toast.makeText(appContext, "Could not upload the agreement. Please try again.", Toast.LENGTH_LONG).show()
                 return@launch
             }
             val success = repository.acceptBookingRequest(requestId, agreementUrl)
             if (success) {
-                Toast.makeText(context, "Booking Request #$requestId ACCEPTED! Agreement saved.", Toast.LENGTH_LONG).show()
+                Toast.makeText(appContext, "Booking Request #$requestId ACCEPTED! Agreement saved.", Toast.LENGTH_LONG).show()
             } else {
-                Toast.makeText(context, "Could not finalize acceptance. Please try again.", Toast.LENGTH_LONG).show()
+                Toast.makeText(appContext, "Could not finalize acceptance. Please try again.", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -736,34 +866,37 @@ class ProHostViewModel(
      * host's own device's alert tray and never reached the specialist at all.
      */
     fun sendPaymentReminder(bookingId: String, practitionerName: String, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val result = functionsClient.sendPaymentReminder(bookingId)
             if (result.isSuccess) {
-                Toast.makeText(context, "Payment Reminder Sent to $practitionerName!", Toast.LENGTH_LONG).show()
+                Toast.makeText(appContext, "Payment Reminder Sent to $practitionerName!", Toast.LENGTH_LONG).show()
             } else {
-                Toast.makeText(context, "Could not send the reminder. Please try again.", Toast.LENGTH_LONG).show()
+                Toast.makeText(appContext, "Could not send the reminder. Please try again.", Toast.LENGTH_LONG).show()
             }
         }
     }
 
     fun rejectBookingRequest(requestId: String, note: String? = null, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.rejectBookingRequest(requestId, note)
             if (success) {
-                Toast.makeText(context, "Booking Request #${requestId} Declined. Space hours remain available.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(appContext, "Booking Request #${requestId} Declined. Space hours remain available.", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(context, "Could not decline the request — check your connection and try again.", Toast.LENGTH_LONG).show()
+                Toast.makeText(appContext, "Could not decline the request — check your connection and try again.", Toast.LENGTH_LONG).show()
             }
         }
     }
 
     fun cancelBookingRequest(requestId: String, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.cancelBookingRequest(requestId)
             if (success) {
-                Toast.makeText(context, "Booking Request #${requestId} Cancelled", Toast.LENGTH_SHORT).show()
+                Toast.makeText(appContext, "Booking Request #${requestId} Cancelled", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(context, "Could not cancel the request — check your connection and try again.", Toast.LENGTH_LONG).show()
+                Toast.makeText(appContext, "Could not cancel the request — check your connection and try again.", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -781,6 +914,7 @@ class ProHostViewModel(
         context: Context
     ) {
         val user = currentUser.value ?: return
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.cancelAcceptedBooking(
                 requestId = requestId,
@@ -790,7 +924,7 @@ class ProHostViewModel(
                 cancelledByRole = user.role.name
             )
             Toast.makeText(
-                context,
+                appContext,
                 if (success) "Booking cancelled. The other party has been notified." else "Could not cancel this booking — please try again.",
                 Toast.LENGTH_LONG
             ).show()
@@ -799,35 +933,25 @@ class ProHostViewModel(
 
     /** "Mark as Paid" — record-keeping only; asHost decides which side's own flag gets set. */
     fun acknowledgePayment(requestId: String, asHost: Boolean, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.acknowledgePayment(requestId, asHost)
             if (!success) {
-                Toast.makeText(context, "Couldn't save that — please try again.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(appContext, "Couldn't save that — please try again.", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     /**
      * Saves whichever verification document the host just uploaded and requests
-     * the Listing Verified badge (functions/src/admin/listings.ts's
-     * requestListingVerification, auto-granted — no manual review). Optional;
-     * this is never called as part of publishing a listing.
+     * the Listing Verified badge. Returns true on success; the caller is responsible
+     * for dismissing the dialog (on success) or showing an inline retry error (on failure).
      */
-    fun requestListingVerification(
+    suspend fun requestListingVerification(
         spaceId: String,
         docUrl: String,
-        docType: ListingVerificationDocType,
-        context: Context
-    ) {
-        viewModelScope.launch {
-            val success = repository.requestOwnListingVerification(spaceId, docUrl, docType)
-            Toast.makeText(
-                context,
-                if (success) "Submitted for review — an Admin will verify it shortly." else "Couldn't submit this listing for verification — please try again.",
-                Toast.LENGTH_LONG
-            ).show()
-        }
-    }
+        docType: ListingVerificationDocType
+    ): Boolean = repository.requestOwnListingVerification(spaceId, docUrl, docType)
 
     /** Toggles [spaceId] in the current user's personal saved/favorites list. */
     fun toggleSavedSpace(spaceId: String) {
@@ -843,10 +967,11 @@ class ProHostViewModel(
 
     /** Pause/Resume a published listing, or publish a Draft — see setListingStatus's doc comment. */
     fun setListingStatus(spaceId: String, status: ListingStatus, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.setListingStatus(spaceId, status)
             if (!success) {
-                Toast.makeText(context, "Couldn't update this listing — please try again.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(appContext, "Couldn't update this listing — please try again.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -861,10 +986,11 @@ class ProHostViewModel(
             endTime = endTime,
             reason = reason
         )
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.addBlackoutSlot(spaceId, slot)
             Toast.makeText(
-                context,
+                appContext,
                 if (success) "$dayOfWeek $startTime - $endTime is no longer offered" else "Couldn't switch that slot off — please try again",
                 Toast.LENGTH_SHORT
             ).show()
@@ -872,10 +998,11 @@ class ProHostViewModel(
     }
 
     fun removeBlackoutSlot(spaceId: String, slotId: String, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.removeBlackoutSlot(spaceId, slotId)
             Toast.makeText(
-                context,
+                appContext,
                 if (success) "Slot is back on offer" else "Couldn't switch that slot on — please try again",
                 Toast.LENGTH_SHORT
             ).show()
@@ -903,10 +1030,11 @@ class ProHostViewModel(
             operatingDays = operatingDays,
             isSundayOperating = isSundayOperating
         )
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.updateSpaceSchedule(spaceId, updatedSchedule)
             Toast.makeText(
-                context,
+                appContext,
                 if (success) "Operating schedule updated!" else "Failed to update schedule — please try again",
                 Toast.LENGTH_SHORT
             ).show()
@@ -940,10 +1068,11 @@ class ProHostViewModel(
             minHours = minHours,
             shiftName = shiftName
         )
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.addRentalFormula(spaceId, formula)
             Toast.makeText(
-                context,
+                appContext,
                 if (success) "New formula '${type.displayName}' added!" else "Failed to add formula — please try again",
                 Toast.LENGTH_SHORT
             ).show()
@@ -951,10 +1080,11 @@ class ProHostViewModel(
     }
 
     fun deleteFormula(spaceId: String, formulaId: String, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.deleteRentalFormula(spaceId, formulaId)
             Toast.makeText(
-                context,
+                appContext,
                 if (success) "Rental formula deleted" else "Failed to delete formula — please try again",
                 Toast.LENGTH_SHORT
             ).show()
@@ -963,19 +1093,21 @@ class ProHostViewModel(
 
     /** Adds one room/desk to an already-published listing — see SubdivisionEditorSection. */
     fun addSubdivision(spaceId: String, subdivision: Subdivision, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.addSubdivision(spaceId, subdivision)
             if (!success) {
-                Toast.makeText(context, "Couldn't add this room — please try again", Toast.LENGTH_SHORT).show()
+                Toast.makeText(appContext, "Couldn't add this room — please try again", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     fun removeSubdivision(spaceId: String, subdivisionId: String, context: Context) {
+        val appContext = context.applicationContext
         viewModelScope.launch {
             val success = repository.removeSubdivision(spaceId, subdivisionId)
             if (!success) {
-                Toast.makeText(context, "Couldn't remove this room — please try again", Toast.LENGTH_SHORT).show()
+                Toast.makeText(appContext, "Couldn't remove this room — please try again", Toast.LENGTH_SHORT).show()
             }
         }
     }

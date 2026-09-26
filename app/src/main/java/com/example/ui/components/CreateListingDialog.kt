@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -31,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
@@ -147,13 +149,13 @@ fun CreateListingDialog(
         Dialog(onDismissRequest = onDismiss) {
             Card(shape = MaterialTheme.shapes.large) {
                 Column(modifier = Modifier.padding(Spacing.xl), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Sign In Required", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
+                    Text("Sign In Required", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                     Text(
                         "Your account couldn't be loaded. Please sign in again before creating a listing.",
-                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Button(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text("Close") }
+                    CustomButton(text = "Close", onClick = onDismiss, modifier = Modifier.align(Alignment.End), variant = CustomButtonVariant.TEXT)
                 }
             }
         }
@@ -196,6 +198,18 @@ fun CreateListingDialog(
             var failureCount = 0
             uris.forEach { uri ->
                 val imageId = UUID.randomUUID().toString().take(8)
+                val fileSizeBytes = withContext(Dispatchers.IO) {
+                    runCatching {
+                        context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+                            if (cursor.moveToFirst()) cursor.getLong(0) else null
+                        }
+                    }.getOrNull()
+                }
+                if (fileSizeBytes != null && fileSizeBytes > 15 * 1024 * 1024) {
+                    failureCount++
+                    photoUploadError = "One or more images exceed the 15 MB limit. Please choose smaller files."
+                    return@forEach
+                }
                 val bytes = withContext(Dispatchers.IO) {
                     runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
                 }
@@ -431,10 +445,13 @@ fun CreateListingDialog(
     // blackout slots a listing already had before this removal are preserved as-is
     // (see buildListing() below) — there is just no UI here to add more.
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.96f)
                 .fillMaxHeight(0.95f),
             shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -453,13 +470,13 @@ fun CreateListingDialog(
                     Column {
                         Text(
                             text = if (existingDraft != null) "Continue Draft Listing" else "Publish Workspace Listing",
-                            fontSize = MaterialTheme.typography.headlineSmall.fontSize,
+                            style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "Step ${currentStep + 1} of $totalSteps • Lebanon Network",
-                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                            style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         // Only ever true once the auto-save LaunchedEffect below has
@@ -467,7 +484,7 @@ fun CreateListingDialog(
                         if (lastAutoSavedAtMillis != null) {
                             Text(
                                 text = "Draft auto-saved",
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -495,7 +512,7 @@ fun CreateListingDialog(
                         0 -> {
                             // Step 1: Space Definition & Ownership Verification
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Text("Space Identification", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                Text("Space Identification", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                                 InputField(
                                     value = title,
                                     onValueChange = { title = it; hasUserTyped = true },
@@ -504,7 +521,7 @@ fun CreateListingDialog(
                                     singleLine = true
                                 )
 
-                                Text("Space Category", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                Text("Space Category", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     items(categoryOptions) { category ->
                                         FilterChip(
@@ -515,7 +532,7 @@ fun CreateListingDialog(
                                                 selectedSpaceType = legacyTypeFor(category.id)
                                             },
                                             label = {
-                                                Text(category.name, fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                                                Text(category.name, style = MaterialTheme.typography.labelMedium)
                                             }
                                         )
                                     }
@@ -523,7 +540,7 @@ fun CreateListingDialog(
 
                                 HorizontalDivider()
 
-                                Text("Location & Description", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                Text("Location & Description", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
 
                                 InputField(
                                     value = description,
@@ -535,10 +552,10 @@ fun CreateListingDialog(
                                     maxLines = 3
                                 )
 
-                                Text("Pin the Exact Location", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                Text("Pin the Exact Location", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                                 Text(
                                     "Drop or drag the marker to the real GPS coordinates specialists will see when searching nearby — required to publish. The address fields below fill in automatically; edit them freely afterward.",
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 ListingLocationMapPicker(
@@ -587,14 +604,14 @@ fun CreateListingDialog(
                                     singleLine = true
                                 )
 
-                                Text("Floor", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                Text("Floor", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     IconButton(onClick = { if (floorNumber > -5) floorNumber-- }) {
                                         Icon(Icons.Default.Remove, contentDescription = "Decrease floor")
                                     }
                                     Text(
                                         text = if (floorNumber == 0) "Ground Floor" else "Floor $floorNumber",
-                                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                                        style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     IconButton(onClick = { if (floorNumber < 30) floorNumber++ }) {
@@ -604,10 +621,10 @@ fun CreateListingDialog(
 
                                 HorizontalDivider()
 
-                                Text("Target Disciplines", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                Text("Target Disciplines", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                                 Text(
                                     "Hashtag the rentee backgrounds you'd prefer (e.g. #Cardiologist, #Architect).",
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -636,7 +653,7 @@ fun CreateListingDialog(
                                         items(matchingSuggestions) { suggestion ->
                                             AssistChip(
                                                 onClick = { selectedSpecialties = selectedSpecialties + suggestion; hashtagInput = "" },
-                                                label = { Text("#$suggestion", fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                                                label = { Text("#$suggestion", style = MaterialTheme.typography.labelSmall) }
                                             )
                                         }
                                     }
@@ -647,7 +664,7 @@ fun CreateListingDialog(
                                             InputChip(
                                                 selected = true,
                                                 onClick = { selectedSpecialties = selectedSpecialties - tag },
-                                                label = { Text("#$tag", fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+                                                label = { Text("#$tag", style = MaterialTheme.typography.labelSmall) },
                                                 trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp)) }
                                             )
                                         }
@@ -658,10 +675,10 @@ fun CreateListingDialog(
 
                                 HorizontalDivider()
 
-                                Text("Cover Photos", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                Text("Cover Photos", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                                 Text(
                                     "Real photos of the space — shown first in search results. At least one is required to publish (Save as Draft never needs one).",
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = if (uploadedPhotoUrls.isEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -718,7 +735,7 @@ fun CreateListingDialog(
                                     Text(
                                         photoUploadError!!,
                                         color = MaterialTheme.colorScheme.error,
-                                        fontSize = MaterialTheme.typography.labelSmall.fontSize
+                                        style = MaterialTheme.typography.labelSmall
                                     )
                                 }
                             }
@@ -727,7 +744,7 @@ fun CreateListingDialog(
                         1 -> {
                             // Step 2: Operational Parameters & Facility Rules
                             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("Communication Setup", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                Text("Communication Setup", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                                 PhoneNumberField(
                                     country = ownerPhoneCountry,
                                     onCountryChange = {
@@ -745,10 +762,10 @@ fun CreateListingDialog(
 
                                 HorizontalDivider()
 
-                                Text("Facility Operating Hours & Days", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                Text("Facility Operating Hours & Days", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                                 Text(
                                     "Controls the availability logic in Step 3 — the days and hours you select here are the only ones a rentable slot can ever be offered in.",
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 OperatingScheduleEditorSection(
@@ -763,7 +780,7 @@ fun CreateListingDialog(
 
                                 HorizontalDivider()
 
-                                Text("Shared Essential Facilities", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                Text("Shared Essential Facilities", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                                 val firstFacility = selectedFacilities.firstOrNull()
                                 val facilitySummary = if (firstFacility != null) {
                                     if (selectedFacilities.size > 1) "$firstFacility (+${selectedFacilities.size - 1} more selected)" else "$firstFacility selected"
@@ -791,7 +808,7 @@ fun CreateListingDialog(
 
                                 HorizontalDivider()
 
-                                Text("Professional Equipment Catalog", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                Text("Professional Equipment Catalog", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                                 val firstEquip = chosenEquipment.firstOrNull()?.name
                                 val equipSummary = if (firstEquip != null) {
                                     if (chosenEquipment.size > 1) "$firstEquip (+${chosenEquipment.size - 1} more selected)" else "$firstEquip selected"
@@ -839,7 +856,7 @@ fun CreateListingDialog(
                                                 FilterChip(
                                                     selected = customEquipmentCategory == cat,
                                                     onClick = { customEquipmentCategory = cat },
-                                                    label = { Text(cat.displayName, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                                                    label = { Text(cat.displayName, style = MaterialTheme.typography.labelSmall) }
                                                 )
                                             }
                                         }
@@ -869,26 +886,25 @@ fun CreateListingDialog(
                                         }
                                     }
                                 } else {
-                                    OutlinedButton(
+                                    CustomButton(
+                                        text = "Add custom equipment not listed above",
                                         onClick = { showAddCustomEquipment = true },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Add custom equipment not listed above")
-                                    }
+                                        modifier = Modifier.fillMaxWidth(),
+                                        variant = CustomButtonVariant.OUTLINED,
+                                        icon = Icons.Default.Add
+                                    )
                                 }
 
                                 HorizontalDivider()
 
-                                Text("Premises Rules and Policy", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
+                                Text("Premises Rules and Policy", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
 
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("Smoking Allowed", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                    Text("Smoking Allowed", style = MaterialTheme.typography.bodySmall)
                                     Switch(checked = smokingAllowed, onCheckedChange = { smokingAllowed = it })
                                 }
                                 Row(
@@ -896,7 +912,7 @@ fun CreateListingDialog(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("Food Allowed", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                    Text("Food Allowed", style = MaterialTheme.typography.bodySmall)
                                     Switch(checked = foodAllowed, onCheckedChange = { foodAllowed = it })
                                 }
                                 Row(
@@ -904,7 +920,7 @@ fun CreateListingDialog(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("Pets Allowed", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                    Text("Pets Allowed", style = MaterialTheme.typography.bodySmall)
                                     Switch(checked = petsAllowed, onCheckedChange = { petsAllowed = it })
                                 }
                                 Row(
@@ -912,7 +928,7 @@ fun CreateListingDialog(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("Off-Hours Access", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                    Text("Off-Hours Access", style = MaterialTheme.typography.bodySmall)
                                     Switch(checked = offHoursAccess, onCheckedChange = { offHoursAccess = it })
                                 }
                                 InputField(
@@ -927,19 +943,41 @@ fun CreateListingDialog(
 
                         2 -> {
                             // Step 3: Availability Control Logic
-                            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("Whole Space or Divisions?", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                // Mode selector card
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                    shape = MaterialTheme.shapes.large,
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    listOf(false to "Whole Space", true to "Has Divisions").forEach { (value, label) ->
-                                        FilterChip(
-                                            selected = hasSubdivisions == value,
-                                            onClick = { hasSubdivisions = value },
-                                            label = { Text(label) },
-                                            modifier = Modifier.weight(1f)
+                                    Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                            Icon(Icons.Default.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                            Text("How do specialists rent this space?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                        }
+                                        Text(
+                                            if (hasSubdivisions) "Divisions — specialists pick a specific room or desk inside the space."
+                                            else "Whole Space — specialists rent the entire space as-is.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            listOf(false to "Whole Space", true to "Has Divisions").forEach { (value, label) ->
+                                                FilterChip(
+                                                    selected = hasSubdivisions == value,
+                                                    onClick = { hasSubdivisions = value },
+                                                    label = { Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold) },
+                                                    leadingIcon = if (hasSubdivisions == value) {
+                                                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                                    } else null,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
 
@@ -953,15 +991,26 @@ fun CreateListingDialog(
                                         closingHour = closingHour
                                     )
                                 } else {
-                                    Text("Renting Formula", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.labelLarge.fontSize, color = MaterialTheme.colorScheme.primary)
-                                    RentalPricingConfigEditor(
-                                        config = wholeSpacePricing,
-                                        operatingDays = operatingDays.toList(),
-                                        openingHour = openingHour,
-                                        closingHour = closingHour,
-                                        onConfigChange = { wholeSpacePricing = it }
-                                    )
-
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surface,
+                                        shape = MaterialTheme.shapes.large,
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                                Icon(Icons.Default.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                                Text("Renting Formula", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                            }
+                                            RentalPricingConfigEditor(
+                                                config = wholeSpacePricing,
+                                                operatingDays = operatingDays.toList(),
+                                                openingHour = openingHour,
+                                                closingHour = closingHour,
+                                                onConfigChange = { wholeSpacePricing = it }
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1130,6 +1179,7 @@ fun CreateListingDialog(
                         subdivisions = if (hasSubdivisions) subdivisionsList else emptyList(),
                         imageUrls = uploadedPhotoUrls,
                         ownerIsIdVerified = activeUser.idDocumentUrl != null,
+                        ownerProfilePictureUrl = activeUser.profilePictureUrl,
                         status = status
                     )
                 }
@@ -1310,11 +1360,14 @@ private fun FacilityPickerDialog(
         facilities.filter { it.contains(query, ignoreCase = true) }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.75f).padding(16.dp)
+            modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.88f).padding(8.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -1382,7 +1435,8 @@ private fun FacilityPickerDialog(
                         singleLine = true,
                         shape = MaterialTheme.shapes.medium
                     )
-                    Button(
+                    CustomButton(
+                        text = "Add New",
                         onClick = {
                             val trimmed = newFacilityInput.trim()
                             if (trimmed.isNotBlank() && !facilities.contains(trimmed)) {
@@ -1390,20 +1444,15 @@ private fun FacilityPickerDialog(
                                 currentSelected = currentSelected + trimmed
                                 newFacilityInput = ""
                             }
-                        },
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text("Add New")
-                    }
+                        }
+                    )
                 }
 
-                Button(
+                CustomButton(
+                    text = "Save & Apply (${currentSelected.size} Selected)",
                     onClick = { onSave(currentSelected); onDismiss() },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Text("Save & Apply (${currentSelected.size} Selected)")
-                }
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
@@ -1426,11 +1475,14 @@ private fun EquipmentPickerDialog(
         catalog.filter { query.isBlank() || it.name.contains(query, ignoreCase = true) }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f).padding(16.dp)
+            modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.88f).padding(8.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -1506,7 +1558,8 @@ private fun EquipmentPickerDialog(
                         )
                     }
                 }
-                Button(
+                CustomButton(
+                    text = "Add New to Master List",
                     onClick = {
                         val trimmed = newName.trim()
                         if (trimmed.isNotBlank() && currentChosen.none { it.name.equals(trimmed, ignoreCase = true) }) {
@@ -1522,19 +1575,14 @@ private fun EquipmentPickerDialog(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
                     enabled = newName.isNotBlank()
-                ) {
-                    Text("Add New to Master List")
-                }
+                )
 
-                Button(
+                CustomButton(
+                    text = "Save & Apply (${currentChosen.size} Selected)",
                     onClick = { onSave(currentChosen); onDismiss() },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Text("Save & Apply (${currentChosen.size} Selected)")
-                }
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

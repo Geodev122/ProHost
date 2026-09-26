@@ -19,11 +19,8 @@ export { revokeProHostRole } from "./roles/revokeProHostRole";
 export { bootstrapSuperAdmin } from "./roles/bootstrapSuperAdmin";
 export { deleteOwnAccount } from "./roles/deleteOwnAccount";
 
-export { initiateWhishPayment } from "./payments/initiateWhishPayment";
-export { whishWebhook } from "./payments/whishWebhook";
-export { checkWhishStatus } from "./payments/checkWhishStatus";
-
 export { updatePricing } from "./admin/pricing";
+export { grantPackageToUser } from "./admin/grantPackage";
 export { setListingVerification, setListingSubscriptionActive, requestListingVerification } from "./admin/listings";
 
 export { recordClientAuditLog } from "./audit/recordClientAuditLog";
@@ -40,3 +37,10 @@ export { onBookingAcceptConflictGuard } from "./bookings/bookingConflictGuard";
 export { onUserFavoritesChanged } from "./users/favoritesSync";
 
 export { expirePackages } from "./packages/expirePackages";
+
+export { resendEmailVerification, verifyEmailLink } from "./auth/emailVerification";
+export { playBillingRtdn } from "./billing/playBillingRtdn";
+export { recomputeKycLevel } from "./users/kycLevel";
+export { submitIdDocument } from "./users/submitIdDocument";
+export { reviewIdDocument } from "./users/reviewIdDocument";
+export { sendInquiryEmail } from "./users/sendInquiryEmail";

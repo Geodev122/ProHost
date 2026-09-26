@@ -1,6 +1,6 @@
 # Google Play Store Readiness & Codebase Audit Checklist
 **Package Name**: `app.geonajjar.prohost`  
-**Target SDK**: `36` | **Min SDK**: `24`  
+**Target SDK**: `35` | **Min SDK**: `24`  
 **Firebase Project**: `prohost-f766f` (Project Number: `646730915838`)  
 
 ---

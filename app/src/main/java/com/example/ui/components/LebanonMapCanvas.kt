@@ -10,6 +10,7 @@ import android.location.Location
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -52,6 +53,9 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.CameraUpdateFactory
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.*
@@ -94,13 +98,22 @@ private fun getMarkerPalette(space: SpaceListing, isSelected: Boolean): MarkerPa
 
 private fun createCustomMarker(context: Context, space: SpaceListing, isSelected: Boolean): BitmapDescriptor {
     val scale = context.resources.displayMetrics.density
-    val width = (36 * scale).toInt() // Reduced by 50%
-    val height = (54 * scale).toInt() // Reduced by 50%
+    val pinScale = if (isSelected) 1.25f else 1.0f
+    val width = (36 * scale * pinScale).toInt()
+    val height = (54 * scale * pinScale).toInt()
     val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
 
     // Scale canvas to match SVG 200x300 viewBox
     canvas.scale(width / 200f, height / 300f)
+
+    // Ground shadow — drawn first so the pin renders on top
+    val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = android.graphics.Color.argb(55, 0, 0, 0)
+        maskFilter = android.graphics.BlurMaskFilter(10f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+    }
+    canvas.drawOval(android.graphics.RectF(65f, 248f, 135f, 265f), shadowPaint)
 
     val palette = getMarkerPalette(space, isSelected)
     val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -149,7 +162,8 @@ fun LebanonMapCanvas(
     spaces: List<SpaceListing>,
     onSpaceSelected: (SpaceListing?) -> Unit,
     onNavigateToDetails: (SpaceListing) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    topControls: (@Composable BoxScope.() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -159,6 +173,7 @@ fun LebanonMapCanvas(
     var isLocating by remember { mutableStateOf(false) }
     var activePinSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var isStripCollapsed by remember { mutableStateOf(false) }
+    val arrivedPinIds = remember { mutableStateListOf<String>() }
     
     val defaultCenter = LatLng(33.8886, 35.5184) // Beirut
     val cameraPositionState = rememberCameraPositionState {
@@ -243,6 +258,17 @@ fun LebanonMapCanvas(
         }
     }
 
+    // Stagger-drop each visible pin when the set of visible spaces changes.
+    LaunchedEffect(visibleSpaces) {
+        arrivedPinIds.clear()
+        visibleSpaces.forEachIndexed { index, space ->
+            launch {
+                delay(index * 40L)
+                arrivedPinIds.add(space.id)
+            }
+        }
+    }
+
     LaunchedEffect(visibleSpaces, userLocation) {
         val userLoc = userLocation
         if (userLoc != null) {
@@ -251,6 +277,26 @@ fun LebanonMapCanvas(
             }
         } else {
             sortedSpaces = visibleSpaces
+        }
+    }
+
+    // Carousel swipe → update selected map marker when the user scrolls the strip.
+    LaunchedEffect(listState, sortedSpaces) {
+        androidx.compose.runtime.snapshotFlow {
+            listState.firstVisibleItemIndex to listState.isScrollInProgress
+        }.collect { (index, isScrolling) ->
+            if (!isScrolling && sortedSpaces.isNotEmpty()) {
+                val space = sortedSpaces.getOrNull(index)
+                if (space != null && activePinSpace?.id != space.id) {
+                    activePinSpace = space
+                    onSpaceSelected(space)
+                    coroutineScope.launch {
+                        cameraPositionState.animate(
+                            CameraUpdateFactory.newLatLng(LatLng(space.lat - 0.012, space.lng))
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -279,24 +325,35 @@ fun LebanonMapCanvas(
             }
         ) {
             visibleSpaces.forEach { space ->
-                val isSelected = activePinSpace?.id == space.id
-                Marker(
-                    state = MarkerState(position = LatLng(space.lat, space.lng)),
-                    title = space.title,
-                    snippet = "$${space.baseMonthlyRateUsd.toInt()}/mo • ${space.spaceType.displayName}",
-                    icon = createCustomMarker(context, space, isSelected),
-                    anchor = androidx.compose.ui.geometry.Offset(0.5f, 1.0f),
-                    zIndex = if (isSelected) 2f else 1f,
-                    onClick = {
-                        activePinSpace = space
-                        onSpaceSelected(space)
-                        coroutineScope.launch {
-                            val projection = CameraUpdateFactory.newLatLng(LatLng(space.lat - 0.012, space.lng))
-                            cameraPositionState.animate(projection)
+                key(space.id) {
+                    val isSelected = activePinSpace?.id == space.id
+                    val pinAlpha by animateFloatAsState(
+                        targetValue = if (space.id in arrivedPinIds) 1f else 0f,
+                        animationSpec = tween(durationMillis = 300),
+                        label = "pin_alpha"
+                    )
+                    Marker(
+                        state = MarkerState(position = LatLng(space.lat, space.lng)),
+                        title = space.title,
+                        snippet = "$${space.baseMonthlyRateUsd.toInt()}/mo • ${space.spaceType.displayName}",
+                        icon = createCustomMarker(context, space, isSelected),
+                        anchor = androidx.compose.ui.geometry.Offset(0.5f, 1.0f),
+                        alpha = pinAlpha,
+                        zIndex = if (isSelected) 2f else 1f,
+                        onClick = {
+                            activePinSpace = space
+                            onSpaceSelected(space)
+                            coroutineScope.launch {
+                                cameraPositionState.animate(
+                                    CameraUpdateFactory.newLatLng(LatLng(space.lat - 0.012, space.lng))
+                                )
+                                val idx = sortedSpaces.indexOfFirst { it.id == space.id }
+                                if (idx >= 0) listState.animateScrollToItem(idx)
+                            }
+                            true
                         }
-                        true
-                    }
-                )
+                    )
+                }
             }
         }
 
@@ -325,7 +382,7 @@ fun LebanonMapCanvas(
             shape = CircleShape
         ) {
             if (isLocating) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = VibrantBlue)
             } else {
                 Icon(Icons.Default.MyLocation, contentDescription = "High-Accuracy GPS Locate")
             }
@@ -477,6 +534,7 @@ fun LebanonMapCanvas(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
+                .background(Color.Black.copy(alpha = 0.10f))
                 .padding(bottom = Spacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -528,6 +586,7 @@ fun LebanonMapCanvas(
                         val minPrice = lowestPrice.amount
                         val minUnit = lowestPrice.unitLabel
 
+                        val typePalette = getMarkerPalette(space, false)
                         Card(
                             modifier = Modifier
                                 .width(260.dp)
@@ -541,8 +600,9 @@ fun LebanonMapCanvas(
                                 },
                             shape = MaterialTheme.shapes.medium,
                             colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f) else MaterialTheme.colorScheme.surface
-                            )
+                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.90f) else Color.White.copy(alpha = 0.90f)
+                            ),
+                            border = if (isSelected) BorderStroke(2.dp, Color(typePalette.baseColor)) else null
                         ) {
                             Row(
                                 modifier = Modifier.padding(10.dp),
@@ -615,5 +675,8 @@ fun LebanonMapCanvas(
                 }
             }
         }
+
+        // Overlay slot for controls that must render above the AndroidView GoogleMap layer.
+        topControls?.invoke(this)
     }
 }

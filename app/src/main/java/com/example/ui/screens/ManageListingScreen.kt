@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -9,7 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -52,6 +53,7 @@ private data class DivisionInfo(
  * (SpaceCalculationUtils), so this can never disagree with what a specialist
  * actually sees.
  */
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ManageListingScreen(
     space: SpaceListing,
@@ -275,7 +277,7 @@ private fun DivisionPerformanceCard(
                         val delta = thisMonthYield - lastMonthYield
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                if (delta >= 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                                if (delta >= 0) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
                                 contentDescription = null,
                                 tint = if (delta >= 0) FreshGreen else MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(12.dp)

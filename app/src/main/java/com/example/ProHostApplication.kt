@@ -13,17 +13,26 @@ class ProHostApplication : Application() {
             if (FirebaseApp.getApps(this).isEmpty()) {
                 FirebaseApp.initializeApp(this)
                 Log.d("ProHostApplication", "FirebaseApp initialized successfully in Application.onCreate()")
-                
-                // Initialize Firebase App Check with Play Integrity
-                // This is required for Phone Authentication (SMS) to verify the app identity
-                val firebaseAppCheck = FirebaseAppCheck.getInstance()
+            }
+            val firebaseAppCheck = FirebaseAppCheck.getInstance()
+            if (BuildConfig.DEBUG) {
+                try {
+                    val debugFactoryClass = Class.forName("com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory")
+                    val getInstanceMethod = debugFactoryClass.getMethod("getInstance")
+                    val debugFactory = getInstanceMethod.invoke(null) as com.google.firebase.appcheck.AppCheckProviderFactory
+                    firebaseAppCheck.installAppCheckProviderFactory(debugFactory)
+                    Log.d("ProHostApplication", "FirebaseAppCheck DEBUG provider initialized")
+                } catch (e: Exception) {
+                    firebaseAppCheck.installAppCheckProviderFactory(PlayIntegrityAppCheckProviderFactory.getInstance())
+                }
+            } else {
                 firebaseAppCheck.installAppCheckProviderFactory(
                     PlayIntegrityAppCheckProviderFactory.getInstance()
                 )
                 Log.d("ProHostApplication", "FirebaseAppCheck Play Integrity initialized")
             }
         } catch (e: Exception) {
-            Log.e("ProHostApplication", "Failed to initialize FirebaseApp: ${e.message}", e)
+            Log.e("ProHostApplication", "Failed to initialize FirebaseApp or App Check: ${e.message}", e)
         }
     }
 }

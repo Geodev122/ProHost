@@ -49,9 +49,9 @@ val ProHostSecondaryText = OxfordBlue.copy(alpha = 0.70f)
 
 val PremiumBackgroundGradient = Brush.verticalGradient(
     colors = listOf(
-        PureWhite,
-        LightGraySurface,
-        LightGray.copy(alpha = 0.40f)
+        OxfordBlueContainer.copy(alpha = 0.35f),   // #ECEFF4 at 35% — subtle navy tint at top
+        LightGraySurface,                           // clean mid-surface
+        LightGray.copy(alpha = 0.55f)              // slightly deeper at bottom
     )
 )
 
@@ -106,13 +106,25 @@ val NeutralGray700 = OxfordBlue
 val NeutralGray800 = CoolGray
 val NeutralGray900 = CoolGrayDark
 
-// Surfaces & Outlines
-val BackgroundLight = PureWhite
+// Surfaces & Outlines (Bright Mode)
+val BackgroundLight = Color(0xFFF6F8FA)
 val SurfaceLight = PureWhite
-val SurfaceVariantLight = LightGray
+val SurfaceVariantLight = OxfordBlueContainer
 val CardBorderLight = LightGrayCardBorder
 val OutlineVariantLight = LightGray
 val CardShadowLight = Color(0x14283544)
+
+// Refined Surface & Text Tokens (Dark Mode)
+val DarkBackground = Color(0xFF121824)        // Rich deep navy dark background (#121824)
+val DarkSurface = Color(0xFF1E2638)           // Elevated dark card surface (#1E2638)
+val DarkSurfaceVariant = Color(0xFF28344A)    // Secondary elevated dark container (#28344A)
+val DarkOnSurface = Color(0xFFF0F4FC)         // Primary text in dark mode (#F0F4FC)
+val DarkOnSurfaceVariant = Color(0xFFA0ACBE)  // Secondary text in dark mode (#A0ACBE)
+val DarkOutline = Color(0xFF3B485E)           // Card borders & dividers in dark mode (#3B485E)
+val DarkPrimary = Color(0xFF7A9EFC)          // Crisp, high-contrast primary blue in dark mode
+val DarkPrimaryContainer = Color(0xFF223048)  // Primary container in dark mode
+val DarkSecondary = CarnationOrangeLight     // Warm accent orange in dark mode
+val DarkSecondaryContainer = Color(0xFF4A1D17)
 
 // Backward Compatibility Aliases
 val ProTealDark = OxfordBlue

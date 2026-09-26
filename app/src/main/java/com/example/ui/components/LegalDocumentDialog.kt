@@ -92,7 +92,7 @@ fun LegalDocumentDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(document.title, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
+                        Text(document.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (!isAdminManaged) {
                                 TextButton(
@@ -131,7 +131,7 @@ fun LegalDocumentDialog(
                                         Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                                     }
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Download PDF (A5)", fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                                    Text("Download PDF (A5)", style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                             IconButton(onClick = onDismiss) {
@@ -198,7 +198,7 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = MaterialTheme.shapes.large) {
             Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Legal", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyLarge.fontSize, modifier = Modifier.padding(bottom = 8.dp))
+                Text("Legal", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 8.dp))
                 com.example.legal.LegalContent.all.forEach { doc ->
                     Card(
                         onClick = { openDocument = doc },
@@ -213,8 +213,8 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(doc.title, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
-                                Text(doc.shortDescription, fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(doc.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                Text(doc.shortDescription, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowForward,

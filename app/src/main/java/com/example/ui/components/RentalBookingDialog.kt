@@ -429,7 +429,7 @@ private fun BookingSlotSelectorDialog(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = headerTitle,
-                                fontSize = MaterialTheme.typography.headlineSmall.fontSize,
+                                style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -438,7 +438,7 @@ private fun BookingSlotSelectorDialog(
                         }
                         Text(
                             text = "${space.title} • ${space.district}, ${space.governorate.displayName}",
-                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                            style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -464,7 +464,7 @@ private fun BookingSlotSelectorDialog(
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(
                                 text = "1. Choose Subdivision / Room to Rent",
-                                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                                style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -494,18 +494,18 @@ private fun BookingSlotSelectorDialog(
                                             Text(
                                                 text = sub.name,
                                                 fontWeight = FontWeight.Bold,
-                                                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                                                style = MaterialTheme.typography.bodySmall,
                                                 color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                                             )
                                             Text(
                                                 text = "Type: ${sub.type.displayName}",
-                                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                style = MaterialTheme.typography.labelSmall,
                                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                             if (sub.amenities.isNotEmpty()) {
                                                 Text(
                                                     text = "Amenities: ${sub.amenities.joinToString()}",
-                                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                    style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
@@ -522,14 +522,14 @@ private fun BookingSlotSelectorDialog(
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
                             text = "${if (hasSubdivisions) "2" else "1"}. Select Renting Strategy",
-                            fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
                         if (hiddenLockedCount > 0) {
                             Text(
                                 text = "$hiddenLockedCount slot${if (hiddenLockedCount == 1) " is" else "s are"} already booked by another professional and not shown.",
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -540,7 +540,7 @@ private fun BookingSlotSelectorDialog(
                                 } else {
                                     "Every slot for this ${if (hasSubdivisions) "room" else "space"} is already booked."
                                 },
-                                fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.error
                             )
                         } else {
@@ -549,7 +549,7 @@ private fun BookingSlotSelectorDialog(
                                     FilterChip(
                                         selected = selectedStrategyType == strategy,
                                         onClick = { selectedStrategyType = strategy },
-                                        label = { Text(strategy.displayName, fontSize = MaterialTheme.typography.labelMedium.fontSize) }
+                                        label = { Text(strategy.displayName, style = MaterialTheme.typography.labelMedium) }
                                     )
                                 }
                             }
@@ -580,7 +580,7 @@ private fun BookingSlotSelectorDialog(
                                     Spacer(modifier = Modifier.width(Spacing.sm))
                                     Text(
                                         text = "Customize Your Required Availability",
-                                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                                        style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -592,14 +592,14 @@ private fun BookingSlotSelectorDialog(
                                         Text(
                                             text = "Exclusive full-space access on all operating days (${strategySlots.map { it.day }.distinct().joinToString(", ")}), " +
                                                 "billed at $${rate.toInt()} USD per month.",
-                                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                            style = MaterialTheme.typography.labelMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             lineHeight = 16.sp
                                         )
                                     }
 
                                     RentalStrategyType.HOURLY -> {
-                                        Text("Choose a day:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
+                                        Text("Choose a day:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                                         // Natural-width chips in a wrapping FlowRow, not
                                         // equal-weight in a fixed Row — up to 7 items
                                         // forced into equal fractions of the dialog's
@@ -610,13 +610,13 @@ private fun BookingSlotSelectorDialog(
                                                 FilterChip(
                                                     selected = hourlyDay == day,
                                                     onClick = { hourlyDay = day },
-                                                    label = { Text(day, fontSize = MaterialTheme.typography.labelMedium.fontSize) }
+                                                    label = { Text(day, style = MaterialTheme.typography.labelMedium) }
                                                 )
                                             }
                                         }
-                                        Text("Choose one or more priced hours:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
+                                        Text("Choose one or more priced hours:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                                         if (hourlyCellsForDay.isEmpty()) {
-                                            Text("No priced hours on $hourlyDay.", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.error)
+                                            Text("No priced hours on $hourlyDay.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                                         }
                                         androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                             hourlyCellsForDay.forEach { cell ->
@@ -627,33 +627,33 @@ private fun BookingSlotSelectorDialog(
                                                     onClick = {
                                                         selectedHourlyCells = if (isSelected) selectedHourlyCells - cell else selectedHourlyCells + cell
                                                     },
-                                                    label = { Text("${cell.startTime} · $${price.toInt()}", fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                                                    label = { Text("${cell.startTime} · $${price.toInt()}", style = MaterialTheme.typography.labelSmall) }
                                                 )
                                             }
                                         }
                                     }
 
                                     RentalStrategyType.SHIFT_BASED -> {
-                                        Text("Choose a day:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
+                                        Text("Choose a day:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                                         androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                             shiftDayOptions.forEach { day ->
                                                 FilterChip(
                                                     selected = shiftDay == day,
                                                     onClick = { shiftDay = day },
-                                                    label = { Text(day, fontSize = MaterialTheme.typography.labelMedium.fontSize) }
+                                                    label = { Text(day, style = MaterialTheme.typography.labelMedium) }
                                                 )
                                             }
                                         }
-                                        Text("Choose a shift:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
+                                        Text("Choose a shift:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                                         if (shiftsForDay.isEmpty()) {
-                                            Text("No shifts offered on $shiftDay.", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.error)
+                                            Text("No shifts offered on $shiftDay.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                                         }
                                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                             shiftsForDay.forEach { slot ->
                                                 FilterChip(
                                                     selected = selectedShiftSlot == slot,
                                                     onClick = { selectedShiftSlot = slot },
-                                                    label = { Text(slot.groupLabel.substringAfter("• "), fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+                                                    label = { Text(slot.groupLabel.substringAfter("• "), style = MaterialTheme.typography.labelSmall) },
                                                     modifier = Modifier.weight(1f)
                                                 )
                                             }
@@ -666,7 +666,7 @@ private fun BookingSlotSelectorDialog(
                                             // only wants a single one-time shift needs no extra tap.
                                             Text(
                                                 "Choose commitment — which days offer the same ${selectedShiftSlot?.groupLabel?.substringAfter("• ")} shift:",
-                                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.SemiBold
                                             )
                                             androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -681,7 +681,7 @@ private fun BookingSlotSelectorDialog(
                                                                 selectedCommitmentDays + day
                                                             }
                                                         },
-                                                        label = { Text(day, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                                                        label = { Text(day, style = MaterialTheme.typography.labelSmall) }
                                                     )
                                                 }
                                             }
@@ -692,7 +692,7 @@ private fun BookingSlotSelectorDialog(
                                             // dates not already locked by another accepted booking.
                                             Text(
                                                 "Pick specific dates ($${shiftPrice.toInt()} each):",
-                                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.SemiBold
                                             )
                                             if (selectedCalendarDates.isNotEmpty()) {
@@ -701,28 +701,28 @@ private fun BookingSlotSelectorDialog(
                                                         FilterChip(
                                                             selected = true,
                                                             onClick = { selectedCalendarDates = selectedCalendarDates - dateStr },
-                                                            label = { Text(dateStr, fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+                                                            label = { Text(dateStr, style = MaterialTheme.typography.labelSmall) },
                                                             trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove date", modifier = Modifier.size(14.dp)) }
                                                         )
                                                     }
                                                 }
                                             }
-                                            OutlinedButton(
+                                            CustomButton(
+                                                text = "Add a date",
                                                 onClick = { showDatePicker = true },
+                                                variant = CustomButtonVariant.OUTLINED,
+                                                icon = Icons.Default.Add,
                                                 enabled = selectedCommitmentDays.isNotEmpty(),
+                                                compact = true,
                                                 modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Text("Add a date", fontSize = MaterialTheme.typography.labelSmall.fontSize)
-                                            }
+                                            )
                                         }
                                     }
 
                                     RentalStrategyType.DAY_BASED -> {
-                                        Text("Choose one or more priced days:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
+                                        Text("Choose one or more priced days:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                                         if (strategySlots.isEmpty()) {
-                                            Text("No days priced for this ${if (hasSubdivisions) "room" else "space"}.", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.error)
+                                            Text("No days priced for this ${if (hasSubdivisions) "room" else "space"}.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                                         }
                                         androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                             strategySlots.forEach { slot ->
@@ -733,54 +733,51 @@ private fun BookingSlotSelectorDialog(
                                                     onClick = {
                                                         selectedDayBasedDays = if (isSelected) selectedDayBasedDays - slot.day else selectedDayBasedDays + slot.day
                                                     },
-                                                    label = { Text("${slot.day} · $${price.toInt()}", fontSize = MaterialTheme.typography.labelMedium.fontSize) }
+                                                    label = { Text("${slot.day} · $${price.toInt()}", style = MaterialTheme.typography.labelMedium) }
                                                 )
                                             }
                                         }
 
                                         if (selectedDayBasedDays.isNotEmpty()) {
-                                            Text("Commitment:", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.SemiBold)
+                                            Text("Commitment:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                                 FilterChip(
                                                     selected = !dayBasedIsRecurring,
                                                     onClick = { dayBasedIsRecurring = false },
-                                                    label = { Text("One-time", fontSize = MaterialTheme.typography.labelMedium.fontSize) }
+                                                    label = { Text("One-time", style = MaterialTheme.typography.labelMedium) }
                                                 )
                                                 FilterChip(
                                                     selected = dayBasedIsRecurring,
                                                     onClick = { dayBasedIsRecurring = true },
-                                                    label = { Text("Recurring, every week", fontSize = MaterialTheme.typography.labelMedium.fontSize) }
+                                                    label = { Text("Recurring, every week", style = MaterialTheme.typography.labelMedium) }
                                                 )
                                             }
 
                                             if (dayBasedIsRecurring) {
                                                 Text(
                                                     "Repeats on the chosen day(s) every week — until when?",
-                                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                    style = MaterialTheme.typography.labelSmall,
                                                     fontWeight = FontWeight.SemiBold
                                                 )
-                                                OutlinedButton(
+                                                CustomButton(
+                                                    text = dayBasedUntilDate?.let { "Until $it" } ?: "Pick an end date",
                                                     onClick = { showDayBasedUntilPicker = true },
+                                                    variant = CustomButtonVariant.OUTLINED,
+                                                    icon = Icons.Default.DateRange,
+                                                    compact = true,
                                                     modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(16.dp))
-                                                    Spacer(modifier = Modifier.width(6.dp))
-                                                    Text(
-                                                        dayBasedUntilDate?.let { "Until $it" } ?: "Pick an end date",
-                                                        fontSize = MaterialTheme.typography.labelSmall.fontSize
-                                                    )
-                                                }
+                                                )
                                                 if (dayBasedUntilDate != null && dayBasedGeneratedDates.isEmpty()) {
                                                     Text(
                                                         "No open dates before that end date for the chosen day(s).",
-                                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                        style = MaterialTheme.typography.labelSmall,
                                                         color = MaterialTheme.colorScheme.error
                                                     )
                                                 }
                                             } else {
                                                 Text(
                                                     "Pick specific dates:",
-                                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                    style = MaterialTheme.typography.labelSmall,
                                                     fontWeight = FontWeight.SemiBold
                                                 )
                                                 if (dayBasedManualDates.isNotEmpty()) {
@@ -789,7 +786,7 @@ private fun BookingSlotSelectorDialog(
                                                             FilterChip(
                                                                 selected = true,
                                                                 onClick = { dayBasedManualDates = dayBasedManualDates - dateStr },
-                                                                label = { Text(dateStr, fontSize = MaterialTheme.typography.labelSmall.fontSize) },
+                                                                label = { Text(dateStr, style = MaterialTheme.typography.labelSmall) },
                                                                 trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove date", modifier = Modifier.size(14.dp)) }
                                                             )
                                                         }
@@ -801,7 +798,7 @@ private fun BookingSlotSelectorDialog(
                                                 ) {
                                                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                                     Spacer(modifier = Modifier.width(6.dp))
-                                                    Text("Add a date", fontSize = MaterialTheme.typography.labelSmall.fontSize)
+                                                    Text("Add a date", style = MaterialTheme.typography.labelSmall)
                                                 }
                                             }
                                         }
@@ -822,7 +819,7 @@ private fun BookingSlotSelectorDialog(
                         Column {
                             Text(
                                 text = "Select Starting Date",
-                                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                                style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -834,7 +831,7 @@ private fun BookingSlotSelectorDialog(
                                     FilterChip(
                                         selected = isSelected,
                                         onClick = { selectedDateOption = option },
-                                        label = { Text(option, fontSize = MaterialTheme.typography.labelMedium.fontSize) },
+                                        label = { Text(option, style = MaterialTheme.typography.labelMedium) },
                                         leadingIcon = if (isSelected) {
                                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
                                         } else null
@@ -861,7 +858,7 @@ private fun BookingSlotSelectorDialog(
                         Column {
                             Text(
                                 text = "Rental Duration Term",
-                                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                                style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -886,7 +883,7 @@ private fun BookingSlotSelectorDialog(
                                         ) {
                                             Text(
                                                 text = "$months mo",
-                                                fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                                style = MaterialTheme.typography.labelMedium,
                                                 fontWeight = FontWeight.Bold,
                                                 color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -937,7 +934,7 @@ private fun BookingSlotSelectorDialog(
                                 Text(
                                     text = "Smart Availability & Confirmation Rule",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                    style = MaterialTheme.typography.labelMedium,
                                     color = StatusSuccess
                                 )
                             }
@@ -946,7 +943,7 @@ private fun BookingSlotSelectorDialog(
                                 text = "• Space hours remain AVAILABLE to other professionals until the space owner accepts your request.\n" +
                                        "• Once accepted by the owner, your chosen schedule ($chosenSlotSummary) is locked exclusively for your use.\n" +
                                        "• Payment is settled directly with the space owner (Cash / Whish Money / Wire Transfer).",
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = StatusOnSuccessContainer,
                                 lineHeight = 16.sp
                             )
@@ -968,12 +965,12 @@ private fun BookingSlotSelectorDialog(
                                 Column {
                                     Text(
                                         text = "Total for this request",
-                                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                        style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                     )
                                     Text(
                                         text = "Based on your selection above",
-                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                        style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
@@ -997,18 +994,18 @@ private fun BookingSlotSelectorDialog(
                                 }
                                 Text(
                                     text = "$breakdownHeader\n$occurrenceBreakdown",
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     lineHeight = 16.sp
                                 )
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Assignment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                                Icon(Icons.AutoMirrored.Filled.Assignment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "Selected Slot: $chosenSlotSummary",
-                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
                                 )

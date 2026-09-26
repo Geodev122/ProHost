@@ -1,10 +1,13 @@
 package com.example
 
+import android.Manifest
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,10 +18,16 @@ import com.example.util.InAppUpdateManager
 import com.example.util.NotificationPermissionManager
 
 class MainActivity : ComponentActivity() {
+    private val permLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { /* OS handles rationale; no action needed here */ }
+
     private var targetTab by mutableStateOf<String?>(null)
     private var targetBookingId by mutableStateOf<String?>(null)
     private var targetSpaceId by mutableStateOf<String?>(null)
+    private var emailVerifiedDeepLink by mutableStateOf(false)
     private var inAppUpdateManager: InAppUpdateManager? = null
+    private var backgroundedAtMillis: Long = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Must run before super.onCreate() — installs the real, consistently-themed
@@ -49,16 +58,40 @@ class MainActivity : ComponentActivity() {
             android.util.Log.w("MainActivity", "NotificationPermissionManager request failed: ${e.message}")
         }
 
+        // Request location, camera, and media permissions up-front so they are
+        // available for the map, listing photos, and profile picture flows without
+        // a second dialog mid-task. Centralised here; LoginAuthScreen's duplicate
+        // location request has been removed.
+        try {
+            val mediaPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                Manifest.permission.READ_MEDIA_IMAGES
+            else
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            permLauncher.launch(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.CAMERA,
+                mediaPermission
+            ))
+        } catch (e: Exception) {
+            android.util.Log.w("MainActivity", "Permission request failed: ${e.message}")
+        }
+
         setContent {
             ProHostTheme {
                 ProHostAppRoot(
                     deepLinkTab = targetTab,
                     deepLinkBookingId = targetBookingId,
                     deepLinkSpaceId = targetSpaceId,
+                    emailVerifiedDeepLink = emailVerifiedDeepLink,
                     inAppUpdateManager = inAppUpdateManager
                 )
             }
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        backgroundedAtMillis = System.currentTimeMillis()
     }
 
     override fun onResume() {
@@ -67,6 +100,17 @@ class MainActivity : ComponentActivity() {
             inAppUpdateManager?.onResume()
         } catch (e: Exception) {
             android.util.Log.w("MainActivity", "InAppUpdateManager.onResume warning: ${e.message}")
+        }
+        // Trigger PIN re-auth if the app was in the background for more than 60 seconds (H1).
+        if (backgroundedAtMillis > 0L && System.currentTimeMillis() - backgroundedAtMillis > 60_000L) {
+            backgroundedAtMillis = 0L
+            // Signal the ViewModel so the nav graph can gate behind PIN entry.
+            try {
+                val viewModel = androidx.lifecycle.ViewModelProvider(this)[com.example.ui.viewmodel.ProHostViewModel::class.java]
+                viewModel.requestPinReauth()
+            } catch (e: Exception) {
+                android.util.Log.w("MainActivity", "PIN re-auth signal failed: ${e.message}")
+            }
         }
     }
 
@@ -126,6 +170,14 @@ class MainActivity : ComponentActivity() {
             data.host == "pro-host.tech" && data.path?.startsWith("/listing/") == true
         if (isListingShareLink) {
             targetSpaceId = data.path?.removePrefix("/listing/")?.trim('/')?.takeIf { it.isNotBlank() }
+        }
+
+        // Email verification return: prohost://verify-email/success (from verifyEmailLink
+        // Cloud Function — redirects the browser to this deep link on success).
+        val isEmailVerified = data != null && data.scheme == "prohost" &&
+            data.host == "verify-email" && data.path?.startsWith("/success") == true
+        if (isEmailVerified) {
+            emailVerifiedDeepLink = true
         }
     }
 }

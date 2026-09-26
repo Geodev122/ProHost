@@ -38,7 +38,7 @@ export const setListingVerification = onCall<SetListingVerificationData>(async (
   const listing = snap.data();
   const ownerId = listing?.ownerId;
 
-  await ref.set({ isVerified: verified, updatedAt: Date.now() }, { merge: true });
+  await ref.set({ isVerified: verified, verificationRequestedAt: null, updatedAt: Date.now() }, { merge: true });
 
   if (ownerId) {
     const title = verified ? "Listing Verified!" : "Verification Status Updated";
@@ -152,6 +152,10 @@ export const requestListingVerification = onCall<RequestListingVerificationData>
       "Upload a re-rental authorization statement or proof of ownership first — see 'Get Listing Verified' on your listing."
     );
   }
+
+  // Write verificationRequestedAt before pushing so the "Pending Review"
+  // filter in Admin Console shows this listing even if the push fails.
+  await ref.set({ verificationRequestedAt: Date.now() }, { merge: true });
 
   await sendPushToAdmins(
     "New Listing Verification Request",

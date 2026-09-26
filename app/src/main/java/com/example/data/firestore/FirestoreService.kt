@@ -76,17 +76,19 @@ class FirestoreService(
                         .set(formula.toFirestoreMap(), SetOptions.merge())
                         .await()
                 }
-                initialSpaces.forEach { space ->
-                    db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
-                        .document(space.id)
-                        .set(space.toFirestoreMap(), SetOptions.merge())
-                        .await()
-                }
-                initialUsers.forEach { user ->
-                    db.collection(FirestoreSchema.Collections.USER_PROFILES)
-                        .document(user.id)
-                        .set(user.toFirestoreMap(), SetOptions.merge())
-                        .await()
+                if (com.example.BuildConfig.DEBUG) {
+                    initialSpaces.forEach { space ->
+                        db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
+                            .document(space.id)
+                            .set(space.toFirestoreMap(), SetOptions.merge())
+                            .await()
+                    }
+                    initialUsers.forEach { user ->
+                        db.collection(FirestoreSchema.Collections.USER_PROFILES)
+                            .document(user.id)
+                            .set(user.toFirestoreMap(), SetOptions.merge())
+                            .await()
+                    }
                 }
                 Log.d(TAG, "Initial data seed complete.")
             } catch (e: Exception) {
@@ -179,6 +181,8 @@ class FirestoreService(
                 val publicListener = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
                     .whereEqualTo("status", "ACTIVE")
                     .whereEqualTo("isOwnerSuspended", false)
+                    .whereEqualTo("isOwnerPackageLapsed", false)
+                    .whereEqualTo("isOwnerIdRejected", false)
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
                             Log.w(TAG, "Public workspaces sync note: ${error.message}")
@@ -389,9 +393,14 @@ class FirestoreService(
                         return@addSnapshotListener
                     }
                     val data = snapshot?.data
-                    onPackagePlansUpdated(
-                        if (data != null) PackagePlanCatalog.fromFirestoreMap(data) else PackagePlanCatalog()
-                    )
+                    if (data == null || data.isEmpty()) {
+                        db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
+                            .document(PackagePlanCatalog.DOCUMENT_ID)
+                            .set(PackagePlanCatalog.DEFAULT_CATALOG.toFirestoreMap(), SetOptions.merge())
+                        onPackagePlansUpdated(PackagePlanCatalog.DEFAULT_CATALOG)
+                    } else {
+                        onPackagePlansUpdated(PackagePlanCatalog.fromFirestoreMap(data))
+                    }
                 }
             activeListeners.add(packagePlansListener)
 
@@ -1117,5 +1126,19 @@ class FirestoreService(
             timestamp = System.currentTimeMillis(),
             checks = checks
         )
+    }
+
+    /** One-shot read of the full id_review_queue collection — admin-only. */
+    suspend fun loadIdReviewQueue(): List<IdReviewEntry> {
+        return try {
+            val db = firestore ?: return emptyList()
+            val snap = db.collection(IdReviewEntry.COLLECTION_PATH).get().await()
+            snap.documents.mapNotNull { doc ->
+                doc.data?.let { IdReviewEntry.fromFirestoreMap(doc.id, it) }
+            }.sortedByDescending { it.submittedAt }
+        } catch (e: Exception) {
+            Log.e(TAG, "loadIdReviewQueue failed: ${e.message}", e)
+            emptyList()
+        }
     }
 }

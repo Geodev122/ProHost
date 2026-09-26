@@ -2,7 +2,14 @@ package com.example.ui.components
 
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -187,7 +194,6 @@ fun StatusBadge(
     Surface(
         color = bg,
         shape = shape,
-        shadowElevation = 0.5.dp,
         modifier = modifier
     ) {
         Row(
@@ -236,6 +242,13 @@ fun ProSectionHeader(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.weight(1f, fill = false)
         ) {
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height(20.dp)
+                    .background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(2.dp))
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             if (icon != null) {
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer,
@@ -303,6 +316,13 @@ fun ProMetricTile(
         border = BorderStroke(1.dp, borderColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(iconTint)
+            )
         Column(
             modifier = Modifier.padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -345,6 +365,7 @@ fun ProMetricTile(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
         }
     }
 }
@@ -419,17 +440,87 @@ fun ProCurrencyTag(
  * Standard Member / Professional Avatar with initials and verification badge.
  */
 @Composable
+private fun AvatarCircle(
+    initials: String,
+    isVerified: Boolean,
+    isIdVerified: Boolean,
+    size: Dp,
+    imageUrl: String? = null,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier.size(size)) {
+        if (imageUrl != null) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Surface(
+                color = MaterialTheme.colorScheme.primary,
+                shape = CircleShape,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = initials,
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = (size.value * 0.38f).sp
+                    )
+                }
+            }
+        }
+        if (isVerified) {
+            Surface(
+                color = StatusSuccess,
+                shape = CircleShape,
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
+                modifier = Modifier
+                    .size(size * 0.4f)
+                    .align(Alignment.BottomEnd)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = "Verified",
+                        tint = Color.White,
+                        modifier = Modifier.size(size * 0.25f)
+                    )
+                }
+            }
+        }
+        if (isIdVerified) {
+            Surface(
+                color = AmberWarning,
+                shape = CircleShape,
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
+                modifier = Modifier
+                    .size(size * 0.4f)
+                    .align(Alignment.TopEnd)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.Badge,
+                        contentDescription = "ID Verified",
+                        tint = Color.White,
+                        modifier = Modifier.size(size * 0.24f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun ProMemberAvatar(
     name: String,
     specialty: String? = null,
     isVerified: Boolean = true,
-    // A second, distinct trust signal from isVerified (which means only "completed
-    // phone OTP") — true when the person actually has an ID document on file
-    // (AppUser.idDocumentUrl != null). Deliberately never reuses the green
-    // check-badge/Icons.Default.Verified styling isVerified already claims on this
-    // same avatar, so the two can't be visually confused for one another.
     isIdVerified: Boolean = false,
     size: Dp = 40.dp,
+    imageUrl: String? = null,
     modifier: Modifier = Modifier
 ) {
     val initials = name.split(" ")
@@ -445,60 +536,7 @@ fun ProMemberAvatar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Box(modifier = Modifier.size(size)) {
-                Surface(
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = CircleShape,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = initials,
-                            color = Color.White,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = (size.value * 0.38f).sp
-                        )
-                    }
-                }
-                if (isVerified) {
-                    Surface(
-                        color = StatusSuccess,
-                        shape = CircleShape,
-                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
-                        modifier = Modifier
-                            .size(size * 0.4f)
-                            .align(Alignment.BottomEnd)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Check,
-                                contentDescription = "Verified",
-                                tint = Color.White,
-                                modifier = Modifier.size(size * 0.25f)
-                            )
-                        }
-                    }
-                }
-                if (isIdVerified) {
-                    Surface(
-                        color = AmberWarning,
-                        shape = CircleShape,
-                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
-                        modifier = Modifier
-                            .size(size * 0.4f)
-                            .align(Alignment.TopEnd)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Badge,
-                                contentDescription = "ID Verified",
-                                tint = Color.White,
-                                modifier = Modifier.size(size * 0.24f)
-                            )
-                        }
-                    }
-                }
-            }
+            AvatarCircle(initials = initials, isVerified = isVerified, isIdVerified = isIdVerified, size = size, imageUrl = imageUrl, modifier = Modifier)
 
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -535,60 +573,14 @@ fun ProMemberAvatar(
             }
         }
     } else {
-        Box(modifier = modifier.size(size)) {
-            Surface(
-                color = MaterialTheme.colorScheme.primary,
-                shape = CircleShape,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = initials,
-                        color = Color.White,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = (size.value * 0.38f).sp
-                    )
-                }
-            }
-            if (isVerified) {
-                Surface(
-                    color = StatusSuccess,
-                    shape = CircleShape,
-                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
-                    modifier = Modifier
-                        .size(size * 0.4f)
-                        .align(Alignment.BottomEnd)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.Check,
-                            contentDescription = "Verified",
-                            tint = Color.White,
-                            modifier = Modifier.size(size * 0.25f)
-                        )
-                    }
-                }
-            }
-            if (isIdVerified) {
-                Surface(
-                    color = AmberWarning,
-                    shape = CircleShape,
-                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
-                    modifier = Modifier
-                        .size(size * 0.4f)
-                        .align(Alignment.TopEnd)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.Badge,
-                            contentDescription = "ID Verified",
-                            tint = Color.White,
-                            modifier = Modifier.size(size * 0.24f)
-                        )
-                    }
-                }
-            }
-        }
+        AvatarCircle(
+            initials = initials,
+            isVerified = isVerified,
+            isIdVerified = isIdVerified,
+            size = size,
+            imageUrl = imageUrl,
+            modifier = modifier
+        )
     }
 }
 
@@ -602,9 +594,10 @@ fun ProDoctorAvatar(
     isVerified: Boolean = true,
     isIdVerified: Boolean = false,
     size: Dp = 40.dp,
+    imageUrl: String? = null,
     modifier: Modifier = Modifier
 ) {
-    ProMemberAvatar(name, specialty, isVerified, isIdVerified, size, modifier)
+    ProMemberAvatar(name, specialty, isVerified, isIdVerified, size, imageUrl, modifier)
 }
 
 /**
@@ -1102,7 +1095,8 @@ fun WorkspaceCard(
     isSaved: Boolean = false,
     onToggleSave: (() -> Unit)? = null,
     onClick: () -> Unit,
-    onWhatsAppClick: (() -> Unit)? = null
+    onWhatsAppClick: (() -> Unit)? = null,
+    onDetailsClick: (() -> Unit)? = null
 ) {
     ModernCard(
         modifier = modifier,
@@ -1259,13 +1253,24 @@ fun WorkspaceCard(
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = MaterialTheme.shapes.extraSmall
                 ) {
-                    Text(
-                        text = "🕒 $operatingHours",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 10.sp,
+                    Row(
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccessTime,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Text(
+                            text = operatingHours,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
             if (totalDaysOpen != null) {
@@ -1273,13 +1278,24 @@ fun WorkspaceCard(
                     color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
                     shape = MaterialTheme.shapes.extraSmall
                 ) {
-                    Text(
-                        text = "📅 $totalDaysOpen",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 10.sp,
+                    Row(
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Text(
+                            text = totalDaysOpen,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
                 }
             }
         }
@@ -1299,7 +1315,6 @@ fun WorkspaceCard(
                         Text(
                             text = formula,
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 9.sp,
                             modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -1308,22 +1323,36 @@ fun WorkspaceCard(
             }
         }
 
-        // Footer: WhatsApp button
-        if (onWhatsAppClick != null) {
+        // Footer: Details + WhatsApp buttons
+        if (onDetailsClick != null || onWhatsAppClick != null) {
             Spacer(modifier = Modifier.height(10.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
             Spacer(modifier = Modifier.height(8.dp))
 
-            Button(
-                onClick = onWhatsAppClick,
-                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                shape = MaterialTheme.shapes.small,
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(vertical = 6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("WhatsApp Inquiry", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                if (onDetailsClick != null) {
+                    CustomButton(
+                        text = "Details",
+                        onClick = onDetailsClick,
+                        variant = CustomButtonVariant.OUTLINED,
+                        icon = Icons.Default.Info,
+                        modifier = Modifier.weight(1f),
+                        compact = true
+                    )
+                }
+                if (onWhatsAppClick != null) {
+                    CustomButton(
+                        text = "WhatsApp",
+                        onClick = onWhatsAppClick,
+                        variant = CustomButtonVariant.WHATSAPP,
+                        icon = Icons.AutoMirrored.Filled.Chat,
+                        modifier = if (onDetailsClick != null) Modifier.weight(1f) else Modifier.fillMaxWidth(),
+                        compact = true
+                    )
+                }
             }
         }
     }
@@ -1506,71 +1535,6 @@ fun ProDivider(
 }
 
 /**
- * Real-time Firebase Sync & Network Resilience Status Banner
- */
-@Composable
-fun NetworkSyncResilienceBanner(
-    isOffline: Boolean,
-    statusMessage: String?,
-    pendingOfflineCount: Int = 0,
-    onRetrySync: () -> Unit = {},
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        color = if (isOffline) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.85f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
-        shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(1.dp, if (isOffline) MaterialTheme.colorScheme.error.copy(alpha = 0.5f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(if (isOffline) StatusWarning else FreshGreen)
-                )
-                Column {
-                    Text(
-                        text = if (isOffline) "Resilient Offline Mode" else "Cloud Sync Active",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (isOffline) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = statusMessage ?: "Connected to Lebanese ProHost Cloud Node",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (isOffline) MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            if (isOffline || pendingOfflineCount > 0) {
-                FilledTonalButton(
-                    onClick = onRetrySync,
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                    modifier = Modifier.height(28.dp)
-                ) {
-                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(12.dp))
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(if (pendingOfflineCount > 0) "Retry ($pendingOfflineCount)" else "Sync", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-}
-
-/**
  * Standardized ProHost Brand Logo Composable
  * Renders the official pin-shaped mark (workspace silhouette on a two-tone base),
  * which carries its own background/gradient - no surrounding box or border needed.
@@ -1638,6 +1602,8 @@ fun ProHostTopAppBar(
     unreadAlertCount: Int,
     onMenuClick: () -> Unit,
     onAlertsClick: () -> Unit,
+    pageTitle: String? = null,
+    showBrand: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -1665,20 +1631,17 @@ fun ProHostTopAppBar(
                     modifier = Modifier.testTag("hamburger_menu_button")
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Menu,
+                        imageVector = Icons.Default.MoreVert,
                         contentDescription = "Open Side Navigation Drawer",
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
-                ProHostBrandLogo(size = 34.dp)
+                if (showBrand) {
+                    ProHostBrandLogo(size = 34.dp)
 
-                Column(
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    Column(
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Text(
                             text = "ProHost",
@@ -1686,19 +1649,18 @@ fun ProHostTopAppBar(
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        ProHostCedarBadge(text = "LB", isCompact = true)
-                    }
 
-                    Text(
-                        text = when (currentRole) {
-                            UserRole.ADMIN -> "Super Admin Node"
-                            UserRole.PRO_HOST -> "Host & Owner Hub"
-                            UserRole.SPECIALIST -> "Practitioner Circle"
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                        Text(
+                            text = pageTitle ?: when (currentRole) {
+                                UserRole.ADMIN -> "Super Admin Node"
+                                UserRole.PRO_HOST -> "Host & Owner Hub"
+                                UserRole.SPECIALIST -> "Practitioner Circle"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
 
@@ -1732,6 +1694,42 @@ fun ProHostTopAppBar(
             }
         }
     }
+}
+
+/**
+ * Animated shimmer placeholder for lists loading their first snapshot.
+ * Shows a sweeping highlight across a card-shaped box to replace blank→content flash.
+ */
+@Composable
+fun ShimmerLoadingCard(
+    modifier: Modifier = Modifier,
+    height: Dp = 80.dp
+) {
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val translateAnim by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1200f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing)
+        ),
+        label = "shimmer_translate"
+    )
+    val shimmerBrush = Brush.horizontalGradient(
+        colors = listOf(
+            LightGray,
+            PureWhite.copy(alpha = 0.90f),
+            LightGray
+        ),
+        startX = translateAnim - 600f,
+        endX = translateAnim + 600f
+    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(MaterialTheme.shapes.large)
+            .background(shimmerBrush)
+    )
 }
 
 /**

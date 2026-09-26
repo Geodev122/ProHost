@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="com.android.vending.BILLING" />
 
     <!-- Google Play Hardware Filtering Configuration (ensures compatibility across all devices) -->
     <uses-feature android:name="android.hardware.location" android:required="false" />
@@ -89,6 +90,21 @@
                 <data
                     android:scheme="prohost"
                     android:host="payment" />
+            </intent-filter>
+
+            <!-- Email verification return link: prohost://verify-email/success
+                 The verifyEmailLink Cloud Function (functions/src/auth/emailVerification.ts)
+                 redirects to this URI on successful JWT verification so the app can
+                 show the user a confirmation and refresh their KYC level. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="prohost"
+                    android:host="verify-email" />
             </intent-filter>
         </activity>
 

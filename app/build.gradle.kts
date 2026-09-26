@@ -20,8 +20,8 @@ android {
     applicationId = "app.geonajjar.prohost"
     minSdk = 24
     targetSdk = 36
-    versionCode = 3
-    versionName = "1.0.0.2"
+    versionCode = 16
+    versionName = "1.0.15"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     
@@ -60,8 +60,17 @@ android {
     }
   }
 
+  packaging {
+    jniLibs {
+      keepDebugSymbols.add("**/*.so")
+    }
+  }
+
   buildTypes {
     release {
+      ndk {
+        debugSymbolLevel = "FULL"
+      }
       isCrunchPngs = false
       // Was false with proguardFiles(...) already configured below — dead
       // configuration that shipped every release build fully unobfuscated and
@@ -83,9 +92,6 @@ android {
       isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
-      ndk {
-        debugSymbolLevel = "FULL"
-      }
     }
     debug {
       signingConfig = signingConfigs.findByName("debugConfig") ?: signingConfigs.getByName("debug")
@@ -98,7 +104,12 @@ android {
   kotlin {
     compilerOptions {
       jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
-      freeCompilerArgs.add("-Xskip-metadata-version-check")
+      freeCompilerArgs.addAll(
+        "-Xskip-metadata-version-check",
+        "-Xno-call-assertions",
+        "-Xno-param-assertions",
+        "-Xno-receiver-assertions"
+      )
     }
   }
   buildFeatures {
@@ -115,16 +126,6 @@ android {
     includeInApk = false
     includeInBundle = true
   }
-}
-
-tasks.register<Zip>("createNativeDebugSymbolsZip") {
-  archiveFileName.set("native-debug-symbols.zip")
-  destinationDirectory.set(file("${layout.buildDirectory.get().asFile}/outputs/native-debug-symbols"))
-  from(file("${layout.buildDirectory.get().asFile}/intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib"))
-}
-
-tasks.matching { it.name == "bundleRelease" || it.name == "assembleRelease" }.configureEach {
-  finalizedBy("createNativeDebugSymbolsZip")
 }
 
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
@@ -156,24 +157,28 @@ dependencies {
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
   implementation(libs.coil.compose)
-  implementation(libs.firebase.ai)
+  // implementation(libs.firebase.ai)  // unused — auto-inits and may crash without config
   // Uncomment to use Firestore:
   implementation(libs.firebase.firestore)
   implementation(libs.firebase.messaging)
   implementation(libs.firebase.storage)
   implementation(libs.firebase.dataconnect)
 
-  // Firebase Auth: phone-number SMS OTP is the app's only sign-in method (no Google
-  // Sign-In / Credential Manager — removed by design, every account is phone-verified).
+  // Firebase Auth: phone-number SMS OTP for new-user signup and PIN reset;
+  // Google Sign-In (play-services-auth) for one-tap sign-in via Google account.
   implementation(libs.firebase.auth)
+  implementation(libs.play.services.auth)
   implementation(libs.firebase.functions)
   implementation(libs.firebase.appcheck.recaptcha)
   implementation(libs.firebase.appcheck.playintegrity)
+  debugImplementation(libs.firebase.appcheck.debug)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
   implementation(libs.kotlinx.serialization.json)
   implementation(libs.play.app.update)
   implementation(libs.play.app.update.ktx)
+  implementation(libs.play.billing)
+  implementation(libs.play.billing.ktx)
   implementation(libs.play.integrity)
   implementation(libs.play.services.location)
   implementation(libs.maps.compose)

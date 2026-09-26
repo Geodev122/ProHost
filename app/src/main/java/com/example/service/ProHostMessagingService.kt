@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.example.R
 import com.example.MainActivity
 import com.example.data.model.FCMAlert
 import com.example.data.repository.ProHostRepository
@@ -126,7 +127,7 @@ class ProHostMessagingService : FirebaseMessagingService() {
 
             // Build system bar notification targeting standard safe system alert asset icons
             val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_popup_reminder)
+                .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(title)
                 .setContentText(body)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)

@@ -25,13 +25,16 @@ class ProHostRepository {
 
         // Must stay in sync with firestore.rules' user_profiles update rule's own
         // protected-fields list — every one of these is exclusively server-maintained
-        // (assignInitialRole/grantAdminRole/setAccountSuspended/the Whish entitlement
-        // grant). Used by registerMember to filter its write down to a safe subset —
-        // see that function's own doc comment for the exact bug this prevents.
+        // (assignInitialRole/grantAdminRole/setAccountSuspended/pinAuth/kycLevel/
+        // emailVerification/idDocument functions). Used by registerMember to filter its
+        // write down to a safe subset — see that function's own doc comment.
         private val PROTECTED_UPDATE_FIELDS = setOf(
             "role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
             "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount",
-            "tosAcceptedAtMillis", "consentVersion"
+            "tosAcceptedAtMillis", "consentVersion",
+            // KYC / identity verification fields
+            "kycLevel", "emailVerified", "emailVerifiedAt",
+            "idDocumentUrl", "idDocumentVerificationStatus", "idDocumentSubmittedAt", "idDocumentReviewedAt"
         )
 
         @Volatile
@@ -146,7 +149,7 @@ class ProHostRepository {
     // until an admin creates a real package via Add Package — no seed/migration
     // tool fabricates one on their behalf. This StateFlow only ever reflects
     // the real, live package_plans/main document.
-    private val _packagePlans = MutableStateFlow(PackagePlanCatalog())
+    private val _packagePlans = MutableStateFlow(PackagePlanCatalog.DEFAULT_CATALOG)
     val packagePlans: StateFlow<PackagePlanCatalog> = _packagePlans.asStateFlow()
 
     init {
@@ -597,7 +600,8 @@ class ProHostRepository {
                 isActiveSubscription = current.isActiveSubscription,
                 subscriptionExpiryMillis = current.subscriptionExpiryMillis,
                 isOwnerSuspended = current.isOwnerSuspended,
-                ownerIsIdVerified = current.ownerIsIdVerified
+                ownerIsIdVerified = current.ownerIsIdVerified,
+                ownerProfilePictureUrl = current.ownerProfilePictureUrl
             )
         } else {
             listing
@@ -655,7 +659,8 @@ class ProHostRepository {
                 isActiveSubscription = current.isActiveSubscription,
                 subscriptionExpiryMillis = current.subscriptionExpiryMillis,
                 isOwnerSuspended = current.isOwnerSuspended,
-                ownerIsIdVerified = current.ownerIsIdVerified
+                ownerIsIdVerified = current.ownerIsIdVerified,
+                ownerProfilePictureUrl = current.ownerProfilePictureUrl
             )
         } else {
             listing.copy(status = ListingStatus.DRAFT)
@@ -695,7 +700,8 @@ class ProHostRepository {
                 isVerified = current.isVerified,
                 isActiveSubscription = current.isActiveSubscription,
                 subscriptionExpiryMillis = current.subscriptionExpiryMillis,
-                ownerIsIdVerified = current.ownerIsIdVerified
+                ownerIsIdVerified = current.ownerIsIdVerified,
+                ownerProfilePictureUrl = current.ownerProfilePictureUrl
             )
         } else {
             updated
@@ -1098,6 +1104,20 @@ class ProHostRepository {
         subdivisionName: String? = null,
         replacesBookingId: String? = null
     ): Pair<RentalBookingRequest, Boolean> {
+        if (practitioner.id == space.ownerId) {
+            throw IllegalArgumentException("A host cannot book their own listing.")
+        }
+        // Guard against duplicate submissions: reject if a PENDING request from this
+        // practitioner for this space already exists in the local cache (M7).
+        val hasPending = _bookingRequests.value.any { existing ->
+            existing.spaceId == space.id &&
+            existing.practitionerId == practitioner.id &&
+            existing.status == BookingRequestStatus.PENDING &&
+            existing.id != replacesBookingId
+        }
+        if (hasPending) {
+            throw IllegalStateException("You already have a pending booking request for this space.")
+        }
         // Was "REQ-LB-" + (1000..9999).random() — only ~9,000 distinct values,
         // no collision check, and saveBookingRequest below does a
         // .document(requestId).set(..., merge=true) — a collision wouldn't even
@@ -1413,7 +1433,8 @@ class ProHostRepository {
                 isVerified = current.isVerified,
                 isActiveSubscription = current.isActiveSubscription,
                 subscriptionExpiryMillis = current.subscriptionExpiryMillis,
-                ownerIsIdVerified = current.ownerIsIdVerified
+                ownerIsIdVerified = current.ownerIsIdVerified,
+                ownerProfilePictureUrl = current.ownerProfilePictureUrl
             )
         } else {
             updated
@@ -1706,6 +1727,8 @@ class ProHostRepository {
         // signs in next in the same app process.
         _fcmAlerts.value = emptyList()
         _currentUser.value = null
+        _hasLoadedBookingsOnce.value = false
+        _hasLoadedSpacesOnce.value = false
         addAuditLog(
             actionType = "USER_LOGOUT",
             details = "Session closed for $previous",
@@ -1799,16 +1822,27 @@ class ProHostRepository {
      */
     suspend fun updateIdDocument(idDocumentUrl: String): Boolean {
         val current = _currentUser.value ?: return false
-        val success = firestoreService.updateUserProfileFields(
-            current.id,
-            mapOf("idDocumentUrl" to idDocumentUrl)
-        )
+        val success = functionsClient.submitIdDocument(idDocumentUrl).isSuccess
         if (success) {
             val updated = current.copy(idDocumentUrl = idDocumentUrl)
             _currentUser.value = updated
             _users.value = _users.value.map { if (it.id == updated.id) updated else it }
         }
         return success
+    }
+
+    /**
+     * Records the purchase token so the RTDN handler can look up this user by token
+     * as a fallback. Role promotion and expiry are written exclusively by the server
+     * (billing/playBillingRtdn.ts grantSubscription) using Play's canonical expiryTimeMillis —
+     * never set from the client to avoid clock skew and protected-field rule rejections.
+     */
+    suspend fun recordActivePurchaseToken(packageId: String, purchaseToken: String): Boolean {
+        val current = _currentUser.value ?: return false
+        return firestoreService.updateUserProfileFields(
+            current.id,
+            mapOf("activePurchaseToken" to purchaseToken)
+        )
     }
 
     /**
@@ -2125,4 +2159,7 @@ ${_spaces.value.joinToString("\n") { sp ->
     // real payout flow (does Whish's API even support merchant-to-user transfers?
     // is this a manual settlement admins confirm, like most local integrations?) is
     // a product decision, not a security patch.
+
+    /** One-shot fetch of the KYC ID review queue for the Admin Console ID Review tab. */
+    suspend fun loadIdReviewQueue(): List<IdReviewEntry> = firestoreService.loadIdReviewQueue()
 }

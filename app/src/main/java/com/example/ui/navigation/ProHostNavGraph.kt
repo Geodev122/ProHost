@@ -1,6 +1,8 @@
 package com.example.ui.navigation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Celebration
@@ -10,6 +12,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.text.font.FontWeight
@@ -25,9 +29,14 @@ import com.example.ui.components.dialogs.DrawerDialogsHandler
 import com.example.ui.components.drawer.AdminDrawerContent
 import com.example.ui.components.drawer.SpecialistDrawerContent
 import com.example.ui.screens.*
+import com.example.ui.theme.CarnationOrange
+import com.example.ui.theme.VibrantBlue
+import com.example.ui.viewmodel.DiscoveryViewModel
 import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.InAppUpdateManager
 import com.example.util.UpdateState
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import kotlinx.coroutines.launch
 
 /**
@@ -110,9 +119,11 @@ fun ProHostAppRoot(
     deepLinkTab: String? = null,
     deepLinkBookingId: String? = null,
     deepLinkSpaceId: String? = null,
+    emailVerifiedDeepLink: Boolean = false,
     inAppUpdateManager: InAppUpdateManager? = null,
     viewModel: ProHostViewModel = viewModel()
 ) {
+    val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
     val currentUser by viewModel.currentUser.collectAsState()
     val drawerPackagePlans by viewModel.packagePlans.collectAsState()
     val deepLinkSpaces by viewModel.spaces.collectAsState()
@@ -196,6 +207,20 @@ fun ProHostAppRoot(
         }
     }
 
+    // Email verification deep link: prohost://verify-email/success — show a one-shot toast
+    // once the user is signed in, so they know their address is now verified.
+    val emailVerifiedConsumed = remember { mutableStateOf(false) }
+    LaunchedEffect(emailVerifiedDeepLink, currentUser?.id) {
+        if (emailVerifiedDeepLink && !emailVerifiedConsumed.value && currentUser != null) {
+            emailVerifiedConsumed.value = true
+            android.widget.Toast.makeText(
+                appContext,
+                "Email verified! Your account is now Level 2.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
     // Opens the listing detail modal for a tapped share link
     // (pro-host.tech/listing/{spaceId} — see MainActivity's
     // handleIncomingIntent and functions/src/listings/shareLanding.ts). Only
@@ -213,6 +238,23 @@ fun ProHostAppRoot(
             consumedDeepLinkSpaceId = deepLinkSpaceId
             detailedSpace = match
             navigateTo("search_map")
+        }
+    }
+
+    // Routes a booking-id deep link (FCM notification tap) to the appropriate booking
+    // tab for this role. The destination tab shows all bookings; the ID is surfaced via
+    // the existing search/filter fields on those screens rather than a separate detail
+    // modal, since there is no standalone booking-detail route yet. (H4)
+    var consumedDeepLinkBookingId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(deepLinkBookingId, currentUser?.id) {
+        if (deepLinkBookingId.isNullOrBlank() || currentUser == null) return@LaunchedEffect
+        if (consumedDeepLinkBookingId == deepLinkBookingId) return@LaunchedEffect
+        consumedDeepLinkBookingId = deepLinkBookingId
+        val role = currentUser?.role
+        when (role) {
+            UserRole.SPECIALIST -> navigateTo("pro_rentals")
+            UserRole.PRO_HOST -> navigateTo("owner_rental_requests")
+            else -> {}
         }
     }
 
@@ -237,15 +279,37 @@ fun ProHostAppRoot(
         // straight to the registration form, skipping phone/OTP entry, since
         // Firebase Auth already has a valid verified session for this number.
         val pendingRegistrationPhone by viewModel.pendingRegistrationPhone.collectAsState()
-        LoginAuthScreen(
-            resumeAtRegistration = pendingRegistrationPhone != null,
-            resumePhoneE164 = pendingRegistrationPhone,
-            onCancelResume = { viewModel.clearPendingRegistrationPhone() },
-            onLoginSuccess = {
-                viewModel.clearPendingRegistrationPhone()
-                // Handled via LaunchedEffect
+        val sessionRestoreError by viewModel.sessionRestoreError.collectAsState()
+        Column {
+            if (sessionRestoreError != null) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.errorContainer
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            sessionRestoreError!!,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
             }
-        )
+            LoginAuthScreen(
+                resumeAtRegistration = pendingRegistrationPhone != null,
+                resumePhoneE164 = pendingRegistrationPhone,
+                onCancelResume = { viewModel.clearPendingRegistrationPhone() },
+                onLoginSuccess = {
+                    viewModel.clearPendingRegistrationPhone()
+                    // Handled via LaunchedEffect
+                }
+            )
+        }
     } else if (currentUser?.isSuspended == true) {
         // Before this, nothing reacted to a mid-session suspension at all —
         // _currentUser (ProHostRepository's onUsersUpdated) already syncs
@@ -262,9 +326,21 @@ fun ProHostAppRoot(
             }
         )
     } else {
+        val pinReauthRequired by viewModel.pinReauthRequired.collectAsState()
+        val discoveryViewModel: DiscoveryViewModel = viewModel()
+        val isMapViewActive by discoveryViewModel.isMapViewActive.collectAsState()
         val currentRole = currentUser?.role ?: UserRole.SPECIALIST
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         val scope = rememberCoroutineScope()
+
+        // Session re-auth overlay — shown when the app returns from background after >60s.
+        if (pinReauthRequired) {
+            PinReauthOverlay(
+                viewModel = viewModel,
+                onAuthenticated = { viewModel.clearPinReauth() },
+                onSignOut = { viewModel.logout() }
+            )
+        } else {
 
         // Determine visible bottom-nav tabs strictly according to role
         val roleTabs: List<AppNavTab> = when (currentRole) {
@@ -275,7 +351,8 @@ fun ProHostAppRoot(
 
         ModalNavigationDrawer(
             drawerState = drawerState,
-            gesturesEnabled = detailedSpace == null,
+            gesturesEnabled = false, // Edge-swipe gestures disabled; user opens drawer manually via header 3-dots icon
+            scrimColor = Color.Black.copy(alpha = 0.35f),
             drawerContent = {
                 ModalDrawerSheet(
                     // Was a hard 310.dp — on narrow phones that alone ate most of the
@@ -286,7 +363,7 @@ fun ProHostAppRoot(
                         .fillMaxWidth(0.86f)
                         .widthIn(max = 320.dp),
                     drawerContainerColor = MaterialTheme.colorScheme.surface,
-                    drawerTonalElevation = 4.dp
+                    drawerTonalElevation = 2.dp
                 ) {
                     when (currentRole) {
                         UserRole.SPECIALIST, UserRole.PRO_HOST -> {
@@ -356,15 +433,29 @@ fun ProHostAppRoot(
                                 title = title,
                                 onMenuClick = { scope.launch { drawerState.open() } }
                             )
-                        } else {
+                        } else if (activeTabId == AppNavTab.SearchMap.id) {
+                            // Explore tab — keep title for context but suppress brand/logo
                             val alertsList = viewModel.fcmAlerts.collectAsState().value
                             val unreadCount = alertsList.count { !it.isRead }
-
                             ProHostTopAppBar(
                                 currentRole = currentRole,
                                 unreadAlertCount = unreadCount,
                                 onMenuClick = { scope.launch { drawerState.open() } },
-                                onAlertsClick = { activeDrawerTabDialog = "fcm_alerts" }
+                                onAlertsClick = { activeDrawerTabDialog = "fcm_alerts" },
+                                pageTitle = "Explore",
+                                showBrand = false
+                            )
+                        } else {
+                            val alertsList = viewModel.fcmAlerts.collectAsState().value
+                            val unreadCount = alertsList.count { !it.isRead }
+
+                            val currentPageTitle = roleTabs.firstOrNull { it.id == activeTabId }?.title
+                            ProHostTopAppBar(
+                                currentRole = currentRole,
+                                unreadAlertCount = unreadCount,
+                                onMenuClick = { scope.launch { drawerState.open() } },
+                                onAlertsClick = { activeDrawerTabDialog = "fcm_alerts" },
+                                pageTitle = currentPageTitle
                             )
                         }
                     }
@@ -373,25 +464,68 @@ fun ProHostAppRoot(
                     // No bottom nav while a full-screen drawer destination is open, and
                     // none at all for Admin (roleTabs is empty for that role) — only the
                     // top bar's menu icon (reopen the drawer) is offered either way.
-                    if (detailedSpace == null && safeFullScreenDrawerTab == null && roleTabs.isNotEmpty()) {
-                        NavigationBar(
-                            tonalElevation = 6.dp,
-                            modifier = Modifier.testTag("bottom_navigation_bar")
-                        ) {
-                            roleTabs.forEach { tab ->
-                                val isSelected = activeTabId == tab.id
-                                NavigationBarItem(
-                                    selected = isSelected,
-                                    onClick = { activeTabId = tab.id },
-                                    icon = {
-                                        Icon(
-                                            imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                                            contentDescription = tab.title
+                    if (detailedSpace == null && safeFullScreenDrawerTab == null && roleTabs.isNotEmpty() &&
+                        !(isMapViewActive && activeTabId == AppNavTab.SearchMap.id)) {
+                        val roleAccentColor = if (currentRole == UserRole.PRO_HOST) CarnationOrange else VibrantBlue
+                        Column {
+                            // Glowing role-colored strip at the very top of the nav bar
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(2.dp)
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(
+                                                Color.Transparent,
+                                                roleAccentColor.copy(alpha = 0.6f),
+                                                roleAccentColor,
+                                                roleAccentColor.copy(alpha = 0.6f),
+                                                Color.Transparent
+                                            )
                                         )
-                                    },
-                                    label = { Text(tab.title, fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold) },
-                                    modifier = Modifier.testTag("nav_item_${tab.id}")
-                                )
+                                    )
+                            )
+                            // Soft glow bloom below the strip
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                roleAccentColor.copy(alpha = 0.14f),
+                                                Color.Transparent
+                                            )
+                                        )
+                                    )
+                            )
+                            NavigationBar(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                tonalElevation = 0.dp,
+                                modifier = Modifier.testTag("bottom_navigation_bar")
+                            ) {
+                                roleTabs.forEach { tab ->
+                                    val isSelected = activeTabId == tab.id
+                                    NavigationBarItem(
+                                        selected = isSelected,
+                                        onClick = { activeTabId = tab.id },
+                                        icon = {
+                                            Icon(
+                                                imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+                                                contentDescription = tab.title
+                                            )
+                                        },
+                                        label = { Text(tab.title, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            selectedIconColor = roleAccentColor,
+                                            selectedTextColor = roleAccentColor,
+                                            indicatorColor = roleAccentColor.copy(alpha = 0.12f),
+                                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
+                                        modifier = Modifier.testTag("nav_item_${tab.id}")
+                                    )
+                                }
                             }
                         }
                     }
@@ -467,7 +601,7 @@ fun ProHostAppRoot(
                                 when (safeFullScreenDrawerTab) {
                                     AppNavTab.MyFavorites.id -> MyFavoritesScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { detailedSpace = it },
+                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpace = it },
                                         onNavigateToExplore = { navigateTo(AppNavTab.SearchMap.id) }
                                     )
                                     AppNavTab.OwnerRentalRequests.id -> OwnerRentalRequestsScreen(
@@ -504,11 +638,12 @@ fun ProHostAppRoot(
                                 when (safeActiveTabId) {
                                     AppNavTab.SearchMap.id -> DiscoveryScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { detailedSpace = it }
+                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpace = it },
+                                        discoveryViewModel = discoveryViewModel
                                     )
                                     AppNavTab.ManageListings.id -> OwnerHubScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { detailedSpace = it },
+                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpace = it },
                                         onManageSpace = { managingSpace = it },
                                         onOpenSubscriptions = { navigateTo(AppNavTab.OwnerSubscriptions.id) }
                                     )
@@ -519,7 +654,7 @@ fun ProHostAppRoot(
                                     AppNavTab.ProfessionalRentals.id -> MyBookingsScreen(
                                         viewModel = viewModel,
                                         onNavigateToDiscovery = { activeTabId = AppNavTab.SearchMap.id },
-                                        onSelectSpace = { detailedSpace = it }
+                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpace = it }
                                     )
                                     AppNavTab.ProfessionalProfile.id -> SpecialistProfileScreen(
                                         viewModel = viewModel,
@@ -528,7 +663,8 @@ fun ProHostAppRoot(
                                     )
                                     else -> DiscoveryScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { detailedSpace = it }
+                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpace = it },
+                                        discoveryViewModel = discoveryViewModel
                                     )
                                 }
                             }
@@ -549,18 +685,6 @@ fun ProHostAppRoot(
             onDismiss = { activeDrawerTabDialog = null }
         )
 
-        // Global Whish in-app checkout host — every purchase flow (package
-        // subscribe/renew/upgrade) funnels through ProHostViewModel's one shared
-        // launchWhishCheckout, so a single host here covers all of them regardless
-        // of which screen started the payment.
-        val pendingCheckoutUrl by viewModel.pendingCheckoutUrl.collectAsState()
-        pendingCheckoutUrl?.let { url ->
-            WhishCheckoutWebView(
-                collectUrl = url,
-                onDismiss = { viewModel.clearPendingCheckoutUrl() }
-            )
-        }
-
         if (showProHostWelcome) {
             AlertDialog(
                 onDismissRequest = { showProHostWelcome = false },
@@ -578,6 +702,38 @@ fun ProHostAppRoot(
                     }
                 }
             )
+        }
+        } // end main app (pinReauthRequired == false) branch
+    }
+}
+
+@Composable
+private fun PinReauthOverlay(
+    viewModel: ProHostViewModel,
+    onAuthenticated: () -> Unit,
+    onSignOut: () -> Unit
+) {
+    Scaffold { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Session Locked", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("The app was in the background. Tap Unlock Session to continue.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = onAuthenticated,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Unlock Session") }
+            Spacer(modifier = Modifier.height(8.dp))
+            TextButton(onClick = onSignOut) { Text("Sign Out") }
         }
     }
 }

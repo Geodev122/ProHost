@@ -180,7 +180,8 @@ fun OwnerIncomingRequestsView(
                 }
             },
             confirmButton = {
-                Button(
+                CustomButton(
+                    text = "Confirm Decline",
                     onClick = {
                         val reqId = rejectingRequestId
                         if (reqId != null) {
@@ -188,10 +189,9 @@ fun OwnerIncomingRequestsView(
                         }
                         rejectingRequestId = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Confirm Decline")
-                }
+                    variant = CustomButtonVariant.DANGER,
+                    compact = true
+                )
             },
             dismissButton = {
                 TextButton(onClick = { rejectingRequestId = null }) {
@@ -332,7 +332,7 @@ fun OwnerBookingRequestCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "📑 Formula: ${request.formula.type.displayName}",
+                        text = "Formula: ${request.formula.type.displayName}",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary
@@ -373,7 +373,7 @@ fun OwnerBookingRequestCard(
                             )
                         }
                         Text(
-                            text = "🗓️ Starting Date: ${request.startDate} (${request.durationMonths} month term) • Formula: ${request.formula.type.displayName}",
+                            text = "Starting Date: ${request.startDate} (${request.durationMonths} month term) • Formula: ${request.formula.type.displayName}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -407,7 +407,7 @@ fun OwnerBookingRequestCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "💬 Requirements / Note: \"${request.clinicalNotes}\"",
+                        text = "Requirements / Note: \"${request.clinicalNotes}\"",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(6.dp)
@@ -450,7 +450,7 @@ fun OwnerBookingRequestCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "🚫 Decline Reason: ${request.rejectionReason}",
+                        text = "Decline Reason: ${request.rejectionReason}",
                         style = MaterialTheme.typography.labelSmall,
                         color = StatusError,
                         fontWeight = FontWeight.Medium,
@@ -466,63 +466,32 @@ fun OwnerBookingRequestCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Accept Button
-                    Button(
+                    CustomButton(
+                        text = "Accept",
                         onClick = onAccept,
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = Color.White
-                        ),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
-                    ) {
-                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(
-                            text = "Accept",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                        variant = CustomButtonVariant.SUCCESS,
+                        icon = Icons.Default.Check,
+                        compact = true,
+                        modifier = Modifier.weight(1f)
+                    )
 
-                    // Reject Button
-                    OutlinedButton(
+                    CustomButton(
+                        text = "Reject",
                         onClick = onReject,
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(
-                            text = "Reject",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                        variant = CustomButtonVariant.DANGER,
+                        icon = Icons.Default.Close,
+                        compact = true,
+                        modifier = Modifier.weight(1f)
+                    )
 
-                    // WhatsApp Button
-                    Button(
+                    CustomButton(
+                        text = "WhatsApp",
                         onClick = onWhatsAppProfessional,
-                        modifier = Modifier.weight(1.2f),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(
-                            text = "WhatsApp",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
+                        variant = CustomButtonVariant.WHATSAPP,
+                        icon = Icons.AutoMirrored.Filled.Chat,
+                        compact = true,
+                        modifier = Modifier.weight(1.2f)
+                    )
                 }
             } else {
                 // If already accepted, rejected, or cancelled, show action row
@@ -533,58 +502,32 @@ fun OwnerBookingRequestCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // WhatsApp
-                        Button(
+                        CustomButton(
+                            text = "WhatsApp",
                             onClick = onWhatsAppProfessional,
-                            shape = MaterialTheme.shapes.medium,
-                            colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                            modifier = Modifier.weight(1.2f),
-                            contentPadding = PaddingValues(vertical = 10.dp)
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text(
-                                text = "WhatsApp",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
+                            variant = CustomButtonVariant.WHATSAPP,
+                            icon = Icons.AutoMirrored.Filled.Chat,
+                            compact = true,
+                            modifier = Modifier.weight(1.2f)
+                        )
 
-                        // Send Payment Reminder FCM Button
-                        Button(
+                        CustomButton(
+                            text = "Remind Payment",
                             onClick = onSendPaymentReminder,
-                            shape = MaterialTheme.shapes.medium,
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-                            modifier = Modifier.weight(1.5f),
-                            contentPadding = PaddingValues(vertical = 10.dp)
-                        ) {
-                            Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text(
-                                text = "Remind Payment",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
-                    }
-                } else {
-                    Button(
-                        onClick = onWhatsAppProfessional,
-                        shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                        modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(vertical = 10.dp)
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Message Specialist on WhatsApp",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            variant = CustomButtonVariant.SECONDARY,
+                            icon = Icons.Default.NotificationsActive,
+                            compact = true,
+                            modifier = Modifier.weight(1.5f)
                         )
                     }
+                } else {
+                    CustomButton(
+                        text = "Message Specialist on WhatsApp",
+                        onClick = onWhatsAppProfessional,
+                        variant = CustomButtonVariant.WHATSAPP,
+                        icon = Icons.AutoMirrored.Filled.Chat,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }

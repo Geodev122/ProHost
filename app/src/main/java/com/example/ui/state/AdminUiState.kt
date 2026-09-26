@@ -14,6 +14,8 @@ data class AdminUiState(
     val auditLogs: List<AuditSecurityLog> = emptyList(),
     val schema: SpaceArchitectureSchema = SpaceArchitectureSchema(),
     val hashtagAnalytics: List<HashtagUsageEntry> = emptyList(),
+    /** Number of users with an active Google Play subscription. Wired up in AdminViewModel. */
+    val activeSubscriberCount: Int = 0,
     val selectedTab: Int = 0,
 
     // Filter and search states
@@ -70,6 +72,11 @@ data class AdminUiState(
     val packagePlans: PackagePlanCatalog = PackagePlanCatalog(),
     val isAddPackagePlanDialogOpen: Boolean = false,
 
+    // Delete-package confirmation dialog — subscriber-aware (BUG-C3)
+    val isDeletePackagePlanDialogOpen: Boolean = false,
+    val pendingDeletePlanId: String? = null,
+    val pendingDeletePlanSubscriberCount: Int = 0,
+
     // Currently-published version of each of the 3 admin-manageable legal documents
     // (LegalDocumentVersion.ADMIN_MANAGED_DOC_IDS), keyed by doc id — null means
     // nothing has ever been uploaded for that doc yet. Loaded once on ViewModel init
@@ -77,7 +84,14 @@ data class AdminUiState(
     // refreshLegalDocuments/uploadLegalDocument) — not a live listener, since this
     // content changes rarely and a fresh one-shot read on demand is plenty.
     val legalDocuments: Map<String, LegalDocumentVersion?> = emptyMap(),
-    val isUploadingLegalDocument: String? = null // the docId currently mid-upload, if any
+    val isUploadingLegalDocument: String? = null, // the docId currently mid-upload, if any
+
+    // ID document review queue (tab 7). Loaded on demand by AdminViewModel.
+    val idReviewQueue: List<IdReviewEntry> = emptyList(),
+    val isIdReviewLoading: Boolean = false,
+    val idReviewDecisionInProgress: String? = null, // userId currently being approved/rejected
+    val isRejectIdDialogOpen: Boolean = false,
+    val rejectingIdUserId: String? = null
 ) {
     val filteredUsers: List<AppUser>
         get() = allUsers.filter { user ->

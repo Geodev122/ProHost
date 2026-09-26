@@ -3,7 +3,10 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { DEFAULT_ROLE, isAppRole } from "../lib/roles";
 import { recordAuditLog } from "../lib/auditLog";
-import { checkPlayIntegrityLogOnly } from "../lib/playIntegrity";
+import { enforcePlayIntegrity } from "../lib/playIntegrity";
+import { hostingerSmtpSecret } from "../lib/email";
+import { emailVerificationSecret, sendEmailVerificationInternal } from "../auth/emailVerification";
+import * as logger from "firebase-functions/logger";
 import "../lib/admin";
 
 /**
@@ -67,7 +70,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // shown.
 const CURRENT_CONSENT_VERSION = "September 6, 2026";
 
-function validateRegistrationDraft(draft: RegistrationDraft): void {
+async function validateRegistrationDraft(draft: RegistrationDraft, callerUid: string): Promise<void> {
   const fullName = typeof draft.fullName === "string" ? draft.fullName.trim() : "";
   if (fullName.length < 2 || fullName.length > 100) {
     throw new HttpsError("invalid-argument", "Full name must be between 2 and 100 characters.");
@@ -76,6 +79,19 @@ function validateRegistrationDraft(draft: RegistrationDraft): void {
   const email = typeof draft.email === "string" ? draft.email.trim() : "";
   if (!EMAIL_RE.test(email) || email.length > 200) {
     throw new HttpsError("invalid-argument", "A valid email address is required.");
+  }
+
+  // Email uniqueness: prevent two accounts from sharing the same email.
+  try {
+    const existing = await getAuth().getUserByEmail(email);
+    if (existing.uid !== callerUid) {
+      throw new HttpsError("already-exists", "An account with this email already exists.");
+    }
+  } catch (e: unknown) {
+    // getUserByEmail throws "auth/user-not-found" when no account has this email — that's fine.
+    if (e instanceof HttpsError) throw e;
+    const code = (e as { code?: string })?.code;
+    if (code !== "auth/user-not-found") throw e;
   }
 
   // idDocumentUrl is optional at the type level but required by the registration
@@ -97,8 +113,10 @@ function validateRegistrationDraft(draft: RegistrationDraft): void {
   }
 }
 
-export const assignInitialRole = onCall(async (request) => {
-  const auth = request.auth;
+export const assignInitialRole = onCall(
+  { secrets: [hostingerSmtpSecret, emailVerificationSecret] },
+  async (request) => {
+    const auth = request.auth;
   if (!auth) {
     throw new HttpsError("unauthenticated", "Sign in required.");
   }
@@ -106,17 +124,16 @@ export const assignInitialRole = onCall(async (request) => {
   const data = request.data as { registration?: RegistrationDraft; integrityToken?: unknown } | undefined;
   const registration = data?.registration;
   if (registration) {
-    validateRegistrationDraft(registration);
+    await validateRegistrationDraft(registration, auth.uid);
   }
 
-  // Awaited (not fire-and-forget — a Cloud Functions instance can freeze right
-  // after this handler returns, which would silently drop an un-awaited async
-  // call before its log line ever writes) but never allowed to throw or block
-  // sign-in — see checkPlayIntegrityLogOnly's own doc comment for the
-  // log-only design.
+  // Integrity is enforced when a token is present: UNRECOGNIZED_VERSION and UNLICENSED
+  // verdicts throw HttpsError("failed-precondition") so the sign-in is rejected.
+  // A missing token (no Play Services, test devices) is still allowed so a transient
+  // client-side failure doesn't permanently lock out real users.
   const integrityToken = typeof data?.integrityToken === "string" ? data.integrityToken : undefined;
   if (integrityToken) {
-    await checkPlayIntegrityLogOnly(integrityToken, auth.uid);
+    await enforcePlayIntegrity(integrityToken, auth.uid);
   }
 
   const db = getFirestore();
@@ -145,11 +162,22 @@ export const assignInitialRole = onCall(async (request) => {
       isVerified,
       createdAtMillis: now,
       lastSignInAtMillis: now,
-      // Only stamped when a registration draft actually arrived (and, by this
-      // point, already passed validateRegistrationDraft's tosAccepted check) —
-      // left unset rather than fabricated for the rare path where an account
-      // gets its first role claim with no registration payload at all.
-      ...(registration ? { tosAcceptedAtMillis: now, consentVersion: CURRENT_CONSENT_VERSION } : {}),
+      // Only stamped on the FIRST registration (when the field doesn't exist yet).
+      // If completeVerifiedRegistration is retried after a network error, the
+      // original timestamp is preserved — we never overwrite a recorded consent.
+      ...(registration && !profileSnap.data()?.tosAcceptedAtMillis
+        ? { tosAcceptedAtMillis: now, consentVersion: CURRENT_CONSENT_VERSION }
+        : {}),
+      ...(registration?.idDocumentUrl
+        ? {
+            idDocumentUrl: registration.idDocumentUrl,
+            idDocumentVerificationStatus: "PENDING",
+            idDocumentSubmittedAt: now,
+          }
+        : {}),
+      ...(auth.token.email_verified === true
+        ? { emailVerified: true, emailVerifiedAt: now }
+        : {}),
       updatedAt: now,
     },
     { merge: true }
@@ -162,5 +190,13 @@ export const assignInitialRole = onCall(async (request) => {
     severity: "INFO",
   });
 
+  // Send email verification link on first-time registration for non-Google/unverified emails
+  if (registration && auth.token.email_verified !== true) {
+    sendEmailVerificationInternal(auth.uid).catch((e) =>
+      logger.warn("email_verification_send_failed", { uid: auth.uid, error: String(e) })
+    );
+  }
+
   return { role: DEFAULT_ROLE, assigned: true };
-});
+  }
+);

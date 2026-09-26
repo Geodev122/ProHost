@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Firebase Hosting",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["firebase", "emulators:start", "--only", "hosting"],
+      "port": 5000
+    },
+    {
+      "name": "Firebase Emulators",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["firebase", "emulators:start"],
+      "port": 4000,
+      "url": "http://localhost:4000"
+    }
+  ]
+}

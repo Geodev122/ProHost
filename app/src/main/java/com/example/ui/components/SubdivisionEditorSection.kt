@@ -102,6 +102,46 @@ fun SubdivisionEditorSection(
     // Changes" and commit a replacement instead of an append.
     var editingSubdivisionIndex by remember { mutableStateOf<Int?>(null) }
 
+    val isSubFormValid = subName.isNotBlank() && subPricing.hasRealPrice()
+
+    fun resetSubdivisionForm() {
+        editingSubdivisionIndex = null
+        subName = ""
+        subType = Level2Type.ROOMS
+        subAmenitiesSelected = emptySet()
+        subImageUrls = emptyList()
+        subPricing = RentalPricingConfig.default()
+        subScheduleOverrideEnabled = false
+        subOverrideOpeningHour = openingHour
+        subOverrideClosingHour = closingHour
+        subOverrideDays = operatingDays.toSet()
+        subOverrideSundayOperating = false
+        subOverrideBlackouts = emptyList()
+        blackoutDay = operatingDays.firstOrNull() ?: "Mon"
+        blackoutStart = "18:00"
+        blackoutEnd = "22:00"
+        blackoutReason = ""
+        pendingSubId = "SUB-" + UUID.randomUUID().toString().take(6).uppercase()
+    }
+
+    fun buildCurrentSubdivision(): Subdivision = Subdivision(
+        id = pendingSubId,
+        name = subName,
+        type = subType,
+        imageUrls = subImageUrls,
+        amenities = subAmenitiesSelected.toList(),
+        pricing = subPricing,
+        scheduleOverride = if (subScheduleOverrideEnabled) {
+            SpaceOperatingSchedule(
+                openingHour = subOverrideOpeningHour,
+                closingHour = subOverrideClosingHour,
+                operatingDays = subOverrideDays.toList(),
+                isSundayOperating = subOverrideSundayOperating,
+                blackoutSlots = subOverrideBlackouts
+            )
+        } else null
+    )
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris: List<Uri> ->
@@ -144,21 +184,21 @@ fun SubdivisionEditorSection(
         "High-Speed Wi-Fi", "Soundproofing", "Ergonomic Seating", "Storage Locker",
         "Keyless Access Control", "Privacy Partition", "Natural Lighting", "Standing Desk"
     )
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text(
-            "Configure Rooms & Workspace Subdivisions",
-            fontWeight = FontWeight.Bold,
-            fontSize = MaterialTheme.typography.labelLarge.fontSize,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            "Add individual rooms, offices, or shared desks that professionals can rent separately. Each gets its own type, amenities, images, and renting strategy.",
-            fontSize = MaterialTheme.typography.labelMedium.fontSize,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        // Intro header
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Icon(Icons.Default.Apartment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Column {
+                Text("Rooms & Workspace Divisions", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("Add each rentable room or desk separately — specialists will book them individually.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
 
         if (subdivisionsList.isNotEmpty()) {
-            Text("Configured Subdivisions (${subdivisionsList.size})", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
+                Text("Configured Rooms (${subdivisionsList.size})", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 subdivisionsList.forEachIndexed { index, sub ->
                     val isEditingThis = editingSubdivisionIndex == index
@@ -182,13 +222,13 @@ fun SubdivisionEditorSection(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Text(sub.name, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
+                                    Text(sub.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                                     if (isEditingThis) {
                                         Surface(color = MaterialTheme.colorScheme.primary, shape = MaterialTheme.shapes.extraSmall) {
                                             Text(
                                                 "EDITING",
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onPrimary
                                             )
@@ -232,9 +272,16 @@ fun SubdivisionEditorSection(
                                 }
                             }
 
-                            Text("Type: ${sub.type.displayName} • Strategy: ${sub.pricing.strategyType.displayName}", fontSize = MaterialTheme.typography.labelMedium.fontSize, color = MaterialTheme.colorScheme.primary)
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
+                                    Text(sub.type.displayName, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                }
+                                Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.extraSmall) {
+                                    Text(sub.pricing.strategyType.displayName, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                }
+                            }
                             if (sub.amenities.isNotEmpty()) {
-                                Text("Amenities: ${sub.amenities.joinToString()}", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("✓ ${sub.amenities.joinToString()}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             if (sub.imageUrls.isNotEmpty()) {
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -248,6 +295,26 @@ fun SubdivisionEditorSection(
                                     }
                                 }
                             }
+                            if (isEditingThis) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Button(
+                                    onClick = {
+                                        val updatedSub = buildCurrentSubdivision()
+                                        onSubdivisionsChange(subdivisionsList.mapIndexed { i, existing ->
+                                            if (i == index) updatedSub else existing
+                                        })
+                                        resetSubdivisionForm()
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    enabled = isSubFormValid,
+                                    shape = MaterialTheme.shapes.small,
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                ) {
+                                    Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.xs))
+                                    Text("Save Subdivision Changes", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                }
+                            }
                         }
                     }
                 }
@@ -255,16 +322,51 @@ fun SubdivisionEditorSection(
             HorizontalDivider()
         }
 
-        Card(
-            modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), MaterialTheme.shapes.medium),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        // Pickers declared up-front so they render on top of everything
+        if (showTypePicker) {
+            SearchablePickerDialog(
+                title = "Room / Unit Type",
+                options = Level2Type.values().map { it.displayName },
+                selected = setOf(subType.displayName),
+                multiSelect = false,
+                onToggle = { label ->
+                    Level2Type.values().firstOrNull { it.displayName == label }?.let { subType = it }
+                    showTypePicker = false
+                },
+                onDismiss = { showTypePicker = false }
+            )
+        }
+        if (showAmenityPicker) {
+            SearchablePickerDialog(
+                title = "Room Amenities",
+                options = amenityCatalog,
+                selected = subAmenitiesSelected,
+                multiSelect = true,
+                onToggle = { amen ->
+                    subAmenitiesSelected = if (amen in subAmenitiesSelected) subAmenitiesSelected - amen else subAmenitiesSelected + amen
+                },
+                onDismiss = { showAmenityPicker = false }
+            )
+        }
+
+        // ── Section 1: Identity ─────────────────────────────────────────────
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            shape = MaterialTheme.shapes.large,
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    if (editingSubdivisionIndex != null) "Edit Room / Unit Details" else "Add Room / Unit Details",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = MaterialTheme.typography.bodySmall.fontSize
-                )
+            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
+                        Text("1", modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
+                    Text(
+                        if (editingSubdivisionIndex != null) "Edit Room / Unit" else "Room / Unit Identity",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
                 InputField(
                     value = subName,
@@ -274,51 +376,36 @@ fun SubdivisionEditorSection(
                     singleLine = true
                 )
 
-                // Type and Amenities are chosen through real searchable popup pickers
-                // (spec Step 3: "Type via multiselect popup", "Amenities via multiselect
-                // popup") — the inline chip rows they replaced couldn't scale past a
-                // handful of options and had no search for Type at all.
-                Text("Type", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                Text("Type", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 PickerTriggerRow(
                     summary = subType.displayName,
                     placeholder = "Choose a room type",
                     onClick = { showTypePicker = true }
                 )
 
-                Text("Amenities", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                Text("Amenities", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 PickerTriggerRow(
-                    summary = subAmenitiesSelected.joinToString(),
+                    summary = subAmenitiesSelected.joinToString().ifBlank { "None selected" },
                     placeholder = "Choose amenities",
                     onClick = { showAmenityPicker = true }
                 )
+            }
+        }
 
-                if (showTypePicker) {
-                    SearchablePickerDialog(
-                        title = "Room / Unit Type",
-                        options = Level2Type.values().map { it.displayName },
-                        selected = setOf(subType.displayName),
-                        multiSelect = false,
-                        onToggle = { label ->
-                            Level2Type.values().firstOrNull { it.displayName == label }?.let { subType = it }
-                            showTypePicker = false
-                        },
-                        onDismiss = { showTypePicker = false }
-                    )
+        // ── Section 2: Photos ───────────────────────────────────────────────
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            shape = MaterialTheme.shapes.large,
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
+                        Text("2", modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
+                    Text("Room Photos", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
-                if (showAmenityPicker) {
-                    SearchablePickerDialog(
-                        title = "Room Amenities",
-                        options = amenityCatalog,
-                        selected = subAmenitiesSelected,
-                        multiSelect = true,
-                        onToggle = { amen ->
-                            subAmenitiesSelected = if (amen in subAmenitiesSelected) subAmenitiesSelected - amen else subAmenitiesSelected + amen
-                        },
-                        onDismiss = { showAmenityPicker = false }
-                    )
-                }
-
-                Text("Images", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(subImageUrls) { url ->
                         Box(modifier = Modifier.size(72.dp)) {
@@ -327,7 +414,7 @@ fun SubdivisionEditorSection(
                                 onClick = { subImageUrls = subImageUrls - url },
                                 modifier = Modifier.align(Alignment.TopEnd).size(20.dp)
                             ) {
-                                Icon(Icons.Default.Close, contentDescription = "Remove image")
+                                Icon(Icons.Default.Close, contentDescription = "Remove image", modifier = Modifier.size(14.dp))
                             }
                         }
                     }
@@ -336,48 +423,89 @@ fun SubdivisionEditorSection(
                             modifier = Modifier
                                 .size(72.dp)
                                 .clickable(enabled = !isUploadingSubImage) { imagePickerLauncher.launch("image/*") },
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            shape = MaterialTheme.shapes.medium,
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 if (isUploadingSubImage) {
                                     CircularProgressIndicator(modifier = Modifier.size(20.dp))
                                 } else {
-                                    Icon(Icons.Default.AddAPhoto, contentDescription = "Add room image")
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(Icons.Default.AddAPhoto, contentDescription = "Add room image", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                                        Text("Add", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                    }
                                 }
                             }
                         }
                     }
                 }
                 if (subImageUploadError != null) {
-                    Text(
-                        subImageUploadError!!,
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = MaterialTheme.typography.labelSmall.fontSize
-                    )
+                    Text(subImageUploadError!!, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                 }
+            }
+        }
 
-                HorizontalDivider()
+        // ── Section 3: Pricing ──────────────────────────────────────────────
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            shape = MaterialTheme.shapes.large,
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
+                        Text("3", modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
+                    Text("Pricing Strategy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                }
+                // Pricing keys off this room's own hours when schedule override is on,
+                // otherwise inherits the parent space's operating schedule.
+                RentalPricingConfigEditor(
+                    config = subPricing,
+                    operatingDays = if (subScheduleOverrideEnabled) subOverrideDays.toList() else operatingDays,
+                    openingHour = if (subScheduleOverrideEnabled) subOverrideOpeningHour else openingHour,
+                    closingHour = if (subScheduleOverrideEnabled) subOverrideClosingHour else closingHour,
+                    onConfigChange = { subPricing = it }
+                )
+            }
+        }
 
+        // ── Section 4: Custom Hours (optional) ─────────────────────────────
+        Surface(
+            color = if (subScheduleOverrideEnabled) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surface,
+            shape = MaterialTheme.shapes.large,
+            border = androidx.compose.foundation.BorderStroke(
+                width = if (subScheduleOverrideEnabled) 1.5.dp else 1.dp,
+                color = if (subScheduleOverrideEnabled) MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Custom Operating Hours", fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                        Text(
-                            "Off by default — this room follows the space's own hours/days.",
-                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.weight(1f)) {
+                        Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
+                            Text("4", modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        }
+                        Column {
+                            Text("Custom Hours", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(
+                                if (subScheduleOverrideEnabled) "This room has its own schedule." else "Off — follows the space's hours.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                     Switch(
                         checked = subScheduleOverrideEnabled,
                         onCheckedChange = { enabled ->
                             subScheduleOverrideEnabled = enabled
                             if (enabled) {
-                                // Seed from the space's current hours — the host edits a
-                                // delta (e.g. this room closes earlier), not a blank slate.
                                 subOverrideOpeningHour = openingHour
                                 subOverrideClosingHour = closingHour
                                 subOverrideDays = operatingDays.toSet()
@@ -385,7 +513,9 @@ fun SubdivisionEditorSection(
                         }
                     )
                 }
+
                 if (subScheduleOverrideEnabled) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     OperatingScheduleEditorSection(
                         openingHour = subOverrideOpeningHour,
                         onOpeningHourChange = { subOverrideOpeningHour = it },
@@ -399,36 +529,37 @@ fun SubdivisionEditorSection(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Open on Sundays", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                        Text("Open on Sundays", style = MaterialTheme.typography.bodySmall)
                         Switch(checked = subOverrideSundayOperating, onCheckedChange = { subOverrideSundayOperating = it })
                     }
 
-                    // Room-specific blocked time — e.g. a maintenance window just for
-                    // this room, independent of the whole space's own blackout slots
-                    // (the wizard's Blackout Slots section, whole-space-only).
-                    Text(
-                        "Blocked Times (optional)",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = MaterialTheme.typography.labelMedium.fontSize
-                    )
+                    // Room-specific blocked time — independent of the whole space's blackout slots.
+                    Text("Blocked Times (optional)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                     if (subOverrideBlackouts.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             subOverrideBlackouts.forEach { slot ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                Surface(
+                                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                                    shape = MaterialTheme.shapes.small,
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text(
-                                        "${slot.dayOfWeek} ${slot.startTime}-${slot.endTime}" +
-                                            if (slot.reason.isNotBlank()) " (${slot.reason})" else "",
-                                        fontSize = MaterialTheme.typography.labelSmall.fontSize
-                                    )
-                                    IconButton(
-                                        onClick = { subOverrideBlackouts = subOverrideBlackouts.filterNot { it.id == slot.id } },
-                                        modifier = Modifier.size(28.dp)
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(Icons.Default.Close, contentDescription = "Remove blocked time")
+                                        Text(
+                                            "${slot.dayOfWeek}  ${slot.startTime}–${slot.endTime}" +
+                                                if (slot.reason.isNotBlank()) "  ·  ${slot.reason}" else "",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        IconButton(
+                                            onClick = { subOverrideBlackouts = subOverrideBlackouts.filterNot { it.id == slot.id } },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(Icons.Default.Close, contentDescription = "Remove blocked time", modifier = Modifier.size(14.dp))
+                                        }
                                     }
                                 }
                             }
@@ -442,14 +573,11 @@ fun SubdivisionEditorSection(
                                 FilterChip(
                                     selected = blackoutDay == day,
                                     onClick = { blackoutDay = day },
-                                    label = { Text(day, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
+                                    label = { Text(day, style = MaterialTheme.typography.labelSmall) }
                                 )
                             }
                         }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             OutlinedTextField(
                                 value = blackoutStart,
                                 onValueChange = { blackoutStart = it },
@@ -487,107 +615,57 @@ fun SubdivisionEditorSection(
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Add Blocked Time", fontSize = MaterialTheme.typography.labelSmall.fontSize)
+                            Text("Add Blocked Time", style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
+            }
+        }
 
-                HorizontalDivider()
-
-                // Once a custom schedule is on, the pricing tables below key off this
-                // room's own hours/days instead of the whole space's — a hard override
-                // that also lets prices be configured only for the hours it's actually
-                // open, matching what SpaceCalculationUtils.buildAllSlotsForSpace expands.
-                RentalPricingConfigEditor(
-                    config = subPricing,
-                    operatingDays = if (subScheduleOverrideEnabled) subOverrideDays.toList() else operatingDays,
-                    openingHour = if (subScheduleOverrideEnabled) subOverrideOpeningHour else openingHour,
-                    closingHour = if (subScheduleOverrideEnabled) subOverrideClosingHour else closingHour,
-                    onConfigChange = { subPricing = it }
-                )
-
-                val isSubFormValid = subName.isNotBlank() && subPricing.hasRealPrice()
-                fun resetSubdivisionForm() {
-                    editingSubdivisionIndex = null
-                    subName = ""
-                    subType = Level2Type.ROOMS
-                    subAmenitiesSelected = emptySet()
-                    subImageUrls = emptyList()
-                    subPricing = RentalPricingConfig.default()
-                    subScheduleOverrideEnabled = false
-                    subOverrideOpeningHour = openingHour
-                    subOverrideClosingHour = closingHour
-                    subOverrideDays = operatingDays.toSet()
-                    subOverrideSundayOperating = false
-                    subOverrideBlackouts = emptyList()
-                    blackoutDay = operatingDays.firstOrNull() ?: "Mon"
-                    blackoutStart = "18:00"
-                    blackoutEnd = "22:00"
-                    blackoutReason = ""
-                    pendingSubId = "SUB-" + UUID.randomUUID().toString().take(6).uppercase()
-                }
-
-                fun buildCurrentSubdivision(): Subdivision = Subdivision(
-                    id = pendingSubId,
-                    name = subName,
-                    type = subType,
-                    imageUrls = subImageUrls,
-                    amenities = subAmenitiesSelected.toList(),
-                    pricing = subPricing,
-                    scheduleOverride = if (subScheduleOverrideEnabled) {
-                        SpaceOperatingSchedule(
-                            openingHour = subOverrideOpeningHour,
-                            closingHour = subOverrideClosingHour,
-                            operatingDays = subOverrideDays.toList(),
-                            isSundayOperating = subOverrideSundayOperating,
-                            blackoutSlots = subOverrideBlackouts
+        // ── Action buttons ──────────────────────────────────────────────────
+        if (editingSubdivisionIndex != null) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = {
+                        val editIndex = editingSubdivisionIndex
+                        val updatedSub = buildCurrentSubdivision()
+                        onSubdivisionsChange(
+                            subdivisionsList.mapIndexed { i, existing -> if (i == editIndex) updatedSub else existing }
                         )
-                    } else null
-                )
-
-                if (editingSubdivisionIndex != null) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            onClick = {
-                                val editIndex = editingSubdivisionIndex
-                                val updatedSub = buildCurrentSubdivision()
-                                onSubdivisionsChange(
-                                    subdivisionsList.mapIndexed { i, existing -> if (i == editIndex) updatedSub else existing }
-                                )
-                                resetSubdivisionForm()
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = isSubFormValid
-                        ) {
-                            Icon(Icons.Default.Check, contentDescription = null)
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Save Subdivision", fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                        }
-
-                        OutlinedButton(
-                            onClick = { resetSubdivisionForm() },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null)
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text("Cancel Edit & Add New Subdivision", fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                        }
-                    }
-                } else {
-                    Button(
-                        onClick = {
-                            val newSub = buildCurrentSubdivision()
-                            onSubdivisionsChange(subdivisionsList + newSub)
-                            resetSubdivisionForm()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = isSubFormValid
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null)
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("Add Subdivision to Listing", fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                    }
+                        resetSubdivisionForm()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = isSubFormValid,
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = null)
+                    Spacer(modifier = Modifier.width(Spacing.sm))
+                    Text("Save Changes", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 }
+                OutlinedButton(
+                    onClick = { resetSubdivisionForm() },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(Spacing.sm))
+                    Text("Cancel & Add New Room", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        } else {
+            Button(
+                onClick = {
+                    val newSub = buildCurrentSubdivision()
+                    onSubdivisionsChange(subdivisionsList + newSub)
+                    resetSubdivisionForm()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = isSubFormValid,
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Text("Add Room to Listing", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -641,11 +719,14 @@ private fun SearchablePickerDialog(
     var query by remember { mutableStateOf("") }
     val filtered = options.filter { query.isBlank() || it.contains(query, ignoreCase = true) }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.88f).padding(8.dp)
         ) {
             Column(
                 modifier = Modifier.padding(Spacing.lg),
@@ -675,7 +756,7 @@ private fun SearchablePickerDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
+                LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     items(filtered) { option ->
                         val isSelected = option in selected
                         Row(

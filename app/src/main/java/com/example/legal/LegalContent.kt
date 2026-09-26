@@ -32,6 +32,7 @@ data class LegalDocument(
     val sections: List<LegalSection>
 )
 
+// SYNC: must match CURRENT_CONSENT_VERSION in functions/src/roles/assignInitialRole.ts
 private const val EFFECTIVE_DATE = "September 6, 2026"
 private const val OPERATOR_LINE = "ProHost (\"the Platform\", \"we\", \"us\") is a Lebanon-focused marketplace connecting independent healthcare and professional-services specialists (\"Specialists\") with workspace hosts (\"Pro Hosts\") who list clinics, offices, and shared practice spaces (\"Listings\") for rent."
 
@@ -157,7 +158,7 @@ object LegalContent {
                 "2. Eligibility and Account Registration",
                 listOf(
                     "You must be at least 18 years old and legally capable of entering into a binding contract under Lebanese law to register. You must provide accurate registration information and a real, working phone number, which you verify by SMS one-time code — this is currently the only sign-in method the Platform offers.",
-                    "Every new account is registered with the standard \"Specialist\" role. The \"Pro Host\" role — which allows publishing workspace Listings — is granted automatically and exclusively upon your successful payment of a Pro Host subscription/package fee through Whish Money; there is no other way to obtain it, and ProHost Administrators do not grant it manually or for free except in the ordinary operation of that payment flow.",
+                    "Every new account is registered with the standard \"Specialist\" role. The \"Pro Host\" role — which allows publishing workspace Listings — is granted automatically and exclusively upon your successful payment of a Pro Host subscription/package fee via Google Play in-app purchase or Whish Money; there is no other way to obtain it, and ProHost Administrators do not grant it manually or for free except in the ordinary operation of that payment flow.",
                     "You are responsible for maintaining the confidentiality of your account and for all activity that occurs under it. Notify us immediately if you suspect unauthorized access."
                 )
             ),
@@ -180,7 +181,7 @@ object LegalContent {
                 "5. Payments and Settlement",
                 listOf(
                     "Rent for a booked workspace is settled entirely outside the app, directly between the Specialist and the Pro Host, on whatever lawful terms they agree between themselves. ProHost has no in-app payment flow for booking rent, does not collect, hold, or disburse rental payments, and has no visibility into whether or how rent was actually paid beyond what either party chooses to record via the in-app \"Payment Due Reminder\" feature (which is a courtesy notification only, not proof of payment or non-payment).",
-                    "Where a Pro Host subscription/package fee applies, it is processed through Whish Money at the price displayed in-app at the time of purchase. Fees, once successfully charged, are non-refundable except where required by Lebanese consumer-protection law or expressly stated otherwise by ProHost.",
+                    "Where a Pro Host subscription/package fee applies, it is processed through Google Play (on Android) or Whish Money at the price displayed in-app at the time of purchase. Fees, once successfully charged, are non-refundable except where required by Lebanese consumer-protection law or expressly stated otherwise by ProHost.",
                     "ProHost is not responsible for, and disclaims all liability arising from, any dispute between a Specialist and a Pro Host over rent, damages, deposits, or any other term of their leasing arrangement — you are strongly encouraged to document your agreement clearly and to consider your own legal recourse under ordinary Lebanese contract and tenancy principles for any such dispute."
                 )
             ),

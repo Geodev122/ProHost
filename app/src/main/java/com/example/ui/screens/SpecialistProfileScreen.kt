@@ -11,6 +11,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.example.ui.components.drawer.DrawerIdentityCard
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
@@ -48,6 +49,7 @@ fun SpecialistProfileScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val currentUser by viewModel.currentUser.collectAsState()
+    val packagePlans by viewModel.packagePlans.collectAsState()
 
     // No fabricated Super Admin fallback here anymore — a null currentUser means the
     // session genuinely isn't signed in (this screen used to bake in a real hardcoded
@@ -113,11 +115,52 @@ fun SpecialistProfileScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // =========================================================================
+            // 0. IDENTITY CARD  (formerly in side drawer — single source of truth)
+            // =========================================================================
+            DrawerIdentityCard(
+                user = user,
+                currentPackage = user.ownerPackageId?.let { packagePlans.packages[it] }
+            )
+
+            // KYC completion banner — shown for all non-ADMIN roles at levels 0–2
+            if (user.role != UserRole.ADMIN) {
+                com.example.ui.components.KycCompletionBanner(
+                    user = user,
+                    onResendVerificationEmail = { viewModel.resendEmailVerification(context) },
+                    onNavigateToIdUpload = { /* ID upload is in the Security ID section below — scroll to it */ }
+                )
+            }
+
+            // "Become a Pro Host" upgrade CTA — only for SPECIALIST users
+            if (user.role == UserRole.SPECIALIST) {
+                Surface(
+                    onClick = { onNavigateToTab("owner_subscriptions") },
+                    shape = MaterialTheme.shapes.medium,
+                    color = FreshGreen,
+                    shadowElevation = 3.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = PureWhite)
+                        Text(
+                            text = "Become a Pro Host",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = PureWhite,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
+
+            // =========================================================================
             // 1. WELCOME BOX WITH REAL, LATEST-UPDATE-DRIVEN STATUS (SPECIALIST)
             // =========================================================================
-            // The identity card + Sign Out action that used to live here moved to the
-            // side drawer (DrawerIdentityCard) — every role now sees it there instead
-            // of duplicated in a different visual style on this page.
             if (user.role == UserRole.SPECIALIST) {
                 val fcmAlertsForWelcome by viewModel.fcmAlerts.collectAsState()
                 val bookingsForWelcome by viewModel.practitionerBookings.collectAsState()
@@ -223,7 +266,6 @@ fun SpecialistProfileScreen(
             val ownerSpaces by viewModel.ownerSpaces.collectAsState()
             val allSpacesList by viewModel.spaces.collectAsState()
             val pricingState by viewModel.pricingState.collectAsState()
-            val packagePlans by viewModel.packagePlans.collectAsState()
             val practitionerBookingsForStats by viewModel.practitionerBookings.collectAsState()
             val ownerIncomingRequests by viewModel.ownerIncomingRequests.collectAsState()
 
@@ -488,7 +530,7 @@ fun SpecialistProfileScreen(
                                             val shiftDetail = if (req.selectedShift.isNotBlank()) " (${req.selectedShift})" else ""
 
                                             Row(verticalAlignment = Alignment.Top) {
-                                                Icon(Icons.Default.Assignment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                                                Icon(Icons.AutoMirrored.Filled.Assignment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Text(
                                                     text = "Formula: ${req.formula.type.displayName} • $chosenDaysStr @ $chosenHoursStr$shiftDetail",
@@ -801,7 +843,7 @@ fun SpecialistProfileScreen(
                             shape = MaterialTheme.shapes.small,
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                         ) {
-                            Text("Install", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold)
+                            Text("Install", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     } else {
                         TextButton(
@@ -815,7 +857,7 @@ fun SpecialistProfileScreen(
                             },
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                         ) {
-                            Text("Check Update", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold)
+                            Text("Check Update", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

@@ -879,7 +879,11 @@ data class SpaceListing(
     // restoreListingsAfterRenewal). Admin-SDK-only, same protected-field
     // pattern as isOwnerSuspended — see firestore.rules.
     val isOwnerPackageLapsed: Boolean = false,
-    val subscriptionExpiryMillis: Long = System.currentTimeMillis() + (28L * 24 * 60 * 60 * 1000),
+    // Set by reviewIdDocument.ts (Admin SDK) when an admin rejects a PRO_HOST's
+    // ID document. Hides listings from Discovery until the host re-submits a valid
+    // ID (submitIdDocument.ts clears it). Same server-only pattern as isOwnerSuspended.
+    val isOwnerIdRejected: Boolean = false,
+    val subscriptionExpiryMillis: Long = 0L,
     val imageUrls: List<String> = emptyList(),
     val videoTourDurationSec: Int = 10,
     val baseMonthlyRateUsd: Double = 450.0,
@@ -893,6 +897,7 @@ data class SpaceListing(
     // Mirrors the existing pattern of denormalizing ownerName/ownerPhone/etc. onto
     // the listing for exactly the same cross-role-visibility reason.
     val ownerIsIdVerified: Boolean = false,
+    val ownerProfilePictureUrl: String? = null,
     // The host's own lifecycle control (Draft while building it, Active once
     // published, Paused to take it off the market without deleting it) — distinct
     // from isActiveSubscription (billing) and isOwnerSuspended (moderation), which
@@ -1003,6 +1008,7 @@ data class SpaceListing(
             "isActiveSubscription" to isActiveSubscription,
             "isOwnerSuspended" to isOwnerSuspended,
             "isOwnerPackageLapsed" to isOwnerPackageLapsed,
+            "isOwnerIdRejected" to isOwnerIdRejected,
             "subscriptionExpiryMillis" to subscriptionExpiryMillis,
             "imageUrls" to imageUrls,
             "videoTourDurationSec" to videoTourDurationSec,
@@ -1152,13 +1158,15 @@ data class SpaceListing(
                 isActiveSubscription = data["isActiveSubscription"] as? Boolean ?: true,
                 isOwnerSuspended = data["isOwnerSuspended"] as? Boolean ?: false,
                 isOwnerPackageLapsed = data["isOwnerPackageLapsed"] as? Boolean ?: false,
-                subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong() ?: (System.currentTimeMillis() + 30L * 24 * 3600 * 1000),
+                isOwnerIdRejected = data["isOwnerIdRejected"] as? Boolean ?: false,
+                subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong() ?: 0L,
                 imageUrls = (data["imageUrls"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                 videoTourDurationSec = (data["videoTourDurationSec"] as? Number)?.toInt() ?: 10,
                 baseMonthlyRateUsd = (data["baseMonthlyRateUsd"] as? Number)?.toDouble() ?: 450.0,
                 avatarEngagementViews = (data["avatarEngagementViews"] as? Number)?.toInt() ?: 0,
                 avatarInquiryClicks = (data["avatarInquiryClicks"] as? Number)?.toInt() ?: 0,
                 ownerIsIdVerified = data["ownerIsIdVerified"] as? Boolean ?: false,
+                ownerProfilePictureUrl = data["ownerProfilePictureUrl"] as? String,
                 status = (data["status"] as? String)?.let {
                     runCatching { ListingStatus.valueOf(it) }.getOrNull()
                 } ?: ListingStatus.ACTIVE,
@@ -1460,8 +1468,25 @@ data class AppUser(
     // Client-writable — a personal shortlist, not a protected/server-only field, so it's
     // simply absent from firestore.rules' user_profiles protected-key list and writable
     // by the owner like any other profile field. See ProHostRepository.toggleSavedSpace.
-    val savedSpaceIds: List<String> = emptyList()
+    val savedSpaceIds: List<String> = emptyList(),
+    // Server-only KYC fields — all written exclusively by Cloud Functions (Admin SDK);
+    // firestore.rules blocks direct client writes to these fields.
+    // kycLevel: recomputeKycLevel.ts trigger keeps this in sync (0–3).
+    // emailVerified: verifyEmailLink HTTP function sets this on link click.
+    // idDocumentVerificationStatus: submitIdDocument (PENDING_REVIEW) and reviewIdDocument
+    //   (APPROVED | REJECTED) are the only writers.
+    val kycLevel: Int = 0,
+    val emailVerified: Boolean = false,
+    val idDocumentVerificationStatus: String? = null  // null | PENDING_REVIEW | APPROVED | REJECTED
 ) {
+    val isKycComplete: Boolean
+        get() = isVerified && emailVerified && !idDocumentUrl.isNullOrBlank() && country.isNotBlank() && city.isNotBlank()
+    // Full map — only for admin/server-side contexts (e.g. bootstrapping a new profile
+    // from an admin console write). NEVER use for client-initiated profile updates;
+    // firestore.rules blocks writes to protected fields (role, isVerified, ownerPackageId,
+    // ownerPackageExpiryMillis, isSuspended, etc.), and including them in a client write
+    // causes the *entire* write to be rejected silently whenever a Cloud Function has
+    // updated one of those fields since the client last read the document.
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
             "id" to id,
@@ -1477,8 +1502,29 @@ data class AppUser(
             "city" to city,
             "isVerified" to isVerified,
             "subscriptionExpiryMillis" to subscriptionExpiryMillis,
-            "ownerPackageId" to ownerPackageId,
-            "ownerPackageExpiryMillis" to ownerPackageExpiryMillis,
+            // ownerPackageId and ownerPackageExpiryMillis are written only by Cloud Functions
+            // (playBillingRtdn, grantPackageToUser, expirePackages) — never by client writes.
+            // Including them here would overwrite entitlement state on any admin-context full
+            // document write, so they are intentionally excluded.
+            "savedSpaceIds" to savedSpaceIds,
+            "updatedAt" to System.currentTimeMillis()
+        )
+    }
+
+    // Safe client-side profile update map — only fields the user is allowed to edit.
+    // Excludes every field guarded by firestore.rules' protectedKeys list so this map
+    // never triggers a rule rejection, even after a Cloud Function has updated
+    // ownerPackageId, role, isVerified, or any other server-owned field.
+    fun toEditableFieldsMap(): Map<String, Any?> {
+        return mapOf(
+            "fullName" to fullName,
+            "specialty" to specialty,
+            "phone" to phone,
+            "profilePictureUrl" to profilePictureUrl,
+            "idDocumentUrl" to idDocumentUrl,
+            "country" to country,
+            "governorate" to governorate,
+            "city" to city,
             "savedSpaceIds" to savedSpaceIds,
             "updatedAt" to System.currentTimeMillis()
         )
@@ -1513,9 +1559,46 @@ data class AppUser(
                 consentVersion = data["consentVersion"] as? String,
                 isSuspended = data["isSuspended"] as? Boolean ?: false,
                 activeListingCount = (data["activeListingCount"] as? Number)?.toInt() ?: 0,
-                savedSpaceIds = (data["savedSpaceIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                savedSpaceIds = (data["savedSpaceIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                kycLevel = (data["kycLevel"] as? Number)?.toInt() ?: 0,
+                emailVerified = data["emailVerified"] as? Boolean ?: false,
+                idDocumentVerificationStatus = data["idDocumentVerificationStatus"] as? String
             )
         }
+    }
+}
+
+/**
+ * A pending ID document review entry in the id_review_queue Firestore collection.
+ * Created by submitIdDocument Cloud Function; read by the Admin Console ID Review tab.
+ */
+data class IdReviewEntry(
+    val userId: String,
+    val fullName: String,
+    val email: String,
+    val phone: String,
+    val role: String,
+    val storageUrl: String,
+    val submittedAt: Long,
+    val status: String,          // PENDING_REVIEW | APPROVED | REJECTED
+    val reviewedAt: Long? = null,
+    val rejectionReason: String? = null
+) {
+    companion object {
+        const val COLLECTION_PATH = "id_review_queue"
+
+        fun fromFirestoreMap(docId: String, data: Map<String, Any?>): IdReviewEntry = IdReviewEntry(
+            userId = docId,
+            fullName = data["fullName"] as? String ?: "Unknown",
+            email = data["email"] as? String ?: "",
+            phone = data["phone"] as? String ?: "",
+            role = data["role"] as? String ?: "SPECIALIST",
+            storageUrl = data["storageUrl"] as? String ?: "",
+            submittedAt = (data["submittedAt"] as? Number)?.toLong() ?: 0L,
+            status = data["status"] as? String ?: "PENDING_REVIEW",
+            reviewedAt = (data["reviewedAt"] as? Number)?.toLong(),
+            rejectionReason = data["rejectionReason"] as? String
+        )
     }
 }
 
@@ -1537,7 +1620,11 @@ data class PackagePlan(
     val listingLimit: Int? = null,
     val validityDays: Int = 30,
     val isEnabled: Boolean = true,
-    val sortOrder: Int = 0
+    val sortOrder: Int = 0,
+    /** Admin-set: featured plans receive a "Most Popular" highlight on the Subscriptions screen. */
+    val isFeatured: Boolean = false,
+    /** Subscription product ID in Google Play Console (e.g. "prohost_starter_30d"). Empty means Whish-only. */
+    val googlePlayProductId: String = ""
 ) {
     fun toFirestoreMap(): Map<String, Any?> = mapOf(
         "id" to id,
@@ -1548,7 +1635,9 @@ data class PackagePlan(
         "listingLimit" to listingLimit,
         "validityDays" to validityDays,
         "isEnabled" to isEnabled,
-        "sortOrder" to sortOrder
+        "sortOrder" to sortOrder,
+        "isFeatured" to isFeatured,
+        "googlePlayProductId" to googlePlayProductId
     )
 
     companion object {
@@ -1561,7 +1650,9 @@ data class PackagePlan(
             listingLimit = (data["listingLimit"] as? Number)?.toInt(),
             validityDays = (data["validityDays"] as? Number)?.toInt() ?: 30,
             isEnabled = data["isEnabled"] as? Boolean ?: true,
-            sortOrder = (data["sortOrder"] as? Number)?.toInt() ?: 0
+            sortOrder = (data["sortOrder"] as? Number)?.toInt() ?: 0,
+            isFeatured = data["isFeatured"] as? Boolean ?: false,
+            googlePlayProductId = data["googlePlayProductId"] as? String ?: ""
         )
     }
 }
@@ -1581,13 +1672,51 @@ data class PackagePlanCatalog(val packages: Map<String, PackagePlan> = emptyMap(
         const val COLLECTION_PATH = "package_plans"
         const val DOCUMENT_ID = "main"
 
+        val DEFAULT_CATALOG = PackagePlanCatalog(
+            mapOf(
+                "package_growth_mrr" to PackagePlan(
+                    id = "package_growth_mrr",
+                    name = "Growth Plan",
+                    description = "Host 1 active workspace listing",
+                    badgeName = "Growth",
+                    priceUsd = 4.99,
+                    listingLimit = 1,
+                    validityDays = 30,
+                    isEnabled = true,
+                    sortOrder = 0
+                ),
+                "package_pro_mrr" to PackagePlan(
+                    id = "package_pro_mrr",
+                    name = "Pro Plan",
+                    description = "Host up to 3 active workspace listings",
+                    badgeName = "Pro",
+                    priceUsd = 16.99,
+                    listingLimit = 3,
+                    validityDays = 30,
+                    isEnabled = true,
+                    sortOrder = 1
+                ),
+                "package_enterprise_mrr" to PackagePlan(
+                    id = "package_enterprise_mrr",
+                    name = "Enterprise",
+                    description = "Unlimited active workspace listings",
+                    badgeName = "Enterprise",
+                    priceUsd = 38.99,
+                    listingLimit = null,
+                    validityDays = 30,
+                    isEnabled = true,
+                    sortOrder = 2
+                )
+            )
+        )
+
         @Suppress("UNCHECKED_CAST")
         fun fromFirestoreMap(data: Map<String, Any?>): PackagePlanCatalog {
             val raw = data["packages"] as? Map<String, Any?> ?: emptyMap()
             val packages = raw.mapNotNull { (id, value) ->
                 (value as? Map<String, Any?>)?.let { id to PackagePlan.fromFirestoreMap(id, it) }
             }.toMap()
-            return PackagePlanCatalog(packages)
+            return if (packages.isEmpty()) DEFAULT_CATALOG else PackagePlanCatalog(packages)
         }
     }
 }

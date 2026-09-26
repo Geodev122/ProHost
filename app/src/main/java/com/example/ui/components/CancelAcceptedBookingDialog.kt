@@ -14,6 +14,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.CancellationReasonCode
+import com.example.ui.components.CustomButton
+import com.example.ui.components.CustomButtonVariant
 import com.example.ui.theme.Spacing
 
 /**
@@ -42,15 +44,15 @@ fun CancelAcceptedBookingDialog(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.EventBusy, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                     Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text("Cancel Accepted Booking?", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
+                    Text("Cancel Accepted Booking?", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                 }
                 Text(
                     "This ends the active booking for \"$spaceTitle\" immediately and notifies $partyLabel. There is no in-app refund or penalty — settle anything owed directly with $partyLabel.",
-                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Text("Reason", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                Text("Reason", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 220.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -69,7 +71,7 @@ fun CancelAcceptedBookingDialog(
                             ) {
                                 RadioButton(selected = selectedReason == reason, onClick = { selectedReason = reason })
                                 Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text(reason.displayName, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                                Text(reason.displayName, style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
@@ -88,17 +90,21 @@ fun CancelAcceptedBookingDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                        Text("Keep Booking")
-                    }
-                    Button(
-                        onClick = { selectedReason?.let { onConfirm(it, note.ifBlank { null }) } },
-                        enabled = selectedReason != null,
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    CustomButton(
+                        text = "Keep Booking",
+                        onClick = onDismiss,
+                        variant = CustomButtonVariant.OUTLINED,
+                        compact = true,
                         modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Cancel Booking")
-                    }
+                    )
+                    CustomButton(
+                        text = "Cancel Booking",
+                        onClick = { selectedReason?.let { onConfirm(it, note.ifBlank { null }) } },
+                        variant = CustomButtonVariant.DANGER,
+                        enabled = selectedReason != null,
+                        compact = true,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
