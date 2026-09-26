@@ -500,16 +500,18 @@ class AuthViewModel(
                     repository = repository,
                     functionsClient = functionsClient,
                     firebaseUser = firebaseUser,
-                    fullName = registration.fullName,
-                    email = registration.email,
-                    phone = registration.phoneE164,
-                    specialty = registration.specialty,
-                    profilePictureUrl = profilePictureUrl,
-                    idDocumentUrl = idDocumentUrl,
-                    country = registration.country,
-                    governorate = registration.governorate,
-                    city = registration.city,
-                    tosAccepted = registration.tosAccepted,
+                    details = com.example.data.auth.RegistrationDetails(
+                        fullName = registration.fullName,
+                        email = registration.email,
+                        phone = registration.phoneE164,
+                        specialty = registration.specialty,
+                        profilePictureUrl = profilePictureUrl,
+                        idDocumentUrl = idDocumentUrl,
+                        country = registration.country,
+                        governorate = registration.governorate,
+                        city = registration.city,
+                        tosAccepted = registration.tosAccepted
+                    ),
                     integrityToken = integrityToken
                 )
                 _isAuthenticating.value = false

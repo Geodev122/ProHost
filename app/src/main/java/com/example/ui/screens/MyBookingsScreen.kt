@@ -73,7 +73,9 @@ fun MyBookingsScreen(
 
     val activeBookings = remember(userBookings) { userBookings.filter { it.status == BookingRequestStatus.ACCEPTED } }
     val pendingBookings = remember(userBookings) { userBookings.filter { it.status == BookingRequestStatus.PENDING } }
-    val pastBookings = remember(userBookings) { userBookings.filter { it.status == BookingRequestStatus.REJECTED || it.status == BookingRequestStatus.CANCELLED } }
+    val pastBookings = remember(userBookings) {
+        userBookings.filter { it.status == BookingRequestStatus.REJECTED || it.status == BookingRequestStatus.CANCELLED }
+    }
 
     // SO2: Play branded notification sound when booking transitions to ACCEPTED or REJECTED.
     val prevBookingStatuses = remember { mutableStateMapOf<String, BookingRequestStatus>() }
@@ -407,7 +409,12 @@ fun MyBookingsScreen(
                 ) {
                     Icon(Icons.Default.QrCode2, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(54.dp))
                     Text("Digital Workspace Key Pass", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("Booking Reference: #${bkg.id}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Booking Reference: #${bkg.id}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
 
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -548,7 +555,12 @@ fun BookingReservationCard(
                         )
                         if (space?.isVerified == true) {
                             Spacer(modifier = Modifier.width(Spacing.xs))
-                            Icon(Icons.Default.Verified, contentDescription = "Verified Space", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Default.Verified,
+                                contentDescription = "Verified Space",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -608,8 +620,16 @@ fun BookingReservationCard(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            val daysStr = if (booking.selectedDays.isNotEmpty()) booking.selectedDays.joinToString(", ") else booking.formula.daysOfWeek.joinToString(", ")
-                            val timeStr = if (booking.selectedStartHour.isNotBlank()) "${booking.selectedStartHour} - ${booking.selectedEndHour}" else "${booking.formula.startHour} - ${booking.formula.endHour}"
+                            val daysStr = if (booking.selectedDays.isNotEmpty()) {
+                                booking.selectedDays.joinToString(", ")
+                            } else {
+                                booking.formula.daysOfWeek.joinToString(", ")
+                            }
+                            val timeStr = if (booking.selectedStartHour.isNotBlank()) {
+                                "${booking.selectedStartHour} - ${booking.selectedEndHour}"
+                            } else {
+                                "${booking.formula.startHour} - ${booking.formula.endHour}"
+                            }
                             Text(
                                 text = "$daysStr @ $timeStr",
                                 style = MaterialTheme.typography.labelSmall,
@@ -655,7 +675,13 @@ fun BookingReservationCard(
 
                 if (booking.status == BookingRequestStatus.ACCEPTED && booking.agreementUrl != null) {
                     Surface(color = StatusSuccessContainer, shape = MaterialTheme.shapes.small) {
-                        Text("Agreement On File", color = StatusOnSuccessContainer, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        Text(
+                            "Agreement On File",
+                            color = StatusOnSuccessContainer,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
                     }
                 }
             }
@@ -708,7 +734,10 @@ fun BookingReservationCard(
                         .weight(1f)
                         .height(40.dp)
                         .testTag("rebook_button_${booking.id}"),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.primary)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
                 ) {
                     Icon(Icons.Default.Repeat, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
@@ -738,7 +767,12 @@ fun BookingReservationCard(
                                 .size(40.dp)
                                 .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
                         ) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More Actions", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = "More Actions",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
                         DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
                             if (booking.status == BookingRequestStatus.ACCEPTED) {
@@ -833,8 +867,14 @@ fun BookingStatusProgressStepper(
                             .weight(1f)
                             .height(2.dp)
                             .background(
-                                if (index < currentStepIndex && status != BookingRequestStatus.CANCELLED && status != BookingRequestStatus.REJECTED) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.surfaceVariant
+                                if (index < currentStepIndex &&
+                                    status != BookingRequestStatus.CANCELLED &&
+                                    status != BookingRequestStatus.REJECTED
+                                ) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                }
                             )
                     )
                 }

@@ -211,12 +211,24 @@ fun AdminConsoleScreen(
                     Tab(
                         selected = uiState.selectedTab == 1,
                         onClick = { adminViewModel.setSelectedTab(1) },
-                        text = { Text("Users Directory (${uiState.allUsers.size})", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                        text = {
+                            Text(
+                                "Users Directory (${uiState.allUsers.size})",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     )
                     Tab(
                         selected = uiState.selectedTab == 2,
                         onClick = { adminViewModel.setSelectedTab(2) },
-                        text = { Text("Listings Catalog (${uiState.allSpaces.size})", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                        text = {
+                            Text(
+                                "Listings Catalog (${uiState.allSpaces.size})",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     )
                     Tab(
                         selected = uiState.selectedTab == 3,
@@ -591,7 +603,11 @@ private fun AdminPackagesTab(
                                 singleLine = true
                             )
                             // Listing limit (the only attribute admin controls)
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 if (!unlimitedInput) {
                                     OutlinedTextField(
                                         value = limitInput,
@@ -955,7 +971,11 @@ private fun AdminUsersDirectoryTab(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
                             Text("Location:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(user.city.ifBlank { user.governorate.ifBlank { user.country } }, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                user.city.ifBlank { user.governorate.ifBlank { user.country } },
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                         Column {
                             Text("Phone Status:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -968,7 +988,11 @@ private fun AdminUsersDirectoryTab(
                         }
                         Column {
                             Text("ID Document:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(if (user.idDocumentUrl != null) "On File" else "Missing", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                if (user.idDocumentUrl != null) "On File" else "Missing",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
 
@@ -1015,7 +1039,12 @@ private fun AdminUsersDirectoryTab(
                                 onClick = { adminViewModel.openGrantAdminDialog(user) },
                                 modifier = Modifier.size(36.dp)
                             ) {
-                                Icon(Icons.Default.AdminPanelSettings, contentDescription = "Grant Admin", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Default.AdminPanelSettings,
+                                    contentDescription = "Grant Admin",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         }
 
@@ -1492,7 +1521,12 @@ private fun AdminOwnersAndPaymentsTab(
                     )
 
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf("ALL" to "All (${uiState.allTransactions.size})", "SUCCESS" to "Success", "PENDING" to "Pending", "FAILED" to "Failed").forEach { (key, label) ->
+                        listOf(
+                            "ALL" to "All (${uiState.allTransactions.size})",
+                            "SUCCESS" to "Success",
+                            "PENDING" to "Pending",
+                            "FAILED" to "Failed"
+                        ).forEach { (key, label) ->
                             FilterChip(
                                 selected = uiState.selectedTxStatusFilter == key,
                                 onClick = { adminViewModel.setTxStatusFilter(key) },
@@ -1714,8 +1748,20 @@ private fun AdminSchemaArchitectureTab(
                     ) {
                         ProSectionHeader(title = "God Schema", subtitle = "Live admin-editable database", icon = Icons.Default.AccountTree)
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            CustomButton(text = "Reset", onClick = { adminViewModel.openResetSchemaDialog() }, variant = CustomButtonVariant.OUTLINED, icon = Icons.Default.RestartAlt, compact = true)
-                            CustomButton(text = "Add Node", onClick = { adminViewModel.openAddSchemaItemDialog() }, variant = CustomButtonVariant.SECONDARY, icon = Icons.Default.Add, compact = true)
+                            CustomButton(
+                                text = "Reset",
+                                onClick = { adminViewModel.openResetSchemaDialog() },
+                                variant = CustomButtonVariant.OUTLINED,
+                                icon = Icons.Default.RestartAlt,
+                                compact = true
+                            )
+                            CustomButton(
+                                text = "Add Node",
+                                onClick = { adminViewModel.openAddSchemaItemDialog() },
+                                variant = CustomButtonVariant.SECONDARY,
+                                icon = Icons.Default.Add,
+                                compact = true
+                            )
                         }
                     }
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1728,12 +1774,22 @@ private fun AdminSchemaArchitectureTab(
                         )
                         items(tiles) { (title, items, icon) ->
                             Box(modifier = Modifier.width(140.dp)) {
-                                ProMetricTile(title = title, value = "${items.size}", subtitle = "${items.count { it.isEnabled }} active · ${items.count { !it.isEnabled }} off", icon = icon)
+                                ProMetricTile(
+                                    title = title,
+                                    value = "${items.size}",
+                                    subtitle = "${items.count { it.isEnabled }} active · ${items.count { !it.isEnabled }} off",
+                                    icon = icon
+                                )
                             }
                         }
                         item {
                             Box(modifier = Modifier.width(140.dp)) {
-                                ProMetricTile(title = "Packages", value = "${schema.attendeePackages.size}", subtitle = "${schema.attendeePackages.count { it.isEnabled }} active", icon = Icons.Default.ConfirmationNumber)
+                                ProMetricTile(
+                                    title = "Packages",
+                                    value = "${schema.attendeePackages.size}",
+                                    subtitle = "${schema.attendeePackages.count { it.isEnabled }} active",
+                                    icon = Icons.Default.ConfirmationNumber
+                                )
                             }
                         }
                     }
@@ -1754,7 +1810,11 @@ private fun AdminSchemaArchitectureTab(
                 onEdit = { item -> editingItem = item }
             ) { item ->
                 if (item.maxSubdivisions != null) {
-                    Text("Max subdivisions: ${item.maxSubdivisions}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Max subdivisions: ${item.maxSubdivisions}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -1773,7 +1833,12 @@ private fun AdminSchemaArchitectureTab(
                 extraContent = { item ->
                     if (item.supportsAttendeeMode) {
                         Surface(color = MaterialTheme.colorScheme.tertiaryContainer, shape = MaterialTheme.shapes.extraSmall) {
-                            Text("per-attendee", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), color = MaterialTheme.colorScheme.onTertiaryContainer)
+                            Text(
+                                "per-attendee",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
                         }
                     }
                 }
@@ -1807,7 +1872,13 @@ private fun AdminSchemaArchitectureTab(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         ProSectionHeader(title = "Amenities", subtitle = "Subdivision-level features, equipment & amenities", icon = Icons.Default.Biotech)
-                        CustomButton(text = "Add", onClick = { adminViewModel.openAddSchemaItemDialog(presetCategory = SchemaCategory.AMENITY) }, variant = CustomButtonVariant.SECONDARY, icon = Icons.Default.Add, compact = true)
+                        CustomButton(
+                            text = "Add",
+                            onClick = { adminViewModel.openAddSchemaItemDialog(presetCategory = SchemaCategory.AMENITY) },
+                            variant = CustomButtonVariant.SECONDARY,
+                            icon = Icons.Default.Add,
+                            compact = true
+                        )
                     }
                     // Group filter chips
                     if (amenityGroups.size > 1) {
@@ -1831,12 +1902,22 @@ private fun AdminSchemaArchitectureTab(
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 if (item.amenityGroup.isNotBlank()) {
                                     Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.extraSmall) {
-                                        Text(item.amenityGroup, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                        Text(
+                                            item.amenityGroup,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
                                     }
                                 }
                                 val scopeLabel = if (item.scopedToIds.isEmpty()) "All divisions" else "${item.scopedToIds.size} div. types"
                                 Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.extraSmall) {
-                                    Text(scopeLabel, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        scopeLabel,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
                         }
@@ -1859,7 +1940,13 @@ private fun AdminSchemaArchitectureTab(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         ProSectionHeader(title = "Rental Strategies", subtitle = "Reference labels — mirrors RentalStrategyType", icon = Icons.Default.Schedule)
-                        CustomButton(text = "Add", onClick = { adminViewModel.openAddSchemaItemDialog(presetCategory = SchemaCategory.RENTAL_STRATEGY) }, variant = CustomButtonVariant.SECONDARY, icon = Icons.Default.Add, compact = true)
+                        CustomButton(
+                            text = "Add",
+                            onClick = { adminViewModel.openAddSchemaItemDialog(presetCategory = SchemaCategory.RENTAL_STRATEGY) },
+                            variant = CustomButtonVariant.SECONDARY,
+                            icon = Icons.Default.Add,
+                            compact = true
+                        )
                     }
                     schema.rentalStrategies.forEach { item ->
                         SchemaItemRow(
@@ -1883,11 +1970,25 @@ private fun AdminSchemaArchitectureTab(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        ProSectionHeader(title = "Attendee Packages", subtitle = "Per-person pricing for conference & event subdivisions", icon = Icons.Default.ConfirmationNumber)
-                        CustomButton(text = "Add", onClick = { showAddAttendeePackageDialog = true }, variant = CustomButtonVariant.SECONDARY, icon = Icons.Default.Add, compact = true)
+                        ProSectionHeader(
+                            title = "Attendee Packages",
+                            subtitle = "Per-person pricing for conference & event subdivisions",
+                            icon = Icons.Default.ConfirmationNumber
+                        )
+                        CustomButton(
+                            text = "Add",
+                            onClick = { showAddAttendeePackageDialog = true },
+                            variant = CustomButtonVariant.SECONDARY,
+                            icon = Icons.Default.Add,
+                            compact = true
+                        )
                     }
                     if (schema.attendeePackages.isEmpty()) {
-                        Text("No attendee packages defined yet.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "No attendee packages defined yet.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     } else {
                         schema.attendeePackages.forEach { pkg ->
                             Row(
@@ -1900,19 +2001,47 @@ private fun AdminSchemaArchitectureTab(
                                         Text(pkg.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                                         if (!pkg.isSystemDefault) {
                                             Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.extraSmall) {
-                                                Text("CUSTOM", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp), color = MaterialTheme.colorScheme.onErrorContainer)
+                                                Text(
+                                                    "CUSTOM",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                                )
                                             }
                                         }
                                     }
-                                    Text("$${pkg.pricePerAttendeeUsd.let { if (it == it.toLong().toDouble()) it.toLong().toString() else String.format("%.2f", it) }}/person · min ${pkg.minAttendees}${pkg.maxAttendees?.let { " · max $it" } ?: ""}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                    Text(
+                                        "$${
+                                            pkg.pricePerAttendeeUsd.let {
+                                                if (it == it.toLong().toDouble()) it.toLong().toString() else String.format("%.2f", it)
+                                            }
+                                        }" +
+                                            "/person · min ${pkg.minAttendees}${pkg.maxAttendees?.let { " · max $it" } ?: ""}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                     if (pkg.inclusions.isNotEmpty()) {
-                                        Text(pkg.inclusions.joinToString(" · "), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
+                                        Text(
+                                            pkg.inclusions.joinToString(" · "),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 2
+                                        )
                                     }
                                 }
                                 Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
                                     Switch(checked = pkg.isEnabled, onCheckedChange = { adminViewModel.toggleAttendeePackage(pkg.id) })
-                                    IconButton(onClick = { editingAttendeePackage = pkg }) { Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(18.dp)) }
-                                    IconButton(onClick = { adminViewModel.deleteAttendeePackage(pkg.id) }) { Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error) }
+                                    IconButton(onClick = { editingAttendeePackage = pkg }) {
+                                        Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(18.dp))
+                                    }
+                                    IconButton(onClick = { adminViewModel.deleteAttendeePackage(pkg.id) }) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Delete",
+                                            modifier = Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    }
                                 }
                             }
                             HorizontalDivider(color = LightGray.copy(alpha = 0.4f))
@@ -1934,9 +2063,17 @@ private fun AdminSchemaArchitectureTab(
                         Text("No hashtags recorded yet.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else {
                         uiState.hashtagAnalytics.forEach { entry ->
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text("#${entry.tag}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                Text("${entry.count} uses • ${entry.governorate}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    "${entry.count} uses • ${entry.governorate}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
@@ -2004,7 +2141,16 @@ private fun AdminSchemaArchitectureTab(
         AdminAttendeePackageDialog(
             existingPackage = pkg,
             onSave = { name, desc, price, inclusions, min, max ->
-                adminViewModel.updateAttendeePackage(pkg.copy(name = name, description = desc, pricePerAttendeeUsd = price, inclusions = inclusions, minAttendees = min, maxAttendees = max))
+                adminViewModel.updateAttendeePackage(
+                    pkg.copy(
+                        name = name,
+                        description = desc,
+                        pricePerAttendeeUsd = price,
+                        inclusions = inclusions,
+                        minAttendees = min,
+                        maxAttendees = max
+                    )
+                )
                 editingAttendeePackage = null
             },
             onDismiss = { editingAttendeePackage = null }
@@ -2092,12 +2238,27 @@ private fun SchemaItemRow(
                     if (!item.isSystemDefault) {
                         Spacer(modifier = Modifier.width(5.dp))
                         Surface(color = CarnationOrangeContainer, shape = MaterialTheme.shapes.extraSmall) {
-                            Text("CUSTOM", style = MaterialTheme.typography.labelSmall, fontSize = 8.sp, fontWeight = FontWeight.Bold, color = CarnationOrange, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                            Text(
+                                "CUSTOM",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = CarnationOrange,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
                         }
                     }
                 }
-                Text("ID: ${item.id}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
-                if (item.description.isNotBlank()) Text(item.description, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "ID: ${item.id}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 10.sp
+                )
+                if (item.description.isNotBlank()) {
+                    Text(item.description, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 extraContent?.invoke()
             }
         }
@@ -2137,9 +2298,21 @@ private fun AdminEditSchemaItemDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2
+                )
                 if (item.category == SchemaCategory.SPACE_TYPE) {
-                    OutlinedTextField(value = maxSubs, onValueChange = { maxSubs = it }, label = { Text("Max Subdivisions (leave blank = unlimited)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    OutlinedTextField(
+                        value = maxSubs,
+                        onValueChange = { maxSubs = it },
+                        label = { Text("Max Subdivisions (leave blank = unlimited)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
                     // Marker color picker
                     Text("Map Marker Color", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -2174,13 +2347,23 @@ private fun AdminEditSchemaItemDialog(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column {
                             Text("Supports Per-Attendee Pricing", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
-                            Text("Show attendee mode toggle for this division type", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                "Show attendee mode toggle for this division type",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                         Switch(checked = supportsAttendeeMode, onCheckedChange = { supportsAttendeeMode = it })
                     }
                 }
                 if (item.category == SchemaCategory.AMENITY) {
-                    OutlinedTextField(value = amenityGroup, onValueChange = { amenityGroup = it }, label = { Text("Amenity Group (e.g. Comfort, Access, Equipment)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    OutlinedTextField(
+                        value = amenityGroup,
+                        onValueChange = { amenityGroup = it },
+                        label = { Text("Amenity Group (e.g. Comfort, Access, Equipment)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
                     if (availableDivisionTypes.isNotEmpty()) {
                         Text("Scoped to Division Types (empty = all):", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         availableDivisionTypes.forEach { dt ->
@@ -2281,7 +2464,13 @@ private fun AdminSecurityAuditTab(
                         subtitle = "Upload to publish new version",
                         icon = Icons.Default.Gavel
                     )
-                    data class LegalDocSlot(val docId: String, val title: String, val mimeType: String, val extension: String, val noPublishedCopyIsBlocking: Boolean)
+                    data class LegalDocSlot(
+                        val docId: String,
+                        val title: String,
+                        val mimeType: String,
+                        val extension: String,
+                        val noPublishedCopyIsBlocking: Boolean
+                    )
                     val slots = listOf(
                         LegalDocSlot("privacy_policy", "Privacy Policy", "text/html", "html", true),
                         LegalDocSlot("terms_of_use", "Terms of Use", "text/html", "html", true),
@@ -2332,7 +2521,11 @@ private fun AdminSecurityAuditTab(
                                         "Not yet published — app falls back to a generated PDF"
                                     },
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = if (current != null || !slot.noPublishedCopyIsBlocking) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error
+                                    color = if (current != null || !slot.noPublishedCopyIsBlocking) {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    } else {
+                                        MaterialTheme.colorScheme.error
+                                    }
                                 )
                             }
                             CustomButton(
@@ -2358,7 +2551,10 @@ private fun AdminSecurityAuditTab(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val isHighSeverity = log.severity.contains("WARN", ignoreCase = true) || log.severity.contains("CRIT", ignoreCase = true) || log.severity.contains("HIGH", ignoreCase = true)
+                        val isHighSeverity = log.severity.contains(
+                            "WARN",
+                            ignoreCase = true
+                        ) || log.severity.contains("CRIT", ignoreCase = true) || log.severity.contains("HIGH", ignoreCase = true)
                         Surface(
                             color = if (isHighSeverity) StatusErrorContainer else StatusSuccessContainer,
                             shape = MaterialTheme.shapes.extraSmall
@@ -2562,9 +2758,21 @@ private fun AdminEditUserDialog(
                 InputField(value = fullName, onValueChange = { fullName = it }, label = "Full Name", modifier = Modifier.fillMaxWidth(), singleLine = true)
                 InputField(value = email, onValueChange = { email = it }, label = "Email", modifier = Modifier.fillMaxWidth(), singleLine = true)
                 InputField(value = phone, onValueChange = { phone = it }, label = "Phone (WhatsApp)", modifier = Modifier.fillMaxWidth(), singleLine = true)
-                InputField(value = specialty, onValueChange = { specialty = it }, label = "Specialty / Profession", modifier = Modifier.fillMaxWidth(), singleLine = true)
+                InputField(
+                    value = specialty,
+                    onValueChange = { specialty = it },
+                    label = "Specialty / Profession",
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
                 InputField(value = country, onValueChange = { country = it }, label = "Country", modifier = Modifier.fillMaxWidth(), singleLine = true)
-                InputField(value = governorateArea, onValueChange = { governorateArea = it }, label = "Governorate / Area", modifier = Modifier.fillMaxWidth(), singleLine = true)
+                InputField(
+                    value = governorateArea,
+                    onValueChange = { governorateArea = it },
+                    label = "Governorate / Area",
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
                 InputField(value = city, onValueChange = { city = it }, label = "City", modifier = Modifier.fillMaxWidth(), singleLine = true)
                 // Role and phone-verified status both go exclusively through dedicated
                 // Cloud Functions (grantAdminRole / assignInitialRole) — a direct write to
@@ -2638,7 +2846,8 @@ private fun AdminDeleteUserDialog(
         icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError) },
         title = { Text("Delete User Record?") },
         text = {
-            Text("Are you sure you want to permanently remove '${user.fullName}' (${user.email})'s profile from the platform? Their sign-in credentials are not revoked by this action.")
+            Text("Are you sure you want to permanently remove '${user.fullName}' (${user.email})'s profile from the pl" +
+                "atform? Their sign-in credentials are not revoked by this action.")
         },
         confirmButton = {
             CustomButton(
@@ -2671,7 +2880,8 @@ private fun AdminGrantAdminDialog(
         icon = { Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
         title = { Text("Grant Admin Role?") },
         text = {
-            Text("Are you sure you want to grant full Admin privileges to '${user.fullName}' (${user.email})? This gives them unrestricted access to governance, pricing, and user management.")
+            Text("Are you sure you want to grant full Admin privileges to '${user.fullName}' (${user.email})? This giv" +
+                "es them unrestricted access to governance, pricing, and user management.")
         },
         confirmButton = {
             CustomButton(
@@ -2710,7 +2920,8 @@ private fun AdminSuspendUserDialog(
         text = {
             Text(
                 if (suspending) {
-                    "'${user.fullName}' (${user.email}) will be signed out and unable to sign back in, create listings, or submit booking requests until reactivated. Their data and history are kept — this is not a deletion."
+                    "'${user.fullName}' (${user.email}) will be signed out and unable to sign back in, create listings, or submit booking " +
+                    "requests until reactivated. Their data and history are kept — this is not a deletion."
                 } else {
                     "'${user.fullName}' (${user.email}) will regain full access immediately."
                 }
@@ -2745,7 +2956,9 @@ private fun AdminRevokeProHostDialog(
         title = { Text("Revoke Pro Host Role?") },
         text = {
             Text(
-                "'${user.fullName}' (${user.email}) will be downgraded back to Specialist immediately. Every listing they've published will be marked inactive/expired (still visible in Discovery unless the specialist filters for active-subscription only, but shown as expired — not deleted). This does not affect their ability to book workspaces as a Specialist."
+                "'${user.fullName}' (${user.email}) will be downgraded back to Specialist immediately. Every listing they've published will be " +
+                "marked inactive/expired (still visible in Discovery unless the specialist filters for active-subscription only, but shown as " +
+                "expired — not deleted). This does not affect their ability to book workspaces as a Specialist."
             )
         },
         confirmButton = {
@@ -2779,7 +2992,8 @@ private fun AdminDeleteListingDialog(
         icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError) },
         title = { Text("Delete Workspace Listing?") },
         text = {
-            Text("Are you sure you want to delete '${listing.title}' in ${listing.district}? This will remove it from discovery and cancel any active rental bookings.")
+            Text("Are you sure you want to delete '${listing.title}' in ${listing.district}? This will remove it from " +
+                "discovery and cancel any active rental bookings.")
         },
         confirmButton = {
             CustomButton(
@@ -3011,7 +3225,8 @@ private fun AdminResetSchemaDialog(
         icon = { Icon(Icons.Default.RestartAlt, contentDescription = null, tint = AmberWarning) },
         title = { Text("Reset Architecture Schema?") },
         text = {
-            Text("This will restore all default Lebanese workspace classifications — space types, division types, facilities, amenities and rental strategies — while removing custom additions.")
+            Text("This will restore all default Lebanese workspace classifications — space types, division types, faci" +
+                "lities, amenities and rental strategies — while removing custom additions.")
         },
         confirmButton = {
             CustomButton(
@@ -3435,7 +3650,13 @@ private fun AdminAttendeePackageDialog(
     val isEditing = existingPackage != null
     var name by remember { mutableStateOf(existingPackage?.name ?: "") }
     var description by remember { mutableStateOf(existingPackage?.description ?: "") }
-    var priceText by remember { mutableStateOf(existingPackage?.pricePerAttendeeUsd?.let { if (it == it.toLong().toDouble()) it.toLong().toString() else String.format("%.2f", it) } ?: "") }
+    var priceText by remember {
+        mutableStateOf(
+            existingPackage?.pricePerAttendeeUsd?.let {
+                if (it == it.toLong().toDouble()) it.toLong().toString() else String.format("%.2f", it)
+            } ?: ""
+        )
+    }
     var minText by remember { mutableStateOf(existingPackage?.minAttendees?.toString() ?: "1") }
     var maxText by remember { mutableStateOf(existingPackage?.maxAttendees?.toString() ?: "") }
     var inclusionInput by remember { mutableStateOf("") }
@@ -3446,16 +3667,54 @@ private fun AdminAttendeePackageDialog(
         title = { Text(if (isEditing) "Edit Attendee Package" else "Add Attendee Package", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Package Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("e.g. Standard Package") })
-                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Package Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text("e.g. Standard Package") }
+                )
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = priceText, onValueChange = { priceText = it }, label = { Text("Price / Person (USD)") }, modifier = Modifier.weight(1f), singleLine = true, prefix = { Text("$") })
-                    OutlinedTextField(value = minText, onValueChange = { minText = it }, label = { Text("Min Attendees") }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(
+                        value = priceText,
+                        onValueChange = { priceText = it },
+                        label = { Text("Price / Person (USD)") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        prefix = { Text("$") }
+                    )
+                    OutlinedTextField(
+                        value = minText,
+                        onValueChange = { minText = it },
+                        label = { Text("Min Attendees") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
                 }
-                OutlinedTextField(value = maxText, onValueChange = { maxText = it }, label = { Text("Max Attendees (leave blank = no cap)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(
+                    value = maxText,
+                    onValueChange = { maxText = it },
+                    label = { Text("Max Attendees (leave blank = no cap)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
                 Text("Inclusions", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(value = inclusionInput, onValueChange = { inclusionInput = it }, label = { Text("Add item") }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(
+                        value = inclusionInput,
+                        onValueChange = { inclusionInput = it },
+                        label = { Text("Add item") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
                     IconButton(onClick = {
                         val item = inclusionInput.trim()
                         if (item.isNotBlank() && item !in inclusions) {
@@ -3467,7 +3726,12 @@ private fun AdminAttendeePackageDialog(
                 if (inclusions.isNotEmpty()) {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         items(inclusions) { inc ->
-                            FilterChip(selected = false, onClick = { inclusions = inclusions - inc }, label = { Text(inc, style = MaterialTheme.typography.labelSmall) }, trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp)) })
+                            FilterChip(
+                                selected = false,
+                                onClick = { inclusions = inclusions - inc },
+                                label = { Text(inc, style = MaterialTheme.typography.labelSmall) },
+                                trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp)) }
+                            )
                         }
                     }
                 }

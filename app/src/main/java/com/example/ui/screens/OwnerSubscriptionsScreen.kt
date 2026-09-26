@@ -156,7 +156,12 @@ fun OwnerSubscriptionsScreen(
                             )
                         }
                         IconButton(onClick = { viewModel.dismissBillingActivationPending() }, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Dismiss",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
                     Text(
@@ -208,7 +213,12 @@ fun OwnerSubscriptionsScreen(
                         Text(err, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
                     }
                     IconButton(onClick = { viewModel.clearBillingMessages() }, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Dismiss",
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
             }
@@ -586,7 +596,12 @@ fun CompactPlanCard(
 
                 // Listing limit row
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = if (isCurrent) FreshGreen else FreshGreen, modifier = Modifier.size(14.dp))
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = if (isCurrent) FreshGreen else FreshGreen,
+                        modifier = Modifier.size(14.dp)
+                    )
                     Text(
                         text = plan.listingLimit?.let { "$it listing${if (it == 1) "" else "s"}" } ?: "Unlimited",
                         style = MaterialTheme.typography.bodySmall,

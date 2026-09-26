@@ -169,12 +169,21 @@ fun MonthlyStrategyEditor(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             Text("Excluded ranges (${config.excludedRanges.size})", style = MaterialTheme.typography.bodySmall)
             TextButton(onClick = {
-                onConfigChange(config.copy(excludedRanges = config.excludedRanges + MonthYearRange(nowCal.get(Calendar.MONTH) + 1, currentYear, nowCal.get(Calendar.MONTH) + 1, currentYear)))
+                onConfigChange(
+                    config.copy(
+                        excludedRanges = config.excludedRanges + MonthYearRange(
+                            nowCal.get(Calendar.MONTH) + 1, currentYear, nowCal.get(Calendar.MONTH) + 1, currentYear
+                        )
+                    )
+                )
             }) { Text("+ Add Excluded Range") }
         }
         config.excludedRanges.forEachIndexed { idx, range ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Text("${monthNames[range.fromMonth - 1]} ${range.fromYear} – ${monthNames[range.toMonth - 1]} ${range.toYear}", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    "${monthNames[range.fromMonth - 1]} ${range.fromYear} – ${monthNames[range.toMonth - 1]} ${range.toYear}",
+                    style = MaterialTheme.typography.labelSmall
+                )
                 IconButton(onClick = { onConfigChange(config.copy(excludedRanges = config.excludedRanges.filterIndexed { i, _ -> i != idx })) }) {
                     Icon(Icons.Default.Delete, contentDescription = "Remove excluded range", tint = MaterialTheme.colorScheme.error)
                 }
@@ -274,14 +283,30 @@ fun ShiftStrategyEditor(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(
                             value = shift.startHour.toString(),
-                            onValueChange = { v -> onConfigChange(config.copy(shifts = config.shifts.map { if (it.name == shift.name) it.copy(startHour = v.toIntOrNull() ?: it.startHour) else it })) },
+                            onValueChange = { v ->
+                                onConfigChange(
+                                    config.copy(
+                                        shifts = config.shifts.map {
+                                            if (it.name == shift.name) it.copy(startHour = v.toIntOrNull() ?: it.startHour) else it
+                                        }
+                                    )
+                                )
+                            },
                             label = { Text("From (hr)") },
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
                         OutlinedTextField(
                             value = shift.endHour.toString(),
-                            onValueChange = { v -> onConfigChange(config.copy(shifts = config.shifts.map { if (it.name == shift.name) it.copy(endHour = v.toIntOrNull() ?: it.endHour) else it })) },
+                            onValueChange = { v ->
+                                onConfigChange(
+                                    config.copy(
+                                        shifts = config.shifts.map {
+                                            if (it.name == shift.name) it.copy(endHour = v.toIntOrNull() ?: it.endHour) else it
+                                        }
+                                    )
+                                )
+                            },
                             label = { Text("To (hr)") },
                             modifier = Modifier.weight(1f),
                             singleLine = true
@@ -292,7 +317,15 @@ fun ShiftStrategyEditor(
                     // time instead of picking one of 3 pre-set commitment tiers.
                     OutlinedTextField(
                         value = if (shift.price == 0.0) "" else shift.price.toInt().toString(),
-                        onValueChange = { v -> onConfigChange(config.copy(shifts = config.shifts.map { if (it.name == shift.name) it.copy(price = v.toDoubleOrNull() ?: 0.0) else it })) },
+                        onValueChange = { v ->
+                            onConfigChange(
+                                config.copy(
+                                    shifts = config.shifts.map {
+                                        if (it.name == shift.name) it.copy(price = v.toDoubleOrNull() ?: 0.0) else it
+                                    }
+                                )
+                            )
+                        },
                         label = { Text("Price per shift ($ USD)") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true

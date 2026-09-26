@@ -308,7 +308,8 @@ object AppSystemDebugger {
                     featureName = "Booking Pipeline Structural Check",
                     status = if (hasBookableSpace && bookingRequestsReachable) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
                     details = if (hasBookableSpace)
-                        "At least one space with a rental formula exists; booking-requests state is reachable. (No test booking is created — this check is read-only.)"
+                        "At least one space with a rental formula exists; booking-requests state is reachable. (No test booking is created — " +
+                        "this check is read-only.)"
                     else
                         "No space with a rental formula currently exists to book."
                 )
@@ -353,7 +354,8 @@ object AppSystemDebugger {
                     category = "Payment & Security",
                     featureName = "Whish Money SHA-256 Hashing Utility",
                     status = if (sigValid) DiagnosticStatus.PASSED else DiagnosticStatus.FAILED,
-                    details = "Generated a 64-char SHA-256 digest from a diagnostics-only test key — this is a hashing utility check, not a real merchant signature (the client holds no merchant secret)."
+                    details = "Generated a 64-char SHA-256 digest from a diagnostics-only test key — this is a hashing utility chec" +
+                        "k, not a real merchant signature (the client holds no merchant secret)."
                 )
             )
 
@@ -369,7 +371,8 @@ object AppSystemDebugger {
                     category = "Payment & Security",
                     featureName = "Whish Money API Access",
                     status = DiagnosticStatus.PASSED,
-                    details = "Client no longer calls Whish's API directly or holds a merchant secret — see initiateWhishPayment/whishWebhook/checkWhishStatus Cloud Functions."
+                    details = "Client no longer calls Whish's API directly or holds a merchant secret — see initiateWhishPayment/wh" +
+                        "ishWebhook/checkWhishStatus Cloud Functions."
                 )
             )
 
@@ -386,7 +389,8 @@ object AppSystemDebugger {
                     category = "Payment & Security",
                     featureName = "Owner Cash-Out",
                     status = DiagnosticStatus.WARNING,
-                    details = "Not yet implemented server-side — the previous client-only flow self-reported success with no real disbursement and has been removed."
+                    details = "Not yet implemented server-side — the previous client-only flow self-reported success with no real d" +
+                        "isbursement and has been removed."
                 )
             )
         } catch (e: Exception) {
@@ -432,7 +436,10 @@ object AppSystemDebugger {
                     category = "Admin Governance",
                     featureName = "Identity & Ownership Documents On File",
                     status = DiagnosticStatus.WARNING,
-                    details = "No admin review queue exists — ID documents and listing ownership-proof documents are self-attested, plain client-writable URL fields nobody on the server inspects or gates. This is a deliberate product decision, not a bug, but worth surfacing here since it means the app has no verification-of-authenticity step for either document type."
+                    details = "No admin review queue exists — ID documents and listing ownership-proof documents are self-attested," +
+                        " plain client-writable URL fields nobody on the server inspects or gates. This is a deliberate produ" +
+                        "ct decision, not a bug, but worth surfacing here since it means the app has no verification-of-authe" +
+                        "nticity step for either document type."
                 )
             )
 
@@ -447,9 +454,11 @@ object AppSystemDebugger {
                     featureName = "Immutable Audit & Security Trail",
                     status = if (auditLogCount > 0) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
                     details = if (auditLogCount > 0)
-                        "Audit log real-time listener active: $auditLogCount entries currently loaded (server-written only, includes actor identity and severity)."
+                        "Audit log real-time listener active: $auditLogCount entries currently loaded (server-written only, includes actor " +
+                        "identity and severity)."
                     else
-                        "Audit log listener reachable but returned zero entries — expected on a brand-new project with no recorded activity yet, otherwise worth checking the listener is actually attached."
+                        "Audit log listener reachable but returned zero entries — expected on a brand-new project with no recorded activity yet, " +
+                        "otherwise worth checking the listener is actually attached."
                 )
             )
         } catch (e: Exception) {

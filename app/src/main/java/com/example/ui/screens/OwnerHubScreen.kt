@@ -603,7 +603,8 @@ fun OwnerHubScreenContent(
                 val rentedH = spaceAcceptedBookings.sumOf { it.formula.totalWeeklyHours }
                 val blackoutH = space.schedule.blackoutSlots.size * 2
                 val totalOperatingDays = space.schedule.operatingDays.size
-                val dailyH = (space.schedule.closingHour.substringBefore(":").toIntOrNull() ?: 20) - (space.schedule.openingHour.substringBefore(":").toIntOrNull() ?: 8)
+                val dailyH = (space.schedule.closingHour.substringBefore(":").toIntOrNull() ?: 20) -
+                    (space.schedule.openingHour.substringBefore(":").toIntOrNull() ?: 8)
                 val totalH = dailyH * totalOperatingDays
                 val openH = (totalH - rentedH - blackoutH).coerceAtLeast(0)
 
@@ -669,16 +670,28 @@ fun OwnerHubScreenContent(
                                     Icon(
                                         if (space.status == ListingStatus.DRAFT) Icons.Default.EditNote else Icons.Default.PauseCircle,
                                         contentDescription = null,
-                                        tint = if (space.status == ListingStatus.DRAFT) MaterialTheme.colorScheme.onSurfaceVariant else StatusOnWarningContainer,
+                                        tint = if (space.status == ListingStatus.DRAFT) {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        } else {
+                                            StatusOnWarningContainer
+                                        },
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Column {
                                         Text(
-                                            text = if (space.status == ListingStatus.DRAFT) "Draft â€” not published yet" else "Paused â€” hidden from Discovery",
+                                            text = if (space.status == ListingStatus.DRAFT) {
+                                                "Draft â€” not published yet"
+                                            } else {
+                                                "Paused â€” hidden from Discovery"
+                                            },
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = if (space.status == ListingStatus.DRAFT) MaterialTheme.colorScheme.onSurfaceVariant else StatusOnWarningContainer
+                                            color = if (space.status == ListingStatus.DRAFT) {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            } else {
+                                                StatusOnWarningContainer
+                                            }
                                         )
                                         // Set only when the server moved this back to Draft on its
                                         // own (onWorkspaceListingPublishValidation) â€” e.g. it was
@@ -791,12 +804,27 @@ fun OwnerHubScreenContent(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                                        Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Icon(
+                                            Icons.Default.Schedule,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(12.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                         Text("${space.schedule.openingHour}-${space.schedule.closingHour}", style = MaterialTheme.typography.labelSmall)
                                     }
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                                        Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
-                                        Text("Rented: ${rentedH}h", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                        Icon(
+                                            Icons.Default.Lock,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(12.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                        Text(
+                                            "Rented: ${rentedH}h",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
                                     }
                                 }
                                 Row(
@@ -809,7 +837,12 @@ fun OwnerHubScreenContent(
                                     }
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                                         Box(modifier = Modifier.size(8.dp).background(StatusSuccess, CircleShape))
-                                        Text("Open: ${openH}h", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = StatusSuccess)
+                                        Text(
+                                            "Open: ${openH}h",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = StatusSuccess
+                                        )
                                     }
                                 }
                             }
@@ -829,7 +862,12 @@ fun OwnerHubScreenContent(
                                     modifier = Modifier.padding(Spacing.sm),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Default.RemoveRedEye, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Icon(
+                                        Icons.Default.RemoveRedEye,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text("${space.avatarEngagementViews} Views", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                                 }
@@ -846,7 +884,11 @@ fun OwnerHubScreenContent(
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(14.dp), tint = WhatsAppGreen)
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("${space.avatarInquiryClicks} Inquiries", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        "${space.avatarInquiryClicks} Inquiries",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
                                 }
                             }
                         }

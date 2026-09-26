@@ -356,7 +356,9 @@ fun CreateListingDialog(
     // Step 3's per-strategy availability tables need real operating hours/days to key
     // off from the moment they're built.
     val weekDayOptions = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    var operatingDays by rememberSaveable(stateSaver = StringSetSaver) { mutableStateOf(existingDraft?.schedule?.operatingDays?.toSet() ?: setOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat")) }
+    var operatingDays by rememberSaveable(stateSaver = StringSetSaver) {
+        mutableStateOf(existingDraft?.schedule?.operatingDays?.toSet() ?: setOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat"))
+    }
     var openingHour by rememberSaveable { mutableStateOf(existingDraft?.schedule?.openingHour ?: "08:00") }
     var closingHour by rememberSaveable { mutableStateOf(existingDraft?.schedule?.closingHour ?: "20:00") }
 
@@ -523,7 +525,12 @@ fun CreateListingDialog(
                         0 -> {
                             // Step 1: Space Definition & Ownership Verification
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Text("Space Identification", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    "Space Identification",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
                                 InputField(
                                     value = title,
                                     onValueChange = { title = it; hasUserTyped = true },
@@ -551,7 +558,12 @@ fun CreateListingDialog(
 
                                 HorizontalDivider()
 
-                                Text("Location & Description", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    "Location & Description",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
 
                                 InputField(
                                     value = description,
@@ -565,7 +577,8 @@ fun CreateListingDialog(
 
                                 Text("Pin the Exact Location", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                                 Text(
-                                    "Drop or drag the marker to the real GPS coordinates specialists will see when searching nearby — required to publish. The address fields below fill in automatically; edit them freely afterward.",
+                                    "Drop or drag the marker to the real GPS coordinates specialists will see when searching nearby — required " +
+                                    "to publish. The address fields below fill in automatically; edit them freely afterward.",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -632,7 +645,12 @@ fun CreateListingDialog(
 
                                 HorizontalDivider()
 
-                                Text("Target Disciplines", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    "Target Disciplines",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
                                 Text(
                                     "Hashtag the rentee backgrounds you'd prefer (e.g. #Cardiologist, #Architect).",
                                     style = MaterialTheme.typography.labelSmall,
@@ -688,7 +706,8 @@ fun CreateListingDialog(
 
                                 Text("Cover Photos", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                                 Text(
-                                    "Real photos of the space — shown first in search results. At least one is required to publish (Save as Draft never needs one).",
+                                    "Real photos of the space — shown first in search results. At least one is required to publish (Save as " +
+                                    "Draft never needs one).",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = if (uploadedPhotoUrls.isEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -755,7 +774,12 @@ fun CreateListingDialog(
                         1 -> {
                             // Step 2: Operational Parameters & Facility Rules
                             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Text("Communication Setup", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    "Communication Setup",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
                                 PhoneNumberField(
                                     country = ownerPhoneCountry,
                                     onCountryChange = {
@@ -773,9 +797,15 @@ fun CreateListingDialog(
 
                                 HorizontalDivider()
 
-                                Text("Facility Operating Hours & Days", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                                 Text(
-                                    "Controls the availability logic in Step 3 — the days and hours you select here are the only ones a rentable slot can ever be offered in.",
+                                    "Facility Operating Hours & Days",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    "Controls the availability logic in Step 3 — the days and hours you select here are the only ones a rentable " +
+                                    "slot can ever be offered in.",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -794,7 +824,11 @@ fun CreateListingDialog(
                                 Text("Shared Essential Facilities", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                                 val firstFacility = selectedFacilities.firstOrNull()
                                 val facilitySummary = if (firstFacility != null) {
-                                    if (selectedFacilities.size > 1) "$firstFacility (+${selectedFacilities.size - 1} more selected)" else "$firstFacility selected"
+                                    if (selectedFacilities.size > 1) {
+                                        "$firstFacility (+${selectedFacilities.size - 1} more selected)"
+                                    } else {
+                                        "$firstFacility selected"
+                                    }
                                 } else {
                                     "No facilities selected"
                                 }
@@ -811,9 +845,18 @@ fun CreateListingDialog(
                                     ) {
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(facilitySummary, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                            Text("Tap to open picker & manage master list", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text(
+                                                "Tap to open picker & manage master list",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
                                         }
-                                        Text("See More ➔", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                        Text(
+                                            "See More ➔",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
                                     }
                                 }
 
@@ -839,9 +882,18 @@ fun CreateListingDialog(
                                     ) {
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(equipSummary, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                            Text("Tap to open equipment catalog & manage master list", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text(
+                                                "Tap to open equipment catalog & manage master list",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
                                         }
-                                        Text("See More ➔", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                        Text(
+                                            "See More ➔",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
                                     }
                                 }
 
@@ -908,7 +960,12 @@ fun CreateListingDialog(
 
                                 HorizontalDivider()
 
-                                Text("Premises Rules and Policy", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    "Premises Rules and Policy",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
 
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -964,8 +1021,18 @@ fun CreateListingDialog(
                                 ) {
                                     Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                                            Icon(Icons.Default.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                                            Text("How do specialists rent this space?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                            Icon(
+                                                Icons.Default.Tune,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Text(
+                                                "How do specialists rent this space?",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
                                         }
                                         Text(
                                             if (hasSubdivisions) "Divisions — specialists pick a specific room or desk inside the space."
@@ -1003,13 +1070,31 @@ fun CreateListingDialog(
                                             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                                         ) {
                                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                                                Icon(Icons.Default.Dashboard, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                                                Text("Space-level (Steps 1 & 2): Name · Location · Facilities · Equipment · Rules", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                                Icon(
+                                                    Icons.Default.Dashboard,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(14.dp),
+                                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                                )
+                                                Text(
+                                                    "Space-level (Steps 1 & 2): Name · Location · Facilities · Equipment · Rules",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                                )
                                             }
                                             HorizontalDivider(color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.2f))
                                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                                                Icon(Icons.Default.MeetingRoom, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
-                                                Text("Per-subdivision (this step): Room name · Type · Amenities · Photos · Pricing", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                                Icon(
+                                                    Icons.Default.MeetingRoom,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(14.dp),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                                Text(
+                                                    "Per-subdivision (this step): Room name · Type · Amenities · Photos · Pricing",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
                                             }
                                         }
                                     }
@@ -1036,7 +1121,12 @@ fun CreateListingDialog(
                                     ) {
                                         Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                                                Icon(Icons.Default.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                                Icon(
+                                                    Icons.Default.Payments,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
                                                 Text("Renting Formula", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                                             }
                                             RentalPricingConfigEditor(

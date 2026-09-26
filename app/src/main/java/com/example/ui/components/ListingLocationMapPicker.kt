@@ -131,7 +131,12 @@ fun ListingLocationMapPicker(
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    onLocationConfirmed(latLng.latitude, latLng.longitude, "Coordinates: ${String.format(Locale.US, "%.4f, %.4f", latLng.latitude, latLng.longitude)}", Governorate.BEIRUT)
+                    onLocationConfirmed(
+                        latLng.latitude,
+                        latLng.longitude,
+                        "Coordinates: ${String.format(Locale.US, "%.4f, %.4f", latLng.latitude, latLng.longitude)}",
+                        Governorate.BEIRUT
+                    )
                 }
             }
         }

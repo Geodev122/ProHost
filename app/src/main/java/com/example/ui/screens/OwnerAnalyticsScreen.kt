@@ -363,7 +363,9 @@ fun OwnerAnalyticsScreen(
                                             .filter { it.spaceId == listing.id && it.subdivisionId == sub.id && it.createdAt in currentMonthStart..now }
                                             .sumOf { it.totalAmountUsd }
                                         val subPrev = acceptedBookings
-                                            .filter { it.spaceId == listing.id && it.subdivisionId == sub.id && it.createdAt in prevMonthStart..prevMonthSameDay }
+                                            .filter {
+                                                it.spaceId == listing.id && it.subdivisionId == sub.id && it.createdAt in prevMonthStart..prevMonthSameDay
+                                            }
                                             .sumOf { it.totalAmountUsd }
                                         val subDiff = subThis - subPrev
                                         Row(

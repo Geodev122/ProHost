@@ -117,7 +117,12 @@ fun SpaceAvailabilityCalendarView(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(
+                        Icons.Default.AccessTime,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Text(
                         text = "Operating: ${schedule.openingHour} - ${schedule.closingHour}",
                         style = MaterialTheme.typography.labelMedium,
@@ -141,8 +146,18 @@ fun SpaceAvailabilityCalendarView(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Capacity Allocation", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("$occupancyPercentage% Rented", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "Capacity Allocation",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "$occupancyPercentage% Rented",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
 
                 // Multi-segment progress bar
@@ -153,8 +168,16 @@ fun SpaceAvailabilityCalendarView(
                         .clip(RoundedCornerShape(5.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    val rentedFraction = if (totalWeeklyOperatingHours > 0) (totalRentedWeeklyHours.toFloat() / totalWeeklyOperatingHours.toFloat()).coerceIn(0f, 1f) else 0f
-                    val blackoutFraction = if (totalWeeklyOperatingHours > 0) (totalBlackoutHours.toFloat() / totalWeeklyOperatingHours.toFloat()).coerceIn(0f, 1f - rentedFraction) else 0f
+                    val rentedFraction = if (totalWeeklyOperatingHours > 0) {
+                        (totalRentedWeeklyHours.toFloat() / totalWeeklyOperatingHours.toFloat()).coerceIn(0f, 1f)
+                    } else {
+                        0f
+                    }
+                    val blackoutFraction = if (totalWeeklyOperatingHours > 0) {
+                        (totalBlackoutHours.toFloat() / totalWeeklyOperatingHours.toFloat()).coerceIn(0f, 1f - rentedFraction)
+                    } else {
+                        0f
+                    }
                     val availableFraction = (1f - rentedFraction - blackoutFraction).coerceAtLeast(0f)
 
                     if (rentedFraction > 0f) {
@@ -233,7 +256,9 @@ fun SpaceAvailabilityCalendarView(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "${booking.formula.scheduleDescription} (${booking.formula.daysOfWeek.joinToString()} • ${booking.formula.startHour} - ${booking.formula.endHour})",
+                                        text = "${booking.formula.scheduleDescription} (${booking.formula.daysOfWeek.joinToString()}" +
+                                            " • ${booking.formula.startHour} - ${booking.formula.endHour}" +
+                                            ")",
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary

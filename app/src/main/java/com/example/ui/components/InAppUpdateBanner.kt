@@ -79,7 +79,11 @@ fun InAppUpdateBanner(
                             color = Color.White
                         )
                         Text(
-                            text = if (updateState == UpdateState.DOWNLOADED) "Restart the app to apply the latest features and security patches." else "Download in progress: ${(downloadProgress * 100).toInt()}%",
+                            text = if (updateState == UpdateState.DOWNLOADED) {
+                                "Restart the app to apply the latest features and security patches."
+                            } else {
+                                "Download in progress: ${(downloadProgress * 100).toInt()}%"
+                            },
                             style = MaterialTheme.typography.labelMedium,
                             color = Color.White.copy(alpha = 0.85f)
                         )

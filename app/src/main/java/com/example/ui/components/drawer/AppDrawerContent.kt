@@ -222,7 +222,13 @@ fun SpecialistDrawerContent(
                 label = { Text("Subscriptions", fontWeight = FontWeight.Bold) },
                 selected = activeProHostTabId == "owner_subscriptions",
                 onClick = { onTabSelected("owner_subscriptions") },
-                icon = { Icon(Icons.Default.Layers, contentDescription = null, tint = if (activeProHostTabId == "owner_subscriptions") FreshGreen else OxfordBlue) },
+                icon = {
+                    Icon(
+                        Icons.Default.Layers,
+                        contentDescription = null,
+                        tint = if (activeProHostTabId == "owner_subscriptions") FreshGreen else OxfordBlue
+                    )
+                },
                 colors = NavigationDrawerItemDefaults.colors(
                     selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
                     selectedTextColor = OxfordBlue,
@@ -424,7 +430,13 @@ fun AdminDrawerContent(
             label = { Text("System Admin Console", fontWeight = FontWeight.Bold) },
             selected = activeTabId == "admin_console",
             onClick = { onTabSelected("admin_console") },
-            icon = { Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = if (activeTabId == "admin_console") CarnationOrange else OxfordBlue) },
+            icon = {
+                Icon(
+                    Icons.Default.AdminPanelSettings,
+                    contentDescription = null,
+                    tint = if (activeTabId == "admin_console") CarnationOrange else OxfordBlue
+                )
+            },
             colors = NavigationDrawerItemDefaults.colors(
                 selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
                 selectedTextColor = OxfordBlue,

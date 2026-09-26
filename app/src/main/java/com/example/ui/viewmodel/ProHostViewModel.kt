@@ -735,7 +735,11 @@ class ProHostViewModel(
 
         val requestSnippet = if (request != null) {
             val daysStr = if (request.selectedDays.isNotEmpty()) request.selectedDays.joinToString() else request.formula.daysOfWeek.joinToString()
-            val timesStr = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank()) "${request.selectedStartHour} - ${request.selectedEndHour}" else "${request.formula.startHour} - ${request.formula.endHour}"
+            val timesStr = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank()) {
+                "${request.selectedStartHour} - ${request.selectedEndHour}"
+            } else {
+                "${request.formula.startHour} - ${request.formula.endHour}"
+            }
             val shiftStr = if (request.selectedShift.isNotBlank()) " (${request.selectedShift})" else ""
 
             "\n\n[In-App Booking Request Details]\n" +
@@ -777,7 +781,11 @@ class ProHostViewModel(
         val user = currentUser.value
         val ownerName = user?.fullName ?: "Workspace Host"
         val daysStr = if (request.selectedDays.isNotEmpty()) request.selectedDays.joinToString() else request.formula.daysOfWeek.joinToString()
-        val timesStr = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank()) "${request.selectedStartHour} - ${request.selectedEndHour}" else "${request.formula.startHour} - ${request.formula.endHour}"
+        val timesStr = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank()) {
+            "${request.selectedStartHour} - ${request.selectedEndHour}"
+        } else {
+            "${request.formula.startHour} - ${request.formula.endHour}"
+        }
 
         val rawMessage = "Hello ${request.practitionerName},\n\n" +
                 "I am $ownerName regarding your booking request (#${request.id}) for space \"${request.spaceTitle}\".\n" +
@@ -831,28 +839,50 @@ class ProHostViewModel(
      * Now the toast reflects the real result: a synced request says so plainly; an
      * unsynced one is flagged as still pending and not yet visible to the host.
      */
+    data class BookingSubmissionRequest(
+        val formula: RentalFormula,
+        val startDate: String,
+        val durationMonths: Int,
+        val notes: String,
+        val alsoOpenWhatsApp: Boolean = false,
+        val selectedDays: List<String> = emptyList(),
+        val selectedCalendarDates: List<String> = emptyList(),
+        val selectedStartHour: String = "",
+        val selectedEndHour: String = "",
+        val selectedShift: String = "",
+        val calculatedTotalUsd: Double = 0.0,
+        val subdivisionId: String? = null,
+        val subdivisionName: String? = null,
+        val replacesBookingId: String? = null,
+        val attendeeCount: Int = 0,
+        val selectedAttendeePackageId: String? = null,
+        val attendeePackageName: String? = null,
+        val attendeePackagePriceUsd: Double = 0.0
+    )
+
     fun submitBookingRequest(
         space: SpaceListing,
-        formula: RentalFormula,
-        startDate: String,
-        durationMonths: Int,
-        notes: String,
         context: Context,
-        alsoOpenWhatsApp: Boolean = false,
-        selectedDays: List<String> = emptyList(),
-        selectedCalendarDates: List<String> = emptyList(),
-        selectedStartHour: String = "",
-        selectedEndHour: String = "",
-        selectedShift: String = "",
-        calculatedTotalUsd: Double = 0.0,
-        subdivisionId: String? = null,
-        subdivisionName: String? = null,
-        replacesBookingId: String? = null,
-        attendeeCount: Int = 0,
-        selectedAttendeePackageId: String? = null,
-        attendeePackageName: String? = null,
-        attendeePackagePriceUsd: Double = 0.0
+        submission: BookingSubmissionRequest
     ) {
+        val formula = submission.formula
+        val startDate = submission.startDate
+        val durationMonths = submission.durationMonths
+        val notes = submission.notes
+        val alsoOpenWhatsApp = submission.alsoOpenWhatsApp
+        val selectedDays = submission.selectedDays
+        val selectedCalendarDates = submission.selectedCalendarDates
+        val selectedStartHour = submission.selectedStartHour
+        val selectedEndHour = submission.selectedEndHour
+        val selectedShift = submission.selectedShift
+        val calculatedTotalUsd = submission.calculatedTotalUsd
+        val subdivisionId = submission.subdivisionId
+        val subdivisionName = submission.subdivisionName
+        val replacesBookingId = submission.replacesBookingId
+        val attendeeCount = submission.attendeeCount
+        val selectedAttendeePackageId = submission.selectedAttendeePackageId
+        val attendeePackageName = submission.attendeePackageName
+        val attendeePackagePriceUsd = submission.attendeePackagePriceUsd
         val user = currentUser.value
         if (user == null) {
             Toast.makeText(context, "Please log in to submit a rental request", Toast.LENGTH_SHORT).show()
@@ -1199,32 +1229,36 @@ class ProHostViewModel(
         }
     }
 
+    data class CustomFormulaSpec(
+        val type: RentalFormulaType,
+        val rateUsd: Double,
+        val description: String,
+        val daysOfWeek: List<String>,
+        val startHour: String,
+        val endHour: String,
+        val weeklyHours: Int,
+        val daysCountRequired: Int = 1,
+        val minHours: Int = 2,
+        val shiftName: String = "Shift"
+    )
+
     fun addCustomFormula(
         spaceId: String,
-        type: RentalFormulaType,
-        rateUsd: Double,
-        description: String,
-        daysOfWeek: List<String>,
-        startHour: String,
-        endHour: String,
-        weeklyHours: Int,
-        daysCountRequired: Int = 1,
-        minHours: Int = 2,
-        shiftName: String = "Shift",
+        spec: CustomFormulaSpec,
         context: Context
     ) {
         val formula = RentalFormula(
             id = "FRM-" + (1000..9999).random(),
-            type = type,
-            rateUsd = rateUsd,
-            scheduleDescription = description,
-            daysOfWeek = daysOfWeek,
-            startHour = startHour,
-            endHour = endHour,
-            totalWeeklyHours = weeklyHours,
-            daysCountRequired = daysCountRequired,
-            minHours = minHours,
-            shiftName = shiftName
+            type = spec.type,
+            rateUsd = spec.rateUsd,
+            scheduleDescription = spec.description,
+            daysOfWeek = spec.daysOfWeek,
+            startHour = spec.startHour,
+            endHour = spec.endHour,
+            totalWeeklyHours = spec.weeklyHours,
+            daysCountRequired = spec.daysCountRequired,
+            minHours = spec.minHours,
+            shiftName = spec.shiftName
         )
         val appContext = context.applicationContext
         viewModelScope.launch {
@@ -1232,7 +1266,7 @@ class ProHostViewModel(
                 val success = repository.addRentalFormula(spaceId, formula)
                 Toast.makeText(
                     appContext,
-                    if (success) "New formula '${type.displayName}' added!" else "Failed to add formula — please try again",
+                    if (success) "New formula '${spec.type.displayName}' added!" else "Failed to add formula — please try again",
                     Toast.LENGTH_SHORT
                 ).show()
             } catch (e: kotlinx.coroutines.CancellationException) {

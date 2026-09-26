@@ -188,12 +188,27 @@ fun DiscoveryScreenContent(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                                        Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 12.dp).size(18.dp))
+                                        Icon(
+                                            Icons.Default.Search,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(start = 12.dp).size(18.dp)
+                                        )
                                         Box(modifier = Modifier.weight(1f).padding(start = 8.dp, top = 10.dp, bottom = 10.dp)) {
                                             if (searchQuery.isEmpty()) {
-                                                Text("Search workspaces…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                Text(
+                                                    "Search workspaces…",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
                                             }
-                                            BasicTextField(value = searchQuery, onValueChange = onSearchQueryChange, modifier = Modifier.fillMaxWidth(), singleLine = true, textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface))
+                                            BasicTextField(
+                                                value = searchQuery,
+                                                onValueChange = onSearchQueryChange,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                singleLine = true,
+                                                textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface)
+                                            )
                                         }
                                         IconButton(onClick = { onSearchQueryChange(""); searchExpanded = false }, modifier = Modifier.size(36.dp)) {
                                             Icon(Icons.Default.Close, contentDescription = "Close search", modifier = Modifier.size(16.dp))
@@ -368,12 +383,27 @@ fun DiscoveryScreenContent(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                                Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 12.dp).size(18.dp))
+                                Icon(
+                                    Icons.Default.Search,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(start = 12.dp).size(18.dp)
+                                )
                                 Box(modifier = Modifier.weight(1f).padding(start = 8.dp, top = 10.dp, bottom = 10.dp)) {
                                     if (searchQuery.isEmpty()) {
-                                        Text("Search workspaces…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            "Search workspaces…",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
-                                    BasicTextField(value = searchQuery, onValueChange = onSearchQueryChange, modifier = Modifier.fillMaxWidth(), singleLine = true, textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface))
+                                    BasicTextField(
+                                        value = searchQuery,
+                                        onValueChange = onSearchQueryChange,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true,
+                                        textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface)
+                                    )
                                 }
                                 IconButton(onClick = { onSearchQueryChange(""); searchExpanded = false }, modifier = Modifier.size(36.dp)) {
                                     Icon(Icons.Default.Close, contentDescription = "Close search", modifier = Modifier.size(16.dp))
@@ -504,16 +534,18 @@ fun SubdivisionDiscoveryCard(
 ) {
     val lowestPrice = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
     WorkspaceCard(
-        title = "${subdivision.name} · ${space.title}",
-        listingType = subdivision.type.displayName,
-        location = "${space.district}, ${space.governorate.displayName}",
-        rateUsd = lowestPrice.amount,
-        rateUnit = lowestPrice.unitLabel,
-        imageUrl = space.imageUrls.firstOrNull(),
-        operatingHours = "${space.schedule.openingHour} - ${space.schedule.closingHour}",
-        totalDaysOpen = "${space.schedule.operatingDays.size} days/wk",
-        formulaTypes = listOf(subdivision.pricing.strategyType.displayName),
-        isVerified = space.isVerified,
+        info = WorkspaceCardInfo(
+            title = "${subdivision.name} · ${space.title}",
+            listingType = subdivision.type.displayName,
+            location = "${space.district}, ${space.governorate.displayName}",
+            rateUsd = lowestPrice.amount,
+            rateUnit = lowestPrice.unitLabel,
+            imageUrl = space.imageUrls.firstOrNull(),
+            operatingHours = "${space.schedule.openingHour} - ${space.schedule.closingHour}",
+            totalDaysOpen = "${space.schedule.operatingDays.size} days/wk",
+            formulaTypes = listOf(subdivision.pricing.strategyType.displayName),
+            isVerified = space.isVerified
+        ),
         isSaved = isSaved,
         onToggleSave = onToggleSave,
         onClick = onClick,
@@ -538,16 +570,18 @@ fun SpaceListingCard(
     val lowestPrice = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
 
     WorkspaceCard(
-        title = space.title,
-        listingType = space.spaceType.displayName,
-        location = "${space.district}, ${space.governorate.displayName}",
-        rateUsd = lowestPrice.amount,
-        rateUnit = lowestPrice.unitLabel,
-        imageUrl = space.imageUrls.firstOrNull(),
-        operatingHours = "${space.schedule.openingHour} - ${space.schedule.closingHour}",
-        totalDaysOpen = "${space.schedule.operatingDays.size} days/wk",
-        formulaTypes = formulaTypes.toList(),
-        isVerified = space.isVerified,
+        info = WorkspaceCardInfo(
+            title = space.title,
+            listingType = space.spaceType.displayName,
+            location = "${space.district}, ${space.governorate.displayName}",
+            rateUsd = lowestPrice.amount,
+            rateUnit = lowestPrice.unitLabel,
+            imageUrl = space.imageUrls.firstOrNull(),
+            operatingHours = "${space.schedule.openingHour} - ${space.schedule.closingHour}",
+            totalDaysOpen = "${space.schedule.operatingDays.size} days/wk",
+            formulaTypes = formulaTypes.toList(),
+            isVerified = space.isVerified
+        ),
         isSaved = isSaved,
         onToggleSave = onToggleSave,
         onClick = onClick,

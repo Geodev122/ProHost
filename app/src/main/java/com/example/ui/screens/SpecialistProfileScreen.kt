@@ -463,7 +463,12 @@ fun SpecialistProfileScreen(
                         // this card keeps just the count badge and the list itself.
                         if (practitionerBookings.isNotEmpty()) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.EventAvailable, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Default.EventAvailable,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = "${practitionerBookings.size} total")
                             }
@@ -525,12 +530,25 @@ fun SpecialistProfileScreen(
                                                 }
                                             }
 
-                                            val chosenDaysStr = if (req.selectedDays.isNotEmpty()) req.selectedDays.joinToString(", ") else req.formula.daysOfWeek.joinToString(", ")
-                                            val chosenHoursStr = if (req.selectedStartHour.isNotBlank() && req.selectedEndHour.isNotBlank()) "${req.selectedStartHour} - ${req.selectedEndHour}" else "${req.formula.startHour} - ${req.formula.endHour}"
+                                            val chosenDaysStr = if (req.selectedDays.isNotEmpty()) {
+                                                req.selectedDays.joinToString(", ")
+                                            } else {
+                                                req.formula.daysOfWeek.joinToString(", ")
+                                            }
+                                            val chosenHoursStr = if (req.selectedStartHour.isNotBlank() && req.selectedEndHour.isNotBlank()) {
+                                                "${req.selectedStartHour} - ${req.selectedEndHour}"
+                                            } else {
+                                                "${req.formula.startHour} - ${req.formula.endHour}"
+                                            }
                                             val shiftDetail = if (req.selectedShift.isNotBlank()) " (${req.selectedShift})" else ""
 
                                             Row(verticalAlignment = Alignment.Top) {
-                                                Icon(Icons.AutoMirrored.Filled.Assignment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                                                Icon(
+                                                    Icons.AutoMirrored.Filled.Assignment,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Text(
                                                     text = "Formula: ${req.formula.type.displayName} • $chosenDaysStr @ $chosenHoursStr$shiftDetail",
@@ -540,10 +558,16 @@ fun SpecialistProfileScreen(
                                                 )
                                             }
                                             Row(verticalAlignment = Alignment.Top) {
-                                                Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+                                                Icon(
+                                                    Icons.Default.CalendarMonth,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Text(
-                                                    text = "Starting: ${req.startDate} (${req.durationMonths} mo term) • Total: $${req.totalAmountUsd.toInt()} USD",
+                                                    text = "Starting: ${req.startDate} (${req.durationMonths} mo term) •" +
+                                                        " Total: $${req.totalAmountUsd.toInt()} USD",
                                                     style = MaterialTheme.typography.bodySmall
                                                 )
                                             }
@@ -562,9 +586,19 @@ fun SpecialistProfileScreen(
                                                         colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
                                                         contentPadding = PaddingValues(vertical = 6.dp)
                                                     ) {
-                                                        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                                        Icon(
+                                                            Icons.AutoMirrored.Filled.Chat,
+                                                            contentDescription = null,
+                                                            tint = Color.White,
+                                                            modifier = Modifier.size(14.dp)
+                                                        )
                                                         Spacer(modifier = Modifier.width(Spacing.xs))
-                                                        Text("WhatsApp Host", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                                                        Text(
+                                                            "WhatsApp Host",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = Color.White,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
                                                     }
                                                 }
 

@@ -657,7 +657,11 @@ data class BookingRequest(
             "selectedStartHour" to selectedStartHour,
             "selectedEndHour" to selectedEndHour,
             "selectedShift" to selectedShift,
-            "selectedDateTimeRange" to if (selectedDateTimeRange.isNotBlank()) selectedDateTimeRange else "$startDate (${formula.daysOfWeek.joinToString()} ${formula.startHour}-${formula.endHour})",
+            "selectedDateTimeRange" to if (selectedDateTimeRange.isNotBlank()) {
+                selectedDateTimeRange
+            } else {
+                "$startDate (${formula.daysOfWeek.joinToString()} ${formula.startHour}-${formula.endHour})"
+            },
             "durationMonths" to durationMonths,
             "totalAmountUsd" to totalAmountUsd,
             "clinicalNotes" to clinicalNotes,

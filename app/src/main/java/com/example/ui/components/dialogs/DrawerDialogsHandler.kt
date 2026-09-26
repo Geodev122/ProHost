@@ -154,10 +154,18 @@ fun DrawerDialogsHandler(
                                     // Whish transactions
                                     val hostTxs = transactions.filter {
                                         val user = currentUser
-                                        user != null && (it.payerName.contains(user.fullName, ignoreCase = true) || it.payerPhone == user.phone || user.role == UserRole.ADMIN)
+                                        user != null && (
+                                            it.payerName.contains(user.fullName, ignoreCase = true) ||
+                                                it.payerPhone == user.phone ||
+                                                user.role == UserRole.ADMIN
+                                            )
                                     }
                                     if (hostTxs.isEmpty()) {
-                                        Text("No recorded Whish settlements. Subscription fees paid via Whish Pay will populate here immediately.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            "No recorded Whish settlements. Subscription fees paid via Whish Pay will populate here immediately.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     } else {
                                         LazyColumn(
                                             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -172,13 +180,22 @@ fun DrawerDialogsHandler(
                                                             verticalAlignment = Alignment.CenterVertically
                                                         ) {
                                                             Column {
-                                                                Text("Order #${tx.orderId}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                                                Text(
+                                                                    "Order #${tx.orderId}",
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    style = MaterialTheme.typography.bodyMedium
+                                                                )
                                                                 Text("Space: ${tx.spaceTitle}", style = MaterialTheme.typography.labelSmall)
                                                                 Text("Channel ID: ${tx.channelId}", style = MaterialTheme.typography.labelSmall)
                                                             }
                                                             Column(horizontalAlignment = Alignment.End) {
                                                                 Text("$${tx.amountUsd.toInt()} USD", fontWeight = FontWeight.ExtraBold, color = StatusSuccess)
-                                                                Text(tx.status.name, color = StatusSuccess, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                                                Text(
+                                                                    tx.status.name,
+                                                                    color = StatusSuccess,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    style = MaterialTheme.typography.labelSmall
+                                                                )
                                                             }
                                                         }
                                                         Spacer(modifier = Modifier.height(8.dp))
@@ -191,7 +208,11 @@ fun DrawerDialogsHandler(
                                                                         val intent = com.example.legal.WhishReceiptPdfGenerator.buildOpenIntent(context, file)
                                                                         context.startActivity(intent)
                                                                     } catch (e: Exception) {
-                                                                        Toast.makeText(context, "Bill generated, but no PDF viewer found.", Toast.LENGTH_SHORT).show()
+                                                                        Toast.makeText(
+                                                                            context,
+                                                                            "Bill generated, but no PDF viewer found.",
+                                                                            Toast.LENGTH_SHORT
+                                                                        ).show()
                                                                     }
                                                                 } else {
                                                                     Toast.makeText(context, "Failed to generate PDF bill.", Toast.LENGTH_SHORT).show()
@@ -210,7 +231,11 @@ fun DrawerDialogsHandler(
                                 } else {
                                     // Google Play purchase history
                                     if (playHistory.isEmpty()) {
-                                        Text("No Google Play subscription history found.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            "No Google Play subscription history found.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     } else {
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
@@ -224,7 +249,12 @@ fun DrawerDialogsHandler(
                                                     val page = doc.startPage(pageInfo)
                                                     val paint = android.graphics.Paint().apply { textSize = 12f; color = android.graphics.Color.BLACK }
                                                     var y = 50f
-                                                    page.canvas.drawText("Google Play Purchase History", 40f, y, paint.apply { textSize = 16f; isFakeBoldText = true })
+                                                    page.canvas.drawText(
+                                                        "Google Play Purchase History",
+                                                        40f,
+                                                        y,
+                                                        paint.apply { textSize = 16f; isFakeBoldText = true }
+                                                    )
                                                     y += 30f
                                                     paint.textSize = 11f; paint.isFakeBoldText = false
                                                     playHistory.forEach { record ->
@@ -243,17 +273,26 @@ fun DrawerDialogsHandler(
                                                             put(android.provider.MediaStore.Downloads.MIME_TYPE, "application/pdf")
                                                             put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
                                                         }
-                                                        val uri = context.contentResolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                                                        val uri = context.contentResolver.insert(
+                                                            android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                                                            values
+                                                        )
                                                         if (uri != null) {
                                                             context.contentResolver.openOutputStream(uri)?.use { doc.writeTo(it) }
                                                             values.clear(); values.put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
                                                             context.contentResolver.update(uri, values, null, null)
-                                                            val shareIntent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply { setDataAndType(uri, "application/pdf"); addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+                                                            val shareIntent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                                                                setDataAndType(uri, "application/pdf")
+                                                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                            }
                                                             context.startActivity(android.content.Intent.createChooser(shareIntent, "Open PDF"))
                                                         }
                                                     } else {
                                                         @Suppress("DEPRECATION")
-                                                        val file = java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), filename)
+                                                        val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(
+                                                            android.os.Environment.DIRECTORY_DOWNLOADS
+                                                        )
+                                                        val file = java.io.File(downloadsDir, filename)
                                                         doc.writeTo(java.io.FileOutputStream(file))
                                                         Toast.makeText(context, "Saved to Downloads/$filename", Toast.LENGTH_SHORT).show()
                                                     }
@@ -275,8 +314,16 @@ fun DrawerDialogsHandler(
                                                         val productId = record.products.firstOrNull() ?: ""
                                                         val productName = playProducts.find { it.productId == productId }?.name ?: productId
                                                         Text(productName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                                        Text(sdf.format(Date(record.purchaseTime)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                        Text("Token: ${record.purchaseToken.take(16)}…", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                        Text(
+                                                            sdf.format(Date(record.purchaseTime)),
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                        Text(
+                                                            "Token: ${record.purchaseToken.take(16)}…",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
                                                     }
                                                 }
                                             }
@@ -303,12 +350,22 @@ fun DrawerDialogsHandler(
                                 ) {
                                     AssistChip(
                                         onClick = { showAuditFromPicker = true },
-                                        label = { Text(auditFromMillis?.let { "From: ${sdfShort.format(Date(it))}" } ?: "From: Any", style = MaterialTheme.typography.labelSmall) },
+                                        label = {
+                                            Text(
+                                                auditFromMillis?.let { "From: ${sdfShort.format(Date(it))}" } ?: "From: Any",
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
+                                        },
                                         leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
                                     )
                                     AssistChip(
                                         onClick = { showAuditToPicker = true },
-                                        label = { Text(auditToMillis?.let { "To: ${sdfShort.format(Date(it))}" } ?: "To: Any", style = MaterialTheme.typography.labelSmall) },
+                                        label = {
+                                            Text(
+                                                auditToMillis?.let { "To: ${sdfShort.format(Date(it))}" } ?: "To: Any",
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
+                                        },
                                         leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
                                     )
                                     if (auditFromMillis != null || auditToMillis != null) {
@@ -323,7 +380,11 @@ fun DrawerDialogsHandler(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("${filteredAuditLogs.size} of ${auditLogs.size} entries", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        "${filteredAuditLogs.size} of ${auditLogs.size} entries",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                     CustomButton(
                                         text = "Export CSV",
                                         onClick = {
@@ -350,12 +411,23 @@ fun DrawerDialogsHandler(
                                                     modifier = Modifier.fillMaxWidth(),
                                                     horizontalArrangement = Arrangement.SpaceBetween
                                                 ) {
-                                                    Text(log.actionType, color = FreshGreen, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
-                                                    Text(log.severity, color = if (log.severity == "SECURE") MaterialTheme.colorScheme.error else AmberWarning, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                                    Text(
+                                                        log.actionType,
+                                                        color = FreshGreen,
+                                                        fontWeight = FontWeight.Bold,
+                                                        style = MaterialTheme.typography.labelSmall
+                                                    )
+                                                    Text(
+                                                        log.severity,
+                                                        color = if (log.severity == "SECURE") MaterialTheme.colorScheme.error else AmberWarning,
+                                                        fontWeight = FontWeight.Bold,
+                                                        style = MaterialTheme.typography.labelSmall
+                                                    )
                                                 }
                                                 Text(log.details, color = Color.White, style = MaterialTheme.typography.labelSmall)
                                                 Text(
-                                                    "Actor: ${log.actorEmail} • ${SimpleDateFormat("MMM d, yyyy HH:mm", Locale.US).format(Date(log.timestamp))}",
+                                                    "Actor: ${log.actorEmail} • " +
+                                                        "${SimpleDateFormat("MMM d, yyyy HH:mm", Locale.US).format(Date(log.timestamp))}",
                                                     color = Color.White.copy(alpha = 0.5f),
                                                     style = MaterialTheme.typography.labelSmall
                                                 )
@@ -423,11 +495,40 @@ fun DrawerDialogsHandler(
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("Governorate", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(2f))
-                                        Text("Active", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
-                                        Text("Paused", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
-                                        Text("Draft", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
-                                        Text("Total", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                                        Text(
+                                            "Governorate",
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            modifier = Modifier.weight(2f)
+                                        )
+                                        Text(
+                                            "Active",
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text(
+                                            "Paused",
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text(
+                                            "Draft",
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text(
+                                            "Total",
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.weight(1f)
+                                        )
                                     }
                                 }
 
@@ -451,13 +552,46 @@ fun DrawerDialogsHandler(
                                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                                                 modifier = Modifier.weight(2f)
                                             ) {
-                                                Icon(Icons.Default.Place, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                                Icon(
+                                                    Icons.Default.Place,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
                                                 Text(gov.displayName, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
                                             }
-                                            Text("$activeCount", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = FreshGreen, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
-                                            Text("$pausedCount", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = CarnationOrange, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
-                                            Text("$draftCount", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
-                                            Text("$totalCount", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                                            Text(
+                                                "$activeCount",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = FreshGreen,
+                                                textAlign = TextAlign.Center,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Text(
+                                                "$pausedCount",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = CarnationOrange,
+                                                textAlign = TextAlign.Center,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Text(
+                                                "$draftCount",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.outline,
+                                                textAlign = TextAlign.Center,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Text(
+                                                "$totalCount",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                textAlign = TextAlign.Center,
+                                                modifier = Modifier.weight(1f)
+                                            )
                                         }
                                     }
                                 }
@@ -526,16 +660,28 @@ fun DrawerDialogsHandler(
                                                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                         ) {
                                                             Icon(
-                                                                imageVector = if (alert.category == "BOOKING_ACCEPTANCE") Icons.Default.CheckCircle else Icons.Default.NotificationImportant,
+                                                                imageVector = if (alert.category == "BOOKING_ACCEPTANCE") {
+                                                                    Icons.Default.CheckCircle
+                                                                } else {
+                                                                    Icons.Default.NotificationImportant
+                                                                },
                                                                 contentDescription = null,
-                                                                tint = if (alert.category == "BOOKING_ACCEPTANCE") StatusSuccess else MaterialTheme.colorScheme.error,
+                                                                tint = if (alert.category == "BOOKING_ACCEPTANCE") {
+                                                                    StatusSuccess
+                                                                } else {
+                                                                    MaterialTheme.colorScheme.error
+                                                                },
                                                                 modifier = Modifier.size(16.dp)
                                                             )
                                                             Text(
                                                                 text = alert.title,
                                                                 fontWeight = FontWeight.Bold,
                                                                 style = MaterialTheme.typography.bodyMedium,
-                                                                color = if (alert.isRead) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+                                                                color = if (alert.isRead) {
+                                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                                                } else {
+                                                                    MaterialTheme.colorScheme.onSurface
+                                                                }
                                                             )
                                                         }
 
@@ -545,7 +691,11 @@ fun DrawerDialogsHandler(
                                                                 contentPadding = PaddingValues(0.dp),
                                                                 modifier = Modifier.height(24.dp)
                                                             ) {
-                                                                Text("Mark Read", fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold)
+                                                                Text(
+                                                                    "Mark Read",
+                                                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                                    fontWeight = FontWeight.Bold
+                                                                )
                                                             }
                                                         } else {
                                                             Text(
@@ -560,7 +710,11 @@ fun DrawerDialogsHandler(
                                                     Text(
                                                         text = alert.body,
                                                         style = MaterialTheme.typography.bodySmall,
-                                                        color = if (alert.isRead) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurfaceVariant
+                                                        color = if (alert.isRead) {
+                                                            MaterialTheme.colorScheme.outline
+                                                        } else {
+                                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                                        }
                                                     )
 
                                                     Spacer(modifier = Modifier.height(Spacing.xs))
@@ -590,7 +744,11 @@ fun DrawerDialogsHandler(
                                                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                                                                     modifier = Modifier.height(28.dp)
                                                                 ) {
-                                                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(12.dp))
+                                                                    Icon(
+                                                                        Icons.AutoMirrored.Filled.ArrowForward,
+                                                                        contentDescription = null,
+                                                                        modifier = Modifier.size(12.dp)
+                                                                    )
                                                                     Spacer(modifier = Modifier.width(Spacing.xs))
                                                                     Text("Open Screen", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                                                 }

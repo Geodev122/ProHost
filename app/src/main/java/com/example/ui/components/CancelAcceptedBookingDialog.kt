@@ -47,7 +47,8 @@ fun CancelAcceptedBookingDialog(
                     Text("Cancel Accepted Booking?", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                 }
                 Text(
-                    "This ends the active booking for \"$spaceTitle\" immediately and notifies $partyLabel. There is no in-app refund or penalty — settle anything owed directly with $partyLabel.",
+                    "This ends the active booking for \"$spaceTitle\" immediately and notifies $partyLabel. There is no in-app refund or penalty " +
+                    "— settle anything owed directly with $partyLabel.",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
