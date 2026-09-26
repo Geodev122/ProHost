@@ -1942,7 +1942,8 @@ private fun GodSchemaSection(
                 Text("No items yet.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             items.forEachIndexed { idx, item ->
-                SchemaItemRow(item = item, onToggle = { onToggle(item) }, onDelete = { onDelete(item) }, onEdit = { onEdit(item) }, extraContent = { extraContent?.invoke(item) })
+                val extra: (@Composable () -> Unit)? = if (extraContent != null) ({ extraContent(item) }) else null
+                SchemaItemRow(item = item, onToggle = { onToggle(item) }, onDelete = { onDelete(item) }, onEdit = { onEdit(item) }, extraContent = extra)
                 if (idx < items.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
             }
         }
@@ -2832,7 +2833,7 @@ private fun AdminResetSchemaDialog(
         icon = { Icon(Icons.Default.RestartAlt, contentDescription = null, tint = AmberWarning) },
         title = { Text("Reset Architecture Schema?") },
         text = {
-            Text("This will restore all default Lebanese workspace classifications (OEA, LOP, BBA subcategories, solar amenities, and medical equipment) while removing custom additions.")
+            Text("This will restore all default Lebanese workspace classifications — space types, division types, facilities, amenities and rental strategies — while removing custom additions.")
         },
         confirmButton = {
             CustomButton(

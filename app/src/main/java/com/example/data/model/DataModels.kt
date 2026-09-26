@@ -1949,13 +1949,16 @@ data class SpaceArchitectureSchema(
         fun fromFirestoreMap(data: Map<String, Any?>): SpaceArchitectureSchema {
             fun list(key: String): List<SchemaItem> =
                 (data[key] as? List<*>)?.mapNotNull { (it as? Map<String, Any?>)?.let { m -> SchemaItem.fromFirestoreMap(m) } } ?: emptyList()
+            // New documents have a "facilities" key; old documents stored whole-space items
+            // under "amenities". When the new key is absent, treat all old "amenities" as
+            // facilities and leave the new amenities list empty to avoid duplication.
+            val isNewFormat = data.containsKey("facilities")
+            val rawAmenities = list("amenities")
             return SpaceArchitectureSchema(
                 spaceTypes = list("spaceTypes"),
-                // "subcategories" read for backward-compat with old Firestore documents
                 divisionTypes = list("divisionTypes").ifEmpty { list("subcategories") },
-                // "amenities" key previously stored facilities; new "facilities" key takes over
-                facilities = list("facilities").ifEmpty { list("amenities") },
-                amenities = list("amenities").filter { it.category == SchemaCategory.AMENITY },
+                facilities = if (isNewFormat) list("facilities") else rawAmenities,
+                amenities = if (isNewFormat) rawAmenities.filter { it.category == SchemaCategory.AMENITY } else emptyList(),
                 rentalStrategies = list("rentalStrategies")
             )
         }

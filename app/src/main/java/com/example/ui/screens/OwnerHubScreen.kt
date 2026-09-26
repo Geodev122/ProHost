@@ -57,9 +57,8 @@ fun OwnerHubScreen(
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
     val availableFacilities = remember(architectureSchema) {
         // Falls back to the old hardcoded catalog only if Firestore hasn't delivered
-        // a real schema yet (or an admin has disabled every amenity) â€” never leaves
-        // the facility picker with zero options.
-        architectureSchema.amenities.filter { it.isEnabled }.map { it.name }
+        // a real schema yet — never leaves the facility picker with zero options.
+        architectureSchema.facilities.filter { it.isEnabled }.map { it.name }
             .ifEmpty { FacilityCatalog.standard }
     }
 
@@ -300,6 +299,8 @@ fun OwnerHubScreen(
             suggestedHashtags = editTopHashtags,
             availableFacilities = availableFacilities,
             spaceCategories = architectureSchema.spaceTypes,
+            availableAmenities = architectureSchema.amenities.filter { it.isEnabled },
+            onAddCustomSchemaItem = { category, name, scopedToIds -> viewModel.addUserSuggestedSchemaItem(category, name, scopedToIds) },
             onDismiss = { editingSpace = null },
             onListingCreated = {},
             onListingUpdated = { updated ->
