@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-09-26T15:52:51.478Z",
+  "generatedAt": "2026-09-26T16:08:34.828Z",
   "trigger": "NIGHTHAWK",
   "summary": {
     "total": 125,
-    "critical": 3,
-    "high": 66,
+    "critical": 2,
+    "high": 67,
     "medium": 51,
     "low": 4,
     "info": 1,
@@ -28,15 +28,6 @@
       "line": 186,
       "message": "getHttpsCallable(\"checkWhishStatus\") called from Kotlin but \"checkWhishStatus\" is NOT exported in functions/src/index.ts. This feature WILL throw at runtime.",
       "suggestion": "Implement and export the \"checkWhishStatus\" Cloud Function, or remove the Kotlin call if the feature is not ready."
-    },
-    {
-      "severity": "CRITICAL",
-      "category": "consistency",
-      "check": "Payment Functions Missing",
-      "file": "functions/src/",
-      "line": null,
-      "message": "initiateWhishPayment and checkWhishStatus are called from FirebaseFunctionsClient.kt but NO Cloud Function file in functions/src/ implements them (only referenced in comments). The entire Whish payment flow is broken at runtime.",
-      "suggestion": "Create functions/src/payments/whishPayment.ts implementing both initiateWhishPayment and checkWhishStatus onCall functions, then export them from index.ts."
     },
     {
       "severity": "HIGH",
@@ -633,6 +624,15 @@
       "suggestion": "Prepend await to the call, or explicitly handle the returned Promise with .catch()."
     },
     {
+      "severity": "HIGH",
+      "category": "internal",
+      "check": "Check Error",
+      "file": null,
+      "line": null,
+      "message": "Check \"Payment Flow Plumbing\" threw: glob is not defined",
+      "suggestion": "Fix the debugger script itself."
+    },
+    {
       "severity": "MEDIUM",
       "category": "reliability",
       "check": "Empty Catch Block",
@@ -871,7 +871,7 @@
       "category": "reliability",
       "check": "Forced Non-Null Assertion",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 936,
+      "line": 949,
       "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
       "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
     },
@@ -880,7 +880,7 @@
       "category": "reliability",
       "check": "Forced Non-Null Assertion",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1322,
+      "line": 1335,
       "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
       "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
     },

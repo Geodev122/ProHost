@@ -53,12 +53,12 @@
 <header>
   <h1>🦅 NIGHTHAWK — ProHost Static Debug Report</h1>
   <p>125 issues · 11 checks passed</p>
-  <p class="meta">Generated: 2026-09-26T15:52:51.493Z</p>
+  <p class="meta">Generated: 2026-09-26T16:08:34.839Z</p>
 </header>
 
 <div class="stats">
-  <div class="stat crit"><div class="num">3</div><div class="lbl">Critical</div></div>
-  <div class="stat high"><div class="num">66</div><div class="lbl">High</div></div>
+  <div class="stat crit"><div class="num">2</div><div class="lbl">Critical</div></div>
+  <div class="stat high"><div class="num">67</div><div class="lbl">High</div></div>
   <div class="stat med"><div class="num">51</div><div class="lbl">Medium</div></div>
   <div class="stat low"><div class="num">4</div><div class="lbl">Low</div></div>
   <div class="stat"><div class="num">1</div><div class="lbl">Info</div></div>
@@ -90,15 +90,6 @@
     <td><code>app/src/main/java/com/example/data/auth/FirebaseFunctionsClient.kt:186</code></td>
     <td>getHttpsCallable(&quot;checkWhishStatus&quot;) called from Kotlin but &quot;checkWhishStatus&quot; is NOT exported in functions/src/index.ts. This feature WILL throw at runtime.</td>
     <td class="suggestion">Implement and export the &quot;checkWhishStatus&quot; Cloud Function, or remove the Kotlin call if the feature is not ready.</td>
-  </tr>
-
-  <tr style="background:#FFEBEE">
-    <td><span class="badge" style="background:#D32F2F">CRITICAL</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>Payment Functions Missing</strong></td>
-    <td><code>functions/src/</code></td>
-    <td>initiateWhishPayment and checkWhishStatus are called from FirebaseFunctionsClient.kt but NO Cloud Function file in functions/src/ implements them (only referenced in comments). The entire Whish payment flow is broken at runtime.</td>
-    <td class="suggestion">Create functions/src/payments/whishPayment.ts implementing both initiateWhishPayment and checkWhishStatus onCall functions, then export them from index.ts.</td>
   </tr>
 
   <tr style="background:#FBE9E7">
@@ -695,6 +686,15 @@
     <td class="suggestion">Prepend await to the call, or explicitly handle the returned Promise with .catch().</td>
   </tr>
 
+  <tr style="background:#FBE9E7">
+    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
+    <td><code class="tag">internal</code></td>
+    <td><strong>Check Error</strong></td>
+    <td>—</td>
+    <td>Check &quot;Payment Flow Plumbing&quot; threw: glob is not defined</td>
+    <td class="suggestion">Fix the debugger script itself.</td>
+  </tr>
+
   <tr style="background:#FFF3E0">
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">reliability</code></td>
@@ -933,7 +933,7 @@
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">reliability</code></td>
     <td><strong>Forced Non-Null Assertion</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt:936</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt:949</code></td>
     <td>Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.</td>
     <td class="suggestion">Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use.</td>
   </tr>
@@ -942,7 +942,7 @@
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">reliability</code></td>
     <td><strong>Forced Non-Null Assertion</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt:1322</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt:1335</code></td>
     <td>Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.</td>
     <td class="suggestion">Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use.</td>
   </tr>
