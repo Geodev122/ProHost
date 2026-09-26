@@ -380,7 +380,10 @@ fun MyBookingsScreen(
                             rebookSourceBooking = booking
                         },
                         onEditBooking = {
-                            editTargetSpaceId = (space ?: allSpaces.firstOrNull())?.id
+                            // Never fall back to firstOrNull: an edit request must reference
+                            // the booking's own space (replacesBookingId ties them together),
+                            // so opening the dialog for a different space is wrong.
+                            editTargetSpaceId = space?.id
                             editSourceBooking = booking
                         },
                         onViewDigitalPass = {
@@ -440,8 +443,11 @@ fun MyBookingsScreen(
     // computed live from ACCEPTED bookings, so nothing else needs recalculating by hand.
     if (editTargetSpaceId != null) {
         // Re-derived from the live allSpaces list on every recomposition — see
-        // rebookTargetSpaceId's comment above for why.
-        val targetSpace = allSpaces.find { it.id == editTargetSpaceId } ?: allSpaces.firstOrNull()
+        // rebookTargetSpaceId's comment above for why. No firstOrNull fallback:
+        // if the booking's space is gone from the live list the dialog must not
+        // open at all (unlike Rebook, this dialog's replacesBookingId binds it
+        // to the original space — submitting it against a different one is wrong).
+        val targetSpace = allSpaces.find { it.id == editTargetSpaceId }
         val sourceBooking = editSourceBooking
 
         // EditBookingDialog requires a real replacesBookingId (non-null) — editSourceBooking
