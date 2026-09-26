@@ -448,6 +448,10 @@ function checkTypeScriptSafety() {
 
     // Missing await on async functions (basic heuristic: calling without await or .then)
     for (const m of grepFile(f, /(?<!await\s)(?<!return\s)(?<!\.then\()(?<!\bPromise\.all\b)\b(sendEmail|sendPushToUser|sendPushToAdmins)\s*\(/g)) {
+      // Skip function declarations, comment lines, and calls wrapped in Promise.all/map
+      if (/^\s*(export\s+)?async\s+function/.test(m.lineText)) continue;
+      if (/^\s*\*/.test(m.lineText) || /^\s*\/\//.test(m.lineText)) continue;
+      if (/Promise\.all\s*\(/.test(m.lineText) || /\.map\s*\(/.test(m.lineText)) continue;
       count++;
       bug('HIGH','reliability','Missing Await', m.file, m.line,
         `Call to async function "${m.groups[1]}" may be missing await. Email/push may not be sent if the function returns before the promise resolves.`,
@@ -463,7 +467,11 @@ function checkTypeScriptSafety() {
 function checkOrphanedModules() {
   const indexContent = readSafe(path.join(FN_SRC, 'index.ts')) || '';
 
-  const tsFiles = walkFiles(FN_SRC, '.ts').filter(f => !f.endsWith('index.ts'));
+  const tsFiles = walkFiles(FN_SRC, '.ts').filter(f =>
+    !f.endsWith('index.ts') &&
+    !f.includes(`${path.sep}lib${path.sep}`) &&
+    !f.endsWith('.d.ts')
+  );
   for (const f of tsFiles) {
     const rel = path.relative(FN_SRC, f).replace(/\\/g, '/').replace(/\.ts$/, '');
     const importPath = `./${rel}`;
@@ -535,8 +543,8 @@ function checkPaymentFlow() {
   // Whish payment has been completely replaced by Google Play Billing.
   // Check that PlayBillingManager.kt exists and is wired into the app.
   const billingManagerFile = path.join(KT_DATA, 'billing/PlayBillingManager.kt');
-  const clientFile = glob.sync('**/FirebaseFunctionsClient.kt', { cwd: ANDROID_ROOT })[0];
-  const clientContent = clientFile ? (readSafe(path.join(ANDROID_ROOT, clientFile)) || '') : '';
+  const clientPath = path.join(KT_DATA, 'auth/FirebaseFunctionsClient.kt');
+  const clientContent = readSafe(clientPath) || '';
 
   const hasBillingManager = !!readSafe(billingManagerFile);
   const indexContent = readSafe(path.join(FN_SRC, 'index.ts')) || '';

@@ -109,41 +109,59 @@ class AuthViewModel(
 
     fun lookupEmail(email: String) {
         viewModelScope.launch {
-            _isAuthenticating.value = true
-            val authService = com.example.data.auth.FirebaseAuthService(firebaseAppContext())
-            val methods = authService.fetchSignInMethodsForEmail(email)
-            _pendingEmail.value = email
-            _emailLookupResult.value = when {
-                methods.isEmpty() -> EmailLookupResult.NEW_USER
-                "google.com" in methods -> EmailLookupResult.HAS_GOOGLE
-                else -> EmailLookupResult.HAS_EMAIL
+            try {
+                _isAuthenticating.value = true
+                val authService = com.example.data.auth.FirebaseAuthService(firebaseAppContext())
+                val methods = authService.fetchSignInMethodsForEmail(email)
+                _pendingEmail.value = email
+                _emailLookupResult.value = when {
+                    methods.isEmpty() -> EmailLookupResult.NEW_USER
+                    "google.com" in methods -> EmailLookupResult.HAS_GOOGLE
+                    else -> EmailLookupResult.HAS_EMAIL
+                }
+                _isAuthenticating.value = false
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
             }
-            _isAuthenticating.value = false
         }
     }
 
     fun sendEmailSignInLink(email: String, continueUrl: String, onSent: (Boolean) -> Unit) {
         viewModelScope.launch {
-            _isAuthenticating.value = true
-            val authService = com.example.data.auth.FirebaseAuthService(firebaseAppContext())
-            val sent = authService.sendSignInLinkToEmail(email, continueUrl)
-            _isAuthenticating.value = false
-            onSent(sent)
+            try {
+                _isAuthenticating.value = true
+                val authService = com.example.data.auth.FirebaseAuthService(firebaseAppContext())
+                val sent = authService.sendSignInLinkToEmail(email, continueUrl)
+                _isAuthenticating.value = false
+                onSent(sent)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+            }
         }
     }
 
     fun handleEmailLink(activity: Activity, email: String, link: String, onVerified: (needsRegistration: Boolean) -> Unit) {
         viewModelScope.launch {
-            _isAuthenticating.value = true
-            _authErrorMessage.value = null
-            val authService = com.example.data.auth.FirebaseAuthService(activity)
-            when (val result = authService.signInWithEmailLink(email, link)) {
-                is AuthResult.Success -> finishVerification(activity, result.isNewUser, onVerified)
-                is AuthResult.Failure -> {
-                    _authErrorMessage.value = result.message
-                    _isAuthenticating.value = false
+            try {
+                _isAuthenticating.value = true
+                _authErrorMessage.value = null
+                val authService = com.example.data.auth.FirebaseAuthService(activity)
+                when (val result = authService.signInWithEmailLink(email, link)) {
+                    is AuthResult.Success -> finishVerification(activity, result.isNewUser, onVerified)
+                    is AuthResult.Failure -> {
+                        _authErrorMessage.value = result.message
+                        _isAuthenticating.value = false
+                    }
+                    else -> _isAuthenticating.value = false
                 }
-                else -> _isAuthenticating.value = false
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
             }
         }
     }
@@ -151,13 +169,19 @@ class AuthViewModel(
     /** Sends a 6-digit OTP to [email] via Cloud Function → Hostinger SMTP. */
     fun sendEmailOtp(email: String, onSent: (Boolean) -> Unit) {
         viewModelScope.launch {
-            _isAuthenticating.value = true
-            val result = functionsClient.sendEmailOtp(email)
-            _isAuthenticating.value = false
-            if (result.isFailure) {
-                _authErrorMessage.value = "Failed to send code. Please try again."
+            try {
+                _isAuthenticating.value = true
+                val result = functionsClient.sendEmailOtp(email)
+                _isAuthenticating.value = false
+                if (result.isFailure) {
+                    _authErrorMessage.value = "Failed to send code. Please try again."
+                }
+                onSent(result.isSuccess)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
             }
-            onSent(result.isSuccess)
         }
     }
 
@@ -169,38 +193,50 @@ class AuthViewModel(
         onVerified: (needsRegistration: Boolean) -> Unit
     ) {
         viewModelScope.launch {
-            _isAuthenticating.value = true
-            _authErrorMessage.value = null
-            val tokenResult = functionsClient.verifyEmailOtp(email, code)
-            if (tokenResult.isFailure) {
-                _authErrorMessage.value = "Invalid or expired code. Please try again."
-                _isAuthenticating.value = false
-                return@launch
-            }
-            val authService = com.example.data.auth.FirebaseAuthService(activity)
-            when (val result = authService.signInWithCustomToken(tokenResult.getOrThrow())) {
-                is AuthResult.Success -> finishVerification(activity, result.isNewUser, onVerified)
-                is AuthResult.Failure -> {
-                    _authErrorMessage.value = result.message
+            try {
+                _isAuthenticating.value = true
+                _authErrorMessage.value = null
+                val tokenResult = functionsClient.verifyEmailOtp(email, code)
+                if (tokenResult.isFailure) {
+                    _authErrorMessage.value = "Invalid or expired code. Please try again."
                     _isAuthenticating.value = false
+                    return@launch
                 }
-                else -> _isAuthenticating.value = false
+                val authService = com.example.data.auth.FirebaseAuthService(activity)
+                when (val result = authService.signInWithCustomToken(tokenResult.getOrThrow())) {
+                    is AuthResult.Success -> finishVerification(activity, result.isNewUser, onVerified)
+                    is AuthResult.Failure -> {
+                        _authErrorMessage.value = result.message
+                        _isAuthenticating.value = false
+                    }
+                    else -> _isAuthenticating.value = false
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
             }
         }
     }
 
     fun startGoogleSignIn(activity: Activity, googleIdToken: String, onVerified: (needsRegistration: Boolean) -> Unit) {
         viewModelScope.launch {
-            _isAuthenticating.value = true
-            _authErrorMessage.value = null
-            val authService = com.example.data.auth.FirebaseAuthService(activity)
-            when (val result = authService.signInWithGoogleCredential(googleIdToken)) {
-                is AuthResult.Success -> finishVerification(activity, result.isNewUser, onVerified)
-                is AuthResult.Failure -> {
-                    _authErrorMessage.value = result.message
-                    _isAuthenticating.value = false
+            try {
+                _isAuthenticating.value = true
+                _authErrorMessage.value = null
+                val authService = com.example.data.auth.FirebaseAuthService(activity)
+                when (val result = authService.signInWithGoogleCredential(googleIdToken)) {
+                    is AuthResult.Success -> finishVerification(activity, result.isNewUser, onVerified)
+                    is AuthResult.Failure -> {
+                        _authErrorMessage.value = result.message
+                        _isAuthenticating.value = false
+                    }
+                    else -> _isAuthenticating.value = false
                 }
-                else -> _isAuthenticating.value = false
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
             }
         }
     }
@@ -279,7 +315,15 @@ class AuthViewModel(
                 onCodeSent()
             },
             onAutoVerified = { credential ->
-                viewModelScope.launch { finishPhoneVerification(activity, credential, onVerified) }
+                viewModelScope.launch {
+                    try {
+                        finishPhoneVerification(activity, credential, onVerified)
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+                    }
+                }
             },
             onError = { message ->
                 _isAuthenticating.value = false
@@ -299,7 +343,15 @@ class AuthViewModel(
         _authErrorMessage.value = null
         val authService = com.example.data.auth.FirebaseAuthService(activity)
         val credential = authService.buildPhoneAuthCredential(verificationId, smsCode)
-        viewModelScope.launch { finishPhoneVerification(activity, credential, onVerified, verificationId) }
+        viewModelScope.launch {
+            try {
+                finishPhoneVerification(activity, credential, onVerified, verificationId)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+            }
+        }
     }
 
     private suspend fun finishPhoneVerification(
@@ -353,12 +405,18 @@ class AuthViewModel(
             onAutoVerified = { credential ->
                 // Auto-verification during KYC: link directly
                 viewModelScope.launch {
-                    val linkResult = authService.linkPhoneCredentialToCurrentUser(credential)
-                    _isAuthenticating.value = false
-                    when (linkResult) {
-                        is AuthResult.Success -> onCodeSent() // treat as success
-                        is AuthResult.Failure -> onError(linkResult.message)
-                        else -> {}
+                    try {
+                        val linkResult = authService.linkPhoneCredentialToCurrentUser(credential)
+                        _isAuthenticating.value = false
+                        when (linkResult) {
+                            is AuthResult.Success -> onCodeSent() // treat as success
+                            is AuthResult.Failure -> onError(linkResult.message)
+                            else -> {}
+                        }
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
                     }
                 }
             },
@@ -380,25 +438,31 @@ class AuthViewModel(
         onError: (String) -> Unit
     ) {
         viewModelScope.launch {
-            val verificationId = _pendingVerificationId.value
-            if (verificationId == null) {
-                onError("Please request a verification code first.")
-                return@launch
-            }
-            _isAuthenticating.value = true
-            val authService = com.example.data.auth.FirebaseAuthService(activity)
-            val credential = authService.buildPhoneAuthCredential(verificationId, smsCode)
-            when (val result = authService.linkPhoneCredentialToCurrentUser(credential)) {
-                is AuthResult.Success -> {
-                    _pendingVerificationId.value = null
-                    _isAuthenticating.value = false
-                    onSuccess()
+            try {
+                val verificationId = _pendingVerificationId.value
+                if (verificationId == null) {
+                    onError("Please request a verification code first.")
+                    return@launch
                 }
-                is AuthResult.Failure -> {
-                    _isAuthenticating.value = false
-                    onError(result.message)
+                _isAuthenticating.value = true
+                val authService = com.example.data.auth.FirebaseAuthService(activity)
+                val credential = authService.buildPhoneAuthCredential(verificationId, smsCode)
+                when (val result = authService.linkPhoneCredentialToCurrentUser(credential)) {
+                    is AuthResult.Success -> {
+                        _pendingVerificationId.value = null
+                        _isAuthenticating.value = false
+                        onSuccess()
+                    }
+                    is AuthResult.Failure -> {
+                        _isAuthenticating.value = false
+                        onError(result.message)
+                    }
+                    else -> _isAuthenticating.value = false
                 }
-                else -> _isAuthenticating.value = false
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
             }
         }
     }

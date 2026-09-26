@@ -104,7 +104,13 @@ class DiscoveryViewModel(
 
     fun toggleSavedSpace(spaceId: String) {
         viewModelScope.launch {
-            repository.toggleSavedSpace(spaceId)
+            try {
+                repository.toggleSavedSpace(spaceId)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("DiscoveryVM", "Operation failed", e)
+            }
         }
     }
 

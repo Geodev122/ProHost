@@ -90,7 +90,9 @@ fun MyBookingsScreen(
                         .build())
                     mp?.setOnCompletionListener { it.release() }
                     mp?.start()
-                } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    android.util.Log.e("SoundPlayback", "Failed to play sound", e)
+                }
             }
             prevBookingStatuses[booking.id] = booking.status
         }

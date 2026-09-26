@@ -1,664 +1,16 @@
 {
-  "generatedAt": "2026-09-26T16:08:34.828Z",
+  "generatedAt": "2026-09-26T16:43:19.105Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 125,
-    "critical": 2,
-    "high": 67,
-    "medium": 51,
+    "total": 41,
+    "critical": 0,
+    "high": 0,
+    "medium": 36,
     "low": 4,
     "info": 1,
-    "passes": 11
+    "passes": 16
   },
   "findings": [
-    {
-      "severity": "CRITICAL",
-      "category": "consistency",
-      "check": "CF Name Consistency",
-      "file": "app/src/main/java/com/example/data/auth/FirebaseFunctionsClient.kt",
-      "line": 153,
-      "message": "getHttpsCallable(\"initiateWhishPayment\") called from Kotlin but \"initiateWhishPayment\" is NOT exported in functions/src/index.ts. This feature WILL throw at runtime.",
-      "suggestion": "Implement and export the \"initiateWhishPayment\" Cloud Function, or remove the Kotlin call if the feature is not ready."
-    },
-    {
-      "severity": "CRITICAL",
-      "category": "consistency",
-      "check": "CF Name Consistency",
-      "file": "app/src/main/java/com/example/data/auth/FirebaseFunctionsClient.kt",
-      "line": 186,
-      "message": "getHttpsCallable(\"checkWhishStatus\") called from Kotlin but \"checkWhishStatus\" is NOT exported in functions/src/index.ts. This feature WILL throw at runtime.",
-      "suggestion": "Implement and export the \"checkWhishStatus\" Cloud Function, or remove the Kotlin call if the feature is not ready."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 31,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 42,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 47,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 62,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 67,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 72,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 77,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 82,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 96,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 108,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 119,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 131,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 163,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 183,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 215,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 260,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 286,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 315,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 357,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 369,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 389,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 472,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 479,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 507,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 561,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 620,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 637,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 644,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 651,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 690,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 737,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 748,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt",
-      "line": 770,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AuthViewModel.kt",
-      "line": 111,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AuthViewModel.kt",
-      "line": 126,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AuthViewModel.kt",
-      "line": 136,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AuthViewModel.kt",
-      "line": 193,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AuthViewModel.kt",
-      "line": 282,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AuthViewModel.kt",
-      "line": 302,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AuthViewModel.kt",
-      "line": 355,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/AuthViewModel.kt",
-      "line": 382,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/DiscoveryViewModel.kt",
-      "line": 106,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 246,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 251,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 264,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 292,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 321,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 339,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 391,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 492,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 512,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 810,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 864,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 946,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Coroutine Error Handling",
-      "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 986,
-      "message": "viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.",
-      "suggestion": "Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }."
-    },
-    {
-      "severity": "HIGH",
-      "category": "consistency",
-      "check": "Deep Link Registration",
-      "file": "functions/src/auth/emailOtp.ts",
-      "line": 10,
-      "message": "Deep link \"prohost://emailotp\" is used in Cloud Functions/emails but host \"emailotp\" is NOT registered in AndroidManifest.xml. Clicking this link will NOT open the app.",
-      "suggestion": "Add an intent-filter block with android:scheme=\"prohost\" and android:host=\"emailotp\" to AndroidManifest.xml."
-    },
-    {
-      "severity": "HIGH",
-      "category": "consistency",
-      "check": "Deep Link Registration",
-      "file": "functions/src/lib/emailTemplates.ts",
-      "line": 113,
-      "message": "Deep link \"prohost://owner_subscriptions\" is used in Cloud Functions/emails but host \"owner_subscriptions\" is NOT registered in AndroidManifest.xml. Clicking this link will NOT open the app.",
-      "suggestion": "Add an intent-filter block with android:scheme=\"prohost\" and android:host=\"owner_subscriptions\" to AndroidManifest.xml."
-    },
-    {
-      "severity": "HIGH",
-      "category": "consistency",
-      "check": "Deep Link Registration",
-      "file": "functions/src/lib/emailTemplates.ts",
-      "line": 128,
-      "message": "Deep link \"prohost://profile\" is used in Cloud Functions/emails but host \"profile\" is NOT registered in AndroidManifest.xml. Clicking this link will NOT open the app.",
-      "suggestion": "Add an intent-filter block with android:scheme=\"prohost\" and android:host=\"profile\" to AndroidManifest.xml."
-    },
-    {
-      "severity": "HIGH",
-      "category": "consistency",
-      "check": "Deep Link Registration",
-      "file": "functions/src/lib/emailTemplates.ts",
-      "line": 157,
-      "message": "Deep link \"prohost://owner_hub\" is used in Cloud Functions/emails but host \"owner_hub\" is NOT registered in AndroidManifest.xml. Clicking this link will NOT open the app.",
-      "suggestion": "Add an intent-filter block with android:scheme=\"prohost\" and android:host=\"owner_hub\" to AndroidManifest.xml."
-    },
-    {
-      "severity": "HIGH",
-      "category": "consistency",
-      "check": "Deep Link Registration",
-      "file": "functions/src/lib/emailTemplates.ts",
-      "line": 175,
-      "message": "Deep link \"prohost://my_bookings\" is used in Cloud Functions/emails but host \"my_bookings\" is NOT registered in AndroidManifest.xml. Clicking this link will NOT open the app.",
-      "suggestion": "Add an intent-filter block with android:scheme=\"prohost\" and android:host=\"my_bookings\" to AndroidManifest.xml."
-    },
-    {
-      "severity": "HIGH",
-      "category": "consistency",
-      "check": "Deep Link Registration",
-      "file": "functions/src/lib/emailTemplates.ts",
-      "line": 188,
-      "message": "Deep link \"prohost://discovery\" is used in Cloud Functions/emails but host \"discovery\" is NOT registered in AndroidManifest.xml. Clicking this link will NOT open the app.",
-      "suggestion": "Add an intent-filter block with android:scheme=\"prohost\" and android:host=\"discovery\" to AndroidManifest.xml."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Missing Await",
-      "file": "functions/src/lib/email.ts",
-      "line": 26,
-      "message": "Call to async function \"sendEmail\" may be missing await. Email/push may not be sent if the function returns before the promise resolves.",
-      "suggestion": "Prepend await to the call, or explicitly handle the returned Promise with .catch()."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Missing Await",
-      "file": "functions/src/lib/emailTemplates.ts",
-      "line": 3,
-      "message": "Call to async function \"sendEmail\" may be missing await. Email/push may not be sent if the function returns before the promise resolves.",
-      "suggestion": "Prepend await to the call, or explicitly handle the returned Promise with .catch()."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Missing Await",
-      "file": "functions/src/lib/push.ts",
-      "line": 20,
-      "message": "Call to async function \"sendPushToUser\" may be missing await. Email/push may not be sent if the function returns before the promise resolves.",
-      "suggestion": "Prepend await to the call, or explicitly handle the returned Promise with .catch()."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Missing Await",
-      "file": "functions/src/lib/push.ts",
-      "line": 52,
-      "message": "Call to async function \"sendPushToAdmins\" may be missing await. Email/push may not be sent if the function returns before the promise resolves.",
-      "suggestion": "Prepend await to the call, or explicitly handle the returned Promise with .catch()."
-    },
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "Missing Await",
-      "file": "functions/src/lib/push.ts",
-      "line": 60,
-      "message": "Call to async function \"sendPushToUser\" may be missing await. Email/push may not be sent if the function returns before the promise resolves.",
-      "suggestion": "Prepend await to the call, or explicitly handle the returned Promise with .catch()."
-    },
-    {
-      "severity": "HIGH",
-      "category": "internal",
-      "check": "Check Error",
-      "file": null,
-      "line": null,
-      "message": "Check \"Payment Flow Plumbing\" threw: glob is not defined",
-      "suggestion": "Fix the debugger script itself."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Empty Catch Block",
-      "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 93,
-      "message": "Empty catch block silently swallows exceptions. If this path fails, users see nothing and logs capture nothing.",
-      "suggestion": "At minimum: Log.e(TAG, \"...\", e). Better: surface _errorMessage.value = e.message to the UI."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Empty Catch Block",
-      "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 103,
-      "message": "Empty catch block silently swallows exceptions. If this path fails, users see nothing and logs capture nothing.",
-      "suggestion": "At minimum: Log.e(TAG, \"...\", e). Better: surface _errorMessage.value = e.message to the UI."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Empty Catch Block",
-      "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 80,
-      "message": "Empty catch block silently swallows exceptions. If this path fails, users see nothing and logs capture nothing.",
-      "suggestion": "At minimum: Log.e(TAG, \"...\", e). Better: surface _errorMessage.value = e.message to the UI."
-    },
     {
       "severity": "MEDIUM",
       "category": "reliability",
@@ -790,7 +142,7 @@
       "category": "reliability",
       "check": "Forced Non-Null Assertion",
       "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 352,
+      "line": 354,
       "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
       "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
     },
@@ -799,7 +151,7 @@
       "category": "reliability",
       "check": "Forced Non-Null Assertion",
       "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 378,
+      "line": 380,
       "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
       "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
     },
@@ -808,7 +160,7 @@
       "category": "reliability",
       "check": "Forced Non-Null Assertion",
       "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 396,
+      "line": 398,
       "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
       "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
     },
@@ -826,7 +178,7 @@
       "category": "reliability",
       "check": "Forced Non-Null Assertion",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 183,
+      "line": 185,
       "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
       "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
     },
@@ -835,7 +187,7 @@
       "category": "reliability",
       "check": "Forced Non-Null Assertion",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 206,
+      "line": 208,
       "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
       "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
     },
@@ -844,7 +196,7 @@
       "category": "reliability",
       "check": "Forced Non-Null Assertion",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 363,
+      "line": 365,
       "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
       "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
     },
@@ -853,7 +205,7 @@
       "category": "reliability",
       "check": "Forced Non-Null Assertion",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 503,
+      "line": 505,
       "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
       "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
     },
@@ -976,114 +328,6 @@
     },
     {
       "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Firestore Snapshot Safety",
-      "file": "functions/src/auth/emailOtp.ts",
-      "line": 121,
-      "message": "snap.data()! assumes the document exists. If snap.exists is false, data() returns undefined and ! throws.",
-      "suggestion": "Always guard: if (!snap.exists) throw new Error(\"Document not found\"); before calling snap.data()!."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Firestore Snapshot Safety",
-      "file": "functions/src/notifications/sendPaymentReminder.ts",
-      "line": 33,
-      "message": "snap.data()! assumes the document exists. If snap.exists is false, data() returns undefined and ! throws.",
-      "suggestion": "Always guard: if (!snap.exists) throw new Error(\"Document not found\"); before calling snap.data()!."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Firestore Snapshot Safety",
-      "file": "functions/src/users/sendInquiryEmail.ts",
-      "line": 58,
-      "message": "snap.data()! assumes the document exists. If snap.exists is false, data() returns undefined and ! throws.",
-      "suggestion": "Always guard: if (!snap.exists) throw new Error(\"Document not found\"); before calling snap.data()!."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "consistency",
-      "check": "Orphaned Module",
-      "file": "functions/src/dataconnect-generated/index.d.ts",
-      "line": null,
-      "message": "Module \"./dataconnect-generated/index.d\" has exports but is not imported from index.ts — its functions are never deployed.",
-      "suggestion": "Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "consistency",
-      "check": "Orphaned Module",
-      "file": "functions/src/lib/auditLog.ts",
-      "line": null,
-      "message": "Module \"./lib/auditLog\" has exports but is not imported from index.ts — its functions are never deployed.",
-      "suggestion": "Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "consistency",
-      "check": "Orphaned Module",
-      "file": "functions/src/lib/email.ts",
-      "line": null,
-      "message": "Module \"./lib/email\" has exports but is not imported from index.ts — its functions are never deployed.",
-      "suggestion": "Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "consistency",
-      "check": "Orphaned Module",
-      "file": "functions/src/lib/emailTemplates.ts",
-      "line": null,
-      "message": "Module \"./lib/emailTemplates\" has exports but is not imported from index.ts — its functions are never deployed.",
-      "suggestion": "Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "consistency",
-      "check": "Orphaned Module",
-      "file": "functions/src/lib/packagePlans.ts",
-      "line": null,
-      "message": "Module \"./lib/packagePlans\" has exports but is not imported from index.ts — its functions are never deployed.",
-      "suggestion": "Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "consistency",
-      "check": "Orphaned Module",
-      "file": "functions/src/lib/playIntegrity.ts",
-      "line": null,
-      "message": "Module \"./lib/playIntegrity\" has exports but is not imported from index.ts — its functions are never deployed.",
-      "suggestion": "Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "consistency",
-      "check": "Orphaned Module",
-      "file": "functions/src/lib/pricing.ts",
-      "line": null,
-      "message": "Module \"./lib/pricing\" has exports but is not imported from index.ts — its functions are never deployed.",
-      "suggestion": "Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "consistency",
-      "check": "Orphaned Module",
-      "file": "functions/src/lib/push.ts",
-      "line": null,
-      "message": "Module \"./lib/push\" has exports but is not imported from index.ts — its functions are never deployed.",
-      "suggestion": "Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "consistency",
-      "check": "Orphaned Module",
-      "file": "functions/src/lib/roles.ts",
-      "line": null,
-      "message": "Module \"./lib/roles\" has exports but is not imported from index.ts — its functions are never deployed.",
-      "suggestion": "Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed."
-    },
-    {
-      "severity": "MEDIUM",
       "category": "ux",
       "check": "KYC Screen Completeness",
       "file": "app/src/main/java/com/example/ui/screens/KycScreen.kt",
@@ -1139,6 +383,10 @@
   ],
   "passes": [
     {
+      "check": "CF Name Consistency",
+      "message": "All 18 getHttpsCallable() calls match exported functions in index.ts."
+    },
+    {
       "check": "Firestore Rules Coverage (email_otps)",
       "message": "\"email_otps\" is intentionally Admin-SDK-only — no client rule needed."
     },
@@ -1147,12 +395,24 @@
       "message": "All 9 Firestore collections used in Cloud Functions are covered by firestore.rules or are documented as server-only."
     },
     {
+      "check": "Empty Catch Block",
+      "message": "No empty catch blocks found."
+    },
+    {
       "check": "Screen Loading State",
       "message": "9/15 screens have a loading indicator."
     },
     {
+      "check": "Coroutine Error Handling",
+      "message": "All viewModelScope.launch blocks have nearby error handling."
+    },
+    {
       "check": "Hardcoded Secret",
       "message": "No obvious hardcoded secrets found."
+    },
+    {
+      "check": "Deep Link Registration",
+      "message": "All 8 prohost:// deep link hosts are registered in AndroidManifest.xml."
     },
     {
       "check": "AuthStep Completeness",
@@ -1169,6 +429,10 @@
     {
       "check": "Suspension Guard",
       "message": "Firestore rules enforce isSuspended() check on write operations."
+    },
+    {
+      "check": "Payment Flow",
+      "message": "Google Play Billing: PlayBillingManager.kt present and playBillingRtdn is exported."
     },
     {
       "check": "Purchase Acknowledgement",

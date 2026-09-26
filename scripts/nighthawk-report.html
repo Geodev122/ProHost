@@ -52,17 +52,17 @@
 <body>
 <header>
   <h1>🦅 NIGHTHAWK — ProHost Static Debug Report</h1>
-  <p>125 issues · 11 checks passed</p>
-  <p class="meta">Generated: 2026-09-26T16:08:34.839Z</p>
+  <p>41 issues · 16 checks passed</p>
+  <p class="meta">Generated: 2026-09-26T16:43:19.105Z</p>
 </header>
 
 <div class="stats">
-  <div class="stat crit"><div class="num">2</div><div class="lbl">Critical</div></div>
-  <div class="stat high"><div class="num">67</div><div class="lbl">High</div></div>
-  <div class="stat med"><div class="num">51</div><div class="lbl">Medium</div></div>
+  <div class="stat crit"><div class="num">0</div><div class="lbl">Critical</div></div>
+  <div class="stat high"><div class="num">0</div><div class="lbl">High</div></div>
+  <div class="stat med"><div class="num">36</div><div class="lbl">Medium</div></div>
   <div class="stat low"><div class="num">4</div><div class="lbl">Low</div></div>
   <div class="stat"><div class="num">1</div><div class="lbl">Info</div></div>
-  <div class="stat pass"><div class="num">11</div><div class="lbl">Passing</div></div>
+  <div class="stat pass"><div class="num">16</div><div class="lbl">Passing</div></div>
 </div>
 
 <h2>Findings</h2>
@@ -74,654 +74,6 @@
   </thead>
   <tbody>
     
-  <tr style="background:#FFEBEE">
-    <td><span class="badge" style="background:#D32F2F">CRITICAL</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>CF Name Consistency</strong></td>
-    <td><code>app/src/main/java/com/example/data/auth/FirebaseFunctionsClient.kt:153</code></td>
-    <td>getHttpsCallable(&quot;initiateWhishPayment&quot;) called from Kotlin but &quot;initiateWhishPayment&quot; is NOT exported in functions/src/index.ts. This feature WILL throw at runtime.</td>
-    <td class="suggestion">Implement and export the &quot;initiateWhishPayment&quot; Cloud Function, or remove the Kotlin call if the feature is not ready.</td>
-  </tr>
-
-  <tr style="background:#FFEBEE">
-    <td><span class="badge" style="background:#D32F2F">CRITICAL</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>CF Name Consistency</strong></td>
-    <td><code>app/src/main/java/com/example/data/auth/FirebaseFunctionsClient.kt:186</code></td>
-    <td>getHttpsCallable(&quot;checkWhishStatus&quot;) called from Kotlin but &quot;checkWhishStatus&quot; is NOT exported in functions/src/index.ts. This feature WILL throw at runtime.</td>
-    <td class="suggestion">Implement and export the &quot;checkWhishStatus&quot; Cloud Function, or remove the Kotlin call if the feature is not ready.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:31</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:42</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:47</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:62</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:67</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:72</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:77</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:82</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:96</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:108</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:119</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:131</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:163</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:183</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:215</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:260</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:286</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:315</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:357</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:369</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:389</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:472</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:479</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:507</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:561</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:620</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:637</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:644</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:651</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:690</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:737</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:748</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AdminViewModel.kt:770</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AuthViewModel.kt:111</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AuthViewModel.kt:126</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AuthViewModel.kt:136</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AuthViewModel.kt:193</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AuthViewModel.kt:282</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AuthViewModel.kt:302</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AuthViewModel.kt:355</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/AuthViewModel.kt:382</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/DiscoveryViewModel.kt:106</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt:246</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt:251</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt:264</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt:292</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt:321</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt:339</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt:391</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt:492</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt:512</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt:810</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt:864</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt:946</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Coroutine Error Handling</strong></td>
-    <td><code>app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt:986</code></td>
-    <td>viewModelScope.launch block has no try-catch/runCatching within the first 6 lines. Uncaught exceptions are swallowed silently — the UI never shows an error.</td>
-    <td class="suggestion">Wrap the body: try { ... } catch (e: Exception) { _errorMessage.value = e.localizedMessage } or use runCatching { ... }.onFailure { ... }.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>Deep Link Registration</strong></td>
-    <td><code>functions/src/auth/emailOtp.ts:10</code></td>
-    <td>Deep link &quot;prohost://emailotp&quot; is used in Cloud Functions/emails but host &quot;emailotp&quot; is NOT registered in AndroidManifest.xml. Clicking this link will NOT open the app.</td>
-    <td class="suggestion">Add an intent-filter block with android:scheme=&quot;prohost&quot; and android:host=&quot;emailotp&quot; to AndroidManifest.xml.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>Deep Link Registration</strong></td>
-    <td><code>functions/src/lib/emailTemplates.ts:113</code></td>
-    <td>Deep link &quot;prohost://owner_subscriptions&quot; is used in Cloud Functions/emails but host &quot;owner_subscriptions&quot; is NOT registered in AndroidManifest.xml. Clicking this link will NOT open the app.</td>
-    <td class="suggestion">Add an intent-filter block with android:scheme=&quot;prohost&quot; and android:host=&quot;owner_subscriptions&quot; to AndroidManifest.xml.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>Deep Link Registration</strong></td>
-    <td><code>functions/src/lib/emailTemplates.ts:128</code></td>
-    <td>Deep link &quot;prohost://profile&quot; is used in Cloud Functions/emails but host &quot;profile&quot; is NOT registered in AndroidManifest.xml. Clicking this link will NOT open the app.</td>
-    <td class="suggestion">Add an intent-filter block with android:scheme=&quot;prohost&quot; and android:host=&quot;profile&quot; to AndroidManifest.xml.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>Deep Link Registration</strong></td>
-    <td><code>functions/src/lib/emailTemplates.ts:157</code></td>
-    <td>Deep link &quot;prohost://owner_hub&quot; is used in Cloud Functions/emails but host &quot;owner_hub&quot; is NOT registered in AndroidManifest.xml. Clicking this link will NOT open the app.</td>
-    <td class="suggestion">Add an intent-filter block with android:scheme=&quot;prohost&quot; and android:host=&quot;owner_hub&quot; to AndroidManifest.xml.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>Deep Link Registration</strong></td>
-    <td><code>functions/src/lib/emailTemplates.ts:175</code></td>
-    <td>Deep link &quot;prohost://my_bookings&quot; is used in Cloud Functions/emails but host &quot;my_bookings&quot; is NOT registered in AndroidManifest.xml. Clicking this link will NOT open the app.</td>
-    <td class="suggestion">Add an intent-filter block with android:scheme=&quot;prohost&quot; and android:host=&quot;my_bookings&quot; to AndroidManifest.xml.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>Deep Link Registration</strong></td>
-    <td><code>functions/src/lib/emailTemplates.ts:188</code></td>
-    <td>Deep link &quot;prohost://discovery&quot; is used in Cloud Functions/emails but host &quot;discovery&quot; is NOT registered in AndroidManifest.xml. Clicking this link will NOT open the app.</td>
-    <td class="suggestion">Add an intent-filter block with android:scheme=&quot;prohost&quot; and android:host=&quot;discovery&quot; to AndroidManifest.xml.</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Missing Await</strong></td>
-    <td><code>functions/src/lib/email.ts:26</code></td>
-    <td>Call to async function &quot;sendEmail&quot; may be missing await. Email/push may not be sent if the function returns before the promise resolves.</td>
-    <td class="suggestion">Prepend await to the call, or explicitly handle the returned Promise with .catch().</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Missing Await</strong></td>
-    <td><code>functions/src/lib/emailTemplates.ts:3</code></td>
-    <td>Call to async function &quot;sendEmail&quot; may be missing await. Email/push may not be sent if the function returns before the promise resolves.</td>
-    <td class="suggestion">Prepend await to the call, or explicitly handle the returned Promise with .catch().</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Missing Await</strong></td>
-    <td><code>functions/src/lib/push.ts:20</code></td>
-    <td>Call to async function &quot;sendPushToUser&quot; may be missing await. Email/push may not be sent if the function returns before the promise resolves.</td>
-    <td class="suggestion">Prepend await to the call, or explicitly handle the returned Promise with .catch().</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Missing Await</strong></td>
-    <td><code>functions/src/lib/push.ts:52</code></td>
-    <td>Call to async function &quot;sendPushToAdmins&quot; may be missing await. Email/push may not be sent if the function returns before the promise resolves.</td>
-    <td class="suggestion">Prepend await to the call, or explicitly handle the returned Promise with .catch().</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Missing Await</strong></td>
-    <td><code>functions/src/lib/push.ts:60</code></td>
-    <td>Call to async function &quot;sendPushToUser&quot; may be missing await. Email/push may not be sent if the function returns before the promise resolves.</td>
-    <td class="suggestion">Prepend await to the call, or explicitly handle the returned Promise with .catch().</td>
-  </tr>
-
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">internal</code></td>
-    <td><strong>Check Error</strong></td>
-    <td>—</td>
-    <td>Check &quot;Payment Flow Plumbing&quot; threw: glob is not defined</td>
-    <td class="suggestion">Fix the debugger script itself.</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Empty Catch Block</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt:93</code></td>
-    <td>Empty catch block silently swallows exceptions. If this path fails, users see nothing and logs capture nothing.</td>
-    <td class="suggestion">At minimum: Log.e(TAG, &quot;...&quot;, e). Better: surface _errorMessage.value = e.message to the UI.</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Empty Catch Block</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt:103</code></td>
-    <td>Empty catch block silently swallows exceptions. If this path fails, users see nothing and logs capture nothing.</td>
-    <td class="suggestion">At minimum: Log.e(TAG, &quot;...&quot;, e). Better: surface _errorMessage.value = e.message to the UI.</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Empty Catch Block</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:80</code></td>
-    <td>Empty catch block silently swallows exceptions. If this path fails, users see nothing and logs capture nothing.</td>
-    <td class="suggestion">At minimum: Log.e(TAG, &quot;...&quot;, e). Better: surface _errorMessage.value = e.message to the UI.</td>
-  </tr>
-
   <tr style="background:#FFF3E0">
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">reliability</code></td>
@@ -852,7 +204,7 @@
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">reliability</code></td>
     <td><strong>Forced Non-Null Assertion</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt:352</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt:354</code></td>
     <td>Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.</td>
     <td class="suggestion">Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use.</td>
   </tr>
@@ -861,7 +213,7 @@
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">reliability</code></td>
     <td><strong>Forced Non-Null Assertion</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt:378</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt:380</code></td>
     <td>Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.</td>
     <td class="suggestion">Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use.</td>
   </tr>
@@ -870,7 +222,7 @@
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">reliability</code></td>
     <td><strong>Forced Non-Null Assertion</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt:396</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt:398</code></td>
     <td>Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.</td>
     <td class="suggestion">Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use.</td>
   </tr>
@@ -888,7 +240,7 @@
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">reliability</code></td>
     <td><strong>Forced Non-Null Assertion</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:183</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:185</code></td>
     <td>Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.</td>
     <td class="suggestion">Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use.</td>
   </tr>
@@ -897,7 +249,7 @@
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">reliability</code></td>
     <td><strong>Forced Non-Null Assertion</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:206</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:208</code></td>
     <td>Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.</td>
     <td class="suggestion">Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use.</td>
   </tr>
@@ -906,7 +258,7 @@
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">reliability</code></td>
     <td><strong>Forced Non-Null Assertion</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:363</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:365</code></td>
     <td>Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.</td>
     <td class="suggestion">Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use.</td>
   </tr>
@@ -915,7 +267,7 @@
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">reliability</code></td>
     <td><strong>Forced Non-Null Assertion</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:503</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:505</code></td>
     <td>Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.</td>
     <td class="suggestion">Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use.</td>
   </tr>
@@ -1039,114 +391,6 @@
 
   <tr style="background:#FFF3E0">
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Firestore Snapshot Safety</strong></td>
-    <td><code>functions/src/auth/emailOtp.ts:121</code></td>
-    <td>snap.data()! assumes the document exists. If snap.exists is false, data() returns undefined and ! throws.</td>
-    <td class="suggestion">Always guard: if (!snap.exists) throw new Error(&quot;Document not found&quot;); before calling snap.data()!.</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Firestore Snapshot Safety</strong></td>
-    <td><code>functions/src/notifications/sendPaymentReminder.ts:33</code></td>
-    <td>snap.data()! assumes the document exists. If snap.exists is false, data() returns undefined and ! throws.</td>
-    <td class="suggestion">Always guard: if (!snap.exists) throw new Error(&quot;Document not found&quot;); before calling snap.data()!.</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>Firestore Snapshot Safety</strong></td>
-    <td><code>functions/src/users/sendInquiryEmail.ts:58</code></td>
-    <td>snap.data()! assumes the document exists. If snap.exists is false, data() returns undefined and ! throws.</td>
-    <td class="suggestion">Always guard: if (!snap.exists) throw new Error(&quot;Document not found&quot;); before calling snap.data()!.</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>Orphaned Module</strong></td>
-    <td><code>functions/src/dataconnect-generated/index.d.ts</code></td>
-    <td>Module &quot;./dataconnect-generated/index.d&quot; has exports but is not imported from index.ts — its functions are never deployed.</td>
-    <td class="suggestion">Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed.</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>Orphaned Module</strong></td>
-    <td><code>functions/src/lib/auditLog.ts</code></td>
-    <td>Module &quot;./lib/auditLog&quot; has exports but is not imported from index.ts — its functions are never deployed.</td>
-    <td class="suggestion">Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed.</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>Orphaned Module</strong></td>
-    <td><code>functions/src/lib/email.ts</code></td>
-    <td>Module &quot;./lib/email&quot; has exports but is not imported from index.ts — its functions are never deployed.</td>
-    <td class="suggestion">Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed.</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>Orphaned Module</strong></td>
-    <td><code>functions/src/lib/emailTemplates.ts</code></td>
-    <td>Module &quot;./lib/emailTemplates&quot; has exports but is not imported from index.ts — its functions are never deployed.</td>
-    <td class="suggestion">Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed.</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>Orphaned Module</strong></td>
-    <td><code>functions/src/lib/packagePlans.ts</code></td>
-    <td>Module &quot;./lib/packagePlans&quot; has exports but is not imported from index.ts — its functions are never deployed.</td>
-    <td class="suggestion">Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed.</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>Orphaned Module</strong></td>
-    <td><code>functions/src/lib/playIntegrity.ts</code></td>
-    <td>Module &quot;./lib/playIntegrity&quot; has exports but is not imported from index.ts — its functions are never deployed.</td>
-    <td class="suggestion">Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed.</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>Orphaned Module</strong></td>
-    <td><code>functions/src/lib/pricing.ts</code></td>
-    <td>Module &quot;./lib/pricing&quot; has exports but is not imported from index.ts — its functions are never deployed.</td>
-    <td class="suggestion">Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed.</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>Orphaned Module</strong></td>
-    <td><code>functions/src/lib/push.ts</code></td>
-    <td>Module &quot;./lib/push&quot; has exports but is not imported from index.ts — its functions are never deployed.</td>
-    <td class="suggestion">Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed.</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">consistency</code></td>
-    <td><strong>Orphaned Module</strong></td>
-    <td><code>functions/src/lib/roles.ts</code></td>
-    <td>Module &quot;./lib/roles&quot; has exports but is not imported from index.ts — its functions are never deployed.</td>
-    <td class="suggestion">Export the functions from this module in functions/src/index.ts, or delete the file if it is no longer needed.</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">ux</code></td>
     <td><strong>KYC Screen Completeness</strong></td>
     <td><code>app/src/main/java/com/example/ui/screens/KycScreen.kt</code></td>
@@ -1210,6 +454,12 @@
     
   <tr>
     <td><span class="badge" style="background:#388E3C">PASS</span></td>
+    <td colspan="4">All 18 getHttpsCallable() calls match exported functions in index.ts.</td>
+    <td>—</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge" style="background:#388E3C">PASS</span></td>
     <td colspan="4">&quot;email_otps&quot; is intentionally Admin-SDK-only — no client rule needed.</td>
     <td>—</td>
   </tr>
@@ -1222,13 +472,31 @@
 
   <tr>
     <td><span class="badge" style="background:#388E3C">PASS</span></td>
+    <td colspan="4">No empty catch blocks found.</td>
+    <td>—</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge" style="background:#388E3C">PASS</span></td>
     <td colspan="4">9/15 screens have a loading indicator.</td>
     <td>—</td>
   </tr>
 
   <tr>
     <td><span class="badge" style="background:#388E3C">PASS</span></td>
+    <td colspan="4">All viewModelScope.launch blocks have nearby error handling.</td>
+    <td>—</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge" style="background:#388E3C">PASS</span></td>
     <td colspan="4">No obvious hardcoded secrets found.</td>
+    <td>—</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge" style="background:#388E3C">PASS</span></td>
+    <td colspan="4">All 8 prohost:// deep link hosts are registered in AndroidManifest.xml.</td>
     <td>—</td>
   </tr>
 
@@ -1253,6 +521,12 @@
   <tr>
     <td><span class="badge" style="background:#388E3C">PASS</span></td>
     <td colspan="4">Firestore rules enforce isSuspended() check on write operations.</td>
+    <td>—</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge" style="background:#388E3C">PASS</span></td>
+    <td colspan="4">Google Play Billing: PlayBillingManager.kt present and playBillingRtdn is exported.</td>
     <td>—</td>
   </tr>
 

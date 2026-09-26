@@ -100,7 +100,9 @@ fun OwnerHubScreen(
             )
             mp?.setOnCompletionListener { it.release() }
             mp?.start()
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            android.util.Log.e("SoundPlayback", "Failed to play sound", e)
+        }
     }
 
     // SO1: Branded chime when any owned listing transitions to ACTIVE (published).

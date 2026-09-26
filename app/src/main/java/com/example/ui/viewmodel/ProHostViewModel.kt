@@ -244,27 +244,45 @@ class ProHostViewModel(
             val manager = com.example.data.billing.PlayBillingManager(context.applicationContext, viewModelScope)
             playBillingManager = manager
             viewModelScope.launch {
-                manager.isConnected.collect { connected ->
-                    playBillingConnected.value = connected
-                }
-            }
-            viewModelScope.launch {
-                manager.productDetailsList.collect { products ->
-                    playBillingProducts.value = products
-                    // Retry a deferred billing launch once the target product is available
-                    val retryId = _pendingRetryProductId
-                    val retryActivity = _pendingRetryActivity?.get()
-                    if (retryId != null && retryActivity != null && products.any { it.productId == retryId }) {
-                        _pendingRetryProductId = null
-                        _pendingRetryActivity = null
-                        launchGooglePaySubscription(retryActivity, retryId)
+                try {
+                    manager.isConnected.collect { connected ->
+                        playBillingConnected.value = connected
                     }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    android.util.Log.e("ProHostVM", "Operation failed", e)
                 }
             }
             viewModelScope.launch {
-                manager.purchaseEvents.collect { purchase ->
-                    val productId = purchase.products.firstOrNull() ?: com.example.data.billing.PlayBillingManager.PRODUCT_ID_GROWTH
-                    repository.recordActivePurchaseToken(productId, purchase.purchaseToken)
+                try {
+                    manager.productDetailsList.collect { products ->
+                        playBillingProducts.value = products
+                        // Retry a deferred billing launch once the target product is available
+                        val retryId = _pendingRetryProductId
+                        val retryActivity = _pendingRetryActivity?.get()
+                        if (retryId != null && retryActivity != null && products.any { it.productId == retryId }) {
+                            _pendingRetryProductId = null
+                            _pendingRetryActivity = null
+                            launchGooglePaySubscription(retryActivity, retryId)
+                        }
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    android.util.Log.e("ProHostVM", "Operation failed", e)
+                }
+            }
+            viewModelScope.launch {
+                try {
+                    manager.purchaseEvents.collect { purchase ->
+                        val productId = purchase.products.firstOrNull() ?: com.example.data.billing.PlayBillingManager.PRODUCT_ID_GROWTH
+                        repository.recordActivePurchaseToken(productId, purchase.purchaseToken)
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    android.util.Log.e("ProHostVM", "Operation failed", e)
                 }
             }
             manager.startConnection()
@@ -290,18 +308,24 @@ class ProHostViewModel(
     // grant — i.e. ownerPackageExpiryMillis changed from what it was at launch time.
     init {
         viewModelScope.launch {
-            currentUser.collectLatest { user ->
-                if (user?.ownerPackageExpiryMillis != null &&
-                    user.ownerPackageExpiryMillis != _billingPriorExpiryMillis.value &&
-                    _billingActivationPending.value
-                ) {
-                    billingActivationTimeoutJob?.cancel()
-                    _billingActivationPending.value = false
-                    // Force-refresh the ID token so the new PRO_HOST claim takes effect
-                    // immediately — without this the user sees SPECIALIST navigation for
-                    // up to an hour until the token naturally expires.
-                    refreshCurrentUserRoleAfterEntitlement()
+            try {
+                currentUser.collectLatest { user ->
+                    if (user?.ownerPackageExpiryMillis != null &&
+                        user.ownerPackageExpiryMillis != _billingPriorExpiryMillis.value &&
+                        _billingActivationPending.value
+                    ) {
+                        billingActivationTimeoutJob?.cancel()
+                        _billingActivationPending.value = false
+                        // Force-refresh the ID token so the new PRO_HOST claim takes effect
+                        // immediately — without this the user sees SPECIALIST navigation for
+                        // up to an hour until the token naturally expires.
+                        refreshCurrentUserRoleAfterEntitlement()
+                    }
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
             }
         }
     }
@@ -319,37 +343,49 @@ class ProHostViewModel(
     fun resendEmailVerification(context: android.content.Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {
-            val result = functionsClient.resendEmailVerification()
-            val msg = if (result.isSuccess) {
-                "Verification email sent. Check your inbox."
-            } else {
-                val err = result.exceptionOrNull()?.message ?: "Unknown error"
-                when {
-                    err.contains("resource-exhausted", ignoreCase = true) ||
-                    err.contains("3 times", ignoreCase = true) -> "You've already requested 3 emails today. Try again tomorrow."
-                    else -> "Could not send email: $err"
+            try {
+                val result = functionsClient.resendEmailVerification()
+                val msg = if (result.isSuccess) {
+                    "Verification email sent. Check your inbox."
+                } else {
+                    val err = result.exceptionOrNull()?.message ?: "Unknown error"
+                    when {
+                        err.contains("resource-exhausted", ignoreCase = true) ||
+                        err.contains("3 times", ignoreCase = true) -> "You've already requested 3 emails today. Try again tomorrow."
+                        else -> "Could not send email: $err"
+                    }
                 }
+                android.widget.Toast.makeText(appContext, msg, android.widget.Toast.LENGTH_LONG).show()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
             }
-            android.widget.Toast.makeText(appContext, msg, android.widget.Toast.LENGTH_LONG).show()
         }
     }
 
     fun sendInquiryEmail(context: android.content.Context, spaceId: String, message: String) {
         val appContext = context.applicationContext
         viewModelScope.launch {
-            val result = functionsClient.sendInquiryEmail(spaceId, message)
-            val msg = if (result.isSuccess) {
-                "Inquiry sent to the space owner."
-            } else {
-                val err = result.exceptionOrNull()?.message ?: "Unknown error"
-                when {
-                    err.contains("resource-exhausted", ignoreCase = true) ->
-                        "You've reached the daily inquiry limit (3 per day). Try again tomorrow."
-                    err.contains("not-found", ignoreCase = true) -> "Listing not found."
-                    else -> "Could not send inquiry: $err"
+            try {
+                val result = functionsClient.sendInquiryEmail(spaceId, message)
+                val msg = if (result.isSuccess) {
+                    "Inquiry sent to the space owner."
+                } else {
+                    val err = result.exceptionOrNull()?.message ?: "Unknown error"
+                    when {
+                        err.contains("resource-exhausted", ignoreCase = true) ->
+                            "You've reached the daily inquiry limit (3 per day). Try again tomorrow."
+                        err.contains("not-found", ignoreCase = true) -> "Listing not found."
+                        else -> "Could not send inquiry: $err"
+                    }
                 }
+                android.widget.Toast.makeText(appContext, msg, android.widget.Toast.LENGTH_LONG).show()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
             }
-            android.widget.Toast.makeText(appContext, msg, android.widget.Toast.LENGTH_LONG).show()
         }
     }
 
@@ -389,8 +425,14 @@ class ProHostViewModel(
             _billingActivationPending.value = true
             billingActivationTimeoutJob?.cancel()
             billingActivationTimeoutJob = viewModelScope.launch {
-                kotlinx.coroutines.delay(5 * 60 * 1000L)
-                _billingActivationPending.value = false
+                try {
+                    kotlinx.coroutines.delay(5 * 60 * 1000L)
+                    _billingActivationPending.value = false
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    android.util.Log.e("ProHostVM", "Operation failed", e)
+                }
             }
         } else {
             // Store the intent and retry automatically once products load from Play
@@ -489,7 +531,15 @@ class ProHostViewModel(
     /** Called once by OwnerHubScreen right before opening CreateListingDialog — a
      *  fixed snapshot for that session of the wizard, not a live subscription. */
     fun refreshTopHashtags() {
-        viewModelScope.launch { _topHashtags.value = repository.fetchTopHashtags() }
+        viewModelScope.launch {
+            try {
+                _topHashtags.value = repository.fetchTopHashtags()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
+            }
+        }
     }
 
     fun addUserSuggestedSchemaItem(
@@ -509,7 +559,15 @@ class ProHostViewModel(
             scopedToIds = scopedToIds,
             amenityGroup = amenityGroup
         )
-        viewModelScope.launch { repository.addUserSuggestedSchemaItem(item) }
+        viewModelScope.launch {
+            try {
+                repository.addUserSuggestedSchemaItem(item)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
+            }
+        }
     }
 
     // --- Space Owner Listing Creation ---
@@ -808,44 +866,50 @@ class ProHostViewModel(
 
         val appContext = context.applicationContext
         viewModelScope.launch {
-            val (request, synced) = repository.createBookingRequest(
-                space = space,
-                formula = formula,
-                practitioner = user,
-                startDate = startDate,
-                durationMonths = durationMonths,
-                notes = notes,
-                selectedDays = selectedDays,
-                selectedCalendarDates = selectedCalendarDates,
-                selectedStartHour = selectedStartHour,
-                selectedEndHour = selectedEndHour,
-                selectedShift = selectedShift,
-                calculatedTotalUsd = calculatedTotalUsd,
-                subdivisionId = subdivisionId,
-                subdivisionName = subdivisionName,
-                replacesBookingId = replacesBookingId,
-                attendeeCount = attendeeCount,
-                selectedAttendeePackageId = selectedAttendeePackageId,
-                attendeePackageName = attendeePackageName,
-                attendeePackagePriceUsd = attendeePackagePriceUsd
-            )
+            try {
+                val (request, synced) = repository.createBookingRequest(
+                    space = space,
+                    formula = formula,
+                    practitioner = user,
+                    startDate = startDate,
+                    durationMonths = durationMonths,
+                    notes = notes,
+                    selectedDays = selectedDays,
+                    selectedCalendarDates = selectedCalendarDates,
+                    selectedStartHour = selectedStartHour,
+                    selectedEndHour = selectedEndHour,
+                    selectedShift = selectedShift,
+                    calculatedTotalUsd = calculatedTotalUsd,
+                    subdivisionId = subdivisionId,
+                    subdivisionName = subdivisionName,
+                    replacesBookingId = replacesBookingId,
+                    attendeeCount = attendeeCount,
+                    selectedAttendeePackageId = selectedAttendeePackageId,
+                    attendeePackageName = attendeePackageName,
+                    attendeePackagePriceUsd = attendeePackagePriceUsd
+                )
 
-            Toast.makeText(
-                appContext,
-                if (synced) {
-                    if (replacesBookingId != null) {
-                        "Edit Request #${request.id} Sent! Your current booking stays active until the host approves this change."
+                Toast.makeText(
+                    appContext,
+                    if (synced) {
+                        if (replacesBookingId != null) {
+                            "Edit Request #${request.id} Sent! Your current booking stays active until the host approves this change."
+                        } else {
+                            "Rental Request #${request.id} Sent! Space hours remain open until owner approval."
+                        }
                     } else {
-                        "Rental Request #${request.id} Sent! Space hours remain open until owner approval."
-                    }
-                } else {
-                    "Couldn't reach the server to send your request — check your connection and try again. The host has not been notified."
-                },
-                Toast.LENGTH_LONG
-            ).show()
+                        "Couldn't reach the server to send your request — check your connection and try again. The host has not been notified."
+                    },
+                    Toast.LENGTH_LONG
+                ).show()
 
-            if (alsoOpenWhatsApp) {
-                launchWhatsAppInquiry(context, space, formula, request)
+                if (alsoOpenWhatsApp) {
+                    launchWhatsAppInquiry(context, space, formula, request)
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
             }
         }
     }
@@ -862,28 +926,34 @@ class ProHostViewModel(
     fun acceptBookingRequest(context: Context, requestId: String, agreementUri: Uri) {
         val appContext = context.applicationContext
         viewModelScope.launch {
-            // Refuse before the upload: accepting this would double-book a slot an
-            // ACCEPTED booking already holds. Named so the host knows which one.
-            repository.findAcceptConflict(requestId)?.let { clash ->
-                Toast.makeText(
-                    appContext,
-                    "Can't accept #$requestId — it overlaps accepted booking #${clash.id} (${clash.practitionerName}, ${clash.selectedDateTimeRange}).",
-                    Toast.LENGTH_LONG
-                ).show()
-                return@launch
-            }
-            val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
-            val ext = guessFileExtension(context, agreementUri, "pdf")
-            val agreementUrl = storageService.uploadBookingAgreement(requestId, agreementUri, ext)
-            if (agreementUrl == null) {
-                Toast.makeText(appContext, "Could not upload the agreement. Please try again.", Toast.LENGTH_LONG).show()
-                return@launch
-            }
-            val success = repository.acceptBookingRequest(requestId, agreementUrl)
-            if (success) {
-                Toast.makeText(appContext, "Booking Request #$requestId ACCEPTED! Agreement saved.", Toast.LENGTH_LONG).show()
-            } else {
-                Toast.makeText(appContext, "Could not finalize acceptance. Please try again.", Toast.LENGTH_LONG).show()
+            try {
+                // Refuse before the upload: accepting this would double-book a slot an
+                // ACCEPTED booking already holds. Named so the host knows which one.
+                repository.findAcceptConflict(requestId)?.let { clash ->
+                    Toast.makeText(
+                        appContext,
+                        "Can't accept #$requestId — it overlaps accepted booking #${clash.id} (${clash.practitionerName}, ${clash.selectedDateTimeRange}).",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@launch
+                }
+                val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
+                val ext = guessFileExtension(context, agreementUri, "pdf")
+                val agreementUrl = storageService.uploadBookingAgreement(requestId, agreementUri, ext)
+                if (agreementUrl == null) {
+                    Toast.makeText(appContext, "Could not upload the agreement. Please try again.", Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+                val success = repository.acceptBookingRequest(requestId, agreementUrl)
+                if (success) {
+                    Toast.makeText(appContext, "Booking Request #$requestId ACCEPTED! Agreement saved.", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(appContext, "Could not finalize acceptance. Please try again.", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
             }
         }
     }
@@ -896,11 +966,17 @@ class ProHostViewModel(
     fun sendPaymentReminder(bookingId: String, practitionerName: String, context: Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {
-            val result = functionsClient.sendPaymentReminder(bookingId)
-            if (result.isSuccess) {
-                Toast.makeText(appContext, "Payment Reminder Sent to $practitionerName!", Toast.LENGTH_LONG).show()
-            } else {
-                Toast.makeText(appContext, "Could not send the reminder. Please try again.", Toast.LENGTH_LONG).show()
+            try {
+                val result = functionsClient.sendPaymentReminder(bookingId)
+                if (result.isSuccess) {
+                    Toast.makeText(appContext, "Payment Reminder Sent to $practitionerName!", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(appContext, "Could not send the reminder. Please try again.", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
             }
         }
     }
@@ -908,11 +984,17 @@ class ProHostViewModel(
     fun rejectBookingRequest(requestId: String, note: String? = null, context: Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {
-            val success = repository.rejectBookingRequest(requestId, note)
-            if (success) {
-                Toast.makeText(appContext, "Booking Request #${requestId} Declined. Space hours remain available.", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(appContext, "Could not decline the request — check your connection and try again.", Toast.LENGTH_LONG).show()
+            try {
+                val success = repository.rejectBookingRequest(requestId, note)
+                if (success) {
+                    Toast.makeText(appContext, "Booking Request #${requestId} Declined. Space hours remain available.", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(appContext, "Could not decline the request — check your connection and try again.", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
             }
         }
     }
@@ -920,11 +1002,17 @@ class ProHostViewModel(
     fun cancelBookingRequest(requestId: String, context: Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {
-            val success = repository.cancelBookingRequest(requestId)
-            if (success) {
-                Toast.makeText(appContext, "Booking Request #${requestId} Cancelled", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(appContext, "Could not cancel the request — check your connection and try again.", Toast.LENGTH_LONG).show()
+            try {
+                val success = repository.cancelBookingRequest(requestId)
+                if (success) {
+                    Toast.makeText(appContext, "Booking Request #${requestId} Cancelled", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(appContext, "Could not cancel the request — check your connection and try again.", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
             }
         }
     }
@@ -944,18 +1032,24 @@ class ProHostViewModel(
         val user = currentUser.value ?: return
         val appContext = context.applicationContext
         viewModelScope.launch {
-            val success = repository.cancelAcceptedBooking(
-                requestId = requestId,
-                reasonCode = reasonCode,
-                note = note,
-                cancelledByUid = user.id,
-                cancelledByRole = user.role.name
-            )
-            Toast.makeText(
-                appContext,
-                if (success) "Booking cancelled. The other party has been notified." else "Could not cancel this booking — please try again.",
-                Toast.LENGTH_LONG
-            ).show()
+            try {
+                val success = repository.cancelAcceptedBooking(
+                    requestId = requestId,
+                    reasonCode = reasonCode,
+                    note = note,
+                    cancelledByUid = user.id,
+                    cancelledByRole = user.role.name
+                )
+                Toast.makeText(
+                    appContext,
+                    if (success) "Booking cancelled. The other party has been notified." else "Could not cancel this booking — please try again.",
+                    Toast.LENGTH_LONG
+                ).show()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
+            }
         }
     }
 
@@ -963,9 +1057,15 @@ class ProHostViewModel(
     fun acknowledgePayment(requestId: String, asHost: Boolean, context: Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {
-            val success = repository.acknowledgePayment(requestId, asHost)
-            if (!success) {
-                Toast.makeText(appContext, "Couldn't save that — please try again.", Toast.LENGTH_SHORT).show()
+            try {
+                val success = repository.acknowledgePayment(requestId, asHost)
+                if (!success) {
+                    Toast.makeText(appContext, "Couldn't save that — please try again.", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
             }
         }
     }
@@ -984,7 +1084,13 @@ class ProHostViewModel(
     /** Toggles [spaceId] in the current user's personal saved/favorites list. */
     fun toggleSavedSpace(spaceId: String) {
         viewModelScope.launch {
-            repository.toggleSavedSpace(spaceId)
+            try {
+                repository.toggleSavedSpace(spaceId)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
+            }
         }
     }
 
@@ -997,9 +1103,15 @@ class ProHostViewModel(
     fun setListingStatus(spaceId: String, status: ListingStatus, context: Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {
-            val success = repository.setListingStatus(spaceId, status)
-            if (!success) {
-                Toast.makeText(appContext, "Couldn't update this listing — please try again.", Toast.LENGTH_SHORT).show()
+            try {
+                val success = repository.setListingStatus(spaceId, status)
+                if (!success) {
+                    Toast.makeText(appContext, "Couldn't update this listing — please try again.", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
             }
         }
     }
@@ -1016,24 +1128,36 @@ class ProHostViewModel(
         )
         val appContext = context.applicationContext
         viewModelScope.launch {
-            val success = repository.addBlackoutSlot(spaceId, slot)
-            Toast.makeText(
-                appContext,
-                if (success) "$dayOfWeek $startTime - $endTime is no longer offered" else "Couldn't switch that slot off — please try again",
-                Toast.LENGTH_SHORT
-            ).show()
+            try {
+                val success = repository.addBlackoutSlot(spaceId, slot)
+                Toast.makeText(
+                    appContext,
+                    if (success) "$dayOfWeek $startTime - $endTime is no longer offered" else "Couldn't switch that slot off — please try again",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
+            }
         }
     }
 
     fun removeBlackoutSlot(spaceId: String, slotId: String, context: Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {
-            val success = repository.removeBlackoutSlot(spaceId, slotId)
-            Toast.makeText(
-                appContext,
-                if (success) "Slot is back on offer" else "Couldn't switch that slot on — please try again",
-                Toast.LENGTH_SHORT
-            ).show()
+            try {
+                val success = repository.removeBlackoutSlot(spaceId, slotId)
+                Toast.makeText(
+                    appContext,
+                    if (success) "Slot is back on offer" else "Couldn't switch that slot on — please try again",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
+            }
         }
     }
 
@@ -1060,12 +1184,18 @@ class ProHostViewModel(
         )
         val appContext = context.applicationContext
         viewModelScope.launch {
-            val success = repository.updateSpaceSchedule(spaceId, updatedSchedule)
-            Toast.makeText(
-                appContext,
-                if (success) "Operating schedule updated!" else "Failed to update schedule — please try again",
-                Toast.LENGTH_SHORT
-            ).show()
+            try {
+                val success = repository.updateSpaceSchedule(spaceId, updatedSchedule)
+                Toast.makeText(
+                    appContext,
+                    if (success) "Operating schedule updated!" else "Failed to update schedule — please try again",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
+            }
         }
     }
 
@@ -1098,24 +1228,36 @@ class ProHostViewModel(
         )
         val appContext = context.applicationContext
         viewModelScope.launch {
-            val success = repository.addRentalFormula(spaceId, formula)
-            Toast.makeText(
-                appContext,
-                if (success) "New formula '${type.displayName}' added!" else "Failed to add formula — please try again",
-                Toast.LENGTH_SHORT
-            ).show()
+            try {
+                val success = repository.addRentalFormula(spaceId, formula)
+                Toast.makeText(
+                    appContext,
+                    if (success) "New formula '${type.displayName}' added!" else "Failed to add formula — please try again",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
+            }
         }
     }
 
     fun deleteFormula(spaceId: String, formulaId: String, context: Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {
-            val success = repository.deleteRentalFormula(spaceId, formulaId)
-            Toast.makeText(
-                appContext,
-                if (success) "Rental formula deleted" else "Failed to delete formula — please try again",
-                Toast.LENGTH_SHORT
-            ).show()
+            try {
+                val success = repository.deleteRentalFormula(spaceId, formulaId)
+                Toast.makeText(
+                    appContext,
+                    if (success) "Rental formula deleted" else "Failed to delete formula — please try again",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
+            }
         }
     }
 
@@ -1123,9 +1265,15 @@ class ProHostViewModel(
     fun addSubdivision(spaceId: String, subdivision: Subdivision, context: Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {
-            val success = repository.addSubdivision(spaceId, subdivision)
-            if (!success) {
-                Toast.makeText(appContext, "Couldn't add this room — please try again", Toast.LENGTH_SHORT).show()
+            try {
+                val success = repository.addSubdivision(spaceId, subdivision)
+                if (!success) {
+                    Toast.makeText(appContext, "Couldn't add this room — please try again", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
             }
         }
     }
@@ -1133,9 +1281,15 @@ class ProHostViewModel(
     fun removeSubdivision(spaceId: String, subdivisionId: String, context: Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {
-            val success = repository.removeSubdivision(spaceId, subdivisionId)
-            if (!success) {
-                Toast.makeText(appContext, "Couldn't remove this room — please try again", Toast.LENGTH_SHORT).show()
+            try {
+                val success = repository.removeSubdivision(spaceId, subdivisionId)
+                if (!success) {
+                    Toast.makeText(appContext, "Couldn't remove this room — please try again", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("ProHostVM", "Operation failed", e)
             }
         }
     }
