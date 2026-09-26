@@ -4,6 +4,7 @@ import android.app.Activity
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.auth.AuthResult
 import com.example.data.repository.ProHostRepository
 import com.example.util.guessFileExtension
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,11 +14,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 /**
- * ViewModel for LoginAuthScreen — the phone-OTP-only sign-in/registration flow.
- * Relocated here from ProHostViewModel (the ViewModel-split effort): every
- * method/state field below had exactly one caller (LoginAuthScreen) before this
- * move, unlike the payment, WhatsApp, and booking-dialog logic that stayed on the
- * shared ViewModel because multiple different screens call it identically.
+ * ViewModel for LoginAuthScreen and KycScreen — sign-in/registration flow.
+ * Supports Email magic-link, Google One Tap, and phone-OTP (legacy parallel path).
  *
  * Role is NEVER taken from the client here. Sign-in resolves the caller's role from
  * their Firebase Auth ID token's custom claim (assigned server-side by the
@@ -46,16 +44,14 @@ class AuthViewModel(
     }
 
     /**
-     * Everything the registration form collects, submitted only AFTER the phone number
-     * is already verified (see [startPhoneVerification]/[submitPhoneVerificationCode] —
-     * this app has exactly one entry point, phone-first: verify, then — only for a
-     * brand-new number — fill in the rest of the profile). Passed to
-     * [completePendingRegistration].
+     * Everything the registration form collects, submitted only AFTER the user is
+     * already authenticated (phone OTP, email link, or Google). [phoneE164] defaults
+     * to "" for email/Google-auth users — phone verification moves to the KYC gate.
      */
-    data class PendingPhoneRegistration(
+    data class PendingRegistration(
         val fullName: String,
         val email: String,
-        val phoneE164: String,
+        val phoneE164: String = "",
         val specialty: String,
         val country: String,
         val governorate: String,
@@ -69,14 +65,35 @@ class AuthViewModel(
         val tosAccepted: Boolean
     )
 
-    private var pendingVerificationId: String? = null
+    /** Kept as a typealias so any remaining callers of the old name still compile. */
+    @Suppress("unused")
+    @Deprecated("Renamed to PendingRegistration", ReplaceWith("PendingRegistration"))
+    typealias PendingPhoneRegistration = PendingRegistration
+
+    // --- Email lookup state (EMAIL_ENTRY step) ---
+
+    enum class EmailLookupResult { UNKNOWN, NEW_USER, HAS_EMAIL, HAS_GOOGLE }
+
+    private val _emailLookupResult = MutableStateFlow(EmailLookupResult.UNKNOWN)
+    val emailLookupResult: StateFlow<EmailLookupResult> = _emailLookupResult.asStateFlow()
+
+    private val _pendingEmail = MutableStateFlow("")
+    val pendingEmail: StateFlow<String> = _pendingEmail.asStateFlow()
+
+    // ---
+
+    private val _pendingVerificationId = MutableStateFlow<String?>(null)
+
+    /**
+     * Helper to get a Firebase-initialized context without needing an Activity.
+     * Safe because Firebase is always initialized before any auth call in this app.
+     */
+    private fun firebaseAppContext(): android.content.Context =
+        com.google.firebase.FirebaseApp.getInstance().applicationContext
 
     /**
      * Backfills this device's current FCM token onto [uid]'s profile right after a
-     * successful sign-in/registration — [com.example.service.ProHostMessagingService.onNewToken]
-     * only fires on a genuine token refresh, which could be long after this device
-     * first got a token (e.g. it was assigned before this account ever signed in).
-     * Best effort: a failure here shouldn't block sign-in.
+     * successful sign-in/registration.
      */
     @Suppress("DEPRECATION")
     private fun registerFcmTokenForCurrentUser(uid: String) {
@@ -88,14 +105,120 @@ class AuthViewModel(
         }
     }
 
+    // --- Email / Google auth methods ---
+
+    fun lookupEmail(email: String) {
+        viewModelScope.launch {
+            _isAuthenticating.value = true
+            val authService = com.example.data.auth.FirebaseAuthService(firebaseAppContext())
+            val methods = authService.fetchSignInMethodsForEmail(email)
+            _pendingEmail.value = email
+            _emailLookupResult.value = when {
+                methods.isEmpty() -> EmailLookupResult.NEW_USER
+                "google.com" in methods -> EmailLookupResult.HAS_GOOGLE
+                else -> EmailLookupResult.HAS_EMAIL
+            }
+            _isAuthenticating.value = false
+        }
+    }
+
+    fun sendEmailSignInLink(email: String, continueUrl: String, onSent: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            _isAuthenticating.value = true
+            val authService = com.example.data.auth.FirebaseAuthService(firebaseAppContext())
+            val sent = authService.sendSignInLinkToEmail(email, continueUrl)
+            _isAuthenticating.value = false
+            onSent(sent)
+        }
+    }
+
+    fun handleEmailLink(activity: Activity, email: String, link: String, onVerified: (needsRegistration: Boolean) -> Unit) {
+        viewModelScope.launch {
+            _isAuthenticating.value = true
+            _authErrorMessage.value = null
+            val authService = com.example.data.auth.FirebaseAuthService(activity)
+            when (val result = authService.signInWithEmailLink(email, link)) {
+                is AuthResult.Success -> finishVerification(activity, result.isNewUser, onVerified)
+                is AuthResult.Failure -> {
+                    _authErrorMessage.value = result.message
+                    _isAuthenticating.value = false
+                }
+                else -> _isAuthenticating.value = false
+            }
+        }
+    }
+
+    fun startGoogleSignIn(activity: Activity, googleIdToken: String, onVerified: (needsRegistration: Boolean) -> Unit) {
+        viewModelScope.launch {
+            _isAuthenticating.value = true
+            _authErrorMessage.value = null
+            val authService = com.example.data.auth.FirebaseAuthService(activity)
+            when (val result = authService.signInWithGoogleCredential(googleIdToken)) {
+                is AuthResult.Success -> finishVerification(activity, result.isNewUser, onVerified)
+                is AuthResult.Failure -> {
+                    _authErrorMessage.value = result.message
+                    _isAuthenticating.value = false
+                }
+                else -> _isAuthenticating.value = false
+            }
+        }
+    }
+
     /**
-     * Step 1 of the ONE sign-in/registration entry point this app has: send an SMS OTP
-     * to [e164Phone]. There is no separate "Sign In" vs "Register" form anymore — every
-     * account, new or returning, starts here with nothing but a phone number. What
-     * happens after the code is verified — sign the caller straight into an existing
-     * account, or ask them to fill in the rest of a brand-new profile — is decided in
-     * [submitPhoneVerificationCode] purely from Firebase's own `isNewUser` signal, never
-     * guessed or asked up front.
+     * Common post-authentication logic shared by phone, email, and Google sign-in paths.
+     * After any credential is verified by Firebase Auth, this decides whether the caller
+     * needs to complete registration (brand-new account) or can go straight into the app.
+     *
+     * Stranded-account recovery (a phone-auth user who got interrupted between OTP and
+     * the profile form) is scoped to phone-auth only — email/Google users always have
+     * phone blank by design until they complete the KYC step.
+     */
+    private suspend fun finishVerification(
+        activity: Activity,
+        isNewUser: Boolean,
+        onVerified: (needsRegistration: Boolean) -> Unit
+    ) {
+        val authService = com.example.data.auth.FirebaseAuthService(activity)
+        val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+        if (firebaseUser == null) {
+            _isAuthenticating.value = false
+            _authErrorMessage.value = "Phone verification did not return a valid session. Please try again."
+            return
+        }
+        _isAuthenticating.value = false
+        if (!isNewUser) {
+            try {
+                val integrityToken = com.example.util.PlayIntegrityManager(activity)
+                    .requestIntegrityToken().getOrNull()
+                val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser, integrityToken)
+                // Stranded-account recovery: only applies when the user's Firebase Auth
+                // account was authenticated via phone (phone-auth users with a blank phone
+                // in Firestore means the registration form was never submitted). Email/Google
+                // users have phone blank by design until KYC; they must not be re-routed
+                // to the registration form on every subsequent sign-in.
+                val isPhoneAuth = firebaseUser.providerData.any { it.providerId == "phone" }
+                if (isPhoneAuth && user.role != com.example.data.model.UserRole.ADMIN && user.phone.isBlank()) {
+                    repository.discardIncompleteSession()
+                    onVerified(true)
+                } else {
+                    registerFcmTokenForCurrentUser(user.id)
+                    _authSuccessMessage.value = "Welcome back, ${user.fullName}!"
+                    onVerified(false)
+                }
+            } catch (e: com.example.data.auth.AccountSuspendedException) {
+                authService.signOut()
+                _authErrorMessage.value = e.message
+            }
+        } else {
+            // Brand-new account — the caller needs to complete their profile.
+            onVerified(true)
+        }
+    }
+
+    // --- Phone OTP (legacy parallel path for existing phone-only users) ---
+
+    /**
+     * Step 1 of phone-OTP sign-in: send an SMS OTP to [e164Phone].
      */
     fun startPhoneVerification(
         activity: Activity,
@@ -110,7 +233,7 @@ class AuthViewModel(
             activity = activity,
             e164PhoneNumber = e164Phone,
             onCodeSent = { verificationId ->
-                pendingVerificationId = verificationId
+                _pendingVerificationId.value = verificationId
                 _isAuthenticating.value = false
                 onCodeSent()
             },
@@ -124,9 +247,9 @@ class AuthViewModel(
         )
     }
 
-    /** Step 2: verifies the SMS code the user typed in, then routes per [finishPhoneVerification]. */
+    /** Step 2: verifies the SMS code the user typed in. */
     fun submitPhoneVerificationCode(activity: Activity, smsCode: String, onVerified: (needsRegistration: Boolean) -> Unit) {
-        val verificationId = pendingVerificationId
+        val verificationId = _pendingVerificationId.value
         if (verificationId == null) {
             _authErrorMessage.value = "Please request a verification code first."
             return
@@ -138,17 +261,6 @@ class AuthViewModel(
         viewModelScope.launch { finishPhoneVerification(activity, credential, onVerified, verificationId) }
     }
 
-    /**
-     * Resolves the verified phone credential and decides what the caller sees next:
-     * an existing account is never routed back through a registration form — only a
-     * genuinely brand-new phone number is.
-     *
-     * @param verificationId Passed through to [FirebaseAuthService.signInWithPhoneCredential]
-     * so it can tell a real Firebase-issued verification apart from this app's own
-     * synthetic test-number one — see that function's doc comment. Auto-verification
-     * (SMS Retriever) never has one, which is correct: that path is always a real
-     * credential and must never fall back to a stand-in session on failure.
-     */
     private suspend fun finishPhoneVerification(
         activity: Activity,
         credential: com.google.firebase.auth.PhoneAuthCredential,
@@ -159,51 +271,8 @@ class AuthViewModel(
         val result = authService.signInWithPhoneCredential(credential, verificationId)
         when (result) {
             is com.example.data.auth.AuthResult.Success -> {
-                val firebaseUser = result.firebaseUser
-                if (firebaseUser == null) {
-                    _isAuthenticating.value = false
-                    _authErrorMessage.value = "Phone verification did not return a valid session. Please try again."
-                    return
-                }
-                pendingVerificationId = null
-                _isAuthenticating.value = false
-                if (!result.isNewUser) {
-                    // This exact phone number already had an account — sign the caller
-                    // straight into it, no registration form, nothing to overwrite.
-                    try {
-                        // Best-effort — PlayIntegrityManager already catches its own
-                        // failures and never throws; a missing/failed token must never
-                        // block sign-in (see assignInitialRole.ts's log-only handling).
-                        val integrityToken = com.example.util.PlayIntegrityManager(activity)
-                            .requestIntegrityToken().getOrNull()
-                        val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser, integrityToken)
-                        // isNewUser only reflects whether the Firebase Auth ACCOUNT is
-                        // new, not whether registration was ever finished — an app kill
-                        // between OTP verification and submitting the registration form
-                        // leaves a real account with a blank phone (registerMember always
-                        // writes one for a real registration; ADMIN accounts, created via
-                        // bootstrapSuperAdmin/grantAdminRole, are the one legitimate
-                        // exception). isNewUser will read false on every future re-verify
-                        // of this same number too, so this check is the only remaining
-                        // way to route a stranded account back to the registration form.
-                        if (user.role != com.example.data.model.UserRole.ADMIN && user.phone.isBlank()) {
-                            repository.discardIncompleteSession()
-                            onVerified(true)
-                        } else {
-                            registerFcmTokenForCurrentUser(user.id)
-                            _authSuccessMessage.value = "Welcome back, ${user.fullName}!"
-                            onVerified(false)
-                        }
-                    } catch (e: com.example.data.auth.AccountSuspendedException) {
-                        authService.signOut()
-                        _authErrorMessage.value = e.message
-                    }
-                } else {
-                    // Brand-new phone number — Firebase Auth already has a signed-in
-                    // session for it; the caller just needs to fill in the rest of
-                    // their profile now.
-                    onVerified(true)
-                }
+                _pendingVerificationId.value = null
+                finishVerification(activity, result.isNewUser, onVerified)
             }
             is com.example.data.auth.AuthResult.Error -> {
                 _isAuthenticating.value = false
@@ -212,23 +281,101 @@ class AuthViewModel(
             com.example.data.auth.AuthResult.Cancelled -> {
                 _isAuthenticating.value = false
             }
+            else -> _isAuthenticating.value = false
         }
     }
 
+    // --- KYC phone linking (for email/Google users doing phone verification post-auth) ---
+
     /**
-     * Step 3 (brand-new accounts only): the phone number is already verified and
-     * Firebase Auth already has a signed-in session for it (from
-     * [finishPhoneVerification]) — this just uploads the picked files and writes the
-     * rest of the profile. No further OTP step; verification already happened.
+     * Sends an SMS OTP for phone KYC — same underlying call as [startPhoneVerification]
+     * but semantically separate (the user is already authenticated; this links a phone
+     * credential to the existing Firebase Auth account).
+     */
+    fun startKycPhoneVerification(
+        activity: Activity,
+        e164Phone: String,
+        onCodeSent: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        _isAuthenticating.value = true
+        _authErrorMessage.value = null
+        val authService = com.example.data.auth.FirebaseAuthService(activity)
+        authService.sendPhoneVerificationCode(
+            activity = activity,
+            e164PhoneNumber = e164Phone,
+            onCodeSent = { verificationId ->
+                _pendingVerificationId.value = verificationId
+                _isAuthenticating.value = false
+                onCodeSent()
+            },
+            onAutoVerified = { credential ->
+                // Auto-verification during KYC: link directly
+                viewModelScope.launch {
+                    val linkResult = authService.linkPhoneCredentialToCurrentUser(credential)
+                    _isAuthenticating.value = false
+                    when (linkResult) {
+                        is AuthResult.Success -> onCodeSent() // treat as success
+                        is AuthResult.Failure -> onError(linkResult.message)
+                        else -> {}
+                    }
+                }
+            },
+            onError = { message ->
+                _isAuthenticating.value = false
+                onError(message)
+            }
+        )
+    }
+
+    /**
+     * Submits the KYC OTP and links the phone number to the currently signed-in
+     * Firebase Auth account (does NOT sign in — that already happened via email/Google).
+     */
+    fun linkKycPhone(
+        activity: Activity,
+        smsCode: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            val verificationId = _pendingVerificationId.value
+            if (verificationId == null) {
+                onError("Please request a verification code first.")
+                return@launch
+            }
+            _isAuthenticating.value = true
+            val authService = com.example.data.auth.FirebaseAuthService(activity)
+            val credential = authService.buildPhoneAuthCredential(verificationId, smsCode)
+            when (val result = authService.linkPhoneCredentialToCurrentUser(credential)) {
+                is AuthResult.Success -> {
+                    _pendingVerificationId.value = null
+                    _isAuthenticating.value = false
+                    onSuccess()
+                }
+                is AuthResult.Failure -> {
+                    _isAuthenticating.value = false
+                    onError(result.message)
+                }
+                else -> _isAuthenticating.value = false
+            }
+        }
+    }
+
+    // --- Registration (Step 3 for brand-new accounts) ---
+
+    /**
+     * Step 3 (brand-new accounts only): the user is already authenticated (phone OTP,
+     * email link, or Google) — this uploads files and writes the profile.
      */
     fun completePendingRegistration(
         activity: Activity,
-        registration: PendingPhoneRegistration,
+        registration: PendingRegistration,
         onSuccess: () -> Unit
     ) {
         val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
         if (firebaseUser == null) {
-            _authErrorMessage.value = "Your verified session expired — please verify your phone number again."
+            _authErrorMessage.value = "Your verified session expired — please sign in again."
             return
         }
         _isAuthenticating.value = true
@@ -242,7 +389,6 @@ class AuthViewModel(
                 val idDocumentUrl = registration.idDocumentUri?.let { uri ->
                     storageService.uploadIdDocument(firebaseUser.uid, uri, guessFileExtension(activity, uri, "pdf"))
                 }
-                // Best-effort — see the matching comment in finishPhoneVerification.
                 val integrityToken = com.example.util.PlayIntegrityManager(activity)
                     .requestIntegrityToken().getOrNull()
                 val user = com.example.data.auth.completeVerifiedRegistration(
@@ -263,12 +409,6 @@ class AuthViewModel(
                 )
                 _isAuthenticating.value = false
                 registerFcmTokenForCurrentUser(user.id)
-                // uploadAndGetUrl (FirebaseStorageService) already catches its own
-                // failures and returns null rather than throwing — without this check,
-                // a user who picked a file that then failed to upload (network blip
-                // during registration) would see an unqualified "Account created
-                // successfully!" with no indication their ID document/photo never
-                // actually made it, and no reason to think they need to add it later.
                 val missedUploads = buildList {
                     if (registration.profilePictureUri != null && profilePictureUrl == null) add("profile photo")
                     if (registration.idDocumentUri != null && idDocumentUrl == null) add("ID document")
@@ -285,10 +425,6 @@ class AuthViewModel(
                 _isAuthenticating.value = false
                 _authErrorMessage.value = e.message
             } catch (e: Exception) {
-                // Covers assignInitialRole's server-side registration-format rejection
-                // (invalid-argument) as well as any upload/network failure — previously
-                // uncaught here, which would have crashed the coroutine instead of
-                // surfacing a message the registration form could show.
                 _isAuthenticating.value = false
                 _authErrorMessage.value = friendlyRegistrationErrorMessage(e)
             }
@@ -297,21 +433,21 @@ class AuthViewModel(
 
     /**
      * A Cloud Function's own rejection message (e.g. assignInitialRole's format
-     * validation) is already written for end users and safe to show as-is. Anything
-     * else — a raw network/SDK exception — is never shown verbatim, since it can
-     * contain technical text ("FirebaseFunctionsException", stack-trace fragments)
-     * that would read like an app crash to someone who has never heard of Firebase.
+     * validation) is already written for end users and safe to show as-is. Raw
+     * SDK/network errors are never shown verbatim.
      */
     private fun friendlyRegistrationErrorMessage(e: Exception): String {
-        val message = e.message
-        val looksTechnical = message.isNullOrBlank() ||
-            message.contains("Firebase", ignoreCase = true) ||
-            message.contains("Exception", ignoreCase = true) ||
-            message.contains("com.google", ignoreCase = true)
-        return if (looksTechnical) {
-            "Registration failed. Please check your details and try again."
-        } else {
-            message!!
+        val msg = (e as? com.google.firebase.functions.FirebaseFunctionsException)?.message
+            ?: e.message ?: ""
+        // Pass through server-supplied messages — they're already user-friendly
+        // (assignInitialRole.ts's HttpsError messages, account suspension, etc.)
+        if (e is com.google.firebase.functions.FirebaseFunctionsException && msg.isNotBlank()) {
+            return msg
+        }
+        return when {
+            msg.contains("network", ignoreCase = true) -> "Network error. Please check your connection."
+            msg.contains("too-many-requests", ignoreCase = true) -> "Too many attempts. Please try again later."
+            else -> "Registration failed. Please try again."
         }
     }
 }

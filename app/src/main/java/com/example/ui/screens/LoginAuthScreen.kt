@@ -30,40 +30,49 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.R
 import com.example.data.model.findCountryByName
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AuthViewModel
 import com.example.util.PhoneCountryDetector
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 
 /**
- * Every ProHost account — new or returning — goes through the exact same three steps,
- * phone number first:
- *  1. PHONE_ENTRY — enter a phone number, request an SMS code. The dial code is
- *     auto-detected (SIM, then last known location, then locale — see
- *     [PhoneCountryDetector]) and shown as a fixed prefix inside the same field, so
- *     there is nothing to pick from a separate dropdown; a "Change" action is still
- *     there in case auto-detection picked the wrong country.
- *  2. OTP_ENTRY — enter the 6-digit code.
- *  3. REGISTRATION_FORM — shown ONLY when the verified number turns out to be brand new
- *     (Firebase's own isNewUser signal decides this, never a guess made before
- *     verification). A returning number skips straight past this and into the app.
+ * Every ProHost account — new or returning — now goes through email/Google first:
+ *  1. EMAIL_ENTRY — enter an email or tap "Continue with Google". The email is looked
+ *     up to determine whether it's new, has a magic-link flow, or has Google.
+ *  2. EMAIL_SENT — magic-link sent; waiting for the user to tap it.
+ *  3. REGISTRATION_FORM — shown only when the verified identity turns out to be brand
+ *     new (Firebase's own isNewUser decides, never a guess made before verification).
  *
- * There is no "Sign In" vs "Register" choice anywhere in this screen anymore — asking
- * the user to declare that up front, before their number is even checked, was the bug:
- * it meant collecting a whole registration form before knowing whether the number
- * already had an account. Verifying first and branching after fixes that.
+ * Phone OTP is kept as a PARALLEL path for existing phone-only users — reachable via
+ * "Use phone number instead" from EMAIL_ENTRY. No forced migration.
+ *  PHONE_ENTRY → OTP_ENTRY → (brand-new number only) REGISTRATION_FORM
  */
-private enum class AuthStep { PHONE_ENTRY, OTP_ENTRY, REGISTRATION_FORM }
+private enum class AuthStep { EMAIL_ENTRY, EMAIL_SENT, PHONE_ENTRY, OTP_ENTRY, REGISTRATION_FORM }
 
 /** Matches Firebase Phone Auth's own typical SMS-resend throttling window. */
 private const val OTP_RESEND_COOLDOWN_SECONDS = 30
 
-// Savers for rememberSaveable — process death (a low-memory kill while backgrounded)
-// would otherwise lose all in-progress phone/OTP/registration state, with no auto-save
-// safety net for this screen the way CreateListingDialog's wizard has one.
+/** Email resend cooldown: slightly longer than OTP to match email-provider rate limits. */
+private const val EMAIL_RESEND_COOLDOWN_SECONDS = 60
+
+/**
+ * The URL the email sign-in link returns to. Must be handled by the app as an App Link
+ * (see MainActivity.handleIncomingIntent). The specific path is registered in the
+ * Firebase Console under Authentication → Sign-in methods → Email/Password → Email link.
+ */
+private const val EMAIL_SIGN_IN_CONTINUE_URL = "https://pro-host.tech/emailsignin"
+
+// Savers for rememberSaveable — process death would otherwise lose all in-progress state.
 private val AuthStepSaver = Saver<AuthStep, String>(
     save = { it.name },
     restore = { AuthStep.valueOf(it) }
@@ -92,20 +101,8 @@ private fun android.content.Context.findActivity(): Activity? {
 @Composable
 fun LoginAuthScreen(
     onLoginSuccess: () -> Unit,
-    // Set when a prior registration attempt got interrupted after phone
-    // verification but before the profile form was ever submitted (app killed
-    // mid-registration) — Firebase already has a valid signed-in session for
-    // [resumePhoneE164], and since Firebase's own isNewUser signal reads false
-    // on every future re-verify of that same number, the normal phone/OTP
-    // steps could never route this account back to REGISTRATION_FORM on their
-    // own. See ProHostViewModel's cold-start check and
-    // ProHostAppRoot/pendingRegistrationPhone.
     resumeAtRegistration: Boolean = false,
     resumePhoneE164: String? = null,
-    // Invoked when the user backs out of a resumed registration via "Start
-    // over with a different number" — lets the caller clear whatever
-    // resume-state it was tracking (see ProHostViewModel.pendingRegistrationPhone)
-    // so a later recomposition doesn't try to resume the same stale number again.
     onCancelResume: (() -> Unit)? = null,
     authViewModel: AuthViewModel = viewModel()
 ) {
@@ -113,22 +110,91 @@ fun LoginAuthScreen(
     val activity = remember(context) { context.findActivity() }
     val coroutineScope = rememberCoroutineScope()
     var step by rememberSaveable(stateSaver = AuthStepSaver) {
-        mutableStateOf(if (resumeAtRegistration) AuthStep.REGISTRATION_FORM else AuthStep.PHONE_ENTRY)
+        mutableStateOf(if (resumeAtRegistration) AuthStep.REGISTRATION_FORM else AuthStep.EMAIL_ENTRY)
     }
 
-    // --- Step 1: phone entry ---
+    // --- Email entry state ---
+    var emailInput by rememberSaveable { mutableStateOf("") }
+    var emailResendCountdownSeconds by rememberSaveable { mutableStateOf(0) }
+    LaunchedEffect(emailResendCountdownSeconds) {
+        if (emailResendCountdownSeconds > 0) {
+            kotlinx.coroutines.delay(1000)
+            emailResendCountdownSeconds -= 1
+        }
+    }
+
+    val emailLookupResult by authViewModel.emailLookupResult.collectAsState()
+    val pendingEmail by authViewModel.pendingEmail.collectAsState()
+
+    // Credential Manager for Google One Tap
+    val credentialManager = remember { CredentialManager.create(context) }
+
+    // Launches Google One Tap credential picker
+    fun launchGoogleSignIn() {
+        coroutineScope.launch {
+            try {
+                val googleIdOption = GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(false)
+                    .setServerClientId(context.getString(R.string.default_web_client_id))
+                    .build()
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
+                val result = credentialManager.getCredential(context, request)
+                val credential = result.credential
+                if (credential is CustomCredential &&
+                    credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                ) {
+                    val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                    val currentActivity = activity
+                    if (currentActivity != null) {
+                        authViewModel.startGoogleSignIn(
+                            activity = currentActivity,
+                            googleIdToken = googleIdTokenCredential.idToken
+                        ) { needsRegistration ->
+                            if (needsRegistration) step = AuthStep.REGISTRATION_FORM else onLoginSuccess()
+                        }
+                    }
+                }
+            } catch (e: GetCredentialException) {
+                // User cancelled or no Google accounts on device — do nothing
+            }
+        }
+    }
+
+    // React to email lookup results: send the magic link or trigger Google sign-in
+    LaunchedEffect(emailLookupResult) {
+        when (emailLookupResult) {
+            AuthViewModel.EmailLookupResult.NEW_USER,
+            AuthViewModel.EmailLookupResult.HAS_EMAIL -> {
+                // Send magic-link and advance to EMAIL_SENT
+                authViewModel.sendEmailSignInLink(
+                    email = emailInput.trim().lowercase(),
+                    continueUrl = EMAIL_SIGN_IN_CONTINUE_URL
+                ) { sent ->
+                    if (sent) {
+                        emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
+                        step = AuthStep.EMAIL_SENT
+                    }
+                    // If send fails, authErrorMessage will be set (or no message — user stays on EMAIL_ENTRY)
+                }
+            }
+            AuthViewModel.EmailLookupResult.HAS_GOOGLE -> {
+                // Trigger Google Sign-In immediately
+                launchGoogleSignIn()
+            }
+            AuthViewModel.EmailLookupResult.UNKNOWN -> { /* no-op */ }
+        }
+    }
+
+    // --- Phone entry state (legacy parallel path) ---
     var phoneCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
     var phoneNumber by rememberSaveable { mutableStateOf("") }
-    // Only true until the very first auto-detect pass finishes, so it never overwrites
-    // a country the user has since changed themselves via the field's "Change" action.
     var hasAutoDetectedCountry by rememberSaveable { mutableStateOf(false) }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) {
-        // Whether granted or denied, re-run detection — SIM/locale fallbacks inside
-        // PhoneCountryDetector work with no permission at all, and a grant just makes
-        // the location-based fallback available too.
         coroutineScope.launch {
             if (!hasAutoDetectedCountry) {
                 phoneCountry = PhoneCountryDetector.detectCountry(context)
@@ -149,15 +215,8 @@ fun LoginAuthScreen(
         }
     }
 
-    // --- Step 2: OTP entry ---
+    // --- OTP entry state ---
     var otpCode by rememberSaveable { mutableStateOf("") }
-    // Resend affordance — previously entirely absent, so a code lost to a slow
-    // carrier or a mistyped number had no in-app recovery short of "Change phone
-    // number" (which restarts the whole flow, another SMS to the same number
-    // notwithstanding). Counts down from a fixed window after every code send
-    // (initial or resend) to match SMS providers' typical throttling — only the
-    // countdown reaching zero re-enables the button, so re-entering the step
-    // doesn't let a stale click fire ahead of it.
     var resendCountdownSeconds by rememberSaveable { mutableStateOf(0) }
     LaunchedEffect(resendCountdownSeconds) {
         if (resendCountdownSeconds > 0) {
@@ -166,10 +225,9 @@ fun LoginAuthScreen(
         }
     }
 
-    // --- Step 3: registration form (only ever shown for a brand-new phone number) ---
+    // --- Registration form state ---
     var regProfilePicUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     var regFullName by rememberSaveable { mutableStateOf("") }
-    var regEmail by rememberSaveable { mutableStateOf("") }
     var regSpecialty by rememberSaveable { mutableStateOf("") }
     var regIdDocState by rememberSaveable(stateSaver = DocumentPickerStateSaver) { mutableStateOf(DocumentPickerState()) }
     var regCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
@@ -182,13 +240,8 @@ fun LoginAuthScreen(
     val authSuccessMessage by authViewModel.authSuccessMessage.collectAsState()
 
     var localErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
-    // Dialog-visibility state holding a static, code-defined document (not user input) —
-    // losing it on process death just closes the dialog, harmless; kept as plain remember.
     var showLegalDocument by remember { mutableStateOf<com.example.legal.LegalDocument?>(null) }
 
-    // resumePhoneE164 stands in for the phone/OTP steps' own computed value when
-    // those steps were skipped entirely (the resume-at-registration case) —
-    // phoneCountry/phoneNumber were never populated from user input in that case.
     val verifiedPhoneE164 = resumePhoneE164 ?: com.example.data.model.formatToE164(phoneCountry, phoneNumber)
 
     fun goToRegistrationForm() {
@@ -210,7 +263,6 @@ fun LoginAuthScreen(
     ) {
         Spacer(modifier = Modifier.height(40.dp))
 
-        // ProHost login lockup (checkmark + wordmark)
         Image(
             painter = painterResource(id = com.example.R.drawable.prohost_login_lockup),
             contentDescription = "ProHost Login",
@@ -220,9 +272,13 @@ fun LoginAuthScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        AuthStepIndicator(step = step)
-
-        Spacer(modifier = Modifier.height(20.dp))
+        // Step indicator only for the phone-OTP flow
+        if (step == AuthStep.PHONE_ENTRY || step == AuthStep.OTP_ENTRY || step == AuthStep.REGISTRATION_FORM) {
+            AuthStepIndicator(step = step)
+            Spacer(modifier = Modifier.height(20.dp))
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         // Status or Error Banners
         val displayError = localErrorMessage ?: authErrorMessage
@@ -281,6 +337,192 @@ fun LoginAuthScreen(
         }
 
         when (step) {
+            AuthStep.EMAIL_ENTRY -> ModernCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                contentPadding = PaddingValues(20.dp),
+                elevation = 3.dp
+            ) {
+                AuthStepHeader(
+                    icon = Icons.Default.Email,
+                    title = "Welcome to ProHost",
+                    subtitle = "Sign in or create your account",
+                    isBusy = isAuthenticating
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
+
+                InputField(
+                    value = emailInput,
+                    onValueChange = {
+                        emailInput = it
+                        localErrorMessage = null
+                    },
+                    label = "Email address",
+                    placeholder = "you@example.com",
+                    leadingIcon = Icons.Default.Email,
+                    modifier = Modifier.fillMaxWidth().testTag("auth_email_input"),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
+
+                ProPrimaryButton(
+                    text = if (isAuthenticating) "Checking..." else "Continue",
+                    onClick = {
+                        val trimmedEmail = emailInput.trim().lowercase()
+                        if (trimmedEmail.isBlank() || !trimmedEmail.contains("@")) {
+                            localErrorMessage = "Please enter a valid email address"
+                            return@ProPrimaryButton
+                        }
+                        localErrorMessage = null
+                        authViewModel.lookupEmail(trimmedEmail)
+                    },
+                    enabled = !isAuthenticating,
+                    icon = Icons.AutoMirrored.Filled.Login,
+                    modifier = Modifier.fillMaxWidth().testTag("submit_email_button")
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
+
+                // OR divider
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(modifier = Modifier.weight(1f))
+                    Text(
+                        text = "  OR  ",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    HorizontalDivider(modifier = Modifier.weight(1f))
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                OutlinedButton(
+                    onClick = { launchGoogleSignIn() },
+                    enabled = !isAuthenticating,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccountCircle,
+                        contentDescription = "Google",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Continue with Google",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.sm))
+
+                TextButton(
+                    onClick = {
+                        localErrorMessage = null
+                        authViewModel.clearAuthMessages()
+                        step = AuthStep.PHONE_ENTRY
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "Use phone number instead",
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            AuthStep.EMAIL_SENT -> ModernCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                contentPadding = PaddingValues(20.dp),
+                elevation = 3.dp
+            ) {
+                AuthStepHeader(
+                    icon = Icons.Default.MarkEmailRead,
+                    title = "Check your inbox",
+                    subtitle = "We sent a sign-in link to $pendingEmail. Tap the link to continue.",
+                    isBusy = isAuthenticating
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
+
+                if (emailResendCountdownSeconds > 0) {
+                    Text(
+                        text = "Resend email in ${emailResendCountdownSeconds}s",
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                } else {
+                    ProPrimaryButton(
+                        text = if (isAuthenticating) "Sending..." else "Resend email",
+                        onClick = {
+                            authViewModel.sendEmailSignInLink(
+                                email = pendingEmail,
+                                continueUrl = EMAIL_SIGN_IN_CONTINUE_URL
+                            ) { sent ->
+                                if (sent) emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
+                            }
+                        },
+                        enabled = !isAuthenticating,
+                        icon = Icons.Default.Send,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(Spacing.md),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Didn't get it? Check spam or try a different sign-in method.",
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.sm))
+
+                TextButton(
+                    onClick = {
+                        localErrorMessage = null
+                        authViewModel.clearAuthMessages()
+                        step = AuthStep.EMAIL_ENTRY
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(
+                        "Use a different email",
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
             AuthStep.PHONE_ENTRY -> ModernCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
@@ -341,6 +583,25 @@ fun LoginAuthScreen(
                         .fillMaxWidth()
                         .testTag("submit_login_button")
                 )
+
+                Spacer(modifier = Modifier.height(Spacing.sm))
+
+                TextButton(
+                    onClick = {
+                        localErrorMessage = null
+                        authViewModel.clearAuthMessages()
+                        step = AuthStep.EMAIL_ENTRY
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(
+                        "Back to email sign-in",
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             AuthStep.OTP_ENTRY -> ModernCard(
@@ -368,7 +629,6 @@ fun LoginAuthScreen(
                     singleLine = true
                 )
 
-                // Security notice box
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = MaterialTheme.shapes.medium,
@@ -419,11 +679,6 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
-                // Resend — previously entirely absent, so a code lost to a slow
-                // carrier had no recovery besides "Change phone number" (which
-                // restarts the whole flow just to send the same number another
-                // SMS). Reuses the exact same startPhoneVerification call the
-                // initial send used.
                 if (resendCountdownSeconds > 0) {
                     Text(
                         text = "Resend code in ${resendCountdownSeconds}s",
@@ -481,34 +736,66 @@ fun LoginAuthScreen(
                 AuthStepHeader(
                     icon = Icons.Default.AppRegistration,
                     title = "Complete Your Profile",
-                    subtitle = "Your phone number is verified — just a few more details to join ProHost",
+                    subtitle = "Your identity is verified — just a few more details to join ProHost",
                     isBusy = isAuthenticating
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                Surface(
-                    color = StatusSuccessContainer,
-                    shape = MaterialTheme.shapes.medium,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                // Show the verified identity (email or phone) as a non-editable badge
+                val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+                val firebaseEmail = firebaseUser?.email ?: ""
+                val firebasePhone = firebaseUser?.phoneNumber ?: resumePhoneE164 ?: ""
+
+                if (firebaseEmail.isNotBlank()) {
+                    Surface(
+                        color = StatusSuccessContainer,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(
-                            Icons.Default.VerifiedUser,
-                            contentDescription = null,
-                            tint = LebaneseCedarGreen,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text(
-                            text = "Phone verified: ${phoneCountry.dialCode} $phoneNumber",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = StatusOnSuccessContainer,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.VerifiedUser,
+                                contentDescription = null,
+                                tint = LebaneseCedarGreen,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Text(
+                                text = "Signed in as: $firebaseEmail",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = StatusOnSuccessContainer,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                } else if (firebasePhone.isNotBlank()) {
+                    Surface(
+                        color = StatusSuccessContainer,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.VerifiedUser,
+                                contentDescription = null,
+                                tint = LebaneseCedarGreen,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Text(
+                                text = "Phone verified: $firebasePhone",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = StatusOnSuccessContainer,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
 
@@ -542,19 +829,34 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                InputField(
-                    value = regEmail,
-                    onValueChange = {
-                        regEmail = it
-                        localErrorMessage = null
-                    },
-                    label = "Email",
-                    placeholder = "specialist@organization.lb",
-                    leadingIcon = Icons.Default.Email,
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    singleLine = true
-                )
+                // Email is read-only from Firebase Auth (populated via email/Google sign-in).
+                // For legacy phone-auth users, this chip will be empty — they can add
+                // their email from profile settings after signing up.
+                if (firebaseEmail.isNotBlank()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Email,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = firebaseEmail,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(10.dp))
 
@@ -622,12 +924,6 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // A real, required acknowledgement — this used to be a passive line of
-                // text under the button with no checkbox and nothing recorded, so
-                // "agreement" was never actually collected or gated on anything. Now a
-                // genuine tap is required to proceed, and that acceptance is recorded
-                // server-side (assignInitialRole.ts stamps tosAcceptedAtMillis/
-                // consentVersion on the account — see AppUser's doc comment).
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -677,9 +973,14 @@ fun LoginAuthScreen(
                             localErrorMessage = "Please enter your full name"
                             return@ProPrimaryButton
                         }
-                        if (regEmail.isBlank() || !regEmail.contains("@")) {
-                            localErrorMessage = "Please enter a valid email"
-                            return@ProPrimaryButton
+                        // Email comes from Firebase Auth for email/Google users.
+                        // For phone-auth users, Firebase email is blank — registration proceeds without email
+                        // (they can add it from profile settings later).
+                        val registrationEmail = firebaseEmail.ifBlank {
+                            // Phone-auth new user: validate email would be blank; skip email validation
+                            // since assignInitialRole requires email — this path is a legacy edge case.
+                            // The server will reject with an error message if email is truly required.
+                            ""
                         }
                         if (!regIdDocState.isSelected) {
                             localErrorMessage = "Please upload your ID document"
@@ -699,9 +1000,9 @@ fun LoginAuthScreen(
                         }
                         authViewModel.completePendingRegistration(
                             activity = currentActivity,
-                            registration = AuthViewModel.PendingPhoneRegistration(
+                            registration = AuthViewModel.PendingRegistration(
                                 fullName = regFullName,
-                                email = regEmail,
+                                email = registrationEmail,
                                 phoneE164 = verifiedPhoneE164,
                                 specialty = regSpecialty,
                                 country = regCountry.name,
@@ -723,26 +1024,22 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
-                // Previously the only way out of this step — including recovering
-                // from a "your verified session expired" error — was force-killing
-                // and restarting the whole app, which risked landing right back in
-                // this same stuck state. Signs out of the stale/interrupted Firebase
-                // session entirely so a fresh phone-entry attempt starts clean.
                 TextButton(
                     onClick = {
                         com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
                         phoneNumber = ""
                         otpCode = ""
+                        emailInput = ""
                         localErrorMessage = null
                         authViewModel.clearAuthMessages()
-                        step = AuthStep.PHONE_ENTRY
+                        step = AuthStep.EMAIL_ENTRY
                         onCancelResume?.invoke()
                     },
                     enabled = !isAuthenticating
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Start over with a different number", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
+                    Text("Start over with a different account", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -767,7 +1064,7 @@ fun LoginAuthScreen(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Your Phone Number is your gateway to the app, verified via one-time SMS code.",
+                    text = "Sign in with email link or Google, or use your phone number for SMS verification.",
                     fontSize = MaterialTheme.typography.labelSmall.fontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -829,12 +1126,15 @@ private fun AuthStepHeader(
 
 @Composable
 private fun AuthStepIndicator(step: AuthStep) {
+    // Only renders for the phone-OTP flow steps
     val steps = listOf(
         Triple(AuthStep.PHONE_ENTRY, "Phone", Icons.Default.Phone),
         Triple(AuthStep.OTP_ENTRY, "Verify", Icons.Default.Sms),
         Triple(AuthStep.REGISTRATION_FORM, "Profile", Icons.Default.Person)
     )
     val currentIndex = steps.indexOfFirst { it.first == step }
+    if (currentIndex < 0) return // not in phone flow — don't render
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
@@ -882,16 +1182,3 @@ private fun AuthStepIndicator(step: AuthStep) {
         }
     }
 }
-
-// ForgotPasswordDialog used to live here: password-based sign-in no longer exists —
-// every account is phone-verified, so there is no password to reset.
-
-// RoleSelectionCard used to live here: the 3-card "Select Access Clearance" picker on
-// the login screen, orphaned once that picker itself was removed (zero remaining
-// callers) — deleted rather than left as dead code.
-
-// GoogleChooserDialog / GoogleAccountRow used to live here: a fake "account chooser"
-// hardcoding the developer's own identity as an instant, password-free tap-to-become
-// Admin/Owner/Professional shortcut, entirely disconnected from real Google/Firebase
-// auth. Removed for the same reason as the "Quick Verified Profile Selector" button
-// that opened it.

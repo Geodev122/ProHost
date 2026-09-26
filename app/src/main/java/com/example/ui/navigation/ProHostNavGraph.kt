@@ -127,6 +127,22 @@ fun ProHostAppRoot(
     var managingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var activeTabId by remember { mutableStateOf("search_map") }
     var activeDrawerTabDialog by remember { mutableStateOf<String?>(null) }
+
+    // KYC gate: shown as a full-screen overlay when a user with no verified phone
+    // tries to access booking/listing features. Admin is exempt — their identity
+    // is established via admin provisioning, not phone KYC. The gate is shown
+    // in place of the requested tab, not as a dialog on top, so that the user has
+    // a clear "dismiss" path (back button / close icon → returns to where they were).
+    var showKycGate by remember { mutableStateOf(false) }
+    var kycReturnTab by remember { mutableStateOf<String?>(null) }
+
+    /** Tab ids that require a verified phone number. */
+    val kycRequiredTabIds: Set<String> = setOf(
+        AppNavTab.ProfessionalRentals.id,
+        AppNavTab.ManageListings.id,
+        AppNavTab.OwnerRentingProgress.id,
+        AppNavTab.OwnerRentalRequests.id
+    )
     // Non-null while a drawer-only destination is open — a Pro Host destination, or
     // (for Admin, who has no bottom nav at all) Admin Console/Security ID. These
     // render full-screen (no bottom nav, just a top bar with the screen's title +
@@ -158,7 +174,18 @@ fun ProHostAppRoot(
     // regular bottom-nav tab switch — the single place that decides how a given
     // destination id gets shown, used by the drawer, FCM alert taps, the
     // payment-return deep link, and initial role-based routing alike.
+    //
+    // KYC gate: if the user has no verified phone and the target tab requires one,
+    // show the KYC screen instead and remember where to route after completion.
     fun navigateTo(targetTabId: String) {
+        val needsKyc = targetTabId in kycRequiredTabIds &&
+            currentUser?.role != UserRole.ADMIN &&
+            currentUser?.phone.isNullOrBlank()
+        if (needsKyc) {
+            kycReturnTab = targetTabId
+            showKycGate = true
+            return
+        }
         if (targetTabId in FULLSCREEN_TAB_IDS) {
             fullScreenDrawerTab = targetTabId
         } else {
@@ -536,6 +563,23 @@ fun ProHostAppRoot(
                     }
                 }
             }
+        }
+
+        // KYC gate overlay: full-screen phone-verification step shown when a user
+        // without a verified phone tries to access booking/listing features.
+        if (showKycGate) {
+            KycScreen(
+                onKycComplete = {
+                    showKycGate = false
+                    val returnTo = kycReturnTab
+                    kycReturnTab = null
+                    if (returnTo != null) navigateTo(returnTo)
+                },
+                onDismiss = {
+                    showKycGate = false
+                    kycReturnTab = null
+                }
+            )
         }
 
         // Handler for role-based custom dialog sheets

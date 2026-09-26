@@ -167,6 +167,9 @@ dependencies {
   // Sign-In / Credential Manager — removed by design, every account is phone-verified).
   implementation(libs.firebase.auth)
   implementation(libs.firebase.functions)
+  implementation(libs.androidx.credentials)
+  implementation(libs.androidx.credentials.play.services)
+  implementation(libs.google.identity)
   implementation(libs.firebase.appcheck.recaptcha)
   implementation(libs.firebase.appcheck.playintegrity)
   implementation(libs.kotlinx.coroutines.android)

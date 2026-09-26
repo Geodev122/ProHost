@@ -6,8 +6,11 @@ import android.util.Log
 import com.google.android.gms.tasks.Task
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseException
+import com.google.firebase.auth.ActionCodeSettings
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
@@ -18,13 +21,15 @@ import kotlin.coroutines.resumeWithException
 
 sealed class AuthResult {
     data class Success(
-        val firebaseUser: FirebaseUser?,
-        val email: String,
-        val displayName: String?,
+        val firebaseUser: FirebaseUser? = null,
+        val email: String = "",
+        val displayName: String? = null,
         val photoUrl: String? = null,
         val isNewUser: Boolean = false
     ) : AuthResult()
 
+    /** Lightweight failure used by email/Google/phone-link methods. */
+    data class Failure(val message: String) : AuthResult()
     data class Error(val message: String, val throwable: Throwable? = null) : AuthResult()
     data object Cancelled : AuthResult()
 }
@@ -99,8 +104,8 @@ class FirebaseAuthService(private val context: Context) {
             return
         }
 
-        // Fast-path ONLY for explicit QA/developer whitelist numbers
-        if (isTestPhoneNumber(e164PhoneNumber)) {
+        // Fast-path ONLY for explicit QA/developer whitelist numbers — debug builds only
+        if (com.example.BuildConfig.DEBUG && isTestPhoneNumber(e164PhoneNumber)) {
             Log.d(tag, "Using instant test verification for QA number: ${maskPhone(e164PhoneNumber)}")
             val testVerificationId = "TEST-VERIFY-ID-" + e164PhoneNumber.replace("+", "").replace(" ", "")
             onCodeSent(testVerificationId)
@@ -126,9 +131,16 @@ class FirebaseAuthService(private val context: Context) {
                             e.message.orEmpty().contains("quota", ignoreCase = true)
 
                     if (isRateLimited) {
-                        Log.w(tag, "Device rate-limited by Firebase. Activating instant verification fallback.")
-                        val testVerificationId = "TEST-VERIFY-ID-" + e164PhoneNumber.replace("+", "").replace(" ", "")
-                        onCodeSent(testVerificationId)
+                        // Only fall back to synthetic verification in debug builds.
+                        // In release builds, surface the error so the user knows to try again later.
+                        if (com.example.BuildConfig.DEBUG) {
+                            Log.w(tag, "Device rate-limited by Firebase. Activating instant verification fallback (debug only).")
+                            val testVerificationId = "TEST-VERIFY-ID-" + e164PhoneNumber.replace("+", "").replace(" ", "")
+                            onCodeSent(testVerificationId)
+                        } else {
+                            Log.w(tag, "Device rate-limited by Firebase (production — surfacing error).")
+                            onError("Too many verification attempts. Please try again later.")
+                        }
                         return
                     }
 
@@ -254,6 +266,81 @@ class FirebaseAuthService(private val context: Context) {
         if (e164.length <= 4) return "***"
         val visibleSuffix = e164.takeLast(2)
         return "${e164.first()}${"*".repeat(e164.length - 3)}$visibleSuffix"
+    }
+
+    // --- Email / Google sign-in methods ---
+
+    suspend fun signInWithGoogleCredential(googleIdToken: String): AuthResult {
+        val auth = firebaseAuth
+            ?: return AuthResult.Failure("Authentication service unavailable.")
+        return try {
+            val credential = GoogleAuthProvider.getCredential(googleIdToken, null)
+            val result = auth.signInWithCredential(credential).awaitTask()
+            val isNewUser = result.additionalUserInfo?.isNewUser ?: false
+            AuthResult.Success(isNewUser = isNewUser)
+        } catch (e: Exception) {
+            AuthResult.Failure(e.message ?: "Google sign-in failed")
+        }
+    }
+
+    suspend fun sendSignInLinkToEmail(email: String, continueUrl: String): Boolean {
+        val auth = firebaseAuth ?: return false
+        return try {
+            val settings = ActionCodeSettings.newBuilder()
+                .setUrl(continueUrl)
+                .setHandleCodeInApp(true)
+                .setAndroidPackageName("com.example", true, null)
+                .build()
+            auth.sendSignInLinkToEmail(email, settings).awaitTask()
+            true
+        } catch (e: Exception) {
+            Log.w(tag, "sendSignInLinkToEmail failed: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun signInWithEmailLink(email: String, emailLink: String): AuthResult {
+        val auth = firebaseAuth
+            ?: return AuthResult.Failure("Authentication service unavailable.")
+        return try {
+            val result = auth.signInWithEmailLink(email, emailLink).awaitTask()
+            val isNewUser = result.additionalUserInfo?.isNewUser ?: false
+            AuthResult.Success(isNewUser = isNewUser)
+        } catch (e: Exception) {
+            AuthResult.Failure(e.message ?: "Email sign-in failed")
+        }
+    }
+
+    fun isSignInWithEmailLink(link: String): Boolean {
+        return try {
+            firebaseAuth?.isSignInWithEmailLink(link) ?: false
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun linkPhoneCredentialToCurrentUser(credential: PhoneAuthCredential): AuthResult {
+        val auth = firebaseAuth
+            ?: return AuthResult.Failure("Authentication service unavailable.")
+        return try {
+            val user = auth.currentUser ?: return AuthResult.Failure("No signed-in user")
+            user.linkWithCredential(credential).awaitTask()
+            AuthResult.Success(isNewUser = false)
+        } catch (e: FirebaseAuthUserCollisionException) {
+            AuthResult.Failure("This phone number is already linked to another account.")
+        } catch (e: Exception) {
+            AuthResult.Failure(e.message ?: "Phone linking failed")
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    suspend fun fetchSignInMethodsForEmail(email: String): List<String> {
+        val auth = firebaseAuth ?: return emptyList()
+        return try {
+            auth.fetchSignInMethodsForEmail(email).awaitTask().signInMethods ?: emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     fun signOut() {
