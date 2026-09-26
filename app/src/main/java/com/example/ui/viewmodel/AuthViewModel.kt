@@ -52,6 +52,9 @@ class AuthViewModel(
      * Everything the registration form collects, submitted only AFTER the user is
      * already authenticated (phone OTP, email link, or Google). [phoneE164] defaults
      * to "" for email/Google-auth users — phone verification moves to the KYC gate.
+     * Registration never collects a government ID document — that's the KYC flow's
+     * job (KycScreen.kt / KycVerificationDialog.kt), required before a Specialist can
+     * book a space or before upgrading to Pro Host.
      */
     data class PendingRegistration(
         val fullName: String,
@@ -62,7 +65,6 @@ class AuthViewModel(
         val governorate: String,
         val city: String,
         val profilePictureUri: Uri?,
-        val idDocumentUri: Uri? = null,
         // The registration form's Terms of Use / Privacy Policy checkbox must have
         // actually been checked before this reaches here — enforced client-side by
         // the form's own submit gate, and again server-side by assignInitialRole.ts,
@@ -491,9 +493,6 @@ class AuthViewModel(
                 val profilePictureUrl = registration.profilePictureUri?.let { uri ->
                     storageService.uploadProfilePicture(firebaseUser.uid, uri, guessFileExtension(activity, uri, "jpg"))
                 }
-                val idDocumentUrl = registration.idDocumentUri?.let { uri ->
-                    storageService.uploadIdDocument(firebaseUser.uid, uri, guessFileExtension(activity, uri, "pdf"))
-                }
                 val integrityToken = com.example.util.PlayIntegrityManager(activity)
                     .requestIntegrityToken().getOrNull()
                 val user = com.example.data.auth.completeVerifiedRegistration(
@@ -506,7 +505,6 @@ class AuthViewModel(
                         phone = registration.phoneE164,
                         specialty = registration.specialty,
                         profilePictureUrl = profilePictureUrl,
-                        idDocumentUrl = idDocumentUrl,
                         country = registration.country,
                         governorate = registration.governorate,
                         city = registration.city,
@@ -518,7 +516,6 @@ class AuthViewModel(
                 registerFcmTokenForCurrentUser(user.id)
                 val missedUploads = buildList {
                     if (registration.profilePictureUri != null && profilePictureUrl == null) add("profile photo")
-                    if (registration.idDocumentUri != null && idDocumentUrl == null) add("ID document")
                 }
                 _authSuccessMessage.value = if (missedUploads.isEmpty()) {
                     "Account created successfully for ${user.fullName}!"

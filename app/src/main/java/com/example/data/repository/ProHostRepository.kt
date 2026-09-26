@@ -2020,7 +2020,10 @@ class ProHostRepository {
      * [com.example.data.auth.completeVerifiedRegistration]. [isVerified] reflects that
      * [uid]'s Firebase Auth account already completed phone-number SMS verification
      * before this is ever called (see LoginAuthScreen's OTP flow) — there is no admin
-     * accreditation step anymore; [idDocumentUrl] is kept on file, not reviewed.
+     * accreditation step anymore. Registration never collects a government ID document
+     * (that's the KYC flow's job — see [updateIdDocument]); `idDocumentUrl` is also a
+     * Firestore-protected field ([PROTECTED_UPDATE_FIELDS]), so it couldn't be set from
+     * here even if [RegistrationDetails] carried one.
      *
      * Suspend, and its Firestore write is awaited and checked, because of a real bug this
      * fixes: assignInitialRole.ts's Admin-SDK write always lands (and creates the
@@ -2046,7 +2049,6 @@ class ProHostRepository {
             specialty = details.specialty.trim(),
             phone = details.phone.trim(),
             profilePictureUrl = details.profilePictureUrl,
-            idDocumentUrl = details.idDocumentUrl,
             country = details.country.trim(),
             governorate = details.governorate.trim(),
             city = details.city.trim(),

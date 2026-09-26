@@ -2086,7 +2086,7 @@ private fun AdminSchemaArchitectureTab(
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Storage, contentDescription = null, tint = OxfordBlue, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Storage, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
                             text = "Cloud Firestore Collections Contract",

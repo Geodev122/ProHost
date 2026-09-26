@@ -1602,7 +1602,7 @@ fun SpaceDetailsScreenContent(
                         enabled = !isSendingSlotRequest
                     ) {
                         if (isSendingSlotRequest) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                         } else {
                             Text("Send")
                         }

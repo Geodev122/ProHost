@@ -762,7 +762,7 @@ fun LebanonMapCanvas(
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontSize = 8.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color.White,
+                                                color = MaterialTheme.colorScheme.onPrimary,
                                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                             )
                                         }

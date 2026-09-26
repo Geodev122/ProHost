@@ -187,7 +187,7 @@ fun OwnerSubscriptionsScreen(
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text(msg, style = MaterialTheme.typography.bodySmall, color = OxfordBlue)
+                        Text(msg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
                     }
                     IconButton(onClick = { viewModel.clearBillingMessages() }, modifier = Modifier.size(28.dp)) {
                         Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = CoolGray, modifier = Modifier.size(16.dp))
@@ -570,7 +570,7 @@ fun CompactPlanCard(
                         text = plan.badgeName.ifBlank { plan.name },
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
-                        color = if (isCurrent) PureWhite else OxfordBlue,
+                        color = if (isCurrent) PureWhite else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1
                     )
                     if (isCurrent) {
@@ -588,7 +588,7 @@ fun CompactPlanCard(
                 Text(
                     text = "/ month",
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isCurrent) LightGray else CoolGray,
+                    color = if (isCurrent) LightGray else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.offset(y = (-6).dp)
                 )
 
@@ -605,7 +605,7 @@ fun CompactPlanCard(
                     Text(
                         text = plan.listingLimit?.let { "$it listing${if (it == 1) "" else "s"}" } ?: "Unlimited",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (isCurrent) PureWhite else OxfordBlue,
+                        color = if (isCurrent) PureWhite else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -614,7 +614,7 @@ fun CompactPlanCard(
                     Text(
                         text = plan.description,
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (isCurrent) LightGray else CoolGray,
+                        color = if (isCurrent) LightGray else MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2
                     )
                 }

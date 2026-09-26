@@ -25,8 +25,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.ui.theme.OxfordBlue
-import com.example.ui.theme.OxfordBlueContainer
 import com.example.ui.theme.Spacing
 
 /**
@@ -83,10 +81,16 @@ fun DocumentPickerField(
                 .clip(MaterialTheme.shapes.medium)
                 .border(
                     width = 1.5.dp,
-                    color = if (state.isSelected) OxfordBlue else MaterialTheme.colorScheme.outlineVariant,
+                    color = if (state.isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                     shape = MaterialTheme.shapes.medium
                 )
-                .background(if (state.isSelected) OxfordBlueContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                .background(
+                    if (state.isSelected) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                    }
+                )
                 .clickable { filePickerLauncher.launch("application/pdf,image/*") },
             shape = MaterialTheme.shapes.medium
         ) {
@@ -111,7 +115,7 @@ fun DocumentPickerField(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(Icons.Default.Description, contentDescription = null, tint = OxfordBlue, modifier = Modifier.size(28.dp))
+                    Icon(Icons.Default.Description, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                     Text(
                         text = state.fileName ?: "Document selected",
                         style = MaterialTheme.typography.bodyMedium,
@@ -154,8 +158,8 @@ fun ProfilePicturePickerField(
         modifier = modifier
             .size(88.dp)
             .clip(CircleShape)
-            .background(OxfordBlueContainer.copy(alpha = 0.4f))
-            .border(1.5.dp, OxfordBlue, CircleShape)
+            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
+            .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
             .clickable { pickerLauncher.launch("image/*") },
         contentAlignment = Alignment.Center
     ) {
@@ -169,7 +173,12 @@ fun ProfilePicturePickerField(
             )
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Default.AddAPhoto, contentDescription = "Add profile picture", tint = OxfordBlue, modifier = Modifier.size(26.dp))
+                Icon(
+                    Icons.Default.AddAPhoto,
+                    contentDescription = "Add profile picture",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(26.dp)
+                )
             }
         }
     }
