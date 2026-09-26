@@ -419,22 +419,6 @@ fun LoginAuthScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                TextButton(
-                    onClick = {
-                        localErrorMessage = null
-                        authViewModel.clearAuthMessages()
-                        step = AuthStep.PHONE_ENTRY
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        "Use phone number instead",
-                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
             }
 
             AuthStep.EMAIL_SENT -> ModernCard(
@@ -1064,7 +1048,7 @@ fun LoginAuthScreen(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Sign in with email link or Google, or use your phone number for SMS verification.",
+                    text = "Sign in securely with a magic email link or your Google account.",
                     fontSize = MaterialTheme.typography.labelSmall.fontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
