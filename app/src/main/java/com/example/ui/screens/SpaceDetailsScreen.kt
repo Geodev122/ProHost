@@ -329,6 +329,7 @@ fun SpaceDetailsScreenContent(
                     color = MaterialTheme.colorScheme.surface,
                     tonalElevation = 10.dp,
                     shadowElevation = 8.dp,
+                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
@@ -360,7 +361,8 @@ fun SpaceDetailsScreenContent(
                         if (currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN) {
                             Surface(
                                 color = MaterialTheme.colorScheme.secondaryContainer,
-                                shape = MaterialTheme.shapes.medium
+                                shape = MaterialTheme.shapes.medium,
+                                modifier = Modifier.weight(1.5f)
                             ) {
                                 Text(
                                     text = "Preview Mode",
@@ -375,10 +377,11 @@ fun SpaceDetailsScreenContent(
                                 onClick = onWhatsAppClick,
                                 shape = MaterialTheme.shapes.medium,
                                 colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
                             ) {
                                 Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     "WhatsApp",
                                     color = Color.White,
@@ -642,62 +645,72 @@ fun SpaceDetailsScreenContent(
                     acceptedBookings = acceptedBookings
                 )
 
-                // Renting Options — one card per subdivision (or one "Whole Space" card)
+                // Rental Options — one card per configured subdivision (or a single
+                // "Whole Space" card when no subdivisions are set up). Tapping an
+                // available card pre-selects that subdivision and opens the availability sheet.
                 ProSurfaceCard {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         ProSectionHeader(
-                            title = "Renting Options",
-                            subtitle = "Tap a space to see live availability",
+                            title = "Rental Options",
+                            subtitle = if (liveSpace.subdivisions.isNotEmpty())
+                                "${liveSpace.subdivisions.size} space${if (liveSpace.subdivisions.size == 1) "" else "s"} available — tap to see availability"
+                            else
+                                "Tap the card to check live availability",
                             icon = Icons.Default.Tune
                         )
-                        val subdivisionCards = liveSpace.subdivisions.takeIf { it.isNotEmpty() }
-                        if (subdivisionCards != null) {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                subdivisionCards.forEach { sub ->
-                                    val subSlots = remember(availableSlots, sub.id) {
-                                        availableSlots.filter { it.sourceFormulaId == sub.id }
-                                    }
-                                    SubdivisionRentalCard(
-                                        subdivision = sub,
-                                        slots = subSlots,
-                                        spaceId = liveSpace.id,
-                                        acceptedBookings = acceptedBookings,
-                                        onClick = {
-                                            selectedSubdivisionId = sub.id
-                                            availabilityPanelState = "peek"
-                                        }
-                                    )
+
+                        if (liveSpace.subdivisions.isEmpty()) {
+                            // Whole-Space card
+                            val wholeSpaceSlots = availableSlots
+                            val allLocked = wholeSpaceSlots.isNotEmpty() && wholeSpaceSlots.all { SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
+                            val priceSummary = run {
+                                val st = strategyPreviewGroups.firstOrNull()?.first
+                                when (st) {
+                                    RentalStrategyType.MONTHLY -> "$${liveSpace.pricing.monthly?.rateUsd?.toInt() ?: liveSpace.baseMonthlyRateUsd.toInt()}/mo"
+                                    RentalStrategyType.HOURLY -> "from $${liveSpace.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0}/hr"
+                                    RentalStrategyType.SHIFT_BASED -> "from $${liveSpace.pricing.shiftBased?.shifts?.filter { !it.isUnavailable }?.minOfOrNull { it.price }?.toInt() ?: 0}/shift"
+                                    RentalStrategyType.DAY_BASED -> "from $${liveSpace.pricing.dayBased?.distribution?.values?.minOfOrNull { it.price }?.toInt() ?: 0}/day"
+                                    null -> "$${liveSpace.baseMonthlyRateUsd.toInt()}/mo"
                                 }
                             }
-                        } else {
-                            // Whole-space fallback card
-                            val wholeSlots = availableSlots.filter { !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable(enabled = wholeSlots.isNotEmpty()) { availabilityPanelState = "peek" },
-                                shape = MaterialTheme.shapes.medium,
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                            ) {
-                                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Text("Whole Space", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                                    if (liveSpace.essentialFacilities.isNotEmpty()) {
-                                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                            items(liveSpace.essentialFacilities.take(3)) { f ->
-                                                SuggestionChip(onClick = {}, label = { Text(f, style = MaterialTheme.typography.labelSmall) })
-                                            }
-                                        }
-                                    }
-                                    if (wholeSlots.isEmpty()) {
-                                        Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.small) {
-                                            Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.Lock, null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onErrorContainer)
-                                                Spacer(Modifier.width(4.dp))
-                                                Text("Currently Occupied", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onErrorContainer)
-                                            }
-                                        }
-                                    }
+                            SubdivisionRentalCard(
+                                name = liveSpace.title,
+                                typeBadge = "Whole Space",
+                                imageUrls = liveSpace.imageUrls,
+                                amenities = liveSpace.essentialFacilities,
+                                hashtags = emptyList(),
+                                priceSummary = priceSummary,
+                                isOccupied = allLocked,
+                                onClick = {
+                                    selectedSubdivisionId = null
+                                    availabilityPanelState = "peek"
                                 }
+                            )
+                        } else {
+                            liveSpace.subdivisions.forEach { sub ->
+                                val subSlots = availableSlots.filter { it.sourceFormulaId == sub.id }
+                                val isOccupied = subSlots.isNotEmpty() && subSlots.all { SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
+                                val priceSummary = when (sub.pricing.strategyType) {
+                                    RentalStrategyType.MONTHLY -> "$${sub.pricing.monthly?.rateUsd?.toInt() ?: 0}/mo"
+                                    RentalStrategyType.HOURLY -> "from $${sub.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0}/hr"
+                                    RentalStrategyType.SHIFT_BASED -> "from $${sub.pricing.shiftBased?.shifts?.filter { !it.isUnavailable }?.minOfOrNull { it.price }?.toInt() ?: 0}/shift"
+                                    RentalStrategyType.DAY_BASED -> "from $${sub.pricing.dayBased?.distribution?.values?.minOfOrNull { it.price }?.toInt() ?: 0}/day"
+                                }
+                                SubdivisionRentalCard(
+                                    name = sub.name,
+                                    typeBadge = sub.type.displayName,
+                                    imageUrls = sub.imageUrls,
+                                    amenities = sub.amenities,
+                                    hashtags = sub.hashtags,
+                                    priceSummary = "${sub.pricing.strategyType.displayName} · $priceSummary",
+                                    isOccupied = isOccupied,
+                                    onClick = {
+                                        val formula = SpaceCalculationUtils.representativeFormula(subSlots, BookingRecurrence.FLAT)
+                                        if (formula != null) onSelectFormula(formula)
+                                        selectedSubdivisionId = sub.id
+                                        availabilityPanelState = "peek"
+                                    }
+                                )
                             }
                         }
                     }
@@ -883,7 +896,7 @@ fun SpaceDetailsScreenContent(
             if (synced) {
                 selectedSlots = emptySet()
                 selectedHoursPerDay = emptyMap()
-                showAvailabilityPanel = false
+                availabilityPanelState = "hidden"
                 val result = snackbarHostState.showSnackbar(
                     message = "Request sent! The host has been notified.",
                     actionLabel = "WhatsApp Host",
@@ -1493,53 +1506,59 @@ fun SpaceDetailsScreenContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SubdivisionRentalCard(
-    subdivision: Subdivision,
-    slots: List<RentableSlot>,
-    spaceId: String,
-    acceptedBookings: List<RentalBookingRequest>,
+    name: String,
+    typeBadge: String,
+    imageUrls: List<String>,
+    amenities: List<String>,
+    hashtags: List<String>,
+    priceSummary: String,
+    isOccupied: Boolean,
     onClick: () -> Unit
 ) {
-    val occupied = remember(slots, acceptedBookings) {
-        slots.isNotEmpty() && slots.all { SpaceCalculationUtils.isSlotLocked(it, spaceId, acceptedBookings) }
-    }
-
-    Card(
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = !occupied, onClick = onClick),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            .then(if (!isOccupied) Modifier.clickable(onClick = onClick) else Modifier)
     ) {
         Box {
             Column {
-                // Photo carousel / placeholder
-                if (subdivision.imageUrls.isNotEmpty()) {
-                    val pagerState = rememberPagerState { subdivision.imageUrls.size }
-                    Box(modifier = Modifier.fillMaxWidth().height(130.dp)) {
+                // Photo carousel
+                if (imageUrls.isNotEmpty()) {
+                    val pagerState = rememberPagerState(pageCount = { imageUrls.size })
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(130.dp)
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                    ) {
                         HorizontalPager(state = pagerState) { page ->
                             coil.compose.AsyncImage(
-                                model = subdivision.imageUrls[page],
-                                contentDescription = null,
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize().clip(
-                                    RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                                )
+                                model = imageUrls[page],
+                                contentDescription = name,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
                             )
                         }
-                        if (subdivision.imageUrls.size > 1) {
+                        if (imageUrls.size > 1) {
                             Row(
-                                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 6.dp),
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 6.dp),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                repeat(subdivision.imageUrls.size) { i ->
-                                    Surface(
-                                        modifier = Modifier.size(if (i == pagerState.currentPage) 8.dp else 6.dp),
-                                        shape = CircleShape,
-                                        color = if (i == pagerState.currentPage) Color.White else Color.White.copy(alpha = 0.5f)
-                                    ) {}
+                                repeat(imageUrls.size) { index ->
+                                    Box(
+                                        modifier = Modifier
+                                            .size(if (pagerState.currentPage == index) 6.dp else 4.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.White.copy(alpha = if (pagerState.currentPage == index) 1f else 0.5f))
+                                    )
                                 }
                             }
                         }
@@ -1549,94 +1568,152 @@ private fun SubdivisionRentalCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(80.dp)
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primaryContainer,
-                                        MaterialTheme.colorScheme.secondaryContainer
-                                    )
-                                ),
-                                shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                            )
-                    )
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                            .background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.secondaryContainer)))
+                    ) {
+                        Icon(
+                            Icons.Default.Business,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.4f),
+                            modifier = Modifier.align(Alignment.Center).size(32.dp)
+                        )
+                    }
                 }
 
                 Column(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Name + type badge
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Text(
-                            subdivision.name,
+                            name,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
-                        SuggestionChip(
-                            onClick = {},
-                            label = { Text(subdivision.type.displayName, style = MaterialTheme.typography.labelSmall) }
-                        )
+                        Surface(
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = MaterialTheme.shapes.extraSmall
+                        ) {
+                            Text(
+                                typeBadge,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
                     }
 
-                    if (subdivision.amenities.isNotEmpty()) {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            val visible = subdivision.amenities.take(3)
-                            val extra = subdivision.amenities.size - visible.size
+                    // Pricing
+                    Text(
+                        priceSummary,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = CarnationOrange
+                    )
+
+                    // Amenities chips (first 3 + overflow)
+                    if (amenities.isNotEmpty()) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            val visible = amenities.take(3)
+                            val overflow = amenities.size - visible.size
                             items(visible) { a ->
-                                SuggestionChip(onClick = {}, label = { Text(a, style = MaterialTheme.typography.labelSmall) })
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surface,
+                                    shape = MaterialTheme.shapes.extraSmall,
+                                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                                ) {
+                                    Text(
+                                        a,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        maxLines = 1
+                                    )
+                                }
                             }
-                            if (extra > 0) {
-                                item { SuggestionChip(onClick = {}, label = { Text("+$extra more", style = MaterialTheme.typography.labelSmall) }) }
+                            if (overflow > 0) {
+                                item {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        shape = MaterialTheme.shapes.extraSmall
+                                    ) {
+                                        Text(
+                                            "+$overflow more",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
 
-                    if (subdivision.hashtags.isNotEmpty()) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            subdivision.hashtags.take(2).forEach { tag ->
-                                Surface(color = MaterialTheme.colorScheme.tertiaryContainer, shape = MaterialTheme.shapes.small) {
-                                    Text("#$tag", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                    // Hashtag chips (first 2 + overflow)
+                    if (hashtags.isNotEmpty()) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            val visible = hashtags.take(2)
+                            val overflow = hashtags.size - visible.size
+                            items(visible) { tag ->
+                                Surface(
+                                    color = ProTealContainer,
+                                    shape = MaterialTheme.shapes.extraSmall
+                                ) {
+                                    Text(
+                                        "#$tag",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = ProOnTealContainer,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
                                 }
                             }
-                            val extra = subdivision.hashtags.size - 2
-                            if (extra > 0) {
-                                Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small) {
-                                    Text("[$extra more]", style = MaterialTheme.typography.labelSmall,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                            if (overflow > 0) {
+                                item {
+                                    Surface(
+                                        color = ProTealContainer.copy(alpha = 0.5f),
+                                        shape = MaterialTheme.shapes.extraSmall
+                                    ) {
+                                        Text(
+                                            "[$overflow more]",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = ProOnTealContainer,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-
-                    val pricingSummary = run {
-                        val p = subdivision.pricing
-                        val strats = subdivision.rentalStrategies
-                        when {
-                            strats.any { it.strategy == RentalStrategy.SHIFT_BASED } ->
-                                "Shift · \$${"%.0f".format(strats.first { it.strategy == RentalStrategy.SHIFT_BASED }.rateUsd)}/session"
-                            strats.any { it.strategy == RentalStrategy.HOURLY } ->
-                                "Hourly from \$${"%.0f".format(strats.first { it.strategy == RentalStrategy.HOURLY }.rateUsd)}/hr"
-                            strats.any { it.strategy == RentalStrategy.DAILY } ->
-                                "Day · \$${"%.0f".format(strats.first { it.strategy == RentalStrategy.DAILY }.rateUsd)}/day"
-                            p.monthly?.rateUsd != null -> "Monthly · \$${"%.0f".format(p.monthly!!.rateUsd)}/mo"
-                            else -> "See availability"
-                        }
-                    }
-                    Text(pricingSummary, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = CarnationOrange)
                 }
             }
 
-            if (occupied) {
+            // Occupied overlay
+            if (isOccupied) {
                 Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .background(Color.Black.copy(alpha = 0.55f), shape = MaterialTheme.shapes.medium),
+                        .clip(MaterialTheme.shapes.medium)
+                        .background(Color.Black.copy(alpha = 0.55f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
-                        Text("Currently Occupied", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(
+                            "Currently Occupied",
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }

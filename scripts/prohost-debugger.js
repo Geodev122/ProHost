@@ -532,26 +532,26 @@ function checkRoleGuards() {
 // ─── CHECK 16: Payment flow plumbing ─────────────────────────────────────────
 
 function checkPaymentFlow() {
-  // Check that the Whish payment cloud functions exist somewhere
-  const fnFiles = walkFiles(FN_SRC, '.ts');
-  // Must both: define an export const AND appear in index.ts
-  const hasWhishImpl = fnFiles.some(f => {
-    const c = readSafe(f) || '';
-    return /export\s+const\s+initiateWhishPayment/.test(c) || /export\s+const\s+checkWhishStatus/.test(c);
-  });
-  const indexContent = readSafe(path.join(FN_SRC, 'index.ts')) || '';
-  const indexHasWhish = indexContent.includes('initiateWhishPayment') && indexContent.includes('checkWhishStatus');
+  // Whish payment has been completely replaced by Google Play Billing.
+  // Check that PlayBillingManager.kt exists and is wired into the app.
+  const billingManagerFile = path.join(KT_DATA, 'billing/PlayBillingManager.kt');
+  const clientFile = glob.sync('**/FirebaseFunctionsClient.kt', { cwd: ANDROID_ROOT })[0];
+  const clientContent = clientFile ? (readSafe(path.join(ANDROID_ROOT, clientFile)) || '') : '';
 
-  if (!hasWhishImpl) {
-    bug('CRITICAL','consistency','Payment Functions Missing', 'functions/src/', null,
-      'initiateWhishPayment and checkWhishStatus are called from FirebaseFunctionsClient.kt but NO Cloud Function file in functions/src/ implements them (only referenced in comments). The entire Whish payment flow is broken at runtime.',
-      'Create functions/src/payments/whishPayment.ts implementing both initiateWhishPayment and checkWhishStatus onCall functions, then export them from index.ts.');
-  } else if (!indexHasWhish) {
-    bug('CRITICAL','consistency','Payment Functions Not Exported', 'functions/src/index.ts', null,
-      'Whish payment Cloud Functions are implemented but not exported from index.ts — they are not deployed and will throw at runtime.',
-      'Export initiateWhishPayment and checkWhishStatus from functions/src/index.ts.');
+  const hasBillingManager = !!readSafe(billingManagerFile);
+  const indexContent = readSafe(path.join(FN_SRC, 'index.ts')) || '';
+  const hasRtdnExport = indexContent.includes('playBillingRtdn');
+
+  if (!hasBillingManager) {
+    bug('CRITICAL','consistency','Google Play Billing Manager Missing', 'PlayBillingManager.kt', null,
+      'PlayBillingManager.kt not found — the Pro Host upgrade / subscription purchase flow has no billing implementation.',
+      'Implement PlayBillingManager.kt integrating the Google Play Billing Library.');
+  } else if (!hasRtdnExport) {
+    bug('HIGH','consistency','Play Billing RTDN Not Exported', 'functions/src/index.ts', null,
+      'playBillingRtdn Cloud Function is not exported from index.ts — subscription status updates from Google Play will not be processed.',
+      'Export playBillingRtdn from functions/src/index.ts.');
   } else {
-    pass('Payment Functions', 'Whish payment functions are implemented and exported.');
+    pass('Payment Flow', 'Google Play Billing: PlayBillingManager.kt present and playBillingRtdn is exported.');
   }
 }
 

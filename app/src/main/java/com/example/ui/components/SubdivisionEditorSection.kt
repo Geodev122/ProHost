@@ -91,6 +91,8 @@ fun SubdivisionEditorSection(
     // just follows the whole space's own SpaceOperatingSchedule (the common case).
     // Turning it on seeds from the space's current hours/days so the host is editing
     // a delta (e.g. "this exam room closes at 17:00, not 20:00"), not starting blank.
+    var subHashtags by remember { mutableStateOf(listOf<String>()) }
+    var hashtagInput by remember { mutableStateOf("") }
     var subScheduleOverrideEnabled by remember { mutableStateOf(false) }
     var subOverrideOpeningHour by remember { mutableStateOf(openingHour) }
     var subOverrideClosingHour by remember { mutableStateOf(closingHour) }
@@ -466,7 +468,7 @@ fun SubdivisionEditorSection(
                     )
                     IconButton(
                         onClick = {
-                            val tag = hashtagInput.trim()
+                            val tag = hashtagInput.trim().trimStart('#')
                             if (tag.isNotBlank() && !subHashtags.contains(tag)) {
                                 subHashtags = subHashtags + tag
                             }
