@@ -3,107 +3,186 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Terms of Service — ProHost</title>
-  <meta name="description" content="Official Terms of Service for the ProHost workspace exchange platform.">
+  <title>Terms of Use — ProHost</title>
+  <meta name="description" content="ProHost Terms of Use — the rules, limitations of liability, and indemnification obligations that govern use of the workspace exchange platform.">
   <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #F25F4C;
-      --oxford-blue: #0F172A;
-      --vibrant-blue: #2563EB;
-      --bg-light: #F8FAFC;
-      --card-bg: #FFFFFF;
-      --text-dark: #1E293B;
-      --text-muted: #64748B;
-      --border-color: #E2E8F0;
+      --oxford: #1E293B; --navy: #152EA0; --accent: #E8440A;
+      --bg: #F8F9FA; --card: #FFFFFF; --border: #E2E4E8;
+      --ink: #1E293B; --muted: #5B6472;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background-color: var(--bg-light); color: var(--text-dark); line-height: 1.75; }
-    header { background-color: #FFFFFF; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; }
-    .nav-container { max-width: 1000px; margin: 0 auto; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
-    .brand { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; }
-    .brand img { width: 38px; height: 44px; object-fit: contain; }
-    .brand-title { font-size: 1.4rem; font-weight: 800; }
-    .brand-pro { color: var(--oxford-blue); }
-    .brand-host { color: var(--vibrant-blue); }
-    .nav-links { display: flex; gap: 1.5rem; }
-    .nav-links a { text-decoration: none; color: var(--text-dark); font-weight: 600; font-size: 0.95rem; }
-    .nav-links a:hover { color: var(--primary); }
-    .content-container { max-width: 1000px; margin: 3rem auto; padding: 2.5rem; background-color: var(--card-bg); border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
-    h1 { font-size: 2.2rem; color: var(--oxford-blue); font-weight: 900; margin-bottom: 0.5rem; }
-    .effective-date { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
-    h2 { font-size: 1.35rem; color: var(--oxford-blue); font-weight: 800; margin: 2rem 0 1rem; }
-    p, li { color: #334155; font-size: 1rem; margin-bottom: 1rem; }
-    ul { margin-left: 1.5rem; margin-bottom: 1.5rem; }
-    li { margin-bottom: 0.5rem; }
-    .info-box { background-color: #EFF6FF; border: 1px solid #BFDBFE; padding: 1.5rem; border-radius: 0.75rem; margin-top: 1.5rem; }
-    footer { background-color: var(--oxford-blue); color: #94A3B8; padding: 2.5rem 1.5rem; text-align: center; }
-    footer a { color: #CBD5E1; text-decoration: none; font-weight: 600; margin: 0 0.75rem; }
-    footer a:hover { color: #FFFFFF; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0F172A; --card: #1E293B; --border: #334155;
+        --ink: #E2E8F0; --muted: #94A3B8; color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"] { --bg: #0F172A; --card: #1E293B; --border: #334155; --ink: #E2E8F0; --muted: #94A3B8; color-scheme: dark; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.75; -webkit-font-smoothing: antialiased; }
+    h1, h2, h3 { font-family: 'Manrope', sans-serif; letter-spacing: -0.015em; color: var(--oxford); }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) h1,:root:not([data-theme="light"]) h2,:root:not([data-theme="light"]) h3 { color: var(--ink); } }
+    :root[data-theme="dark"] h1, :root[data-theme="dark"] h2, :root[data-theme="dark"] h3 { color: var(--ink); }
+    a { color: var(--navy); text-decoration: underline; }
+    nav.topbar { position: sticky; top: 0; z-index: 100; background: var(--card); border-bottom: 1px solid var(--border); padding: 0.85rem 1.5rem; display: flex; align-items: center; gap: 1rem; }
+    nav.topbar a.home { display: flex; align-items: center; gap: 0.4rem; font-family: 'Manrope', sans-serif; font-weight: 700; text-decoration: none; color: var(--ink); font-size: 0.92rem; }
+    nav.topbar img { height: 28px; width: auto; }
+    nav.topbar span.sep { color: var(--border); font-size: 1.2rem; }
+    nav.topbar span.title { font-size: 0.92rem; color: var(--muted); }
+    .wrap { max-width: 780px; margin: 0 auto; padding: 3.5rem 1.5rem 5rem; }
+    .doc-head { margin-bottom: 2.5rem; padding-bottom: 1.75rem; border-bottom: 1px solid var(--border); }
+    .doc-head h1 { font-size: clamp(1.7rem, 3vw, 2.2rem); margin-bottom: 0.5rem; }
+    .meta { font-size: 0.86rem; color: var(--muted); }
+    h2 { font-size: 1.2rem; font-weight: 700; margin: 2.25rem 0 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1rem; font-weight: 700; margin: 1.4rem 0 0.4rem; }
+    p { margin-bottom: 0.9rem; font-size: 0.97rem; }
+    ul { margin: 0.5rem 0 0.9rem 1.5rem; }
+    li { font-size: 0.97rem; margin-bottom: 0.4rem; }
+    .callout { background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--navy); border-radius: 0.6rem; padding: 1.1rem 1.2rem; margin: 1.2rem 0; }
+    .callout.warn { border-left-color: var(--accent); }
+    .callout p { margin: 0; font-size: 0.93rem; }
+    .caps { font-size: 0.93rem; font-weight: 600; }
+    .contact-box { margin-top: 2rem; background: var(--card); border: 1px solid var(--border); border-radius: 0.9rem; padding: 1.4rem 1.5rem; }
+    .contact-box h3 { margin-top: 0; border-top: none; }
   </style>
 </head>
 <body>
+  <nav class="topbar">
+    <a class="home" href="/">
+      <img src="/logo.png" alt="ProHost">
+      <img src="/logo-wordmark.png" alt="ProHost" style="height:22px;">
+    </a>
+    <span class="sep">/</span>
+    <span class="title">Terms of Use</span>
+  </nav>
 
-  <header>
-    <div class="nav-container">
-      <a href="/" class="brand">
-        <img src="/logo.png" alt="ProHost Logo">
-        <span class="brand-title">
-          <span class="brand-pro">Pro</span><span class="brand-host">Host</span>
-        </span>
-      </a>
-      <nav class="nav-links">
-        <a href="/">Home</a>
-        <a href="/privacy.html">Privacy Policy</a>
-        <a href="/terms.html">Terms of Service</a>
-        <a href="/delete-account.html">Delete Account</a>
-      </nav>
+  <div class="wrap">
+    <div class="doc-head">
+      <h1>Terms of Use</h1>
+      <p class="meta">Effective date: 1 January 2025 · Last updated: 1 June 2025</p>
     </div>
-  </header>
 
-  <main>
-    <div class="content-container">
-      <h1>Terms of Service</h1>
-      <p class="effective-date">Application: ProHost | Last Updated: September 14, 2026</p>
+    <div class="callout">
+      <p><strong>Please read carefully.</strong> By creating an account or using any feature of ProHost, you agree to these Terms. If you do not agree, do not use the platform.</p>
+    </div>
 
-      <p>These Terms of Service ("Terms") govern your use of the ProHost mobile application, website (<a href="https://prohost-f766f.web.app" style="color: var(--vibrant-blue);">https://prohost-f766f.web.app</a>), and services. By accessing or using ProHost, you agree to be bound by these Terms.</p>
+    <h2>1. About ProHost</h2>
+    <p>ProHost is an online marketplace platform that enables independent professionals ("Specialists") to discover and request workspace subdivisions listed by property owners and operators ("Pro Hosts"). ProHost provides the technology connecting both sides of the market.</p>
 
-      <h2>1. Description of Service</h2>
-      <p>ProHost provides a digital workspace exchange platform enabling professional hosts to list medical clinics, consulting offices, and professional studios, and allowing independent specialists to discover, request, and book workspaces on flexible hourly, shift, daily, or monthly terms.</p>
+    <div class="callout warn">
+      <p><strong>ProHost is a platform intermediary, not a party to any rental agreement.</strong> Any rental, licence or services arrangement is entered into solely between the Specialist and the Pro Host. ProHost does not own, manage, operate or control any listed space, and is not responsible for acts or omissions of any user.</p>
+    </div>
 
-      <h2>2. Account Registration & Verification</h2>
-      <p>Every ProHost account must be registered with a valid phone number verified through Firebase SMS One-Time Passcode. Users must provide accurate, truthful identity information and upload a valid National ID or Passport document. You are responsible for maintaining the confidentiality of your account credentials.</p>
+    <h2>2. Eligibility</h2>
+    <ul>
+      <li>You must be at least 18 years of age to use ProHost.</li>
+      <li>You must have the legal capacity to enter into binding contracts under applicable law.</li>
+      <li>You must provide a valid mobile phone number that you own and control for account verification.</li>
+      <li>Entities (companies, clinics, practices) may register through an authorised representative who accepts these Terms on behalf of the entity.</li>
+    </ul>
 
-      <h2>3. Host & Specialist Obligations</h2>
+    <h2>3. Account Registration</h2>
+    <p>Accounts are verified via SMS one-time password (OTP). You are responsible for all activity that occurs under your account. You must not share your account credentials, allow others to use your verified phone number for account creation, or create accounts on behalf of others without authorisation.</p>
+    <p>ProHost reserves the right to suspend or terminate accounts that violate these Terms, that are reported for misconduct, or that show signs of fraud, at our sole discretion.</p>
+
+    <h2>4. Pro Host Obligations</h2>
+    <ul>
+      <li>All listing information (address, photos, amenities, pricing, availability) must be accurate and kept up to date.</li>
+      <li>Pro Hosts must hold all necessary permits, licences and insurance required to rent the listed premises for the advertised professional uses.</li>
+      <li>Pro Hosts are solely responsible for ensuring the workspace complies with applicable health, safety and building regulations.</li>
+      <li>Pro Hosts must honour confirmed bookings or notify the Specialist promptly with adequate notice if cancellation is unavoidable.</li>
+      <li>Pro Hosts must not discriminate against Specialists on the basis of any characteristic protected under applicable law.</li>
+    </ul>
+
+    <h2>5. Specialist Obligations</h2>
+    <ul>
+      <li>Specialists must use rented spaces only for lawful professional purposes and in accordance with any rules communicated by the Pro Host.</li>
+      <li>Specialists are solely responsible for holding all professional licences, permits, insurance and regulatory approvals required to practise their profession at the rented location.</li>
+      <li>Specialists must vacate the premises at the agreed end time, leave them in the condition received, and report damage promptly.</li>
+      <li>Any professional malpractice, negligence or liability arising from a Specialist's professional activities is the Specialist's sole responsibility.</li>
+    </ul>
+
+    <h2>6. Rental Agreements</h2>
+    <p>A booking request on ProHost does not create a legally binding rental agreement until the Pro Host expressly confirms the booking within the platform. The terms, duration, price, rules and conditions of the rental are determined solely by the parties. ProHost is not responsible for enforcing, interpreting or adjudicating any rental agreement or dispute arising from one.</p>
+
+    <h2>7. Fees and Payments</h2>
+    <p>ProHost currently does not charge transaction fees or process payments between users. Any financial arrangements (rent, deposits, damages) are negotiated and settled directly between the Specialist and the Pro Host outside the platform. ProHost makes no representation about pricing, and any price shown is set unilaterally by the Pro Host.</p>
+
+    <h2>8. Prohibited Conduct</h2>
+    <p>You must not:</p>
+    <ul>
+      <li>Post false, misleading, or fraudulent listings or profiles.</li>
+      <li>Use the platform for any unlawful purpose or to facilitate unlawful activity.</li>
+      <li>Harass, threaten or abuse other users.</li>
+      <li>Attempt to circumvent the platform (e.g. taking bookings off-platform after initial contact to avoid future fees).</li>
+      <li>Scrape, reverse-engineer or attack the platform's systems.</li>
+      <li>Impersonate any person or entity.</li>
+    </ul>
+
+    <h2>9. Content and Intellectual Property</h2>
+    <p>You retain ownership of content (photos, descriptions) you upload. By uploading content, you grant ProHost a worldwide, royalty-free, non-exclusive licence to store, display and distribute that content within the platform for operational purposes. You represent that you own or have permission to use all content you upload.</p>
+    <p>ProHost, its logo and branding are the intellectual property of ProHost and may not be used without written permission.</p>
+
+    <h2>10. Disclaimer of Warranties</h2>
+    <div class="callout warn">
+      <p class="caps">THE PROHOST PLATFORM IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, ACCURACY, RELIABILITY OR CONTINUOUS AVAILABILITY. PROHOST DOES NOT WARRANT THAT THE PLATFORM WILL BE ERROR-FREE, SECURE OR UNINTERRUPTED, OR THAT ANY LISTING IS ACCURATE, SAFE OR SUITABLE FOR ANY PROFESSIONAL USE.</p>
+    </div>
+
+    <h2>11. Limitation of Liability</h2>
+    <div class="callout warn">
+      <p class="caps">TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, PROHOST, ITS OFFICERS, EMPLOYEES AND AFFILIATES SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, PUNITIVE OR EXEMPLARY DAMAGES ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF THE PLATFORM, INCLUDING WITHOUT LIMITATION: LOSS OF REVENUE OR PROFIT, LOSS OF DATA, PERSONAL INJURY, PROPERTY DAMAGE, PROFESSIONAL MALPRACTICE CLAIMS, DAMAGE ARISING FROM A RENTAL AGREEMENT OR DISPUTE, OR BUSINESS INTERRUPTION, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+    </div>
+    <p>In jurisdictions that do not permit the total exclusion of liability, ProHost's aggregate liability to you for all claims arising out of or in connection with the platform shall not exceed the greater of: (a) the total amount of fees, if any, paid by you to ProHost in the twelve (12) months preceding the event giving rise to the claim; or (b) USD 100.</p>
+    <p>Nothing in these Terms limits liability for: (i) death or personal injury caused by ProHost's gross negligence; (ii) fraud or fraudulent misrepresentation; or (iii) any liability that cannot be excluded by law.</p>
+
+    <h2>12. Indemnification</h2>
+    <p>You agree to indemnify, defend and hold harmless ProHost, its officers, directors, employees, agents and affiliates from and against any claims, liabilities, damages, losses, costs and expenses (including reasonable legal fees) arising out of or related to:</p>
+    <ul>
+      <li>Your use of or access to the platform;</li>
+      <li>Any content you upload or transmit;</li>
+      <li>Your breach of these Terms;</li>
+      <li>Any rental agreement or transaction between you and another user;</li>
+      <li>Any professional activities conducted at a booked space, including malpractice, regulatory violations or injuries;</li>
+      <li>Your violation of any applicable law or regulation;</li>
+      <li>Any claim that your content infringes the rights of a third party.</li>
+    </ul>
+    <p>This indemnification obligation survives termination of your account and these Terms.</p>
+
+    <h2>13. Third-Party Services</h2>
+    <p>ProHost uses Google Firebase infrastructure (Authentication, Firestore, Storage, Cloud Functions) to operate the platform. Your use of the platform is also governed by <a href="https://firebase.google.com/terms" target="_blank" rel="noopener">Google Firebase Terms of Service</a> and <a href="https://policies.google.com/terms" target="_blank" rel="noopener">Google Terms of Service</a>. ProHost is not liable for any outage, data loss or security incident attributable to Google's infrastructure.</p>
+    <p>Communications via WhatsApp are governed by Meta's own Terms and Privacy Policy. ProHost has no access to, and no control over, the content of your WhatsApp conversations.</p>
+
+    <h2>14. Termination</h2>
+    <p>You may delete your account at any time via the app or by contacting us. ProHost may suspend or permanently terminate your account at any time, with or without notice, for violation of these Terms, for inactivity, or for any reason at our discretion. Upon termination, your access to the platform ceases immediately. Sections 10, 11, 12 and 15 survive termination.</p>
+
+    <h2>15. Governing Law and Dispute Resolution</h2>
+    <p>These Terms are governed by the laws of Lebanon. Any dispute arising out of or in connection with these Terms that cannot be resolved amicably shall be submitted to the exclusive jurisdiction of the competent courts of Lebanon.</p>
+    <p>Nothing in this clause prevents either party from seeking urgent injunctive or other equitable relief from a court of competent jurisdiction.</p>
+
+    <h2>16. Changes to These Terms</h2>
+    <p>We may amend these Terms at any time. We will give you at least fourteen (14) days' notice of material changes via in-app notification. Continued use of the platform after the effective date of amended Terms constitutes your acceptance of those Terms.</p>
+
+    <h2>17. General</h2>
+    <ul>
+      <li><strong>Entire agreement:</strong> These Terms, together with the Privacy Policy and any Revocation Policy, constitute the entire agreement between you and ProHost regarding the platform.</li>
+      <li><strong>Severability:</strong> If any provision is found unenforceable, it is severed and the remaining provisions continue in full force.</li>
+      <li><strong>Waiver:</strong> Failure by ProHost to enforce any provision is not a waiver of future enforcement.</li>
+      <li><strong>No assignment:</strong> You may not assign your rights or obligations under these Terms without ProHost's written consent.</li>
+      <li><strong>Language:</strong> These Terms are provided in English. Any translation is for convenience only; the English version governs in the event of conflict.</li>
+    </ul>
+
+    <div class="contact-box">
+      <h3>Contact</h3>
+      <p>For questions about these Terms:</p>
       <ul>
-        <li><strong>Hosts</strong>: Must hold real legal rights or ownership to rent or sub-lease the listed workspace. Listings must contain accurate GPS coordinates, operating hours, and equipment details.</li>
-        <li><strong>Specialists</strong>: Must use rented workspaces exclusively for professional, legal, and authorized practice.</li>
+        <li>Email: <a href="mailto:admin@pro-host.tech">admin@pro-host.tech</a></li>
+        <li>Website: <a href="https://pro-host.tech">pro-host.tech</a></li>
       </ul>
-
-      <h2>4. Booking Requests & Payments</h2>
-      <p>Rental booking requests are confirmed upon host acceptance. Payment settlements and subscription package activations are handled through authorized channels including Whish Money. Cancellation and refund rules follow the agreed rental formula terms.</p>
-
-      <h2>5. Termination & Governance</h2>
-      <p>ProHost reserves the right to suspend or terminate accounts that violate platform policies, engage in fraudulent activity, or post unauthorized content. Users may delete their accounts at any time via <code>Profile → Delete Account</code> in the app.</p>
-
-      <h2>6. Contact & Support</h2>
-      <div class="info-box">
-        <p><strong>ProHost Support Team</strong></p>
-        <p>Email: <strong>geo.elnajjar@gmail.com</strong></p>
-        <p>Website: <a href="https://prohost-f766f.web.app" style="color: var(--vibrant-blue);">https://prohost-f766f.web.app</a></p>
-      </div>
     </div>
-  </main>
 
-  <footer>
-    <p>© 2026 ProHost. All rights reserved.</p>
-    <p style="margin-top: 0.5rem;">
-      <a href="/">Home</a> |
-      <a href="/privacy.html">Privacy Policy</a> |
-      <a href="/terms.html">Terms of Service</a> |
-      <a href="/delete-account.html">Delete Account</a>
-    </p>
-  </footer>
-
+  </div>
 </body>
 </html>

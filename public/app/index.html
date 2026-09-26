@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ProHost App</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#246BEE">
+  <link rel="manifest" href="/app/manifest.json">
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="apple-touch-icon" href="/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --blue: #246BEE; --navy: #152EA0; --accent: #E8440A;
+      --green: #4CAF72; --oxford: #1E293B; --oxford-deep: #0F172A;
+      --bg: #F1F3F7; --card: #FFFFFF; --border: #E2E4E8;
+      --ink: #1E293B; --ink2: #3D4554; --muted: #6B7280;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--ink); overflow: hidden; -webkit-font-smoothing: antialiased; }
+    h1, h2, h3, .manrope { font-family: 'Manrope', 'Inter', sans-serif; }
+    img { display: block; max-width: 100%; }
+    input, button { font-family: inherit; }
+    button { cursor: pointer; border: none; background: none; }
+    #app { height: 100%; display: flex; flex-direction: column; }
+
+    /* Screen system */
+    .screen { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--bg); transform: translateX(100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); z-index: 1; }
+    .screen.active { transform: translateX(0); z-index: 2; }
+    .screen.prev { transform: translateX(-28%); z-index: 1; }
+    #screen-splash { transform: translateX(0); z-index: 10; }
+    #screen-splash.done { transform: translateY(-100%); transition: transform 0.4s cubic-bezier(0.4,0,1,1); }
+
+    /* Status bar safe area */
+    .safe-top { padding-top: var(--safe-top); }
+    .safe-bottom { padding-bottom: var(--safe-bottom); }
+
+    /* Top bars */
+    .topbar { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--card); border-bottom: 1px solid var(--border); min-height: 56px; }
+    .topbar.transparent { background: transparent; border-bottom: none; }
+    .topbar-title { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 1.05rem; color: var(--oxford); flex: 1; }
+    .back-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: var(--oxford); }
+    .back-btn:active { background: var(--border); }
+    .back-btn svg { width: 22px; height: 22px; }
+
+    /* Splash screen */
+    #screen-splash { background: var(--oxford-deep); align-items: center; justify-content: center; gap: 1rem; }
+    .splash-logo { width: 80px; height: 80px; border-radius: 20px; background: var(--card); display: flex; align-items: center; justify-content: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+    .splash-logo img { width: 52px; height: 52px; object-fit: contain; }
+    .splash-wordmark img { height: 34px; }
+    .splash-loading { width: 36px; height: 4px; background: rgba(255,255,255,0.15); border-radius: 4px; overflow: hidden; margin-top: 2rem; }
+    .splash-loading::after { content: ""; display: block; width: 100%; height: 100%; background: var(--blue); border-radius: 4px; animation: prog 1.8s ease-in-out forwards; }
+    @keyframes prog { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+
+    /* Auth screens */
+    #screen-phone, #screen-otp, #screen-register { background: var(--card); }
+    .auth-wrap { flex: 1; overflow-y: auto; padding: 2rem 1.5rem 2rem; display: flex; flex-direction: column; }
+    .auth-icon { width: 52px; height: 52px; background: rgba(36,107,238,0.1); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; }
+    .auth-icon svg { width: 26px; height: 26px; color: var(--blue); }
+    .auth-title { font-size: 1.55rem; font-weight: 800; color: var(--oxford); margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+    .auth-sub { font-size: 0.95rem; color: var(--muted); margin-bottom: 2rem; line-height: 1.6; }
+    .auth-sub strong { color: var(--oxford); }
+    label.field-label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--ink2); margin-bottom: 0.4rem; letter-spacing: 0.02em; text-transform: uppercase; }
+    .input-wrap { display: flex; border: 1.5px solid var(--border); border-radius: 0.75rem; overflow: hidden; background: var(--bg); transition: border-color 0.15s; margin-bottom: 1.2rem; }
+    .input-wrap:focus-within { border-color: var(--blue); background: var(--card); }
+    .input-prefix { padding: 0.9rem 0.75rem 0.9rem 1rem; font-weight: 600; font-size: 1rem; color: var(--oxford); border-right: 1.5px solid var(--border); background: transparent; white-space: nowrap; }
+    .input-wrap input { flex: 1; padding: 0.9rem 1rem; font-size: 1rem; color: var(--oxford); background: transparent; border: none; outline: none; }
+    .input-wrap input::placeholder { color: var(--muted); }
+    .btn-primary { display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: var(--blue); color: #fff; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 1rem; padding: 0.95rem; border-radius: 0.75rem; width: 100%; transition: opacity 0.15s, transform 0.1s; }
+    .btn-primary:active { opacity: 0.85; transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.5; pointer-events: none; }
+    .btn-primary svg { width: 20px; height: 20px; }
+    .btn-text { font-size: 0.88rem; color: var(--blue); font-weight: 600; padding: 0.5rem 0; }
+    .otp-row { display: flex; gap: 0.6rem; margin-bottom: 1.25rem; }
+    .otp-row input { flex: 1; text-align: center; font-size: 1.5rem; font-weight: 700; color: var(--oxford); padding: 0.75rem 0; border: 1.5px solid var(--border); border-radius: 0.65rem; background: var(--bg); outline: none; transition: border-color 0.15s; }
+    .otp-row input:focus { border-color: var(--blue); background: var(--card); }
+    .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem; }
+    .role-card { border: 1.5px solid var(--border); border-radius: 0.75rem; padding: 1rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; background: var(--bg); }
+    .role-card.selected { border-color: var(--blue); background: rgba(36,107,238,0.06); }
+    .role-card svg { width: 28px; height: 28px; color: var(--blue); }
+    .role-card span { font-size: 0.88rem; font-weight: 700; color: var(--oxford); }
+    .error-msg { background: #FEF2F2; border: 1px solid #FECACA; border-radius: 0.6rem; padding: 0.75rem 1rem; font-size: 0.88rem; color: #DC2626; margin-bottom: 1rem; display: none; }
+    .error-msg.show { display: block; }
+
+    /* Discovery screen */
+    #screen-discovery { background: var(--bg); }
+    .discovery-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .search-bar { display: flex; align-items: center; gap: 0.6rem; background: var(--card); border: 1px solid var(--border); border-radius: 0.85rem; padding: 0.7rem 1rem; margin: 0.75rem 1rem; }
+    .search-bar svg { width: 18px; height: 18px; color: var(--muted); flex-shrink: 0; }
+    .search-bar input { flex: 1; border: none; outline: none; font-size: 0.95rem; color: var(--oxford); background: transparent; }
+    .search-bar input::placeholder { color: var(--muted); }
+    .filter-row { display: flex; gap: 0.55rem; padding: 0 1rem 0.75rem; overflow-x: auto; scrollbar-width: none; }
+    .filter-row::-webkit-scrollbar { display: none; }
+    .filter-chip { white-space: nowrap; padding: 0.4rem 0.85rem; border-radius: 999px; border: 1.5px solid var(--border); font-size: 0.82rem; font-weight: 600; color: var(--ink2); background: var(--card); flex-shrink: 0; }
+    .filter-chip.active { background: var(--oxford); color: #fff; border-color: var(--oxford); }
+    .section-label { font-family: 'Manrope', sans-serif; font-size: 0.78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; padding: 0 1rem 0.5rem; }
+    .space-card { background: var(--card); border-radius: 1.1rem; margin: 0 1rem 0.85rem; overflow: hidden; box-shadow: 0 4px 12px -6px rgba(0,0,0,0.12); }
+    .space-photo { width: 100%; height: 160px; background: linear-gradient(135deg, #C7D2F6, #E0E7FF); position: relative; overflow: hidden; }
+    .space-photo img { width: 100%; height: 100%; object-fit: cover; }
+    .space-photo .badge { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); color: #fff; font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; backdrop-filter: blur(6px); }
+    .space-body { padding: 0.85rem 1rem; }
+    .space-name { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 1rem; color: var(--oxford); margin-bottom: 0.25rem; }
+    .space-loc { font-size: 0.82rem; color: var(--muted); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.3rem; }
+    .space-loc svg { width: 13px; height: 13px; }
+    .price-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .price-pill { font-size: 0.78rem; font-weight: 700; color: var(--accent); background: rgba(232,68,10,0.08); padding: 3px 8px; border-radius: 999px; }
+    .space-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.5rem; }
+    .tag-chip { font-size: 0.72rem; font-weight: 600; color: var(--navy); background: rgba(21,46,160,0.08); padding: 3px 8px; border-radius: 999px; }
+    .empty-state { text-align: center; padding: 3rem 2rem; color: var(--muted); }
+    .empty-state svg { width: 48px; height: 48px; margin: 0 auto 1rem; color: var(--border); }
+    .empty-state p { font-size: 0.95rem; }
+
+    /* Space details */
+    #screen-details { z-index: 5; }
+    .details-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .details-hero { width: 100%; height: 240px; background: linear-gradient(135deg, #C7D2F6, #E0E7FF); position: relative; overflow: hidden; }
+    .details-hero img { width: 100%; height: 100%; object-fit: cover; }
+    .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.5) 100%); }
+    .hero-back { position: absolute; top: calc(var(--safe-top) + 10px); left: 10px; width: 38px; height: 38px; border-radius: 50%; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; color: #fff; }
+    .hero-back svg { width: 22px; height: 22px; }
+    .details-body { padding: 1.25rem 1rem 7rem; background: var(--bg); }
+    .details-title { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 1.3rem; color: var(--oxford); margin-bottom: 0.3rem; }
+    .details-loc { font-size: 0.88rem; color: var(--muted); display: flex; align-items: center; gap: 0.3rem; margin-bottom: 1rem; }
+    .details-loc svg { width: 14px; height: 14px; }
+    .info-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .info-chip { font-size: 0.8rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--ink2); background: var(--card); }
+    .section-title { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.88rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; margin-top: 1.5rem; }
+    .subdivision-card { background: var(--card); border: 1px solid var(--border); border-radius: 0.85rem; padding: 1rem; margin-bottom: 0.75rem; }
+    .sub-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+    .sub-name { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.95rem; color: var(--oxford); }
+    .sub-badge { font-size: 0.72rem; font-weight: 700; color: var(--navy); background: rgba(21,46,160,0.1); padding: 3px 8px; border-radius: 999px; }
+    .sub-price { font-size: 0.88rem; font-weight: 700; color: var(--accent); margin: 0.3rem 0; }
+    .sub-amenities { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .amenity-chip { font-size: 0.75rem; font-weight: 600; color: var(--ink2); background: var(--bg); padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border); }
+    .occupied-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.85); border-radius: 0.85rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem; }
+    .occupied-overlay svg { width: 24px; height: 24px; color: var(--muted); }
+    .occupied-overlay span { font-size: 0.82rem; font-weight: 700; color: var(--muted); }
+
+    /* Bottom strip */
+    .bottom-strip { position: absolute; bottom: 0; left: 0; right: 0; z-index: 20; }
+    .peek-bar { display: flex; align-items: center; justify-content: center; gap: 0.6rem; background: var(--blue); padding: 0.6rem 1.5rem; cursor: pointer; }
+    .peek-bar svg { width: 18px; height: 18px; color: #fff; }
+    .peek-bar span { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.88rem; color: #fff; }
+    .main-strip { background: var(--card); border-top: 1px solid var(--border); padding: 0.85rem 1rem; display: flex; align-items: center; gap: 0.75rem; padding-bottom: calc(0.85rem + var(--safe-bottom)); }
+    .price-display { flex: 1; }
+    .price-from { font-size: 0.72rem; color: var(--muted); font-weight: 500; }
+    .price-big { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 1.25rem; color: var(--oxford); }
+    .price-unit { font-size: 0.78rem; color: var(--muted); }
+    .wa-btn { display: flex; align-items: center; gap: 0.5rem; background: #25D366; color: #fff; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.9rem; padding: 0.7rem 1.1rem; border-radius: 0.7rem; }
+    .wa-btn svg { width: 20px; height: 20px; }
+
+    /* Availability sheet */
+    .sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sheet-overlay.open { opacity: 1; pointer-events: all; }
+    .sheet { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-radius: 1.25rem 1.25rem 0 0; z-index: 51; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); max-height: 80vh; display: flex; flex-direction: column; }
+    .sheet.open { transform: translateY(0); }
+    .sheet-handle { width: 36px; height: 4px; background: var(--border); border-radius: 4px; margin: 10px auto 0; flex-shrink: 0; }
+    .sheet-title { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 1.1rem; padding: 1rem 1.25rem 0.75rem; border-bottom: 1px solid var(--border); }
+    .sheet-body { flex: 1; overflow-y: auto; padding: 1rem 1.25rem; padding-bottom: calc(1rem + var(--safe-bottom)); }
+    .accordion-item { border: 1px solid var(--border); border-radius: 0.75rem; margin-bottom: 0.6rem; overflow: hidden; }
+    .accordion-head { display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; background: var(--bg); cursor: pointer; }
+    .accordion-head-left { display: flex; align-items: center; gap: 0.6rem; }
+    .strategy-badge { font-size: 0.78rem; font-weight: 700; background: rgba(36,107,238,0.12); color: var(--navy); padding: 3px 8px; border-radius: 999px; }
+    .accordion-head span.label { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.95rem; color: var(--oxford); }
+    .chevron { width: 18px; height: 18px; color: var(--muted); transition: transform 0.2s; }
+    .chevron.open { transform: rotate(180deg); }
+    .accordion-body { padding: 0.85rem 1rem; display: none; }
+    .accordion-body.open { display: block; }
+    .day-select-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .day-chip { padding: 0.4rem 0.75rem; border-radius: 999px; border: 1.5px solid var(--border); font-size: 0.82rem; font-weight: 600; color: var(--ink2); cursor: pointer; }
+    .day-chip.sel { background: var(--oxford); color: #fff; border-color: var(--oxford); }
+    .hour-row { margin-bottom: 0.75rem; }
+    .hour-row-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); margin-bottom: 0.4rem; }
+    .hour-chips { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .hour-chip { padding: 0.35rem 0.65rem; border-radius: 0.5rem; border: 1.5px solid var(--border); font-size: 0.8rem; font-weight: 600; color: var(--ink2); cursor: pointer; }
+    .hour-chip.sel { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .hour-chip.locked { opacity: 0.4; pointer-events: none; text-decoration: line-through; }
+    .slot-chip { padding: 0.45rem 0.8rem; border-radius: 0.6rem; border: 1.5px solid var(--border); font-size: 0.83rem; font-weight: 600; color: var(--ink2); cursor: pointer; margin-bottom: 0.4rem; display: inline-block; margin-right: 0.4rem; }
+    .slot-chip.sel { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .slot-chip.locked { opacity: 0.4; pointer-events: none; }
+    .sheet-footer { padding: 0.85rem 1.25rem; padding-bottom: calc(0.85rem + var(--safe-bottom)); border-top: 1px solid var(--border); }
+    .sheet-footer .price-summary { font-size: 0.88rem; color: var(--muted); margin-bottom: 0.5rem; }
+    .sheet-footer .price-summary strong { color: var(--oxford); }
+
+    /* User menu bottom nav */
+    .bottom-nav { display: flex; background: var(--card); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); }
+    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 0.6rem 0 0.5rem; color: var(--muted); font-size: 0.68rem; font-weight: 600; }
+    .nav-item.active { color: var(--blue); }
+    .nav-item svg { width: 22px; height: 22px; }
+
+    /* Profile screen */
+    #screen-profile { background: var(--bg); }
+    .profile-header { background: var(--oxford-deep); padding: 2rem 1.5rem 1.5rem; display: flex; align-items: center; gap: 1rem; padding-top: calc(2rem + var(--safe-top)); }
+    .avatar { width: 60px; height: 60px; border-radius: 50%; background: var(--blue); display: flex; align-items: center; justify-content: center; font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 1.4rem; color: #fff; flex-shrink: 0; }
+    .profile-info .name { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 1.1rem; color: #fff; }
+    .profile-info .phone { font-size: 0.88rem; color: rgba(255,255,255,0.7); }
+    .profile-info .role-badge { display: inline-block; font-size: 0.72rem; font-weight: 700; margin-top: 0.3rem; padding: 2px 8px; border-radius: 999px; }
+    .profile-info .role-badge.specialist { background: rgba(36,107,238,0.3); color: #93C5FD; }
+    .profile-info .role-badge.prohost { background: rgba(232,68,10,0.3); color: #FCA5A5; }
+    .menu-section { margin: 1rem 1rem 0; }
+    .menu-section-label { font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; padding: 0.5rem 0; }
+    .menu-item { display: flex; align-items: center; gap: 0.85rem; background: var(--card); padding: 0.95rem 1rem; border-bottom: 1px solid var(--border); cursor: pointer; }
+    .menu-item:first-of-type { border-radius: 0.75rem 0.75rem 0 0; }
+    .menu-item:last-of-type { border-radius: 0 0 0.75rem 0.75rem; border-bottom: none; }
+    .menu-item:only-child { border-radius: 0.75rem; border-bottom: none; }
+    .menu-icon { width: 36px; height: 36px; border-radius: 0.6rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .menu-icon svg { width: 18px; height: 18px; }
+    .menu-item .label { flex: 1; font-size: 0.95rem; font-weight: 500; color: var(--oxford); }
+    .menu-item .arrow { width: 16px; height: 16px; color: var(--muted); }
+    .menu-item.danger .label { color: #DC2626; }
+    .menu-icon.blue { background: rgba(36,107,238,0.1); color: var(--blue); }
+    .menu-icon.orange { background: rgba(232,68,10,0.1); color: var(--accent); }
+    .menu-icon.green { background: rgba(76,175,114,0.1); color: var(--green); }
+    .menu-icon.red { background: rgba(220,38,38,0.1); color: #DC2626; }
+
+    /* Loading spinner */
+    .spinner { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Toast */
+    .toast { position: fixed; bottom: calc(1.5rem + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--oxford); color: #fff; font-size: 0.88rem; font-weight: 600; padding: 0.6rem 1.25rem; border-radius: 999px; z-index: 999; opacity: 0; transition: all 0.25s; pointer-events: none; white-space: nowrap; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (min-width: 480px) { #app { max-width: 430px; margin: 0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.2); } }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- SPLASH -->
+  <div id="screen-splash" class="screen active safe-top">
+    <div class="splash-logo"><img src="/logo.png" alt="ProHost"></div>
+    <div class="splash-wordmark"><img src="/logo-wordmark.png" alt="ProHost"></div>
+    <div class="splash-loading"></div>
+  </div>
+
+  <!-- PHONE AUTH -->
+  <div id="screen-phone" class="screen">
+    <div class="safe-top"></div>
+    <div class="auth-wrap">
+      <div class="auth-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></div>
+      <h1 class="auth-title">Sign in to ProHost</h1>
+      <p class="auth-sub">Enter your mobile number to receive a one-time verification code.</p>
+      <label class="field-label">Mobile number</label>
+      <div class="input-wrap">
+        <span class="input-prefix">+961</span>
+        <input id="phone-input" type="tel" inputmode="numeric" placeholder="71 234 567" maxlength="12" autocomplete="tel-national">
+      </div>
+      <div id="phone-error" class="error-msg">Please enter a valid phone number.</div>
+      <button class="btn-primary" id="btn-send-otp" onclick="sendOtp()">
+        <span id="otp-btn-label">Continue</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+      <p style="margin-top:1.25rem; font-size:0.82rem; color:var(--muted); text-align:center; line-height:1.6;">By continuing you agree to the <a href="/terms" target="_blank">Terms of Use</a> and <a href="/privacy" target="_blank">Privacy Policy</a>.</p>
+    </div>
+  </div>
+
+  <!-- OTP -->
+  <div id="screen-otp" class="screen">
+    <div class="safe-top"></div>
+    <div class="auth-wrap">
+      <button class="back-btn" onclick="goBack()" style="align-self:flex-start;margin-bottom:0.5rem;margin-left:-0.25rem;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+      </button>
+      <div class="auth-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 01-2.18 2A19.8 19.8 0 013.08 5.18 2 2 0 015.07 3h3a2 2 0 012 1.72 13 13 0 00.7 2.81 2 2 0 01-.45 2.11L9.09 11a16 16 0 006.91 6.91l1.36-1.23a2 2 0 012.11-.45 13 13 0 002.81.7A2 2 0 0122 16.9z"/></svg></div>
+      <h1 class="auth-title">Enter OTP</h1>
+      <p class="auth-sub" id="otp-sub">We sent a 6-digit code to <strong id="otp-phone-display">+961 —</strong></p>
+      <div class="otp-row" id="otp-inputs">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit">
+      </div>
+      <div id="otp-error" class="error-msg">Invalid code. Please try again.</div>
+      <button class="btn-primary" id="btn-verify-otp" onclick="verifyOtp()">
+        <span id="verify-btn-label">Verify</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+      </button>
+      <div style="text-align:center;margin-top:1rem;">
+        <button class="btn-text" id="btn-resend" onclick="resendOtp()">Resend code (<span id="resend-countdown">30</span>s)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGISTER -->
+  <div id="screen-register" class="screen">
+    <div class="safe-top"></div>
+    <div class="auth-wrap">
+      <div class="auth-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+      <h1 class="auth-title">Create your profile</h1>
+      <p class="auth-sub">Almost there — tell us about yourself so hosts and specialists can find you.</p>
+      <label class="field-label">Display name</label>
+      <div class="input-wrap" style="margin-bottom:1.2rem;">
+        <input id="reg-name" type="text" placeholder="e.g. Dr. Sara Khalil" autocomplete="name" style="flex:1;padding:0.9rem 1rem;font-size:1rem;border:none;outline:none;background:transparent;color:var(--oxford);">
+      </div>
+      <label class="field-label">Specialty / Profession</label>
+      <div class="input-wrap" style="margin-bottom:1.2rem;">
+        <input id="reg-specialty" type="text" placeholder="e.g. General Practitioner, Architect…" style="flex:1;padding:0.9rem 1rem;font-size:1rem;border:none;outline:none;background:transparent;color:var(--oxford);">
+      </div>
+      <label class="field-label" style="margin-bottom:0.6rem;">I am a…</label>
+      <div class="role-grid" id="role-grid">
+        <div class="role-card selected" data-role="SPECIALIST" onclick="selectRole(this,'SPECIALIST')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12c2.5 0 4.5-2 4.5-4.5S14.5 3 12 3 7.5 5 7.5 7.5 9.5 12 12 12z"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+          <span>Specialist</span>
+        </div>
+        <div class="role-card" data-role="PRO_HOST" onclick="selectRole(this,'PRO_HOST')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+          <span>Pro Host</span>
+        </div>
+      </div>
+      <div id="reg-error" class="error-msg">Please fill in all fields.</div>
+      <button class="btn-primary" onclick="completeRegistration()">
+        <span>Create Account</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- DISCOVERY -->
+  <div id="screen-discovery" class="screen">
+    <div class="safe-top topbar">
+      <img src="/logo.png" style="height:28px;width:auto;" alt="">
+      <span class="topbar-title">Spaces</span>
+      <button onclick="showScreen('profile')" style="color:var(--ink);">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
+      </button>
+    </div>
+    <div class="search-bar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input id="search-input" type="search" placeholder="Search city, type, specialty…" oninput="filterSpaces()" autocomplete="off">
+    </div>
+    <div class="filter-row" id="filter-row">
+      <div class="filter-chip active" data-cat="all" onclick="setFilter(this,'all')">All</div>
+      <div class="filter-chip" data-cat="CLINIC" onclick="setFilter(this,'CLINIC')">Clinics</div>
+      <div class="filter-chip" data-cat="OFFICE" onclick="setFilter(this,'OFFICE')">Offices</div>
+      <div class="filter-chip" data-cat="STUDIO" onclick="setFilter(this,'STUDIO')">Studios</div>
+      <div class="filter-chip" data-cat="COWORKING" onclick="setFilter(this,'COWORKING')">Coworking</div>
+    </div>
+    <div class="discovery-body" id="spaces-list">
+      <div class="section-label">Nearby spaces</div>
+      <div id="cards-container"></div>
+      <div class="empty-state" id="empty-state" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-6.5 7-11a7 7 0 10-14 0c0 4.5 7 11 7 11z"/></svg>
+        <p>No spaces match your search.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPACE DETAILS -->
+  <div id="screen-details" class="screen">
+    <div class="details-scroll" id="details-scroll">
+      <div class="details-hero" id="details-hero">
+        <div class="hero-overlay"></div>
+        <button class="hero-back" onclick="goBack()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+      </div>
+      <div class="details-body" id="details-body"></div>
+    </div>
+    <div class="bottom-strip" id="bottom-strip">
+      <div class="peek-bar" id="peek-bar" onclick="openAvailability()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 15l7-7 7 7"/></svg>
+        <span>Press to see option availability</span>
+      </div>
+      <div class="main-strip">
+        <div class="price-display">
+          <div class="price-from">Starting from</div>
+          <div><span class="price-big" id="strip-price">—</span><span class="price-unit" id="strip-unit"></span></div>
+        </div>
+        <button class="wa-btn" id="wa-btn" onclick="openWhatsApp()">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-8.25 15.73L2 22l4.44-1.71A10 10 0 1012 2zm0 18a8 8 0 01-4.13-1.15l-.29-.18-3.04 1.16 1.05-3-.2-.32A8 8 0 1120 12a8 8 0 01-8 8zm4.27-5.87c-.23-.12-1.36-.67-1.57-.75-.21-.08-.36-.12-.52.12-.15.23-.6.75-.73.9-.13.15-.27.17-.5.06-.23-.12-.97-.36-1.85-1.14-.68-.6-1.14-1.35-1.28-1.58-.13-.23-.01-.36.1-.47.1-.1.23-.27.35-.4.12-.14.15-.23.23-.38.08-.15.04-.28-.02-.4-.06-.12-.52-1.25-.71-1.71-.19-.45-.38-.39-.52-.4-.13 0-.28-.01-.43-.01-.15 0-.39.06-.6.28-.2.23-.79.77-.79 1.88s.81 2.18.93 2.33c.12.15 1.6 2.44 3.87 3.42a13 13 0 001.29.48c.54.17 1.03.15 1.42.09.43-.07 1.33-.54 1.52-1.07.19-.53.19-.98.13-1.07-.05-.1-.2-.16-.43-.28z"/></svg>
+          Contact Host
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE -->
+  <div id="screen-profile" class="screen">
+    <div class="profile-header safe-top">
+      <div class="avatar" id="profile-avatar">?</div>
+      <div class="profile-info">
+        <div class="name" id="profile-name">—</div>
+        <div class="phone" id="profile-phone">—</div>
+        <div class="role-badge specialist" id="profile-role">Specialist</div>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;">
+      <div class="menu-section">
+        <div class="menu-section-label">Account</div>
+        <div class="menu-item"><div class="menu-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg></div><span class="label">Edit Profile</span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div>
+        <div class="menu-item"><div class="menu-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div><span class="label">My Bookings</span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div>
+      </div>
+      <div class="menu-section">
+        <div class="menu-section-label">Hosting</div>
+        <div class="menu-item"><div class="menu-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></div><span class="label">My Spaces</span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div>
+        <div class="menu-item"><div class="menu-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v5c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-4z"/></svg></div><span class="label">Booking Requests</span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div>
+      </div>
+      <div class="menu-section">
+        <div class="menu-section-label">Legal</div>
+        <div class="menu-item" onclick="window.open('/privacy','_blank')"><div class="menu-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6M9 16h6M9 8h6M5 4h14v16H5z"/></svg></div><span class="label">Privacy Policy</span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div>
+        <div class="menu-item" onclick="window.open('/terms','_blank')"><div class="menu-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v5c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-4z"/></svg></div><span class="label">Terms of Use</span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div>
+        <div class="menu-item danger" onclick="confirmDeleteAccount()"><div class="menu-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></div><span class="label">Delete Account</span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div>
+        <div class="menu-item danger" onclick="signOut()"><div class="menu-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div><span class="label">Sign Out</span><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div>
+      </div>
+      <div style="padding:2rem 1rem;text-align:center;font-size:0.8rem;color:var(--muted);">ProHost v1.0 · <a href="https://pro-host.tech" target="_blank" style="color:var(--muted);">pro-host.tech</a></div>
+    </div>
+  </div>
+
+  <!-- AVAILABILITY SHEET -->
+  <div class="sheet-overlay" id="sheet-overlay" onclick="closeAvailability()"></div>
+  <div class="sheet" id="avail-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Check Availability</div>
+    <div class="sheet-body" id="sheet-body"></div>
+    <div class="sheet-footer">
+      <div class="price-summary" id="sheet-price-summary">Select options above to see pricing</div>
+      <button class="btn-primary" id="sheet-submit-btn" onclick="submitBooking()" disabled>Request Booking</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-auth-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-firestore-compat.min.js"></script>
+
+<script>
+// ─── Firebase config ──────────────────────────────────────────────────────────
+// NOTE: Register a Web App in Firebase Console → Project Settings → Your Apps
+// to get the correct appId. Until then, use the placeholder below.
+const FB_CONFIG = {
+  apiKey: "AIzaSyCD8l3WfHCw3pfmm9Q_AI-mADe8SIDxDcg",
+  authDomain: "prohost-f766f.firebaseapp.com",
+  projectId: "prohost-f766f",
+  storageBucket: "prohost-f766f.firebasestorage.app",
+  messagingSenderId: "646730915838",
+  appId: "REPLACE_WITH_WEB_APP_ID"  // Get from Firebase Console → Add Web App
+};
+
+let app, auth, db;
+try {
+  app = firebase.initializeApp(FB_CONFIG);
+  auth = firebase.auth();
+  db = firebase.firestore();
+} catch(e) {
+  console.warn('Firebase init error:', e);
+}
+
+// ─── App state ────────────────────────────────────────────────────────────────
+let currentUser = null;
+let currentUserProfile = null;
+let spaces = [];
+let filteredSpaces = [];
+let activeFilter = 'all';
+let screenStack = [];
+let selectedSpace = null;
+let confirmationResult = null;
+let resendTimer = null;
+let selectedRole = 'SPECIALIST';
+let availabilityData = {};  // { strategy: { day: Set<hour> } | Set<slotId> }
+
+// ─── Screen routing ───────────────────────────────────────────────────────────
+function showScreen(id, pushStack = true) {
+  const screens = document.querySelectorAll('.screen');
+  const target = document.getElementById('screen-' + id);
+  if (!target) return;
+  screens.forEach(s => {
+    s.classList.remove('active', 'prev');
+    if (s.classList.contains('active') || s === document.querySelector('.screen.active')) {
+      s.classList.add('prev');
+    }
+  });
+  document.querySelectorAll('.screen.active').forEach(s => s.classList.add('prev'));
+  if (pushStack && id !== 'splash') screenStack.push(id);
+  target.classList.add('active');
+}
+
+function goBack() {
+  if (screenStack.length > 1) {
+    screenStack.pop();
+    const prev = screenStack[screenStack.length - 1];
+    showScreen(prev, false);
+  }
+}
+
+// ─── Splash ───────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/app/sw.js').catch(() => {});
+  setTimeout(() => {
+    const splash = document.getElementById('screen-splash');
+    if (auth) {
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          currentUser = user;
+          loadUserProfile(user.uid).then(() => {
+            splash.classList.add('done');
+            setTimeout(() => { showScreen('discovery'); loadSpaces(); }, 300);
+          });
+        } else {
+          splash.classList.add('done');
+          setTimeout(() => showScreen('phone'), 300);
+        }
+      });
+    } else {
+      // Demo mode — no Firebase connected yet
+      splash.classList.add('done');
+      setTimeout(() => showScreen('phone'), 300);
+    }
+  }, 1600);
+});
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+function sendOtp() {
+  const rawPhone = document.getElementById('phone-input').value.replace(/\s/g,'');
+  const errEl = document.getElementById('phone-error');
+  if (!rawPhone || rawPhone.length < 7) { errEl.classList.add('show'); return; }
+  errEl.classList.remove('show');
+
+  const fullPhone = '+961' + rawPhone;
+  document.getElementById('otp-phone-display').textContent = fullPhone;
+
+  if (!auth) {
+    // Demo mode: skip Firebase, go directly to OTP screen
+    showScreen('otp');
+    startResendCountdown();
+    return;
+  }
+
+  const btn = document.getElementById('btn-send-otp');
+  const lbl = document.getElementById('otp-btn-label');
+  btn.disabled = true;
+  lbl.innerHTML = '<div class="spinner"></div>';
+
+  if (!window.recaptchaVerifier) {
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('btn-send-otp', { size: 'invisible' });
+  }
+  auth.signInWithPhoneNumber(fullPhone, window.recaptchaVerifier)
+    .then(cr => {
+      confirmationResult = cr;
+      btn.disabled = false; lbl.textContent = 'Continue';
+      showScreen('otp');
+      startResendCountdown();
+    })
+    .catch(err => {
+      btn.disabled = false; lbl.textContent = 'Continue';
+      errEl.textContent = err.message || 'Failed to send OTP.';
+      errEl.classList.add('show');
+    });
+}
+
+function startResendCountdown() {
+  let remaining = 30;
+  const el = document.getElementById('resend-countdown');
+  const btn = document.getElementById('btn-resend');
+  btn.disabled = true;
+  if (resendTimer) clearInterval(resendTimer);
+  resendTimer = setInterval(() => {
+    remaining--;
+    el.textContent = remaining;
+    if (remaining <= 0) { clearInterval(resendTimer); btn.disabled = false; el.textContent = ''; btn.textContent = 'Resend code'; }
+  }, 1000);
+}
+
+function resendOtp() {
+  showScreen('phone', false);
+  sendOtp();
+}
+
+function verifyOtp() {
+  const digits = Array.from(document.querySelectorAll('.otp-digit')).map(i => i.value).join('');
+  const errEl = document.getElementById('otp-error');
+  if (digits.length < 6) { errEl.classList.add('show'); return; }
+  errEl.classList.remove('show');
+
+  if (!auth || !confirmationResult) {
+    // Demo mode
+    showScreen('register');
+    return;
+  }
+
+  const btn = document.getElementById('btn-verify-otp');
+  const lbl = document.getElementById('verify-btn-label');
+  btn.disabled = true; lbl.innerHTML = '<div class="spinner"></div>';
+
+  confirmationResult.confirm(digits)
+    .then(result => {
+      currentUser = result.user;
+      btn.disabled = false; lbl.textContent = 'Verify';
+      return loadUserProfile(currentUser.uid);
+    })
+    .then(profile => {
+      if (profile) {
+        currentUserProfile = profile;
+        showScreen('discovery'); loadSpaces();
+      } else {
+        showScreen('register');
+      }
+    })
+    .catch(() => {
+      btn.disabled = false; lbl.textContent = 'Verify';
+      errEl.classList.add('show');
+    });
+}
+
+// OTP digit navigation
+document.querySelectorAll('.otp-digit').forEach((inp, i, all) => {
+  inp.addEventListener('input', e => {
+    const v = inp.value.replace(/\D/g,'');
+    inp.value = v ? v[0] : '';
+    if (v && i < all.length - 1) all[i+1].focus();
+    checkOtpComplete();
+  });
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Backspace' && !inp.value && i > 0) all[i-1].focus();
+  });
+  inp.addEventListener('paste', e => {
+    const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'');
+    if (pasted.length >= 6) {
+      all.forEach((f,j) => { f.value = pasted[j] || ''; });
+      all[5].focus(); checkOtpComplete();
+    }
+    e.preventDefault();
+  });
+});
+
+function checkOtpComplete() {
+  const complete = Array.from(document.querySelectorAll('.otp-digit')).every(i => i.value);
+  document.getElementById('btn-verify-otp').disabled = !complete;
+}
+
+function selectRole(el, role) {
+  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedRole = role;
+}
+
+function completeRegistration() {
+  const name = document.getElementById('reg-name').value.trim();
+  const specialty = document.getElementById('reg-specialty').value.trim();
+  const errEl = document.getElementById('reg-error');
+  if (!name || !specialty) { errEl.classList.add('show'); return; }
+  errEl.classList.remove('show');
+
+  const profile = {
+    displayName: name,
+    specialty,
+    role: selectedRole,
+    phoneNumber: currentUser?.phoneNumber || '+961XXXXXXXX',
+    createdAt: new Date().toISOString()
+  };
+
+  currentUserProfile = profile;
+
+  if (db && currentUser) {
+    db.collection('users').doc(currentUser.uid).set(profile)
+      .catch(err => console.warn('Profile save failed:', err));
+  }
+
+  showScreen('discovery');
+  loadSpaces();
+}
+
+async function loadUserProfile(uid) {
+  if (!db) return null;
+  try {
+    const doc = await db.collection('users').doc(uid).get();
+    if (doc.exists) { currentUserProfile = doc.data(); updateProfileUI(); return doc.data(); }
+    return null;
+  } catch { return null; }
+}
+
+function updateProfileUI() {
+  if (!currentUserProfile) return;
+  const p = currentUserProfile;
+  const initials = (p.displayName || '?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  document.getElementById('profile-avatar').textContent = initials;
+  document.getElementById('profile-name').textContent = p.displayName || '—';
+  document.getElementById('profile-phone').textContent = p.phoneNumber || currentUser?.phoneNumber || '—';
+  const rb = document.getElementById('profile-role');
+  rb.textContent = p.role === 'PRO_HOST' ? 'Pro Host' : 'Specialist';
+  rb.className = 'role-badge ' + (p.role === 'PRO_HOST' ? 'prohost' : 'specialist');
+}
+
+function signOut() {
+  if (confirm('Sign out of ProHost?')) {
+    if (auth) auth.signOut();
+    currentUser = null; currentUserProfile = null;
+    screenStack = [];
+    showScreen('phone');
+    showToast('Signed out');
+  }
+}
+
+function confirmDeleteAccount() {
+  if (confirm('Delete your account? This cannot be undone.\n\nAll your data will be permanently removed within 30 days.')) {
+    showToast('Deletion request submitted. We will contact you at admin@pro-host.tech');
+    if (auth) auth.signOut();
+    currentUser = null; currentUserProfile = null;
+    screenStack = [];
+    setTimeout(() => showScreen('phone'), 1500);
+  }
+}
+
+// ─── Discovery ────────────────────────────────────────────────────────────────
+const DEMO_SPACES = [
+  { id:'s1', name:'Executive Medical Suite', type:'CLINIC', city:'Achrafieh, Beirut', distance:'0.4 km', color:'#C7D2F6', photoUrl:'', subdivisions:[
+    { id:'sub1', name:'Consultation Room A', type:'Consult', amenities:['AC','WiFi','Patient Chair'], hashtags:['#MedConsult','#GPReady'], pricing:'Hourly · $18/hr', occupied:false },
+    { id:'sub2', name:'Procedure Room', type:'Procedure', amenities:['Autoclave','Sink','Light'], hashtags:['#MinorSurgery'], pricing:'Shift · $60/session', occupied:true }
+  ], lowestPrice:'$18/hr', waPhone:'+96171000001' },
+  { id:'s2', name:'Modern Office Suite', type:'OFFICE', city:'Hamra, Beirut', distance:'1.1 km', color:'#D1FAE5', photoUrl:'', subdivisions:[
+    { id:'sub3', name:'Private Office', type:'Office', amenities:['Standing Desk','Fast WiFi','Whiteboard'], hashtags:['#FocusWork','#Private'], pricing:'Monthly · $350/mo', occupied:false }
+  ], lowestPrice:'$350/mo', waPhone:'+96170000002' },
+  { id:'s3', name:'Creative Studio Space', type:'STUDIO', city:'Mar Mikhael, Beirut', distance:'0.9 km', color:'#FDE68A', photoUrl:'', subdivisions:[
+    { id:'sub4', name:'Photography Studio A', type:'Studio', amenities:['Backdrop','Lighting Rig','Changing Room'], hashtags:['#Photography','#VideoShoot'], pricing:'Day · $120/day', occupied:false },
+    { id:'sub5', name:'Recording Booth', type:'Studio', amenities:['Soundproofing','Mic Stand','Monitors'], hashtags:['#Audio','#Podcast'], pricing:'Hourly · $25/hr', occupied:false }
+  ], lowestPrice:'$25/hr', waPhone:'+96179000003' },
+  { id:'s4', name:'Coworking Hub — Downtown', type:'COWORKING', city:'Downtown, Beirut', distance:'1.8 km', color:'#FCE7F3', photoUrl:'', subdivisions:[
+    { id:'sub6', name:'Hot Desk', type:'Desk', amenities:['Fast WiFi','Coffee','Printing'], hashtags:['#HotDesk','#Cowork'], pricing:'Day · $25/day', occupied:false },
+    { id:'sub7', name:'Private Cabin', type:'Office', amenities:['Door Lock','Monitor','Locker'], hashtags:['#Privacy','#Focus'], pricing:'Monthly · $280/mo', occupied:false }
+  ], lowestPrice:'$25/day', waPhone:'+96171000004' },
+];
+
+async function loadSpaces() {
+  if (db) {
+    try {
+      const snap = await db.collection('spaces').where('isPublished','==',true).limit(20).get();
+      if (!snap.empty) {
+        spaces = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } else {
+        spaces = DEMO_SPACES;
+      }
+    } catch {
+      spaces = DEMO_SPACES;
+    }
+  } else {
+    spaces = DEMO_SPACES;
+  }
+  filteredSpaces = spaces;
+  renderSpaces();
+}
+
+function setFilter(el, cat) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  activeFilter = cat;
+  filterSpaces();
+}
+
+function filterSpaces() {
+  const q = (document.getElementById('search-input').value || '').toLowerCase();
+  filteredSpaces = spaces.filter(s => {
+    const matchCat = activeFilter === 'all' || s.type === activeFilter;
+    const matchQ = !q || s.name.toLowerCase().includes(q) || (s.city||'').toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+  renderSpaces();
+}
+
+function renderSpaces() {
+  const container = document.getElementById('cards-container');
+  const empty = document.getElementById('empty-state');
+  if (!filteredSpaces.length) { container.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  container.innerHTML = filteredSpaces.map(s => `
+    <div class="space-card" onclick="openSpace('${s.id}')">
+      <div class="space-photo" style="background:${s.color||'#C7D2F6'};">
+        ${s.photoUrl ? `<img src="${s.photoUrl}" alt="">` : ''}
+        <span class="badge">${typeLabel(s.type)}</span>
+      </div>
+      <div class="space-body">
+        <div class="space-name">${esc(s.name)}</div>
+        <div class="space-loc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-6.5 7-11a7 7 0 10-14 0c0 4.5 7 11 7 11z"/></svg>${esc(s.city||'')} ${s.distance?'· '+esc(s.distance):''}</div>
+        <div class="price-row"><span class="price-pill">${esc(s.lowestPrice||'—')}</span></div>
+        ${s.subdivisions && s.subdivisions.length > 1 ? `<div class="space-tags"><span class="tag-chip">${s.subdivisions.length} options</span></div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function typeLabel(t) { return {CLINIC:'Clinic',OFFICE:'Office',STUDIO:'Studio',COWORKING:'Coworking',WORKSPACE:'Workspace'}[t]||t||'Space'; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function openSpace(id) {
+  selectedSpace = spaces.find(s => s.id === id);
+  if (!selectedSpace) return;
+  renderDetails(selectedSpace);
+  showScreen('details');
+}
+
+function renderDetails(space) {
+  const hero = document.getElementById('details-hero');
+  if (space.photoUrl) {
+    hero.style.background = '';
+    const img = hero.querySelector('img') || (() => { const i = document.createElement('img'); hero.insertBefore(i, hero.firstChild); return i; })();
+    img.src = space.photoUrl; img.alt = space.name;
+  } else {
+    hero.style.background = `linear-gradient(135deg, ${space.color||'#C7D2F6'}, ${space.color||'#C7D2F6'}88)`;
+    const existing = hero.querySelector('img'); if (existing) existing.remove();
+  }
+
+  const lowestNum = (space.lowestPrice||'').match(/[\d,]+/)?.[0]?.replace(',','') || '—';
+  const lowestUnit = (space.lowestPrice||'').match(/\/(\w+)/)?.[1] || '';
+  document.getElementById('strip-price').textContent = lowestNum !== '—' ? '$'+lowestNum : '—';
+  document.getElementById('strip-unit').textContent = lowestUnit ? ' /'+lowestUnit : '';
+
+  const subs = space.subdivisions || [];
+  const body = document.getElementById('details-body');
+  body.innerHTML = `
+    <div class="details-title">${esc(space.name)}</div>
+    <div class="details-loc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-6.5 7-11a7 7 0 10-14 0c0 4.5 7 11 7 11z"/></svg>${esc(space.city||'')}</div>
+    <div class="info-row">
+      <span class="info-chip">${typeLabel(space.type)}</span>
+      ${space.distance ? `<span class="info-chip">${esc(space.distance)}</span>` : ''}
+    </div>
+    ${space.description ? `<p style="font-size:0.94rem;color:var(--ink2);margin-bottom:1rem;">${esc(space.description)}</p>` : ''}
+    ${subs.length ? `
+    <div class="section-title">Available Options (${subs.length})</div>
+    ${subs.map(sub => `
+      <div class="subdivision-card" style="position:relative;" onclick="${!sub.occupied ? `openAvailability('${sub.id}')` : ''}">
+        <div class="sub-header">
+          <span class="sub-name">${esc(sub.name)}</span>
+          <span class="sub-badge">${esc(sub.type||'')}</span>
+        </div>
+        <div class="sub-price">${esc(sub.pricing||'')}</div>
+        <div class="sub-amenities">${(sub.amenities||[]).slice(0,3).map(a=>`<span class="amenity-chip">${esc(a)}</span>`).join('')}${sub.amenities?.length>3?`<span class="amenity-chip">+${sub.amenities.length-3}</span>`:''}</div>
+        ${sub.hashtags?.length ? `<div class="space-tags" style="margin-top:0.4rem;">${sub.hashtags.slice(0,2).map(h=>`<span class="tag-chip">${esc(h)}</span>`).join('')}${sub.hashtags.length>2?`<span class="tag-chip">[${sub.hashtags.length-2} more]</span>`:''}</div>` : ''}
+        ${sub.occupied ? `<div class="occupied-overlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><span>Currently Occupied</span></div>` : ''}
+      </div>`).join('')}` : `<p style="color:var(--muted);font-size:0.93rem;">This space has no subdivisions listed yet.</p>`}
+  `;
+}
+
+// ─── Availability sheet ────────────────────────────────────────────────────────
+function openAvailability(subId) {
+  availabilityData = {};
+  renderAvailabilitySheet(subId);
+  document.getElementById('sheet-overlay').classList.add('open');
+  document.getElementById('avail-sheet').classList.add('open');
+}
+
+function closeAvailability() {
+  document.getElementById('sheet-overlay').classList.remove('open');
+  document.getElementById('avail-sheet').classList.remove('open');
+}
+
+function renderAvailabilitySheet(subId) {
+  const space = selectedSpace;
+  const sub = subId ? (space?.subdivisions||[]).find(s=>s.id===subId) : null;
+  const body = document.getElementById('sheet-body');
+
+  const strategies = [
+    { key:'HOURLY', label:'Hourly', days:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], hours:Array.from({length:13},(_, i)=>`${(8+i).toString().padStart(2,'0')}:00`) },
+    { key:'SHIFT_BASED', label:'Shift', slots:[{id:'morning',label:'Morning (8–14)'},{id:'afternoon',label:'Afternoon (14–20)'},{id:'evening',label:'Evening (20–24)'}] },
+    { key:'DAY_BASED', label:'Daily', days:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] },
+    { key:'MONTHLY', label:'Monthly', options:['1 month','3 months','6 months','12 months'] }
+  ];
+
+  body.innerHTML = strategies.map((s,i) => `
+    <div class="accordion-item">
+      <div class="accordion-head" onclick="toggleAccordion(this)">
+        <div class="accordion-head-left">
+          <span class="strategy-badge">${esc(s.label)}</span>
+          <span class="label">${esc(s.label)} Booking</span>
+        </div>
+        <svg class="chevron ${i===0?'open':''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="accordion-body ${i===0?'open':''}">
+        ${renderStrategyBody(s)}
+      </div>
+    </div>`).join('');
+  updateSheetPrice();
+}
+
+function renderStrategyBody(s) {
+  if (s.key === 'HOURLY') {
+    return `
+      <p style="font-size:0.82rem;color:var(--muted);margin-bottom:0.6rem;">Select days, then choose hours for each.</p>
+      <div class="day-select-row">${s.days.map(d=>`<div class="day-chip" data-strat="HOURLY" data-day="${d}" onclick="toggleDay(this,'${d}')">${d}</div>`).join('')}</div>
+      <div id="hour-rows-HOURLY"></div>`;
+  }
+  if (s.key === 'SHIFT_BASED') {
+    return `<div style="display:flex;flex-wrap:wrap;gap:0.4rem;">${s.slots.map(sl=>`<div class="slot-chip" data-strat="SHIFT_BASED" data-slot="${sl.id}" onclick="toggleSlot(this,'SHIFT_BASED','${sl.id}')">${esc(sl.label)}</div>`).join('')}</div>`;
+  }
+  if (s.key === 'DAY_BASED') {
+    return `<div class="day-select-row">${s.days.map(d=>`<div class="day-chip" data-strat="DAY_BASED" data-day="${d}" onclick="toggleDaySlot(this,'DAY_BASED','${d}')">${d}</div>`).join('')}</div>`;
+  }
+  if (s.key === 'MONTHLY') {
+    return `<div style="display:flex;flex-wrap:wrap;gap:0.4rem;">${s.options.map(o=>`<div class="slot-chip" data-strat="MONTHLY" data-slot="${o}" onclick="toggleSlot(this,'MONTHLY','${o}')">${esc(o)}</div>`).join('')}</div>`;
+  }
+  return '';
+}
+
+function toggleAccordion(head) {
+  const body = head.nextElementSibling;
+  const chevron = head.querySelector('.chevron');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chevron.classList.toggle('open', !isOpen);
+}
+
+function toggleDay(el, day) {
+  el.classList.toggle('sel');
+  const selected = el.classList.contains('sel');
+  const container = document.getElementById('hour-rows-HOURLY');
+  if (!availabilityData.HOURLY) availabilityData.HOURLY = {};
+  if (!selected) {
+    delete availabilityData.HOURLY[day];
+  } else {
+    availabilityData.HOURLY[day] = new Set();
+  }
+  refreshHourRows(container);
+  updateSheetPrice();
+}
+
+function refreshHourRows(container) {
+  if (!container) return;
+  const hours = Array.from({length:13},(_, i)=>`${(8+i).toString().padStart(2,'0')}:00`);
+  const selectedDays = Object.keys(availabilityData.HOURLY || {});
+  container.innerHTML = selectedDays.map(day => `
+    <div class="hour-row">
+      <div class="hour-row-label">${day}</div>
+      <div class="hour-chips">${hours.map(h=>`<div class="hour-chip ${(availabilityData.HOURLY?.[day]||new Set()).has(h)?'sel':''}" onclick="toggleHour(this,'${day}','${h}')">${h}</div>`).join('')}</div>
+    </div>`).join('');
+}
+
+function toggleHour(el, day, hour) {
+  if (!availabilityData.HOURLY) availabilityData.HOURLY = {};
+  if (!availabilityData.HOURLY[day]) availabilityData.HOURLY[day] = new Set();
+  if (availabilityData.HOURLY[day].has(hour)) { availabilityData.HOURLY[day].delete(hour); el.classList.remove('sel'); }
+  else { availabilityData.HOURLY[day].add(hour); el.classList.add('sel'); }
+  updateSheetPrice();
+}
+
+function toggleDaySlot(el, strat, day) {
+  el.classList.toggle('sel');
+  if (!availabilityData[strat]) availabilityData[strat] = new Set();
+  if (el.classList.contains('sel')) availabilityData[strat].add(day);
+  else availabilityData[strat].delete(day);
+  updateSheetPrice();
+}
+
+function toggleSlot(el, strat, slotId) {
+  el.classList.toggle('sel');
+  if (!availabilityData[strat]) availabilityData[strat] = new Set();
+  if (el.classList.contains('sel')) availabilityData[strat].add(slotId);
+  else availabilityData[strat].delete(slotId);
+  updateSheetPrice();
+}
+
+function updateSheetPrice() {
+  let totalHours = 0, totalDays = 0, totalShifts = 0, totalMonths = 0;
+  if (availabilityData.HOURLY) { Object.values(availabilityData.HOURLY).forEach(s => { totalHours += s.size; }); }
+  if (availabilityData.DAY_BASED) totalDays = availabilityData.DAY_BASED.size;
+  if (availabilityData.SHIFT_BASED) totalShifts = availabilityData.SHIFT_BASED.size;
+  if (availabilityData.MONTHLY) totalMonths = availabilityData.MONTHLY.size;
+
+  const summary = document.getElementById('sheet-price-summary');
+  const btn = document.getElementById('sheet-submit-btn');
+  const parts = [];
+  if (totalHours) parts.push(`${totalHours} hour${totalHours>1?'s':''}`);
+  if (totalShifts) parts.push(`${totalShifts} shift${totalShifts>1?'s':''}`);
+  if (totalDays) parts.push(`${totalDays} day${totalDays>1?'s':''}`);
+  if (totalMonths) parts.push(totalMonths === 1 ? '1 month' : totalMonths + ' months');
+
+  if (parts.length) {
+    summary.innerHTML = `Selected: <strong>${parts.join(', ')}</strong>`;
+    btn.disabled = false;
+  } else {
+    summary.textContent = 'Select options above to see pricing';
+    btn.disabled = true;
+  }
+}
+
+function submitBooking() {
+  if (!currentUser && !currentUserProfile) {
+    closeAvailability();
+    showToast('Sign in to request a booking');
+    showScreen('phone');
+    return;
+  }
+  showToast('Booking request submitted! The host will contact you.');
+  closeAvailability();
+}
+
+// ─── WhatsApp ─────────────────────────────────────────────────────────────────
+function openWhatsApp() {
+  const phone = selectedSpace?.waPhone;
+  if (!phone) { showToast('No WhatsApp number on file'); return; }
+  const msg = encodeURIComponent(`Hi, I found your space "${selectedSpace.name}" on ProHost and I'm interested in booking.`);
+  window.location.href = `https://wa.me/${phone.replace(/\D/g,'')}?text=${msg}`;
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ─── Back handling ────────────────────────────────────────────────────────────
+window.addEventListener('popstate', () => {
+  if (document.getElementById('avail-sheet').classList.contains('open')) { closeAvailability(); history.pushState(null,'',location.href); return; }
+  goBack();
+  history.pushState(null,'',location.href);
+});
+history.pushState(null,'',location.href);
+</script>
+</body>
+</html>

@@ -4,132 +4,175 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Privacy Policy — ProHost</title>
-  <meta name="description" content="Official Privacy Policy for the ProHost mobile application and platform. Learn how we collect, use, protect, and delete your personal data.">
+  <meta name="description" content="ProHost Privacy Policy — how we collect, use and protect your personal data as a workspace and practice exchange.">
   <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #F25F4C;
-      --oxford-blue: #0F172A;
-      --vibrant-blue: #2563EB;
-      --bg-light: #F8FAFC;
-      --card-bg: #FFFFFF;
-      --text-dark: #1E293B;
-      --text-muted: #64748B;
-      --border-color: #E2E8F0;
+      --oxford: #1E293B; --navy: #152EA0; --accent: #E8440A;
+      --bg: #F8F9FA; --card: #FFFFFF; --border: #E2E4E8;
+      --ink: #1E293B; --muted: #5B6472; --shadow: 0 8px 24px -12px rgba(39,47,60,0.16);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background-color: var(--bg-light); color: var(--text-dark); line-height: 1.75; }
-    header { background-color: #FFFFFF; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; }
-    .nav-container { max-width: 1000px; margin: 0 auto; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
-    .brand { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; }
-    .brand img { width: 38px; height: 44px; object-fit: contain; }
-    .brand-title { font-size: 1.4rem; font-weight: 800; }
-    .brand-pro { color: var(--oxford-blue); }
-    .brand-host { color: var(--vibrant-blue); }
-    .nav-links { display: flex; gap: 1.5rem; }
-    .nav-links a { text-decoration: none; color: var(--text-dark); font-weight: 600; font-size: 0.95rem; }
-    .nav-links a:hover { color: var(--primary); }
-    .content-container { max-width: 1000px; margin: 3rem auto; padding: 2.5rem; background-color: var(--card-bg); border-radius: 1rem; border: 1px solid var(--border-color); box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
-    h1 { font-size: 2.2rem; color: var(--oxford-blue); font-weight: 900; margin-bottom: 0.5rem; }
-    .effective-date { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
-    h2 { font-size: 1.35rem; color: var(--oxford-blue); font-weight: 800; margin: 2rem 0 1rem; }
-    p, li { color: #334155; font-size: 1rem; margin-bottom: 1rem; }
-    ul { margin-left: 1.5rem; margin-bottom: 1.5rem; }
-    li { margin-bottom: 0.5rem; }
-    .info-box { background-color: #EFF6FF; border: 1px solid #BFDBFE; padding: 1.5rem; border-radius: 0.75rem; margin-top: 1.5rem; }
-    footer { background-color: var(--oxford-blue); color: #94A3B8; padding: 2.5rem 1.5rem; text-align: center; }
-    footer a { color: #CBD5E1; text-decoration: none; font-weight: 600; margin: 0 0.75rem; }
-    footer a:hover { color: #FFFFFF; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0F172A; --card: #1E293B; --border: #334155;
+        --ink: #E2E8F0; --muted: #94A3B8; color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"] { --bg: #0F172A; --card: #1E293B; --border: #334155; --ink: #E2E8F0; --muted: #94A3B8; color-scheme: dark; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.75; -webkit-font-smoothing: antialiased; }
+    h1, h2, h3 { font-family: 'Manrope', sans-serif; letter-spacing: -0.015em; color: var(--oxford); }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) h1, :root:not([data-theme="light"]) h2, :root:not([data-theme="light"]) h3 { color: var(--ink); } }
+    :root[data-theme="dark"] h1, :root[data-theme="dark"] h2, :root[data-theme="dark"] h3 { color: var(--ink); }
+    a { color: var(--navy); text-decoration: underline; }
+    nav.topbar { position: sticky; top: 0; z-index: 100; background: var(--card); border-bottom: 1px solid var(--border); padding: 0.85rem 1.5rem; display: flex; align-items: center; gap: 1rem; }
+    nav.topbar a.home { display: flex; align-items: center; gap: 0.4rem; font-family: 'Manrope', sans-serif; font-weight: 700; text-decoration: none; color: var(--ink); font-size: 0.92rem; }
+    nav.topbar img { height: 28px; width: auto; }
+    nav.topbar span.sep { color: var(--border); font-size: 1.2rem; }
+    nav.topbar span.title { font-size: 0.92rem; color: var(--muted); }
+    .wrap { max-width: 780px; margin: 0 auto; padding: 3.5rem 1.5rem 5rem; }
+    .doc-head { margin-bottom: 2.5rem; padding-bottom: 1.75rem; border-bottom: 1px solid var(--border); }
+    .doc-head h1 { font-size: clamp(1.7rem, 3vw, 2.2rem); margin-bottom: 0.5rem; }
+    .meta { font-size: 0.86rem; color: var(--muted); }
+    h2 { font-size: 1.2rem; font-weight: 700; margin: 2.25rem 0 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1rem; font-weight: 700; margin: 1.4rem 0 0.4rem; }
+    p { margin-bottom: 0.9rem; font-size: 0.97rem; color: var(--ink); }
+    ul { margin: 0.5rem 0 0.9rem 1.5rem; }
+    li { font-size: 0.97rem; color: var(--ink); margin-bottom: 0.4rem; }
+    .callout { background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--navy); border-radius: 0.6rem; padding: 1.1rem 1.2rem; margin: 1.2rem 0; }
+    .callout.warn { border-left-color: var(--accent); }
+    .callout p { margin: 0; font-size: 0.93rem; }
+    .contact-box { margin-top: 2rem; background: var(--card); border: 1px solid var(--border); border-radius: 0.9rem; padding: 1.4rem 1.5rem; }
+    .contact-box h3 { margin-top: 0; border-top: none; }
   </style>
 </head>
 <body>
+  <nav class="topbar">
+    <a class="home" href="/">
+      <img src="/logo.png" alt="ProHost">
+      <img src="/logo-wordmark.png" alt="ProHost" style="height:22px;">
+    </a>
+    <span class="sep">/</span>
+    <span class="title">Privacy Policy</span>
+  </nav>
 
-  <header>
-    <div class="nav-container">
-      <a href="/" class="brand">
-        <img src="/logo.png" alt="ProHost Logo">
-        <span class="brand-title">
-          <span class="brand-pro">Pro</span><span class="brand-host">Host</span>
-        </span>
-      </a>
-      <nav class="nav-links">
-        <a href="/">Home</a>
-        <a href="/privacy.html">Privacy Policy</a>
-        <a href="/terms.html">Terms of Service</a>
-        <a href="/delete-account.html">Delete Account</a>
-      </nav>
-    </div>
-  </header>
-
-  <main>
-    <div class="content-container">
+  <div class="wrap">
+    <div class="doc-head">
       <h1>Privacy Policy</h1>
-      <p class="effective-date">Application: ProHost | Last Updated: September 14, 2026</p>
-
-      <p>Welcome to <strong>ProHost</strong> ("we", "our", or "us"). ProHost is a professional workspace and practice exchange platform connecting independent specialists (physicians, therapists, architects, consultants) with workspace hosts renting medical clinics, consulting offices, and professional studios.</p>
-
-      <p>This Privacy Policy explains how we collect, use, disclose, and protect your personal information when you use the ProHost mobile application, our website (<a href="https://prohost-f766f.web.app" style="color: var(--vibrant-blue);">https://prohost-f766f.web.app</a> and <a href="https://pro-host.tech" style="color: var(--vibrant-blue);">https://pro-host.tech</a>), and related cloud services.</p>
-
-      <h2>1. Information We Collect</h2>
-      <p>To provide our co-sharing exchange services, we collect the following categories of information:</p>
-      <ul>
-        <li><strong>Account & Profile Information</strong>: Full Name, Email Address, Phone Number (verified via Firebase Authentication SMS One-Time Passcode), Profession/Job Title, City, and optional Profile Picture.</li>
-        <li><strong>Identity Verification Documents</strong>: National ID, Passport, or professional license documents uploaded during profile setup or host verification to maintain platform safety.</li>
-        <li><strong>Location Data</strong>: Precise (GPS) and approximate location data when using the interactive map to discover nearby workspaces or pin listing locations.</li>
-        <li><strong>Listing & Rental Data</strong>: Workspace titles, photos, descriptions, operating schedules, subdivision setups, pricing rules, and rental booking request history.</li>
-        <li><strong>Financial & Payment Transaction Info</strong>: Whish Money transaction identifiers, order amounts, and rental package subscription statuses. We do not store raw credit card numbers or private payment PINs.</li>
-        <li><strong>Device & Technical Usage Data</strong>: Device model, Firebase Cloud Messaging (FCM) push notification tokens, IP address, and security audit log entries.</li>
-      </ul>
-
-      <h2>2. How We Use Your Information</h2>
-      <p>We process your personal information for the following specific purposes:</p>
-      <ul>
-        <li>To authenticate your phone number securely via Firebase SMS verification.</li>
-        <li>To display nearby workspace listings on our OpenStreetMap discovery canvas.</li>
-        <li>To facilitate rental booking requests between specialists and workspace hosts.</li>
-        <li>To enable direct WhatsApp communication between confirmed hosts and specialists.</li>
-        <li>To verify host identity and workspace ownership for platform security.</li>
-        <li>To send real-time push notifications regarding booking updates, approvals, and payment reminders.</li>
-        <li>To prevent fraud, enforce platform rules, and comply with applicable laws (including Lebanese Data Protection Law No. 81/2018).</li>
-      </ul>
-
-      <h2>3. Data Sharing & Third-Party Disclosure</h2>
-      <p>We do <strong>not</strong> sell, rent, or trade your personal data to advertisers. We share information only with trusted infrastructure providers required to operate the app:</p>
-      <ul>
-        <li><strong>Google Cloud Platform & Firebase</strong>: Cloud database (Firestore), authentication, file storage, and serverless Cloud Functions hosted in Google Cloud's European region.</li>
-        <li><strong>Google Play Integrity API</strong>: Used to verify device genuineness and protect against fraud.</li>
-        <li><strong>Whish Money Gateway</strong>: Processed strictly for payment transaction verification and settlement.</li>
-      </ul>
-
-      <h2>4. Data Protection & Retention</h2>
-      <p>Your data is protected using SSL/TLS encryption in transit and AES-256 encryption at rest within Google Cloud infrastructure. Access to administrative controls is restricted through server-verified Firebase Auth custom claims and audit logging.</p>
-
-      <h2>5. Account Deletion & Your Rights</h2>
-      <p>You have full control over your data and can request deletion at any time:</p>
-      <ul>
-        <li><strong>In-App Deletion</strong>: Go to <code>Profile → Delete Account</code> inside the app for immediate automated deletion of your profile, listings, uploaded ID documents, and Firebase Auth account.</li>
-        <li><strong>Web Request</strong>: Visit <a href="/delete-account.html" style="color: var(--vibrant-blue);">Delete Account Page</a> or email us at <strong>geo.elnajjar@gmail.com</strong> to request manual account deletion within 30 days.</li>
-      </ul>
-
-      <h2>6. Contact Us</h2>
-      <div class="info-box">
-        <p><strong>ProHost Data Protection Officer & Support</strong></p>
-        <p>Email: <strong>geo.elnajjar@gmail.com</strong></p>
-        <p>Primary Domain: <a href="https://prohost-f766f.web.app" style="color: var(--vibrant-blue);">https://prohost-f766f.web.app</a></p>
-        <p>Secondary Domain: <a href="https://pro-host.tech" style="color: var(--vibrant-blue);">https://pro-host.tech</a></p>
-      </div>
+      <p class="meta">Effective date: 1 January 2025 · Last updated: 1 June 2025</p>
     </div>
-  </main>
 
-  <footer>
-    <p>© 2026 ProHost. All rights reserved.</p>
-    <p style="margin-top: 0.5rem;">
-      <a href="/">Home</a> |
-      <a href="/privacy.html">Privacy Policy</a> |
-      <a href="/terms.html">Terms of Service</a> |
-      <a href="/delete-account.html">Delete Account</a>
-    </p>
-  </footer>
+    <div class="callout">
+      <p><strong>Summary:</strong> ProHost is a marketplace platform. We collect only what we need to connect specialists with host spaces. We do not sell or broker your personal data. You can delete your account and all associated data at any time.</p>
+    </div>
 
+    <h2>1. Who We Are</h2>
+    <p>ProHost ("we", "us", "our") operates a mobile and web platform that connects independent professionals ("Specialists") with property owners or operators ("Pro Hosts") who list rentable clinic, office and workspace subdivisions. We act as a platform intermediary and are not a party to any rental agreement between users.</p>
+
+    <h2>2. Data We Collect</h2>
+    <h3>2.1 Account Data</h3>
+    <ul>
+      <li><strong>Phone number</strong> — used to verify your identity via one-time SMS code (Firebase Authentication). We do not store passwords.</li>
+      <li><strong>Display name and specialty/profession</strong> — provided during registration; shown to the other party in a booking transaction.</li>
+      <li><strong>Profile photo</strong> — optional; stored in Google Cloud Storage if uploaded.</li>
+    </ul>
+    <h3>2.2 Listing and Booking Data</h3>
+    <ul>
+      <li>Space address, GPS coordinates, photos, pricing and availability configured by Pro Hosts.</li>
+      <li>Booking requests, confirmation status and rental period.</li>
+      <li>WhatsApp phone number shared at the point of confirmed booking (Specialists see host's number and vice versa).</li>
+    </ul>
+    <h3>2.3 Usage and Device Data</h3>
+    <ul>
+      <li>Approximate location (device GPS), used only while the app is open to show nearby spaces. Not stored server-side continuously.</li>
+      <li>Crash logs and performance metrics via Google Firebase Crashlytics and Performance — anonymised and aggregated.</li>
+      <li>App usage events (screens opened, search terms) via Firebase Analytics — aggregated and not linked to individual identity without consent.</li>
+    </ul>
+    <h3>2.4 Communications</h3>
+    <p>ProHost does not host or store chat messages. Direct communication happens on WhatsApp, which is governed by Meta's own privacy policy. We only store the event record (booking request/acceptance) within our platform.</p>
+
+    <h2>3. How We Use Your Data</h2>
+    <ul>
+      <li>To verify identity and prevent fraud (SMS OTP).</li>
+      <li>To display your listing to users searching in the app.</li>
+      <li>To facilitate booking requests and confirmations.</li>
+      <li>To provide customer support and investigate disputes.</li>
+      <li>To comply with legal obligations, including Law No. 81/2018 (Lebanon) on consumer protection and applicable data protection regulations.</li>
+      <li>To improve the platform through aggregated analytics — never sold to third parties.</li>
+    </ul>
+
+    <h2>4. Legal Bases for Processing</h2>
+    <p>Where applicable under law, we rely on the following legal bases:</p>
+    <ul>
+      <li><strong>Contract performance</strong> — processing necessary to register your account and fulfil booking transactions you initiate.</li>
+      <li><strong>Legitimate interest</strong> — fraud prevention, platform security, and aggregated analytics.</li>
+      <li><strong>Consent</strong> — optional analytics and marketing communications; you may withdraw consent at any time.</li>
+      <li><strong>Legal obligation</strong> — compliance with Lebanese and applicable international law.</li>
+    </ul>
+
+    <h2>5. Data Sharing</h2>
+    <p>We do not sell or rent your personal data. We share data only as follows:</p>
+    <ul>
+      <li><strong>Between users</strong> — a Specialist's name, specialty and phone number are shared with a Pro Host upon a confirmed booking, and vice versa.</li>
+      <li><strong>Google / Firebase</strong> — Firebase Authentication, Firestore, Cloud Storage, Functions, Crashlytics and Analytics are operated by Google LLC. Google acts as a data processor under appropriate data processing agreements. See <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase Privacy</a>.</li>
+      <li><strong>Legal process</strong> — we may disclose data if required by a valid court order, legal obligation or to protect the rights and safety of users.</li>
+      <li><strong>Business transfer</strong> — in the event of a merger, acquisition or asset sale, data may transfer subject to the same privacy commitments.</li>
+    </ul>
+
+    <h2>6. Data Retention</h2>
+    <ul>
+      <li>Active account data is retained while your account remains open.</li>
+      <li>Booking records are retained for five (5) years for legal and dispute-resolution purposes.</li>
+      <li>Upon account deletion, personal data is purged within thirty (30) calendar days except where retention is required by law.</li>
+      <li>Aggregated, non-identifiable analytics data may be retained indefinitely.</li>
+    </ul>
+
+    <h2>7. Your Rights</h2>
+    <p>Depending on your jurisdiction, you may have the right to:</p>
+    <ul>
+      <li><strong>Access</strong> a copy of personal data we hold about you.</li>
+      <li><strong>Correct</strong> inaccurate or incomplete data.</li>
+      <li><strong>Delete</strong> your account and associated personal data — available directly in the app (Settings → Delete Account) or by submitting a written request to <a href="mailto:admin@pro-host.tech">admin@pro-host.tech</a> or via our <a href="/delete-account.html">web request form</a>. Deletion is processed within 30 days.</li>
+      <li><strong>Object or restrict</strong> processing in certain circumstances.</li>
+      <li><strong>Data portability</strong> — request a machine-readable export of data you provided.</li>
+      <li><strong>Withdraw consent</strong> for optional analytics or communications at any time.</li>
+    </ul>
+    <p>To exercise any right, contact us at <a href="mailto:admin@pro-host.tech">admin@pro-host.tech</a>. We will respond within thirty (30) days.</p>
+
+    <h2>8. Security</h2>
+    <p>We employ industry-standard security measures: HTTPS-only data transmission, Firebase Security Rules limiting data access to authenticated owners, and no storage of passwords or payment card data. No system is perfectly secure; we cannot guarantee absolute security and you use the platform at your own risk.</p>
+
+    <h2>9. Cookies and Tracking on This Website</h2>
+    <p>The ProHost marketing website (pro-host.tech) uses no third-party tracking cookies. Google Fonts are loaded from Google's servers; see <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a> for how font requests are handled. No advertising, affiliate or behavioural tracking scripts are loaded.</p>
+
+    <h2>10. Children's Privacy</h2>
+    <p>ProHost is not directed at persons under 18 years of age. We do not knowingly collect personal data from minors. If we become aware that a minor has registered, we will delete the account promptly.</p>
+
+    <h2>11. Limitation of Liability and Disclaimer</h2>
+    <div class="callout warn">
+      <p><strong>Platform disclaimer.</strong> ProHost is a marketplace facilitator only. We are not a party to any rental agreement, employment arrangement, or professional services contract entered into between Specialists and Pro Hosts through the platform. ProHost makes no warranty as to the accuracy of listings, the fitness of a space for a particular professional use, or the conduct of any user.</p>
+    </div>
+    <p>To the maximum extent permitted by applicable law, ProHost's aggregate liability arising out of or in connection with the collection or use of personal data shall not exceed the total fees paid by you (if any) to ProHost in the twelve (12) months preceding the claim.</p>
+    <p>We are not liable for: (a) any consequential, indirect, incidental or punitive damages; (b) any loss of data resulting from the actions of third-party service providers such as Google Firebase; or (c) any breach resulting from force majeure events.</p>
+
+    <h2>12. Lebanese Law Compliance</h2>
+    <p>We operate in compliance with Lebanese Law No. 81/2018 (Consumer Protection) and applicable data-protection obligations. Users located in Lebanon have all rights described in Section 7. We do not transfer personal data to jurisdictions without adequate data protection safeguards without appropriate contractual safeguards in place.</p>
+
+    <h2>13. Changes to This Policy</h2>
+    <p>We may update this policy at any time. We will notify registered users of material changes via in-app notification at least fourteen (14) days before they take effect. Continued use of the platform after that date constitutes acceptance of the revised policy.</p>
+
+    <div class="contact-box">
+      <h3>Questions or Requests</h3>
+      <p>For any privacy-related request, question or complaint:</p>
+      <ul>
+        <li>Email: <a href="mailto:admin@pro-host.tech">admin@pro-host.tech</a></li>
+        <li>Account deletion: <a href="/delete-account.html">pro-host.tech/delete-account</a></li>
+      </ul>
+      <p style="margin-top:0.7rem; font-size:0.88rem; color:var(--muted);">We aim to respond within 30 calendar days.</p>
+    </div>
+
+  </div>
 </body>
 </html>
