@@ -1,16 +1,80 @@
 {
-  "generatedAt": "2026-09-26T17:00:19.883Z",
+  "generatedAt": "2026-09-26T17:05:38.417Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 0,
+    "total": 7,
     "critical": 0,
     "high": 0,
-    "medium": 0,
-    "low": 0,
+    "medium": 2,
+    "low": 5,
     "info": 0,
     "passes": 21
   },
-  "findings": [],
+  "findings": [
+    {
+      "severity": "MEDIUM",
+      "category": "app-size",
+      "check": "Large Unoptimized Assets",
+      "file": "app/src/main/res/drawable-xxhdpi/splash.png",
+      "line": null,
+      "message": "5 drawable(s) exceed 200 KB: splash.png, splash.png, img_discovery_hero.jpg…. Large bitmaps inflate APK size and increase memory usage during rendering.",
+      "suggestion": "Convert large PNGs to WebP (Android Studio → right-click drawable → Convert to WebP). For launcher icons >100 KB consider SVG/VectorDrawable. Use APK Analyzer (Build → Analyze APK) to audit by size."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "localization",
+      "check": "Hardcoded UI Strings",
+      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
+      "line": 123,
+      "message": "48 hardcoded English string literal(s) found in UI screens (e.g. \"text = \"Governance Console\"\"). Hardcoded strings cannot be translated via the standard values-<lang>/ mechanism.",
+      "suggestion": "Move user-visible strings to app/src/main/res/values/strings.xml and reference them with stringResource(R.string.your_key) in Compose. Prioritize error messages, labels, and button text."
+    },
+    {
+      "severity": "LOW",
+      "category": "vitals",
+      "check": "StrictMode Not Configured",
+      "file": "app/build.gradle.kts",
+      "line": null,
+      "message": "No StrictMode configuration found. StrictMode catches disk I/O and network calls on the main thread during debug builds — the same violations Android Vitals reports as ANRs in production.",
+      "suggestion": "In Application.onCreate() (debug build only), add: StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder().detectAll().penaltyLog().build()) and StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().detectLeakedSqlLiteObjects().detectLeakedClosableObjects().penaltyLog().build())"
+    },
+    {
+      "severity": "LOW",
+      "category": "vitals",
+      "check": "LeakCanary Not Present",
+      "file": "app/build.gradle.kts",
+      "line": null,
+      "message": "LeakCanary is not in the debug dependencies. Memory leaks that cause OOM crashes appear in Android Vitals — LeakCanary catches them locally before release.",
+      "suggestion": "Add to app/build.gradle.kts: debugImplementation(\"com.squareup.leakcanary:leakcanary-android:2.14\")"
+    },
+    {
+      "severity": "LOW",
+      "category": "performance",
+      "check": "No Baseline Profile",
+      "file": "app/build.gradle.kts",
+      "line": null,
+      "message": "No Baseline Profile (baseline-prof.txt) found. Baseline Profiles pre-compile hot Compose code paths, reducing app startup time by up to 40% and improving first-frame render on cold starts.",
+      "suggestion": "Generate with: ./gradlew :app:generateBaselineProfile (requires the androidx.benchmark:benchmark-macro-junit4 and the macrobenchmark module). Commit the generated app/src/main/baseline-prof.txt."
+    },
+    {
+      "severity": "LOW",
+      "category": "app-size",
+      "check": "No WebP Assets",
+      "file": null,
+      "line": null,
+      "message": "9 PNG file(s) found but no WebP files. WebP typically achieves 25–35% smaller file sizes than PNG with equivalent visual quality.",
+      "suggestion": "Convert PNGs to WebP in Android Studio (right-click any drawable folder → Convert to WebP). Requires API 14+ for lossy and API 18+ for lossless (both within this app's minSdk = 24)."
+    },
+    {
+      "severity": "LOW",
+      "category": "accessibility",
+      "check": "Custom Drawing Without Semantics",
+      "file": "app/src/main/java/com/example/ui/screens/DiscoveryScreen.kt",
+      "line": 136,
+      "message": "1 custom Canvas/draw element(s) found but no Modifier.semantics {} usage. Custom drawn content is completely invisible to TalkBack unless semantics are provided.",
+      "suggestion": "Wrap Canvas-based components with Modifier.semantics { contentDescription = \"…\"; role = Role.Image }. Use clearAndSetSemantics {} to override child semantics when the parent already provides the full accessible description."
+    }
+  ],
   "passes": [
     {
       "check": "CF Name Consistency",
