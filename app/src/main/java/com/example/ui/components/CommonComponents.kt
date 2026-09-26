@@ -931,8 +931,24 @@ fun InputField(
             // A blank label renders no label at all, so a placeholder-only field
             // isn't left with an empty notch cut into its outline.
             label = if (label.isNotBlank()) { { Text(label, style = MaterialTheme.typography.bodyMedium) } } else null,
-            placeholder = if (placeholder != null) { { Text(placeholder, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) } } else null,
-            prefix = if (prefix != null) { { Text(prefix, style = MaterialTheme.typography.bodyMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold) } } else null,
+            placeholder = if (placeholder != null) {
+                {
+                    Text(
+                        placeholder,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
+            } else null,
+            prefix = if (prefix != null) {
+                {
+                    Text(
+                        prefix,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                    )
+                }
+            } else null,
             leadingIcon = if (leadingIcon != null) {
                 {
                     Icon(
@@ -1079,25 +1095,39 @@ fun ModernCard(
  * Standard WorkspaceCard Component
  * Modern card layout with shadows, rounded corners (16.dp), consistent padding, badges, pricing, schedule, and host identity.
  */
+data class WorkspaceCardInfo(
+    val title: String,
+    val listingType: String,
+    val location: String,
+    val rateUsd: Double,
+    val rateUnit: String = "/mo",
+    val imageUrl: String? = null,
+    val operatingHours: String? = null,
+    val totalDaysOpen: String? = null,
+    val formulaTypes: List<String> = emptyList(),
+    val isVerified: Boolean = false
+)
+
 @Composable
 fun WorkspaceCard(
-    title: String,
-    listingType: String,
-    location: String,
-    rateUsd: Double,
-    rateUnit: String = "/mo",
+    info: WorkspaceCardInfo,
     modifier: Modifier = Modifier,
-    imageUrl: String? = null,
-    operatingHours: String? = null,
-    totalDaysOpen: String? = null,
-    formulaTypes: List<String> = emptyList(),
-    isVerified: Boolean = false,
     isSaved: Boolean = false,
     onToggleSave: (() -> Unit)? = null,
     onClick: () -> Unit,
     onWhatsAppClick: (() -> Unit)? = null,
     onDetailsClick: (() -> Unit)? = null
 ) {
+    val title = info.title
+    val listingType = info.listingType
+    val location = info.location
+    val rateUsd = info.rateUsd
+    val rateUnit = info.rateUnit
+    val imageUrl = info.imageUrl
+    val operatingHours = info.operatingHours
+    val totalDaysOpen = info.totalDaysOpen
+    val formulaTypes = info.formulaTypes
+    val isVerified = info.isVerified
     ModernCard(
         modifier = modifier,
         onClick = onClick,

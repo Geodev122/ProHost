@@ -241,15 +241,29 @@ fun SubdivisionEditorSection(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Icon(Icons.Default.Apartment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
             Column {
-                Text("Rooms & Workspace Divisions", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                Text("Add each rentable room or desk separately — specialists will book them individually.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Rooms & Workspace Divisions",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "Add each rentable room or desk separately — specialists will book them individually.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
         if (subdivisionsList.isNotEmpty()) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
-                Text("Configured Rooms (${subdivisionsList.size})", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    "Configured Rooms (${subdivisionsList.size})",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 subdivisionsList.forEachIndexed { index, sub ->
@@ -263,7 +277,11 @@ fun SubdivisionEditorSection(
                                 shape = MaterialTheme.shapes.medium
                             ),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (isEditingThis) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                            containerColor = if (isEditingThis) {
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f)
+                            } else {
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                            }
                         ),
                         shape = MaterialTheme.shapes.medium
                     ) {
@@ -331,14 +349,28 @@ fun SubdivisionEditorSection(
 
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
-                                    Text(sub.type.displayName, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                    Text(
+                                        sub.type.displayName,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
                                 }
                                 Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.extraSmall) {
-                                    Text(sub.pricing.strategyType.displayName, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    Text(
+                                        sub.pricing.strategyType.displayName,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
                                 }
                             }
                             if (sub.amenities.isNotEmpty()) {
-                                Text("✓ ${sub.amenities.joinToString()}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    "✓ ${sub.amenities.joinToString()}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                             if (sub.imageUrls.isNotEmpty()) {
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -419,7 +451,13 @@ fun SubdivisionEditorSection(
             Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
-                        Text("1", modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Text(
+                            "1",
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     }
                     Text(
                         if (editingSubdivisionIndex != null) "Edit Room / Unit" else "Room / Unit Identity",
@@ -443,14 +481,24 @@ fun SubdivisionEditorSection(
                     onClick = { showTypePicker = true }
                 )
 
-                Text("Amenities", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Amenities",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 PickerTriggerRow(
                     summary = subAmenitiesSelected.joinToString().ifBlank { "None selected" },
                     placeholder = "Choose amenities",
                     onClick = { showAmenityPicker = true }
                 )
 
-                Text("Hashtags", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Hashtags",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -506,7 +554,13 @@ fun SubdivisionEditorSection(
             Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
-                        Text("2", modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Text(
+                            "2",
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     }
                     Text("Room Photos", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
@@ -536,7 +590,12 @@ fun SubdivisionEditorSection(
                                     CircularProgressIndicator(modifier = Modifier.size(20.dp))
                                 } else {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Icon(Icons.Default.AddAPhoto, contentDescription = "Add room image", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                                        Icon(
+                                            Icons.Default.AddAPhoto,
+                                            contentDescription = "Add room image",
+                                            modifier = Modifier.size(20.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
                                         Text("Add", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                     }
                                 }
@@ -560,7 +619,13 @@ fun SubdivisionEditorSection(
             Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
-                        Text("3", modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Text(
+                            "3",
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     }
                     Text("Pricing Strategy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
@@ -568,7 +633,12 @@ fun SubdivisionEditorSection(
                 // Attendee-mode toggle — only shown for conference-capable division types
                 if (showAttendeeToggle) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Pricing Mode", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "Pricing Mode",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -624,7 +694,12 @@ fun SubdivisionEditorSection(
                         }
                     }
                     // Keep the schedule editor visible so the host can still configure availability slots
-                    Text("Availability Schedule", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Availability Schedule",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
                 // Pricing keys off this room's own hours when schedule override is on,
@@ -645,7 +720,11 @@ fun SubdivisionEditorSection(
             shape = MaterialTheme.shapes.large,
             border = androidx.compose.foundation.BorderStroke(
                 width = if (subScheduleOverrideEnabled) 1.5.dp else 1.dp,
-                color = if (subScheduleOverrideEnabled) MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                color = if (subScheduleOverrideEnabled) {
+                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
+                } else {
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                }
             ),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -655,9 +734,19 @@ fun SubdivisionEditorSection(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
-                            Text("4", modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Text(
+                                "4",
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
                         }
                         Column {
                             Text("Custom Hours", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)

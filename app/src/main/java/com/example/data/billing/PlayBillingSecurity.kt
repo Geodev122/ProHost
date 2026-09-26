@@ -25,7 +25,10 @@ object PlayBillingSecurity {
      * Merchant Base64-encoded RSA public key from Google Play Console Licensing setup.
      */
     const val MERCHANT_BASE64_PUBLIC_KEY =
-        "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvxC69c6k2zB5f294E5fCxXkQ16idMtN1qpjyzwUJ/3h0tmmMCxcue5Do22EWJTPqjWqgr8Ffd6Eec8ef9R3VA+AQw3VuVH/wdrBs781KUJ1Wj4e+ejhBqFrQfNlvbKrBeoNgbPsPhS41q9buMwb2DG0w2nKZVHTFLqLC7a4/DfnacadX3PyrAlnt4H2LC5ey19OhRDCNksAIC3xdDtIwSfMHRsPb8U1Y+M43SV/MFVAtWz+HbKny66wvi51r2v7aVd0otANV1F++zIr1v1H57KlDo/4qdUjf9LrPzu4g5cSOD0ReZboBO2WQZRUeKDRXVPno4zk0nN5vKMnEBMibNQIDAQAB"
+        "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvxC69c6k2zB5f294E5fCxXkQ16idMtN1qpjyzwUJ/3h0tmmMCxcue5Do22EWJTPqjWqgr8Ffd6Eec8ef9R3VA" +
+            "+AQw3VuVH/wdrBs781KUJ1Wj4e+ejhBqFrQfNlvbKrBeoNgbPsPhS41q9buMwb2DG0w2nKZVHTFLqLC7a4/DfnacadX3PyrAlnt4H2LC5ey19OhRDCN" +
+            "ksAIC3xdDtIwSfMHRsPb8U1Y+M43SV/MFVAtWz+HbKny66wvi51r2v7aVd0otaNV1F++zIr1v1H57KlDo/4qdUjf9LrPzu4g5cSOD0ReZboBO2WQZRU" +
+            "eKDRXVPno4zk0nN5vKMnEBMibNQIDAQAB"
 
     /**
      * Verifies that the data was signed with the given signature.

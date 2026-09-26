@@ -70,7 +70,12 @@ class FirebaseStorageService(
         uid: String,
         fileUri: Uri,
         fileExtension: String = "jpg",
-        context: Context = try { FirebaseApp.getInstance().applicationContext } catch (e: Exception) { android.os.Environment.getDataDirectory() /* fallback */ ; throw e },
+        context: Context = try {
+            FirebaseApp.getInstance().applicationContext
+        } catch (e: Exception) {
+            android.os.Environment.getDataDirectory() /* fallback */
+            throw e
+        },
         onProgress: (Float) -> Unit = {}
     ): String? {
         val bytes = withContext(Dispatchers.IO) {

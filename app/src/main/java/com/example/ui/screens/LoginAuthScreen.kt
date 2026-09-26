@@ -1149,7 +1149,12 @@ private fun AuthStepIndicator(step: AuthStep) {
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         if (isDone) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(14.dp))
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                tint = androidx.compose.ui.graphics.Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
                         } else {
                             Icon(icon, contentDescription = null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(13.dp))
                         }

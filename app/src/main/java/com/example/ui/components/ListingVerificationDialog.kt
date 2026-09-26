@@ -94,7 +94,8 @@ fun ListingVerificationDialog(
 
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
-                    "Optional — submit a document for Admin review to earn the Listing Verified badge shown to Specialists. Not required to keep this listing published.",
+                    "Optional — submit a document for Admin review to earn the Listing Verified badge shown to Specialists. Not required to keep " +
+                    "this listing published.",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -138,7 +139,8 @@ fun ListingVerificationDialog(
                             ) {
                                 Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                     Text(
-                                        "1. Download the authorization template, print it, and have the real property owner fill in their name/ID and sign it. 2. Scan or photograph the signed document and upload it below.",
+                                        "1. Download the authorization template, print it, and have the real property owner fill in their " +
+                                        "name/ID and sign it. 2. Scan or photograph the signed document and upload it below.",
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                     OutlinedButton(onClick = { showTemplateDialog = true }, modifier = Modifier.fillMaxWidth()) {

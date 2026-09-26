@@ -133,13 +133,16 @@ fun OwnerRentingProgressScreenContent(
 
         // 2. Outside payment reminders
         activeBookings.forEach { booking ->
-            list.add(Pair(true, "Outside-App Rent due from Dr. ${booking.practitionerName} for slot '${booking.selectedDateTimeRange.ifBlank { booking.formula.scheduleDescription }}' (Amount: $${booking.totalAmountUsd.toInt()} USD)."))
+            list.add(Pair(true, "Outside-App Rent due from Dr. ${booking.practitionerName} fo" +
+                "r slot '${booking.selectedDateTimeRange.ifBlank { booking.formula.scheduleDescription }}" +
+                "' (Amount: $${booking.totalAmountUsd.toInt()} USD)."))
         }
 
         // 3. Scheduling checklist reminder
         activeBookings.forEach { booking ->
             val daysOfWeek = booking.selectedDays.ifEmpty { booking.formula.daysOfWeek }
-            list.add(Pair(false, "Practice Schedule: Dr. ${booking.practitionerName} has an upcoming shift on ${daysOfWeek.joinToString()} at '${booking.spaceTitle}'."))
+            list.add(Pair(false, "Practice Schedule: Dr. ${booking.practitionerName} has an upcoming shift on ${daysOfWeek.joinToString()}" +
+                " at '${booking.spaceTitle}'."))
         }
 
         if (list.isEmpty()) {
@@ -177,7 +180,12 @@ fun OwnerRentingProgressScreenContent(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(Icons.Default.EventAvailable, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                            Icon(
+                                Icons.Default.EventAvailable,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
                             Text(
                                 text = "${activeBookings.size} Active Leases",
                                 fontWeight = FontWeight.Bold,
@@ -268,7 +276,8 @@ fun OwnerRentingProgressScreenContent(
             item {
                 ProEmptyState(
                     title = "No Active Tenancies Yet",
-                    description = "When you approve rental booking requests, contract progress, remaining days, and practitioner communications will appear here.",
+                    description = "When you approve rental booking requests, contract progress, remaining days, and practitioner commun" +
+                        "ications will appear here.",
                     icon = Icons.AutoMirrored.Filled.ReceiptLong
                 )
             }
@@ -323,8 +332,16 @@ fun OwnerRentingProgressScreenContent(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                val chosenDaysStr = if (booking.selectedDays.isNotEmpty()) booking.selectedDays.joinToString(", ") else booking.formula.daysOfWeek.joinToString(", ")
-                                val chosenHoursStr = if (booking.selectedStartHour.isNotBlank() && booking.selectedEndHour.isNotBlank()) "${booking.selectedStartHour} - ${booking.selectedEndHour}" else "${booking.formula.startHour} - ${booking.formula.endHour}"
+                                val chosenDaysStr = if (booking.selectedDays.isNotEmpty()) {
+                                    booking.selectedDays.joinToString(", ")
+                                } else {
+                                    booking.formula.daysOfWeek.joinToString(", ")
+                                }
+                                val chosenHoursStr = if (booking.selectedStartHour.isNotBlank() && booking.selectedEndHour.isNotBlank()) {
+                                    "${booking.selectedStartHour} - ${booking.selectedEndHour}"
+                                } else {
+                                    "${booking.formula.startHour} - ${booking.formula.endHour}"
+                                }
 
                                 Text(
                                     text = "Shift: $chosenDaysStr ($chosenHoursStr)",
@@ -425,7 +442,12 @@ fun OwnerRentingProgressScreenContent(
                                     .size(40.dp)
                                     .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f), MaterialTheme.shapes.medium)
                             ) {
-                                Icon(Icons.Default.EventBusy, contentDescription = "Cancel Booking", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Default.EventBusy,
+                                    contentDescription = "Cancel Booking",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         }
                     }

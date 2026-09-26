@@ -213,7 +213,9 @@ fun OwnerIncomingRequestsView(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Accepting means you and the specialist have reached and signed a leasing agreement outside the app. Upload the signed document to finalize — this saves it as the official record and locks in the schedule.",
+                        text = "Accepting means you and the specialist have reached and signed a leasing agreement outside the app. " +
+                            "Upload the signed document to finalize — this saves it as the official record and locks in the sched" +
+                            "ule.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -352,9 +354,20 @@ fun OwnerBookingRequestCard(
                     shape = MaterialTheme.shapes.small,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        val chosenDaysStr = if (request.selectedDays.isNotEmpty()) request.selectedDays.joinToString(", ") else request.formula.daysOfWeek.joinToString(", ")
-                        val chosenHoursStr = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank()) "${request.selectedStartHour} - ${request.selectedEndHour}" else "${request.formula.startHour} - ${request.formula.endHour}"
+                    Column(
+                        modifier = Modifier.padding(Spacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        val chosenDaysStr = if (request.selectedDays.isNotEmpty()) {
+                            request.selectedDays.joinToString(", ")
+                        } else {
+                            request.formula.daysOfWeek.joinToString(", ")
+                        }
+                        val chosenHoursStr = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank()) {
+                            "${request.selectedStartHour} - ${request.selectedEndHour}"
+                        } else {
+                            "${request.formula.startHour} - ${request.formula.endHour}"
+                        }
                         val shiftDetail = if (request.selectedShift.isNotBlank()) " • ${request.selectedShift}" else ""
 
                         Row(verticalAlignment = Alignment.CenterVertically) {

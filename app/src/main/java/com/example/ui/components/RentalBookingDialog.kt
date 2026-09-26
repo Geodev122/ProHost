@@ -114,14 +114,14 @@ fun RebookDialog(
     attendeePackages: List<AttendeePackage> = emptyList()
 ) {
     BookingSlotSelectorDialog(
-        space = space,
-        initialFormula = initialFormula,
+        target = BookingDialogTarget(space = space, initialFormula = initialFormula, replacesBookingId = null),
         viewModel = viewModel,
-        replacesBookingId = null,
-        headerTitle = "Re-book This Space",
-        headerBadgeText = "Real-Time Availability",
-        primaryButtonText = "Request",
-        secondaryButtonText = "Request and Contact",
+        copy = BookingDialogCopy(
+            headerTitle = "Re-book This Space",
+            headerBadgeText = "Real-Time Availability",
+            primaryButtonText = "Request",
+            secondaryButtonText = "Request and Contact"
+        ),
         onDismiss = onDismiss,
         onRequestSubmitted = onRequestSubmitted,
         attendeePackages = attendeePackages
@@ -146,14 +146,14 @@ fun EditBookingDialog(
     attendeePackages: List<AttendeePackage> = emptyList()
 ) {
     BookingSlotSelectorDialog(
-        space = space,
-        initialFormula = initialFormula,
+        target = BookingDialogTarget(space = space, initialFormula = initialFormula, replacesBookingId = replacesBookingId),
         viewModel = viewModel,
-        replacesBookingId = replacesBookingId,
-        headerTitle = "Propose a Booking Change",
-        headerBadgeText = "Replaces Your Current Booking",
-        primaryButtonText = "Submit Change",
-        secondaryButtonText = "Submit Change and Contact",
+        copy = BookingDialogCopy(
+            headerTitle = "Propose a Booking Change",
+            headerBadgeText = "Replaces Your Current Booking",
+            primaryButtonText = "Submit Change",
+            secondaryButtonText = "Submit Change and Contact"
+        ),
         onDismiss = onDismiss,
         onRequestSubmitted = onRequestSubmitted,
         attendeePackages = attendeePackages
@@ -167,21 +167,36 @@ fun EditBookingDialog(
  * pickers, pricing, and submission are identical real logic either caller needs;
  * only copy (header/button text) and [replacesBookingId] differ between them.
  */
+data class BookingDialogTarget(
+    val space: SpaceListing,
+    val initialFormula: RentalFormula?,
+    val replacesBookingId: String?
+)
+
+data class BookingDialogCopy(
+    val headerTitle: String,
+    val headerBadgeText: String,
+    val primaryButtonText: String,
+    val secondaryButtonText: String
+)
+
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun BookingSlotSelectorDialog(
-    space: SpaceListing,
-    initialFormula: RentalFormula?,
+    target: BookingDialogTarget,
     viewModel: ProHostViewModel,
-    replacesBookingId: String?,
-    headerTitle: String,
-    headerBadgeText: String,
-    primaryButtonText: String,
-    secondaryButtonText: String,
+    copy: BookingDialogCopy,
     onDismiss: () -> Unit,
     onRequestSubmitted: () -> Unit,
     attendeePackages: List<AttendeePackage> = emptyList()
 ) {
+    val space = target.space
+    val initialFormula = target.initialFormula
+    val replacesBookingId = target.replacesBookingId
+    val headerTitle = copy.headerTitle
+    val headerBadgeText = copy.headerBadgeText
+    val primaryButtonText = copy.primaryButtonText
+    val secondaryButtonText = copy.secondaryButtonText
     val context = LocalContext.current
     val allWeekDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
@@ -332,7 +347,15 @@ private fun BookingSlotSelectorDialog(
     // and Day-Based (this session's identical rework) both replaced their 3-tier
     // recurrence pricing with one flat price + real picked occurrences.
     val effectiveRecurrence = BookingRecurrence.FLAT
-    val totalCalculatedUsd = remember(selectedSlotsForPricing, effectiveRecurrence, selectedDurationMonths, selectedStrategyType, startDate, selectedCalendarDates, dayBasedCalendarDates) {
+    val totalCalculatedUsd = remember(
+        selectedSlotsForPricing,
+        effectiveRecurrence,
+        selectedDurationMonths,
+        selectedStrategyType,
+        startDate,
+        selectedCalendarDates,
+        dayBasedCalendarDates
+    ) {
         when (selectedStrategyType) {
             RentalStrategyType.SHIFT_BASED -> {
                 // Real occurrence count x the one flat shift price — no term/
@@ -353,7 +376,15 @@ private fun BookingSlotSelectorDialog(
     }
     // Per-day "N occurrences x $price" breakdown so the whole-commitment total is
     // explainable, not a number that appears from nowhere.
-    val occurrenceBreakdown = remember(selectedSlotsForPricing, effectiveRecurrence, selectedDurationMonths, selectedStrategyType, startDate, selectedCalendarDates, dayBasedCalendarDates) {
+    val occurrenceBreakdown = remember(
+        selectedSlotsForPricing,
+        effectiveRecurrence,
+        selectedDurationMonths,
+        selectedStrategyType,
+        startDate,
+        selectedCalendarDates,
+        dayBasedCalendarDates
+    ) {
         when (selectedStrategyType) {
             RentalStrategyType.SHIFT_BASED -> {
                 if (selectedCalendarDates.isEmpty()) "" else {
@@ -389,7 +420,15 @@ private fun BookingSlotSelectorDialog(
         else 0.0
     }
 
-    val chosenSlotSummary = remember(selectedStrategyType, selectedSlotsForPricing, effectiveRecurrence, selectedShiftSlot, selectedCalendarDates, selectedDayBasedDays, dayBasedCalendarDates) {
+    val chosenSlotSummary = remember(
+        selectedStrategyType,
+        selectedSlotsForPricing,
+        effectiveRecurrence,
+        selectedShiftSlot,
+        selectedCalendarDates,
+        selectedDayBasedDays,
+        dayBasedCalendarDates
+    ) {
         when (selectedStrategyType) {
             RentalStrategyType.MONTHLY -> {
                 val m = if (hasSubdivisions) selectedSubdivision?.pricing?.monthly else space.pricing.monthly
@@ -412,7 +451,8 @@ private fun BookingSlotSelectorDialog(
                 when {
                     selectedDayBasedDays.isEmpty() -> "No days selected yet"
                     dayBasedCalendarDates.isEmpty() -> "${selectedDayBasedDays.sorted().joinToString(", ")} • no dates selected yet"
-                    else -> "${selectedDayBasedDays.sorted().joinToString(", ")} • ${dayBasedCalendarDates.size} date${if (dayBasedCalendarDates.size == 1) "" else "s"}"
+                    else -> "${selectedDayBasedDays.sorted().joinToString(", ")} • " +
+                        "${dayBasedCalendarDates.size} date${if (dayBasedCalendarDates.size == 1) "" else "s"}"
                 }
             }
             null -> "No availability configured for this ${if (hasSubdivisions) "room" else "space"} yet"
@@ -493,7 +533,11 @@ private fun BookingSlotSelectorDialog(
                                         .clickable { selectedSubdivision = sub },
                                     shape = MaterialTheme.shapes.medium,
                                     colors = CardDefaults.cardColors(
-                                        containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                                        containerColor = if (isSelected) {
+                                            MaterialTheme.colorScheme.primaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                        }
                                     ),
                                     border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
                                 ) {
@@ -549,7 +593,12 @@ private fun BookingSlotSelectorDialog(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Attendees", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                                Text(
+                                    "Attendees",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.weight(1f)
+                                )
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     FilledIconButton(
                                         onClick = { if (attendeeCount > 1) attendeeCount-- },
@@ -580,13 +629,26 @@ private fun BookingSlotSelectorDialog(
                                 }
                             }
                             selectedSubdivision?.capacity?.let { cap ->
-                                Text("Max capacity: $cap attendees", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    "Max capacity: $cap attendees",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
 
                             // Package selector
-                            Text("Select Package", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                "Select Package",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             if (enabledAttendeePackages.isEmpty()) {
-                                Text("No attendee packages configured yet.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    "No attendee packages configured yet.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             } else {
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     enabledAttendeePackages.forEach { pkg ->
@@ -595,7 +657,11 @@ private fun BookingSlotSelectorDialog(
                                             modifier = Modifier.fillMaxWidth().clickable { selectedAttendeePackage = pkg },
                                             shape = MaterialTheme.shapes.medium,
                                             colors = CardDefaults.cardColors(
-                                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                                                containerColor = if (isSelected) {
+                                                    MaterialTheme.colorScheme.primaryContainer
+                                                } else {
+                                                    MaterialTheme.colorScheme.surfaceVariant
+                                                }
                                             ),
                                             border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
                                         ) {
@@ -609,10 +675,18 @@ private fun BookingSlotSelectorDialog(
                                                 Column(modifier = Modifier.weight(1f)) {
                                                     Text(pkg.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                                                     if (pkg.description.isNotBlank()) {
-                                                        Text(pkg.description, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                        Text(
+                                                            pkg.description,
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
                                                     }
                                                     if (pkg.inclusions.isNotEmpty()) {
-                                                        Text("Includes: ${pkg.inclusions.joinToString()}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                        Text(
+                                                            "Includes: ${pkg.inclusions.joinToString()}",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
                                                     }
                                                 }
                                                 Text(
@@ -635,28 +709,46 @@ private fun BookingSlotSelectorDialog(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("$attendeeCount attendees × \$${selectedAttendeePackage!!.pricePerAttendeeUsd.toInt()} ${selectedAttendeePackage!!.name}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.weight(1f))
-                                        Text("\$${String.format("%.2f", attendeeTotalUsd)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.secondary)
+                                        Text(
+                                            "$attendeeCount attendees × \$${selectedAttendeePackage!!.pricePerAttendeeUsd.toInt()} " +
+                                            "${selectedAttendeePackage!!.name}",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text(
+                                            "\$${String.format("%.2f", attendeeTotalUsd)}",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = MaterialTheme.colorScheme.secondary
+                                        )
                                     }
                                 }
                             }
 
                             // Time slot picker still needed for availability
-                            Text("Availability Slot", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                "Availability Slot",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
 
                     // 2. Choose Renting Strategy / Availability Slot Strategy
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
-                            text = "${if (hasSubdivisions) "2" else "1"}. ${if (isAttendeeMode) "Select Availability Slot Type" else "Select Renting Strategy"}",
+                            text = "${if (hasSubdivisions) "2" else "1"}. " +
+                                "${if (isAttendeeMode) "Select Availability Slot Type" else "Select Renting Strategy"}",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
                         if (hiddenLockedCount > 0) {
                             Text(
-                                text = "$hiddenLockedCount slot${if (hiddenLockedCount == 1) " is" else "s are"} already booked by another professional and not shown.",
+                                text = "$hiddenLockedCount slot${if (hiddenLockedCount == 1) " is" else "s are"} already booked by another p" +
+                                    "rofessional and not shown.",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -718,7 +810,8 @@ private fun BookingSlotSelectorDialog(
                                     RentalStrategyType.MONTHLY -> {
                                         val rate = strategySlots.firstOrNull()?.pricesByRecurrence?.get(BookingRecurrence.FLAT) ?: 0.0
                                         Text(
-                                            text = "Exclusive full-space access on all operating days (${strategySlots.map { it.day }.distinct().joinToString(", ")}), " +
+                                            text = "Exclusive full-space access on all operating days " +
+                                                "(${strategySlots.map { it.day }.distinct().joinToString(", ")}), " +
                                                 "billed at $${rate.toInt()} USD per month.",
                                             style = MaterialTheme.typography.labelMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -744,7 +837,11 @@ private fun BookingSlotSelectorDialog(
                                         }
                                         Text("Choose one or more priced hours:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                                         if (hourlyCellsForDay.isEmpty()) {
-                                            Text("No priced hours on $hourlyDay.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                                            Text(
+                                                "No priced hours on $hourlyDay.",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.error
+                                            )
                                         }
                                         androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                             hourlyCellsForDay.forEach { cell ->
@@ -774,7 +871,11 @@ private fun BookingSlotSelectorDialog(
                                         }
                                         Text("Choose a shift:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                                         if (shiftsForDay.isEmpty()) {
-                                            Text("No shifts offered on $shiftDay.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                                            Text(
+                                                "No shifts offered on $shiftDay.",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.error
+                                            )
                                         }
                                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                             shiftsForDay.forEach { slot ->
@@ -830,7 +931,9 @@ private fun BookingSlotSelectorDialog(
                                                             selected = true,
                                                             onClick = { selectedCalendarDates = selectedCalendarDates - dateStr },
                                                             label = { Text(dateStr, style = MaterialTheme.typography.labelSmall) },
-                                                            trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove date", modifier = Modifier.size(14.dp)) }
+                                                            trailingIcon = {
+                                                                Icon(Icons.Default.Close, contentDescription = "Remove date", modifier = Modifier.size(14.dp))
+                                                            }
                                                         )
                                                     }
                                                 }
@@ -850,7 +953,11 @@ private fun BookingSlotSelectorDialog(
                                     RentalStrategyType.DAY_BASED -> {
                                         Text("Choose one or more priced days:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                                         if (strategySlots.isEmpty()) {
-                                            Text("No days priced for this ${if (hasSubdivisions) "room" else "space"}.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                                            Text(
+                                                "No days priced for this ${if (hasSubdivisions) "room" else "space"}.",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.error
+                                            )
                                         }
                                         androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                             strategySlots.forEach { slot ->
@@ -859,7 +966,11 @@ private fun BookingSlotSelectorDialog(
                                                 FilterChip(
                                                     selected = isSelected,
                                                     onClick = {
-                                                        selectedDayBasedDays = if (isSelected) selectedDayBasedDays - slot.day else selectedDayBasedDays + slot.day
+                                                        selectedDayBasedDays = if (isSelected) {
+                                                            selectedDayBasedDays - slot.day
+                                                        } else {
+                                                            selectedDayBasedDays + slot.day
+                                                        }
                                                     },
                                                     label = { Text("${slot.day} · $${price.toInt()}", style = MaterialTheme.typography.labelMedium) }
                                                 )
@@ -915,7 +1026,13 @@ private fun BookingSlotSelectorDialog(
                                                                 selected = true,
                                                                 onClick = { dayBasedManualDates = dayBasedManualDates - dateStr },
                                                                 label = { Text(dateStr, style = MaterialTheme.typography.labelSmall) },
-                                                                trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove date", modifier = Modifier.size(14.dp)) }
+                                                                trailingIcon = {
+                                                                    Icon(
+                                                                        Icons.Default.Close,
+                                                                        contentDescription = "Remove date",
+                                                                        modifier = Modifier.size(14.dp)
+                                                                    )
+                                                                }
                                                             )
                                                         }
                                                     }
@@ -1098,7 +1215,8 @@ private fun BookingSlotSelectorDialog(
                                     )
                                     if (isAttendeeMode && selectedAttendeePackage != null) {
                                         Text(
-                                            text = "$attendeeCount attendees × \$${selectedAttendeePackage!!.pricePerAttendeeUsd.toInt()} ${selectedAttendeePackage!!.name}",
+                                            text = "$attendeeCount attendees × \$${selectedAttendeePackage!!.pricePerAttendeeUsd.toInt()} " +
+                                                selectedAttendeePackage!!.name,
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.Medium,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -1124,7 +1242,10 @@ private fun BookingSlotSelectorDialog(
                             HorizontalDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
 
                             if (!isAttendeeMode && occurrenceBreakdown.isNotBlank()) {
-                                val breakdownHeader = if (selectedStrategyType == RentalStrategyType.SHIFT_BASED || selectedStrategyType == RentalStrategyType.DAY_BASED) {
+                                val breakdownHeader = if (
+                                    selectedStrategyType == RentalStrategyType.SHIFT_BASED ||
+                                        selectedStrategyType == RentalStrategyType.DAY_BASED
+                                ) {
                                     "Your selected dates:"
                                 } else {
                                     "Over $selectedDurationMonths month${if (selectedDurationMonths > 1) "s" else ""} from ${selectedDateOption.lowercase()}:"
@@ -1138,7 +1259,12 @@ private fun BookingSlotSelectorDialog(
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.AutoMirrored.Filled.Assignment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Assignment,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(14.dp)
+                                )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "Selected Slot: $chosenSlotSummary",
@@ -1194,29 +1320,31 @@ private fun BookingSlotSelectorDialog(
                             }
                             viewModel.submitBookingRequest(
                                 space = space,
-                                formula = formula,
-                                startDate = computedDate,
-                                durationMonths = if (usesTerm) selectedDurationMonths else 1,
-                                notes = clinicalNotes,
                                 context = context,
-                                alsoOpenWhatsApp = false,
-                                selectedDays = formula.daysOfWeek,
-                                selectedCalendarDates = when (selectedStrategyType) {
-                                    RentalStrategyType.SHIFT_BASED -> selectedCalendarDates
-                                    RentalStrategyType.DAY_BASED -> dayBasedCalendarDates
-                                    else -> emptyList()
-                                },
-                                selectedStartHour = formula.startHour,
-                                selectedEndHour = formula.endHour,
-                                selectedShift = if (selectedStrategyType == RentalStrategyType.SHIFT_BASED) formula.shiftName else "",
-                                calculatedTotalUsd = if (isAttendeeMode) attendeeTotalUsd else totalCalculatedUsd,
-                                subdivisionId = selectedSubdivision?.id,
-                                subdivisionName = selectedSubdivision?.name,
-                                replacesBookingId = replacesBookingId,
-                                attendeeCount = if (isAttendeeMode) attendeeCount else 0,
-                                selectedAttendeePackageId = if (isAttendeeMode) selectedAttendeePackage?.id else null,
-                                attendeePackageName = if (isAttendeeMode) selectedAttendeePackage?.name else null,
-                                attendeePackagePriceUsd = if (isAttendeeMode) selectedAttendeePackage?.pricePerAttendeeUsd ?: 0.0 else 0.0
+                                submission = ProHostViewModel.BookingSubmissionRequest(
+                                    formula = formula,
+                                    startDate = computedDate,
+                                    durationMonths = if (usesTerm) selectedDurationMonths else 1,
+                                    notes = clinicalNotes,
+                                    alsoOpenWhatsApp = false,
+                                    selectedDays = formula.daysOfWeek,
+                                    selectedCalendarDates = when (selectedStrategyType) {
+                                        RentalStrategyType.SHIFT_BASED -> selectedCalendarDates
+                                        RentalStrategyType.DAY_BASED -> dayBasedCalendarDates
+                                        else -> emptyList()
+                                    },
+                                    selectedStartHour = formula.startHour,
+                                    selectedEndHour = formula.endHour,
+                                    selectedShift = if (selectedStrategyType == RentalStrategyType.SHIFT_BASED) formula.shiftName else "",
+                                    calculatedTotalUsd = if (isAttendeeMode) attendeeTotalUsd else totalCalculatedUsd,
+                                    subdivisionId = selectedSubdivision?.id,
+                                    subdivisionName = selectedSubdivision?.name,
+                                    replacesBookingId = replacesBookingId,
+                                    attendeeCount = if (isAttendeeMode) attendeeCount else 0,
+                                    selectedAttendeePackageId = if (isAttendeeMode) selectedAttendeePackage?.id else null,
+                                    attendeePackageName = if (isAttendeeMode) selectedAttendeePackage?.name else null,
+                                    attendeePackagePriceUsd = if (isAttendeeMode) selectedAttendeePackage?.pricePerAttendeeUsd ?: 0.0 else 0.0
+                                )
                             )
                             onRequestSubmitted()
                             onDismiss()
@@ -1234,29 +1362,31 @@ private fun BookingSlotSelectorDialog(
                             val formula = buildFormulaForSubmission() ?: return@CustomButton
                             viewModel.submitBookingRequest(
                                 space = space,
-                                formula = formula,
-                                startDate = computedDate,
-                                durationMonths = if (usesTerm) selectedDurationMonths else 1,
-                                notes = clinicalNotes,
                                 context = context,
-                                alsoOpenWhatsApp = true,
-                                selectedDays = formula.daysOfWeek,
-                                selectedCalendarDates = when (selectedStrategyType) {
-                                    RentalStrategyType.SHIFT_BASED -> selectedCalendarDates
-                                    RentalStrategyType.DAY_BASED -> dayBasedCalendarDates
-                                    else -> emptyList()
-                                },
-                                selectedStartHour = formula.startHour,
-                                selectedEndHour = formula.endHour,
-                                selectedShift = if (selectedStrategyType == RentalStrategyType.SHIFT_BASED) formula.shiftName else "",
-                                calculatedTotalUsd = if (isAttendeeMode) attendeeTotalUsd else totalCalculatedUsd,
-                                subdivisionId = selectedSubdivision?.id,
-                                subdivisionName = selectedSubdivision?.name,
-                                replacesBookingId = replacesBookingId,
-                                attendeeCount = if (isAttendeeMode) attendeeCount else 0,
-                                selectedAttendeePackageId = if (isAttendeeMode) selectedAttendeePackage?.id else null,
-                                attendeePackageName = if (isAttendeeMode) selectedAttendeePackage?.name else null,
-                                attendeePackagePriceUsd = if (isAttendeeMode) selectedAttendeePackage?.pricePerAttendeeUsd ?: 0.0 else 0.0
+                                submission = ProHostViewModel.BookingSubmissionRequest(
+                                    formula = formula,
+                                    startDate = computedDate,
+                                    durationMonths = if (usesTerm) selectedDurationMonths else 1,
+                                    notes = clinicalNotes,
+                                    alsoOpenWhatsApp = true,
+                                    selectedDays = formula.daysOfWeek,
+                                    selectedCalendarDates = when (selectedStrategyType) {
+                                        RentalStrategyType.SHIFT_BASED -> selectedCalendarDates
+                                        RentalStrategyType.DAY_BASED -> dayBasedCalendarDates
+                                        else -> emptyList()
+                                    },
+                                    selectedStartHour = formula.startHour,
+                                    selectedEndHour = formula.endHour,
+                                    selectedShift = if (selectedStrategyType == RentalStrategyType.SHIFT_BASED) formula.shiftName else "",
+                                    calculatedTotalUsd = if (isAttendeeMode) attendeeTotalUsd else totalCalculatedUsd,
+                                    subdivisionId = selectedSubdivision?.id,
+                                    subdivisionName = selectedSubdivision?.name,
+                                    replacesBookingId = replacesBookingId,
+                                    attendeeCount = if (isAttendeeMode) attendeeCount else 0,
+                                    selectedAttendeePackageId = if (isAttendeeMode) selectedAttendeePackage?.id else null,
+                                    attendeePackageName = if (isAttendeeMode) selectedAttendeePackage?.name else null,
+                                    attendeePackagePriceUsd = if (isAttendeeMode) selectedAttendeePackage?.pricePerAttendeeUsd ?: 0.0 else 0.0
+                                )
                             )
                             onRequestSubmitted()
                             onDismiss()

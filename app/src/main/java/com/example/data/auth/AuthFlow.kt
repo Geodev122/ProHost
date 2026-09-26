@@ -14,6 +14,23 @@ import com.google.firebase.auth.FirebaseUser
 class AccountSuspendedException(message: String) : Exception(message)
 
 /**
+ * Groups the registration-form fields shared by [completeVerifiedRegistration] and
+ * [completeGoogleRegistration] so neither signature needs a long flat parameter list.
+ */
+data class RegistrationDetails(
+    val fullName: String,
+    val email: String,
+    val phone: String,
+    val specialty: String,
+    val profilePictureUrl: String?,
+    val idDocumentUrl: String?,
+    val country: String,
+    val governorate: String,
+    val city: String,
+    val tosAccepted: Boolean
+)
+
+/**
  * Resolves the signed-in [firebaseUser]'s server-verified role (assigning the default
  * via Cloud Functions on first sign-in if none exists yet) and completes the local
  * sign-in against [repository]. This is the only path by which the app should ever
@@ -51,47 +68,30 @@ suspend fun completeVerifiedRegistration(
     repository: ProHostRepository,
     functionsClient: FirebaseFunctionsClient,
     firebaseUser: FirebaseUser,
-    fullName: String,
-    email: String,
-    phone: String,
-    specialty: String,
-    profilePictureUrl: String?,
-    idDocumentUrl: String?,
-    country: String,
-    governorate: String,
-    city: String,
-    tosAccepted: Boolean,
+    details: RegistrationDetails,
     integrityToken: String? = null
 ): AppUser {
     functionsClient.ensureInitialRole(
         registrationDraft = mapOf(
-            "fullName" to fullName,
-            "email" to email,
-            "idDocumentUrl" to idDocumentUrl,
-            "tosAccepted" to tosAccepted
+            "fullName" to details.fullName,
+            "email" to details.email,
+            "idDocumentUrl" to details.idDocumentUrl,
+            "tosAccepted" to details.tosAccepted
         ),
         integrityToken = integrityToken
     ).getOrThrow()
     val role = resolveVerifiedRole(functionsClient, firebaseUser, integrityToken)
-    if (!idDocumentUrl.isNullOrBlank()) {
+    if (!details.idDocumentUrl.isNullOrBlank()) {
         try {
-            functionsClient.submitIdDocument(idDocumentUrl)
+            functionsClient.submitIdDocument(details.idDocumentUrl)
         } catch (e: Exception) {
             android.util.Log.w("AuthFlow", "submitIdDocument note: ${e.message}")
         }
     }
     return repository.registerMember(
         uid = firebaseUser.uid,
-        fullName = fullName,
-        email = email,
-        phone = phone,
         verifiedRole = role,
-        specialty = specialty,
-        profilePictureUrl = profilePictureUrl,
-        idDocumentUrl = idDocumentUrl,
-        country = country,
-        governorate = governorate,
-        city = city
+        details = details
     )
 }
 
@@ -117,31 +117,13 @@ suspend fun completeGoogleRegistration(
     repository: ProHostRepository,
     functionsClient: FirebaseFunctionsClient,
     firebaseUser: FirebaseUser,
-    fullName: String,
-    email: String,
-    phone: String = "",
-    specialty: String,
-    profilePictureUrl: String?,
-    idDocumentUrl: String?,
-    country: String,
-    governorate: String,
-    city: String,
-    tosAccepted: Boolean,
+    details: RegistrationDetails,
     integrityToken: String? = null
 ): AppUser = completeVerifiedRegistration(
     repository = repository,
     functionsClient = functionsClient,
     firebaseUser = firebaseUser,
-    fullName = fullName,
-    email = email,
-    phone = phone.ifBlank { firebaseUser.phoneNumber ?: "" },
-    specialty = specialty,
-    profilePictureUrl = profilePictureUrl,
-    idDocumentUrl = idDocumentUrl,
-    country = country,
-    governorate = governorate,
-    city = city,
-    tosAccepted = tosAccepted,
+    details = details.copy(phone = details.phone.ifBlank { firebaseUser.phoneNumber ?: "" }),
     integrityToken = integrityToken
 )
 

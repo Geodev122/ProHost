@@ -663,7 +663,11 @@ fun LebanonMapCanvas(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = if (isStripCollapsed) "Show Workspaces (${sortedSpaces.sumOf { if (it.subdivisions.isNotEmpty()) it.subdivisions.size else 1 }})" else "Collapse Map List",
+                            text = if (isStripCollapsed) {
+                                "Show Workspaces (${sortedSpaces.sumOf { if (it.subdivisions.isNotEmpty()) it.subdivisions.size else 1 }})"
+                            } else {
+                                "Collapse Map List"
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -714,7 +718,11 @@ fun LebanonMapCanvas(
                                 },
                             shape = MaterialTheme.shapes.medium,
                             colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.90f) else Color.White.copy(alpha = 0.90f)
+                                containerColor = if (isSelected) {
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.90f)
+                                } else {
+                                    Color.White.copy(alpha = 0.90f)
+                                }
                             ),
                             border = if (isSelected) BorderStroke(2.dp, Color(typePalette.baseColor)) else null
                         ) {
