@@ -147,6 +147,9 @@ fun CreateListingDialog(
     // Admin-managed amenity catalog (enabled SchemaItems, category "AMENITY") —
     // passed into SubdivisionEditorSection, which filters by division type scope.
     availableAmenities: List<SchemaItem> = emptyList(),
+    // Admin-managed division type catalog (enabled SchemaItems, category "DIVISION_TYPE") —
+    // passed into SubdivisionEditorSection to check supportsAttendeeMode per type.
+    availableDivisionTypeSchema: List<SchemaItem> = emptyList(),
     // Write-back: called when the host types a new custom facility or equipment item
     // so it gets persisted to the global schema catalog as a CUSTOM NODE.
     // Receives the category (FACILITY or AMENITY), name, and optional scopedToIds.
@@ -1021,7 +1024,8 @@ fun CreateListingDialog(
                                         availableAmenities = availableAmenities,
                                         onAddCustomAmenity = { name, divisionTypeId ->
                                             onAddCustomSchemaItem("AMENITY", name, listOf(divisionTypeId))
-                                        }
+                                        },
+                                        availableDivisionTypeSchema = availableDivisionTypeSchema
                                     )
                                 } else {
                                     Surface(

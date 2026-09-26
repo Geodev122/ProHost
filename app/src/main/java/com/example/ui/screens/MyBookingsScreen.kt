@@ -54,6 +54,7 @@ fun MyBookingsScreen(
     val hasLoadedBookingsOnce by viewModel.hasLoadedBookingsOnce.collectAsState()
     val isOffline by viewModel.isOfflineMode.collectAsState()
     val pendingOfflineTx by viewModel.pendingOfflineTransactions.collectAsState()
+    val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
 
     // Filter reservations belonging to the current logged-in user
     val userBookings = remember(allBookingRequests, currentUser) {
@@ -299,7 +300,8 @@ fun MyBookingsScreen(
                 onRequestSubmitted = {
                     rebookTargetSpaceId = null
                     rebookSourceBooking = null
-                }
+                },
+                attendeePackages = architectureSchema.attendeePackages.filter { it.isEnabled }
             )
         }
     }
@@ -337,7 +339,8 @@ fun MyBookingsScreen(
                 onRequestSubmitted = {
                     editTargetSpaceId = null
                     editSourceBooking = null
-                }
+                },
+                attendeePackages = architectureSchema.attendeePackages.filter { it.isEnabled }
             )
         }
     }

@@ -949,19 +949,39 @@ class ProHostRepository {
                 SchemaItem("ST-03", "Polyclinic", "Certified medical examination rooms & clinical facilities", SchemaCategory.SPACE_TYPE, "LocalHospital"),
                 SchemaItem("ST-04", "Co-working Space", "Open collaborative desks and flexible shared work hubs", SchemaCategory.SPACE_TYPE, "Groups"),
                 SchemaItem("ST-05", "Executive Boardroom", "High-profile executive meeting and conference suites", SchemaCategory.SPACE_TYPE, "MeetingRoom"),
-                SchemaItem("ST-06", "Consultation Suite", "Acoustically isolated private consultation rooms", SchemaCategory.SPACE_TYPE, "Psychology")
+                SchemaItem("ST-06", "Consultation Suite", "Acoustically isolated private consultation rooms", SchemaCategory.SPACE_TYPE, "Psychology"),
+                SchemaItem("ST-07", "Hotel & Serviced Apartments", "Hotel property with suites, meeting rooms and event halls for rent", SchemaCategory.SPACE_TYPE, "Hotel"),
+                SchemaItem("ST-08", "Hospital / Medical Center", "Multi-department facility with operating rooms, ICU, labs and clinical suites", SchemaCategory.SPACE_TYPE, "LocalHospital"),
+                SchemaItem("ST-09", "School / Academy", "Educational facility with classrooms, labs, lecture halls and training rooms", SchemaCategory.SPACE_TYPE, "School"),
+                SchemaItem("ST-10", "Corporate Campus / Institution", "Multi-building compound — universities, NGOs, government or corporate campuses", SchemaCategory.SPACE_TYPE, "AccountBalance"),
+                SchemaItem("ST-11", "Event Venue / Banquet Hall", "Dedicated events property — weddings, corporate galas, product launches", SchemaCategory.SPACE_TYPE, "Celebration"),
+                SchemaItem("ST-12", "Sports Complex", "Multi-purpose sports facility with courts, pools, tracks and fitness halls", SchemaCategory.SPACE_TYPE, "SportsSoccer"),
+                SchemaItem("ST-13", "Beauty / Wellness Center", "Salon stations, spa treatment rooms, therapy suites and beauty studios", SchemaCategory.SPACE_TYPE, "Spa"),
+                SchemaItem("ST-14", "Pharmacy / Diagnostic Lab", "Dispensaries, clinical testing labs and medical imaging centers", SchemaCategory.SPACE_TYPE, "Biotech"),
+                SchemaItem("ST-15", "Legal & Professional Office", "Law firms, accounting offices and notary consultation suites", SchemaCategory.SPACE_TYPE, "Gavel"),
+                SchemaItem("ST-16", "Hybrid Work Hub", "Combined coworking + private offices + meeting rooms in one compound", SchemaCategory.SPACE_TYPE, "Hub")
             ),
             divisionTypes = listOf(
                 SchemaItem("DT-01", "Room / Dedicated Suite", "Independent private room within premises", SchemaCategory.DIVISION_TYPE, "MeetingRoom"),
                 SchemaItem("DT-02", "Office", "Self-contained private office unit", SchemaCategory.DIVISION_TYPE, "Business"),
-                SchemaItem("DT-03", "Conference Room", "Equipped boardroom with presentation hardware", SchemaCategory.DIVISION_TYPE, "CoPresent"),
-                SchemaItem("DT-04", "Theater / Training Room", "High-capacity seminar and workshop hall", SchemaCategory.DIVISION_TYPE, "School"),
+                SchemaItem("DT-03", "Conference Room", "Equipped boardroom with A/V presentation hardware", SchemaCategory.DIVISION_TYPE, "CoPresent", supportsAttendeeMode = true),
+                SchemaItem("DT-04", "Theater / Training Room", "High-capacity seminar and workshop hall with stage", SchemaCategory.DIVISION_TYPE, "School", supportsAttendeeMode = true),
                 SchemaItem("DT-05", "Desk in Shared Area", "Dedicated hot desk with ergonomic seating", SchemaCategory.DIVISION_TYPE, "Desk"),
                 SchemaItem("DT-06", "Gym", "Exercise and fitness facility", SchemaCategory.DIVISION_TYPE, "FitnessCenter"),
                 SchemaItem("DT-07", "Studio", "Creative or media production studio", SchemaCategory.DIVISION_TYPE, "Videocam"),
                 SchemaItem("DT-08", "Storage", "Secure storage or archive space", SchemaCategory.DIVISION_TYPE, "Inventory2"),
                 SchemaItem("DT-09", "Clinical Booth", "Sanitized treatment station with examination bed", SchemaCategory.DIVISION_TYPE, "MedicalServices"),
-                SchemaItem("DT-10", "Sports Area", "Multi-purpose sports or rehabilitation zone", SchemaCategory.DIVISION_TYPE, "SportsSoccer")
+                SchemaItem("DT-10", "Sports Area", "Multi-purpose sports or rehabilitation zone", SchemaCategory.DIVISION_TYPE, "SportsSoccer"),
+                SchemaItem("DT-11", "Boardroom", "Executive-level meeting suite (4–12 seats) with premium A/V", SchemaCategory.DIVISION_TYPE, "TableRestaurant", supportsAttendeeMode = true),
+                SchemaItem("DT-12", "Auditorium / Theater Hall", "Large-capacity hall (100+ seats) with fixed seating and stage", SchemaCategory.DIVISION_TYPE, "TheaterComedy", supportsAttendeeMode = true),
+                SchemaItem("DT-13", "Seminar Room", "Classroom-style layout (20–50 seats) with lectern and display", SchemaCategory.DIVISION_TYPE, "Groups", supportsAttendeeMode = true),
+                SchemaItem("DT-14", "Conference Hall", "Banquet or event hall for 50–500 attendees with catering space", SchemaCategory.DIVISION_TYPE, "Celebration", supportsAttendeeMode = true),
+                SchemaItem("DT-15", "Whole Floor / Wing", "Lease of an entire building floor, wing or section", SchemaCategory.DIVISION_TYPE, "Layers"),
+                SchemaItem("DT-16", "VIP Lounge", "Premium networking and reception space with lounge furniture", SchemaCategory.DIVISION_TYPE, "Star"),
+                SchemaItem("DT-17", "Podcast / Recording Studio", "Sound-treated audio production suite with acoustic treatment", SchemaCategory.DIVISION_TYPE, "Mic"),
+                SchemaItem("DT-18", "Training Lab", "Computer lab with individual workstations for hands-on training", SchemaCategory.DIVISION_TYPE, "Computer"),
+                SchemaItem("DT-19", "Operating Theater", "Sterile surgical suite for specialized medical procedures", SchemaCategory.DIVISION_TYPE, "Vaccines"),
+                SchemaItem("DT-20", "Outdoor Area / Terrace", "Rooftop, garden or covered outdoor event space", SchemaCategory.DIVISION_TYPE, "Park")
             ),
             facilities = listOf(
                 SchemaItem("FAC-01", "24/7 Solar & Generator Backup", "Continuous uninterrupted power supply across Lebanon", SchemaCategory.FACILITY, "Bolt"),
@@ -1008,6 +1028,40 @@ class ProHostRepository {
                 SchemaItem("RS-02", "Shift-Based (Morning / Afternoon)", "Scheduled time blocks (e.g. 08:00–13:00 or 14:00–19:00)", SchemaCategory.RENTAL_STRATEGY, "Schedule"),
                 SchemaItem("RS-03", "Day-per-Week Basis", "Recurring weekly dedicated days (e.g. Every Tue & Thu)", SchemaCategory.RENTAL_STRATEGY, "DateRange"),
                 SchemaItem("RS-04", "Hourly / On-Demand Slot", "Flexible hourly pass with 2-hour minimum booking", SchemaCategory.RENTAL_STRATEGY, "Timelapse")
+            ),
+            attendeePackages = listOf(
+                AttendeePackage(
+                    id = "APK-01",
+                    name = "Venue Only",
+                    description = "Space and seating only — no catering or additional services included",
+                    pricePerAttendeeUsd = 5.0,
+                    inclusions = listOf("Venue access", "Basic seating setup"),
+                    minAttendees = 1
+                ),
+                AttendeePackage(
+                    id = "APK-02",
+                    name = "Standard Package",
+                    description = "Venue with refreshments and standard A/V setup",
+                    pricePerAttendeeUsd = 10.0,
+                    inclusions = listOf("Venue access", "Coffee & water", "Juices", "Projector & screen", "Wi-Fi"),
+                    minAttendees = 5
+                ),
+                AttendeePackage(
+                    id = "APK-03",
+                    name = "Full Day Package",
+                    description = "Complete all-day conference package with catering and full A/V",
+                    pricePerAttendeeUsd = 18.0,
+                    inclusions = listOf("Venue access", "Breakfast", "Lunch", "Coffee breaks", "Full A/V equipment", "Wi-Fi", "Stationery kit"),
+                    minAttendees = 10
+                ),
+                AttendeePackage(
+                    id = "APK-04",
+                    name = "VIP Package",
+                    description = "Premium event experience with full catering and on-site A/V technician",
+                    pricePerAttendeeUsd = 35.0,
+                    inclusions = listOf("Premium venue setup", "Full catering (3 meals)", "Welcome reception", "Premium A/V + technician", "Branded signage", "Wi-Fi", "Gift bags"),
+                    minAttendees = 20
+                )
             )
         )
     }
@@ -1036,6 +1090,40 @@ class ProHostRepository {
         val allNames = current.allItems.map { it.name.lowercase() }
         if (item.name.lowercase() in allNames) return true // deduplicate silently
         return addSchemaItem(item)
+    }
+
+    suspend fun addAttendeePackage(pkg: AttendeePackage): Boolean {
+        val current = _spaceArchitectureSchema.value
+        val updated = current.copy(attendeePackages = current.attendeePackages + pkg)
+        val success = firestoreService.saveSchema(updated)
+        if (success) _spaceArchitectureSchema.value = updated
+        return success
+    }
+
+    suspend fun updateAttendeePackage(pkg: AttendeePackage): Boolean {
+        val current = _spaceArchitectureSchema.value
+        val updated = current.copy(attendeePackages = current.attendeePackages.map { if (it.id == pkg.id) pkg else it })
+        val success = firestoreService.saveSchema(updated)
+        if (success) _spaceArchitectureSchema.value = updated
+        return success
+    }
+
+    suspend fun deleteAttendeePackage(pkgId: String): Boolean {
+        val current = _spaceArchitectureSchema.value
+        val updated = current.copy(attendeePackages = current.attendeePackages.filter { it.id != pkgId })
+        val success = firestoreService.saveSchema(updated)
+        if (success) _spaceArchitectureSchema.value = updated
+        return success
+    }
+
+    suspend fun toggleAttendeePackage(pkgId: String): Boolean {
+        val current = _spaceArchitectureSchema.value
+        val updated = current.copy(attendeePackages = current.attendeePackages.map {
+            if (it.id == pkgId) it.copy(isEnabled = !it.isEnabled) else it
+        })
+        val success = firestoreService.saveSchema(updated)
+        if (success) _spaceArchitectureSchema.value = updated
+        return success
     }
 
     /**
@@ -1158,7 +1246,11 @@ class ProHostRepository {
         calculatedTotalUsd: Double = 0.0,
         subdivisionId: String? = null,
         subdivisionName: String? = null,
-        replacesBookingId: String? = null
+        replacesBookingId: String? = null,
+        attendeeCount: Int = 0,
+        selectedAttendeePackageId: String? = null,
+        attendeePackageName: String? = null,
+        attendeePackagePriceUsd: Double = 0.0
     ): Pair<RentalBookingRequest, Boolean> {
         if (practitioner.id == space.ownerId) {
             throw IllegalArgumentException("A host cannot book their own listing.")
@@ -1220,7 +1312,11 @@ class ProHostRepository {
             createdAt = System.currentTimeMillis(),
             subdivisionId = subdivisionId,
             subdivisionName = subdivisionName,
-            replacesBookingId = replacesBookingId
+            replacesBookingId = replacesBookingId,
+            attendeeCount = attendeeCount,
+            selectedAttendeePackageId = selectedAttendeePackageId,
+            attendeePackageName = attendeePackageName,
+            attendeePackagePriceUsd = attendeePackagePriceUsd
         )
 
         _bookingRequests.value = listOf(request) + _bookingRequests.value

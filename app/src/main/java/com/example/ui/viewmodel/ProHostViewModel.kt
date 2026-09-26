@@ -789,7 +789,11 @@ class ProHostViewModel(
         calculatedTotalUsd: Double = 0.0,
         subdivisionId: String? = null,
         subdivisionName: String? = null,
-        replacesBookingId: String? = null
+        replacesBookingId: String? = null,
+        attendeeCount: Int = 0,
+        selectedAttendeePackageId: String? = null,
+        attendeePackageName: String? = null,
+        attendeePackagePriceUsd: Double = 0.0
     ) {
         val user = currentUser.value
         if (user == null) {
@@ -819,7 +823,11 @@ class ProHostViewModel(
                 calculatedTotalUsd = calculatedTotalUsd,
                 subdivisionId = subdivisionId,
                 subdivisionName = subdivisionName,
-                replacesBookingId = replacesBookingId
+                replacesBookingId = replacesBookingId,
+                attendeeCount = attendeeCount,
+                selectedAttendeePackageId = selectedAttendeePackageId,
+                attendeePackageName = attendeePackageName,
+                attendeePackagePriceUsd = attendeePackagePriceUsd
             )
 
             Toast.makeText(

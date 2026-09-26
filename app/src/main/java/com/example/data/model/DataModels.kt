@@ -411,7 +411,9 @@ data class Subdivision(
     // for this division only; SpaceCalculationUtils.buildAllSlotsForSpace is the one
     // place that resolves this (scheduleOverride ?: space.schedule) into real slots,
     // so every screen that reads slots automatically respects it.
-    val scheduleOverride: SpaceOperatingSchedule? = null
+    val scheduleOverride: SpaceOperatingSchedule? = null,
+    val pricingMode: SubdivisionPricingMode = SubdivisionPricingMode.STRATEGY_BASED,
+    val capacity: Int? = null
 )
 
 enum class Governorate(val displayName: String, val centerLat: Double, val centerLng: Double) {
@@ -607,7 +609,11 @@ data class BookingRequest(
     // acknowledgment closes that gap a little without reintroducing in-app
     // payment processing: either side can mark their own flag, independently.
     val paymentAcknowledgedByHost: Boolean = false,
-    val paymentAcknowledgedBySpecialist: Boolean = false
+    val paymentAcknowledgedBySpecialist: Boolean = false,
+    val attendeeCount: Int = 0,
+    val selectedAttendeePackageId: String? = null,
+    val attendeePackageName: String? = null,
+    val attendeePackagePriceUsd: Double = 0.0
 ) {
     val isPending: Boolean get() = status == BookingRequestStatus.PENDING
     val isAccepted: Boolean get() = status == BookingRequestStatus.ACCEPTED
@@ -667,7 +673,11 @@ data class BookingRequest(
             "cancellationNote" to cancellationNote,
             "cancelledByRole" to cancelledByRole,
             "paymentAcknowledgedByHost" to paymentAcknowledgedByHost,
-            "paymentAcknowledgedBySpecialist" to paymentAcknowledgedBySpecialist
+            "paymentAcknowledgedBySpecialist" to paymentAcknowledgedBySpecialist,
+            "attendeeCount" to attendeeCount,
+            "selectedAttendeePackageId" to selectedAttendeePackageId,
+            "attendeePackageName" to attendeePackageName,
+            "attendeePackagePriceUsd" to attendeePackagePriceUsd
         )
     }
 
@@ -740,7 +750,11 @@ data class BookingRequest(
                 cancellationNote = data["cancellationNote"] as? String,
                 cancelledByRole = data["cancelledByRole"] as? String,
                 paymentAcknowledgedByHost = data["paymentAcknowledgedByHost"] as? Boolean ?: false,
-                paymentAcknowledgedBySpecialist = data["paymentAcknowledgedBySpecialist"] as? Boolean ?: false
+                paymentAcknowledgedBySpecialist = data["paymentAcknowledgedBySpecialist"] as? Boolean ?: false,
+                attendeeCount = (data["attendeeCount"] as? Number)?.toInt() ?: 0,
+                selectedAttendeePackageId = data["selectedAttendeePackageId"] as? String,
+                attendeePackageName = data["attendeePackageName"] as? String,
+                attendeePackagePriceUsd = (data["attendeePackagePriceUsd"] as? Number)?.toDouble() ?: 0.0
             )
         }
     }
@@ -985,7 +999,9 @@ data class SpaceListing(
                             "availableHoursOrShifts" to strat.availableHoursOrShifts
                         )
                     },
-                    "scheduleOverride" to sub.scheduleOverride?.toFirestoreMap()
+                    "scheduleOverride" to sub.scheduleOverride?.toFirestoreMap(),
+                    "pricingMode" to sub.pricingMode.name,
+                    "capacity" to sub.capacity
                 )
             },
             "rules" to mapOf(
@@ -1102,6 +1118,8 @@ data class SpaceListing(
                     val subPricing = (sMap["pricing"] as? Map<*, *>)?.let { RentalPricingConfig.fromFirestoreMap(it) }
                         ?: RentalPricingConfig.fromLegacySubdivisionStrategy(stratsList.firstOrNull())
 
+                    val pricingModeStr = sMap["pricingMode"] as? String ?: SubdivisionPricingMode.STRATEGY_BASED.name
+                    val pricingMode = runCatching { SubdivisionPricingMode.valueOf(pricingModeStr) }.getOrDefault(SubdivisionPricingMode.STRATEGY_BASED)
                     Subdivision(
                         id = sMap["id"] as? String ?: ("SUB-" + UUID.randomUUID().toString().take(6)),
                         name = sMap["name"] as? String ?: "Subdivision Unit",
@@ -1110,7 +1128,9 @@ data class SpaceListing(
                         amenities = (sMap["amenities"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                         pricing = subPricing,
                         rentalStrategies = stratsList,
-                        scheduleOverride = SpaceOperatingSchedule.fromFirestoreMap(sMap["scheduleOverride"] as? Map<*, *>)
+                        scheduleOverride = SpaceOperatingSchedule.fromFirestoreMap(sMap["scheduleOverride"] as? Map<*, *>),
+                        pricingMode = pricingMode,
+                        capacity = (sMap["capacity"] as? Number)?.toInt()
                     )
                 }
             } ?: emptyList()
@@ -1884,7 +1904,9 @@ data class SchemaItem(
     // AMENITY only: which DIVISION_TYPE ids this applies to. Empty = all division types.
     val scopedToIds: List<String> = emptyList(),
     // AMENITY only: grouping label (e.g. "Equipment", "Access", "Comfort", "Clinical").
-    val amenityGroup: String = ""
+    val amenityGroup: String = "",
+    // DIVISION_TYPE only: true = this division type can use per-attendee pricing mode.
+    val supportsAttendeeMode: Boolean = false
 ) {
     fun toFirestoreMap(): Map<String, Any?> = mapOf(
         "id" to id,
@@ -1896,7 +1918,8 @@ data class SchemaItem(
         "isSystemDefault" to isSystemDefault,
         "maxSubdivisions" to maxSubdivisions,
         "scopedToIds" to scopedToIds,
-        "amenityGroup" to amenityGroup
+        "amenityGroup" to amenityGroup,
+        "supportsAttendeeMode" to supportsAttendeeMode
     )
 
     companion object {
@@ -1911,7 +1934,49 @@ data class SchemaItem(
             isSystemDefault = data["isSystemDefault"] as? Boolean ?: true,
             maxSubdivisions = (data["maxSubdivisions"] as? Number)?.toInt(),
             scopedToIds = (data["scopedToIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
-            amenityGroup = data["amenityGroup"] as? String ?: ""
+            amenityGroup = data["amenityGroup"] as? String ?: "",
+            supportsAttendeeMode = data["supportsAttendeeMode"] as? Boolean ?: false
+        )
+    }
+}
+
+enum class SubdivisionPricingMode { STRATEGY_BASED, PER_ATTENDEE }
+
+data class AttendeePackage(
+    val id: String,
+    val name: String,
+    val description: String = "",
+    val pricePerAttendeeUsd: Double,
+    val inclusions: List<String> = emptyList(),
+    val minAttendees: Int = 1,
+    val maxAttendees: Int? = null,
+    val isEnabled: Boolean = true,
+    val isSystemDefault: Boolean = true
+) {
+    fun toFirestoreMap(): Map<String, Any?> = mapOf(
+        "id" to id,
+        "name" to name,
+        "description" to description,
+        "pricePerAttendeeUsd" to pricePerAttendeeUsd,
+        "inclusions" to inclusions,
+        "minAttendees" to minAttendees,
+        "maxAttendees" to maxAttendees,
+        "isEnabled" to isEnabled,
+        "isSystemDefault" to isSystemDefault
+    )
+
+    companion object {
+        @Suppress("UNCHECKED_CAST")
+        fun fromFirestoreMap(data: Map<String, Any?>): AttendeePackage = AttendeePackage(
+            id = data["id"] as? String ?: "",
+            name = data["name"] as? String ?: "",
+            description = data["description"] as? String ?: "",
+            pricePerAttendeeUsd = (data["pricePerAttendeeUsd"] as? Number)?.toDouble() ?: 0.0,
+            inclusions = (data["inclusions"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+            minAttendees = (data["minAttendees"] as? Number)?.toInt() ?: 1,
+            maxAttendees = (data["maxAttendees"] as? Number)?.toInt(),
+            isEnabled = data["isEnabled"] as? Boolean ?: true,
+            isSystemDefault = data["isSystemDefault"] as? Boolean ?: true
         )
     }
 }
@@ -1921,17 +1986,19 @@ data class SpaceArchitectureSchema(
     val divisionTypes: List<SchemaItem> = emptyList(),   // was: subcategories
     val facilities: List<SchemaItem> = emptyList(),       // was: amenities — whole-space
     val amenities: List<SchemaItem> = emptyList(),        // new: subdivision-level
-    val rentalStrategies: List<SchemaItem> = emptyList()
+    val rentalStrategies: List<SchemaItem> = emptyList(),
+    val attendeePackages: List<AttendeePackage> = emptyList()
 ) {
     val totalItemsCount: Int
-        get() = spaceTypes.size + divisionTypes.size + facilities.size + amenities.size + rentalStrategies.size
+        get() = spaceTypes.size + divisionTypes.size + facilities.size + amenities.size + rentalStrategies.size + attendeePackages.size
 
     val activeItemsCount: Int
         get() = spaceTypes.count { it.isEnabled } +
                 divisionTypes.count { it.isEnabled } +
                 facilities.count { it.isEnabled } +
                 amenities.count { it.isEnabled } +
-                rentalStrategies.count { it.isEnabled }
+                rentalStrategies.count { it.isEnabled } +
+                attendeePackages.count { it.isEnabled }
 
     val allItems: List<SchemaItem>
         get() = spaceTypes + divisionTypes + facilities + amenities + rentalStrategies
@@ -1941,7 +2008,8 @@ data class SpaceArchitectureSchema(
         "divisionTypes" to divisionTypes.map { it.toFirestoreMap() },
         "facilities" to facilities.map { it.toFirestoreMap() },
         "amenities" to amenities.map { it.toFirestoreMap() },
-        "rentalStrategies" to rentalStrategies.map { it.toFirestoreMap() }
+        "rentalStrategies" to rentalStrategies.map { it.toFirestoreMap() },
+        "attendeePackages" to attendeePackages.map { it.toFirestoreMap() }
     )
 
     companion object {
@@ -1949,6 +2017,8 @@ data class SpaceArchitectureSchema(
         fun fromFirestoreMap(data: Map<String, Any?>): SpaceArchitectureSchema {
             fun list(key: String): List<SchemaItem> =
                 (data[key] as? List<*>)?.mapNotNull { (it as? Map<String, Any?>)?.let { m -> SchemaItem.fromFirestoreMap(m) } } ?: emptyList()
+            fun pkgList(key: String): List<AttendeePackage> =
+                (data[key] as? List<*>)?.mapNotNull { (it as? Map<String, Any?>)?.let { m -> AttendeePackage.fromFirestoreMap(m) } } ?: emptyList()
             // New documents have a "facilities" key; old documents stored whole-space items
             // under "amenities". When the new key is absent, treat all old "amenities" as
             // facilities and leave the new amenities list empty to avoid duplication.
@@ -1959,7 +2029,8 @@ data class SpaceArchitectureSchema(
                 divisionTypes = list("divisionTypes").ifEmpty { list("subcategories") },
                 facilities = if (isNewFormat) list("facilities") else rawAmenities,
                 amenities = if (isNewFormat) rawAmenities.filter { it.category == SchemaCategory.AMENITY } else emptyList(),
-                rentalStrategies = list("rentalStrategies")
+                rentalStrategies = list("rentalStrategies"),
+                attendeePackages = pkgList("attendeePackages")
             )
         }
     }

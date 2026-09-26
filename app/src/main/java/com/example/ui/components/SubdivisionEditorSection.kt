@@ -17,7 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
@@ -59,7 +61,9 @@ fun SubdivisionEditorSection(
     availableAmenities: List<SchemaItem> = emptyList(),
     // Write-back: called when the host types a custom amenity; auto-tags to current
     // division type. No-op default so unupdated callers don't crash.
-    onAddCustomAmenity: ((name: String, divisionTypeId: String) -> Unit)? = null
+    onAddCustomAmenity: ((name: String, divisionTypeId: String) -> Unit)? = null,
+    // Division type schema items used to check supportsAttendeeMode flag.
+    availableDivisionTypeSchema: List<SchemaItem> = emptyList()
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -79,6 +83,9 @@ fun SubdivisionEditorSection(
     // pattern as CreateListingDialog's photoUploadError/ownershipUploadError.
     var subImageUploadError by remember { mutableStateOf<String?>(null) }
     var subPricing by remember { mutableStateOf(RentalPricingConfig.default()) }
+    var subPricingMode by remember { mutableStateOf(SubdivisionPricingMode.STRATEGY_BASED) }
+    var subCapacity by remember { mutableStateOf<Int?>(null) }
+    var subCapacityInput by remember { mutableStateOf("") }
 
     // Per-division operating-schedule override — off by default, meaning this room
     // just follows the whole space's own SpaceOperatingSchedule (the common case).
@@ -110,7 +117,10 @@ fun SubdivisionEditorSection(
     var editingSubdivisionIndex by remember { mutableStateOf<Int?>(null) }
     var justSaved by remember { mutableStateOf(false) }
 
-    val isSubFormValid = subName.isNotBlank() && subPricing.hasRealPrice()
+    val isSubFormValid = subName.isNotBlank() && when (subPricingMode) {
+        SubdivisionPricingMode.PER_ATTENDEE -> (subCapacity ?: 0) > 0
+        SubdivisionPricingMode.STRATEGY_BASED -> subPricing.hasRealPrice()
+    }
 
     LaunchedEffect(editingSubdivisionIndex) {
         if (editingSubdivisionIndex != null) justSaved = false
@@ -125,6 +135,9 @@ fun SubdivisionEditorSection(
         hashtagInput = ""
         subImageUrls = emptyList()
         subPricing = RentalPricingConfig.default()
+        subPricingMode = SubdivisionPricingMode.STRATEGY_BASED
+        subCapacity = null
+        subCapacityInput = ""
         subScheduleOverrideEnabled = false
         subOverrideOpeningHour = openingHour
         subOverrideClosingHour = closingHour
@@ -146,6 +159,8 @@ fun SubdivisionEditorSection(
         amenities = subAmenitiesSelected.toList(),
         hashtags = subHashtags,
         pricing = subPricing,
+        pricingMode = subPricingMode,
+        capacity = subCapacity,
         scheduleOverride = if (subScheduleOverrideEnabled) {
             SpaceOperatingSchedule(
                 openingHour = subOverrideOpeningHour,
@@ -209,6 +224,17 @@ fun SubdivisionEditorSection(
             )
         }
     }
+    val showAttendeeToggle = remember(subType, availableDivisionTypeSchema) {
+        availableDivisionTypeSchema.any { it.name.equals(subType.displayName, ignoreCase = true) && it.supportsAttendeeMode }
+    }
+
+    // Reset pricing mode to STRATEGY_BASED when switching away from an attendee-capable type
+    LaunchedEffect(showAttendeeToggle) {
+        if (!showAttendeeToggle && subPricingMode == SubdivisionPricingMode.PER_ATTENDEE) {
+            subPricingMode = SubdivisionPricingMode.STRATEGY_BASED
+        }
+    }
+
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         // Intro header
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -271,6 +297,9 @@ fun SubdivisionEditorSection(
                                             hashtagInput = ""
                                             subImageUrls = sub.imageUrls
                                             subPricing = sub.pricing
+                                            subPricingMode = sub.pricingMode
+                                            subCapacity = sub.capacity
+                                            subCapacityInput = sub.capacity?.toString() ?: ""
                                             val override = sub.scheduleOverride
                                             subScheduleOverrideEnabled = override != null
                                             subOverrideOpeningHour = override?.openingHour ?: openingHour
@@ -534,6 +563,69 @@ fun SubdivisionEditorSection(
                     }
                     Text("Pricing Strategy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
+
+                // Attendee-mode toggle — only shown for conference-capable division types
+                if (showAttendeeToggle) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Pricing Mode", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = subPricingMode == SubdivisionPricingMode.STRATEGY_BASED,
+                                onClick = { subPricingMode = SubdivisionPricingMode.STRATEGY_BASED },
+                                label = { Text("Strategy-Based", style = MaterialTheme.typography.labelSmall) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = subPricingMode == SubdivisionPricingMode.PER_ATTENDEE,
+                                onClick = { subPricingMode = SubdivisionPricingMode.PER_ATTENDEE },
+                                label = { Text("Per-Attendee", style = MaterialTheme.typography.labelSmall) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                if (subPricingMode == SubdivisionPricingMode.PER_ATTENDEE) {
+                    // Capacity input
+                    OutlinedTextField(
+                        value = subCapacityInput,
+                        onValueChange = { raw ->
+                            val digits = raw.filter { it.isDigit() }
+                            subCapacityInput = digits
+                            subCapacity = digits.toIntOrNull()?.takeIf { it > 0 }
+                        },
+                        label = { Text("Max Attendees") },
+                        placeholder = { Text("e.g. 100") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    )
+                    // Info card
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
+                            Text(
+                                "Price is set per attendee at booking time via a selected package. The schedule below defines availability slots.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                    }
+                    // Keep the schedule editor visible so the host can still configure availability slots
+                    Text("Availability Schedule", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
                 // Pricing keys off this room's own hours when schedule override is on,
                 // otherwise inherits the parent space's operating schedule.
                 RentalPricingConfigEditor(

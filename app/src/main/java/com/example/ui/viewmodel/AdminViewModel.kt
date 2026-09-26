@@ -606,6 +606,50 @@ class AdminViewModel(
         }
     }
 
+    fun addAttendeePackage(
+        name: String,
+        description: String,
+        priceUsd: Double,
+        inclusions: List<String>,
+        minAttendees: Int,
+        maxAttendees: Int?
+    ) {
+        viewModelScope.launch {
+            val pkg = AttendeePackage(
+                id = "APK-" + java.util.UUID.randomUUID().toString().take(6).uppercase(),
+                name = name.trim(),
+                description = description.trim(),
+                pricePerAttendeeUsd = priceUsd,
+                inclusions = inclusions,
+                minAttendees = minAttendees,
+                maxAttendees = maxAttendees,
+                isSystemDefault = false
+            )
+            val success = repository.addAttendeePackage(pkg)
+            _events.emit(AdminUiEvent.ShowToast(if (success) "Package \"${pkg.name}\" added" else "Failed to add package"))
+        }
+    }
+
+    fun updateAttendeePackage(pkg: AttendeePackage) {
+        viewModelScope.launch {
+            val success = repository.updateAttendeePackage(pkg)
+            _events.emit(AdminUiEvent.ShowToast(if (success) "\"${pkg.name}\" updated" else "Update failed"))
+        }
+    }
+
+    fun deleteAttendeePackage(pkgId: String) {
+        viewModelScope.launch {
+            val success = repository.deleteAttendeePackage(pkgId)
+            _events.emit(AdminUiEvent.ShowToast(if (success) "Package deleted" else "Delete failed"))
+        }
+    }
+
+    fun toggleAttendeePackage(pkgId: String) {
+        viewModelScope.launch {
+            repository.toggleAttendeePackage(pkgId)
+        }
+    }
+
     fun openResetSchemaDialog() {
         _uiState.update { it.copy(isResetSchemaDialogOpen = true) }
     }

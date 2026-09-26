@@ -1679,6 +1679,8 @@ private fun AdminSchemaArchitectureTab(
     val schema = uiState.schema
     var editingItem by remember { mutableStateOf<SchemaItem?>(null) }
     var amenityGroupFilter by remember { mutableStateOf("All") }
+    var showAddAttendeePackageDialog by remember { mutableStateOf(false) }
+    var editingAttendeePackage by remember { mutableStateOf<AttendeePackage?>(null) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -1711,6 +1713,11 @@ private fun AdminSchemaArchitectureTab(
                         items(tiles) { (title, items, icon) ->
                             Box(modifier = Modifier.width(140.dp)) {
                                 ProMetricTile(title = title, value = "${items.size}", subtitle = "${items.count { it.isEnabled }} active · ${items.count { !it.isEnabled }} off", icon = icon)
+                            }
+                        }
+                        item {
+                            Box(modifier = Modifier.width(140.dp)) {
+                                ProMetricTile(title = "Packages", value = "${schema.attendeePackages.size}", subtitle = "${schema.attendeePackages.count { it.isEnabled }} active", icon = Icons.Default.ConfirmationNumber)
                             }
                         }
                     }
@@ -1746,7 +1753,14 @@ private fun AdminSchemaArchitectureTab(
                 onAdd = { adminViewModel.openAddSchemaItemDialog(presetCategory = SchemaCategory.DIVISION_TYPE) },
                 onToggle = { item -> adminViewModel.toggleSchemaItemEnabled(item.id, item.category, item.isEnabled) },
                 onDelete = { item -> adminViewModel.deleteSchemaItem(item.id, item.category) },
-                onEdit = { item -> editingItem = item }
+                onEdit = { item -> editingItem = item },
+                extraContent = { item ->
+                    if (item.supportsAttendeeMode) {
+                        Surface(color = MaterialTheme.colorScheme.tertiaryContainer, shape = MaterialTheme.shapes.extraSmall) {
+                            Text("per-attendee", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), color = MaterialTheme.colorScheme.onTertiaryContainer)
+                        }
+                    }
+                }
             )
         }
 
@@ -1844,6 +1858,54 @@ private fun AdminSchemaArchitectureTab(
             }
         }
 
+        // Section 6: Attendee Packages
+        item {
+            ProSurfaceCard {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ProSectionHeader(title = "Attendee Packages", subtitle = "Per-person pricing for conference & event subdivisions", icon = Icons.Default.ConfirmationNumber)
+                        CustomButton(text = "Add", onClick = { showAddAttendeePackageDialog = true }, variant = CustomButtonVariant.SECONDARY, icon = Icons.Default.Add, compact = true)
+                    }
+                    if (schema.attendeePackages.isEmpty()) {
+                        Text("No attendee packages defined yet.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        schema.attendeePackages.forEach { pkg ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Text(pkg.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                        if (!pkg.isSystemDefault) {
+                                            Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.extraSmall) {
+                                                Text("CUSTOM", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp), color = MaterialTheme.colorScheme.onErrorContainer)
+                                            }
+                                        }
+                                    }
+                                    Text("$${pkg.pricePerAttendeeUsd.let { if (it == it.toLong().toDouble()) it.toLong().toString() else String.format("%.2f", it) }}/person · min ${pkg.minAttendees}${pkg.maxAttendees?.let { " · max $it" } ?: ""}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                    if (pkg.inclusions.isNotEmpty()) {
+                                        Text(pkg.inclusions.joinToString(" · "), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
+                                    }
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+                                    Switch(checked = pkg.isEnabled, onCheckedChange = { adminViewModel.toggleAttendeePackage(pkg.id) })
+                                    IconButton(onClick = { editingAttendeePackage = pkg }) { Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(18.dp)) }
+                                    IconButton(onClick = { adminViewModel.deleteAttendeePackage(pkg.id) }) { Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error) }
+                                }
+                            }
+                            HorizontalDivider(color = LightGray.copy(alpha = 0.4f))
+                        }
+                    }
+                }
+            }
+        }
+
         // Target Disciplines (hashtag analytics)
         item {
             ProSurfaceCard {
@@ -1908,6 +1970,28 @@ private fun AdminSchemaArchitectureTab(
                 editingItem = null
             },
             onDismiss = { editingItem = null }
+        )
+    }
+
+    // Attendee package dialogs
+    if (showAddAttendeePackageDialog) {
+        AdminAttendeePackageDialog(
+            existingPackage = null,
+            onSave = { name, desc, price, inclusions, min, max ->
+                adminViewModel.addAttendeePackage(name, desc, price, inclusions, min, max)
+                showAddAttendeePackageDialog = false
+            },
+            onDismiss = { showAddAttendeePackageDialog = false }
+        )
+    }
+    editingAttendeePackage?.let { pkg ->
+        AdminAttendeePackageDialog(
+            existingPackage = pkg,
+            onSave = { name, desc, price, inclusions, min, max ->
+                adminViewModel.updateAttendeePackage(pkg.copy(name = name, description = desc, pricePerAttendeeUsd = price, inclusions = inclusions, minAttendees = min, maxAttendees = max))
+                editingAttendeePackage = null
+            },
+            onDismiss = { editingAttendeePackage = null }
         )
     }
 }
@@ -2028,6 +2112,7 @@ private fun AdminEditSchemaItemDialog(
     var amenityGroup by remember { mutableStateOf(item.amenityGroup) }
     var maxSubs by remember { mutableStateOf(item.maxSubdivisions?.toString() ?: "") }
     var selectedScopedIds by remember { mutableStateOf(item.scopedToIds.toSet()) }
+    var supportsAttendeeMode by remember { mutableStateOf(item.supportsAttendeeMode) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -2038,6 +2123,15 @@ private fun AdminEditSchemaItemDialog(
                 OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
                 if (item.category == SchemaCategory.SPACE_TYPE) {
                     OutlinedTextField(value = maxSubs, onValueChange = { maxSubs = it }, label = { Text("Max Subdivisions (leave blank = unlimited)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                }
+                if (item.category == SchemaCategory.DIVISION_TYPE) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column {
+                            Text("Supports Per-Attendee Pricing", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                            Text("Show attendee mode toggle for this division type", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(checked = supportsAttendeeMode, onCheckedChange = { supportsAttendeeMode = it })
+                    }
                 }
                 if (item.category == SchemaCategory.AMENITY) {
                     OutlinedTextField(value = amenityGroup, onValueChange = { amenityGroup = it }, label = { Text("Amenity Group (e.g. Comfort, Access, Equipment)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
@@ -2064,7 +2158,8 @@ private fun AdminEditSchemaItemDialog(
                         description = description.trim(),
                         amenityGroup = amenityGroup.trim(),
                         maxSubdivisions = if (item.category == SchemaCategory.SPACE_TYPE) maxSubs.trim().toIntOrNull() else item.maxSubdivisions,
-                        scopedToIds = if (item.category == SchemaCategory.AMENITY) selectedScopedIds.toList() else item.scopedToIds
+                        scopedToIds = if (item.category == SchemaCategory.AMENITY) selectedScopedIds.toList() else item.scopedToIds,
+                        supportsAttendeeMode = if (item.category == SchemaCategory.DIVISION_TYPE) supportsAttendeeMode else item.supportsAttendeeMode
                     ))
                 },
                 variant = CustomButtonVariant.PRIMARY,
@@ -3244,5 +3339,72 @@ private fun AdminRejectIdDocumentDialog(
             ) { Text("Reject & Notify User") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AdminAttendeePackageDialog(
+    existingPackage: AttendeePackage?,
+    onSave: (name: String, description: String, priceUsd: Double, inclusions: List<String>, minAttendees: Int, maxAttendees: Int?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val isEditing = existingPackage != null
+    var name by remember { mutableStateOf(existingPackage?.name ?: "") }
+    var description by remember { mutableStateOf(existingPackage?.description ?: "") }
+    var priceText by remember { mutableStateOf(existingPackage?.pricePerAttendeeUsd?.let { if (it == it.toLong().toDouble()) it.toLong().toString() else String.format("%.2f", it) } ?: "") }
+    var minText by remember { mutableStateOf(existingPackage?.minAttendees?.toString() ?: "1") }
+    var maxText by remember { mutableStateOf(existingPackage?.maxAttendees?.toString() ?: "") }
+    var inclusionInput by remember { mutableStateOf("") }
+    var inclusions by remember { mutableStateOf(existingPackage?.inclusions ?: emptyList()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (isEditing) "Edit Attendee Package" else "Add Attendee Package", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Package Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("e.g. Standard Package") })
+                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = priceText, onValueChange = { priceText = it }, label = { Text("Price / Person (USD)") }, modifier = Modifier.weight(1f), singleLine = true, prefix = { Text("$") })
+                    OutlinedTextField(value = minText, onValueChange = { minText = it }, label = { Text("Min Attendees") }, modifier = Modifier.weight(1f), singleLine = true)
+                }
+                OutlinedTextField(value = maxText, onValueChange = { maxText = it }, label = { Text("Max Attendees (leave blank = no cap)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                Text("Inclusions", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(value = inclusionInput, onValueChange = { inclusionInput = it }, label = { Text("Add item") }, modifier = Modifier.weight(1f), singleLine = true)
+                    IconButton(onClick = {
+                        val item = inclusionInput.trim()
+                        if (item.isNotBlank() && item !in inclusions) {
+                            inclusions = inclusions + item
+                            inclusionInput = ""
+                        }
+                    }) { Icon(Icons.Default.Add, contentDescription = "Add") }
+                }
+                if (inclusions.isNotEmpty()) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        items(inclusions) { inc ->
+                            FilterChip(selected = false, onClick = { inclusions = inclusions - inc }, label = { Text(inc, style = MaterialTheme.typography.labelSmall) }, trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp)) })
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            CustomButton(
+                text = if (isEditing) "Save" else "Add Package",
+                onClick = {
+                    val price = priceText.trim().toDoubleOrNull() ?: 0.0
+                    val min = minText.trim().toIntOrNull() ?: 1
+                    val max = maxText.trim().toIntOrNull()
+                    onSave(name.trim(), description.trim(), price, inclusions, min, max)
+                },
+                variant = CustomButtonVariant.PRIMARY,
+                enabled = name.isNotBlank() && (priceText.trim().toDoubleOrNull() ?: -1.0) > 0
+            )
+        },
+        dismissButton = {
+            CustomButton(text = "Cancel", onClick = onDismiss, variant = CustomButtonVariant.OUTLINED)
+        }
     )
 }
