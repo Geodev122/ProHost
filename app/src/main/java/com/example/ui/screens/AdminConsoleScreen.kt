@@ -2856,12 +2856,12 @@ private fun AdminDeletePackagePlanDialog(
 /**
  * 6. Add Schema Node Dialog
  */
-@Composable
 private val MARKER_COLOR_PRESETS = listOf(
     "#5B9BFF", "#FF8F73", "#7DD9A0", "#B197FC", "#E8C468", "#6FE3E3",
     "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD"
 )
 
+@Composable
 private fun AdminAddSchemaItemDialog(
     initialCategory: String = SchemaCategory.DIVISION_TYPE,
     onDismiss: () -> Unit,

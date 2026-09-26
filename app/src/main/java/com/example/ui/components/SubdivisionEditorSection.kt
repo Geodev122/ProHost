@@ -48,6 +48,7 @@ import java.util.UUID
  * new room" form fields are transient, single-use input state that resets after
  * each add, so they live locally here rather than in either caller.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SubdivisionEditorSection(
     spaceId: String,
@@ -91,8 +92,6 @@ fun SubdivisionEditorSection(
     // just follows the whole space's own SpaceOperatingSchedule (the common case).
     // Turning it on seeds from the space's current hours/days so the host is editing
     // a delta (e.g. "this exam room closes at 17:00, not 20:00"), not starting blank.
-    var subHashtags by remember { mutableStateOf(listOf<String>()) }
-    var hashtagInput by remember { mutableStateOf("") }
     var subScheduleOverrideEnabled by remember { mutableStateOf(false) }
     var subOverrideOpeningHour by remember { mutableStateOf(openingHour) }
     var subOverrideClosingHour by remember { mutableStateOf(closingHour) }

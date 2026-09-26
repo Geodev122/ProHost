@@ -34,8 +34,7 @@ class DiscoveryViewModel(
         repository.currentUser,
         repository.hasLoadedSpacesOnce
     ) { values ->
-        @Suppress("UNCHECKED_CAST")
-        val spaces = values[0] as List<SpaceListing>
+        val spaces = (values[0] as? List<*>)?.filterIsInstance<SpaceListing>() ?: emptyList()
         val filter = values[1] as DiscoveryFilterState
         val sheetVisible = values[2] as Boolean
         val mapActive = values[3] as Boolean

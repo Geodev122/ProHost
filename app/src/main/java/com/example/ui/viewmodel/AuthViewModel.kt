@@ -23,6 +23,11 @@ import kotlinx.coroutines.tasks.await
  * moment a package/listing payment settles) — see
  * com.example.data.auth.completeVerifiedLogin / completeVerifiedRegistration.
  */
+/** Kept as a typealias so any remaining callers of the old name still compile. */
+@Suppress("unused")
+@Deprecated("Renamed to PendingRegistration", ReplaceWith("PendingRegistration"))
+typealias PendingPhoneRegistration = AuthViewModel.PendingRegistration
+
 class AuthViewModel(
     private val repository: ProHostRepository = ProHostRepository.getInstance()
 ) : ViewModel() {
@@ -64,11 +69,6 @@ class AuthViewModel(
         // which rejects registration outright if this isn't literally true.
         val tosAccepted: Boolean
     )
-
-    /** Kept as a typealias so any remaining callers of the old name still compile. */
-    @Suppress("unused")
-    @Deprecated("Renamed to PendingRegistration", ReplaceWith("PendingRegistration"))
-    typealias PendingPhoneRegistration = PendingRegistration
 
     // --- Email lookup state (EMAIL_ENTRY step) ---
 

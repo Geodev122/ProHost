@@ -15,8 +15,8 @@ import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.ProductDetailsResult
 import com.android.billingclient.api.PurchaseHistoryRecord
-import com.android.billingclient.api.QueryPurchaseHistoryParams
 import com.android.billingclient.api.QueryPurchasesParams
 import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
@@ -126,7 +126,7 @@ class PlayBillingManager(
 
         billingClient.queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                val list = queryProductDetailsResult.productDetailsList
+                val list = (queryProductDetailsResult as ProductDetailsResult).productDetailsList.orEmpty()
                 Log.d(TAG, "Retrieved ${list.size} subscription products from Google Play")
                 _productDetailsList.value = list
             } else {
@@ -273,7 +273,7 @@ class PlayBillingManager(
                 .build()
             billingClient.queryProductDetailsAsync(params) { billingResult, results ->
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    val found = results.productDetailsList.firstOrNull()
+                    val found = (results as ProductDetailsResult).productDetailsList?.firstOrNull()
                     // Merge into the main list so future launch calls don't need a re-query
                     if (found != null) {
                         val merged = _productDetailsList.value.filter { it.productId != productId } + found

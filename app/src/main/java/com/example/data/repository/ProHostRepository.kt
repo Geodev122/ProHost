@@ -886,7 +886,7 @@ class ProHostRepository {
 
     suspend fun toggleSchemaItem(itemId: String): Boolean {
         val current = _spaceArchitectureSchema.value
-        fun <T : Any> List<SchemaItem>.tog() = map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it }
+        fun List<SchemaItem>.tog() = map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it }
         val updated = current.copy(
             spaceTypes = current.spaceTypes.tog(),
             divisionTypes = current.divisionTypes.tog(),
