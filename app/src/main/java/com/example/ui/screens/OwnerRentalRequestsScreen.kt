@@ -22,14 +22,42 @@ import com.example.ui.viewmodel.ProHostViewModel
 fun OwnerRentalRequestsScreen(
     viewModel: ProHostViewModel
 ) {
+    val isLoading by viewModel.isRestoringSession.collectAsState()
+    val errorMessage by viewModel.sessionRestoreError.collectAsState()
     val incomingRequests by viewModel.ownerIncomingRequests.collectAsState()
     val spaces by viewModel.spaces.collectAsState()
 
-    OwnerRentalRequestsScreenContent(
-        incomingRequests = incomingRequests,
-        spaces = spaces,
-        viewModel = viewModel
-    )
+    when {
+        isLoading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        errorMessage != null -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = errorMessage ?: "",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(Spacing.lg)
+                )
+            }
+        }
+        !isLoading && incomingRequests.isEmpty() -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                ProEmptyState(
+                    title = "No Rental Requests",
+                    description = "You have no incoming rental requests yet. Publish a listing to start receiving bookings.",
+                    icon = Icons.Default.Inbox
+                )
+            }
+        }
+        else -> OwnerRentalRequestsScreenContent(
+            incomingRequests = incomingRequests,
+            spaces = spaces,
+            viewModel = viewModel
+        )
+    }
 }
 
 @Composable

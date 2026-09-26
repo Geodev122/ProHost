@@ -59,8 +59,7 @@ fun OwnerRentingProgressScreen(
     }
 
     var cancelTargetBooking by remember { mutableStateOf<BookingRequest?>(null) }
-    if (cancelTargetBooking != null) {
-        val bkg = cancelTargetBooking!!
+    cancelTargetBooking?.let { bkg ->
         com.example.ui.components.CancelAcceptedBookingDialog(
             spaceTitle = bkg.spaceTitle,
             partyLabel = bkg.practitionerName,

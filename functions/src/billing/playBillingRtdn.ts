@@ -8,7 +8,7 @@ import { sendPushToUser } from "../lib/push";
 import { setClaimsThenFirestore } from "../lib/roles";
 import { sendEmail, hostingerSmtpSecret } from "../lib/email";
 import { subscriptionActivatedTemplate, subscriptionRenewedTemplate, UserContext } from "../lib/emailTemplates";
-import { validateListingForPublish } from "../listings/publishValidation";
+import { validateListingForPublish, WorkspaceListingDoc } from "../listings/publishValidation";
 import "../lib/admin";
 
 // Must match applicationId in app/build.gradle.kts
@@ -116,7 +116,7 @@ async function grantSubscription(
       if (draftSnap.exists) {
         const draftData = draftSnap.data() ?? {};
         if (draftData.ownerId === uid && draftData.status === "DRAFT") {
-          const problems = validateListingForPublish(draftData as any);
+          const problems = validateListingForPublish(draftData as WorkspaceListingDoc);
           if (problems.length > 0) {
             await draftRef.set({ publishBlockedReasons: problems, updatedAt: now }, { merge: true });
             logger.warn(`playBillingRtdn: draft ${pendingDraftId} NOT auto-published for uid=${uid} — missing: ${problems.join(", ")}`);

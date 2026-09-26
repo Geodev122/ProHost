@@ -170,8 +170,8 @@ fun SpaceDetailsScreenContent(
     // below read from, so they can never disagree.
     val availableSlots = remember(liveSpace) { SpaceCalculationUtils.buildAllSlotsForSpace(liveSpace) }
     val strategyPreviewGroups = remember(availableSlots) {
-        availableSlots.filter { it.strategyType != null }
-            .groupBy { it.strategyType!! }
+        availableSlots.mapNotNull { slot -> slot.strategyType?.let { type -> type to slot } }
+            .groupBy({ (type, _) -> type }, { (_, slot) -> slot })
             .toList()
             .sortedBy { (type, _) -> type.ordinal }
     }
@@ -945,8 +945,8 @@ fun SpaceDetailsScreenContent(
         val hasSelection = totalSelectedSlots > 0
 
         // Attendee total cost
-        val attendeeTotalUsd = if (isAttendeeMode && sheetAttendeePackage != null)
-            sheetAttendeeCount * sheetAttendeePackage!!.pricePerAttendeeUsd else 0.0
+        val attendeeTotalUsd = if (isAttendeeMode)
+            sheetAttendeePackage?.let { sheetAttendeeCount * it.pricePerAttendeeUsd } ?: 0.0 else 0.0
 
         val canSubmit = hasSelection && (!isAttendeeMode || (sheetAttendeeCount > 0 && sheetAttendeePackage != null))
 
@@ -1054,7 +1054,7 @@ fun SpaceDetailsScreenContent(
                                 }
                             }
                             // Total amount
-                            if (sheetAttendeePackage != null) {
+                            sheetAttendeePackage?.let { pkg ->
                                 Surface(color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.small) {
                                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -1069,7 +1069,7 @@ fun SpaceDetailsScreenContent(
                                     }
                                 }
                                 Text(
-                                    "$sheetAttendeeCount attendees × $${sheetAttendeePackage!!.pricePerAttendeeUsd.toInt()} ${sheetAttendeePackage!!.name}",
+                                    "$sheetAttendeeCount attendees × $${pkg.pricePerAttendeeUsd.toInt()} ${pkg.name}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                                 )
@@ -1332,15 +1332,15 @@ fun SpaceDetailsScreenContent(
                             Button(
                                 onClick = {
                                     val slotLines = buildString {
-                                        selectedSlots.forEachIndexed { i, s -> appendLine("  ${i + 1}. ${s.label}${if (s.pricesByRecurrence[BookingRecurrence.FLAT] != null) " — \$${s.pricesByRecurrence[BookingRecurrence.FLAT]!!.toInt()}" else ""}") }
+                                        selectedSlots.forEachIndexed { i, s -> appendLine("  ${i + 1}. ${s.label}${s.pricesByRecurrence[BookingRecurrence.FLAT]?.let { " — \$${it.toInt()}" } ?: ""}") }
                                         selectedHoursPerDay.entries.forEachIndexed { di, (day, hrs) ->
                                             hrs.forEachIndexed { hi, hr ->
                                                 appendLine("  ${selectedSlots.size + di * 100 + hi + 1}. $day $hr")
                                             }
                                         }
                                     }.trimEnd()
-                                    val attendeeBlock = if (isAttendeeMode && sheetAttendeePackage != null)
-                                        "\n\n👥 Attendees: $sheetAttendeeCount\n📦 Package: ${sheetAttendeePackage!!.name} (\$${sheetAttendeePackage!!.pricePerAttendeeUsd.toInt()}/pp)\n💰 Estimated Total: \$${String.format("%.2f", attendeeTotalUsd)} USD"
+                                    val attendeeBlock = if (isAttendeeMode)
+                                        sheetAttendeePackage?.let { ap -> "\n\n👥 Attendees: $sheetAttendeeCount\n📦 Package: ${ap.name} (\$${ap.pricePerAttendeeUsd.toInt()}/pp)\n💰 Estimated Total: \$${String.format("%.2f", attendeeTotalUsd)} USD" } ?: ""
                                     else ""
                                     val message = "Hello! I'm interested in booking *${liveSpace.title}*.\n\n📍 ${liveSpace.district}, ${liveSpace.governorate.displayName}\n\n🗓 Selected Slots ($totalSelectedSlots):\n$slotLines$attendeeBlock\n\nAre these slots still available?"
                                     try {

@@ -34,7 +34,7 @@ interface SubdivisionDoc {
   rentalStrategies?: unknown[];
 }
 
-interface WorkspaceListingDoc {
+export interface WorkspaceListingDoc {
   status?: string;
   ownershipProofUrl?: string | null;
   lat?: number;

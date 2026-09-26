@@ -118,7 +118,7 @@ async function validateAndConsumeOtp(email: string, code: string): Promise<strin
     throw new Error("No sign-in code found. Please request a new one.");
   }
 
-  const data = snap.data()!;
+  const data = snap.data() as Record<string, any>;
   if (Date.now() > data.expiresAt) {
     await docRef.delete();
     throw new Error("This code has expired. Please request a new one.");

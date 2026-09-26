@@ -10,7 +10,13 @@
  * Covers: Cloud Function consistency, Firestore rules coverage, empty catch
  * blocks, forced unwraps, coroutine error handling, screen loading/error/empty
  * states, hardcoded secrets, deep-link registration, AuthStep completeness,
- * TypeScript safety, orphaned modules, navigation graph, and more.
+ * TypeScript safety, orphaned modules, navigation graph, role guards, payment
+ * flow, billing acknowledgement, auth token refresh, KYC screen completeness,
+ * analytics financial stats, Android Vitals readiness (StrictMode/LeakCanary/
+ * instrumentation tests), Performance Profiling (HW acceleration/blocking I/O/
+ * recomposition/Baseline Profile), App Size Analysis (R8/resource shrink/WebP),
+ * Localization Testing (translations/RTL/hardcoded strings), and Accessibility
+ * Audit (content descriptions/touch targets/semantics/contrast/focus order).
  */
 
 'use strict';
@@ -132,7 +138,7 @@ function checkCloudFunctionNames() {
     'onWorkspaceListingPublishValidation','onWorkspaceListingDeletedCleanup',
     'onBookingAcceptConflictGuard','onUserFavoritesChanged','expirePackages',
     'bootstrapSuperAdmin','listingShareLanding','legalDocumentPage','clickEmailOtpLink',
-    'playBillingRtdn','verifyEmailLink','assignInitialRole',
+    'playBillingRtdn','verifyEmailLink','assignInitialRole','recomputeKycLevel',
   ]);
 
   let mismatches = 0;
@@ -448,6 +454,10 @@ function checkTypeScriptSafety() {
 
     // Missing await on async functions (basic heuristic: calling without await or .then)
     for (const m of grepFile(f, /(?<!await\s)(?<!return\s)(?<!\.then\()(?<!\bPromise\.all\b)\b(sendEmail|sendPushToUser|sendPushToAdmins)\s*\(/g)) {
+      // Skip function declarations, comment lines, and calls wrapped in Promise.all/map
+      if (/^\s*(export\s+)?async\s+function/.test(m.lineText)) continue;
+      if (/^\s*\*/.test(m.lineText) || /^\s*\/\//.test(m.lineText)) continue;
+      if (/Promise\.all\s*\(/.test(m.lineText) || /\.map\s*\(/.test(m.lineText)) continue;
       count++;
       bug('HIGH','reliability','Missing Await', m.file, m.line,
         `Call to async function "${m.groups[1]}" may be missing await. Email/push may not be sent if the function returns before the promise resolves.`,
@@ -463,7 +473,11 @@ function checkTypeScriptSafety() {
 function checkOrphanedModules() {
   const indexContent = readSafe(path.join(FN_SRC, 'index.ts')) || '';
 
-  const tsFiles = walkFiles(FN_SRC, '.ts').filter(f => !f.endsWith('index.ts'));
+  const tsFiles = walkFiles(FN_SRC, '.ts').filter(f =>
+    !f.endsWith('index.ts') &&
+    !f.includes(`${path.sep}lib${path.sep}`) &&
+    !f.endsWith('.d.ts')
+  );
   for (const f of tsFiles) {
     const rel = path.relative(FN_SRC, f).replace(/\\/g, '/').replace(/\.ts$/, '');
     const importPath = `./${rel}`;
@@ -535,8 +549,8 @@ function checkPaymentFlow() {
   // Whish payment has been completely replaced by Google Play Billing.
   // Check that PlayBillingManager.kt exists and is wired into the app.
   const billingManagerFile = path.join(KT_DATA, 'billing/PlayBillingManager.kt');
-  const clientFile = glob.sync('**/FirebaseFunctionsClient.kt', { cwd: ANDROID_ROOT })[0];
-  const clientContent = clientFile ? (readSafe(path.join(ANDROID_ROOT, clientFile)) || '') : '';
+  const clientPath = path.join(KT_DATA, 'auth/FirebaseFunctionsClient.kt');
+  const clientContent = readSafe(clientPath) || '';
 
   const hasBillingManager = !!readSafe(billingManagerFile);
   const indexContent = readSafe(path.join(FN_SRC, 'index.ts')) || '';
@@ -624,6 +638,314 @@ function checkOwnerAnalytics() {
   }
 }
 
+// ─── CHECK 21: Android Vitals — crash/ANR/leak readiness ─────────────────────
+
+function checkAndroidVitals() {
+  const buildGradle = path.join(ROOT, 'app/build.gradle.kts');
+  const buildContent = readSafe(buildGradle) || '';
+
+  // 1. StrictMode — catches disk/network on main thread locally before hitting Play Vitals
+  const hasStrictMode = grepDir(KT_ROOT, '.kt', /StrictMode\.(setThreadPolicy|setVmPolicy|ThreadPolicy|VmPolicy)/g).length > 0;
+  if (!hasStrictMode) {
+    bug('LOW','vitals','StrictMode Not Configured', 'app/build.gradle.kts', null,
+      'No StrictMode configuration found. StrictMode catches disk I/O and network calls on the main thread during debug builds — the same violations Android Vitals reports as ANRs in production.',
+      'In Application.onCreate() (debug build only), add: StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder().detectAll().penaltyLog().build()) and StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().detectLeakedSqlLiteObjects().detectLeakedClosableObjects().penaltyLog().build())');
+  }
+
+  // 2. Leak detection — LeakCanary is the standard; check for it in dependencies
+  const hasLeakCanary = buildContent.includes('leakcanary') || buildContent.includes('LeakCanary');
+  if (!hasLeakCanary) {
+    bug('LOW','vitals','LeakCanary Not Present', 'app/build.gradle.kts', null,
+      'LeakCanary is not in the debug dependencies. Memory leaks that cause OOM crashes appear in Android Vitals — LeakCanary catches them locally before release.',
+      'Add to app/build.gradle.kts: debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")');
+  }
+
+  // 3. Test infrastructure — check for androidTest directory existence
+  const androidTestDir = path.join(ROOT, 'app/src/androidTest');
+  const hasInstrumentedTests = fs.existsSync(androidTestDir) &&
+    walkFiles(androidTestDir, '.kt').length > 0;
+  if (!hasInstrumentedTests) {
+    bug('MEDIUM','vitals','No Instrumentation Tests', 'app/src/androidTest', null,
+      'No instrumented test files found in app/src/androidTest. Instrumentation tests are required to monitor crash logs and ANRs in the Android Vitals pre-launch report on Google Play.',
+      'Create app/src/androidTest/java/com/example/ and add at minimum a smoke test: @RunWith(AndroidJUnit4::class) class SmokeTest { @Test fun launchApp() { ActivityScenario.launch(MainActivity::class.java) } }');
+  }
+
+  // 4. Unit test directory
+  const unitTestDir = path.join(ROOT, 'app/src/test');
+  const hasUnitTests = fs.existsSync(unitTestDir) &&
+    walkFiles(unitTestDir, '.kt').length > 0;
+  if (!hasUnitTests) {
+    bug('LOW','vitals','No Unit Tests', 'app/src/test', null,
+      'No unit test files found in app/src/test. Untested logic in ViewModels and repositories is a leading cause of production crashes tracked by Android Vitals.',
+      'Add unit tests for ViewModels using kotlinx-coroutines-test and MockK/Mockito. Start with AuthViewModel and ProHostViewModel business logic.');
+  }
+
+  const issueCount = [hasStrictMode, hasLeakCanary, hasInstrumentedTests, hasUnitTests].filter(Boolean).length;
+  if (issueCount === 4) {
+    pass('Android Vitals', 'StrictMode, LeakCanary, instrumentation tests, and unit tests all present.');
+  }
+}
+
+// ─── CHECK 22: Performance Profiling readiness ────────────────────────────────
+
+function checkPerformanceProfiling() {
+  const buildGradle = path.join(ROOT, 'app/build.gradle.kts');
+  const buildContent = readSafe(buildGradle) || '';
+
+  let issues = 0;
+
+  // 1. Hardware acceleration — should be enabled (default on API 14+ but verify not disabled)
+  const manifestContent = readSafe(MANIFEST) || '';
+  const hwAccelDisabled = manifestContent.includes('android:hardwareAccelerated="false"');
+  if (hwAccelDisabled) {
+    bug('HIGH','performance','Hardware Acceleration Disabled', 'app/src/main/AndroidManifest.xml', null,
+      'android:hardwareAccelerated="false" found in AndroidManifest. This forces software rendering and causes severe GPU performance degradation (>16ms/frame) on all screens.',
+      'Remove android:hardwareAccelerated="false" or set it to "true". Hardware acceleration is the default since API 14 and required for smooth Compose rendering.');
+    issues++;
+  }
+
+  // 2. Check for synchronous disk I/O on main thread (SharedPreferences, File reads in Composables)
+  const sharedPrefsOnMain = grepDir(KT_SCREENS, '.kt', /getSharedPreferences|PreferenceManager\.getDefaultSharedPreferences/g);
+  if (sharedPrefsOnMain.length > 0) {
+    bug('MEDIUM','performance','SharedPreferences in Composables', sharedPrefsOnMain[0].file, sharedPrefsOnMain[0].line,
+      `SharedPreferences accessed directly in UI screens (${sharedPrefsOnMain.length} occurrence(s)). SharedPreferences.commit() and apply() perform synchronous disk I/O that blocks the main thread, causing dropped frames (>16ms) in Compose.`,
+      'Move SharedPreferences reads/writes to a ViewModel or Repository using DataStore (kotlinx-coroutines-based, non-blocking). Replace getSharedPreferences with DataStore<Preferences>.');
+    issues++;
+  }
+
+  // 3. Check for blocking calls in Composables (Thread.sleep is a clear violation)
+  const threadSleep = grepDir(KT_SCREENS, '.kt', /Thread\.sleep/g);
+  if (threadSleep.length > 0) {
+    bug('HIGH','performance','Thread.sleep in UI Layer', threadSleep[0].file, threadSleep[0].line,
+      `Thread.sleep() called in UI screens (${threadSleep.length} occurrence(s)). This directly blocks the main thread and causes ANRs when the duration exceeds 5 seconds.`,
+      'Replace Thread.sleep with delay() inside a coroutine (kotlinx.coroutines.delay). All timing in Compose should use coroutines or Animatable, never Thread.sleep.');
+    issues++;
+  }
+
+  // 4. Recomposition traps — unnecessary object allocation inside composable bodies
+  const rememberMissing = grepDir(KT_SCREENS, '.kt', /=\s*listOf\s*\(|=\s*mapOf\s*\(|=\s*mutableListOf\s*\(/g);
+  const rememberPresent = grepDir(KT_SCREENS, '.kt', /=\s*remember\s*\{/g);
+  // Heuristic: if there are many bare collection literals relative to remember{} usage, flag it
+  if (rememberMissing.length > rememberPresent.length * 3) {
+    bug('LOW','performance','Potential Recomposition Overhead', null, null,
+      `Found ${rememberMissing.length} bare collection literal(s) (listOf/mapOf) in UI screens vs ${rememberPresent.length} remember{} usage(s). Collections created inside a composable body are re-allocated on every recomposition, causing unnecessary GC pressure and potentially slow frames.`,
+      'Wrap stable collections derived from state in remember(key) { listOf(...) } or move them to ViewModel as StateFlow. Use @Stable/@Immutable annotations on data classes to help the Compose compiler skip unchanged subtrees.');
+    issues++;
+  }
+
+  // 5. Baseline Profile — critical for Compose startup performance
+  const baselineProfileDir = path.join(ROOT, 'app/src/main/baseline-prof.txt');
+  const baselineProfileAlt = path.join(ROOT, 'app/baseline-prof.txt');
+  const hasBaselineProfile = fs.existsSync(baselineProfileDir) || fs.existsSync(baselineProfileAlt) ||
+    buildContent.includes('baselineProfile') || buildContent.includes('BaselineProfile');
+  if (!hasBaselineProfile) {
+    bug('LOW','performance','No Baseline Profile', 'app/build.gradle.kts', null,
+      'No Baseline Profile (baseline-prof.txt) found. Baseline Profiles pre-compile hot Compose code paths, reducing app startup time by up to 40% and improving first-frame render on cold starts.',
+      'Generate with: ./gradlew :app:generateBaselineProfile (requires the androidx.benchmark:benchmark-macro-junit4 and the macrobenchmark module). Commit the generated app/src/main/baseline-prof.txt.');
+    issues++;
+  }
+
+  if (issues === 0) {
+    pass('Performance Profiling', 'No hardware acceleration, blocking I/O, or recomposition issues detected. Baseline Profile present.');
+  }
+}
+
+// ─── CHECK 23: App Size Analysis ─────────────────────────────────────────────
+
+function checkAppSize() {
+  const buildGradle = path.join(ROOT, 'app/build.gradle.kts');
+  const buildContent = readSafe(buildGradle) || '';
+
+  let issues = 0;
+
+  // 1. R8/ProGuard minification enabled for release
+  const hasMinify = buildContent.includes('isMinifyEnabled = true') || buildContent.includes('minifyEnabled true');
+  if (!hasMinify) {
+    bug('HIGH','app-size','R8 Minification Disabled', 'app/build.gradle.kts', null,
+      'isMinifyEnabled is not set to true for the release build. Without R8, the APK includes all library code including unused classes, typically adding 5–20 MB to app size and slowing startup.',
+      'In the release buildType block, set: isMinifyEnabled = true and proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")');
+    issues++;
+  }
+
+  // 2. Resource shrinking
+  const hasShrink = buildContent.includes('isShrinkResources = true') || buildContent.includes('shrinkResources true');
+  if (!hasShrink) {
+    bug('MEDIUM','app-size','Resource Shrinking Disabled', 'app/build.gradle.kts', null,
+      'isShrinkResources is not set to true. Unused drawable, layout, and string resources are included in the APK, typically adding 1–5 MB.',
+      'In the release buildType, add: isShrinkResources = true (requires isMinifyEnabled = true to be set first).');
+    issues++;
+  }
+
+  // 3. ABI splits / App Bundle — check for splits or bundle config
+  const hasAbiBuild  = buildContent.includes('splits') || buildContent.includes('abiFilters') ||
+                       buildContent.includes('android.bundle') || buildContent.includes('AAB') ||
+                       buildContent.includes('.aab');
+  // Google Play now requires AAB by default — check if there's explicit APK-only config that overrides it
+  const forcesApkOnly = buildContent.includes('universalApk = true') || buildContent.includes('universalApk true');
+  if (forcesApkOnly) {
+    bug('LOW','app-size','Universal APK Forced', 'app/build.gradle.kts', null,
+      'universalApk = true is set, which creates a fat APK containing all ABIs. Uploading an AAB to Google Play instead lets Play deliver ABI-specific APKs, reducing the download size by ~30%.',
+      'Remove universalApk = true and upload an AAB (./gradlew bundleRelease) to Google Play instead of a universal APK.');
+    issues++;
+  }
+
+  // 4. Large asset files — check for unoptimized assets
+  const resDir = path.join(ROOT, 'app/src/main/res');
+  const allDrawables = walkFiles(resDir, '.png').concat(walkFiles(resDir, '.jpg').concat(walkFiles(resDir, '.jpeg')));
+  const largeAssets = allDrawables.filter(f => {
+    try { return fs.statSync(f).size > 200 * 1024; } // >200 KB
+    catch { return false; }
+  });
+  if (largeAssets.length > 0) {
+    bug('MEDIUM','app-size','Large Unoptimized Assets',
+      relPath(largeAssets[0]), null,
+      `${largeAssets.length} drawable(s) exceed 200 KB: ${largeAssets.slice(0,3).map(f=>path.basename(f)).join(', ')}${largeAssets.length > 3 ? '…' : ''}. Large bitmaps inflate APK size and increase memory usage during rendering.`,
+      'Convert large PNGs to WebP (Android Studio → right-click drawable → Convert to WebP). For launcher icons >100 KB consider SVG/VectorDrawable. Use APK Analyzer (Build → Analyze APK) to audit by size.');
+    issues++;
+  }
+
+  // 5. WebP usage — modern projects should prefer WebP over PNG for photos
+  const pngCount = allDrawables.filter(f => f.endsWith('.png') && !f.includes('mipmap')).length;
+  const webpFiles = walkFiles(resDir, '.webp');
+  if (pngCount > 5 && webpFiles.length === 0) {
+    bug('LOW','app-size','No WebP Assets', null, null,
+      `${pngCount} PNG file(s) found but no WebP files. WebP typically achieves 25–35% smaller file sizes than PNG with equivalent visual quality.`,
+      'Convert PNGs to WebP in Android Studio (right-click any drawable folder → Convert to WebP). Requires API 14+ for lossy and API 18+ for lossless (both within this app\'s minSdk = 24).');
+    issues++;
+  }
+
+  if (issues === 0) {
+    pass('App Size Analysis', 'R8 minification, resource shrinking enabled; no oversized assets detected.');
+  }
+}
+
+// ─── CHECK 24: Localization Testing readiness ─────────────────────────────────
+
+function checkLocalization() {
+  const resDir    = path.join(ROOT, 'app/src/main/res');
+  const stringsXml = path.join(resDir, 'values/strings.xml');
+  const strContent = readSafe(stringsXml) || '';
+
+  let issues = 0;
+
+  // 1. Count string resources in default locale
+  const defaultStrings = (strContent.match(/<string\s+name=/g) || []).length;
+
+  // 2. Check for translated values directories
+  const valDirs = fs.existsSync(resDir)
+    ? fs.readdirSync(resDir).filter(d => d.startsWith('values-') && !d.startsWith('values-night') && !d.startsWith('values-v'))
+    : [];
+  const hasTranslations = valDirs.length > 0;
+
+  if (!hasTranslations && defaultStrings > 1) {
+    bug('LOW','localization','No Translation Files', 'app/src/main/res', null,
+      `${defaultStrings} string resource(s) defined in the default locale but no values-<lang>/ directories exist (e.g. values-ar/, values-fr/). The app cannot be localized for Play Store regional targeting.`,
+      'Create app/src/main/res/values-ar/strings.xml (and other target locales). Use Android Studio\'s Translations Editor (open strings.xml → click globe icon) to manage translations. Consider Arabic (AR) as a primary target for the Lebanese/MENA market.');
+    issues++;
+  }
+
+  // 3. Hardcoded strings in Kotlin UI files (text = "...literal..." not using stringResource)
+  const hardcodedUiStrings = grepDir(KT_SCREENS, '.kt', /text\s*=\s*"[A-Za-z][A-Za-z\s]{4,}"/g).filter(m => {
+    // Exclude test tags, IDs, and format strings
+    const txt = m.match;
+    return !txt.includes('testTag') && !txt.includes('contentDescription') &&
+           !txt.includes('%') && !txt.includes('_');
+  });
+  if (hardcodedUiStrings.length > 20) {
+    bug('MEDIUM','localization','Hardcoded UI Strings', hardcodedUiStrings[0].file, hardcodedUiStrings[0].line,
+      `${hardcodedUiStrings.length} hardcoded English string literal(s) found in UI screens (e.g. "${hardcodedUiStrings[0].match.slice(0,60)}"). Hardcoded strings cannot be translated via the standard values-<lang>/ mechanism.`,
+      'Move user-visible strings to app/src/main/res/values/strings.xml and reference them with stringResource(R.string.your_key) in Compose. Prioritize error messages, labels, and button text.');
+    issues++;
+  }
+
+  // 4. RTL layout support — check for layoutDirection or start/end padding usage
+  const manifestContent = readSafe(MANIFEST) || '';
+  const supportsRtl = manifestContent.includes('android:supportsRtl="true"');
+  if (!supportsRtl) {
+    bug('MEDIUM','localization','RTL Support Not Declared', 'app/src/main/AndroidManifest.xml', null,
+      'android:supportsRtl="true" is not set in AndroidManifest. Arabic (RTL) users see mirrored layouts without this flag — icons, navigation arrows, and list items appear on the wrong side.',
+      'Add android:supportsRtl="true" to the <application> tag in AndroidManifest.xml. Then audit screens for left/right Modifiers — replace Modifier.padding(start=…) / Modifier.padding(end=…) for RTL-safe layout.');
+    issues++;
+  }
+
+  if (issues === 0) {
+    pass('Localization Testing', `Translations present for ${valDirs.length} locale(s); RTL supported; strings externalized.`);
+  }
+}
+
+// ─── CHECK 25: Accessibility Audit ───────────────────────────────────────────
+
+function checkAccessibility() {
+  const screenFiles = walkFiles(KT_SCREENS, '.kt');
+  let issues = 0;
+
+  // 1. Icons without contentDescription — null is acceptable for decorative icons
+  //    but non-null icons in tappable surfaces need descriptions
+  const iconsNullDesc = grepDir(KT_SCREENS, '.kt', /Icon\s*\([^)]*contentDescription\s*=\s*null/g);
+  // Icons inside IconButton are interactive — their contentDescription=null is a real problem
+  // We check for IconButton containing an Icon with null contentDescription
+  let tappableNullDesc = 0;
+  for (const f of screenFiles) {
+    const content = readSafe(f) || '';
+    // Look for IconButton blocks that contain contentDescription = null
+    const iconButtonBlocks = content.match(/IconButton\s*\([^{]*\)\s*\{[^}]*Icon\s*\([^)]*contentDescription\s*=\s*null[^}]*\}/gs) || [];
+    tappableNullDesc += iconButtonBlocks.length;
+  }
+  if (tappableNullDesc > 0) {
+    bug('MEDIUM','accessibility','Interactive Icons Missing Content Description', null, null,
+      `${tappableNullDesc} IconButton(s) contain Icon(contentDescription = null). TalkBack users cannot identify interactive icon buttons without a content description — this fails WCAG 2.1 criterion 1.1.1 (Non-text Content).`,
+      'For every Icon inside an IconButton, provide a meaningful contentDescription: Icon(Icons.Default.Close, contentDescription = "Dismiss dialog"). Use null only for purely decorative icons outside tappable containers.');
+    issues++;
+  }
+
+  // 2. Touch target size — Material Design minimum is 48×48dp; check for very small clickable modifiers
+  //    Pattern: .size(N.dp) where N < 40 combined with .clickable
+  const smallClickable = grepDir(KT_SCREENS, '.kt', /\.size\(([0-9]+)\.dp\)[^\n]*\.clickable|\.clickable[^\n]*\.size\(([0-9]+)\.dp\)/g).filter(m => {
+    const sizeVal = parseInt(m.groups[1] || m.groups[2]);
+    return !isNaN(sizeVal) && sizeVal < 40;
+  });
+  if (smallClickable.length > 0) {
+    bug('MEDIUM','accessibility','Small Touch Targets', smallClickable[0].file, smallClickable[0].line,
+      `${smallClickable.length} element(s) have a .size() below 40dp combined with .clickable. Material Design and Play Store accessibility guidelines require a minimum touch target of 48×48dp to prevent mis-taps.`,
+      'Add Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp) before .clickable, or wrap small icons in an IconButton (which provides 48dp touch area by default).');
+    issues++;
+  }
+
+  // 3. Missing semantics on custom components — check if screens use custom drawn components
+  //    without any semantics block
+  const hasCustomCanvas = grepDir(KT_SCREENS, '.kt', /Canvas\s*\(|drawWithContent|Modifier\.drawBehind/g);
+  const hasSemantics    = grepDir(KT_SCREENS, '.kt', /Modifier\.semantics|clearAndSetSemantics/g);
+  if (hasCustomCanvas.length > 0 && hasSemantics.length === 0) {
+    bug('LOW','accessibility','Custom Drawing Without Semantics', hasCustomCanvas[0].file, hasCustomCanvas[0].line,
+      `${hasCustomCanvas.length} custom Canvas/draw element(s) found but no Modifier.semantics {} usage. Custom drawn content is completely invisible to TalkBack unless semantics are provided.`,
+      'Wrap Canvas-based components with Modifier.semantics { contentDescription = "…"; role = Role.Image }. Use clearAndSetSemantics {} to override child semantics when the parent already provides the full accessible description.');
+    issues++;
+  }
+
+  // 4. Color contrast — check for low-opacity text (common contrast failure)
+  const lowAlphaText = grepDir(KT_SCREENS, '.kt', /\.copy\s*\(\s*alpha\s*=\s*0\.[0-2][0-9]?\s*\)/g);
+  if (lowAlphaText.length > 0) {
+    bug('LOW','accessibility','Potential Low-Contrast Text', lowAlphaText[0].file, lowAlphaText[0].line,
+      `${lowAlphaText.length} color(s) use alpha ≤ 0.29. Text rendered at very low opacity may fail WCAG AA contrast ratio (4.5:1 for normal text, 3:1 for large text), causing readability issues and Play Store accessibility warnings.`,
+      'Verify contrast ratios with the Material Theme Builder or Android Studio\'s Layout Inspector. Consider using MaterialTheme.colorScheme.onSurfaceVariant instead of arbitrary alpha values — it is theme-aware and guaranteed to meet contrast on its intended surface.');
+    issues++;
+  }
+
+  // 5. TalkBack traversal order — custom focus order for complex layouts
+  const hasComplexGrid = grepDir(KT_SCREENS, '.kt', /LazyVerticalGrid|LazyHorizontalGrid/g);
+  const hasFocusOrder  = grepDir(KT_SCREENS, '.kt', /focusOrder|FocusRequester|FocusProperties/g);
+  if (hasComplexGrid.length > 0 && hasFocusOrder.length === 0) {
+    bug('LOW','accessibility','Grid Layouts Missing Focus Order', hasComplexGrid[0].file, hasComplexGrid[0].line,
+      `${hasComplexGrid.length} LazyGrid(s) found without explicit focus traversal. TalkBack reads grid items in layout order by default — complex grids need explicit focus ordering to match the visual reading order.`,
+      'Add Modifier.semantics(mergeDescendants = true) {} on each grid item card, and use FocusRequester + Modifier.focusOrder {} if TalkBack traversal order differs from the grid\'s visual order.');
+    issues++;
+  }
+
+  if (issues === 0) {
+    pass('Accessibility Audit', 'No critical accessibility issues: content descriptions present, touch targets adequate, semantics provided for custom drawing.');
+  }
+}
+
 // ─── RUN ALL CHECKS ───────────────────────────────────────────────────────────
 
 process.stdout.write('\n');
@@ -652,6 +974,11 @@ const checks = [
   ['Auth Token Refresh',            checkAuthTokenRefresh],
   ['KYC Screen Completeness',       checkKycScreen],
   ['Analytics Financial Stats',     checkOwnerAnalytics],
+  ['Android Vitals',                checkAndroidVitals],
+  ['Performance Profiling',         checkPerformanceProfiling],
+  ['App Size Analysis',             checkAppSize],
+  ['Localization Testing',          checkLocalization],
+  ['Accessibility Audit',           checkAccessibility],
 ];
 
 for (const [label, fn] of checks) {

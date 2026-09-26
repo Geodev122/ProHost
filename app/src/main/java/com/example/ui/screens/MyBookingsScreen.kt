@@ -90,7 +90,9 @@ fun MyBookingsScreen(
                         .build())
                     mp?.setOnCompletionListener { it.release() }
                     mp?.start()
-                } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    android.util.Log.e("SoundPlayback", "Failed to play sound", e)
+                }
             }
             prevBookingStatuses[booking.id] = booking.status
         }
@@ -348,8 +350,7 @@ fun MyBookingsScreen(
     // Cancel PENDING Request confirmation — this used to fire the moment the button
     // was tapped, with no confirmation at all; a mis-tap silently withdrew a request
     // still awaiting the host's response with no way to undo it.
-    if (pendingCancelTarget != null) {
-        val target = pendingCancelTarget!!
+    pendingCancelTarget?.let { target ->
         AlertDialog(
             onDismissRequest = { pendingCancelTarget = null },
             icon = { Icon(Icons.Default.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
@@ -374,8 +375,7 @@ fun MyBookingsScreen(
 
     // Cancel Accepted Booking Dialog — early termination, previously not possible
     // at all (only a not-yet-accepted PENDING request could be cancelled).
-    if (cancelTargetBooking != null) {
-        val bkg = cancelTargetBooking!!
+    cancelTargetBooking?.let { bkg ->
         CancelAcceptedBookingDialog(
             spaceTitle = bkg.spaceTitle,
             partyLabel = bkg.ownerName,
@@ -392,8 +392,7 @@ fun MyBookingsScreen(
     // host uploaded when accepting (BookingRequest.agreementUrl), not a
     // decorative code nothing ever checks. "View Agreement" as a separate action
     // is gone — this is the one place to reach it now.
-    if (showDigitalPassBooking != null) {
-        val bkg = showDigitalPassBooking!!
+    showDigitalPassBooking?.let { bkg ->
         Dialog(onDismissRequest = { showDigitalPassBooking = null }) {
             Surface(
                 shape = MaterialTheme.shapes.extraLarge,

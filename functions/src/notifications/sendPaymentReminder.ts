@@ -30,7 +30,7 @@ export const sendPaymentReminder = onCall<SendPaymentReminderData>(async (reques
   if (!snap.exists) {
     throw new HttpsError("not-found", "Booking not found.");
   }
-  const booking = snap.data()!;
+  const booking = snap.data() as Record<string, any>;
 
   if (booking.ownerId !== auth.uid && auth.token.role !== "ADMIN") {
     throw new HttpsError("permission-denied", "Only the host can send a payment reminder for this booking.");

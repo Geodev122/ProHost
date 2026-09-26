@@ -55,7 +55,7 @@ export const sendInquiryEmail = onCall(
     if (!spaceSnap.exists) {
       throw new HttpsError("not-found", "Listing not found.");
     }
-    const spaceData = spaceSnap.data()!;
+    const spaceData = spaceSnap.data() as Record<string, any>;
     const ownerId = spaceData.ownerId as string;
     if (!ownerId) {
       throw new HttpsError("internal", "Listing has no owner.");

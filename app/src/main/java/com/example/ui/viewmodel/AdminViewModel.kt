@@ -29,8 +29,14 @@ class AdminViewModel(
 
     init {
         viewModelScope.launch {
-            repository.pricingState.collect { pricing ->
-                _uiState.update { it.copy(pricingState = pricing) }
+            try {
+                repository.pricingState.collect { pricing ->
+                    _uiState.update { it.copy(pricingState = pricing) }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
             }
         }
         // One-shot fetch (not a live listener) — hashtag popularity changes slowly
@@ -40,48 +46,90 @@ class AdminViewModel(
         refreshHashtagAnalytics()
         refreshLegalDocuments()
         viewModelScope.launch {
-            repository.spaces.collect { spaces ->
-                _uiState.update { it.copy(allSpaces = spaces) }
-            }
-        }
-        viewModelScope.launch {
-            repository.users.collect { users ->
-                val now = System.currentTimeMillis()
-                _uiState.update {
-                    it.copy(
-                        allUsers = users,
-                        activeSubscriberCount = users.count { u ->
-                            u.ownerPackageId != null &&
-                            u.ownerPackageExpiryMillis != null &&
-                            u.ownerPackageExpiryMillis > now
-                        }
-                    )
+            try {
+                repository.spaces.collect { spaces ->
+                    _uiState.update { it.copy(allSpaces = spaces) }
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
             }
         }
         viewModelScope.launch {
-            repository.transactions.collect { txs ->
-                _uiState.update { it.copy(allTransactions = txs) }
+            try {
+                repository.users.collect { users ->
+                    val now = System.currentTimeMillis()
+                    _uiState.update {
+                        it.copy(
+                            allUsers = users,
+                            activeSubscriberCount = users.count { u ->
+                                u.ownerPackageId != null &&
+                                u.ownerPackageExpiryMillis != null &&
+                                u.ownerPackageExpiryMillis > now
+                            }
+                        )
+                    }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
             }
         }
         viewModelScope.launch {
-            repository.bookingRequests.collect { bookings ->
-                _uiState.update { it.copy(allBookings = bookings) }
+            try {
+                repository.transactions.collect { txs ->
+                    _uiState.update { it.copy(allTransactions = txs) }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
             }
         }
         viewModelScope.launch {
-            repository.auditLogs.collect { logs ->
-                _uiState.update { it.copy(auditLogs = logs) }
+            try {
+                repository.bookingRequests.collect { bookings ->
+                    _uiState.update { it.copy(allBookings = bookings) }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
             }
         }
         viewModelScope.launch {
-            repository.spaceArchitectureSchema.collect { schema ->
-                _uiState.update { it.copy(schema = schema) }
+            try {
+                repository.auditLogs.collect { logs ->
+                    _uiState.update { it.copy(auditLogs = logs) }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
             }
         }
         viewModelScope.launch {
-            repository.packagePlans.collect { plans ->
-                _uiState.update { it.copy(packagePlans = plans) }
+            try {
+                repository.spaceArchitectureSchema.collect { schema ->
+                    _uiState.update { it.copy(schema = schema) }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
+        }
+        viewModelScope.launch {
+            try {
+                repository.packagePlans.collect { plans ->
+                    _uiState.update { it.copy(packagePlans = plans) }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
             }
         }
     }
@@ -94,50 +142,74 @@ class AdminViewModel(
 
     fun addPackagePlan(plan: PackagePlan) {
         viewModelScope.launch {
-            val success = repository.addPackagePlan(plan)
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "Package '${plan.name}' added" else "Failed to add package"
+            try {
+                val success = repository.addPackagePlan(plan)
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) "Package '${plan.name}' added" else "Failed to add package"
+                    )
                 )
-            )
-            if (success) closeAddPackagePlanDialog()
+                if (success) closeAddPackagePlanDialog()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
     fun updatePackagePlan(plan: PackagePlan) {
         viewModelScope.launch {
-            val success = repository.updatePackagePlan(plan)
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "Package '${plan.name}' updated" else "Failed to update package"
+            try {
+                val success = repository.updatePackagePlan(plan)
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) "Package '${plan.name}' updated" else "Failed to update package"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
     fun grantPackageToUser(targetUserId: String, packageId: String, durationDays: Int) {
         viewModelScope.launch {
-            val result = functionsClient.grantPackageToUser(targetUserId, packageId, durationDays)
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (result.isSuccess) "Package granted to user successfully"
-                    else "Failed to grant package: ${result.exceptionOrNull()?.message}"
+            try {
+                val result = functionsClient.grantPackageToUser(targetUserId, packageId, durationDays)
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (result.isSuccess) "Package granted to user successfully"
+                        else "Failed to grant package: ${result.exceptionOrNull()?.message}"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
     fun togglePackagePlan(planId: String) {
         viewModelScope.launch {
-            val success = repository.togglePackagePlan(planId)
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) {
-                        val isNowEnabled = _uiState.value.packagePlans.packages[planId]?.isEnabled == true
-                        "Package ${if (isNowEnabled) "enabled" else "disabled"}"
-                    } else "Failed to toggle package"
+            try {
+                val success = repository.togglePackagePlan(planId)
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) {
+                            val isNowEnabled = _uiState.value.packagePlans.packages[planId]?.isEnabled == true
+                            "Package ${if (isNowEnabled) "enabled" else "disabled"}"
+                        } else "Failed to toggle package"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -161,8 +233,14 @@ class AdminViewModel(
         val planId = _uiState.value.pendingDeletePlanId ?: return
         _uiState.update { it.copy(isDeletePackagePlanDialogOpen = false, pendingDeletePlanId = null, pendingDeletePlanSubscriberCount = 0) }
         viewModelScope.launch {
-            val success = repository.deletePackagePlan(planId)
-            _events.emit(AdminUiEvent.ShowToast(if (success) "Package removed" else "Failed to remove package"))
+            try {
+                val success = repository.deletePackagePlan(planId)
+                _events.emit(AdminUiEvent.ShowToast(if (success) "Package removed" else "Failed to remove package"))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -181,12 +259,18 @@ class AdminViewModel(
 
     fun updateGovernanceTag(tag: String) {
         viewModelScope.launch {
-            val success = repository.updateGovernanceTag(tag)
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "Admin governance control tag updated" else "Failed to update governance tag"
+            try {
+                val success = repository.updateGovernanceTag(tag)
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) "Admin governance control tag updated" else "Failed to update governance tag"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -213,13 +297,19 @@ class AdminViewModel(
 
     fun saveUser(user: AppUser) {
         viewModelScope.launch {
-            val success = repository.updateUser(user)
-            closeEditUserDialog()
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "User profile updated successfully" else "Failed to update user profile"
+            try {
+                val success = repository.updateUser(user)
+                closeEditUserDialog()
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) "User profile updated successfully" else "Failed to update user profile"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -233,13 +323,19 @@ class AdminViewModel(
 
     fun confirmDeleteUser(userId: String) {
         viewModelScope.launch {
-            val success = repository.deleteUser(userId)
-            closeDeleteUserDialog()
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "User profile removed from platform" else "Failed to remove user — please try again"
+            try {
+                val success = repository.deleteUser(userId)
+                closeDeleteUserDialog()
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) "User profile removed from platform" else "Failed to remove user — please try again"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -258,13 +354,19 @@ class AdminViewModel(
 
     fun confirmGrantAdmin(email: String) {
         viewModelScope.launch {
-            val result = functionsClient.grantAdminRole(email)
-            closeGrantAdminDialog()
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (result.isSuccess) "Admin role granted to $email" else "Failed to grant Admin role"
+            try {
+                val result = functionsClient.grantAdminRole(email)
+                closeGrantAdminDialog()
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (result.isSuccess) "Admin role granted to $email" else "Failed to grant Admin role"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -284,17 +386,23 @@ class AdminViewModel(
         val user = _uiState.value.suspendingUser ?: return
         val newSuspended = !user.isSuspended
         viewModelScope.launch {
-            val result = functionsClient.setAccountSuspended(user.id, newSuspended)
-            closeSuspendUserDialog()
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (result.isSuccess) {
-                        if (newSuspended) "${user.fullName} suspended" else "${user.fullName} reactivated"
-                    } else {
-                        "Could not ${if (newSuspended) "suspend" else "reactivate"} ${user.fullName}"
-                    }
+            try {
+                val result = functionsClient.setAccountSuspended(user.id, newSuspended)
+                closeSuspendUserDialog()
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (result.isSuccess) {
+                            if (newSuspended) "${user.fullName} suspended" else "${user.fullName} reactivated"
+                        } else {
+                            "Could not ${if (newSuspended) "suspend" else "reactivate"} ${user.fullName}"
+                        }
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -313,14 +421,20 @@ class AdminViewModel(
     fun confirmRevokeProHost() {
         val user = _uiState.value.revokingProHostUser ?: return
         viewModelScope.launch {
-            val result = functionsClient.revokeProHostRole(user.id)
-            closeRevokeProHostDialog()
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (result.isSuccess) "${user.fullName} downgraded to Specialist; their listings were deactivated"
-                    else "Could not revoke Pro Host role for ${user.fullName}"
+            try {
+                val result = functionsClient.revokeProHostRole(user.id)
+                closeRevokeProHostDialog()
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (result.isSuccess) "${user.fullName} downgraded to Specialist; their listings were deactivated"
+                        else "Could not revoke Pro Host role for ${user.fullName}"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -355,24 +469,36 @@ class AdminViewModel(
 
     fun saveListing(listing: SpaceListing) {
         viewModelScope.launch {
-            val success = repository.updateSpaceListing(listing)
-            closeEditListingDialog()
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "Listing updated successfully" else "Failed to update listing"
+            try {
+                val success = repository.updateSpaceListing(listing)
+                closeEditListingDialog()
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) "Listing updated successfully" else "Failed to update listing"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
     fun toggleListingVerification(spaceId: String, currentVerified: Boolean = false) {
         viewModelScope.launch {
-            val success = repository.toggleListingVerification(spaceId)
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "Verification status toggled for space" else "Failed to toggle verification status"
+            try {
+                val success = repository.toggleListingVerification(spaceId)
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) "Verification status toggled for space" else "Failed to toggle verification status"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -387,12 +513,18 @@ class AdminViewModel(
      */
     fun toggleListingSubscription(spaceId: String, currentActive: Boolean = false) {
         viewModelScope.launch {
-            val success = repository.toggleListingActive(spaceId)
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "Listing subscription active status toggled" else "Failed to toggle subscription status"
+            try {
+                val success = repository.toggleListingActive(spaceId)
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) "Listing subscription active status toggled" else "Failed to toggle subscription status"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -406,13 +538,19 @@ class AdminViewModel(
 
     fun confirmDeleteListing(spaceId: String) {
         viewModelScope.launch {
-            val success = repository.deleteSpaceListing(spaceId)
-            closeDeleteListingDialog()
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "Listing permanently removed from catalog" else "Failed to remove listing — please try again"
+            try {
+                val success = repository.deleteSpaceListing(spaceId)
+                closeDeleteListingDialog()
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) "Listing permanently removed from catalog" else "Failed to remove listing — please try again"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -440,23 +578,35 @@ class AdminViewModel(
 
     fun toggleSchemaItemEnabled(itemId: String, category: String = "", currentEnabled: Boolean = false) {
         viewModelScope.launch {
-            val success = repository.toggleSchemaItem(itemId)
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "Schema item status updated" else "Failed to update schema item — please try again"
+            try {
+                val success = repository.toggleSchemaItem(itemId)
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) "Schema item status updated" else "Failed to update schema item — please try again"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
     fun deleteSchemaItem(itemId: String, category: String = "") {
         viewModelScope.launch {
-            val success = repository.deleteSchemaItem(itemId)
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "Schema item deleted from database registry" else "Failed to delete schema item — please try again"
+            try {
+                val success = repository.deleteSchemaItem(itemId)
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) "Schema item deleted from database registry" else "Failed to delete schema item — please try again"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -470,18 +620,30 @@ class AdminViewModel(
 
     fun refreshHashtagAnalytics() {
         viewModelScope.launch {
-            val entries = repository.fetchHashtagAnalytics()
-            _uiState.update { it.copy(hashtagAnalytics = entries) }
+            try {
+                val entries = repository.fetchHashtagAnalytics()
+                _uiState.update { it.copy(hashtagAnalytics = entries) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
     fun refreshLegalDocuments() {
         viewModelScope.launch {
-            val docIds = LegalDocumentVersion.ADMIN_MANAGED_DOC_IDS + LegalDocumentVersion.RERENTAL_TEMPLATE_DOC_ID
-            val versions = docIds.associateWith { docId ->
-                repository.getLatestLegalDocumentVersion(docId)
+            try {
+                val docIds = LegalDocumentVersion.ADMIN_MANAGED_DOC_IDS + LegalDocumentVersion.RERENTAL_TEMPLATE_DOC_ID
+                val versions = docIds.associateWith { docId ->
+                    repository.getLatestLegalDocumentVersion(docId)
+                }
+                _uiState.update { it.copy(legalDocuments = versions) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
             }
-            _uiState.update { it.copy(legalDocuments = versions) }
         }
     }
 
@@ -505,33 +667,39 @@ class AdminViewModel(
         fileExtension: String = "html"
     ) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isUploadingLegalDocument = docId) }
-            val current = repository.getLatestLegalDocumentVersion(docId)
-            val nextVersion = (current?.version ?: 0) + 1
-            val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
-            val url = storageService.uploadLegalDocumentVersion(docId, nextVersion, fileUri, contentType, fileExtension)
-            val success = if (url != null) {
-                repository.publishLegalDocumentVersion(
-                    docId,
-                    LegalDocumentVersion(
-                        version = nextVersion,
-                        url = url,
-                        fileName = fileName,
-                        uploadedAtMillis = System.currentTimeMillis(),
-                        uploadedByEmail = adminEmail,
-                        contentType = contentType
+            try {
+                _uiState.update { it.copy(isUploadingLegalDocument = docId) }
+                val current = repository.getLatestLegalDocumentVersion(docId)
+                val nextVersion = (current?.version ?: 0) + 1
+                val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
+                val url = storageService.uploadLegalDocumentVersion(docId, nextVersion, fileUri, contentType, fileExtension)
+                val success = if (url != null) {
+                    repository.publishLegalDocumentVersion(
+                        docId,
+                        LegalDocumentVersion(
+                            version = nextVersion,
+                            url = url,
+                            fileName = fileName,
+                            uploadedAtMillis = System.currentTimeMillis(),
+                            uploadedByEmail = adminEmail,
+                            contentType = contentType
+                        )
+                    )
+                } else {
+                    false
+                }
+                _uiState.update { it.copy(isUploadingLegalDocument = null) }
+                if (success) refreshLegalDocuments()
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) "Published $docId v$nextVersion" else "Upload failed — check your connection and try again"
                     )
                 )
-            } else {
-                false
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
             }
-            _uiState.update { it.copy(isUploadingLegalDocument = null) }
-            if (success) refreshLegalDocuments()
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "Published $docId v$nextVersion" else "Upload failed — check your connection and try again"
-                )
-            )
         }
     }
 
@@ -559,37 +727,49 @@ class AdminViewModel(
         markerColor: String? = null
     ) {
         viewModelScope.launch {
-            val newItem = SchemaItem(
-                id = "SCH-" + category.take(3) + "-" + UUID.randomUUID().toString().take(6).uppercase(),
-                name = name,
-                description = description,
-                category = category,
-                iconName = iconName,
-                isEnabled = true,
-                isSystemDefault = false,
-                maxSubdivisions = maxSubdivisions,
-                scopedToIds = scopedToIds,
-                amenityGroup = amenityGroup,
-                markerColor = markerColor?.takeIf { it.isNotBlank() }
-            )
-            val success = repository.addSchemaItem(newItem)
-            closeAddSchemaItemDialog()
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "New schema entry added: $name" else "Failed to add schema entry — please try again"
+            try {
+                val newItem = SchemaItem(
+                    id = "SCH-" + category.take(3) + "-" + UUID.randomUUID().toString().take(6).uppercase(),
+                    name = name,
+                    description = description,
+                    category = category,
+                    iconName = iconName,
+                    isEnabled = true,
+                    isSystemDefault = false,
+                    maxSubdivisions = maxSubdivisions,
+                    scopedToIds = scopedToIds,
+                    amenityGroup = amenityGroup,
+                    markerColor = markerColor?.takeIf { it.isNotBlank() }
                 )
-            )
+                val success = repository.addSchemaItem(newItem)
+                closeAddSchemaItemDialog()
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) "New schema entry added: $name" else "Failed to add schema entry — please try again"
+                    )
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
     fun updateSchemaItem(item: SchemaItem) {
         viewModelScope.launch {
-            val success = repository.updateSchemaItem(item)
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "\"${item.name}\" updated" else "Update failed — please try again"
+            try {
+                val success = repository.updateSchemaItem(item)
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) "\"${item.name}\" updated" else "Update failed — please try again"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -600,12 +780,18 @@ class AdminViewModel(
      * same field — removed with PAYG; package pricing now lives on PackagePlan instead. */
     fun updateSchemaItemMaxSubdivisions(itemId: String, category: String, maxSubdivisions: Int?) {
         viewModelScope.launch {
-            val success = repository.updateSchemaItemMaxSubdivisions(itemId, category, maxSubdivisions)
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "Max subdivisions updated" else "Failed to update max subdivisions — please try again"
+            try {
+                val success = repository.updateSchemaItemMaxSubdivisions(itemId, category, maxSubdivisions)
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) "Max subdivisions updated" else "Failed to update max subdivisions — please try again"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -618,38 +804,62 @@ class AdminViewModel(
         maxAttendees: Int?
     ) {
         viewModelScope.launch {
-            val pkg = AttendeePackage(
-                id = "APK-" + java.util.UUID.randomUUID().toString().take(6).uppercase(),
-                name = name.trim(),
-                description = description.trim(),
-                pricePerAttendeeUsd = priceUsd,
-                inclusions = inclusions,
-                minAttendees = minAttendees,
-                maxAttendees = maxAttendees,
-                isSystemDefault = false
-            )
-            val success = repository.addAttendeePackage(pkg)
-            _events.emit(AdminUiEvent.ShowToast(if (success) "Package \"${pkg.name}\" added" else "Failed to add package"))
+            try {
+                val pkg = AttendeePackage(
+                    id = "APK-" + java.util.UUID.randomUUID().toString().take(6).uppercase(),
+                    name = name.trim(),
+                    description = description.trim(),
+                    pricePerAttendeeUsd = priceUsd,
+                    inclusions = inclusions,
+                    minAttendees = minAttendees,
+                    maxAttendees = maxAttendees,
+                    isSystemDefault = false
+                )
+                val success = repository.addAttendeePackage(pkg)
+                _events.emit(AdminUiEvent.ShowToast(if (success) "Package \"${pkg.name}\" added" else "Failed to add package"))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
     fun updateAttendeePackage(pkg: AttendeePackage) {
         viewModelScope.launch {
-            val success = repository.updateAttendeePackage(pkg)
-            _events.emit(AdminUiEvent.ShowToast(if (success) "\"${pkg.name}\" updated" else "Update failed"))
+            try {
+                val success = repository.updateAttendeePackage(pkg)
+                _events.emit(AdminUiEvent.ShowToast(if (success) "\"${pkg.name}\" updated" else "Update failed"))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
     fun deleteAttendeePackage(pkgId: String) {
         viewModelScope.launch {
-            val success = repository.deleteAttendeePackage(pkgId)
-            _events.emit(AdminUiEvent.ShowToast(if (success) "Package deleted" else "Delete failed"))
+            try {
+                val success = repository.deleteAttendeePackage(pkgId)
+                _events.emit(AdminUiEvent.ShowToast(if (success) "Package deleted" else "Delete failed"))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
     fun toggleAttendeePackage(pkgId: String) {
         viewModelScope.launch {
-            repository.toggleAttendeePackage(pkgId)
+            try {
+                repository.toggleAttendeePackage(pkgId)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -667,13 +877,19 @@ class AdminViewModel(
 
     fun confirmResetSchemaToDefaults() {
         viewModelScope.launch {
-            val success = repository.resetSchemaToDefaults()
-            closeResetSchemaDialog()
-            _events.emit(
-                AdminUiEvent.ShowToast(
-                    if (success) "Database schema architecture reset to Lebanese defaults" else "Failed to reset schema — please try again"
+            try {
+                val success = repository.resetSchemaToDefaults()
+                closeResetSchemaDialog()
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        if (success) "Database schema architecture reset to Lebanese defaults" else "Failed to reset schema — please try again"
+                    )
                 )
-            )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -688,7 +904,13 @@ class AdminViewModel(
             )
         }
         viewModelScope.launch {
-            _events.emit(AdminUiEvent.DataExportReady(title, content))
+            try {
+                _events.emit(AdminUiEvent.DataExportReady(title, content))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
@@ -735,25 +957,37 @@ class AdminViewModel(
 
     fun loadIdReviewQueue() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isIdReviewLoading = true) }
-            val result = repository.loadIdReviewQueue()
-            _uiState.update { it.copy(
-                idReviewQueue = result,
-                isIdReviewLoading = false
-            ) }
+            try {
+                _uiState.update { it.copy(isIdReviewLoading = true) }
+                val result = repository.loadIdReviewQueue()
+                _uiState.update { it.copy(
+                    idReviewQueue = result,
+                    isIdReviewLoading = false
+                ) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
         }
     }
 
     fun approveIdDocument(userId: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(idReviewDecisionInProgress = userId) }
-            val result = functionsClient.reviewIdDocument(userId, "APPROVED")
-            _uiState.update { it.copy(idReviewDecisionInProgress = null) }
-            if (result.isSuccess) {
-                loadIdReviewQueue()
-                _events.emit(AdminUiEvent.ShowToast("ID document approved — user notified."))
-            } else {
-                _events.emit(AdminUiEvent.ShowToast("Failed: ${result.exceptionOrNull()?.message}"))
+            try {
+                _uiState.update { it.copy(idReviewDecisionInProgress = userId) }
+                val result = functionsClient.reviewIdDocument(userId, "APPROVED")
+                _uiState.update { it.copy(idReviewDecisionInProgress = null) }
+                if (result.isSuccess) {
+                    loadIdReviewQueue()
+                    _events.emit(AdminUiEvent.ShowToast("ID document approved — user notified."))
+                } else {
+                    _events.emit(AdminUiEvent.ShowToast("Failed: ${result.exceptionOrNull()?.message}"))
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
             }
         }
     }
@@ -768,14 +1002,20 @@ class AdminViewModel(
 
     fun rejectIdDocument(userId: String, reason: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(idReviewDecisionInProgress = userId, isRejectIdDialogOpen = false) }
-            val result = functionsClient.reviewIdDocument(userId, "REJECTED", reason.takeIf { it.isNotBlank() })
-            _uiState.update { it.copy(idReviewDecisionInProgress = null, rejectingIdUserId = null) }
-            if (result.isSuccess) {
-                loadIdReviewQueue()
-                _events.emit(AdminUiEvent.ShowToast("ID document rejected — user notified."))
-            } else {
-                _events.emit(AdminUiEvent.ShowToast("Failed: ${result.exceptionOrNull()?.message}"))
+            try {
+                _uiState.update { it.copy(idReviewDecisionInProgress = userId, isRejectIdDialogOpen = false) }
+                val result = functionsClient.reviewIdDocument(userId, "REJECTED", reason.takeIf { it.isNotBlank() })
+                _uiState.update { it.copy(idReviewDecisionInProgress = null, rejectingIdUserId = null) }
+                if (result.isSuccess) {
+                    loadIdReviewQueue()
+                    _events.emit(AdminUiEvent.ShowToast("ID document rejected — user notified."))
+                } else {
+                    _events.emit(AdminUiEvent.ShowToast("Failed: ${result.exceptionOrNull()?.message}"))
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
             }
         }
     }
