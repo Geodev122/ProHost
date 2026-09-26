@@ -41,8 +41,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.example.data.model.SchemaItem
 import com.example.data.model.SpaceListing
 import com.example.data.model.SpaceType
+import com.example.data.model.Subdivision
 import com.example.ui.theme.*
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -84,10 +86,7 @@ private fun legacyMarkerPalette(spaceType: SpaceType): MarkerPalette = when (spa
     else -> SCHEMA_MARKER_PALETTES[4]
 }
 
-private fun getMarkerPalette(space: SpaceListing, isSelected: Boolean): MarkerPalette {
-    if (isSelected) {
-        return MarkerPalette(android.graphics.Color.parseColor("#FFE082"), android.graphics.Color.parseColor("#FFB300"))
-    }
+private fun getMarkerPaletteFallback(space: SpaceListing): MarkerPalette {
     val categoryId = space.spaceCategoryId
     if (!categoryId.isNullOrBlank()) {
         val index = (categoryId.hashCode() and Int.MAX_VALUE) % SCHEMA_MARKER_PALETTES.size
@@ -96,7 +95,33 @@ private fun getMarkerPalette(space: SpaceListing, isSelected: Boolean): MarkerPa
     return legacyMarkerPalette(space.spaceType)
 }
 
-private fun createCustomMarker(context: Context, space: SpaceListing, isSelected: Boolean): BitmapDescriptor {
+private fun getMarkerPalette(space: SpaceListing, isSelected: Boolean, schema: List<SchemaItem> = emptyList()): MarkerPalette {
+    if (isSelected) {
+        return MarkerPalette(android.graphics.Color.parseColor("#FFE082"), android.graphics.Color.parseColor("#FFB300"))
+    }
+    val schemaItem = schema.firstOrNull { item ->
+        (!space.spaceCategoryId.isNullOrBlank() && item.id == space.spaceCategoryId) ||
+        item.name.equals(space.spaceType.displayName, ignoreCase = true)
+    }
+    val hexColor = schemaItem?.markerColor
+    if (!hexColor.isNullOrBlank()) {
+        return try {
+            val color = android.graphics.Color.parseColor(hexColor)
+            val darkened = android.graphics.Color.argb(
+                255,
+                (android.graphics.Color.red(color) * 0.72).toInt(),
+                (android.graphics.Color.green(color) * 0.72).toInt(),
+                (android.graphics.Color.blue(color) * 0.72).toInt()
+            )
+            MarkerPalette(color, darkened)
+        } catch (e: Exception) {
+            getMarkerPaletteFallback(space)
+        }
+    }
+    return getMarkerPaletteFallback(space)
+}
+
+private fun createCustomMarker(context: Context, space: SpaceListing, isSelected: Boolean, schema: List<SchemaItem> = emptyList()): BitmapDescriptor {
     val scale = context.resources.displayMetrics.density
     val pinScale = if (isSelected) 1.25f else 1.0f
     val width = (36 * scale * pinScale).toInt()
@@ -115,7 +140,7 @@ private fun createCustomMarker(context: Context, space: SpaceListing, isSelected
     }
     canvas.drawOval(android.graphics.RectF(65f, 248f, 135f, 265f), shadowPaint)
 
-    val palette = getMarkerPalette(space, isSelected)
+    val palette = getMarkerPalette(space, isSelected, schema)
     val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
     }
@@ -157,12 +182,51 @@ private fun createCustomMarker(context: Context, space: SpaceListing, isSelected
     return BitmapDescriptorFactory.fromBitmap(bitmap)
 }
 
+private fun createClusterMarker(context: Context, count: Int, hasSelected: Boolean): BitmapDescriptor {
+    val scale = context.resources.displayMetrics.density
+    val size = (52 * scale).toInt()
+    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val cx = size / 2f
+    val cy = size / 2f
+    val radius = cx - (4 * scale)
+
+    val bgColor = if (hasSelected)
+        android.graphics.Color.parseColor("#FFB300")
+    else
+        android.graphics.Color.parseColor("#246BEE")
+    val borderColor = android.graphics.Color.WHITE
+
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = bgColor
+    }
+    canvas.drawCircle(cx, cy, radius, paint)
+
+    paint.style = Paint.Style.STROKE
+    paint.color = borderColor
+    paint.strokeWidth = 3 * scale
+    canvas.drawCircle(cx, cy, radius, paint)
+
+    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE
+        textSize = 15 * scale
+        typeface = android.graphics.Typeface.DEFAULT_BOLD
+        textAlign = Paint.Align.CENTER
+    }
+    val textY = cy - (textPaint.descent() + textPaint.ascent()) / 2
+    canvas.drawText(count.toString(), cx, textY, textPaint)
+
+    return BitmapDescriptorFactory.fromBitmap(bitmap)
+}
+
 @Composable
 fun LebanonMapCanvas(
     spaces: List<SpaceListing>,
     onSpaceSelected: (SpaceListing?) -> Unit,
     onNavigateToDetails: (SpaceListing) -> Unit,
     modifier: Modifier = Modifier,
+    spaceTypeSchema: List<SchemaItem> = emptyList(),
     topControls: (@Composable BoxScope.() -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -324,35 +388,75 @@ fun LebanonMapCanvas(
                 onSpaceSelected(null)
             }
         ) {
-            visibleSpaces.forEach { space ->
-                key(space.id) {
-                    val isSelected = activePinSpace?.id == space.id
-                    val pinAlpha by animateFloatAsState(
-                        targetValue = if (space.id in arrivedPinIds) 1f else 0f,
-                        animationSpec = tween(durationMillis = 300),
-                        label = "pin_alpha"
-                    )
-                    Marker(
-                        state = MarkerState(position = LatLng(space.lat, space.lng)),
-                        title = space.title,
-                        snippet = "$${space.baseMonthlyRateUsd.toInt()}/mo • ${space.spaceType.displayName}",
-                        icon = createCustomMarker(context, space, isSelected),
-                        anchor = androidx.compose.ui.geometry.Offset(0.5f, 1.0f),
-                        alpha = pinAlpha,
-                        zIndex = if (isSelected) 2f else 1f,
-                        onClick = {
-                            activePinSpace = space
-                            onSpaceSelected(space)
-                            coroutineScope.launch {
-                                cameraPositionState.animate(
-                                    CameraUpdateFactory.newLatLng(LatLng(space.lat - 0.012, space.lng))
-                                )
-                                val idx = sortedSpaces.indexOfFirst { it.id == space.id }
-                                if (idx >= 0) listState.animateScrollToItem(idx)
+            // Group markers at same ~100m location (3 decimal lat/lng precision).
+            val markerGroups = visibleSpaces.groupBy { space ->
+                val latK = (space.lat * 1000).toLong()
+                val lngK = (space.lng * 1000).toLong()
+                latK to lngK
+            }
+
+            markerGroups.forEach { (_, group) ->
+                if (group.size == 1) {
+                    val space = group.first()
+                    key(space.id) {
+                        val isSelected = activePinSpace?.id == space.id
+                        val pinAlpha by animateFloatAsState(
+                            targetValue = if (space.id in arrivedPinIds) 1f else 0f,
+                            animationSpec = tween(durationMillis = 300),
+                            label = "pin_alpha"
+                        )
+                        Marker(
+                            state = MarkerState(position = LatLng(space.lat, space.lng)),
+                            title = space.title,
+                            snippet = "$${space.baseMonthlyRateUsd.toInt()}/mo • ${space.spaceType.displayName}",
+                            icon = createCustomMarker(context, space, isSelected, spaceTypeSchema),
+                            anchor = androidx.compose.ui.geometry.Offset(0.5f, 1.0f),
+                            alpha = pinAlpha,
+                            zIndex = if (isSelected) 2f else 1f,
+                            onClick = {
+                                activePinSpace = space
+                                onSpaceSelected(space)
+                                coroutineScope.launch {
+                                    cameraPositionState.animate(
+                                        CameraUpdateFactory.newLatLng(LatLng(space.lat - 0.012, space.lng))
+                                    )
+                                    val idx = sortedSpaces.indexOfFirst { it.id == space.id }
+                                    if (idx >= 0) listState.animateScrollToItem(idx)
+                                }
+                                true
                             }
-                            true
+                        )
+                    }
+                } else {
+                    // Cluster marker for co-located spaces
+                    val centLat = group.map { it.lat }.average()
+                    val centLng = group.map { it.lng }.average()
+                    val clusterKey = "cluster_${centLat}_${centLng}"
+                    val hasSelected = group.any { it.id == activePinSpace?.id }
+                    key(clusterKey) {
+                        val clusterBitmap = remember(group.size, hasSelected) {
+                            createClusterMarker(context, group.size, hasSelected)
                         }
-                    )
+                        Marker(
+                            state = MarkerState(position = LatLng(centLat, centLng)),
+                            title = "${group.size} workspaces here",
+                            snippet = group.take(3).joinToString(", ") { it.title },
+                            icon = clusterBitmap,
+                            anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f),
+                            zIndex = if (hasSelected) 3f else 1.5f,
+                            onClick = {
+                                val representative = group.firstOrNull { it.id == activePinSpace?.id } ?: group.first()
+                                activePinSpace = representative
+                                onSpaceSelected(representative)
+                                coroutineScope.launch {
+                                    cameraPositionState.animate(
+                                        CameraUpdateFactory.newLatLngZoom(LatLng(centLat - 0.008, centLng), 16f)
+                                    )
+                                }
+                                true
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -559,7 +663,7 @@ fun LebanonMapCanvas(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = if (isStripCollapsed) "Show Workspaces (${sortedSpaces.size})" else "Collapse Map List",
+                            text = if (isStripCollapsed) "Show Workspaces (${sortedSpaces.sumOf { if (it.subdivisions.isNotEmpty()) it.subdivisions.size else 1 }})" else "Collapse Map List",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -573,6 +677,16 @@ fun LebanonMapCanvas(
                 enter = slideInVertically { it } + fadeIn(),
                 exit = slideOutVertically { it } + fadeOut()
             ) {
+                // Flat list: one card per subdivision (or one space card if no subdivisions)
+                val divisionCards = remember(sortedSpaces) {
+                    sortedSpaces.flatMap { space ->
+                        if (space.subdivisions.isNotEmpty()) {
+                            space.subdivisions.map { sub -> space to sub }
+                        } else {
+                            listOf(space to null)
+                        }
+                    }
+                }
                 LazyRow(
                     state = listState,
                     flingBehavior = rememberSnapFlingBehavior(lazyListState = listState),
@@ -580,13 +694,13 @@ fun LebanonMapCanvas(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(sortedSpaces, key = { it.id }) { space ->
+                    items(divisionCards, key = { (space, sub) -> "${space.id}_${sub?.id ?: "whole"}" }) { (space, sub) ->
                         val isSelected = activePinSpace?.id == space.id
+                        val typePalette = getMarkerPalette(space, false, spaceTypeSchema)
+                        val displayName = sub?.name ?: space.title
+                        val typeBadge = sub?.type?.displayName ?: space.spaceType.displayName
                         val lowestPrice = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
-                        val minPrice = lowestPrice.amount
-                        val minUnit = lowestPrice.unitLabel
 
-                        val typePalette = getMarkerPalette(space, false)
                         Card(
                             modifier = Modifier
                                 .width(260.dp)
@@ -618,7 +732,7 @@ fun LebanonMapCanvas(
                                     if (space.imageUrls.isNotEmpty()) {
                                         coil.compose.AsyncImage(
                                             model = space.imageUrls.first(),
-                                            contentDescription = space.title,
+                                            contentDescription = displayName,
                                             modifier = Modifier.fillMaxSize(),
                                             contentScale = androidx.compose.ui.layout.ContentScale.Crop
                                         )
@@ -636,7 +750,7 @@ fun LebanonMapCanvas(
                                             shape = MaterialTheme.shapes.extraSmall
                                         ) {
                                             Text(
-                                                text = space.spaceType.displayName,
+                                                text = typeBadge,
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontSize = 8.sp,
                                                 fontWeight = FontWeight.Bold,
@@ -646,13 +760,13 @@ fun LebanonMapCanvas(
                                         }
                                         Row(verticalAlignment = Alignment.Bottom) {
                                             Text(
-                                                text = "$${minPrice.toInt()}",
+                                                text = "$${lowestPrice.amount.toInt()}",
                                                 style = MaterialTheme.typography.titleSmall,
                                                 fontWeight = FontWeight.ExtraBold,
                                                 color = MaterialTheme.colorScheme.primary
                                             )
                                             Text(
-                                                text = minUnit,
+                                                text = lowestPrice.unitLabel,
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontSize = 9.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -661,13 +775,23 @@ fun LebanonMapCanvas(
                                     }
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
-                                        text = space.title,
+                                        text = displayName,
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
+                                    if (sub != null) {
+                                        Text(
+                                            text = space.title,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontSize = 9.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -19,12 +19,12 @@ import "../lib/admin";
  * This is the ONLY place a brand-new user's role gets decided, and it never
  * takes a role as input from the client — that's the whole point.
  *
- * Also keeps `user_profiles.isVerified` in sync with the ID token's own
- * `phone_number` claim on every call, regardless of whether the role branch
- * above is a no-op — there is no separate admin-reviewed "accreditation"
- * concept anymore; isVerified means only "this account completed Firebase
- * Phone Auth SMS verification," derived from the trusted token, never a
- * manually-toggled flag.
+ * Also keeps `user_profiles.isVerified` in sync with the ID token on every
+ * call, regardless of whether the role branch above is a no-op. isVerified is
+ * true when EITHER the phone_number claim (phone OTP) OR the email_verified
+ * claim (email sign-in link / Google One Tap) is present and set on the token.
+ * Phone KYC for booking/listing features is a separate gate handled on the
+ * client (KycScreen.kt) — it is not reflected in this isVerified flag.
  *
  * `lastSignInAtMillis` is stamped on every call, since this function now runs
  * on every sign-in; `createdAtMillis` is stamped exactly once — only on the
@@ -142,13 +142,28 @@ export const assignInitialRole = onCall(
     throw new HttpsError("permission-denied", "This account has been suspended. Contact support for help.");
   }
 
-  const isVerified = Boolean(auth.token.phone_number);
+  // Track B: email/Google sign-in users are also considered "verified" for the
+  // purposes of gaining initial app access — phone KYC is a separate step that
+  // gates booking/listing features, handled on the client in KycScreen.kt and
+  // persisted by linkPhoneCredentialToCurrentUser (FirebaseAuthService). An
+  // email-verified account (Firebase's email_verified claim on the ID token, set
+  // automatically for Google Sign-In and after a user follows a sign-in link) is
+  // treated as equivalent to a phone-verified one for the isVerified flag here.
+  const isVerified =
+    Boolean(auth.token.phone_number) ||
+    (Boolean(auth.token.email) && Boolean(auth.token.email_verified));
   const now = Date.now();
 
   const existingRole = auth.token.role;
   if (isAppRole(existingRole)) {
+    // Seed email from the token if the profile doesn't have one yet — covers
+    // the case where a Google/email user signs in after the profile was created
+    // via an older phone-only flow that left email blank.
+    const emailUpdate = auth.token.email
+      ? { email: auth.token.email }
+      : {};
     await db.collection("user_profiles").doc(auth.uid).set(
-      { isVerified, lastSignInAtMillis: now, updatedAt: now },
+      { isVerified, lastSignInAtMillis: now, updatedAt: now, ...emailUpdate },
       { merge: true }
     );
     return { role: existingRole, assigned: false };
@@ -160,6 +175,9 @@ export const assignInitialRole = onCall(
     {
       role: DEFAULT_ROLE,
       isVerified,
+      // Seed the email from the token for email/Google sign-in users, so
+      // the profile is pre-populated without waiting for a registration draft.
+      ...(auth.token.email ? { email: auth.token.email } : {}),
       createdAtMillis: now,
       lastSignInAtMillis: now,
       // Only stamped on the FIRST registration (when the field doesn't exist yet).

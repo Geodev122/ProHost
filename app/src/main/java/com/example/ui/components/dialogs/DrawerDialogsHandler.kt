@@ -614,13 +614,6 @@ fun DrawerDialogsHandler(
                 }
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
-
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    Text("Close")
-                }
             }
         }
     }

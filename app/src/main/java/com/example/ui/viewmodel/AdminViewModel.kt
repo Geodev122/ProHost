@@ -540,9 +540,12 @@ class AdminViewModel(
         name: String,
         description: String = "",
         iconName: String = "Category",
-        maxSubdivisions: Int? = null
+        maxSubdivisions: Int? = null,
+        scopedToIds: List<String> = emptyList(),
+        amenityGroup: String = "",
+        markerColor: String? = null
     ) {
-        addNewSchemaItem(category, name, description, iconName, maxSubdivisions)
+        addNewSchemaItem(category, name, description, iconName, maxSubdivisions, scopedToIds, amenityGroup, markerColor)
     }
 
     fun addNewSchemaItem(
@@ -550,7 +553,10 @@ class AdminViewModel(
         name: String,
         description: String,
         iconName: String,
-        maxSubdivisions: Int? = null
+        maxSubdivisions: Int? = null,
+        scopedToIds: List<String> = emptyList(),
+        amenityGroup: String = "",
+        markerColor: String? = null
     ) {
         viewModelScope.launch {
             val newItem = SchemaItem(
@@ -561,13 +567,27 @@ class AdminViewModel(
                 iconName = iconName,
                 isEnabled = true,
                 isSystemDefault = false,
-                maxSubdivisions = maxSubdivisions
+                maxSubdivisions = maxSubdivisions,
+                scopedToIds = scopedToIds,
+                amenityGroup = amenityGroup,
+                markerColor = markerColor?.takeIf { it.isNotBlank() }
             )
             val success = repository.addSchemaItem(newItem)
             closeAddSchemaItemDialog()
             _events.emit(
                 AdminUiEvent.ShowToast(
                     if (success) "New schema entry added: $name" else "Failed to add schema entry — please try again"
+                )
+            )
+        }
+    }
+
+    fun updateSchemaItem(item: SchemaItem) {
+        viewModelScope.launch {
+            val success = repository.updateSchemaItem(item)
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "\"${item.name}\" updated" else "Update failed — please try again"
                 )
             )
         }
@@ -586,6 +606,50 @@ class AdminViewModel(
                     if (success) "Max subdivisions updated" else "Failed to update max subdivisions — please try again"
                 )
             )
+        }
+    }
+
+    fun addAttendeePackage(
+        name: String,
+        description: String,
+        priceUsd: Double,
+        inclusions: List<String>,
+        minAttendees: Int,
+        maxAttendees: Int?
+    ) {
+        viewModelScope.launch {
+            val pkg = AttendeePackage(
+                id = "APK-" + java.util.UUID.randomUUID().toString().take(6).uppercase(),
+                name = name.trim(),
+                description = description.trim(),
+                pricePerAttendeeUsd = priceUsd,
+                inclusions = inclusions,
+                minAttendees = minAttendees,
+                maxAttendees = maxAttendees,
+                isSystemDefault = false
+            )
+            val success = repository.addAttendeePackage(pkg)
+            _events.emit(AdminUiEvent.ShowToast(if (success) "Package \"${pkg.name}\" added" else "Failed to add package"))
+        }
+    }
+
+    fun updateAttendeePackage(pkg: AttendeePackage) {
+        viewModelScope.launch {
+            val success = repository.updateAttendeePackage(pkg)
+            _events.emit(AdminUiEvent.ShowToast(if (success) "\"${pkg.name}\" updated" else "Update failed"))
+        }
+    }
+
+    fun deleteAttendeePackage(pkgId: String) {
+        viewModelScope.launch {
+            val success = repository.deleteAttendeePackage(pkgId)
+            _events.emit(AdminUiEvent.ShowToast(if (success) "Package deleted" else "Delete failed"))
+        }
+    }
+
+    fun toggleAttendeePackage(pkgId: String) {
+        viewModelScope.launch {
+            repository.toggleAttendeePackage(pkgId)
         }
     }
 

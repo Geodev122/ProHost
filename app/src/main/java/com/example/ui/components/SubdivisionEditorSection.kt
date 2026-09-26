@@ -17,13 +17,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
-import com.example.ui.theme.Spacing
+import com.example.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -54,7 +56,14 @@ fun SubdivisionEditorSection(
     operatingDays: List<String> = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
     openingHour: String = "08:00",
     closingHour: String = "20:00",
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // Schema-driven amenity catalog — if non-empty replaces the hardcoded fallback below.
+    availableAmenities: List<SchemaItem> = emptyList(),
+    // Write-back: called when the host types a custom amenity; auto-tags to current
+    // division type. No-op default so unupdated callers don't crash.
+    onAddCustomAmenity: ((name: String, divisionTypeId: String) -> Unit)? = null,
+    // Division type schema items used to check supportsAttendeeMode flag.
+    availableDivisionTypeSchema: List<SchemaItem> = emptyList()
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -63,6 +72,8 @@ fun SubdivisionEditorSection(
     var subName by remember { mutableStateOf("") }
     var subType by remember { mutableStateOf(Level2Type.ROOMS) }
     var subAmenitiesSelected by remember { mutableStateOf(setOf<String>()) }
+    var subHashtags by remember { mutableStateOf(listOf<String>()) }
+    var hashtagInput by remember { mutableStateOf("") }
     var showTypePicker by remember { mutableStateOf(false) }
     var showAmenityPicker by remember { mutableStateOf(false) }
     var subImageUrls by remember { mutableStateOf(listOf<String>()) }
@@ -72,6 +83,9 @@ fun SubdivisionEditorSection(
     // pattern as CreateListingDialog's photoUploadError/ownershipUploadError.
     var subImageUploadError by remember { mutableStateOf<String?>(null) }
     var subPricing by remember { mutableStateOf(RentalPricingConfig.default()) }
+    var subPricingMode by remember { mutableStateOf(SubdivisionPricingMode.STRATEGY_BASED) }
+    var subCapacity by remember { mutableStateOf<Int?>(null) }
+    var subCapacityInput by remember { mutableStateOf("") }
 
     // Per-division operating-schedule override — off by default, meaning this room
     // just follows the whole space's own SpaceOperatingSchedule (the common case).
@@ -103,8 +117,16 @@ fun SubdivisionEditorSection(
     // this tracks the in-progress edit so the "Add" button can become "Save
     // Changes" and commit a replacement instead of an append.
     var editingSubdivisionIndex by remember { mutableStateOf<Int?>(null) }
+    var justSaved by remember { mutableStateOf(false) }
 
-    val isSubFormValid = subName.isNotBlank() && subPricing.hasRealPrice()
+    val isSubFormValid = subName.isNotBlank() && when (subPricingMode) {
+        SubdivisionPricingMode.PER_ATTENDEE -> (subCapacity ?: 0) > 0
+        SubdivisionPricingMode.STRATEGY_BASED -> subPricing.hasRealPrice()
+    }
+
+    LaunchedEffect(editingSubdivisionIndex) {
+        if (editingSubdivisionIndex != null) justSaved = false
+    }
 
     fun resetSubdivisionForm() {
         editingSubdivisionIndex = null
@@ -115,6 +137,9 @@ fun SubdivisionEditorSection(
         hashtagInput = ""
         subImageUrls = emptyList()
         subPricing = RentalPricingConfig.default()
+        subPricingMode = SubdivisionPricingMode.STRATEGY_BASED
+        subCapacity = null
+        subCapacityInput = ""
         subScheduleOverrideEnabled = false
         subOverrideOpeningHour = openingHour
         subOverrideClosingHour = closingHour
@@ -136,6 +161,8 @@ fun SubdivisionEditorSection(
         amenities = subAmenitiesSelected.toList(),
         hashtags = subHashtags,
         pricing = subPricing,
+        pricingMode = subPricingMode,
+        capacity = subCapacity,
         scheduleOverride = if (subScheduleOverrideEnabled) {
             SpaceOperatingSchedule(
                 openingHour = subOverrideOpeningHour,
@@ -184,11 +211,32 @@ fun SubdivisionEditorSection(
     }
 
     val weekDayOrder = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    val amenityCatalog = listOf(
-        "A/C Climate Control", "Dual-Monitor Setup", "Whiteboard / Presentation Kit",
-        "High-Speed Wi-Fi", "Soundproofing", "Ergonomic Seating", "Storage Locker",
-        "Keyless Access Control", "Privacy Partition", "Natural Lighting", "Standing Desk"
-    )
+    // Use schema-driven amenities when available, filtering by current division type scope.
+    // Falls back to the hardcoded defaults only when no schema has been loaded yet.
+    val amenityCatalog = remember(availableAmenities, subType) {
+        if (availableAmenities.isNotEmpty()) {
+            availableAmenities
+                .filter { it.scopedToIds.isEmpty() || it.scopedToIds.contains(subType.name) }
+                .map { it.name }
+        } else {
+            listOf(
+                "A/C Climate Control", "Dual-Monitor Setup", "Whiteboard / Presentation Kit",
+                "High-Speed Wi-Fi", "Soundproofing", "Ergonomic Seating", "Storage Locker",
+                "Keyless Access Control", "Privacy Partition", "Natural Lighting", "Standing Desk"
+            )
+        }
+    }
+    val showAttendeeToggle = remember(subType, availableDivisionTypeSchema) {
+        availableDivisionTypeSchema.any { it.name.equals(subType.displayName, ignoreCase = true) && it.supportsAttendeeMode }
+    }
+
+    // Reset pricing mode to STRATEGY_BASED when switching away from an attendee-capable type
+    LaunchedEffect(showAttendeeToggle) {
+        if (!showAttendeeToggle && subPricingMode == SubdivisionPricingMode.PER_ATTENDEE) {
+            subPricingMode = SubdivisionPricingMode.STRATEGY_BASED
+        }
+    }
+
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         // Intro header
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -251,6 +299,9 @@ fun SubdivisionEditorSection(
                                             hashtagInput = ""
                                             subImageUrls = sub.imageUrls
                                             subPricing = sub.pricing
+                                            subPricingMode = sub.pricingMode
+                                            subCapacity = sub.capacity
+                                            subCapacityInput = sub.capacity?.toString() ?: ""
                                             val override = sub.scheduleOverride
                                             subScheduleOverrideEnabled = override != null
                                             subOverrideOpeningHour = override?.openingHour ?: openingHour
@@ -352,7 +403,10 @@ fun SubdivisionEditorSection(
                 onToggle = { amen ->
                     subAmenitiesSelected = if (amen in subAmenitiesSelected) subAmenitiesSelected - amen else subAmenitiesSelected + amen
                 },
-                onDismiss = { showAmenityPicker = false }
+                onDismiss = { showAmenityPicker = false },
+                onAddCustom = if (onAddCustomAmenity != null) { name ->
+                    onAddCustomAmenity.invoke(name, subType.name)
+                } else null
             )
         }
 
@@ -406,9 +460,11 @@ fun SubdivisionEditorSection(
                     OutlinedTextField(
                         value = hashtagInput,
                         onValueChange = { hashtagInput = it.trimStart('#').replace(" ", "") },
-                        label = { Text("Add hashtag (e.g. cardiology)") },
+                        placeholder = { Text("e.g. DentalClinic") },
+                        prefix = { Text("#") },
                         singleLine = true,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        shape = MaterialTheme.shapes.medium
                     )
                     IconButton(
                         onClick = {
@@ -420,33 +476,21 @@ fun SubdivisionEditorSection(
                         },
                         enabled = hashtagInput.trim().isNotBlank()
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add hashtag")
+                        Icon(Icons.Default.Add, contentDescription = "Add hashtag", tint = MaterialTheme.colorScheme.primary)
                     }
                 }
                 if (subHashtags.isNotEmpty()) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                        items(subHashtags) { tag ->
-                            Surface(
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                shape = MaterialTheme.shapes.extraSmall
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(start = 8.dp, end = 4.dp, top = 2.dp, bottom = 2.dp)
-                                ) {
-                                    Text(
-                                        "#$tag",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                                    )
-                                    IconButton(
-                                        onClick = { subHashtags = subHashtags - tag },
-                                        modifier = Modifier.size(16.dp)
-                                    ) {
-                                        Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(12.dp))
-                                    }
-                                }
-                            }
+                    androidx.compose.foundation.layout.FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    ) {
+                        subHashtags.forEach { tag ->
+                            InputChip(
+                                selected = false,
+                                onClick = { subHashtags = subHashtags - tag },
+                                label = { Text("#$tag", style = MaterialTheme.typography.labelSmall) },
+                                trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp)) }
+                            )
                         }
                     }
                 }
@@ -521,6 +565,69 @@ fun SubdivisionEditorSection(
                     }
                     Text("Pricing Strategy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
+
+                // Attendee-mode toggle — only shown for conference-capable division types
+                if (showAttendeeToggle) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Pricing Mode", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = subPricingMode == SubdivisionPricingMode.STRATEGY_BASED,
+                                onClick = { subPricingMode = SubdivisionPricingMode.STRATEGY_BASED },
+                                label = { Text("Strategy-Based", style = MaterialTheme.typography.labelSmall) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = subPricingMode == SubdivisionPricingMode.PER_ATTENDEE,
+                                onClick = { subPricingMode = SubdivisionPricingMode.PER_ATTENDEE },
+                                label = { Text("Per-Attendee", style = MaterialTheme.typography.labelSmall) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                if (subPricingMode == SubdivisionPricingMode.PER_ATTENDEE) {
+                    // Capacity input
+                    OutlinedTextField(
+                        value = subCapacityInput,
+                        onValueChange = { raw ->
+                            val digits = raw.filter { it.isDigit() }
+                            subCapacityInput = digits
+                            subCapacity = digits.toIntOrNull()?.takeIf { it > 0 }
+                        },
+                        label = { Text("Max Attendees") },
+                        placeholder = { Text("e.g. 100") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    )
+                    // Info card
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
+                            Text(
+                                "Price is set per attendee at booking time via a selected package. The schedule below defines availability slots.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                    }
+                    // Keep the schedule editor visible so the host can still configure availability slots
+                    Text("Availability Schedule", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
                 // Pricing keys off this room's own hours when schedule override is on,
                 // otherwise inherits the parent space's operating schedule.
                 RentalPricingConfigEditor(
@@ -713,20 +820,52 @@ fun SubdivisionEditorSection(
                     Text("Cancel & Add New Room", style = MaterialTheme.typography.labelMedium)
                 }
             }
+        } else if (justSaved) {
+            Surface(
+                color = StatusSuccessContainer,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = null, tint = StatusSuccess, modifier = Modifier.size(16.dp))
+                    Text("Room saved", style = MaterialTheme.typography.labelMedium, color = StatusSuccess, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            Button(
+                onClick = { resetSubdivisionForm(); justSaved = false },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Text("Add Another Room", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            }
+            OutlinedButton(
+                onClick = { justSaved = false },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text("Done Adding Rooms", style = MaterialTheme.typography.labelLarge)
+            }
         } else {
             Button(
                 onClick = {
                     val newSub = buildCurrentSubdivision()
                     onSubdivisionsChange(subdivisionsList + newSub)
-                    resetSubdivisionForm()
+                    justSaved = true
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = isSubFormValid,
                 shape = MaterialTheme.shapes.medium
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
+                Icon(Icons.Default.Save, contentDescription = null)
                 Spacer(modifier = Modifier.width(Spacing.sm))
-                Text("Add Room to Listing", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text("Save Room", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -775,10 +914,12 @@ private fun SearchablePickerDialog(
     selected: Set<String>,
     multiSelect: Boolean,
     onToggle: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onAddCustom: ((String) -> Unit)? = null
 ) {
     var query by remember { mutableStateOf("") }
     val filtered = options.filter { query.isBlank() || it.contains(query, ignoreCase = true) }
+    val canAddCustom = onAddCustom != null && query.isNotBlank() && filtered.none { it.equals(query.trim(), ignoreCase = true) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -804,13 +945,31 @@ private fun SearchablePickerDialog(
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text("Search...") },
+                    placeholder = { Text("Search or type new…") },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
                     singleLine = true
                 )
-                if (filtered.isEmpty()) {
+                if (canAddCustom) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val trimmed = query.trim()
+                                onAddCustom?.invoke(trimmed)
+                                onToggle(trimmed)
+                                query = ""
+                            }
+                            .padding(vertical = Spacing.xs),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                        Text("Add \"${query.trim()}\"", fontSize = MaterialTheme.typography.bodySmall.fontSize, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                if (filtered.isEmpty() && !canAddCustom) {
                     Text(
                         "No matches.",
                         fontSize = MaterialTheme.typography.labelSmall.fontSize,

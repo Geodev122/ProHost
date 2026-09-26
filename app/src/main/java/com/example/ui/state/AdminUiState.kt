@@ -31,7 +31,7 @@ data class AdminUiState(
     val txSearchQuery: String = "",
     val selectedTxStatusFilter: String = "ALL", // "ALL", "SUCCESS", "PENDING", "FAILED"
 
-    val selectedSchemaCategoryFilter: String = "ALL", // "ALL", "SPACE_TYPE", "SUBCATEGORY", "AMENITY", "EQUIPMENT" (RENTAL_STRATEGY lives in its own independent section, not this filter)
+    val selectedSchemaCategoryFilter: String = "ALL", // retained for potential use but God Schema tab no longer uses a flat filter
 
     // Dialog and Modal states
     val isExportDialogOpen: Boolean = false,
