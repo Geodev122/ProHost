@@ -140,9 +140,14 @@ fun KycScreen(
                 }
             }
 
+            val isLoading = isAuthenticating
+            if (isLoading) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+            }
+
             // Error banner
-            val displayError = localErrorMessage ?: authErrorMessage
-            if (displayError != null) {
+            val errorMessage = localErrorMessage ?: authErrorMessage
+            if (errorMessage != null) {
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
                     shape = MaterialTheme.shapes.medium,
@@ -157,7 +162,7 @@ fun KycScreen(
                         )
                         Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(
-                            displayError,
+                            errorMessage,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             fontWeight = FontWeight.SemiBold

@@ -327,46 +327,56 @@ fun AdminConsoleScreen(
     }
 
     // 2. Edit User Dialog
-    if (uiState.isEditUserDialogOpen && uiState.editingUser != null) {
-        AdminEditUserDialog(
-            user = uiState.editingUser!!,
-            onDismiss = { adminViewModel.closeEditUserDialog() },
-            onSave = { updatedUser -> adminViewModel.saveUser(updatedUser) }
-        )
+    if (uiState.isEditUserDialogOpen) {
+        uiState.editingUser?.let { user ->
+            AdminEditUserDialog(
+                user = user,
+                onDismiss = { adminViewModel.closeEditUserDialog() },
+                onSave = { updatedUser -> adminViewModel.saveUser(updatedUser) }
+            )
+        }
     }
 
     // 3. Delete User Confirmation Dialog
-    if (uiState.isDeleteUserDialogOpen && uiState.deletingUser != null) {
-        AdminDeleteUserDialog(
-            user = uiState.deletingUser!!,
-            onDismiss = { adminViewModel.closeDeleteUserDialog() },
-            onConfirm = { adminViewModel.confirmDeleteUser(uiState.deletingUser!!.id) }
-        )
+    if (uiState.isDeleteUserDialogOpen) {
+        uiState.deletingUser?.let { user ->
+            AdminDeleteUserDialog(
+                user = user,
+                onDismiss = { adminViewModel.closeDeleteUserDialog() },
+                onConfirm = { adminViewModel.confirmDeleteUser(user.id) }
+            )
+        }
     }
 
     // 3b. Grant Admin Confirmation Dialog
-    if (uiState.isSuspendUserDialogOpen && uiState.suspendingUser != null) {
-        AdminSuspendUserDialog(
-            user = uiState.suspendingUser!!,
-            onDismiss = { adminViewModel.closeSuspendUserDialog() },
-            onConfirm = { adminViewModel.confirmToggleSuspend() }
-        )
+    if (uiState.isSuspendUserDialogOpen) {
+        uiState.suspendingUser?.let { user ->
+            AdminSuspendUserDialog(
+                user = user,
+                onDismiss = { adminViewModel.closeSuspendUserDialog() },
+                onConfirm = { adminViewModel.confirmToggleSuspend() }
+            )
+        }
     }
 
-    if (uiState.isGrantAdminDialogOpen && uiState.grantingAdminUser != null) {
-        AdminGrantAdminDialog(
-            user = uiState.grantingAdminUser!!,
-            onDismiss = { adminViewModel.closeGrantAdminDialog() },
-            onConfirm = { adminViewModel.confirmGrantAdmin(uiState.grantingAdminUser!!.email) }
-        )
+    if (uiState.isGrantAdminDialogOpen) {
+        uiState.grantingAdminUser?.let { user ->
+            AdminGrantAdminDialog(
+                user = user,
+                onDismiss = { adminViewModel.closeGrantAdminDialog() },
+                onConfirm = { adminViewModel.confirmGrantAdmin(user.email) }
+            )
+        }
     }
 
-    if (uiState.isRevokeProHostDialogOpen && uiState.revokingProHostUser != null) {
-        AdminRevokeProHostDialog(
-            user = uiState.revokingProHostUser!!,
-            onDismiss = { adminViewModel.closeRevokeProHostDialog() },
-            onConfirm = { adminViewModel.confirmRevokeProHost() }
-        )
+    if (uiState.isRevokeProHostDialogOpen) {
+        uiState.revokingProHostUser?.let { user ->
+            AdminRevokeProHostDialog(
+                user = user,
+                onDismiss = { adminViewModel.closeRevokeProHostDialog() },
+                onConfirm = { adminViewModel.confirmRevokeProHost() }
+            )
+        }
     }
 
     // 4. Edit Listing Dialog — the same full wizard used to create a listing
@@ -388,12 +398,14 @@ fun AdminConsoleScreen(
     }
 
     // 5. Delete Listing Confirmation Dialog
-    if (uiState.isDeleteListingDialogOpen && uiState.deletingListing != null) {
-        AdminDeleteListingDialog(
-            listing = uiState.deletingListing!!,
-            onDismiss = { adminViewModel.closeDeleteListingDialog() },
-            onConfirm = { adminViewModel.confirmDeleteListing(uiState.deletingListing!!.id) }
-        )
+    if (uiState.isDeleteListingDialogOpen) {
+        uiState.deletingListing?.let { listing ->
+            AdminDeleteListingDialog(
+                listing = listing,
+                onDismiss = { adminViewModel.closeDeleteListingDialog() },
+                onConfirm = { adminViewModel.confirmDeleteListing(listing.id) }
+            )
+        }
     }
 
     // 6. Add Schema Node Dialog
@@ -417,22 +429,26 @@ fun AdminConsoleScreen(
 
 
     // Delete Package Plan Confirmation Dialog
-    if (uiState.isDeletePackagePlanDialogOpen && uiState.pendingDeletePlanId != null) {
-        AdminDeletePackagePlanDialog(
-            planId = uiState.pendingDeletePlanId!!,
-            subscriberCount = uiState.pendingDeletePlanSubscriberCount,
-            onDismiss = { adminViewModel.cancelDeletePackagePlan() },
-            onConfirm = { adminViewModel.confirmDeletePackagePlan() }
-        )
+    if (uiState.isDeletePackagePlanDialogOpen) {
+        uiState.pendingDeletePlanId?.let { planId ->
+            AdminDeletePackagePlanDialog(
+                planId = planId,
+                subscriberCount = uiState.pendingDeletePlanSubscriberCount,
+                onDismiss = { adminViewModel.cancelDeletePackagePlan() },
+                onConfirm = { adminViewModel.confirmDeletePackagePlan() }
+            )
+        }
     }
 
     // Reject ID Document Dialog
-    if (uiState.isRejectIdDialogOpen && uiState.rejectingIdUserId != null) {
-        AdminRejectIdDocumentDialog(
-            userId = uiState.rejectingIdUserId!!,
-            onDismiss = { adminViewModel.closeRejectIdDialog() },
-            onConfirm = { userId, reason -> adminViewModel.rejectIdDocument(userId, reason) }
-        )
+    if (uiState.isRejectIdDialogOpen) {
+        uiState.rejectingIdUserId?.let { userId ->
+            AdminRejectIdDocumentDialog(
+                userId = userId,
+                onDismiss = { adminViewModel.closeRejectIdDialog() },
+                onConfirm = { uid, reason -> adminViewModel.rejectIdDocument(uid, reason) }
+            )
+        }
     }
 }
 
@@ -594,14 +610,14 @@ private fun AdminPackagesTab(
                                 }
                             }
                             // Live Play Store info card (shown once fetched)
-                            if (playLiveInfo != null) {
+                            playLiveInfo?.let { liveInfo ->
                                 Surface(
                                     modifier = Modifier.fillMaxWidth(),
                                     color = FreshGreen.copy(alpha = 0.1f),
                                     shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
-                                        text = playLiveInfo!!,
+                                        text = liveInfo,
                                         style = MaterialTheme.typography.labelSmall,
                                         color = FreshGreen,
                                         modifier = androidx.compose.ui.Modifier.padding(8.dp)
@@ -668,11 +684,11 @@ private fun AdminPackagesTab(
                                         }
                                     }
                                 }
-                                if (playFetchStatus != null) {
+                                playFetchStatus?.let { status ->
                                     Text(
-                                        playFetchStatus!!,
+                                        status,
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = if (playFetchStatus!!.startsWith("✓")) FreshGreen else StatusError
+                                        color = if (status.startsWith("✓")) FreshGreen else StatusError
                                     )
                                 }
                             } else {

@@ -31,6 +31,7 @@ import java.util.Calendar
 fun OwnerAnalyticsScreen(
     viewModel: ProHostViewModel
 ) {
+    val isLoading by viewModel.isRestoringSession.collectAsState()
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
     val bookingRequests by viewModel.bookingRequests.collectAsState()
 
@@ -108,6 +109,13 @@ fun OwnerAnalyticsScreen(
             .toList()
             .sortedByDescending { it.second }
             .take(5)
+    }
+
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
     }
 
     if (displayListings.isEmpty()) {

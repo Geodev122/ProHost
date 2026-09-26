@@ -168,7 +168,7 @@ fun OwnerSubscriptionsScreen(
             }
         }
 
-        if (billingSuccess != null) {
+        billingSuccess?.let { msg ->
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
@@ -182,7 +182,7 @@ fun OwnerSubscriptionsScreen(
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text(billingSuccess!!, style = MaterialTheme.typography.bodySmall, color = OxfordBlue)
+                        Text(msg, style = MaterialTheme.typography.bodySmall, color = OxfordBlue)
                     }
                     IconButton(onClick = { viewModel.clearBillingMessages() }, modifier = Modifier.size(28.dp)) {
                         Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = CoolGray, modifier = Modifier.size(16.dp))
@@ -191,7 +191,7 @@ fun OwnerSubscriptionsScreen(
             }
         }
 
-        if (billingError != null) {
+        billingError?.let { err ->
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
@@ -205,7 +205,7 @@ fun OwnerSubscriptionsScreen(
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                         Icon(Icons.Default.Error, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text(billingError!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
+                        Text(err, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
                     }
                     IconButton(onClick = { viewModel.clearBillingMessages() }, modifier = Modifier.size(28.dp)) {
                         Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(16.dp))
@@ -362,7 +362,7 @@ fun OwnerSubscriptionsScreen(
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             upsellPlan?.let { plan ->
                                 val productId = plan.googlePlayProductId.ifBlank { plan.id }
-                                if (currentUser != null && !currentUser!!.isKycComplete) {
+                                if (currentUser?.isKycComplete == false) {
                                     pendingProductId = productId
                                     showKycDialog = true
                                 } else if (activity != null) {
@@ -500,19 +500,21 @@ fun OwnerSubscriptionsScreen(
         Spacer(modifier = Modifier.height(Spacing.sm))
     }
 
-    if (showKycDialog && currentUser != null) {
-        com.example.ui.components.KycVerificationDialog(
-            user = currentUser!!,
-            onDismiss = { showKycDialog = false },
-            onKycCompleted = {
-                showKycDialog = false
-                pendingProductId?.let { pid ->
-                    if (activity != null) {
-                        viewModel.launchGooglePaySubscription(activity, pid)
+    if (showKycDialog) {
+        currentUser?.let { user ->
+            com.example.ui.components.KycVerificationDialog(
+                user = user,
+                onDismiss = { showKycDialog = false },
+                onKycCompleted = {
+                    showKycDialog = false
+                    pendingProductId?.let { pid ->
+                        if (activity != null) {
+                            viewModel.launchGooglePaySubscription(activity, pid)
+                        }
                     }
                 }
-            }
-        )
+            )
+        }
     }
 }
 

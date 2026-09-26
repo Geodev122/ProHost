@@ -60,6 +60,7 @@ fun ManageListingScreen(
     viewModel: ProHostViewModel,
     onBack: () -> Unit
 ) {
+    val isLoading by viewModel.isRestoringSession.collectAsState()
     val allSpaces by viewModel.spaces.collectAsState()
     val liveSpace = allSpaces.find { it.id == space.id } ?: space
     val allBookingRequests by viewModel.bookingRequests.collectAsState()
@@ -99,6 +100,9 @@ fun ManageListingScreen(
             )
         }
     ) { innerPadding ->
+        if (isLoading) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(innerPadding))
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()

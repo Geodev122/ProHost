@@ -50,6 +50,7 @@ fun OwnerHubScreen(
     onOpenSubscriptions: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val isLoading by viewModel.isRestoringSession.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val packagePlans by viewModel.packagePlans.collectAsState()
     val spaces by viewModel.spaces.collectAsState()
@@ -131,6 +132,13 @@ fun OwnerHubScreen(
         prevPendingIds.clear()
         prevPendingIds.addAll(currentPending)
         pendingInitialized.value = true
+    }
+
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
     }
 
     OwnerHubScreenContent(

@@ -619,9 +619,9 @@ fun SpecialistProfileScreen(
                             )
                         }
                     }
-                    if (profilePicUploadError != null) {
+                    profilePicUploadError?.let { err ->
                         Text(
-                            profilePicUploadError!!,
+                            err,
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall
                         )
@@ -749,9 +749,9 @@ fun SpecialistProfileScreen(
                     if (isUploadingIdDoc) {
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     }
-                    if (idDocUploadError != null) {
+                    idDocUploadError?.let { err ->
                         Text(
-                            idDocUploadError!!,
+                            err,
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall
                         )
@@ -951,8 +951,7 @@ fun SpecialistProfileScreen(
                 )
             }
 
-            if (pendingCancelRequest != null) {
-                val target = pendingCancelRequest!!
+            pendingCancelRequest?.let { target ->
                 AlertDialog(
                     onDismissRequest = { pendingCancelRequest = null },
                     icon = { Icon(Icons.Default.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error) },

@@ -132,7 +132,7 @@ function checkCloudFunctionNames() {
     'onWorkspaceListingPublishValidation','onWorkspaceListingDeletedCleanup',
     'onBookingAcceptConflictGuard','onUserFavoritesChanged','expirePackages',
     'bootstrapSuperAdmin','listingShareLanding','legalDocumentPage','clickEmailOtpLink',
-    'playBillingRtdn','verifyEmailLink','assignInitialRole',
+    'playBillingRtdn','verifyEmailLink','assignInitialRole','recomputeKycLevel',
   ]);
 
   let mismatches = 0;

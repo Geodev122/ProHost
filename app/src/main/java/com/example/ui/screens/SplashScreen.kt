@@ -27,7 +27,8 @@ import kotlinx.coroutines.delay
  */
 @Composable
 fun SplashScreen(
-    onSplashCompleted: () -> Unit
+    onSplashCompleted: () -> Unit,
+    onError: (() -> Unit)? = null
 ) {
     var contentAlpha by remember { mutableFloatStateOf(0f) }
 

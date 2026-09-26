@@ -1,386 +1,16 @@
 {
-  "generatedAt": "2026-09-26T16:44:23.515Z",
+  "generatedAt": "2026-09-26T17:00:19.883Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 41,
+    "total": 0,
     "critical": 0,
     "high": 0,
-    "medium": 36,
-    "low": 4,
-    "info": 1,
-    "passes": 16
+    "medium": 0,
+    "low": 0,
+    "info": 0,
+    "passes": 21
   },
-  "findings": [
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 332,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 341,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 343,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 350,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 358,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 360,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 366,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 393,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 395,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 422,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 432,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 604,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 673,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 675,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 354,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 380,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 398,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/OwnerRentingProgressScreen.kt",
-      "line": 63,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 185,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 208,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 365,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 505,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 174,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 949,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1335,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt",
-      "line": 624,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt",
-      "line": 754,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "reliability",
-      "check": "Forced Non-Null Assertion",
-      "file": "app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt",
-      "line": 955,
-      "message": "Forced non-null assertion (!!) can throw NullPointerException during recomposition or async state transitions.",
-      "suggestion": "Use safe call ?. with a fallback, requireNotNull() with a message, or guard with a null check before use."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "ux",
-      "check": "Screen Loading State",
-      "file": "app/src/main/java/com/example/ui/screens/KycScreen.kt",
-      "line": null,
-      "message": "Screen has no loading indicator. Users see a blank or stale screen while data is fetching.",
-      "suggestion": "Add an isLoading state in the ViewModel and render a CircularProgressIndicator overlay while loading."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "ux",
-      "check": "Screen Loading State",
-      "file": "app/src/main/java/com/example/ui/screens/ManageListingScreen.kt",
-      "line": null,
-      "message": "Screen has no loading indicator. Users see a blank or stale screen while data is fetching.",
-      "suggestion": "Add an isLoading state in the ViewModel and render a CircularProgressIndicator overlay while loading."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "ux",
-      "check": "Screen Loading State",
-      "file": "app/src/main/java/com/example/ui/screens/MyFavoritesScreen.kt",
-      "line": null,
-      "message": "Screen has no loading indicator. Users see a blank or stale screen while data is fetching.",
-      "suggestion": "Add an isLoading state in the ViewModel and render a CircularProgressIndicator overlay while loading."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "ux",
-      "check": "Screen Loading State",
-      "file": "app/src/main/java/com/example/ui/screens/OwnerAnalyticsScreen.kt",
-      "line": null,
-      "message": "Screen has no loading indicator. Users see a blank or stale screen while data is fetching.",
-      "suggestion": "Add an isLoading state in the ViewModel and render a CircularProgressIndicator overlay while loading."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "ux",
-      "check": "Screen Loading State",
-      "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": null,
-      "message": "Screen has no loading indicator. Users see a blank or stale screen while data is fetching.",
-      "suggestion": "Add an isLoading state in the ViewModel and render a CircularProgressIndicator overlay while loading."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "ux",
-      "check": "Screen Loading State",
-      "file": "app/src/main/java/com/example/ui/screens/OwnerRentalRequestsScreen.kt",
-      "line": null,
-      "message": "Screen has no loading indicator. Users see a blank or stale screen while data is fetching.",
-      "suggestion": "Add an isLoading state in the ViewModel and render a CircularProgressIndicator overlay while loading."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "ux",
-      "check": "Screen Empty State",
-      "file": "app/src/main/java/com/example/ui/screens/OwnerRentalRequestsScreen.kt",
-      "line": null,
-      "message": "Screen has a list (LazyColumn/LazyRow) but no empty-state branch. Users see a blank screen when there is no data.",
-      "suggestion": "When the list is empty, show an icon + descriptive message (e.g. \"No listings yet — tap + to add your first space.\")."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "ux",
-      "check": "KYC Screen Completeness",
-      "file": "app/src/main/java/com/example/ui/screens/KycScreen.kt",
-      "line": null,
-      "message": "KYC screen is missing: no loading state, no error state. Users have no feedback during the KYC submission process.",
-      "suggestion": "Add isLoading + errorMessage state to KycViewModel and show them in KycScreen."
-    },
-    {
-      "severity": "LOW",
-      "category": "ux",
-      "check": "Screen Error State",
-      "file": "app/src/main/java/com/example/ui/screens/MyFavoritesScreen.kt",
-      "line": null,
-      "message": "Screen has no visible error feedback. Failed network or permission operations go unnoticed by the user.",
-      "suggestion": "Add errorMessage: String? to the screen's state and display it in a Snackbar or a red Text composable."
-    },
-    {
-      "severity": "LOW",
-      "category": "ux",
-      "check": "Screen Error State",
-      "file": "app/src/main/java/com/example/ui/screens/OwnerRentalRequestsScreen.kt",
-      "line": null,
-      "message": "Screen has no visible error feedback. Failed network or permission operations go unnoticed by the user.",
-      "suggestion": "Add errorMessage: String? to the screen's state and display it in a Snackbar or a red Text composable."
-    },
-    {
-      "severity": "LOW",
-      "category": "ux",
-      "check": "Screen Error State",
-      "file": "app/src/main/java/com/example/ui/screens/SplashScreen.kt",
-      "line": null,
-      "message": "Screen has no visible error feedback. Failed network or permission operations go unnoticed by the user.",
-      "suggestion": "Add errorMessage: String? to the screen's state and display it in a Snackbar or a red Text composable."
-    },
-    {
-      "severity": "LOW",
-      "category": "reliability",
-      "check": "TypeScript Safety",
-      "file": "functions/src/billing/playBillingRtdn.ts",
-      "line": 119,
-      "message": "\"as any\" bypasses TypeScript type-checking — runtime type mismatches become silent bugs.",
-      "suggestion": "Use a proper type assertion or unknown + type guard instead of \"as any\"."
-    },
-    {
-      "severity": "INFO",
-      "category": "consistency",
-      "check": "CF Orphaned Export",
-      "file": "functions/src/index.ts",
-      "line": null,
-      "message": "Cloud Function \"recomputeKycLevel\" is exported but never called via getHttpsCallable() in Kotlin. May be a trigger/HTTP endpoint or dead code.",
-      "suggestion": "Verify this is intentional. If dead code, remove it to keep the deploy surface small."
-    }
-  ],
+  "findings": [],
   "passes": [
     {
       "check": "CF Name Consistency",
@@ -399,8 +29,20 @@
       "message": "No empty catch blocks found."
     },
     {
+      "check": "Forced Non-Null Assertion",
+      "message": "No !! unwraps found in screen/viewmodel files."
+    },
+    {
       "check": "Screen Loading State",
-      "message": "9/15 screens have a loading indicator."
+      "message": "15/15 screens have a loading indicator."
+    },
+    {
+      "check": "Screen Error State",
+      "message": "All screens surface error feedback."
+    },
+    {
+      "check": "Screen Empty State",
+      "message": "All list screens handle the empty case."
     },
     {
       "check": "Coroutine Error Handling",
@@ -417,6 +59,10 @@
     {
       "check": "AuthStep Completeness",
       "message": "All 5 AuthStep values (EMAIL_ENTRY, EMAIL_OTP, PHONE_ENTRY, OTP_ENTRY, REGISTRATION_FORM) are referenced in the UI."
+    },
+    {
+      "check": "TypeScript Safety",
+      "message": "No unsafe \"as any\" casts or unguarded snap.data()! patterns found."
     },
     {
       "check": "Navigation Graph",
@@ -441,6 +87,10 @@
     {
       "check": "ID Token Refresh",
       "message": "AuthFlow.kt force-refreshes the ID token after login."
+    },
+    {
+      "check": "KYC Screen Completeness",
+      "message": "KycScreen has loading and error states."
     },
     {
       "check": "Analytics Financial Stats",

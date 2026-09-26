@@ -35,6 +35,8 @@ fun MyFavoritesScreen(
     onNavigateToExplore: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val isLoading by viewModel.isRestoringSession.collectAsState()
+    val errorMessage by viewModel.sessionRestoreError.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val allSpaces by viewModel.spaces.collectAsState()
 
@@ -82,7 +84,20 @@ fun MyFavoritesScreen(
             )
         }
     ) { innerPadding ->
-        if (savedSpaces.isEmpty() && unavailableIds.isEmpty()) {
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (errorMessage != null) {
+            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
+                Text(
+                    text = errorMessage ?: "",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(Spacing.lg)
+                )
+            }
+        } else if (savedSpaces.isEmpty() && unavailableIds.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                 ProEmptyState(
                     title = "No Favorites Yet",
