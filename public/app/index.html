@@ -431,18 +431,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-auth-compat.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-firestore-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-analytics-compat.min.js"></script>
 
 <script>
 // ─── Firebase config ──────────────────────────────────────────────────────────
 // NOTE: Register a Web App in Firebase Console → Project Settings → Your Apps
 // to get the correct appId. Until then, use the placeholder below.
 const FB_CONFIG = {
-  apiKey: "AIzaSyCD8l3WfHCw3pfmm9Q_AI-mADe8SIDxDcg",
+  apiKey: "AIzaSyAdA9X7BNgq2_f4cQ4SCUVuI4L-1aYeYe4",
   authDomain: "prohost-f766f.firebaseapp.com",
   projectId: "prohost-f766f",
   storageBucket: "prohost-f766f.firebasestorage.app",
   messagingSenderId: "646730915838",
-  appId: "REPLACE_WITH_WEB_APP_ID"  // Get from Firebase Console → Add Web App
+  appId: "1:646730915838:web:3d9741d3f51d1697c8eaaf",
+  measurementId: "G-XKZHZP4XWT"
 };
 
 let app, auth, db;
@@ -450,6 +452,7 @@ try {
   app = firebase.initializeApp(FB_CONFIG);
   auth = firebase.auth();
   db = firebase.firestore();
+  try { firebase.analytics(); } catch(e) {}
 } catch(e) {
   console.warn('Firebase init error:', e);
 }
