@@ -185,12 +185,6 @@ class ProHostViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Financial Metrics
-    val activeMrr: Double get() = repository.calculateActiveMrr()
-    val potentialMrr: Double get() = repository.calculatePotentialCapacityMrr()
-    val projectedArr: Double get() = repository.calculateProjectedArr()
-    val totalSettlementVolume: Double get() = repository.calculateTotalSettlementVolume()
-
     // Search/filter state (query, governorate, space type, formula, price, etc.) and
     // the resulting filtered-spaces list used to be duplicated here — an independently
     // maintained copy of exactly what DiscoveryViewModel already did, since

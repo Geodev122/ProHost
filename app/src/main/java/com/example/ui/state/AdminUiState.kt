@@ -14,10 +14,6 @@ data class AdminUiState(
     val auditLogs: List<AuditSecurityLog> = emptyList(),
     val schema: SpaceArchitectureSchema = SpaceArchitectureSchema(),
     val hashtagAnalytics: List<HashtagUsageEntry> = emptyList(),
-    val activeMrr: Double = 0.0,
-    val potentialMrr: Double = 0.0,
-    val projectedArr: Double = 0.0,
-    val totalSettlementVolume: Double = 0.0,
     val selectedTab: Int = 0,
 
     // Filter and search states

@@ -532,41 +532,6 @@ class ProHostRepository {
         return success
     }
 
-    /** Every listing's owner pays their own package's flat price once, regardless of
-     * how many listings they have — real revenue is now owner-level, not per-listing,
-     * since PAYG's per-listing credit pricing is gone. distinctBy{ownerId} is what
-     * makes this owner-level rather than listing-level; an owner with no active
-     * package (ownerPackageId == null, or one that no longer resolves to a real
-     * package_plans entry) contributes $0, which is correct. Naturally generalizes
-     * over however many packages an admin has defined — no hardcoded tier count.
-     * Shared by calculateActiveMrr (isActiveSubscription-filtered) and
-     * calculatePotentialCapacityMrr (every listing, active or not) so the two can't
-     * silently diverge in how they price a listing, only in which listings they include. */
-    private fun sumListingRevenue(listings: List<SpaceListing>): Double {
-        val usersById = _users.value.associateBy { it.id }
-        val plansById = _packagePlans.value.packages
-        return listings.distinctBy { it.ownerId }
-            .sumOf { usersById[it.ownerId]?.ownerPackageId?.let { id -> plansById[id]?.priceUsd } ?: 0.0 }
-    }
-
-    fun calculateActiveMrr(): Double {
-        return sumListingRevenue(_spaces.value.filter { it.isActiveSubscription })
-    }
-
-    fun calculatePotentialCapacityMrr(): Double {
-        return sumListingRevenue(_spaces.value)
-    }
-
-    fun calculateProjectedArr(): Double {
-        return calculateActiveMrr() * 12.0
-    }
-
-    fun calculateTotalSettlementVolume(): Double {
-        return _transactions.value
-            .filter { it.status == TransactionStatus.SUCCESS }
-            .sumOf { it.amountUsd }
-    }
-
     // --- Whish Pay Settlement Ledger ---
     // processWhishPaySubscription/processOwnerPackagePayment/processPaygListingPayment/
     // processWhishPayBooking used to live here: each one locally fabricated a "SUCCESS"
@@ -603,24 +568,6 @@ class ProHostRepository {
         logs.forEach { log ->
             val detailsEscaped = log.details.replace("\"", "\"\"")
             sb.appendLine("\"${sdf.format(Date(log.timestamp))}\",\"${log.actionType}\",\"${log.severity}\",\"${log.actorEmail}\",\"$detailsEscaped\"")
-        }
-        return sb.toString()
-    }
-
-    fun exportTransactionsToCsv(startDateMillis: Long? = null, endDateMillis: Long? = null): String {
-        val txs = _transactions.value.filter { tx ->
-            val matchesStart = startDateMillis == null || tx.timestamp >= startDateMillis
-            val matchesEnd = endDateMillis == null || tx.timestamp <= endDateMillis
-            matchesStart && matchesEnd
-        }
-
-        val sb = StringBuilder()
-        sb.appendLine("Package ID,User ID,Price,Date bought,Expiration Date,Transaction ID,Phone number (whish)")
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
-        for (tx in txs) {
-            val dateBought = dateFormat.format(Date(tx.timestamp))
-            val expiryDate = dateFormat.format(Date(tx.timestamp + (tx.daysGranted.toLong() * 24 * 60 * 60 * 1000)))
-            sb.appendLine("${tx.spaceId},${tx.userId.ifBlank { "N/A" }},${String.format(Locale.US, "%.2f", tx.amountUsd)},$dateBought,$expiryDate,${tx.id},${tx.payerPhone}")
         }
         return sb.toString()
     }
@@ -1912,15 +1859,22 @@ class ProHostRepository {
     // --- Multi-Format Data Export Hub ---
     fun exportToJson(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
+        val usersById = _users.value.associateBy { it.id }
+        val plansById = _packagePlans.value.packages
+        val mrrActive = _spaces.value.filter { it.isActiveSubscription }.distinctBy { it.ownerId }
+            .sumOf { usersById[it.ownerId]?.ownerPackageId?.let { id -> plansById[id]?.priceUsd } ?: 0.0 }
+        val mrrCapacity = _spaces.value.distinctBy { it.ownerId }
+            .sumOf { usersById[it.ownerId]?.ownerPackageId?.let { id -> plansById[id]?.priceUsd } ?: 0.0 }
+        val annualRate = mrrActive * 12.0
         val sb = StringBuilder()
         sb.appendLine("{")
         sb.appendLine("  \"platform\": \"ProHost\",")
         sb.appendLine("  \"exportedAt\": \"${sdf.format(Date())}\",")
         sb.appendLine("  \"adminGovernance\": {")
         sb.appendLine("    \"currentMonthlyFeeUsd\": ${_pricingState.value.monthlySubscriptionFeeUsd},")
-        sb.appendLine("    \"activeMrrUsd\": ${calculateActiveMrr()},")
-        sb.appendLine("    \"potentialCapacityMrrUsd\": ${calculatePotentialCapacityMrr()},")
-        sb.appendLine("    \"projectedArrUsd\": ${calculateProjectedArr()},")
+        sb.appendLine("    \"mrrActiveUsd\": $mrrActive,")
+        sb.appendLine("    \"potentialCapacityMrrUsd\": $mrrCapacity,")
+        sb.appendLine("    \"annualRunRateUsd\": $annualRate,")
         sb.appendLine("    \"merchantChannelId\": \"${WhishSecurity.CHANNEL_ID}\",")
         sb.appendLine("    \"merchantSourceEmail\": \"${WhishSecurity.SOURCE_EMAIL}\"")
         sb.appendLine("  },")
@@ -1959,6 +1913,14 @@ class ProHostRepository {
 
     fun exportToAuditText(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+        val usersById = _users.value.associateBy { it.id }
+        val plansById = _packagePlans.value.packages
+        val mrrActive = _spaces.value.filter { it.isActiveSubscription }.distinctBy { it.ownerId }
+            .sumOf { usersById[it.ownerId]?.ownerPackageId?.let { id -> plansById[id]?.priceUsd } ?: 0.0 }
+        val mrrCapacity = _spaces.value.distinctBy { it.ownerId }
+            .sumOf { usersById[it.ownerId]?.ownerPackageId?.let { id -> plansById[id]?.priceUsd } ?: 0.0 }
+        val annualRate = mrrActive * 12.0
+        val settlementSum = _transactions.value.filter { it.status == TransactionStatus.SUCCESS }.sumOf { it.amountUsd }
         return """
 ================================================================================
                        PROHOST LEBANON AUDIT & REVENUE REPORT
@@ -1970,10 +1932,10 @@ System Status: HEALTHY | Compliance Engine: SECURE MD5 CRYPTO
 --------------------------------------------------------------------------------
 Monthly Subscription Fee (USD) : $${String.format(Locale.US, "%.2f", _pricingState.value.monthlySubscriptionFeeUsd)} / space owner
 Active Subscribed Spaces        : ${_spaces.value.count { it.isActiveSubscription }} / ${_spaces.value.size} Total Spaces
-Active Monthly Recurring (MRR) : $${String.format(Locale.US, "%.2f", calculateActiveMrr())} USD
-100% Capacity Potential MRR    : $${String.format(Locale.US, "%.2f", calculatePotentialCapacityMrr())} USD
-Projected Annual Run-Rate (ARR): $${String.format(Locale.US, "%.2f", calculateProjectedArr())} USD
-Total Whish Settlement Volume  : $${String.format(Locale.US, "%.2f", calculateTotalSettlementVolume())} USD
+Active Monthly Recurring (MRR) : $${String.format(Locale.US, "%.2f", mrrActive)} USD
+100% Capacity Potential MRR    : $${String.format(Locale.US, "%.2f", mrrCapacity)} USD
+Projected Annual Run-Rate (ARR): $${String.format(Locale.US, "%.2f", annualRate)} USD
+Total Whish Settlement Volume  : $${String.format(Locale.US, "%.2f", settlementSum)} USD
 
 [2] WHISH PAY GATEWAY SETTLEMENT LEDGER
 --------------------------------------------------------------------------------
@@ -2127,7 +2089,7 @@ ${_spaces.value.joinToString("\n") { sp ->
         sb.appendLine("=== PROHOST WHISH PAY TRANSACTIONS LEDGER (CSV) ===")
         sb.appendLine("Export Date,${sdf.format(Date())}")
         sb.appendLine("Total Transactions,${_transactions.value.size}")
-        sb.appendLine("Total Volume USD,${calculateTotalSettlementVolume()}")
+        sb.appendLine("Total Volume USD,${_transactions.value.filter { it.status == TransactionStatus.SUCCESS }.sumOf { it.amountUsd }}")
         sb.appendLine()
         sb.appendLine("Transaction ID,Order ID,Amount USD,Status,Date,Payer Name,Payer Phone,Space ID,Signature Hash,Channel ID")
         _transactions.value.forEach { tx ->

@@ -39,32 +39,9 @@ class AdminViewModel(
         // can be called again to re-fetch on demand.
         refreshHashtagAnalytics()
         refreshLegalDocuments()
-        // MRR depends on FOUR independent live sources (listings, pricing, the schema's
-        // per-category prices, and each owner's package tier) that resolve at different
-        // times on cold start — recomputing only from the `spaces` listener (as this
-        // used to) meant whichever of the other three hadn't arrived yet at that moment
-        // silently fed stale/default values into the calculation, with no later
-        // recompute once they did. This is exactly why Active/Capacity MRR could show a
-        // different number on every login — same real listings, different pricing/tier
-        // data available by the time the (single) recompute happened to fire. combine()
-        // re-runs the calculation whenever ANY of the four changes, so it's always
-        // computed from the latest of all of them.
         viewModelScope.launch {
-            combine(
-                repository.spaces,
-                repository.pricingState,
-                repository.spaceArchitectureSchema,
-                repository.users,
-                repository.packagePlans
-            ) { spaces, _, _, _, _ -> spaces }.collect { spaces ->
-                _uiState.update {
-                    it.copy(
-                        allSpaces = spaces,
-                        activeMrr = repository.calculateActiveMrr(),
-                        potentialMrr = repository.calculatePotentialCapacityMrr(),
-                        projectedArr = repository.calculateProjectedArr()
-                    )
-                }
+            repository.spaces.collect { spaces ->
+                _uiState.update { it.copy(allSpaces = spaces) }
             }
         }
         viewModelScope.launch {
@@ -74,12 +51,7 @@ class AdminViewModel(
         }
         viewModelScope.launch {
             repository.transactions.collect { txs ->
-                _uiState.update {
-                    it.copy(
-                        allTransactions = txs,
-                        totalSettlementVolume = repository.calculateTotalSettlementVolume()
-                    )
-                }
+                _uiState.update { it.copy(allTransactions = txs) }
             }
         }
         viewModelScope.launch {
@@ -107,16 +79,6 @@ class AdminViewModel(
     // --- Navigation & Pricing ---
     fun setSelectedTab(tabIndex: Int) {
         _uiState.update { it.copy(selectedTab = tabIndex) }
-    }
-
-    fun setSubscriptionFee(fee: Double) {
-        viewModelScope.launch {
-            if (repository.updateMonthlySubscriptionFee(fee)) {
-                _events.emit(AdminUiEvent.PricingUpdated(fee))
-            } else {
-                _events.emit(AdminUiEvent.ShowToast("Failed to update subscription fee"))
-            }
-        }
     }
 
     fun addPackagePlan(plan: PackagePlan) {
@@ -179,20 +141,6 @@ class AdminViewModel(
                     if (success) "Admin governance control tag updated" else "Failed to update governance tag"
                 )
             )
-        }
-    }
-
-    fun applyPresetFee(fee: Double) {
-        setSubscriptionFee(fee)
-    }
-
-    fun resetSubscriptionFeeBaseline() {
-        viewModelScope.launch {
-            if (repository.resetMonthlySubscriptionFee()) {
-                _events.emit(AdminUiEvent.PricingUpdated(repository.pricingState.value.baselineFeeUsd))
-            } else {
-                _events.emit(AdminUiEvent.ShowToast("Failed to reset subscription fee"))
-            }
         }
     }
 
@@ -656,13 +604,6 @@ class AdminViewModel(
     fun exportOwnerRegistrations() {
         val content = repository.exportOwnerRegistrationsToCsv()
         openExportDialog("Workspace Hosts & Property Ownership Audit (CSV)", content, "CSV")
-    }
-
-    /** Used by AdminRevenueScreen's own real-file export button (relocated from
-     * ProHostViewModel — Admin-only functionality, no reason it lived on the shared
-     * god object). */
-    fun exportRevenueCsv(startDateMillis: Long?, endDateMillis: Long?): String {
-        return repository.exportTransactionsToCsv(startDateMillis, endDateMillis)
     }
 
     /** Used by the Admin Console's own Security & Audit tab export button. The same

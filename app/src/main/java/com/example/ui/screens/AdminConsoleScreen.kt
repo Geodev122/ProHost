@@ -178,7 +178,7 @@ fun AdminConsoleScreen(
                     Tab(
                         selected = uiState.selectedTab == 0,
                         onClick = { adminViewModel.setSelectedTab(0) },
-                        text = { Text("Revenue & Run-Rate", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                        text = { Text("Packages", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = uiState.selectedTab == 1,
@@ -205,11 +205,6 @@ fun AdminConsoleScreen(
                         onClick = { adminViewModel.setSelectedTab(5) },
                         text = { Text("Security", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                     )
-                    Tab(
-                        selected = uiState.selectedTab == 6,
-                        onClick = { adminViewModel.setSelectedTab(6) },
-                        text = { Text("Transactions", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                    )
                 }
             }
         }
@@ -227,17 +222,12 @@ fun AdminConsoleScreen(
                     .widthIn(max = 900.dp)
             ) {
                 when (uiState.selectedTab) {
-                    0 -> AdminRevenueTab(uiState = uiState, adminViewModel = adminViewModel)
+                    0 -> AdminPackagesTab(uiState = uiState, adminViewModel = adminViewModel)
                     1 -> AdminUsersDirectoryTab(uiState = uiState, adminViewModel = adminViewModel)
                     2 -> AdminListingsCatalogTab(uiState = uiState, adminViewModel = adminViewModel)
                     3 -> AdminOwnersAndPaymentsTab(uiState = uiState, adminViewModel = adminViewModel)
                     4 -> AdminSchemaArchitectureTab(uiState = uiState, adminViewModel = adminViewModel)
                     5 -> AdminSecurityAuditTab(uiState = uiState, adminViewModel = adminViewModel, currentUser = currentUser)
-                    // Transaction search/filter/CSV-export — kept as its own sub-tab
-                    // rather than nested inside tab 0's run-rate LazyColumn (avoids
-                    // nesting two scrollables) now that Package Revenue is no longer
-                    // a separate top-level destination outside Admin Console.
-                    6 -> AdminRevenueScreen(adminViewModel = adminViewModel)
                 }
             }
         }
@@ -345,23 +335,13 @@ fun AdminConsoleScreen(
         )
     }
 
-    // 8. Add Package Plan Dialog — this used to just toggle isAddPackagePlanDialogOpen
-    // with no dialog anywhere actually reading it, so "Add Package" was a fully dead
-    // button; this is the real dialog it was always meant to open.
-    if (uiState.isAddPackagePlanDialogOpen) {
-        AdminAddPackagePlanDialog(
-            existingIds = uiState.packagePlans.packages.keys,
-            onDismiss = { adminViewModel.closeAddPackagePlanDialog() },
-            onAdd = { plan -> adminViewModel.addPackagePlan(plan) }
-        )
-    }
 }
 
 // =========================================================================
-// TAB 0: REVENUE & PRICING ENGINE
+// TAB 0: PACKAGES CONFIGURATION & SYSTEM EXPORTS
 // =========================================================================
 @Composable
-private fun AdminRevenueTab(
+private fun AdminPackagesTab(
     uiState: com.example.ui.state.AdminUiState,
     adminViewModel: AdminViewModel
 ) {
@@ -370,63 +350,6 @@ private fun AdminRevenueTab(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Financial Run-Rate Summary Cards
-        item {
-            ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ProSectionHeader(
-                        title = "Run-Rate",
-                        icon = Icons.AutoMirrored.Filled.TrendingUp
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        ProMetricTile(
-                            title = "Active MRR",
-                            value = "$${String.format(Locale.US, "%.2f", uiState.activeMrr)}",
-                            subtitle = "Active Subscriptions",
-                            icon = Icons.Default.AccountBalance,
-                            iconTint = FreshGreen,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        ProMetricTile(
-                            title = "100% Capacity MRR",
-                            value = "$${String.format(Locale.US, "%.2f", uiState.potentialMrr)}",
-                            subtitle = "Full Inventory Potential",
-                            icon = Icons.Default.AllInclusive,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        ProMetricTile(
-                            title = "Projected ARR",
-                            value = "$${String.format(Locale.US, "%.2f", uiState.projectedArr)}",
-                            subtitle = "Annualized Recurring Run-Rate",
-                            icon = Icons.Default.CalendarToday,
-                            iconTint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        ProMetricTile(
-                            title = "Whish Volume",
-                            value = "$${String.format(Locale.US, "%.2f", uiState.totalSettlementVolume)}",
-                            subtitle = "Total Settled via Whish Money",
-                            icon = Icons.Default.Payments,
-                            iconTint = WhishRed,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-        }
-
         // Owner Packages & Governance Hub Card
         item {
             ProSurfaceCard {
@@ -644,6 +567,15 @@ private fun AdminRevenueTab(
                 }
             }
         }
+    }
+
+    // Add Package Plan Dialog — lives here since the "Add Package" button is in this tab
+    if (uiState.isAddPackagePlanDialogOpen) {
+        AdminAddPackagePlanDialog(
+            existingIds = uiState.packagePlans.packages.keys,
+            onDismiss = { adminViewModel.closeAddPackagePlanDialog() },
+            onAdd = { plan -> adminViewModel.addPackagePlan(plan) }
+        )
     }
 }
 
@@ -1242,20 +1174,17 @@ private fun AdminListingsCatalogTab(
 // =========================================================================
 // TAB 3: OWNERS & PAYMENTS (WHISH MONEY LEDGER)
 // =========================================================================
-/** Three cumulative-count/total lines for the Hosts & Properties chart, each bucketed
+/** Two cumulative-count lines for the Hosts & Properties chart, each bucketed
  * by day within the optional [fromMillis]/[toMillis] range (null = unbounded, same
  * "Any" semantics as DateRangePickerRow). Pro Host upgrades come from the one
  * reliable dated record of that event — audit log entries with
  * actionType == "ROLE_PROMOTED_PRO_HOST" — the promotion write itself only stamps a
  * generic updatedAt that many other things overwrite too. Properties-listed uses the
  * new server-stamped SpaceListing.createdAtMillis (null/missing for any listing
- * created before that field existed — simply excluded, not backfilled). Whish
- * settlements only count SUCCESS transactions, matching the settled-volume fix
- * elsewhere in this tab. */
+ * created before that field existed — simply excluded, not backfilled). */
 private fun computeHostsAndPropertiesSeries(
     auditLogs: List<AuditSecurityLog>,
     spaces: List<SpaceListing>,
-    transactions: List<WhishTransaction>,
     fromMillis: Long?,
     toMillis: Long?
 ): List<ChartSeries> {
@@ -1287,14 +1216,10 @@ private fun computeHostsAndPropertiesSeries(
         .mapNotNull { it.createdAtMillis }
         .filter { inRange(it) }
         .map { it to 1.0 }
-    val settled = transactions
-        .filter { it.status == TransactionStatus.SUCCESS && inRange(it.timestamp) }
-        .map { it.timestamp to it.amountUsd }
 
     return listOf(
         ChartSeries("Pro Host Upgrades", FreshGreen, cumulative(upgrades)),
-        ChartSeries("Properties Listed", VibrantBlue, cumulative(listed)),
-        ChartSeries("Whish Settlements ($)", CarnationOrange, cumulative(settled))
+        ChartSeries("Properties Listed", VibrantBlue, cumulative(listed))
     )
 }
 
@@ -1343,8 +1268,8 @@ private fun AdminOwnersAndPaymentsTab(
                         onToChange = { chartToMillis = it }
                     )
 
-                    val series = remember(uiState.auditLogs, uiState.allSpaces, uiState.allTransactions, chartFromMillis, chartToMillis) {
-                        computeHostsAndPropertiesSeries(uiState.auditLogs, uiState.allSpaces, uiState.allTransactions, chartFromMillis, chartToMillis)
+                    val series = remember(uiState.auditLogs, uiState.allSpaces, chartFromMillis, chartToMillis) {
+                        computeHostsAndPropertiesSeries(uiState.auditLogs, uiState.allSpaces, chartFromMillis, chartToMillis)
                     }
                     MultiSeriesLineChart(series = series)
                 }
