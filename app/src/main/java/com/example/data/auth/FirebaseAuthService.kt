@@ -343,6 +343,17 @@ class FirebaseAuthService(private val context: Context) {
         }
     }
 
+    suspend fun signInWithCustomToken(token: String): AuthResult {
+        val auth = firebaseAuth ?: return AuthResult.Failure("Authentication service unavailable.")
+        return try {
+            val result = auth.signInWithCustomToken(token).awaitTask()
+            val isNewUser = result.additionalUserInfo?.isNewUser ?: false
+            AuthResult.Success(isNewUser = isNewUser)
+        } catch (e: Exception) {
+            AuthResult.Failure(e.message ?: "Sign-in failed")
+        }
+    }
+
     fun signOut() {
         try {
             firebaseAuth?.signOut()

@@ -360,6 +360,38 @@ class FirebaseFunctionsClient {
         }
     }
 
+    /** Send a 6-digit email OTP to [email] (functions/src/auth/emailOtp.ts). */
+    suspend fun sendEmailOtp(email: String): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("sendEmailOtp").call(mapOf("email" to email)).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "sendEmailOtp failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Verifies the OTP code the user entered and returns a Firebase custom token
+     * (functions/src/auth/emailOtp.ts). Sign in with the returned token via
+     * [FirebaseAuthService.signInWithCustomToken].
+     */
+    suspend fun verifyEmailOtp(email: String, code: String): Result<String> {
+        return try {
+            val result = functions.getHttpsCallable("verifyEmailOtp")
+                .call(mapOf("email" to email, "code" to code))
+                .await()
+            @Suppress("UNCHECKED_CAST")
+            val data = result.data as? Map<String, Any?>
+            val token = data?.get("customToken") as? String
+                ?: return Result.failure(IllegalStateException("verifyEmailOtp returned no token."))
+            Result.success(token)
+        } catch (e: Exception) {
+            Log.e(tag, "verifyEmailOtp failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     /** Request a new email verification link (functions/src/auth/emailVerification.ts). */
     suspend fun resendEmailVerification(): Result<Unit> {
         return try {

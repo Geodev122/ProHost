@@ -16,7 +16,7 @@ export interface UserContext {
 
 // ─── Base layout ────────────────────────────────────────────────────────────
 
-function layout(title: string, body: string): string {
+export function layout(title: string, body: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>

@@ -1,10 +1,7 @@
 package com.example.ui.screens
 
-import android.Manifest
 import android.app.Activity
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -49,7 +46,7 @@ import kotlinx.coroutines.launch
  * Every ProHost account — new or returning — now goes through email/Google first:
  *  1. EMAIL_ENTRY — enter an email or tap "Continue with Google". The email is looked
  *     up to determine whether it's new, has a magic-link flow, or has Google.
- *  2. EMAIL_SENT — magic-link sent; waiting for the user to tap it.
+ *  2. EMAIL_OTP — 6-digit code sent; user enters it in-app.
  *  3. REGISTRATION_FORM — shown only when the verified identity turns out to be brand
  *     new (Firebase's own isNewUser decides, never a guess made before verification).
  *
@@ -57,20 +54,13 @@ import kotlinx.coroutines.launch
  * "Use phone number instead" from EMAIL_ENTRY. No forced migration.
  *  PHONE_ENTRY → OTP_ENTRY → (brand-new number only) REGISTRATION_FORM
  */
-private enum class AuthStep { EMAIL_ENTRY, EMAIL_SENT, PHONE_ENTRY, OTP_ENTRY, REGISTRATION_FORM }
+private enum class AuthStep { EMAIL_ENTRY, EMAIL_OTP, PHONE_ENTRY, OTP_ENTRY, REGISTRATION_FORM }
 
 /** Matches Firebase Phone Auth's own typical SMS-resend throttling window. */
 private const val OTP_RESEND_COOLDOWN_SECONDS = 30
 
 /** Email resend cooldown: slightly longer than OTP to match email-provider rate limits. */
 private const val EMAIL_RESEND_COOLDOWN_SECONDS = 60
-
-/**
- * The URL the email sign-in link returns to. Must be handled by the app as an App Link
- * (see MainActivity.handleIncomingIntent). The specific path is registered in the
- * Firebase Console under Authentication → Sign-in methods → Email/Password → Email link.
- */
-private const val EMAIL_SIGN_IN_CONTINUE_URL = "https://pro-host.tech/emailsignin"
 
 // Savers for rememberSaveable — process death would otherwise lose all in-progress state.
 private val AuthStepSaver = Saver<AuthStep, String>(
@@ -81,11 +71,6 @@ private val AuthStepSaver = Saver<AuthStep, String>(
 private val CountrySaver = Saver<com.example.data.model.Country, String>(
     save = { it.name },
     restore = { findCountryByName(it) }
-)
-
-private val DocumentPickerStateSaver = Saver<DocumentPickerState, List<String?>>(
-    save = { listOf(it.uri?.toString(), it.fileName) },
-    restore = { DocumentPickerState(it.getOrNull(0)?.let(Uri::parse), it.getOrNull(1)) }
 )
 
 private fun android.content.Context.findActivity(): Activity? {
@@ -129,6 +114,11 @@ fun LoginAuthScreen(
     // Credential Manager for Google One Tap
     val credentialManager = remember { CredentialManager.create(context) }
 
+    // Pre-fill values extracted from Google credential — applied to the registration form
+    // via LaunchedEffect(step) below, after regFullName/regProfilePicUri are initialized.
+    var prefillGoogleName by rememberSaveable { mutableStateOf("") }
+    var prefillGooglePictureUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+
     // Launches Google One Tap credential picker
     fun launchGoogleSignIn() {
         coroutineScope.launch {
@@ -146,13 +136,22 @@ fun LoginAuthScreen(
                     credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
                 ) {
                     val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                    val googleName = googleIdTokenCredential.displayName
+                        ?: "${googleIdTokenCredential.givenName.orEmpty()} ${googleIdTokenCredential.familyName.orEmpty()}".trim()
+                    val googlePictureUri = googleIdTokenCredential.profilePictureUri
                     val currentActivity = activity
                     if (currentActivity != null) {
                         authViewModel.startGoogleSignIn(
                             activity = currentActivity,
                             googleIdToken = googleIdTokenCredential.idToken
                         ) { needsRegistration ->
-                            if (needsRegistration) step = AuthStep.REGISTRATION_FORM else onLoginSuccess()
+                            if (needsRegistration) {
+                                prefillGoogleName = googleName
+                                prefillGooglePictureUri = googlePictureUri
+                                step = AuthStep.REGISTRATION_FORM
+                            } else {
+                                onLoginSuccess()
+                            }
                         }
                     }
                 }
@@ -162,21 +161,17 @@ fun LoginAuthScreen(
         }
     }
 
-    // React to email lookup results: send the magic link or trigger Google sign-in
+    // React to email lookup results: send an OTP or trigger Google sign-in
     LaunchedEffect(emailLookupResult) {
         when (emailLookupResult) {
             AuthViewModel.EmailLookupResult.NEW_USER,
             AuthViewModel.EmailLookupResult.HAS_EMAIL -> {
-                // Send magic-link and advance to EMAIL_SENT
-                authViewModel.sendEmailSignInLink(
-                    email = emailInput.trim().lowercase(),
-                    continueUrl = EMAIL_SIGN_IN_CONTINUE_URL
-                ) { sent ->
+                // Send 6-digit OTP to email and advance to EMAIL_OTP entry step
+                authViewModel.sendEmailOtp(email = emailInput.trim().lowercase()) { sent ->
                     if (sent) {
                         emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
-                        step = AuthStep.EMAIL_SENT
+                        step = AuthStep.EMAIL_OTP
                     }
-                    // If send fails, authErrorMessage will be set (or no message — user stays on EMAIL_ENTRY)
                 }
             }
             AuthViewModel.EmailLookupResult.HAS_GOOGLE -> {
@@ -190,32 +185,14 @@ fun LoginAuthScreen(
     // --- Phone entry state (legacy parallel path) ---
     var phoneCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
     var phoneNumber by rememberSaveable { mutableStateOf("") }
-    var hasAutoDetectedCountry by rememberSaveable { mutableStateOf(false) }
-
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) {
-        coroutineScope.launch {
-            if (!hasAutoDetectedCountry) {
-                phoneCountry = PhoneCountryDetector.detectCountry(context)
-                hasAutoDetectedCountry = true
-            }
-        }
-    }
 
     LaunchedEffect(Unit) {
-        if (!PhoneCountryDetector.hasLocationPermission(context)) {
-            locationPermissionLauncher.launch(
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-            )
-        }
-        if (!hasAutoDetectedCountry) {
-            phoneCountry = PhoneCountryDetector.detectCountry(context)
-            hasAutoDetectedCountry = true
-        }
+        // MainActivity already requests all permissions; detect country using available signals
+        // (SIM/locale — no duplicate permission request here).
+        phoneCountry = PhoneCountryDetector.detectCountry(context)
     }
 
-    // --- OTP entry state ---
+    // --- OTP entry state (phone SMS) ---
     var otpCode by rememberSaveable { mutableStateOf("") }
     var resendCountdownSeconds by rememberSaveable { mutableStateOf(0) }
     LaunchedEffect(resendCountdownSeconds) {
@@ -225,11 +202,13 @@ fun LoginAuthScreen(
         }
     }
 
+    // --- Email OTP entry state ---
+    var emailOtpCode by rememberSaveable { mutableStateOf("") }
+
     // --- Registration form state ---
     var regProfilePicUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     var regFullName by rememberSaveable { mutableStateOf("") }
     var regSpecialty by rememberSaveable { mutableStateOf("") }
-    var regIdDocState by rememberSaveable(stateSaver = DocumentPickerStateSaver) { mutableStateOf(DocumentPickerState()) }
     var regCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
     var regGovernorateArea by rememberSaveable { mutableStateOf("") }
     var regCity by rememberSaveable { mutableStateOf("") }
@@ -243,6 +222,14 @@ fun LoginAuthScreen(
     var showLegalDocument by remember { mutableStateOf<com.example.legal.LegalDocument?>(null) }
 
     val verifiedPhoneE164 = resumePhoneE164 ?: com.example.data.model.formatToE164(phoneCountry, phoneNumber)
+
+    // Apply Google One Tap pre-fill when the registration form opens after Google sign-in.
+    LaunchedEffect(step) {
+        if (step == AuthStep.REGISTRATION_FORM) {
+            if (prefillGoogleName.isNotBlank() && regFullName.isBlank()) regFullName = prefillGoogleName
+            if (prefillGooglePictureUri != null && regProfilePicUri == null) regProfilePicUri = prefillGooglePictureUri
+        }
+    }
 
     fun goToRegistrationForm() {
         localErrorMessage = null
@@ -421,7 +408,7 @@ fun LoginAuthScreen(
 
             }
 
-            AuthStep.EMAIL_SENT -> ModernCard(
+            AuthStep.EMAIL_OTP -> ModernCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(20.dp),
@@ -429,70 +416,108 @@ fun LoginAuthScreen(
             ) {
                 AuthStepHeader(
                     icon = Icons.Default.MarkEmailRead,
-                    title = "Check your inbox",
-                    subtitle = "We sent a sign-in link to $pendingEmail. Tap the link to continue.",
+                    title = "Check your email",
+                    subtitle = "We sent a 6-digit code to $pendingEmail. Enter it below.",
                     isBusy = isAuthenticating
                 )
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
+                InputField(
+                    value = emailOtpCode,
+                    onValueChange = { emailOtpCode = it.filter { c -> c.isDigit() }.take(6) },
+                    label = "6-Digit Code",
+                    leadingIcon = Icons.Default.Sms,
+                    modifier = Modifier.fillMaxWidth().testTag("email_otp_input"),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    singleLine = true
+                )
+
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = LebaneseCedarGreen,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Do not share this code with anyone.",
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
+
+                ProPrimaryButton(
+                    text = if (isAuthenticating) "Verifying..." else "Verify Code",
+                    onClick = {
+                        val currentActivity = activity
+                        if (currentActivity == null) {
+                            localErrorMessage = "Unable to verify right now."
+                            return@ProPrimaryButton
+                        }
+                        if (emailOtpCode.length < 6) {
+                            localErrorMessage = "Please enter the 6-digit code"
+                            return@ProPrimaryButton
+                        }
+                        authViewModel.verifyEmailOtpCode(
+                            activity = currentActivity,
+                            email = pendingEmail,
+                            code = emailOtpCode
+                        ) { needsRegistration ->
+                            if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
+                        }
+                    },
+                    enabled = !isAuthenticating,
+                    icon = Icons.Default.CheckCircle,
+                    modifier = Modifier.fillMaxWidth().testTag("submit_email_otp_button")
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.sm))
+
                 if (emailResendCountdownSeconds > 0) {
                     Text(
-                        text = "Resend email in ${emailResendCountdownSeconds}s",
+                        text = "Resend code in ${emailResendCountdownSeconds}s",
                         fontSize = MaterialTheme.typography.labelMedium.fontSize,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 } else {
-                    ProPrimaryButton(
-                        text = if (isAuthenticating) "Sending..." else "Resend email",
+                    TextButton(
                         onClick = {
-                            authViewModel.sendEmailSignInLink(
-                                email = pendingEmail,
-                                continueUrl = EMAIL_SIGN_IN_CONTINUE_URL
-                            ) { sent ->
-                                if (sent) emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
+                            localErrorMessage = null
+                            authViewModel.sendEmailOtp(email = pendingEmail) { sent ->
+                                if (sent) {
+                                    emailOtpCode = ""
+                                    emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
+                                }
                             }
                         },
                         enabled = !isAuthenticating,
-                        icon = Icons.Default.Send,
                         modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.md))
-
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = MaterialTheme.shapes.medium,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(Spacing.md),
-                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Didn't get it? Check spam or try a different sign-in method.",
-                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Text("Resend Code", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
                     }
                 }
-
-                Spacer(modifier = Modifier.height(Spacing.sm))
 
                 TextButton(
                     onClick = {
                         localErrorMessage = null
                         authViewModel.clearAuthMessages()
+                        emailOtpCode = ""
                         step = AuthStep.EMAIL_ENTRY
                     },
                     modifier = Modifier.fillMaxWidth()
@@ -859,17 +884,6 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                DocumentPickerField(
-                    label = "ID Document (National ID / Passport)",
-                    helperText = "Kept on file to verify your identity — PDF, JPG, or PNG",
-                    state = regIdDocState,
-                    onStateChanged = { regIdDocState = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    required = true
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
                 CountryDropdownField(
                     selectedCountry = regCountry,
                     onCountrySelected = { regCountry = it },
@@ -966,10 +980,6 @@ fun LoginAuthScreen(
                             // The server will reject with an error message if email is truly required.
                             ""
                         }
-                        if (!regIdDocState.isSelected) {
-                            localErrorMessage = "Please upload your ID document"
-                            return@ProPrimaryButton
-                        }
                         if (regGovernorateArea.isBlank()) {
                             localErrorMessage = "Please enter your governorate / area"
                             return@ProPrimaryButton
@@ -993,7 +1003,6 @@ fun LoginAuthScreen(
                                 governorate = regGovernorateArea,
                                 city = regCity,
                                 profilePictureUri = regProfilePicUri,
-                                idDocumentUri = regIdDocState.uri,
                                 tosAccepted = tosAccepted
                             ),
                             onSuccess = onLoginSuccess

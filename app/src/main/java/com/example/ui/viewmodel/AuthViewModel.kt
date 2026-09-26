@@ -57,7 +57,7 @@ class AuthViewModel(
         val governorate: String,
         val city: String,
         val profilePictureUri: Uri?,
-        val idDocumentUri: Uri?,
+        val idDocumentUri: Uri? = null,
         // The registration form's Terms of Use / Privacy Policy checkbox must have
         // actually been checked before this reaches here — enforced client-side by
         // the form's own submit gate, and again server-side by assignInitialRole.ts,
@@ -138,6 +138,47 @@ class AuthViewModel(
             _authErrorMessage.value = null
             val authService = com.example.data.auth.FirebaseAuthService(activity)
             when (val result = authService.signInWithEmailLink(email, link)) {
+                is AuthResult.Success -> finishVerification(activity, result.isNewUser, onVerified)
+                is AuthResult.Failure -> {
+                    _authErrorMessage.value = result.message
+                    _isAuthenticating.value = false
+                }
+                else -> _isAuthenticating.value = false
+            }
+        }
+    }
+
+    /** Sends a 6-digit OTP to [email] via Cloud Function → Hostinger SMTP. */
+    fun sendEmailOtp(email: String, onSent: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            _isAuthenticating.value = true
+            val result = functionsClient.sendEmailOtp(email)
+            _isAuthenticating.value = false
+            if (result.isFailure) {
+                _authErrorMessage.value = "Failed to send code. Please try again."
+            }
+            onSent(result.isSuccess)
+        }
+    }
+
+    /** Verifies the OTP code, exchanges it for a custom token, and signs in. */
+    fun verifyEmailOtpCode(
+        activity: Activity,
+        email: String,
+        code: String,
+        onVerified: (needsRegistration: Boolean) -> Unit
+    ) {
+        viewModelScope.launch {
+            _isAuthenticating.value = true
+            _authErrorMessage.value = null
+            val tokenResult = functionsClient.verifyEmailOtp(email, code)
+            if (tokenResult.isFailure) {
+                _authErrorMessage.value = "Invalid or expired code. Please try again."
+                _isAuthenticating.value = false
+                return@launch
+            }
+            val authService = com.example.data.auth.FirebaseAuthService(activity)
+            when (val result = authService.signInWithCustomToken(tokenResult.getOrThrow())) {
                 is AuthResult.Success -> finishVerification(activity, result.isNewUser, onVerified)
                 is AuthResult.Failure -> {
                     _authErrorMessage.value = result.message
