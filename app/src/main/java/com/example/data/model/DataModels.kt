@@ -397,6 +397,7 @@ data class Subdivision(
     val type: Level2Type,
     val imageUrls: List<String> = emptyList(),
     val amenities: List<String> = emptyList(),
+    val hashtags: List<String> = emptyList(),
     val pricing: RentalPricingConfig = RentalPricingConfig.default(),
     // Legacy, read-only: populated only when deserializing a document saved before
     // RentalPricingConfig existed and never re-saved since. New saves always leave
@@ -975,6 +976,7 @@ data class SpaceListing(
                     "type" to sub.type.name,
                     "imageUrls" to sub.imageUrls,
                     "amenities" to sub.amenities,
+                    "hashtags" to sub.hashtags,
                     "pricing" to sub.pricing.toFirestoreMap(),
                     "rentalStrategies" to sub.rentalStrategies.map { strat ->
                         mapOf(
@@ -1107,6 +1109,7 @@ data class SpaceListing(
                         type = lvlType,
                         imageUrls = (sMap["imageUrls"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                         amenities = (sMap["amenities"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                        hashtags = (sMap["hashtags"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                         pricing = subPricing,
                         rentalStrategies = stratsList,
                         scheduleOverride = SpaceOperatingSchedule.fromFirestoreMap(sMap["scheduleOverride"] as? Map<*, *>)

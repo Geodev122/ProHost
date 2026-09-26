@@ -77,6 +77,8 @@ fun SubdivisionEditorSection(
     // just follows the whole space's own SpaceOperatingSchedule (the common case).
     // Turning it on seeds from the space's current hours/days so the host is editing
     // a delta (e.g. "this exam room closes at 17:00, not 20:00"), not starting blank.
+    var subHashtags by remember { mutableStateOf(listOf<String>()) }
+    var hashtagInput by remember { mutableStateOf("") }
     var subScheduleOverrideEnabled by remember { mutableStateOf(false) }
     var subOverrideOpeningHour by remember { mutableStateOf(openingHour) }
     var subOverrideClosingHour by remember { mutableStateOf(closingHour) }
@@ -109,6 +111,8 @@ fun SubdivisionEditorSection(
         subName = ""
         subType = Level2Type.ROOMS
         subAmenitiesSelected = emptySet()
+        subHashtags = emptyList()
+        hashtagInput = ""
         subImageUrls = emptyList()
         subPricing = RentalPricingConfig.default()
         subScheduleOverrideEnabled = false
@@ -130,6 +134,7 @@ fun SubdivisionEditorSection(
         type = subType,
         imageUrls = subImageUrls,
         amenities = subAmenitiesSelected.toList(),
+        hashtags = subHashtags,
         pricing = subPricing,
         scheduleOverride = if (subScheduleOverrideEnabled) {
             SpaceOperatingSchedule(
@@ -242,6 +247,8 @@ fun SubdivisionEditorSection(
                                             subName = sub.name
                                             subType = sub.type
                                             subAmenitiesSelected = sub.amenities.toSet()
+                                            subHashtags = sub.hashtags
+                                            hashtagInput = ""
                                             subImageUrls = sub.imageUrls
                                             subPricing = sub.pricing
                                             val override = sub.scheduleOverride
@@ -389,6 +396,60 @@ fun SubdivisionEditorSection(
                     placeholder = "Choose amenities",
                     onClick = { showAmenityPicker = true }
                 )
+
+                Text("Hashtags", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = hashtagInput,
+                        onValueChange = { hashtagInput = it.trimStart('#').replace(" ", "") },
+                        label = { Text("Add hashtag (e.g. cardiology)") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = {
+                            val tag = hashtagInput.trim().trimStart('#')
+                            if (tag.isNotBlank() && !subHashtags.contains(tag)) {
+                                subHashtags = subHashtags + tag
+                            }
+                            hashtagInput = ""
+                        },
+                        enabled = hashtagInput.trim().isNotBlank()
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add hashtag")
+                    }
+                }
+                if (subHashtags.isNotEmpty()) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                        items(subHashtags) { tag ->
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = MaterialTheme.shapes.extraSmall
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(start = 8.dp, end = 4.dp, top = 2.dp, bottom = 2.dp)
+                                ) {
+                                    Text(
+                                        "#$tag",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    IconButton(
+                                        onClick = { subHashtags = subHashtags - tag },
+                                        modifier = Modifier.size(16.dp)
+                                    ) {
+                                        Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(12.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
