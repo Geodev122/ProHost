@@ -982,6 +982,27 @@ fun CreateListingDialog(
                                 }
 
                                 if (hasSubdivisions) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                        shape = MaterialTheme.shapes.medium,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(Spacing.md),
+                                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                                Icon(Icons.Default.Dashboard, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                                Text("Space-level (Steps 1 & 2): Name · Location · Facilities · Equipment · Rules", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                            }
+                                            HorizontalDivider(color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.2f))
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                                Icon(Icons.Default.MeetingRoom, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                                                Text("Per-subdivision (this step): Room name · Type · Amenities · Photos · Pricing", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                            }
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(Spacing.sm))
                                     SubdivisionEditorSection(
                                         spaceId = listingId,
                                         subdivisionsList = subdivisionsList,

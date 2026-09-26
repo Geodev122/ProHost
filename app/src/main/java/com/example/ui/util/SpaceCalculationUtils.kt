@@ -362,8 +362,8 @@ object SpaceCalculationUtils {
      */
     fun rateUnitLabel(type: RentalFormulaType): String = when (type) {
         RentalFormulaType.HOURLY -> "/hr"
-        RentalFormulaType.SHIFT,
-        RentalFormulaType.DAY_PER_WEEK,
+        RentalFormulaType.SHIFT -> "/shift"
+        RentalFormulaType.DAY_PER_WEEK -> "/day"
         RentalFormulaType.FULL_MONTH -> "/mo"
     }
 
@@ -378,6 +378,25 @@ object SpaceCalculationUtils {
         RentalStrategyType.HOURLY -> RentalFormulaType.HOURLY
         RentalStrategyType.SHIFT_BASED -> RentalFormulaType.SHIFT
         RentalStrategyType.DAY_BASED -> RentalFormulaType.DAY_PER_WEEK
+    }
+
+    /**
+     * Returns the lowest configured price for a space and its correct unit label
+     * (e.g. 8.0 to "/hr", 25.0 to "/shift"). Used wherever a single summary price
+     * is needed — listing cards, detail screen fallback — so all callers show real
+     * data rather than a static baseMonthlyRateUsd/mo regardless of strategy.
+     */
+    fun lowestPriceSummary(space: com.example.data.model.SpaceListing): Pair<Double, String> {
+        val slots = buildAllSlotsForSpace(space)
+        val cheapest = slots
+            .mapNotNull { slot ->
+                val price = slot.pricesByRecurrence[BookingRecurrence.FLAT] ?: return@mapNotNull null
+                val strategyType = slot.strategyType ?: return@mapNotNull null
+                val unit = rateUnitLabel(legacyFormulaType(strategyType))
+                price to unit
+            }
+            .minByOrNull { (price, _) -> price }
+        return cheapest ?: (space.baseMonthlyRateUsd to "/mo")
     }
 
     /**

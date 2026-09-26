@@ -44,6 +44,7 @@ import com.example.ui.components.*
 import com.example.ui.state.AdminUiEvent
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AdminViewModel
+import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
 import kotlinx.coroutines.flow.collectLatest
 import java.text.SimpleDateFormat
@@ -1200,8 +1201,9 @@ private fun AdminListingsCatalogTab(
                             )
                         }
 
+                        val (adminLowestPrice, adminLowestUnit) = remember(space) { SpaceCalculationUtils.lowestPriceSummary(space) }
                         Text(
-                            text = "$${space.baseMonthlyRateUsd.toInt()}/mo",
+                            text = "$${adminLowestPrice.toInt()}$adminLowestUnit",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.primary

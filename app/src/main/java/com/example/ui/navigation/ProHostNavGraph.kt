@@ -409,7 +409,7 @@ fun ProHostAppRoot(
                                     scope.launch { drawerState.close() }
                                 },
                                 onDrawerAction = { actionId ->
-                                    activeDrawerTabDialog = actionId
+                                    if (actionId != "close") activeDrawerTabDialog = actionId
                                     scope.launch { drawerState.close() }
                                 },
                                 onSignOut = {
@@ -429,7 +429,7 @@ fun ProHostAppRoot(
                                     scope.launch { drawerState.close() }
                                 },
                                 onDrawerAction = { actionId ->
-                                    activeDrawerTabDialog = actionId
+                                    if (actionId != "close") activeDrawerTabDialog = actionId
                                     scope.launch { drawerState.close() }
                                 },
                                 onSignOut = {

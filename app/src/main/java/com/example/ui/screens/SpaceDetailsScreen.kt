@@ -263,8 +263,9 @@ fun SpaceDetailsScreenContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            val price = selectedFormula?.rateUsd ?: liveSpace.baseMonthlyRateUsd
-                            val priceUnit = selectedFormula?.let { SpaceCalculationUtils.rateUnitLabel(it.type) } ?: "/mo"
+                            val (fallbackPrice, fallbackUnit) = remember(liveSpace) { SpaceCalculationUtils.lowestPriceSummary(liveSpace) }
+                            val price = selectedFormula?.rateUsd ?: fallbackPrice
+                            val priceUnit = selectedFormula?.let { SpaceCalculationUtils.rateUnitLabel(it.type) } ?: fallbackUnit
                             Text(
                                 text = "$${price.toInt()} USD$priceUnit",
                                 style = MaterialTheme.typography.headlineSmall,

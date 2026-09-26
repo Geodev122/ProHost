@@ -23,6 +23,7 @@ import com.example.data.model.ListingStatus
 import com.example.data.model.SpaceListing
 import com.example.ui.components.*
 import com.example.ui.theme.*
+import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
 import java.util.Calendar
 
@@ -319,6 +320,7 @@ fun DisciplineDemandBar(name: String, percentage: Int, color: Color) {
 
 @Composable
 fun ListingHealthCard(space: SpaceListing) {
+    val (lowestPrice, lowestUnit) = remember(space) { SpaceCalculationUtils.lowestPriceSummary(space) }
     ProSurfaceCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -354,7 +356,7 @@ fun ListingHealthCard(space: SpaceListing) {
                         maxLines = 1
                     )
                     Text(
-                        text = "${space.district} • $${space.baseMonthlyRateUsd.toInt()}/mo",
+                        text = "${space.district} • $${lowestPrice.toInt()}$lowestUnit",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

@@ -23,7 +23,7 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
-import com.example.ui.theme.Spacing
+import com.example.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -103,8 +103,13 @@ fun SubdivisionEditorSection(
     // this tracks the in-progress edit so the "Add" button can become "Save
     // Changes" and commit a replacement instead of an append.
     var editingSubdivisionIndex by remember { mutableStateOf<Int?>(null) }
+    var justSaved by remember { mutableStateOf(false) }
 
     val isSubFormValid = subName.isNotBlank() && subPricing.hasRealPrice()
+
+    LaunchedEffect(editingSubdivisionIndex) {
+        if (editingSubdivisionIndex != null) justSaved = false
+    }
 
     fun resetSubdivisionForm() {
         editingSubdivisionIndex = null
@@ -703,20 +708,52 @@ fun SubdivisionEditorSection(
                     Text("Cancel & Add New Room", style = MaterialTheme.typography.labelMedium)
                 }
             }
+        } else if (justSaved) {
+            Surface(
+                color = StatusSuccessContainer,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = null, tint = StatusSuccess, modifier = Modifier.size(16.dp))
+                    Text("Room saved", style = MaterialTheme.typography.labelMedium, color = StatusSuccess, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            Button(
+                onClick = { resetSubdivisionForm(); justSaved = false },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Text("Add Another Room", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            }
+            OutlinedButton(
+                onClick = { justSaved = false },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text("Done Adding Rooms", style = MaterialTheme.typography.labelLarge)
+            }
         } else {
             Button(
                 onClick = {
                     val newSub = buildCurrentSubdivision()
                     onSubdivisionsChange(subdivisionsList + newSub)
-                    resetSubdivisionForm()
+                    justSaved = true
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = isSubFormValid,
                 shape = MaterialTheme.shapes.medium
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
+                Icon(Icons.Default.Save, contentDescription = null)
                 Spacer(modifier = Modifier.width(Spacing.sm))
-                Text("Add Room to Listing", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text("Save Room", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
         }
     }
