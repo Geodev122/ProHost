@@ -492,6 +492,26 @@ class ProHostViewModel(
         viewModelScope.launch { _topHashtags.value = repository.fetchTopHashtags() }
     }
 
+    fun addUserSuggestedSchemaItem(
+        category: String,
+        name: String,
+        scopedToIds: List<String> = emptyList(),
+        amenityGroup: String = ""
+    ) {
+        val trimmed = name.trim()
+        if (trimmed.isBlank()) return
+        val item = SchemaItem(
+            id = "USR-" + category.take(3) + "-" + System.currentTimeMillis().toString().takeLast(6),
+            name = trimmed,
+            category = category,
+            isSystemDefault = false,
+            isEnabled = true,
+            scopedToIds = scopedToIds,
+            amenityGroup = amenityGroup
+        )
+        viewModelScope.launch { repository.addUserSuggestedSchemaItem(item) }
+    }
+
     // --- Space Owner Listing Creation ---
     suspend fun createNewSpaceListing(listing: SpaceListing): ListingCreateResult {
         val user = currentUser.value

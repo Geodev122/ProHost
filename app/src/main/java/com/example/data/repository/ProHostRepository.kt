@@ -839,11 +839,11 @@ class ProHostRepository {
     suspend fun addSchemaItem(item: SchemaItem): Boolean {
         val current = _spaceArchitectureSchema.value
         val updated = when (item.category) {
-            "SPACE_TYPE" -> current.copy(spaceTypes = current.spaceTypes + item)
-            "SUBCATEGORY" -> current.copy(subcategories = current.subcategories + item)
-            "AMENITY" -> current.copy(amenities = current.amenities + item)
-            "EQUIPMENT" -> current.copy(equipmentCategories = current.equipmentCategories + item)
-            "RENTAL_STRATEGY" -> current.copy(rentalStrategies = current.rentalStrategies + item)
+            SchemaCategory.SPACE_TYPE -> current.copy(spaceTypes = current.spaceTypes + item)
+            SchemaCategory.DIVISION_TYPE -> current.copy(divisionTypes = current.divisionTypes + item)
+            SchemaCategory.FACILITY -> current.copy(facilities = current.facilities + item)
+            SchemaCategory.AMENITY -> current.copy(amenities = current.amenities + item)
+            SchemaCategory.RENTAL_STRATEGY -> current.copy(rentalStrategies = current.rentalStrategies + item)
             else -> current
         }
         val success = firestoreService.saveSchema(updated)
@@ -886,12 +886,13 @@ class ProHostRepository {
 
     suspend fun toggleSchemaItem(itemId: String): Boolean {
         val current = _spaceArchitectureSchema.value
+        fun <T : Any> List<SchemaItem>.tog() = map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it }
         val updated = current.copy(
-            spaceTypes = current.spaceTypes.map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it },
-            subcategories = current.subcategories.map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it },
-            amenities = current.amenities.map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it },
-            equipmentCategories = current.equipmentCategories.map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it },
-            rentalStrategies = current.rentalStrategies.map { if (it.id == itemId) it.copy(isEnabled = !it.isEnabled) else it }
+            spaceTypes = current.spaceTypes.tog(),
+            divisionTypes = current.divisionTypes.tog(),
+            facilities = current.facilities.tog(),
+            amenities = current.amenities.tog(),
+            rentalStrategies = current.rentalStrategies.tog()
         )
         val success = firestoreService.saveSchema(updated)
         if (success) {
@@ -909,9 +910,9 @@ class ProHostRepository {
         val current = _spaceArchitectureSchema.value
         val updated = current.copy(
             spaceTypes = current.spaceTypes.filterNot { it.id == itemId },
-            subcategories = current.subcategories.filterNot { it.id == itemId },
+            divisionTypes = current.divisionTypes.filterNot { it.id == itemId },
+            facilities = current.facilities.filterNot { it.id == itemId },
             amenities = current.amenities.filterNot { it.id == itemId },
-            equipmentCategories = current.equipmentCategories.filterNot { it.id == itemId },
             rentalStrategies = current.rentalStrategies.filterNot { it.id == itemId }
         )
         val success = firestoreService.saveSchema(updated)
@@ -943,43 +944,98 @@ class ProHostRepository {
     private fun createDefaultSchema(): SpaceArchitectureSchema {
         return SpaceArchitectureSchema(
             spaceTypes = listOf(
-                SchemaItem("ST-01", "Private Office", "Dedicated self-contained lockable office suites", "SPACE_TYPE", "Apartment"),
-                SchemaItem("ST-02", "Center", "Multi-disciplinary center / medical polyclinic compound", "SPACE_TYPE", "Business"),
-                SchemaItem("ST-03", "Polyclinic", "Certified medical examination rooms & clinical facilities", "SPACE_TYPE", "LocalHospital"),
-                SchemaItem("ST-04", "Co-working Space", "Open collaborative desks and flexible shared work hubs", "SPACE_TYPE", "Groups"),
-                SchemaItem("ST-05", "Executive Boardroom", "High-profile executive meeting and conference suites", "SPACE_TYPE", "MeetingRoom"),
-                SchemaItem("ST-06", "Consultation Suite", "Acoustically isolated private consultation rooms", "SPACE_TYPE", "Psychology")
+                SchemaItem("ST-01", "Private Office", "Dedicated self-contained lockable office suites", SchemaCategory.SPACE_TYPE, "Apartment"),
+                SchemaItem("ST-02", "Center", "Multi-disciplinary center / medical polyclinic compound", SchemaCategory.SPACE_TYPE, "Business"),
+                SchemaItem("ST-03", "Polyclinic", "Certified medical examination rooms & clinical facilities", SchemaCategory.SPACE_TYPE, "LocalHospital"),
+                SchemaItem("ST-04", "Co-working Space", "Open collaborative desks and flexible shared work hubs", SchemaCategory.SPACE_TYPE, "Groups"),
+                SchemaItem("ST-05", "Executive Boardroom", "High-profile executive meeting and conference suites", SchemaCategory.SPACE_TYPE, "MeetingRoom"),
+                SchemaItem("ST-06", "Consultation Suite", "Acoustically isolated private consultation rooms", SchemaCategory.SPACE_TYPE, "Psychology")
             ),
-            subcategories = listOf(
-                SchemaItem("SUB-01", "Rooms / Dedicated Suites", "Independent private room within premises", "SUBCATEGORY", "MeetingRoom"),
-                SchemaItem("SUB-02", "Conference Room", "Equipped boardroom with presentation hardware", "SUBCATEGORY", "CoPresent"),
-                SchemaItem("SUB-03", "Theater / Training Room", "High-capacity seminar and workshop hall", "SUBCATEGORY", "School"),
-                SchemaItem("SUB-04", "Desk in Shared Area", "Dedicated hot desk with ergonomic seating", "SUBCATEGORY", "Desk"),
-                SchemaItem("SUB-05", "Clinical Booth", "Sanitized treatment station with examination bed", "SUBCATEGORY", "MedicalServices")
+            divisionTypes = listOf(
+                SchemaItem("DT-01", "Room / Dedicated Suite", "Independent private room within premises", SchemaCategory.DIVISION_TYPE, "MeetingRoom"),
+                SchemaItem("DT-02", "Office", "Self-contained private office unit", SchemaCategory.DIVISION_TYPE, "Business"),
+                SchemaItem("DT-03", "Conference Room", "Equipped boardroom with presentation hardware", SchemaCategory.DIVISION_TYPE, "CoPresent"),
+                SchemaItem("DT-04", "Theater / Training Room", "High-capacity seminar and workshop hall", SchemaCategory.DIVISION_TYPE, "School"),
+                SchemaItem("DT-05", "Desk in Shared Area", "Dedicated hot desk with ergonomic seating", SchemaCategory.DIVISION_TYPE, "Desk"),
+                SchemaItem("DT-06", "Gym", "Exercise and fitness facility", SchemaCategory.DIVISION_TYPE, "FitnessCenter"),
+                SchemaItem("DT-07", "Studio", "Creative or media production studio", SchemaCategory.DIVISION_TYPE, "Videocam"),
+                SchemaItem("DT-08", "Storage", "Secure storage or archive space", SchemaCategory.DIVISION_TYPE, "Inventory2"),
+                SchemaItem("DT-09", "Clinical Booth", "Sanitized treatment station with examination bed", SchemaCategory.DIVISION_TYPE, "MedicalServices"),
+                SchemaItem("DT-10", "Sports Area", "Multi-purpose sports or rehabilitation zone", SchemaCategory.DIVISION_TYPE, "SportsSoccer")
+            ),
+            facilities = listOf(
+                SchemaItem("FAC-01", "24/7 Solar & Generator Backup", "Continuous uninterrupted power supply across Lebanon", SchemaCategory.FACILITY, "Bolt"),
+                SchemaItem("FAC-02", "High-Speed Fiber Wi-Fi (100+ Mbps)", "Redundant ultra-fast Internet with backup 4G router", SchemaCategory.FACILITY, "Wifi"),
+                SchemaItem("FAC-03", "Receptionist & Front Desk Support", "Professional greeting for visiting clients and patients", SchemaCategory.FACILITY, "SupportAgent"),
+                SchemaItem("FAC-04", "Client Waiting Lounge", "Spacious waiting area with comfortable seating", SchemaCategory.FACILITY, "Weekend"),
+                SchemaItem("FAC-05", "Kitchenette & Espresso Bar", "Complimentary Lebanese coffee, espresso, and tea", SchemaCategory.FACILITY, "Coffee"),
+                SchemaItem("FAC-06", "Elevator & Wheelchair Access", "Accessible entrance complying with Lebanese building codes", SchemaCategory.FACILITY, "Elevator"),
+                SchemaItem("FAC-07", "Dedicated Underground Parking", "Secured reserved parking bays for practitioners", SchemaCategory.FACILITY, "LocalParking"),
+                SchemaItem("FAC-08", "HVAC Climate Control", "Central air-conditioning and heating system", SchemaCategory.FACILITY, "AcUnit")
             ),
             amenities = listOf(
-                SchemaItem("AM-01", "24/7 Solar & Generator Backup", "Continuous uninterrupted power supply across Lebanon", "AMENITY", "Bolt"),
-                SchemaItem("AM-02", "High-Speed Fiber Wi-Fi (100+ Mbps)", "Redundant ultra-fast Internet with backup 4G router", "AMENITY", "Wifi"),
-                SchemaItem("AM-03", "Receptionist & Front Desk Support", "Professional greeting for visiting clients and patients", "AMENITY", "SupportAgent"),
-                SchemaItem("AM-04", "Client Waiting Lounge", "Spacious waiting area with comfortable seating", "AMENITY", "Weekend"),
-                SchemaItem("AM-05", "Kitchenette & Espresso Bar", "Complimentary Lebanese coffee, espresso, and tea", "AMENITY", "Coffee"),
-                SchemaItem("AM-06", "Elevator & Wheelchair Access", "Accessible entrance complying with Lebanese building codes", "AMENITY", "Elevator"),
-                SchemaItem("AM-07", "Smart Keycard / Digital Access", "Cryptographic digital door pass and mobile smart entry", "AMENITY", "VpnKey"),
-                SchemaItem("AM-08", "Soundproof Acoustic Isolation", "Private acoustic partitioning for confidential consultations", "AMENITY", "VolumeOff")
-            ),
-            equipmentCategories = listOf(
-                SchemaItem("EQ-01", "Workspace & Furniture", "Ergonomic executive chairs, desks, storage lockers", "EQUIPMENT", "Chair"),
-                SchemaItem("EQ-02", "IT, Tech & Presentation", "4K Smart TV displays, HDMI, Polycom video conference", "EQUIPMENT", "Tv"),
-                SchemaItem("EQ-03", "Office Amenities", "High-speed laser printer/scanner, paper shredder", "EQUIPMENT", "Print"),
-                SchemaItem("EQ-04", "Specialized Clinical Tools", "Examination beds, diagnostic lights, sterilization units", "EQUIPMENT", "MedicalInformation")
+                // Comfort
+                SchemaItem("AM-01", "A/C Climate Control", "Individual room temperature management", SchemaCategory.AMENITY, "AcUnit", amenityGroup = "Comfort"),
+                SchemaItem("AM-02", "Natural Lighting", "Large windows with natural daylight", SchemaCategory.AMENITY, "WbSunny", amenityGroup = "Comfort"),
+                SchemaItem("AM-03", "Ergonomic Seating", "Adjustable lumbar-support chairs", SchemaCategory.AMENITY, "Chair", amenityGroup = "Comfort"),
+                SchemaItem("AM-04", "Soundproofing", "Acoustic wall panels for private sessions", SchemaCategory.AMENITY, "VolumeOff", amenityGroup = "Comfort"),
+                SchemaItem("AM-05", "Standing Desk", "Height-adjustable motorized standing desk", SchemaCategory.AMENITY, "DesktopMac", amenityGroup = "Comfort"),
+                // Access
+                SchemaItem("AM-06", "Keyless Access Control", "Smart digital lock with PIN or card entry", SchemaCategory.AMENITY, "VpnKey", amenityGroup = "Access"),
+                SchemaItem("AM-07", "Privacy Partition", "Floor-to-ceiling sliding partition screen", SchemaCategory.AMENITY, "TableRows", amenityGroup = "Access"),
+                SchemaItem("AM-08", "Storage Locker", "Personal lockable storage compartment", SchemaCategory.AMENITY, "Lock", amenityGroup = "Access"),
+                // Tech
+                SchemaItem("AM-09", "High-Speed Wi-Fi", "Dedicated fiber broadband access point", SchemaCategory.AMENITY, "Wifi", amenityGroup = "Tech"),
+                SchemaItem("AM-10", "Dual-Monitor Setup", "Two full-HD monitors with HDMI dock", SchemaCategory.AMENITY, "Monitor", amenityGroup = "Tech"),
+                SchemaItem("AM-11", "Whiteboard / Presentation Kit", "Magnetic glass board with HDMI screen", SchemaCategory.AMENITY, "PresentToAll", amenityGroup = "Tech"),
+                // Equipment
+                SchemaItem("AM-12", "Motorized Standing Desk & Ergonomic Chair", "Programmable height desk with lumbar chair", SchemaCategory.AMENITY, "DesktopMac", amenityGroup = "Equipment"),
+                SchemaItem("AM-13", "Executive Conference Table (Seats 8)", "Oval boardroom table for 8 with cable channels", SchemaCategory.AMENITY, "TableBar", amenityGroup = "Equipment"),
+                SchemaItem("AM-14", "4K Ultra-HD Presentation Screen", "86\" 4K commercial display with Apple TV", SchemaCategory.AMENITY, "Tv", amenityGroup = "Equipment"),
+                SchemaItem("AM-15", "High-Speed Laser Printer / Scanner", "A3/A4 mono laser MFP, 45 ppm", SchemaCategory.AMENITY, "Print", amenityGroup = "Equipment"),
+                SchemaItem("AM-16", "Video Conferencing Camera & Mic Pod", "360° auto-tracking camera with full-duplex pod", SchemaCategory.AMENITY, "Videocam", amenityGroup = "Equipment"),
+                SchemaItem("AM-17", "Studio Softbox Lighting Kit", "2× 150W softbox stands with diffusers", SchemaCategory.AMENITY, "LightMode", amenityGroup = "Equipment"),
+                SchemaItem("AM-18", "Soundproof Acoustic Booth", "Freestanding vocal isolation booth", SchemaCategory.AMENITY, "VolumeOff", amenityGroup = "Equipment"),
+                SchemaItem("AM-19", "Workstation PC Dual-Monitor Setup", "Intel i9 workstation, 32 GB RAM, dual 27\" 4K", SchemaCategory.AMENITY, "Computer", amenityGroup = "Equipment"),
+                SchemaItem("AM-20", "Magnetic Glass Presentation Whiteboard", "Floor-mounted magnetic glass writing surface", SchemaCategory.AMENITY, "PresentToAll", amenityGroup = "Equipment"),
+                // Clinical
+                SchemaItem("AM-21", "Examination Bed & Lighting", "Height-adjustable clinical bed with overhead light", SchemaCategory.AMENITY, "MedicalInformation", amenityGroup = "Clinical", scopedToIds = listOf("DT-09")),
+                SchemaItem("AM-22", "Diagnostic Equipment Station", "Sphygmomanometer, oximeter, ECG station", SchemaCategory.AMENITY, "Biotech", amenityGroup = "Clinical", scopedToIds = listOf("DT-09")),
+                SchemaItem("AM-23", "Sterilization & Biohazard Unit", "Medical-grade autoclave and sharps disposal", SchemaCategory.AMENITY, "Sanitizer", amenityGroup = "Clinical", scopedToIds = listOf("DT-09"))
             ),
             rentalStrategies = listOf(
-                SchemaItem("RS-01", "Full Month (Exclusive)", "Continuous 30-day dedicated exclusive workspace lease", "RENTAL_STRATEGY", "CalendarMonth"),
-                SchemaItem("RS-02", "Shift-Based (Morning / Afternoon)", "Scheduled time blocks (e.g. 08:00 - 13:00 or 14:00 - 19:00)", "RENTAL_STRATEGY", "Schedule"),
-                SchemaItem("RS-03", "Day-per-Week Basis", "Recurring weekly dedicated days (e.g. Every Tue & Thu)", "RENTAL_STRATEGY", "DateRange"),
-                SchemaItem("RS-04", "Hourly / On-Demand Slot", "Flexible hourly pass with 2-hour minimum booking", "RENTAL_STRATEGY", "Timelapse")
+                SchemaItem("RS-01", "Full Month (Exclusive)", "Continuous 30-day dedicated exclusive workspace lease", SchemaCategory.RENTAL_STRATEGY, "CalendarMonth"),
+                SchemaItem("RS-02", "Shift-Based (Morning / Afternoon)", "Scheduled time blocks (e.g. 08:00–13:00 or 14:00–19:00)", SchemaCategory.RENTAL_STRATEGY, "Schedule"),
+                SchemaItem("RS-03", "Day-per-Week Basis", "Recurring weekly dedicated days (e.g. Every Tue & Thu)", SchemaCategory.RENTAL_STRATEGY, "DateRange"),
+                SchemaItem("RS-04", "Hourly / On-Demand Slot", "Flexible hourly pass with 2-hour minimum booking", SchemaCategory.RENTAL_STRATEGY, "Timelapse")
             )
         )
+    }
+
+    suspend fun updateSchemaItem(item: SchemaItem): Boolean {
+        val current = _spaceArchitectureSchema.value
+        fun List<SchemaItem>.replace() = map { if (it.id == item.id) item else it }
+        val updated = when (item.category) {
+            SchemaCategory.SPACE_TYPE -> current.copy(spaceTypes = current.spaceTypes.replace())
+            SchemaCategory.DIVISION_TYPE -> current.copy(divisionTypes = current.divisionTypes.replace())
+            SchemaCategory.FACILITY -> current.copy(facilities = current.facilities.replace())
+            SchemaCategory.AMENITY -> current.copy(amenities = current.amenities.replace())
+            SchemaCategory.RENTAL_STRATEGY -> current.copy(rentalStrategies = current.rentalStrategies.replace())
+            else -> return false
+        }
+        val success = firestoreService.saveSchema(updated)
+        if (success) {
+            _spaceArchitectureSchema.value = updated
+            addAuditLog("SCHEMA_ITEM_UPDATED", "Schema item ${item.id} updated: ${item.name}", "INFO")
+        }
+        return success
+    }
+
+    suspend fun addUserSuggestedSchemaItem(item: SchemaItem): Boolean {
+        val current = _spaceArchitectureSchema.value
+        val allNames = current.allItems.map { it.name.lowercase() }
+        if (item.name.lowercase() in allNames) return true // deduplicate silently
+        return addSchemaItem(item)
     }
 
     /**

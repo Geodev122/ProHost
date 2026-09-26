@@ -540,9 +540,11 @@ class AdminViewModel(
         name: String,
         description: String = "",
         iconName: String = "Category",
-        maxSubdivisions: Int? = null
+        maxSubdivisions: Int? = null,
+        scopedToIds: List<String> = emptyList(),
+        amenityGroup: String = ""
     ) {
-        addNewSchemaItem(category, name, description, iconName, maxSubdivisions)
+        addNewSchemaItem(category, name, description, iconName, maxSubdivisions, scopedToIds, amenityGroup)
     }
 
     fun addNewSchemaItem(
@@ -550,7 +552,9 @@ class AdminViewModel(
         name: String,
         description: String,
         iconName: String,
-        maxSubdivisions: Int? = null
+        maxSubdivisions: Int? = null,
+        scopedToIds: List<String> = emptyList(),
+        amenityGroup: String = ""
     ) {
         viewModelScope.launch {
             val newItem = SchemaItem(
@@ -561,13 +565,26 @@ class AdminViewModel(
                 iconName = iconName,
                 isEnabled = true,
                 isSystemDefault = false,
-                maxSubdivisions = maxSubdivisions
+                maxSubdivisions = maxSubdivisions,
+                scopedToIds = scopedToIds,
+                amenityGroup = amenityGroup
             )
             val success = repository.addSchemaItem(newItem)
             closeAddSchemaItemDialog()
             _events.emit(
                 AdminUiEvent.ShowToast(
                     if (success) "New schema entry added: $name" else "Failed to add schema entry — please try again"
+                )
+            )
+        }
+    }
+
+    fun updateSchemaItem(item: SchemaItem) {
+        viewModelScope.launch {
+            val success = repository.updateSchemaItem(item)
+            _events.emit(
+                AdminUiEvent.ShowToast(
+                    if (success) "\"${item.name}\" updated" else "Update failed — please try again"
                 )
             )
         }

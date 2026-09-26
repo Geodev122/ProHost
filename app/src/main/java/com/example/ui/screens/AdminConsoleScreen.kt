@@ -382,7 +382,8 @@ fun AdminConsoleScreen(
             onDismiss = { adminViewModel.closeEditListingDialog() },
             onListingCreated = {},
             onListingUpdated = { updatedListing -> adminViewModel.saveListing(updatedListing) },
-            spaceCategories = uiState.schema.spaceTypes
+            spaceCategories = uiState.schema.spaceTypes,
+            availableAmenities = uiState.schema.amenities.filter { it.isEnabled }
         )
     }
 
@@ -398,7 +399,7 @@ fun AdminConsoleScreen(
     // 6. Add Schema Node Dialog
     if (uiState.isAddSchemaItemDialogOpen) {
         AdminAddSchemaItemDialog(
-            initialCategory = uiState.addSchemaItemPresetCategory ?: "SUBCATEGORY",
+            initialCategory = uiState.addSchemaItemPresetCategory ?: SchemaCategory.DIVISION_TYPE,
             onDismiss = { adminViewModel.closeAddSchemaItemDialog() },
             onAdd = { name, category, description, iconName, maxSubdivisions ->
                 adminViewModel.addSchemaItem(category, name, description, iconName, maxSubdivisions)
@@ -1668,7 +1669,7 @@ private fun AdminOwnersAndPaymentsTab(
 }
 
 // =========================================================================
-// TAB 4: SPACE ARCHITECTURE SCHEMA (DATABASE MAPPINGS)
+// TAB 4: GOD SCHEMA (UNIFIED ADMIN-EDITABLE DATABASE SCHEMA)
 // =========================================================================
 @Composable
 private fun AdminSchemaArchitectureTab(
@@ -1676,22 +1677,15 @@ private fun AdminSchemaArchitectureTab(
     adminViewModel: AdminViewModel
 ) {
     val schema = uiState.schema
-    // Rental Formulas get their own independent section below (they're decorative
-    // reference labels, not the real per-listing pricing config — see that section's own
-    // comment) — this list, its filter, and its stat tiles are scoped to everything else.
-    val mainSchemaItems = schema.spaceTypes + schema.subcategories + schema.amenities + schema.equipmentCategories
-    val filteredItems = if (uiState.selectedSchemaCategoryFilter == "ALL") {
-        mainSchemaItems
-    } else {
-        mainSchemaItems.filter { it.category == uiState.selectedSchemaCategoryFilter }
-    }
+    var editingItem by remember { mutableStateOf<SchemaItem?>(null) }
+    var amenityGroupFilter by remember { mutableStateOf("All") }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Schema Header & Overview
+        // Header: God Schema overview + stats + reset/add
         item {
             ProSurfaceCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1700,118 +1694,23 @@ private fun AdminSchemaArchitectureTab(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        ProSectionHeader(
-                            title = "Architecture",
-                            icon = Icons.Default.AccountTree
-                        )
-
+                        ProSectionHeader(title = "God Schema", subtitle = "Live admin-editable database", icon = Icons.Default.AccountTree)
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            CustomButton(
-                                text = "Reset Defaults",
-                                onClick = { adminViewModel.openResetSchemaDialog() },
-                                variant = CustomButtonVariant.OUTLINED,
-                                icon = Icons.Default.RestartAlt,
-                                compact = true
-                            )
-
-                            CustomButton(
-                                text = "Add Node",
-                                onClick = { adminViewModel.openAddSchemaItemDialog() },
-                                variant = CustomButtonVariant.SECONDARY,
-                                icon = Icons.Default.Add,
-                                compact = true
-                            )
+                            CustomButton(text = "Reset", onClick = { adminViewModel.openResetSchemaDialog() }, variant = CustomButtonVariant.OUTLINED, icon = Icons.Default.RestartAlt, compact = true)
+                            CustomButton(text = "Add Node", onClick = { adminViewModel.openAddSchemaItemDialog() }, variant = CustomButtonVariant.SECONDARY, icon = Icons.Default.Add, compact = true)
                         }
                     }
-
-                    // Database Architecture Stats — one horizontally-scrollable row of 5
-                    // (Specialties removed — fully migrated to the free-text hashtag system,
-                    // see the Target Disciplines Usage card below), each showing real live
-                    // active-vs-disabled counts rather than just a bare total.
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         val tiles = listOf(
                             Triple("Space Types", schema.spaceTypes, Icons.Default.Apartment),
-                            Triple("Subcategories", schema.subcategories, Icons.Default.Category),
-                            Triple("Amenities", schema.amenities, Icons.Default.CheckCircle),
-                            Triple("Equipment", schema.equipmentCategories, Icons.Default.Biotech),
-                            Triple("Rental Formulas", schema.rentalStrategies, Icons.Default.Schedule)
+                            Triple("Division Types", schema.divisionTypes, Icons.Default.Category),
+                            Triple("Facilities", schema.facilities, Icons.Default.CheckCircle),
+                            Triple("Amenities", schema.amenities, Icons.Default.Biotech),
+                            Triple("Strategies", schema.rentalStrategies, Icons.Default.Schedule)
                         )
                         items(tiles) { (title, items, icon) ->
-                            val activeCount = items.count { it.isEnabled }
-                            val offCount = items.size - activeCount
-                            Box(modifier = Modifier.width(150.dp)) {
-                                ProMetricTile(
-                                    title = title,
-                                    value = "${items.size}",
-                                    subtitle = "$activeCount active · $offCount off",
-                                    icon = icon
-                                )
-                            }
-                        }
-                    }
-
-                    // Category Selector Filter Chips
-                    Text("Filter Schema Category:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        val categories = listOf(
-                            "ALL" to "All Nodes (${mainSchemaItems.size})",
-                            "SPACE_TYPE" to "Space Types (${schema.spaceTypes.size})",
-                            "SUBCATEGORY" to "Subcategories (${schema.subcategories.size})",
-                            "AMENITY" to "Amenities (${schema.amenities.size})",
-                            "EQUIPMENT" to "Equipment (${schema.equipmentCategories.size})"
-                        )
-                        items(categories) { (catKey, catLabel) ->
-                            FilterChip(
-                                selected = uiState.selectedSchemaCategoryFilter == catKey,
-                                onClick = { adminViewModel.setSchemaCategoryFilter(catKey) },
-                                label = { Text(catLabel) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Target Disciplines (Hashtag) usage analytics — spec 1.4's admin analytics
-        // requirement. governorate here is whichever listing most recently used the
-        // tag, not a full per-governorate breakdown; this is a single-country
-        // deployment today, so a fuller breakdown wasn't worth the added complexity.
-        item {
-            ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        ProSectionHeader(
-                            title = "Target Disciplines Usage",
-                            subtitle = "Hashtags hosts use to describe preferred rentee backgrounds",
-                            icon = Icons.Default.Info
-                        )
-                        IconButton(onClick = { adminViewModel.refreshHashtagAnalytics() }) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Refresh")
-                        }
-                    }
-                    if (uiState.hashtagAnalytics.isEmpty()) {
-                        Text(
-                            "No hashtags recorded yet.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        uiState.hashtagAnalytics.forEach { entry ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("#${entry.tag}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    "${entry.count} uses • ${entry.governorate}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                            Box(modifier = Modifier.width(140.dp)) {
+                                ProMetricTile(title = title, value = "${items.size}", subtitle = "${items.count { it.isEnabled }} active · ${items.count { !it.isEnabled }} off", icon = icon)
                             }
                         }
                     }
@@ -1819,115 +1718,108 @@ private fun AdminSchemaArchitectureTab(
             }
         }
 
-        // Schema Items List
+        // Section 1: Space Types
         item {
-            Text(
-                text = "Schema Items (${filteredItems.size} configured in local & cloud registry)",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            GodSchemaSection(
+                title = "Space Types",
+                subtitle = "Top-level listing categories",
+                icon = Icons.Default.Apartment,
+                items = schema.spaceTypes,
+                onAdd = { adminViewModel.openAddSchemaItemDialog(presetCategory = SchemaCategory.SPACE_TYPE) },
+                onToggle = { item -> adminViewModel.toggleSchemaItemEnabled(item.id, item.category, item.isEnabled) },
+                onDelete = { item -> adminViewModel.deleteSchemaItem(item.id, item.category) },
+                onEdit = { item -> editingItem = item }
+            ) { item ->
+                if (item.maxSubdivisions != null) {
+                    Text("Max subdivisions: ${item.maxSubdivisions}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+
+        // Section 2: Division Types (flat — all available for all space types)
+        item {
+            GodSchemaSection(
+                title = "Division Types",
+                subtitle = "Subdivision types (available across all space types)",
+                icon = Icons.Default.MeetingRoom,
+                items = schema.divisionTypes,
+                onAdd = { adminViewModel.openAddSchemaItemDialog(presetCategory = SchemaCategory.DIVISION_TYPE) },
+                onToggle = { item -> adminViewModel.toggleSchemaItemEnabled(item.id, item.category, item.isEnabled) },
+                onDelete = { item -> adminViewModel.deleteSchemaItem(item.id, item.category) },
+                onEdit = { item -> editingItem = item }
             )
         }
 
-        items(filteredItems, key = { it.id }) { item ->
+        // Section 3: Facilities (whole-space — all subdivisions inherit these)
+        item {
+            GodSchemaSection(
+                title = "Facilities",
+                subtitle = "Whole-space facilities — shown to all subdivisions",
+                icon = Icons.Default.HomeWork,
+                items = schema.facilities,
+                onAdd = { adminViewModel.openAddSchemaItemDialog(presetCategory = SchemaCategory.FACILITY) },
+                onToggle = { item -> adminViewModel.toggleSchemaItemEnabled(item.id, item.category, item.isEnabled) },
+                onDelete = { item -> adminViewModel.deleteSchemaItem(item.id, item.category) },
+                onEdit = { item -> editingItem = item }
+            )
+        }
+
+        // Section 4: Amenities (subdivision-level, filterable by group)
+        item {
+            val amenityGroups = listOf("All") + schema.amenities.map { it.amenityGroup }.filter { it.isNotBlank() }.distinct().sorted()
+            val visibleAmenities = if (amenityGroupFilter == "All") schema.amenities
+            else schema.amenities.filter { it.amenityGroup == amenityGroupFilter }
             ProSurfaceCard {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(
-                            color = if (item.isEnabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                            shape = MaterialTheme.shapes.small,
-                            modifier = Modifier.size(38.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = when (item.category) {
-                                        "SPACE_TYPE" -> Icons.Default.Apartment
-                                        "SUBCATEGORY" -> Icons.Default.Category
-                                        "AMENITY" -> Icons.Default.CheckCircle
-                                        "EQUIPMENT" -> Icons.Default.Biotech
-                                        "RENTAL_STRATEGY" -> Icons.Default.Schedule
-                                        else -> Icons.Default.AccountTree
-                                    },
-                                    contentDescription = null,
-                                    tint = if (item.isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = item.name,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                if (!item.isSystemDefault) {
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Surface(
-                                        color = CarnationOrangeContainer,
-                                        shape = MaterialTheme.shapes.extraSmall
-                                    ) {
-                                        Text(
-                                            text = "CUSTOM NODE",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = CarnationOrange,
-                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
-                            }
-                            Text(
-                                text = "Category: ${item.category} • ID: ${item.id}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (item.description.isNotBlank()) {
-                                Text(
-                                    text = item.description,
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
-                            if (item.category == "SPACE_TYPE") {
-                                Text(
-                                    text = "Max subdivisions: ${item.maxSubdivisions?.toString() ?: "Unlimited"}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        ProSectionHeader(title = "Amenities", subtitle = "Subdivision-level features, equipment & amenities", icon = Icons.Default.Biotech)
+                        CustomButton(text = "Add", onClick = { adminViewModel.openAddSchemaItemDialog(presetCategory = SchemaCategory.AMENITY) }, variant = CustomButtonVariant.SECONDARY, icon = Icons.Default.Add, compact = true)
+                    }
+                    // Group filter chips
+                    if (amenityGroups.size > 1) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(amenityGroups) { group ->
+                                FilterChip(
+                                    selected = amenityGroupFilter == group,
+                                    onClick = { amenityGroupFilter = group },
+                                    label = { Text(group, style = MaterialTheme.typography.labelSmall) }
                                 )
                             }
                         }
                     }
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Switch(
-                            checked = item.isEnabled,
-                            onCheckedChange = { adminViewModel.toggleSchemaItemEnabled(item.id, item.category, item.isEnabled) }
-                        )
-
-                        if (!item.isSystemDefault) {
-                            IconButton(onClick = { adminViewModel.deleteSchemaItem(item.id, item.category) }) {
-                                Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = StatusError, modifier = Modifier.size(18.dp))
+                    visibleAmenities.forEach { item ->
+                        SchemaItemRow(
+                            item = item,
+                            onToggle = { adminViewModel.toggleSchemaItemEnabled(item.id, item.category, item.isEnabled) },
+                            onDelete = { adminViewModel.deleteSchemaItem(item.id, item.category) },
+                            onEdit = { editingItem = item }
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                if (item.amenityGroup.isNotBlank()) {
+                                    Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.extraSmall) {
+                                        Text(item.amenityGroup, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    }
+                                }
+                                val scopeLabel = if (item.scopedToIds.isEmpty()) "All divisions" else "${item.scopedToIds.size} div. types"
+                                Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.extraSmall) {
+                                    Text(scopeLabel, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                         }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    }
+                    if (visibleAmenities.isEmpty()) {
+                        Text("No amenities in this group.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
         }
 
-        // Renting Formulas — an independent section, deliberately separate from the
-        // category/subdivision/amenity/equipment list above: these are reference labels
-        // only (they mirror the 4 real RentalStrategyType values a host actually
-        // configures per-listing in the wizard's Step 3 pricing editors) — renaming or
-        // disabling one here doesn't change what a host can select or how a listing is
-        // priced. Kept for descriptive/reference purposes only.
+        // Section 5: Rental Strategies
         item {
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1936,49 +1828,39 @@ private fun AdminSchemaArchitectureTab(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        ProSectionHeader(
-                            title = "Renting Formulas",
-                            subtitle = "Reference labels only",
-                            icon = Icons.Default.Schedule
-                        )
-                        CustomButton(
-                            text = "Add Formula",
-                            onClick = { adminViewModel.openAddSchemaItemDialog(presetCategory = "RENTAL_STRATEGY") },
-                            variant = CustomButtonVariant.SECONDARY,
-                            icon = Icons.Default.Add,
-                            compact = true
-                        )
+                        ProSectionHeader(title = "Rental Strategies", subtitle = "Reference labels — mirrors RentalStrategyType", icon = Icons.Default.Schedule)
+                        CustomButton(text = "Add", onClick = { adminViewModel.openAddSchemaItemDialog(presetCategory = SchemaCategory.RENTAL_STRATEGY) }, variant = CustomButtonVariant.SECONDARY, icon = Icons.Default.Add, compact = true)
                     }
-
                     schema.rentalStrategies.forEach { item ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(item.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                                if (item.description.isNotBlank()) {
-                                    Text(
-                                        item.description,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Switch(
-                                    checked = item.isEnabled,
-                                    onCheckedChange = { adminViewModel.toggleSchemaItemEnabled(item.id, item.category, item.isEnabled) }
-                                )
-                                if (!item.isSystemDefault) {
-                                    IconButton(onClick = { adminViewModel.deleteSchemaItem(item.id, item.category) }) {
-                                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = StatusError, modifier = Modifier.size(18.dp))
-                                    }
-                                }
+                        SchemaItemRow(
+                            item = item,
+                            onToggle = { adminViewModel.toggleSchemaItemEnabled(item.id, item.category, item.isEnabled) },
+                            onDelete = { adminViewModel.deleteSchemaItem(item.id, item.category) },
+                            onEdit = { editingItem = item }
+                        )
+                        HorizontalDivider(color = LightGray.copy(alpha = 0.4f))
+                    }
+                }
+            }
+        }
+
+        // Target Disciplines (hashtag analytics)
+        item {
+            ProSurfaceCard {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        ProSectionHeader(title = "Target Disciplines Usage", subtitle = "Hashtags hosts attach to listings", icon = Icons.Default.Info)
+                        IconButton(onClick = { adminViewModel.refreshHashtagAnalytics() }) { Icon(Icons.Default.Refresh, contentDescription = "Refresh") }
+                    }
+                    if (uiState.hashtagAnalytics.isEmpty()) {
+                        Text("No hashtags recorded yet.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        uiState.hashtagAnalytics.forEach { entry ->
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("#${entry.tag}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                                Text("${entry.count} uses • ${entry.governorate}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        HorizontalDivider(color = LightGray.copy(alpha = 0.4f))
                     }
                 }
             }
@@ -2015,6 +1897,183 @@ private fun AdminSchemaArchitectureTab(
             }
         }
     }
+
+    // Inline edit dialog for schema items
+    editingItem?.let { item ->
+        AdminEditSchemaItemDialog(
+            item = item,
+            availableDivisionTypes = schema.divisionTypes,
+            onSave = { updated ->
+                adminViewModel.updateSchemaItem(updated)
+                editingItem = null
+            },
+            onDismiss = { editingItem = null }
+        )
+    }
+}
+
+// =========================================================================
+// GOD SCHEMA HELPERS
+// =========================================================================
+
+@Composable
+private fun GodSchemaSection(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    items: List<SchemaItem>,
+    onAdd: () -> Unit,
+    onToggle: (SchemaItem) -> Unit,
+    onDelete: (SchemaItem) -> Unit,
+    onEdit: (SchemaItem) -> Unit,
+    extraContent: (@Composable (SchemaItem) -> Unit)? = null
+) {
+    ProSurfaceCard {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ProSectionHeader(title = title, subtitle = subtitle, icon = icon)
+                CustomButton(text = "Add", onClick = onAdd, variant = CustomButtonVariant.SECONDARY, icon = Icons.Default.Add, compact = true)
+            }
+            if (items.isEmpty()) {
+                Text("No items yet.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            items.forEachIndexed { idx, item ->
+                SchemaItemRow(item = item, onToggle = { onToggle(item) }, onDelete = { onDelete(item) }, onEdit = { onEdit(item) }, extraContent = { extraContent?.invoke(item) })
+                if (idx < items.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SchemaItemRow(
+    item: SchemaItem,
+    onToggle: () -> Unit,
+    onDelete: () -> Unit,
+    onEdit: () -> Unit,
+    extraContent: (@Composable () -> Unit)? = null
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+            Surface(
+                color = if (item.isEnabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = when (item.category) {
+                            SchemaCategory.SPACE_TYPE -> Icons.Default.Apartment
+                            SchemaCategory.DIVISION_TYPE -> Icons.Default.MeetingRoom
+                            SchemaCategory.FACILITY -> Icons.Default.HomeWork
+                            SchemaCategory.AMENITY -> Icons.Default.Biotech
+                            SchemaCategory.RENTAL_STRATEGY -> Icons.Default.Schedule
+                            else -> Icons.Default.AccountTree
+                        },
+                        contentDescription = null,
+                        tint = if (item.isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(item.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    if (!item.isSystemDefault) {
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Surface(color = CarnationOrangeContainer, shape = MaterialTheme.shapes.extraSmall) {
+                            Text("CUSTOM", style = MaterialTheme.typography.labelSmall, fontSize = 8.sp, fontWeight = FontWeight.Bold, color = CarnationOrange, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                        }
+                    }
+                }
+                Text("ID: ${item.id}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+                if (item.description.isNotBlank()) Text(item.description, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                extraContent?.invoke()
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+            }
+            Switch(checked = item.isEnabled, onCheckedChange = { onToggle() }, modifier = Modifier.padding(start = 2.dp))
+            if (!item.isSystemDefault) {
+                IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = StatusError, modifier = Modifier.size(16.dp))
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AdminEditSchemaItemDialog(
+    item: SchemaItem,
+    availableDivisionTypes: List<SchemaItem>,
+    onSave: (SchemaItem) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var name by remember { mutableStateOf(item.name) }
+    var description by remember { mutableStateOf(item.description) }
+    var amenityGroup by remember { mutableStateOf(item.amenityGroup) }
+    var maxSubs by remember { mutableStateOf(item.maxSubdivisions?.toString() ?: "") }
+    var selectedScopedIds by remember { mutableStateOf(item.scopedToIds.toSet()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Schema Item", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                if (item.category == SchemaCategory.SPACE_TYPE) {
+                    OutlinedTextField(value = maxSubs, onValueChange = { maxSubs = it }, label = { Text("Max Subdivisions (leave blank = unlimited)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                }
+                if (item.category == SchemaCategory.AMENITY) {
+                    OutlinedTextField(value = amenityGroup, onValueChange = { amenityGroup = it }, label = { Text("Amenity Group (e.g. Comfort, Access, Equipment)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    if (availableDivisionTypes.isNotEmpty()) {
+                        Text("Scoped to Division Types (empty = all):", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        availableDivisionTypes.forEach { dt ->
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                Checkbox(checked = dt.id in selectedScopedIds, onCheckedChange = { checked ->
+                                    selectedScopedIds = if (checked) selectedScopedIds + dt.id else selectedScopedIds - dt.id
+                                })
+                                Text(dt.name, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            CustomButton(
+                text = "Save",
+                onClick = {
+                    onSave(item.copy(
+                        name = name.trim(),
+                        description = description.trim(),
+                        amenityGroup = amenityGroup.trim(),
+                        maxSubdivisions = if (item.category == SchemaCategory.SPACE_TYPE) maxSubs.trim().toIntOrNull() else item.maxSubdivisions,
+                        scopedToIds = if (item.category == SchemaCategory.AMENITY) selectedScopedIds.toList() else item.scopedToIds
+                    ))
+                },
+                variant = CustomButtonVariant.PRIMARY,
+                enabled = name.isNotBlank()
+            )
+        },
+        dismissButton = {
+            CustomButton(text = "Cancel", onClick = onDismiss, variant = CustomButtonVariant.OUTLINED)
+        }
+    )
 }
 
 // =========================================================================
@@ -2656,7 +2715,7 @@ private fun AdminDeletePackagePlanDialog(
  */
 @Composable
 private fun AdminAddSchemaItemDialog(
-    initialCategory: String = "SUBCATEGORY",
+    initialCategory: String = SchemaCategory.DIVISION_TYPE,
     onDismiss: () -> Unit,
     onAdd: (name: String, category: String, description: String, iconName: String, maxSubdivisions: Int?) -> Unit
 ) {
@@ -2666,11 +2725,11 @@ private fun AdminAddSchemaItemDialog(
     var maxSubdivisionsInput by remember { mutableStateOf("") }
 
     val categories = listOf(
-        "SPACE_TYPE" to "Space Type (Root)",
-        "SUBCATEGORY" to "Subcategory (Level 2)",
-        "AMENITY" to "Amenity / Facility",
-        "EQUIPMENT" to "Equipment Category",
-        "RENTAL_STRATEGY" to "Rental Time Formula"
+        SchemaCategory.SPACE_TYPE to "Space Type",
+        SchemaCategory.DIVISION_TYPE to "Division Type",
+        SchemaCategory.FACILITY to "Facility (whole-space)",
+        SchemaCategory.AMENITY to "Amenity (subdivision)",
+        SchemaCategory.RENTAL_STRATEGY to "Rental Strategy"
     )
 
     Dialog(onDismissRequest = onDismiss) {

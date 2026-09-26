@@ -1862,19 +1862,29 @@ data class FCMAlert(
  * Allows Super Admin to inspect and customize database-level mapping of
  * Listing Types, Subcategories, Amenities, Equipment, Specialties, and Strategies.
  */
+// Schema category constants — single source of truth for all category strings
+object SchemaCategory {
+    const val SPACE_TYPE = "SPACE_TYPE"
+    const val DIVISION_TYPE = "DIVISION_TYPE"   // was SUBCATEGORY
+    const val FACILITY = "FACILITY"             // was AMENITY — whole-space facilities
+    const val AMENITY = "AMENITY"               // subdivision-level amenities/equipment/features
+    const val RENTAL_STRATEGY = "RENTAL_STRATEGY"
+}
+
 data class SchemaItem(
     val id: String,
     val name: String,
     val description: String = "",
-    val category: String, // "SPACE_TYPE", "SUBCATEGORY", "AMENITY", "EQUIPMENT", "RENTAL_STRATEGY"
+    val category: String, // use SchemaCategory constants
     val iconName: String = "Category",
     val isEnabled: Boolean = true,
     val isSystemDefault: Boolean = true,
-    // Only meaningful for category == "SPACE_TYPE": the maximum number of subdivisions
-    // a listing under this category may declare in CreateListingDialog's Step 3. Null
-    // means "no cap configured yet" (unlimited in practice, matching pre-existing
-    // behavior for every category before this field existed).
-    val maxSubdivisions: Int? = null
+    // Only meaningful for SPACE_TYPE: max subdivisions a listing may declare. Null = unlimited.
+    val maxSubdivisions: Int? = null,
+    // AMENITY only: which DIVISION_TYPE ids this applies to. Empty = all division types.
+    val scopedToIds: List<String> = emptyList(),
+    // AMENITY only: grouping label (e.g. "Equipment", "Access", "Comfort", "Clinical").
+    val amenityGroup: String = ""
 ) {
     fun toFirestoreMap(): Map<String, Any?> = mapOf(
         "id" to id,
@@ -1884,10 +1894,13 @@ data class SchemaItem(
         "iconName" to iconName,
         "isEnabled" to isEnabled,
         "isSystemDefault" to isSystemDefault,
-        "maxSubdivisions" to maxSubdivisions
+        "maxSubdivisions" to maxSubdivisions,
+        "scopedToIds" to scopedToIds,
+        "amenityGroup" to amenityGroup
     )
 
     companion object {
+        @Suppress("UNCHECKED_CAST")
         fun fromFirestoreMap(data: Map<String, Any?>): SchemaItem = SchemaItem(
             id = data["id"] as? String ?: "",
             name = data["name"] as? String ?: "",
@@ -1896,36 +1909,38 @@ data class SchemaItem(
             iconName = data["iconName"] as? String ?: "Category",
             isEnabled = data["isEnabled"] as? Boolean ?: true,
             isSystemDefault = data["isSystemDefault"] as? Boolean ?: true,
-            maxSubdivisions = (data["maxSubdivisions"] as? Number)?.toInt()
+            maxSubdivisions = (data["maxSubdivisions"] as? Number)?.toInt(),
+            scopedToIds = (data["scopedToIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+            amenityGroup = data["amenityGroup"] as? String ?: ""
         )
     }
 }
 
 data class SpaceArchitectureSchema(
     val spaceTypes: List<SchemaItem> = emptyList(),
-    val subcategories: List<SchemaItem> = emptyList(),
-    val amenities: List<SchemaItem> = emptyList(),
-    val equipmentCategories: List<SchemaItem> = emptyList(),
+    val divisionTypes: List<SchemaItem> = emptyList(),   // was: subcategories
+    val facilities: List<SchemaItem> = emptyList(),       // was: amenities — whole-space
+    val amenities: List<SchemaItem> = emptyList(),        // new: subdivision-level
     val rentalStrategies: List<SchemaItem> = emptyList()
 ) {
     val totalItemsCount: Int
-        get() = spaceTypes.size + subcategories.size + amenities.size + equipmentCategories.size + rentalStrategies.size
+        get() = spaceTypes.size + divisionTypes.size + facilities.size + amenities.size + rentalStrategies.size
 
     val activeItemsCount: Int
         get() = spaceTypes.count { it.isEnabled } +
-                subcategories.count { it.isEnabled } +
+                divisionTypes.count { it.isEnabled } +
+                facilities.count { it.isEnabled } +
                 amenities.count { it.isEnabled } +
-                equipmentCategories.count { it.isEnabled } +
                 rentalStrategies.count { it.isEnabled }
 
     val allItems: List<SchemaItem>
-        get() = spaceTypes + subcategories + amenities + equipmentCategories + rentalStrategies
+        get() = spaceTypes + divisionTypes + facilities + amenities + rentalStrategies
 
     fun toFirestoreMap(): Map<String, Any?> = mapOf(
         "spaceTypes" to spaceTypes.map { it.toFirestoreMap() },
-        "subcategories" to subcategories.map { it.toFirestoreMap() },
+        "divisionTypes" to divisionTypes.map { it.toFirestoreMap() },
+        "facilities" to facilities.map { it.toFirestoreMap() },
         "amenities" to amenities.map { it.toFirestoreMap() },
-        "equipmentCategories" to equipmentCategories.map { it.toFirestoreMap() },
         "rentalStrategies" to rentalStrategies.map { it.toFirestoreMap() }
     )
 
@@ -1933,12 +1948,14 @@ data class SpaceArchitectureSchema(
         @Suppress("UNCHECKED_CAST")
         fun fromFirestoreMap(data: Map<String, Any?>): SpaceArchitectureSchema {
             fun list(key: String): List<SchemaItem> =
-                (data[key] as? List<Map<String, Any?>>)?.map { SchemaItem.fromFirestoreMap(it) } ?: emptyList()
+                (data[key] as? List<*>)?.mapNotNull { (it as? Map<String, Any?>)?.let { m -> SchemaItem.fromFirestoreMap(m) } } ?: emptyList()
             return SpaceArchitectureSchema(
                 spaceTypes = list("spaceTypes"),
-                subcategories = list("subcategories"),
-                amenities = list("amenities"),
-                equipmentCategories = list("equipmentCategories"),
+                // "subcategories" read for backward-compat with old Firestore documents
+                divisionTypes = list("divisionTypes").ifEmpty { list("subcategories") },
+                // "amenities" key previously stored facilities; new "facilities" key takes over
+                facilities = list("facilities").ifEmpty { list("amenities") },
+                amenities = list("amenities").filter { it.category == SchemaCategory.AMENITY },
                 rentalStrategies = list("rentalStrategies")
             )
         }

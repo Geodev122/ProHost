@@ -143,7 +143,15 @@ fun CreateListingDialog(
     // "SPACE_TYPE") — replaces the old closed SpaceType.values() picker. Empty
     // falls back to the 4 legacy types below so a caller that hasn't been updated
     // yet doesn't lose the category picker entirely.
-    spaceCategories: List<SchemaItem> = emptyList()
+    spaceCategories: List<SchemaItem> = emptyList(),
+    // Admin-managed amenity catalog (enabled SchemaItems, category "AMENITY") —
+    // passed into SubdivisionEditorSection, which filters by division type scope.
+    availableAmenities: List<SchemaItem> = emptyList(),
+    // Write-back: called when the host types a new custom facility or equipment item
+    // so it gets persisted to the global schema catalog as a CUSTOM NODE.
+    // Receives the category (FACILITY or AMENITY), name, and optional scopedToIds.
+    // No-op default so unupdated callers don't crash.
+    onAddCustomSchemaItem: (category: String, name: String, scopedToIds: List<String>) -> Unit = { _, _, _ -> }
 ) {
     if (currentUser == null) {
         Dialog(onDismissRequest = onDismiss) {
@@ -1009,7 +1017,11 @@ fun CreateListingDialog(
                                         onSubdivisionsChange = { subdivisionsList = it },
                                         operatingDays = operatingDays.toList(),
                                         openingHour = openingHour,
-                                        closingHour = closingHour
+                                        closingHour = closingHour,
+                                        availableAmenities = availableAmenities,
+                                        onAddCustomAmenity = { name, divisionTypeId ->
+                                            onAddCustomSchemaItem("AMENITY", name, listOf(divisionTypeId))
+                                        }
                                     )
                                 } else {
                                     Surface(
@@ -1347,6 +1359,7 @@ fun CreateListingDialog(
                 onSave = { selectedFacilities = it },
                 onAddNewFacility = { newFac ->
                     masterFacilities = masterFacilities + newFac
+                    onAddCustomSchemaItem("FACILITY", newFac, emptyList())
                 }
             )
         }
@@ -1359,6 +1372,7 @@ fun CreateListingDialog(
                 onSave = { chosenEquipment = it },
                 onAddNewEquipment = { newItem ->
                     masterEquipmentCatalog = masterEquipmentCatalog + newItem
+                    onAddCustomSchemaItem("AMENITY", newItem.name, emptyList())
                 }
             )
         }

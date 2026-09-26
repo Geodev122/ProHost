@@ -229,6 +229,8 @@ fun OwnerHubScreen(
             suggestedHashtags = topHashtags,
             availableFacilities = availableFacilities,
             spaceCategories = architectureSchema.spaceTypes,
+            availableAmenities = architectureSchema.amenities.filter { it.isEnabled },
+            onAddCustomSchemaItem = { category, name, scopedToIds -> viewModel.addUserSuggestedSchemaItem(category, name, scopedToIds) },
             onDismiss = { showCreateListingDialog = false; draftToEdit = null },
             onSaveDraft = { updatedDraft ->
                 coroutineScope.launch {

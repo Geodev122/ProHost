@@ -54,7 +54,12 @@ fun SubdivisionEditorSection(
     operatingDays: List<String> = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
     openingHour: String = "08:00",
     closingHour: String = "20:00",
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // Schema-driven amenity catalog — if non-empty replaces the hardcoded fallback below.
+    availableAmenities: List<SchemaItem> = emptyList(),
+    // Write-back: called when the host types a custom amenity; auto-tags to current
+    // division type. No-op default so unupdated callers don't crash.
+    onAddCustomAmenity: ((name: String, divisionTypeId: String) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -189,11 +194,21 @@ fun SubdivisionEditorSection(
     }
 
     val weekDayOrder = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    val amenityCatalog = listOf(
-        "A/C Climate Control", "Dual-Monitor Setup", "Whiteboard / Presentation Kit",
-        "High-Speed Wi-Fi", "Soundproofing", "Ergonomic Seating", "Storage Locker",
-        "Keyless Access Control", "Privacy Partition", "Natural Lighting", "Standing Desk"
-    )
+    // Use schema-driven amenities when available, filtering by current division type scope.
+    // Falls back to the hardcoded defaults only when no schema has been loaded yet.
+    val amenityCatalog = remember(availableAmenities, subType) {
+        if (availableAmenities.isNotEmpty()) {
+            availableAmenities
+                .filter { it.scopedToIds.isEmpty() || it.scopedToIds.contains(subType.name) }
+                .map { it.name }
+        } else {
+            listOf(
+                "A/C Climate Control", "Dual-Monitor Setup", "Whiteboard / Presentation Kit",
+                "High-Speed Wi-Fi", "Soundproofing", "Ergonomic Seating", "Storage Locker",
+                "Keyless Access Control", "Privacy Partition", "Natural Lighting", "Standing Desk"
+            )
+        }
+    }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         // Intro header
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -357,7 +372,10 @@ fun SubdivisionEditorSection(
                 onToggle = { amen ->
                     subAmenitiesSelected = if (amen in subAmenitiesSelected) subAmenitiesSelected - amen else subAmenitiesSelected + amen
                 },
-                onDismiss = { showAmenityPicker = false }
+                onDismiss = { showAmenityPicker = false },
+                onAddCustom = if (onAddCustomAmenity != null) { name ->
+                    onAddCustomAmenity.invoke(name, subType.name)
+                } else null
             )
         }
 
@@ -802,10 +820,12 @@ private fun SearchablePickerDialog(
     selected: Set<String>,
     multiSelect: Boolean,
     onToggle: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onAddCustom: ((String) -> Unit)? = null
 ) {
     var query by remember { mutableStateOf("") }
     val filtered = options.filter { query.isBlank() || it.contains(query, ignoreCase = true) }
+    val canAddCustom = onAddCustom != null && query.isNotBlank() && filtered.none { it.equals(query.trim(), ignoreCase = true) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -831,13 +851,31 @@ private fun SearchablePickerDialog(
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text("Search...") },
+                    placeholder = { Text("Search or type new…") },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
                     singleLine = true
                 )
-                if (filtered.isEmpty()) {
+                if (canAddCustom) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val trimmed = query.trim()
+                                onAddCustom?.invoke(trimmed)
+                                onToggle(trimmed)
+                                query = ""
+                            }
+                            .padding(vertical = Spacing.xs),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                        Text("Add \"${query.trim()}\"", fontSize = MaterialTheme.typography.bodySmall.fontSize, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                if (filtered.isEmpty() && !canAddCustom) {
                     Text(
                         "No matches.",
                         fontSize = MaterialTheme.typography.labelSmall.fontSize,
