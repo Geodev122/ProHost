@@ -1,10 +1,10 @@
 package com.example.ui.screens
 
+import android.Manifest
 import android.app.Activity
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import com.example.ui.util.findActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,47 +22,57 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.data.auth.GoogleSignInHelper
+import com.example.R
 import com.example.data.model.findCountryByName
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AuthViewModel
 import com.example.util.PhoneCountryDetector
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 
 /**
- * Unified auth screen covering all three flows:
+ * Every ProHost account — new or returning — now goes through email/Google first:
+ *  1. EMAIL_ENTRY — enter an email or tap "Continue with Google". The email is looked
+ *     up to determine whether it's new, has a magic-link flow, or has Google.
+ *  2. EMAIL_SENT — magic-link sent; waiting for the user to tap it.
+ *  3. REGISTRATION_FORM — shown only when the verified identity turns out to be brand
+ *     new (Firebase's own isNewUser decides, never a guess made before verification).
  *
- * LOGIN (returning user with PIN):
- *   PHONE_ENTRY → PIN_ENTRY → done
- *
- * SIGNUP (new phone number):
- *   PHONE_ENTRY → OTP_ENTRY → REGISTRATION_FORM → SET_PIN → done
- *
- * FORGOT PIN:
- *   PIN_ENTRY → (Forgot PIN?) → OTP_ENTRY → SET_PIN → done
- *
- * The phone number is the only identifier — there is no username/password.
+ * Phone OTP is kept as a PARALLEL path for existing phone-only users — reachable via
+ * "Use phone number instead" from EMAIL_ENTRY. No forced migration.
+ *  PHONE_ENTRY → OTP_ENTRY → (brand-new number only) REGISTRATION_FORM
  */
-private enum class AuthStep {
-    PHONE_ENTRY,
-    OTP_ENTRY,
-    REGISTRATION_FORM
-}
+private enum class AuthStep { EMAIL_ENTRY, EMAIL_SENT, PHONE_ENTRY, OTP_ENTRY, REGISTRATION_FORM }
 
+/** Matches Firebase Phone Auth's own typical SMS-resend throttling window. */
 private const val OTP_RESEND_COOLDOWN_SECONDS = 30
 
+/** Email resend cooldown: slightly longer than OTP to match email-provider rate limits. */
+private const val EMAIL_RESEND_COOLDOWN_SECONDS = 60
+
+/**
+ * The URL the email sign-in link returns to. Must be handled by the app as an App Link
+ * (see MainActivity.handleIncomingIntent). The specific path is registered in the
+ * Firebase Console under Authentication → Sign-in methods → Email/Password → Email link.
+ */
+private const val EMAIL_SIGN_IN_CONTINUE_URL = "https://pro-host.tech/emailsignin"
+
+// Savers for rememberSaveable — process death would otherwise lose all in-progress state.
 private val AuthStepSaver = Saver<AuthStep, String>(
     save = { it.name },
     restore = { AuthStep.valueOf(it) }
@@ -78,6 +88,15 @@ private val DocumentPickerStateSaver = Saver<DocumentPickerState, List<String?>>
     restore = { DocumentPickerState(it.getOrNull(0)?.let(Uri::parse), it.getOrNull(1)) }
 )
 
+private fun android.content.Context.findActivity(): Activity? {
+    var ctx = this
+    while (ctx is android.content.ContextWrapper) {
+        if (ctx is Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginAuthScreen(
@@ -90,26 +109,113 @@ fun LoginAuthScreen(
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
     val coroutineScope = rememberCoroutineScope()
-
     var step by rememberSaveable(stateSaver = AuthStepSaver) {
-        mutableStateOf(if (resumeAtRegistration) AuthStep.REGISTRATION_FORM else AuthStep.PHONE_ENTRY)
+        mutableStateOf(if (resumeAtRegistration) AuthStep.REGISTRATION_FORM else AuthStep.EMAIL_ENTRY)
     }
 
-    // --- Phone entry ---
+    // --- Email entry state ---
+    var emailInput by rememberSaveable { mutableStateOf("") }
+    var emailResendCountdownSeconds by rememberSaveable { mutableStateOf(0) }
+    LaunchedEffect(emailResendCountdownSeconds) {
+        if (emailResendCountdownSeconds > 0) {
+            kotlinx.coroutines.delay(1000)
+            emailResendCountdownSeconds -= 1
+        }
+    }
+
+    val emailLookupResult by authViewModel.emailLookupResult.collectAsState()
+    val pendingEmail by authViewModel.pendingEmail.collectAsState()
+
+    // Credential Manager for Google One Tap
+    val credentialManager = remember { CredentialManager.create(context) }
+
+    // Launches Google One Tap credential picker
+    fun launchGoogleSignIn() {
+        coroutineScope.launch {
+            try {
+                val googleIdOption = GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(false)
+                    .setServerClientId(context.getString(R.string.default_web_client_id))
+                    .build()
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
+                val result = credentialManager.getCredential(context, request)
+                val credential = result.credential
+                if (credential is CustomCredential &&
+                    credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                ) {
+                    val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                    val currentActivity = activity
+                    if (currentActivity != null) {
+                        authViewModel.startGoogleSignIn(
+                            activity = currentActivity,
+                            googleIdToken = googleIdTokenCredential.idToken
+                        ) { needsRegistration ->
+                            if (needsRegistration) step = AuthStep.REGISTRATION_FORM else onLoginSuccess()
+                        }
+                    }
+                }
+            } catch (e: GetCredentialException) {
+                // User cancelled or no Google accounts on device — do nothing
+            }
+        }
+    }
+
+    // React to email lookup results: send the magic link or trigger Google sign-in
+    LaunchedEffect(emailLookupResult) {
+        when (emailLookupResult) {
+            AuthViewModel.EmailLookupResult.NEW_USER,
+            AuthViewModel.EmailLookupResult.HAS_EMAIL -> {
+                // Send magic-link and advance to EMAIL_SENT
+                authViewModel.sendEmailSignInLink(
+                    email = emailInput.trim().lowercase(),
+                    continueUrl = EMAIL_SIGN_IN_CONTINUE_URL
+                ) { sent ->
+                    if (sent) {
+                        emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
+                        step = AuthStep.EMAIL_SENT
+                    }
+                    // If send fails, authErrorMessage will be set (or no message — user stays on EMAIL_ENTRY)
+                }
+            }
+            AuthViewModel.EmailLookupResult.HAS_GOOGLE -> {
+                // Trigger Google Sign-In immediately
+                launchGoogleSignIn()
+            }
+            AuthViewModel.EmailLookupResult.UNKNOWN -> { /* no-op */ }
+        }
+    }
+
+    // --- Phone entry state (legacy parallel path) ---
     var phoneCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
     var phoneNumber by rememberSaveable { mutableStateOf("") }
     var hasAutoDetectedCountry by rememberSaveable { mutableStateOf(false) }
 
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        coroutineScope.launch {
+            if (!hasAutoDetectedCountry) {
+                phoneCountry = PhoneCountryDetector.detectCountry(context)
+                hasAutoDetectedCountry = true
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
+        if (!PhoneCountryDetector.hasLocationPermission(context)) {
+            locationPermissionLauncher.launch(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+            )
+        }
         if (!hasAutoDetectedCountry) {
             phoneCountry = PhoneCountryDetector.detectCountry(context)
             hasAutoDetectedCountry = true
         }
     }
 
-    val verifiedPhoneE164 = resumePhoneE164 ?: com.example.data.model.formatToE164(phoneCountry, phoneNumber)
-
-    // --- OTP entry ---
+    // --- OTP entry state ---
     var otpCode by rememberSaveable { mutableStateOf("") }
     var resendCountdownSeconds by rememberSaveable { mutableStateOf(0) }
     LaunchedEffect(resendCountdownSeconds) {
@@ -119,51 +225,9 @@ fun LoginAuthScreen(
         }
     }
 
-    // --- PIN entry (login) ---
-    var pinCode by rememberSaveable { mutableStateOf("") }
-    var pinVisible by rememberSaveable { mutableStateOf(false) }
-
-    // --- SET_PIN step ---
-    var newPin by rememberSaveable { mutableStateOf("") }
-    var confirmPin by rememberSaveable { mutableStateOf("") }
-    var newPinVisible by rememberSaveable { mutableStateOf(false) }
-    // Whether we entered SET_PIN after a forgot-PIN OTP (vs. fresh signup)
-    var isForgotPinReset by rememberSaveable { mutableStateOf(false) }
-
-    // --- Google Sign-In ---
-    var isGoogleRegistrationFlow by rememberSaveable { mutableStateOf(false) }
-    // These must be declared before googleSignInLauncher because the launcher lambda captures them.
-    var regFullName by rememberSaveable { mutableStateOf("") }
-    var regEmail by rememberSaveable { mutableStateOf("") }
-    var regPassword by rememberSaveable { mutableStateOf("") }
-    var regRepeatPassword by rememberSaveable { mutableStateOf("") }
-    var localErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
-
-    val googleSignInLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val currentActivity = activity ?: return@rememberLauncherForActivityResult
-            authViewModel.handleGoogleSignInResult(
-                activity = currentActivity,
-                data = result.data,
-                onSuccess = onLoginSuccess,
-                onNeedsRegistration = {
-                    // Pre-fill form from Google profile
-                    val profile = authViewModel.pendingGoogleProfile
-                    regFullName = profile?.displayName ?: ""
-                    regEmail = profile?.email ?: ""
-                    isGoogleRegistrationFlow = true
-                    step = AuthStep.REGISTRATION_FORM
-                },
-                onError = { msg -> localErrorMessage = msg }
-            )
-        }
-    }
-
-    // --- Registration form ---
+    // --- Registration form state ---
     var regProfilePicUri by rememberSaveable { mutableStateOf<Uri?>(null) }
-    // regFullName and regEmail declared above (before googleSignInLauncher)
+    var regFullName by rememberSaveable { mutableStateOf("") }
     var regSpecialty by rememberSaveable { mutableStateOf("") }
     var regIdDocState by rememberSaveable(stateSaver = DocumentPickerStateSaver) { mutableStateOf(DocumentPickerState()) }
     var regCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
@@ -174,30 +238,16 @@ fun LoginAuthScreen(
     val isAuthenticating by authViewModel.isAuthenticating.collectAsState()
     val authErrorMessage by authViewModel.authErrorMessage.collectAsState()
     val authSuccessMessage by authViewModel.authSuccessMessage.collectAsState()
-    // localErrorMessage declared above (before googleSignInLauncher)
+
+    var localErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var showLegalDocument by remember { mutableStateOf<com.example.legal.LegalDocument?>(null) }
 
-    fun clearErrors() {
+    val verifiedPhoneE164 = resumePhoneE164 ?: com.example.data.model.formatToE164(phoneCountry, phoneNumber)
+
+    fun goToRegistrationForm() {
         localErrorMessage = null
         authViewModel.clearAuthMessages()
-    }
-
-    fun startOtpForSignup() {
-        val currentActivity = activity ?: run { localErrorMessage = "Unable to start verification right now."; return }
-        authViewModel.startPhoneVerification(
-            activity = currentActivity,
-            e164Phone = verifiedPhoneE164,
-            purpose = AuthViewModel.OtpPurpose.SIGNUP,
-            onCodeSent = {
-                otpCode = ""
-                clearErrors()
-                resendCountdownSeconds = OTP_RESEND_COOLDOWN_SECONDS
-                step = AuthStep.OTP_ENTRY
-            },
-            onVerified = { needsRegistration ->
-                if (needsRegistration) step = AuthStep.REGISTRATION_FORM else onLoginSuccess()
-            }
-        )
+        step = AuthStep.REGISTRATION_FORM
     }
 
     val scrollState = rememberScrollState()
@@ -222,11 +272,15 @@ fun LoginAuthScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        AuthStepIndicator(step = step, isForgotPinReset = isForgotPinReset)
+        // Step indicator only for the phone-OTP flow
+        if (step == AuthStep.PHONE_ENTRY || step == AuthStep.OTP_ENTRY || step == AuthStep.REGISTRATION_FORM) {
+            AuthStepIndicator(step = step)
+            Spacer(modifier = Modifier.height(20.dp))
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Error / success banners
+        // Status or Error Banners
         val displayError = localErrorMessage ?: authErrorMessage
         if (displayError != null) {
             Surface(
@@ -234,154 +288,401 @@ fun LoginAuthScreen(
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
             ) {
-                Row(modifier = Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.ErrorOutline, contentDescription = "Error", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                Row(
+                    modifier = Modifier.padding(Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.ErrorOutline,
+                        contentDescription = "Error",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
+                    )
                     Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text(text = displayError, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = displayError,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }
+
         if (authSuccessMessage != null) {
             Surface(
                 color = StatusSuccessContainer,
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
             ) {
-                Row(modifier = Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = "Success", tint = LebaneseCedarGreen, modifier = Modifier.size(20.dp))
+                Row(
+                    modifier = Modifier.padding(Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = "Success",
+                        tint = LebaneseCedarGreen,
+                        modifier = Modifier.size(20.dp)
+                    )
                     Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text(text = authSuccessMessage ?: "", style = MaterialTheme.typography.bodySmall, color = StatusOnSuccessContainer, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = authSuccessMessage ?: "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = StatusOnSuccessContainer,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }
 
         when (step) {
-
-            // ------------------------------------------------------------------
-            // STEP: Phone entry — determines login vs signup path
-            // ------------------------------------------------------------------
-            AuthStep.PHONE_ENTRY -> ModernCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, contentPadding = PaddingValues(20.dp), elevation = 3.dp) {
-                AuthStepHeader(icon = Icons.Default.Phone, title = "Enter Your Number", subtitle = null, isBusy = isAuthenticating)
-                Spacer(modifier = Modifier.height(Spacing.lg))
-                PhoneNumberField(
-                    country = phoneCountry,
-                    onCountryChange = { phoneCountry = it },
-                    number = phoneNumber,
-                    onNumberChange = { phoneNumber = it; localErrorMessage = null },
-                    modifier = Modifier.fillMaxWidth().testTag("auth_phone_input")
+            AuthStep.EMAIL_ENTRY -> ModernCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                contentPadding = PaddingValues(20.dp),
+                elevation = 3.dp
+            ) {
+                AuthStepHeader(
+                    icon = Icons.Default.Email,
+                    title = "Welcome to ProHost",
+                    subtitle = "Sign in or create your account",
+                    isBusy = isAuthenticating
                 )
+
                 Spacer(modifier = Modifier.height(Spacing.lg))
+
+                InputField(
+                    value = emailInput,
+                    onValueChange = {
+                        emailInput = it
+                        localErrorMessage = null
+                    },
+                    label = "Email address",
+                    placeholder = "you@example.com",
+                    leadingIcon = Icons.Default.Email,
+                    modifier = Modifier.fillMaxWidth().testTag("auth_email_input"),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
+
                 ProPrimaryButton(
                     text = if (isAuthenticating) "Checking..." else "Continue",
                     onClick = {
-                        if (phoneNumber.isBlank() || phoneNumber.filter { it.isDigit() }.length < 6) {
-                            localErrorMessage = "Please enter a valid phone number"
+                        val trimmedEmail = emailInput.trim().lowercase()
+                        if (trimmedEmail.isBlank() || !trimmedEmail.contains("@")) {
+                            localErrorMessage = "Please enter a valid email address"
                             return@ProPrimaryButton
                         }
-                        clearErrors()
-                        startOtpForSignup()
+                        localErrorMessage = null
+                        authViewModel.lookupEmail(trimmedEmail)
                     },
                     enabled = !isAuthenticating,
-                    icon = Icons.AutoMirrored.Filled.ArrowForward,
-                    modifier = Modifier.fillMaxWidth().testTag("submit_login_button")
+                    icon = Icons.AutoMirrored.Filled.Login,
+                    modifier = Modifier.fillMaxWidth().testTag("submit_email_button")
                 )
 
-                Spacer(modifier = Modifier.height(Spacing.md))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
-                // ── OR divider ──────────────────────────────────────
+                // OR divider
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
-                    Text("or", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+                    HorizontalDivider(modifier = Modifier.weight(1f))
+                    Text(
+                        text = "  OR  ",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    HorizontalDivider(modifier = Modifier.weight(1f))
                 }
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
-                // ── Google Sign-In button ────────────────────────────
                 OutlinedButton(
-                    onClick = {
-                        clearErrors()
-                        val intent = GoogleSignInHelper.getSignInIntent(context)
-                        googleSignInLauncher.launch(intent)
-                    },
+                    onClick = { launchGoogleSignIn() },
                     enabled = !isAuthenticating,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.White,
-                        contentColor = Color(0xFF1F1F1F)
-                    ),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(
                         imageVector = Icons.Default.AccountCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        contentDescription = "Google",
+                        modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(Spacing.sm))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "Continue with Google",
-                        style = MaterialTheme.typography.labelLarge,
+                        text = "Continue with Google",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.sm))
+
+                TextButton(
+                    onClick = {
+                        localErrorMessage = null
+                        authViewModel.clearAuthMessages()
+                        step = AuthStep.PHONE_ENTRY
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "Use phone number instead",
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
             }
 
-            // ------------------------------------------------------------------
-            // STEP: OTP entry (signup or forgot-PIN)
-            // ------------------------------------------------------------------
-            AuthStep.OTP_ENTRY -> ModernCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, contentPadding = PaddingValues(20.dp), elevation = 3.dp) {
+            AuthStep.EMAIL_SENT -> ModernCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                contentPadding = PaddingValues(20.dp),
+                elevation = 3.dp
+            ) {
                 AuthStepHeader(
-                    icon = Icons.Default.Sms,
-                    title = if (isForgotPinReset) "Verify to Reset PIN" else "Enter Verification Code",
-                    subtitle = "SMS code sent to ${phoneCountry.dialCode} $phoneNumber",
+                    icon = Icons.Default.MarkEmailRead,
+                    title = "Check your inbox",
+                    subtitle = "We sent a sign-in link to $pendingEmail. Tap the link to continue.",
                     isBusy = isAuthenticating
                 )
+
                 Spacer(modifier = Modifier.height(Spacing.lg))
+
+                if (emailResendCountdownSeconds > 0) {
+                    Text(
+                        text = "Resend email in ${emailResendCountdownSeconds}s",
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                } else {
+                    ProPrimaryButton(
+                        text = if (isAuthenticating) "Sending..." else "Resend email",
+                        onClick = {
+                            authViewModel.sendEmailSignInLink(
+                                email = pendingEmail,
+                                continueUrl = EMAIL_SIGN_IN_CONTINUE_URL
+                            ) { sent ->
+                                if (sent) emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
+                            }
+                        },
+                        enabled = !isAuthenticating,
+                        icon = Icons.Default.Send,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(Spacing.md),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Didn't get it? Check spam or try a different sign-in method.",
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.sm))
+
+                TextButton(
+                    onClick = {
+                        localErrorMessage = null
+                        authViewModel.clearAuthMessages()
+                        step = AuthStep.EMAIL_ENTRY
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(
+                        "Use a different email",
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            AuthStep.PHONE_ENTRY -> ModernCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                contentPadding = PaddingValues(20.dp),
+                elevation = 3.dp
+            ) {
+                AuthStepHeader(
+                    icon = Icons.Default.Phone,
+                    title = "Login/Signup",
+                    subtitle = null,
+                    isBusy = isAuthenticating
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
+
+                PhoneNumberField(
+                    country = phoneCountry,
+                    onCountryChange = { phoneCountry = it },
+                    number = phoneNumber,
+                    onNumberChange = {
+                        phoneNumber = it
+                        localErrorMessage = null
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag("auth_phone_input")
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
+
+                ProPrimaryButton(
+                    text = if (isAuthenticating) "Sending Code..." else "Send Verification Code",
+                    onClick = {
+                        val currentActivity = activity
+                        if (currentActivity == null) {
+                            localErrorMessage = "Unable to start phone verification right now."
+                            return@ProPrimaryButton
+                        }
+                        if (phoneNumber.isBlank() || phoneNumber.filter { it.isDigit() }.length < 6) {
+                            localErrorMessage = "Please enter a valid phone number"
+                            return@ProPrimaryButton
+                        }
+                        authViewModel.startPhoneVerification(
+                            activity = currentActivity,
+                            e164Phone = verifiedPhoneE164,
+                            onCodeSent = {
+                                otpCode = ""
+                                localErrorMessage = null
+                                resendCountdownSeconds = OTP_RESEND_COOLDOWN_SECONDS
+                                step = AuthStep.OTP_ENTRY
+                            },
+                            onVerified = { needsRegistration ->
+                                if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
+                            }
+                        )
+                    },
+                    enabled = !isAuthenticating,
+                    icon = Icons.AutoMirrored.Filled.Login,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("submit_login_button")
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.sm))
+
+                TextButton(
+                    onClick = {
+                        localErrorMessage = null
+                        authViewModel.clearAuthMessages()
+                        step = AuthStep.EMAIL_ENTRY
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(
+                        "Back to email sign-in",
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            AuthStep.OTP_ENTRY -> ModernCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                contentPadding = PaddingValues(20.dp),
+                elevation = 3.dp
+            ) {
+                AuthStepHeader(
+                    icon = Icons.Default.Sms,
+                    title = "Enter Verification Code",
+                    subtitle = "ProHost mobile app code sent to ${phoneCountry.dialCode} $phoneNumber",
+                    isBusy = isAuthenticating
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
+
                 InputField(
                     value = otpCode,
                     onValueChange = { otpCode = it.filter { c -> c.isDigit() }.take(6) },
-                    label = "6-Digit SMS Code",
+                    label = "6-Digit Code",
                     leadingIcon = Icons.Default.Sms,
                     modifier = Modifier.fillMaxWidth().testTag("otp_input"),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     singleLine = true
                 )
-                Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                    Row(modifier = Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Lock, contentDescription = null, tint = LebaneseCedarGreen, modifier = Modifier.size(16.dp))
+
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = LebaneseCedarGreen,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Do not share this code with anyone.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "Do not share this code with anyone.",
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
+
                 Spacer(modifier = Modifier.height(Spacing.lg))
+
                 ProPrimaryButton(
                     text = if (isAuthenticating) "Verifying..." else "Verify Code",
                     onClick = {
-                        val currentActivity = activity ?: run { localErrorMessage = "Unable to verify right now."; return@ProPrimaryButton }
-                        if (otpCode.length < 6) { localErrorMessage = "Please enter the 6-digit code"; return@ProPrimaryButton }
+                        val currentActivity = activity
+                        if (currentActivity == null) {
+                            localErrorMessage = "Unable to verify right now."
+                            return@ProPrimaryButton
+                        }
+                        if (otpCode.length < 6) {
+                            localErrorMessage = "Please enter the 6-digit code"
+                            return@ProPrimaryButton
+                        }
                         authViewModel.submitPhoneVerificationCode(currentActivity, otpCode) { needsRegistration ->
-                            if (needsRegistration) {
-                                step = AuthStep.REGISTRATION_FORM
-                            } else {
-                                onLoginSuccess()
-                            }
+                            if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
                         }
                     },
                     enabled = !isAuthenticating,
                     icon = Icons.Default.CheckCircle,
                     modifier = Modifier.fillMaxWidth().testTag("submit_otp_button")
                 )
+
                 Spacer(modifier = Modifier.height(Spacing.sm))
+
                 if (resendCountdownSeconds > 0) {
                     Text(
-                        "Resend code in ${resendCountdownSeconds}s",
-                        style = MaterialTheme.typography.labelMedium,
+                        text = "Resend code in ${resendCountdownSeconds}s",
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -389,180 +690,382 @@ fun LoginAuthScreen(
                 } else {
                     TextButton(
                         onClick = {
-                            val currentActivity = activity ?: return@TextButton
-                            clearErrors()
-                            val purpose = if (isForgotPinReset) AuthViewModel.OtpPurpose.PIN_RESET else AuthViewModel.OtpPurpose.SIGNUP
+                            val currentActivity = activity
+                            if (currentActivity == null) {
+                                localErrorMessage = "Unable to resend the code right now."
+                                return@TextButton
+                            }
+                            localErrorMessage = null
                             authViewModel.startPhoneVerification(
                                 activity = currentActivity,
                                 e164Phone = verifiedPhoneE164,
-                                purpose = purpose,
-                                onCodeSent = { otpCode = ""; resendCountdownSeconds = OTP_RESEND_COOLDOWN_SECONDS },
+                                onCodeSent = {
+                                    otpCode = ""
+                                    resendCountdownSeconds = OTP_RESEND_COOLDOWN_SECONDS
+                                },
                                 onVerified = { needsRegistration ->
-                                    if (needsRegistration) step = AuthStep.REGISTRATION_FORM
-                                    else onLoginSuccess()
+                                    if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
                                 }
                             )
                         },
                         enabled = !isAuthenticating,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Resend Code", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        Text("Resend Code", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
                     }
                 }
+
                 TextButton(onClick = {
-                    isForgotPinReset = false
                     step = AuthStep.PHONE_ENTRY
                     otpCode = ""
-                    clearErrors()
+                    localErrorMessage = null
+                    authViewModel.clearAuthMessages()
                 }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Back", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                    Text("Change phone number", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
                 }
             }
 
-            // ------------------------------------------------------------------
-            // STEP: Registration form (new accounts only)
-            // ------------------------------------------------------------------
-            AuthStep.REGISTRATION_FORM -> ModernCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, contentPadding = PaddingValues(20.dp), elevation = 3.dp) {
-                AuthStepHeader(icon = Icons.Default.AppRegistration, title = "Complete Your Profile", subtitle = "Phone verified — just a few more details to join ProHost", isBusy = isAuthenticating)
+            AuthStep.REGISTRATION_FORM -> ModernCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                contentPadding = PaddingValues(20.dp),
+                elevation = 3.dp
+            ) {
+                AuthStepHeader(
+                    icon = Icons.Default.AppRegistration,
+                    title = "Complete Your Profile",
+                    subtitle = "Your identity is verified — just a few more details to join ProHost",
+                    isBusy = isAuthenticating
+                )
+
                 Spacer(modifier = Modifier.height(14.dp))
-                Surface(color = StatusSuccessContainer, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
-                    Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = LebaneseCedarGreen, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text("Phone verified: ${phoneCountry.dialCode} $phoneNumber", style = MaterialTheme.typography.bodySmall, color = StatusOnSuccessContainer, fontWeight = FontWeight.SemiBold)
+
+                // Show the verified identity (email or phone) as a non-editable badge
+                val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+                val firebaseEmail = firebaseUser?.email ?: ""
+                val firebasePhone = firebaseUser?.phoneNumber ?: resumePhoneE164 ?: ""
+
+                if (firebaseEmail.isNotBlank()) {
+                    Surface(
+                        color = StatusSuccessContainer,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.VerifiedUser,
+                                contentDescription = null,
+                                tint = LebaneseCedarGreen,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Text(
+                                text = "Signed in as: $firebaseEmail",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = StatusOnSuccessContainer,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                } else if (firebasePhone.isNotBlank()) {
+                    Surface(
+                        color = StatusSuccessContainer,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.VerifiedUser,
+                                contentDescription = null,
+                                tint = LebaneseCedarGreen,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Text(
+                                text = "Phone verified: $firebasePhone",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = StatusOnSuccessContainer,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
+
                 Spacer(modifier = Modifier.height(Spacing.lg))
+
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ProfilePicturePickerField(pictureUri = regProfilePicUri, onPictureSelected = { regProfilePicUri = it })
+                    ProfilePicturePickerField(
+                        pictureUri = regProfilePicUri,
+                        onPictureSelected = { regProfilePicUri = it }
+                    )
                     Column {
                         Text("Profile Picture", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                         Text("Optional", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
+
                 Spacer(modifier = Modifier.height(10.dp))
-                InputField(value = regFullName, onValueChange = { regFullName = it; localErrorMessage = null }, label = "Full Name", placeholder = "e.g. Maya Haddad", leadingIcon = Icons.Default.Person, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                Spacer(modifier = Modifier.height(10.dp))
-                InputField(value = regEmail, onValueChange = { regEmail = it; localErrorMessage = null }, label = "Email", placeholder = "specialist@organization.lb", leadingIcon = Icons.Default.Email, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), singleLine = true)
-                Spacer(modifier = Modifier.height(10.dp))
+
                 InputField(
-                    value = regPassword,
-                    onValueChange = { regPassword = it; localErrorMessage = null },
-                    label = "Password (Optional)",
-                    placeholder = "Choose a secure password",
-                    leadingIcon = Icons.Default.Lock,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    value = regFullName,
+                    onValueChange = {
+                        regFullName = it
+                        localErrorMessage = null
+                    },
+                    label = "Full Name",
+                    placeholder = "e.g. Maya Haddad",
+                    leadingIcon = Icons.Default.Person,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-                if (regPassword.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    InputField(
-                        value = regRepeatPassword,
-                        onValueChange = { regRepeatPassword = it; localErrorMessage = null },
-                        label = "Repeat Password",
-                        placeholder = "Re-enter your password",
-                        leadingIcon = Icons.Default.LockReset,
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                }
+
                 Spacer(modifier = Modifier.height(10.dp))
-                InputField(value = regSpecialty, onValueChange = { regSpecialty = it; localErrorMessage = null }, label = "Profession / Job Title (Optional)", placeholder = "e.g. Dermatologist, Architect, Coworking Manager", leadingIcon = Icons.Default.Badge, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                Spacer(modifier = Modifier.height(10.dp))
-                DocumentPickerField(label = "ID Document (National ID / Passport)", helperText = "Kept on file to verify your identity — PDF, JPG, or PNG", state = regIdDocState, onStateChanged = { regIdDocState = it }, modifier = Modifier.fillMaxWidth(), required = true)
-                Spacer(modifier = Modifier.height(10.dp))
-                CountryDropdownField(selectedCountry = regCountry, onCountrySelected = { regCountry = it }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(10.dp))
-                InputField(value = regCity, onValueChange = { regCity = it; localErrorMessage = null }, label = "City", placeholder = "e.g. Beirut", leadingIcon = Icons.Default.LocationCity, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                Spacer(modifier = Modifier.height(14.dp))
-                Row(modifier = Modifier.fillMaxWidth().clickable { tosAccepted = !tosAccepted }, verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = tosAccepted, onCheckedChange = { tosAccepted = it })
-                    Column {
-                        Row {
-                            Text("I agree to the ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Terms of Use", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.termsOfUse })
-                        }
-                        Row {
-                            Text("and ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Privacy Policy", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.privacyPolicy })
+
+                // Email is read-only from Firebase Auth (populated via email/Google sign-in).
+                // For legacy phone-auth users, this chip will be empty — they can add
+                // their email from profile settings after signing up.
+                if (firebaseEmail.isNotBlank()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Email,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = firebaseEmail,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                InputField(
+                    value = regSpecialty,
+                    onValueChange = {
+                        regSpecialty = it
+                        localErrorMessage = null
+                    },
+                    label = "Profession / Job Title (Optional)",
+                    placeholder = "e.g. Dermatologist, Architect, Coworking Manager",
+                    leadingIcon = Icons.Default.Badge,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                DocumentPickerField(
+                    label = "ID Document (National ID / Passport)",
+                    helperText = "Kept on file to verify your identity — PDF, JPG, or PNG",
+                    state = regIdDocState,
+                    onStateChanged = { regIdDocState = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    required = true
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                CountryDropdownField(
+                    selectedCountry = regCountry,
+                    onCountrySelected = { regCountry = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                InputField(
+                    value = regGovernorateArea,
+                    onValueChange = {
+                        regGovernorateArea = it
+                        localErrorMessage = null
+                    },
+                    label = "Governorate / Area",
+                    placeholder = "e.g. Mount Lebanon",
+                    leadingIcon = Icons.Default.LocationOn,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                InputField(
+                    value = regCity,
+                    onValueChange = {
+                        regCity = it
+                        localErrorMessage = null
+                    },
+                    label = "City",
+                    placeholder = "e.g. Beirut",
+                    leadingIcon = Icons.Default.LocationCity,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { tosAccepted = !tosAccepted },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(checked = tosAccepted, onCheckedChange = { tosAccepted = it })
+                    Column {
+                        Row {
+                            Text(
+                                text = "I agree to the ",
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Terms of Use",
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.termsOfUse }
+                            )
+                        }
+                        Row {
+                            Text(text = "and ", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                text = "Privacy Policy",
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.privacyPolicy }
+                            )
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(6.dp))
+
                 ProPrimaryButton(
                     text = if (isAuthenticating) "Creating Account..." else "Create Account",
                     onClick = {
-                        val currentActivity = activity ?: run { localErrorMessage = "Unable to create your account right now."; return@ProPrimaryButton }
-                        if (regFullName.isBlank()) { localErrorMessage = "Please enter your full name"; return@ProPrimaryButton }
-                        if (regEmail.isBlank() || !regEmail.contains("@")) { localErrorMessage = "Please enter a valid email"; return@ProPrimaryButton }
-                        if (regPassword.isNotEmpty() && regPassword != regRepeatPassword) { localErrorMessage = "Passwords do not match"; return@ProPrimaryButton }
-                        if (!regIdDocState.isSelected) { localErrorMessage = "Please upload your ID document"; return@ProPrimaryButton }
-                        if (regCity.isBlank()) { localErrorMessage = "Please enter your city"; return@ProPrimaryButton }
-                        if (!tosAccepted) { localErrorMessage = "Please agree to the Terms of Use and Privacy Policy to continue"; return@ProPrimaryButton }
-                        val registration = AuthViewModel.PendingPhoneRegistration(
-                            fullName = regFullName, email = regEmail,
-                            phoneE164 = verifiedPhoneE164,
-                            specialty = regSpecialty, country = regCountry.name, governorate = regCity,
-                            city = regCity, profilePictureUri = regProfilePicUri, idDocumentUri = regIdDocState.uri,
-                            tosAccepted = tosAccepted
-                        )
-                        if (isGoogleRegistrationFlow) {
-                            authViewModel.completeGoogleRegistration(
-                                activity = currentActivity,
-                                registration = registration,
-                                onSuccess = onLoginSuccess
-                            )
-                        } else {
-                            authViewModel.completePendingRegistration(
-                                activity = currentActivity,
-                                registration = registration,
-                                onSuccess = onLoginSuccess
-                            )
+                        val currentActivity = activity
+                        if (currentActivity == null) {
+                            localErrorMessage = "Unable to create your account right now."
+                            return@ProPrimaryButton
                         }
+                        if (regFullName.isBlank()) {
+                            localErrorMessage = "Please enter your full name"
+                            return@ProPrimaryButton
+                        }
+                        // Email comes from Firebase Auth for email/Google users.
+                        // For phone-auth users, Firebase email is blank — registration proceeds without email
+                        // (they can add it from profile settings later).
+                        val registrationEmail = firebaseEmail.ifBlank {
+                            // Phone-auth new user: validate email would be blank; skip email validation
+                            // since assignInitialRole requires email — this path is a legacy edge case.
+                            // The server will reject with an error message if email is truly required.
+                            ""
+                        }
+                        if (!regIdDocState.isSelected) {
+                            localErrorMessage = "Please upload your ID document"
+                            return@ProPrimaryButton
+                        }
+                        if (regGovernorateArea.isBlank()) {
+                            localErrorMessage = "Please enter your governorate / area"
+                            return@ProPrimaryButton
+                        }
+                        if (regCity.isBlank()) {
+                            localErrorMessage = "Please enter your city"
+                            return@ProPrimaryButton
+                        }
+                        if (!tosAccepted) {
+                            localErrorMessage = "Please agree to the Terms of Use and Privacy Policy to continue"
+                            return@ProPrimaryButton
+                        }
+                        authViewModel.completePendingRegistration(
+                            activity = currentActivity,
+                            registration = AuthViewModel.PendingRegistration(
+                                fullName = regFullName,
+                                email = registrationEmail,
+                                phoneE164 = verifiedPhoneE164,
+                                specialty = regSpecialty,
+                                country = regCountry.name,
+                                governorate = regGovernorateArea,
+                                city = regCity,
+                                profilePictureUri = regProfilePicUri,
+                                idDocumentUri = regIdDocState.uri,
+                                tosAccepted = tosAccepted
+                            ),
+                            onSuccess = onLoginSuccess
+                        )
                     },
                     enabled = !isAuthenticating,
                     icon = Icons.Default.CheckCircle,
-                    modifier = Modifier.fillMaxWidth().testTag("submit_registration_button")
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("submit_registration_button")
                 )
+
                 Spacer(modifier = Modifier.height(Spacing.sm))
+
                 TextButton(
                     onClick = {
                         com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-                        phoneNumber = ""; otpCode = ""
-                        isForgotPinReset = false
-                        isGoogleRegistrationFlow = false
-                        clearErrors()
-                        step = AuthStep.PHONE_ENTRY
+                        phoneNumber = ""
+                        otpCode = ""
+                        emailInput = ""
+                        localErrorMessage = null
+                        authViewModel.clearAuthMessages()
+                        step = AuthStep.EMAIL_ENTRY
                         onCancelResume?.invoke()
                     },
                     enabled = !isAuthenticating
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(
-                        if (isGoogleRegistrationFlow) "Cancel Google sign-up" else "Start over with a different number",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("Start over with a different account", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
-            Row(modifier = Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = Icons.Default.Security, contentDescription = null, tint = LebaneseCedarGreen, modifier = Modifier.size(20.dp))
+        // Security Notice Box
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = MaterialTheme.shapes.medium,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(Spacing.md),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Security,
+                    contentDescription = null,
+                    tint = LebaneseCedarGreen,
+                    modifier = Modifier.size(20.dp)
+                )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Your identity is verified via one-time SMS or Google OAuth.",
-                    style = MaterialTheme.typography.labelSmall,
+                    text = "Sign in with email link or Google, or use your phone number for SMS verification.",
+                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -583,18 +1086,35 @@ private fun AuthStepHeader(
     subtitle: String?,
     isBusy: Boolean
 ) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-            Surface(color = OxfordBlue.copy(alpha = 0.1f), shape = CircleShape, modifier = Modifier.size(36.dp)) {
+            Surface(
+                color = OxfordBlue.copy(alpha = 0.1f),
+                shape = CircleShape,
+                modifier = Modifier.size(36.dp)
+            ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(icon, contentDescription = null, tint = OxfordBlue, modifier = Modifier.size(18.dp))
                 }
             }
             Spacer(modifier = Modifier.width(10.dp))
             Column {
-                Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 if (subtitle != null) {
-                    Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -605,25 +1125,21 @@ private fun AuthStepHeader(
 }
 
 @Composable
-private fun AuthStepIndicator(step: AuthStep, isForgotPinReset: Boolean = false) {
-    val (steps, currentIndex) = when (step) {
-        AuthStep.PHONE_ENTRY -> listOf(
-            Triple(AuthStep.PHONE_ENTRY, "Phone", Icons.Default.Phone),
-            Triple(AuthStep.OTP_ENTRY, "Verify", Icons.Default.Sms),
-            Triple(AuthStep.REGISTRATION_FORM, "Profile", Icons.Default.Person)
-        ) to 0
-        AuthStep.OTP_ENTRY -> listOf(
-            Triple(AuthStep.PHONE_ENTRY, "Phone", Icons.Default.Phone),
-            Triple(AuthStep.OTP_ENTRY, "Verify", Icons.Default.Sms),
-            Triple(AuthStep.REGISTRATION_FORM, "Profile", Icons.Default.Person)
-        ) to 1
-        AuthStep.REGISTRATION_FORM -> listOf(
-            Triple(AuthStep.PHONE_ENTRY, "Phone", Icons.Default.Phone),
-            Triple(AuthStep.OTP_ENTRY, "Verify", Icons.Default.Sms),
-            Triple(AuthStep.REGISTRATION_FORM, "Profile", Icons.Default.Person)
-        ) to 2
-    }
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+private fun AuthStepIndicator(step: AuthStep) {
+    // Only renders for the phone-OTP flow steps
+    val steps = listOf(
+        Triple(AuthStep.PHONE_ENTRY, "Phone", Icons.Default.Phone),
+        Triple(AuthStep.OTP_ENTRY, "Verify", Icons.Default.Sms),
+        Triple(AuthStep.REGISTRATION_FORM, "Profile", Icons.Default.Person)
+    )
+    val currentIndex = steps.indexOfFirst { it.first == step }
+    if (currentIndex < 0) return // not in phone flow — don't render
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         steps.forEachIndexed { index, (_, label, icon) ->
             val isDone = index < currentIndex
             val isCurrent = index == currentIndex
@@ -633,7 +1149,11 @@ private fun AuthStepIndicator(step: AuthStep, isForgotPinReset: Boolean = false)
                 else -> MaterialTheme.colorScheme.outlineVariant
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Surface(color = dotColor, shape = CircleShape, modifier = Modifier.size(26.dp)) {
+                Surface(
+                    color = dotColor,
+                    shape = CircleShape,
+                    modifier = Modifier.size(26.dp)
+                ) {
                     Box(contentAlignment = Alignment.Center) {
                         if (isDone) {
                             Icon(Icons.Default.Check, contentDescription = null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(14.dp))
@@ -652,7 +1172,10 @@ private fun AuthStepIndicator(step: AuthStep, isForgotPinReset: Boolean = false)
             }
             if (index < steps.size - 1) {
                 HorizontalDivider(
-                    modifier = Modifier.width(28.dp).padding(horizontal = Spacing.xs).padding(bottom = 14.dp),
+                    modifier = Modifier
+                        .width(28.dp)
+                        .padding(horizontal = Spacing.xs)
+                        .padding(bottom = 14.dp),
                     color = if (index < currentIndex) LebaneseCedarGreen else MaterialTheme.colorScheme.outlineVariant
                 )
             }

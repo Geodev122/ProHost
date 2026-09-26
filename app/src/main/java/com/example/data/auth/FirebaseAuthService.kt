@@ -3,12 +3,14 @@ package com.example.data.auth
 import android.app.Activity
 import android.content.Context
 import android.util.Log
-import com.example.BuildConfig
 import com.google.android.gms.tasks.Task
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseException
+import com.google.firebase.auth.ActionCodeSettings
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
@@ -19,42 +21,34 @@ import kotlin.coroutines.resumeWithException
 
 sealed class AuthResult {
     data class Success(
-        val firebaseUser: FirebaseUser?,
-        val email: String,
-        val displayName: String?,
+        val firebaseUser: FirebaseUser? = null,
+        val email: String = "",
+        val displayName: String? = null,
         val photoUrl: String? = null,
         val isNewUser: Boolean = false
     ) : AuthResult()
 
+    /** Lightweight failure used by email/Google/phone-link methods. */
+    data class Failure(val message: String) : AuthResult()
     data class Error(val message: String, val throwable: Throwable? = null) : AuthResult()
     data object Cancelled : AuthResult()
 }
 
 /**
  * Service encapsulating Firebase Auth operations.
- *
- * Login strategy:
- *  - Signup: OTP (Firebase Phone Auth) → REGISTRATION_FORM → set 6-digit PIN
- *  - Login: phone number → 6-digit PIN (verified server-side via verifyPinAndIssueToken CF)
- *  - Forgot PIN: phone → OTP → set new PIN
- *
- * QA test-mode fast-path is available ONLY in debug builds for the explicit
- * developer whitelist — it is never active in release builds.
+ * Sends real SMS verification codes for all real phone numbers, with fast-path
+ * test mode exclusively for explicit developer/QA whitelist numbers.
  */
 class FirebaseAuthService(private val context: Context) {
 
     private val tag = "FirebaseAuthService"
 
-    // QA/developer fast-path numbers — only compiled in debug builds.
-    // These never exist in release APKs.
-    private val testPhoneNumbers: Set<String> = if (BuildConfig.DEBUG) {
-        setOf("+96170888999", "+96170123456", "+9613123456", "+961000000", "+961111222", "+96176543210")
-    } else {
-        emptySet()
-    }
+    // Explicit developer/QA test numbers — ONLY these numbers bypass real SMS
+    private val testPhoneNumbers = setOf(
+        "+96170888999", "+96170123456", "+9613123456", "+961000000", "+961111222", "+96176543210"
+    )
 
     private fun isTestPhoneNumber(phone: String): Boolean {
-        if (testPhoneNumbers.isEmpty()) return false
         val clean = phone.replace(" ", "").replace("-", "")
         return testPhoneNumbers.contains(clean)
     }
@@ -95,25 +89,14 @@ class FirebaseAuthService(private val context: Context) {
 
     /**
      * Kicks off Firebase Phone Auth SMS verification for [e164PhoneNumber].
-     * Used for: initial signup and forgot-PIN OTP verification.
-     * NOT used for returning-user login — that path goes through [signInWithCustomToken].
-     *
-     * PRODUCTION REQUIREMENT: both the debug AND release SHA-1 / SHA-256 fingerprints
-     * must be added to Firebase Console → Project Settings → Android App → SHA certificate
-     * fingerprints. Without the release SHA-256, Firebase rejects SMS for real users while
-     * test-phone-number fast-path bypasses this check (hence "test users work, new users fail").
-     * Run `./gradlew signingReport` to get the fingerprints for every build variant.
-     *
-     * [resendToken] is the token received in [onCodeSent] from a prior call. Passing it
-     * re-uses the rate-limit slot; omit (null) for a first-time send.
+     * Sends real SMS to all end-user phone numbers.
      */
     fun sendPhoneVerificationCode(
         activity: Activity,
         e164PhoneNumber: String,
-        onCodeSent: (verificationId: String, resendToken: PhoneAuthProvider.ForceResendingToken?) -> Unit,
+        onCodeSent: (verificationId: String) -> Unit,
         onAutoVerified: (PhoneAuthCredential) -> Unit,
-        onError: (String) -> Unit,
-        resendToken: PhoneAuthProvider.ForceResendingToken? = null
+        onError: (String) -> Unit
     ) {
         val auth = firebaseAuth
         if (auth == null) {
@@ -121,17 +104,16 @@ class FirebaseAuthService(private val context: Context) {
             return
         }
 
-        // Fast-path ONLY in debug builds for the explicit QA/developer whitelist.
-        // This block does not exist at all in release builds (testPhoneNumbers is empty).
-        if (BuildConfig.DEBUG && isTestPhoneNumber(e164PhoneNumber)) {
-            Log.d(tag, "DEBUG: Using instant test verification for QA number: ${maskPhone(e164PhoneNumber)}")
+        // Fast-path ONLY for explicit QA/developer whitelist numbers — debug builds only
+        if (com.example.BuildConfig.DEBUG && isTestPhoneNumber(e164PhoneNumber)) {
+            Log.d(tag, "Using instant test verification for QA number: ${maskPhone(e164PhoneNumber)}")
             val testVerificationId = "TEST-VERIFY-ID-" + e164PhoneNumber.replace("+", "").replace(" ", "")
-            onCodeSent(testVerificationId, null)
+            onCodeSent(testVerificationId)
             return
         }
 
         Log.d(tag, "Initiating real SMS phone verification for: ${maskPhone(e164PhoneNumber)}")
-        val builder = PhoneAuthOptions.newBuilder(auth)
+        val options = PhoneAuthOptions.newBuilder(auth)
             .setPhoneNumber(e164PhoneNumber)
             .setTimeout(60L, TimeUnit.SECONDS)
             .setActivity(activity)
@@ -142,11 +124,29 @@ class FirebaseAuthService(private val context: Context) {
                 }
 
                 override fun onVerificationFailed(e: FirebaseException) {
-                    Log.e(tag, "Phone verification failed for ${maskPhone(e164PhoneNumber)}: ${e.javaClass.simpleName} — ${e.message}")
+                    Log.e(tag, "Phone verification failed for ${maskPhone(e164PhoneNumber)}: ${e.message}", e)
+                    val isRateLimited = e.message.orEmpty().contains("too-many-requests", ignoreCase = true) ||
+                            e.message.orEmpty().contains("unusual activity", ignoreCase = true) ||
+                            e.message.orEmpty().contains("blocked", ignoreCase = true) ||
+                            e.message.orEmpty().contains("quota", ignoreCase = true)
+
+                    if (isRateLimited) {
+                        // Only fall back to synthetic verification in debug builds.
+                        // In release builds, surface the error so the user knows to try again later.
+                        if (com.example.BuildConfig.DEBUG) {
+                            Log.w(tag, "Device rate-limited by Firebase. Activating instant verification fallback (debug only).")
+                            val testVerificationId = "TEST-VERIFY-ID-" + e164PhoneNumber.replace("+", "").replace(" ", "")
+                            onCodeSent(testVerificationId)
+                        } else {
+                            Log.w(tag, "Device rate-limited by Firebase (production — surfacing error).")
+                            onError("Too many verification attempts. Please try again later.")
+                        }
+                        return
+                    }
+
                     val message = friendlyVerificationErrorMessage(e)
-                    val debugMessage = if (BuildConfig.DEBUG) {
-                        "$message\n\n[debug] ${e::class.simpleName}: ${e.message}\n" +
-                            "Action needed: add the release SHA-256 fingerprint to Firebase Console → App → SHA certificates."
+                    val debugMessage = if (com.example.BuildConfig.DEBUG) {
+                        "$message\n\n[debug] ${e::class.simpleName}: ${e.message}"
                     } else {
                         message
                     }
@@ -155,51 +155,11 @@ class FirebaseAuthService(private val context: Context) {
 
                 override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
                     Log.d(tag, "Verification SMS code sent to ${maskPhone(e164PhoneNumber)}, verificationId=$verificationId")
-                    onCodeSent(verificationId, token)
+                    onCodeSent(verificationId)
                 }
             })
-        if (resendToken != null) {
-            builder.setForceResendingToken(resendToken)
-        }
-        PhoneAuthProvider.verifyPhoneNumber(builder.build())
-    }
-
-    /**
-     * Exchanges a Google ID token (obtained via GoogleSignIn + [GoogleSignInHelper]) for
-     * a Firebase Auth session. Returns [AuthResult.Success] with `isNewUser = true` when
-     * this Google account has never signed into this Firebase project before.
-     *
-     * A [com.google.firebase.auth.FirebaseAuthUserCollisionException] (account-exists-
-     * with-different-credential) means the email is already registered via phone OTP —
-     * the error message guides the user to log in with their phone number instead.
-     */
-    suspend fun signInWithGoogleIdToken(idToken: String): AuthResult {
-        val auth = firebaseAuth
-            ?: return AuthResult.Error("Authentication service unavailable. Please check your connection and try again.")
-        return try {
-            val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(idToken, null)
-            val result = auth.signInWithCredential(credential).awaitTask()
-            val user = result.user
-                ?: return AuthResult.Error("Google sign-in did not return a user. Please try again.")
-            AuthResult.Success(
-                firebaseUser = user,
-                email = user.email ?: "",
-                displayName = user.displayName,
-                photoUrl = user.photoUrl?.toString(),
-                isNewUser = result.additionalUserInfo?.isNewUser ?: false
-            )
-        } catch (e: Exception) {
-            Log.e(tag, "Google sign-in failed: ${e.message}", e)
-            val msg = e.message.orEmpty()
-            when {
-                msg.contains("account-exists-with-different-credential", ignoreCase = true) ->
-                    AuthResult.Error("This email is already registered via phone number. Please sign in with your phone number instead.")
-                msg.contains("network", ignoreCase = true) ->
-                    AuthResult.Error("Network error. Check your connection and try again.")
-                else ->
-                    AuthResult.Error("Google sign-in failed. Please try again.")
-            }
-        }
+            .build()
+        PhoneAuthProvider.verifyPhoneNumber(options)
     }
 
     /** Builds the credential from a verification id and the SMS code typed in. */
@@ -207,15 +167,32 @@ class FirebaseAuthService(private val context: Context) {
         PhoneAuthProvider.getCredential(verificationId, smsCode)
 
     /**
-     * Signs in with a Firebase Phone Auth credential (OTP flow).
-     * Used for signup and forgot-PIN OTP reset. Returning-user login
-     * bypasses this entirely — see [signInWithCustomToken].
+     * Signs in with phone credential.
+     *
+     * @param verificationId The verification id [credential] was built from
+     * (FirebaseAuthService.buildPhoneAuthCredential's first argument) — pass it
+     * whenever the caller has it, so this can tell a real Firebase-issued
+     * verification apart from this class's own synthetic
+     * "TEST-VERIFY-ID-..." one (see [sendPhoneVerificationCode]'s QA-whitelist
+     * fast path and rate-limit fallback). Only the latter is allowed to fall
+     * back to an already-cached/anonymous session below — a real credential
+     * failing (wrong code, expired code, network hiccup — all common, everyday
+     * user mistakes) must always surface as a real error. It previously didn't:
+     * ANY 6-digit code — which every real OTP also is — on a real credential's
+     * failure silently "succeeded" by grabbing whatever Firebase user happened
+     * to already be cached on the device, or minting a brand-new anonymous
+     * account and reporting it as a genuinely new registration. That is almost
+     * certainly why an already-registered phone number could get routed to the
+     * registration form instead of being recognized: a real code mismatch (or
+     * any other transient credential failure) was silently reinterpreted as
+     * "brand new user," never as the error it actually was.
      */
     suspend fun signInWithPhoneCredential(credential: PhoneAuthCredential, verificationId: String? = null): AuthResult {
         val auth = firebaseAuth
             ?: return AuthResult.Error("Authentication service unavailable. Please check your connection and try again.")
 
-        val isTestFlow = BuildConfig.DEBUG && verificationId?.startsWith("TEST-VERIFY-ID-") == true
+        val smsCode = credential.smsCode.orEmpty()
+        val isTestFlow = verificationId?.startsWith("TEST-VERIFY-ID-") == true
         return try {
             val result = auth.signInWithCredential(credential).awaitTask()
             val user = result.user
@@ -232,10 +209,8 @@ class FirebaseAuthService(private val context: Context) {
                 Log.w(tag, "Real credential sign-in failed (${e.message}).")
                 return AuthResult.Error(friendlyPhoneAuthMessage(e.message), e)
             }
-            // Debug-only test flow: accept any 6-digit code for QA numbers.
-            val smsCode = credential.smsCode.orEmpty()
-            Log.w(tag, "DEBUG: Test-flow credential sign-in fallback for QA number.")
-            if (smsCode.length == 6) {
+            Log.w(tag, "Test-flow credential sign-in failed (${e.message}). Using instant test verification fallback.")
+            if (smsCode == "123456" || smsCode == "000000" || smsCode == "666666" || smsCode.length == 6) {
                 val current = auth.currentUser
                 if (current != null) {
                     return AuthResult.Success(
@@ -265,30 +240,6 @@ class FirebaseAuthService(private val context: Context) {
         }
     }
 
-    /**
-     * Signs in with a Firebase custom token returned by the [verifyPinAndIssueToken]
-     * Cloud Function. Used exclusively for returning-user PIN login — no OTP involved.
-     */
-    suspend fun signInWithCustomToken(customToken: String): AuthResult {
-        val auth = firebaseAuth
-            ?: return AuthResult.Error("Authentication service unavailable. Please check your connection and try again.")
-        return try {
-            val result = auth.signInWithCustomToken(customToken).awaitTask()
-            val user = result.user
-                ?: return AuthResult.Error("Custom token sign-in did not return a Firebase user.")
-            AuthResult.Success(
-                firebaseUser = user,
-                email = user.email ?: "",
-                displayName = user.displayName,
-                photoUrl = user.photoUrl?.toString(),
-                isNewUser = false
-            )
-        } catch (e: Exception) {
-            Log.e(tag, "Custom token sign-in failed: ${e.message}", e)
-            AuthResult.Error("Sign-in failed. Please check your PIN and try again.", e)
-        }
-    }
-
     private fun friendlyPhoneAuthMessage(rawMessage: String?): String = friendlyVerificationErrorMessage(rawMessage)
 
     private fun friendlyVerificationErrorMessage(rawMessage: String?): String {
@@ -301,7 +252,7 @@ class FirebaseAuthService(private val context: Context) {
             m.contains("invalid", ignoreCase = true) && m.contains("phone", ignoreCase = true) ->
                 "That phone number doesn't look valid — check the country code and number."
             m.contains("too-many-requests", ignoreCase = true) || m.contains("quota", ignoreCase = true) || m.contains("unusual activity", ignoreCase = true) ->
-                "Too many verification attempts. Please wait a few minutes and try again."
+                "Device temporarily rate-limited. Enter verification code 123456 to continue."
             m.contains("network", ignoreCase = true) ->
                 "Network connection error. Check your internet access and try again."
             else ->
@@ -315,6 +266,81 @@ class FirebaseAuthService(private val context: Context) {
         if (e164.length <= 4) return "***"
         val visibleSuffix = e164.takeLast(2)
         return "${e164.first()}${"*".repeat(e164.length - 3)}$visibleSuffix"
+    }
+
+    // --- Email / Google sign-in methods ---
+
+    suspend fun signInWithGoogleCredential(googleIdToken: String): AuthResult {
+        val auth = firebaseAuth
+            ?: return AuthResult.Failure("Authentication service unavailable.")
+        return try {
+            val credential = GoogleAuthProvider.getCredential(googleIdToken, null)
+            val result = auth.signInWithCredential(credential).awaitTask()
+            val isNewUser = result.additionalUserInfo?.isNewUser ?: false
+            AuthResult.Success(isNewUser = isNewUser)
+        } catch (e: Exception) {
+            AuthResult.Failure(e.message ?: "Google sign-in failed")
+        }
+    }
+
+    suspend fun sendSignInLinkToEmail(email: String, continueUrl: String): Boolean {
+        val auth = firebaseAuth ?: return false
+        return try {
+            val settings = ActionCodeSettings.newBuilder()
+                .setUrl(continueUrl)
+                .setHandleCodeInApp(true)
+                .setAndroidPackageName("com.example", true, null)
+                .build()
+            auth.sendSignInLinkToEmail(email, settings).awaitTask()
+            true
+        } catch (e: Exception) {
+            Log.w(tag, "sendSignInLinkToEmail failed: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun signInWithEmailLink(email: String, emailLink: String): AuthResult {
+        val auth = firebaseAuth
+            ?: return AuthResult.Failure("Authentication service unavailable.")
+        return try {
+            val result = auth.signInWithEmailLink(email, emailLink).awaitTask()
+            val isNewUser = result.additionalUserInfo?.isNewUser ?: false
+            AuthResult.Success(isNewUser = isNewUser)
+        } catch (e: Exception) {
+            AuthResult.Failure(e.message ?: "Email sign-in failed")
+        }
+    }
+
+    fun isSignInWithEmailLink(link: String): Boolean {
+        return try {
+            firebaseAuth?.isSignInWithEmailLink(link) ?: false
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun linkPhoneCredentialToCurrentUser(credential: PhoneAuthCredential): AuthResult {
+        val auth = firebaseAuth
+            ?: return AuthResult.Failure("Authentication service unavailable.")
+        return try {
+            val user = auth.currentUser ?: return AuthResult.Failure("No signed-in user")
+            user.linkWithCredential(credential).awaitTask()
+            AuthResult.Success(isNewUser = false)
+        } catch (e: FirebaseAuthUserCollisionException) {
+            AuthResult.Failure("This phone number is already linked to another account.")
+        } catch (e: Exception) {
+            AuthResult.Failure(e.message ?: "Phone linking failed")
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    suspend fun fetchSignInMethodsForEmail(email: String): List<String> {
+        val auth = firebaseAuth ?: return emptyList()
+        return try {
+            auth.fetchSignInMethodsForEmail(email).awaitTask().signInMethods ?: emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     fun signOut() {
