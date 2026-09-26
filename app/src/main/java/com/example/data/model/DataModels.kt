@@ -397,6 +397,7 @@ data class Subdivision(
     val type: Level2Type,
     val imageUrls: List<String> = emptyList(),
     val amenities: List<String> = emptyList(),
+    val hashtags: List<String> = emptyList(),
     val pricing: RentalPricingConfig = RentalPricingConfig.default(),
     // Legacy, read-only: populated only when deserializing a document saved before
     // RentalPricingConfig existed and never re-saved since. New saves always leave

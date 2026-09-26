@@ -63,6 +63,8 @@ fun SubdivisionEditorSection(
     var subName by remember { mutableStateOf("") }
     var subType by remember { mutableStateOf(Level2Type.ROOMS) }
     var subAmenitiesSelected by remember { mutableStateOf(setOf<String>()) }
+    var subHashtags by remember { mutableStateOf(listOf<String>()) }
+    var hashtagInput by remember { mutableStateOf("") }
     var showTypePicker by remember { mutableStateOf(false) }
     var showAmenityPicker by remember { mutableStateOf(false) }
     var subImageUrls by remember { mutableStateOf(listOf<String>()) }
@@ -109,6 +111,8 @@ fun SubdivisionEditorSection(
         subName = ""
         subType = Level2Type.ROOMS
         subAmenitiesSelected = emptySet()
+        subHashtags = emptyList()
+        hashtagInput = ""
         subImageUrls = emptyList()
         subPricing = RentalPricingConfig.default()
         subScheduleOverrideEnabled = false
@@ -130,6 +134,7 @@ fun SubdivisionEditorSection(
         type = subType,
         imageUrls = subImageUrls,
         amenities = subAmenitiesSelected.toList(),
+        hashtags = subHashtags,
         pricing = subPricing,
         scheduleOverride = if (subScheduleOverrideEnabled) {
             SpaceOperatingSchedule(
@@ -242,6 +247,8 @@ fun SubdivisionEditorSection(
                                             subName = sub.name
                                             subType = sub.type
                                             subAmenitiesSelected = sub.amenities.toSet()
+                                            subHashtags = sub.hashtags
+                                            hashtagInput = ""
                                             subImageUrls = sub.imageUrls
                                             subPricing = sub.pricing
                                             val override = sub.scheduleOverride
@@ -389,6 +396,50 @@ fun SubdivisionEditorSection(
                     placeholder = "Choose amenities",
                     onClick = { showAmenityPicker = true }
                 )
+
+                Text("Hashtags", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = hashtagInput,
+                        onValueChange = { hashtagInput = it.trimStart('#').replace(" ", "") },
+                        placeholder = { Text("e.g. DentalClinic") },
+                        prefix = { Text("#") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        shape = MaterialTheme.shapes.medium
+                    )
+                    IconButton(
+                        onClick = {
+                            val tag = hashtagInput.trim()
+                            if (tag.isNotBlank() && !subHashtags.contains(tag)) {
+                                subHashtags = subHashtags + tag
+                            }
+                            hashtagInput = ""
+                        },
+                        enabled = hashtagInput.trim().isNotBlank()
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add hashtag", tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                if (subHashtags.isNotEmpty()) {
+                    androidx.compose.foundation.layout.FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                    ) {
+                        subHashtags.forEach { tag ->
+                            InputChip(
+                                selected = false,
+                                onClick = { subHashtags = subHashtags - tag },
+                                label = { Text("#$tag", style = MaterialTheme.typography.labelSmall) },
+                                trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp)) }
+                            )
+                        }
+                    }
+                }
             }
         }
 

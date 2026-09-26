@@ -148,8 +148,11 @@ fun SpaceDetailsScreenContent(
     // driving the "Send Request" bar and the confirm popup below. Cleared
     // whenever the sheet closes so a stale selection never survives a re-open.
     var selectedAvailableSlot by remember { mutableStateOf<RentableSlot?>(null) }
+    // Multi-day HOURLY selection: day → set of selected start-hour strings
+    var selectedHoursPerDay by remember { mutableStateOf(mapOf<String, Set<String>>()) }
     var showSendConfirm by remember { mutableStateOf(false) }
     var isSendingSlotRequest by remember { mutableStateOf(false) }
+    var selectedSubdivisionId by remember { mutableStateOf<String?>(null) }
 
     // Real, live pricing config (SpaceCalculationUtils.buildAllSlotsForSpace) — the
     // single source both the Renting Options cards and the Check Availability sheet
@@ -210,117 +213,99 @@ fun SpaceDetailsScreenContent(
             )
         },
         bottomBar = {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 10.dp,
-                shadowElevation = 8.dp,
-                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-            ) {
-                Row(
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Peek tap bar — specialists only; hidden for Pro Host / Admin preview
+                if (currentUserRole != UserRole.PRO_HOST && currentUserRole != UserRole.ADMIN) {
+                    Surface(
+                        color = if (availableSlots.isNotEmpty()) VibrantBlue else MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = availableSlots.isNotEmpty()) { showAvailabilityPanel = true }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Spacing.lg, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.KeyboardArrowUp,
+                                contentDescription = null,
+                                tint = if (availableSlots.isNotEmpty()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (availableSlots.isNotEmpty()) "Press to see option availability" else "No slots configured",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (availableSlots.isNotEmpty()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                // Price + action strip
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 10.dp,
+                    shadowElevation = 8.dp,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .navigationBarsPadding()
                 ) {
-                    Column(modifier = Modifier.weight(0.9f)) {
-                        val price = selectedFormula?.rateUsd ?: liveSpace.baseMonthlyRateUsd
-                        val priceUnit = selectedFormula?.let { SpaceCalculationUtils.rateUnitLabel(it.type) } ?: "/mo"
-                        Text(
-                            text = "$${price.toInt()} USD$priceUnit",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = CarnationOrange
-                        )
-                        Text(
-                            text = selectedFormula?.type?.displayName ?: "Full Month",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
                     Row(
-                        modifier = Modifier.weight(2.2f),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            val price = selectedFormula?.rateUsd ?: liveSpace.baseMonthlyRateUsd
+                            val priceUnit = selectedFormula?.let { SpaceCalculationUtils.rateUnitLabel(it.type) } ?: "/mo"
+                            Text(
+                                text = "$${price.toInt()} USD$priceUnit",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = CarnationOrange
+                            )
+                            Text(
+                                text = selectedFormula?.type?.displayName ?: "Full Month",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
                         if (currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN) {
-                            // ProHosts and Admins cannot book spaces. Show a clear banner instead of renting actions.
                             Surface(
                                 color = MaterialTheme.colorScheme.secondaryContainer,
-                                shape = MaterialTheme.shapes.medium,
-                                modifier = Modifier.fillMaxWidth()
+                                shape = MaterialTheme.shapes.medium
                             ) {
                                 Text(
-                                    text = "Preview Mode (Pro Host / Admin)",
+                                    text = "Preview Mode",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                    modifier = Modifier.padding(vertical = 12.dp)
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
                                 )
                             }
                         } else {
-                            // Check Availability Button — slides up the real availability
-                            // matrix for whichever renting option is currently selected
-                            // above (item 3.2), instead of a separate, always-visible
-                            // "Availability" section further down the page.
-                            Button(
-                                onClick = { showAvailabilityPanel = true },
-                                enabled = strategyPreviewGroups.isNotEmpty(),
-                                shape = MaterialTheme.shapes.medium,
-                                modifier = Modifier.weight(1.3f),
-                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)
-                            ) {
-                                Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    "Check Availability",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                    maxLines = 2,
-                                    lineHeight = 12.sp
-                                )
-                            }
-
-                            // WhatsApp Direct Inquiry Button
                             Button(
                                 onClick = onWhatsAppClick,
                                 shape = MaterialTheme.shapes.medium,
                                 colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                                modifier = Modifier.weight(1f),
-                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     "WhatsApp",
                                     color = Color.White,
                                     style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1
+                                    fontWeight = FontWeight.Bold
                                 )
-                            }
-
-                            // Email Inquiry Button (only for non-owner authenticated users)
-                            if (currentUserRole != null && liveSpace.ownerId != currentUser?.id) {
-                                OutlinedButton(
-                                    onClick = { showInquiryDialog = true },
-                                    shape = MaterialTheme.shapes.medium,
-                                    modifier = Modifier.weight(1f),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)
-                                ) {
-                                    Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(3.dp))
-                                    Text(
-                                        "Email",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1
-                                    )
-                                }
                             }
                         }
                     }
@@ -578,92 +563,58 @@ fun SpaceDetailsScreenContent(
                     acceptedBookings = acceptedBookings
                 )
 
-                // Renting Options Preview — built from the space's real live pricing
-                // config (SpaceCalculationUtils.buildAllSlotsForSpace), not the legacy
-                // rentalFormulas list, which only ever held one flattened, lossy
-                // snapshot from publish time. One card per strategy actually
-                // configured (a strategy nobody set up never shows as a fake option);
-                // tapping picks a representative rate for the bottom bar/booking
-                // dialog hint — the specialist chooses the exact real slot inside
-                // RentalBookingDialog itself.
+                // Renting Options — one card per subdivision (or one "Whole Space" card)
                 ProSurfaceCard {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         ProSectionHeader(
                             title = "Renting Options",
-                            subtitle = "Tap an option, then check its live availability below",
+                            subtitle = "Tap a space to see live availability",
                             icon = Icons.Default.Tune
                         )
-
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            strategyPreviewGroups.forEach { (strategyType, slots) ->
-                                val representativeSlot = slots.first()
-                                val formula = SpaceCalculationUtils.representativeFormula(listOf(representativeSlot), BookingRecurrence.FLAT)
-                                    ?: return@forEach
-                                val isSelected = selectedFormula?.type == formula.type
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { onSelectFormula(formula) },
-                                    shape = MaterialTheme.shapes.medium,
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
-                                    ),
-                                    border = androidx.compose.foundation.BorderStroke(
-                                        width = if (isSelected) 2.dp else 1.dp,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-                                    )
-                                ) {
-                                    Column(modifier = Modifier.padding(14.dp)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = formula.type.displayName,
-                                                    style = MaterialTheme.typography.titleSmall,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-                                                )
-                                                Text(
-                                                    text = formula.scheduleDescription,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-
-                                            ProCurrencyTag(
-                                                rateUsd = formula.rateUsd,
-                                                unitLabel = SpaceCalculationUtils.rateUnitLabel(formula.type)
-                                            )
+                        val subdivisionCards = liveSpace.subdivisions.takeIf { it.isNotEmpty() }
+                        if (subdivisionCards != null) {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                subdivisionCards.forEach { sub ->
+                                    val subSlots = remember(availableSlots, sub.id) {
+                                        availableSlots.filter { it.sourceFormulaId == sub.id }
+                                    }
+                                    SubdivisionRentalCard(
+                                        subdivision = sub,
+                                        slots = subSlots,
+                                        spaceId = liveSpace.id,
+                                        acceptedBookings = acceptedBookings,
+                                        onClick = {
+                                            selectedSubdivisionId = sub.id
+                                            showAvailabilityPanel = true
                                         }
-
-                                        // Attached Hours Tag
-                                        if (formula.daysOfWeek.isNotEmpty() && formula.startHour.isNotBlank()) {
-                                            Spacer(modifier = Modifier.height(6.dp))
-                                            Surface(
-                                                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
-                                                shape = MaterialTheme.shapes.small
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Icon(
-                                                        Icons.Default.AccessTime,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(12.dp),
-                                                        tint = MaterialTheme.colorScheme.primary
-                                                    )
-                                                    Spacer(modifier = Modifier.width(Spacing.xs))
-                                                    Text(
-                                                        text = "${formula.daysOfWeek.joinToString()} • ${formula.startHour} - ${formula.endHour}",
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = MaterialTheme.colorScheme.primary
-                                                    )
-                                                }
+                                    )
+                                }
+                            }
+                        } else {
+                            // Whole-space fallback card
+                            val wholeSlots = availableSlots.filter { !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(enabled = wholeSlots.isNotEmpty()) { showAvailabilityPanel = true },
+                                shape = MaterialTheme.shapes.medium,
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("Whole Space", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                    if (liveSpace.essentialFacilities.isNotEmpty()) {
+                                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            items(liveSpace.essentialFacilities.take(3)) { f ->
+                                                SuggestionChip(onClick = {}, label = { Text(f, style = MaterialTheme.typography.labelSmall) })
+                                            }
+                                        }
+                                    }
+                                    if (wholeSlots.isEmpty()) {
+                                        Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.small) {
+                                            Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.Lock, null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onErrorContainer)
+                                                Spacer(Modifier.width(4.dp))
+                                                Text("Currently Occupied", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onErrorContainer)
                                             }
                                         }
                                     }
@@ -696,55 +647,6 @@ fun SpaceDetailsScreenContent(
                                     )
                                     Spacer(modifier = Modifier.width(Spacing.sm))
                                     Text(facility, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Equipment Catalog
-                ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ProSectionHeader(
-                            title = "Equipment Catalog (${liveSpace.equipment.size})",
-                            icon = Icons.Default.Handyman
-                        )
-
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            liveSpace.equipment.forEach { item ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = item.name,
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                        if (item.description.isNotBlank()) {
-                                            Text(
-                                                text = item.description,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        shape = MaterialTheme.shapes.small
-                                    ) {
-                                        Text(
-                                            text = "Qty: ${item.quantity}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
-                                if (item != liveSpace.equipment.last()) {
-                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                                 }
                             }
                         }
@@ -825,32 +727,6 @@ fun SpaceDetailsScreenContent(
                     }
                 }
 
-                // Premises Rules & Policies
-                ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ProSectionHeader(
-                            title = "Rules & Premises Policies",
-                            subtitle = "4 policies to review",
-                            icon = Icons.Default.Policy
-                        )
-
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(
-                                Icons.Default.SmokeFree to "Smoking: ${if (liveSpace.rules.smokingAllowed) "Permitted in designated zone" else "Strictly Prohibited"}",
-                                Icons.Default.Coffee to "Food & Beverages: ${if (liveSpace.rules.foodAllowed) "Permitted in staff breakroom" else "Not allowed"}",
-                                Icons.Default.Schedule to "Off-Hours Access: ${if (liveSpace.rules.offHoursAccess) "24/7 Keycard / Smart Access" else "Business Hours Only"}",
-                                Icons.Default.Groups to "Visitor Policy: ${liveSpace.rules.visitorPolicy}"
-                            ).forEach { (icon, text) ->
-                                Row(verticalAlignment = Alignment.Top) {
-                                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(text = text, style = MaterialTheme.typography.bodySmall)
-                                }
-                            }
-                        }
-                    }
-                }
-
                 Spacer(modifier = Modifier.height(20.dp))
             }
         }
@@ -924,14 +800,25 @@ fun SpaceDetailsScreenContent(
     // cards already use), but every open slot is now tappable — tapping one surfaces
     // a "Send Request" bar, which opens the confirm popup below.
     if (showAvailabilityPanel) {
-        val selectedGroup = strategyPreviewGroups.firstOrNull { (strategyType, _) ->
-            selectedFormula?.type == SpaceCalculationUtils.legacyFormulaType(strategyType)
-        } ?: strategyPreviewGroups.firstOrNull()
+        // Filter slots by the selected subdivision when coming from a card tap
+        val sheetSlotGroups = remember(strategyPreviewGroups, selectedSubdivisionId) {
+            if (selectedSubdivisionId != null) {
+                strategyPreviewGroups.map { (type, slots) ->
+                    type to slots.filter { it.sourceFormulaId == selectedSubdivisionId }
+                }.filter { (_, slots) -> slots.isNotEmpty() }
+            } else {
+                strategyPreviewGroups
+            }
+        }
+        var expandedStrategy by remember(sheetSlotGroups) {
+            mutableStateOf(sheetSlotGroups.firstOrNull()?.first)
+        }
 
         ModalBottomSheet(
             onDismissRequest = {
                 showAvailabilityPanel = false
                 selectedAvailableSlot = null
+                selectedHoursPerDay = emptyMap()
             },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
             scrimColor = Color.Black.copy(alpha = 0.35f),
@@ -945,278 +832,290 @@ fun SpaceDetailsScreenContent(
                 )
             }
         ) {
+            val scrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScroll(scrollState)
                     .padding(horizontal = Spacing.lg)
                     .padding(bottom = Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 ProSectionHeader(
-                    title = if (selectedGroup != null) "Pick a Slot" else "Check Availability",
-                    subtitle = if (selectedGroup != null) {
-                        "Here's live availability — tap an open slot to request it."
-                    } else {
-                        "Select a renting option above, then check its live availability here."
-                    },
+                    title = "Pick a Slot",
+                    subtitle = "Tap an open slot to request it.",
                     icon = Icons.Default.EventAvailable
                 )
 
-                if (selectedGroup == null) {
+                if (sheetSlotGroups.isEmpty()) {
                     Text(
-                        "No renting option selected yet — pick one above, then check its availability here.",
+                        "No slots available for this option.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
-                    val (strategyType, slots) = selectedGroup
-                    val lockedCount = slots.count { SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
-                    val availableCount = slots.size - lockedCount
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                    sheetSlotGroups.forEach { (strategyType, slots) ->
+                        val isExpanded = expandedStrategy == strategyType
+                        val lockedCount = slots.count { SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
+                        val availableCount = slots.size - lockedCount
+
+                        // Accordion header
+                        Surface(
+                            onClick = { expandedStrategy = if (isExpanded) null else strategyType },
+                            color = if (isExpanded) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                            shape = if (isExpanded) RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp) else MaterialTheme.shapes.medium
                         ) {
-                            Text(strategyType.displayName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Text(
-                                "$availableCount available • $lockedCount rented",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (availableCount > 0) LebaneseCedarGreen else StatusError
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        strategyType.displayName,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isExpanded) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        "$availableCount available · $lockedCount rented",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (availableCount > 0) LebaneseCedarGreen else StatusError
+                                    )
+                                }
+                                Icon(
+                                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                    contentDescription = null,
+                                    tint = if (isExpanded) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
 
-                        when (strategyType) {
-                            RentalStrategyType.MONTHLY -> {
-                                val slot = slots.first()
-                                val isLocked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
-                                val isSelected = selectedAvailableSlot == slot
-                                Text(
-                                    "Full-month exclusive lease • $${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}/mo",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Surface(
-                                    onClick = { if (!isLocked) selectedAvailableSlot = if (isSelected) null else slot },
-                                    enabled = !isLocked,
-                                    color = when {
-                                        isLocked -> StatusErrorContainer
-                                        isSelected -> FreshGreen.copy(alpha = 0.22f)
-                                        else -> StatusSuccessContainer
-                                    },
-                                    shape = MaterialTheme.shapes.small,
-                                    border = if (isSelected) BorderStroke(1.5.dp, FreshGreen) else null
+                        // Expanded body
+                        if (isExpanded) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(bottomStart = 10.dp, bottomEnd = 10.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = if (isLocked) Icons.Default.Lock else if (isSelected) Icons.Default.CheckCircle else Icons.Default.EventAvailable,
-                                            contentDescription = null,
-                                            tint = if (isLocked) StatusError else if (isSelected) FreshGreen else StatusSuccess,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            if (isLocked) "Currently Rented" else if (isSelected) "Selected" else "Available Now",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isLocked) StatusError else if (isSelected) FreshGreen else StatusSuccess
-                                        )
-                                    }
-                                }
-                            }
-                            RentalStrategyType.HOURLY -> {
-                                slots.groupBy { it.day }.toList().sortedBy { it.first }.forEach { (day, daySlots) ->
-                                    Text(day, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        items(daySlots.sortedBy { it.startTime }) { slot ->
-                                            val locked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
+                                    when (strategyType) {
+                                        RentalStrategyType.MONTHLY -> {
+                                            val slot = slots.first()
+                                            val isLocked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
                                             val isSelected = selectedAvailableSlot == slot
+                                            Text(
+                                                "Full-month exclusive lease • $${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}/mo",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
                                             Surface(
-                                                onClick = { if (!locked) selectedAvailableSlot = if (isSelected) null else slot },
-                                                enabled = !locked,
+                                                onClick = { if (!isLocked) selectedAvailableSlot = if (isSelected) null else slot },
+                                                enabled = !isLocked,
                                                 color = when {
-                                                    locked -> StatusErrorContainer
+                                                    isLocked -> StatusErrorContainer
                                                     isSelected -> FreshGreen.copy(alpha = 0.22f)
                                                     else -> StatusSuccessContainer
                                                 },
-                                                shape = MaterialTheme.shapes.extraSmall,
+                                                shape = MaterialTheme.shapes.small,
                                                 border = if (isSelected) BorderStroke(1.5.dp, FreshGreen) else null
-                                            ) {
-                                                Text(
-                                                    slot.startTime,
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess,
-                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            RentalStrategyType.SHIFT_BASED -> {
-                                val dayOrder = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-                                slots.groupBy { it.day }.toList().sortedBy { (day, _) ->
-                                    val idx = dayOrder.indexOfFirst { it.equals(day, ignoreCase = true) }
-                                    if (idx >= 0) idx else 99
-                                }.forEach { (day, daySlots) ->
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                        shape = MaterialTheme.shapes.extraSmall,
-                                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 2.dp)
-                                    ) {
-                                        Text(
-                                            text = day,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                        )
-                                    }
-                                    daySlots.forEach { slot ->
-                                        val locked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
-                                        val isSelected = selectedAvailableSlot == slot
-                                        val displayShiftLabel = slot.label
-                                            .replace(Regex("^${Regex.escape(day)}\\s*[-–•]?\\s*", RegexOption.IGNORE_CASE), "")
-                                            .trim()
-                                            .ifBlank { slot.label }
-
-                                        Surface(
-                                            onClick = { if (!locked) selectedAvailableSlot = if (isSelected) null else slot },
-                                            enabled = !locked,
-                                            color = when {
-                                                locked -> StatusErrorContainer.copy(alpha = 0.5f)
-                                                isSelected -> FreshGreen.copy(alpha = 0.2f)
-                                                else -> MaterialTheme.colorScheme.surface
-                                            },
-                                            shape = MaterialTheme.shapes.small,
-                                            border = BorderStroke(
-                                                if (isSelected) 1.5.dp else 1.dp,
-                                                if (isSelected) FreshGreen else if (locked) StatusError.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                            ),
-                                            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(vertical = 6.dp, horizontal = 10.dp),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                                                 ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(8.dp)
-                                                            .clip(CircleShape)
-                                                            .background(if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess)
+                                                    Icon(
+                                                        imageVector = if (isLocked) Icons.Default.Lock else if (isSelected) Icons.Default.CheckCircle else Icons.Default.EventAvailable,
+                                                        contentDescription = null,
+                                                        tint = if (isLocked) StatusError else if (isSelected) FreshGreen else StatusSuccess,
+                                                        modifier = Modifier.size(16.dp)
                                                     )
+                                                    Spacer(modifier = Modifier.width(6.dp))
                                                     Text(
-                                                        text = displayShiftLabel,
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                        if (isLocked) "Currently Rented" else if (isSelected) "Selected" else "Available Now",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (isLocked) StatusError else if (isSelected) FreshGreen else StatusSuccess
                                                     )
                                                 }
-                                                Text(
-                                                    text = if (locked) "Rented" else if (isSelected) "Selected" else "Available",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess
-                                                )
                                             }
                                         }
-                                    }
-                                }
-                            }
-                            RentalStrategyType.DAY_BASED -> {
-                                slots.sortedBy { it.day }.forEach { slot ->
-                                    val locked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
-                                    val isSelected = selectedAvailableSlot == slot
-                                    Surface(
-                                        onClick = { if (!locked) selectedAvailableSlot = if (isSelected) null else slot },
-                                        enabled = !locked,
-                                        color = when {
-                                            locked -> StatusErrorContainer.copy(alpha = 0.5f)
-                                            isSelected -> FreshGreen.copy(alpha = 0.2f)
-                                            else -> MaterialTheme.colorScheme.surface
-                                        },
-                                        shape = MaterialTheme.shapes.small,
-                                        border = BorderStroke(
-                                            if (isSelected) 1.5.dp else 1.dp,
-                                            if (isSelected) FreshGreen else if (locked) StatusError.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                        ),
-                                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 6.dp, horizontal = 10.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(8.dp)
-                                                        .clip(CircleShape)
-                                                        .background(if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess)
-                                                )
-                                                Text(slot.day, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                        RentalStrategyType.HOURLY -> {
+                                            val allDays = slots.map { it.day }.distinct().sorted()
+                                            // Multi-select day chips
+                                            Text("Select days:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                items(allDays) { day ->
+                                                    val daySelected = selectedHoursPerDay.containsKey(day)
+                                                    FilterChip(
+                                                        selected = daySelected,
+                                                        onClick = {
+                                                            selectedHoursPerDay = if (daySelected)
+                                                                selectedHoursPerDay - day
+                                                            else
+                                                                selectedHoursPerDay + (day to emptySet())
+                                                        },
+                                                        label = { Text(day, style = MaterialTheme.typography.labelSmall) }
+                                                    )
+                                                }
                                             }
-                                            Text(
-                                                text = if (locked) "Rented" else if (isSelected) "Selected" else "Available",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess
-                                            )
+                                            // Per-day hour rows
+                                            selectedHoursPerDay.keys.sorted().forEach { day ->
+                                                Text(day, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                                                LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    items(slots.filter { it.day == day }.sortedBy { it.startTime }) { slot ->
+                                                        val locked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
+                                                        val isSelected = selectedHoursPerDay[day]?.contains(slot.startTime) == true
+                                                        Surface(
+                                                            onClick = {
+                                                                if (!locked) {
+                                                                    val currentHours = selectedHoursPerDay[day] ?: emptySet()
+                                                                    selectedHoursPerDay = selectedHoursPerDay + (day to
+                                                                        if (isSelected) currentHours - slot.startTime
+                                                                        else currentHours + slot.startTime)
+                                                                }
+                                                            },
+                                                            enabled = !locked,
+                                                            color = when {
+                                                                locked -> StatusErrorContainer
+                                                                isSelected -> FreshGreen.copy(alpha = 0.22f)
+                                                                else -> StatusSuccessContainer
+                                                            },
+                                                            shape = MaterialTheme.shapes.extraSmall,
+                                                            border = if (isSelected) BorderStroke(1.5.dp, FreshGreen) else null
+                                                        ) {
+                                                            Text(
+                                                                slot.startTime,
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                color = if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess,
+                                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        RentalStrategyType.SHIFT_BASED -> {
+                                            val dayOrder = listOf("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday","Mon","Tue","Wed","Thu","Fri","Sat","Sun")
+                                            slots.groupBy { it.day }.toList().sortedBy { (day, _) ->
+                                                dayOrder.indexOfFirst { it.equals(day, ignoreCase = true) }.let { if (it >= 0) it else 99 }
+                                            }.forEach { (day, daySlots) ->
+                                                Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f), shape = MaterialTheme.shapes.extraSmall,
+                                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 2.dp)) {
+                                                    Text(day, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold,
+                                                        color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                                                }
+                                                daySlots.forEach { slot ->
+                                                    val locked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
+                                                    val isSelected = selectedAvailableSlot == slot
+                                                    val displayShiftLabel = slot.label
+                                                        .replace(Regex("^${Regex.escape(day)}\\s*[-–•]?\\s*", RegexOption.IGNORE_CASE), "").trim().ifBlank { slot.label }
+                                                    Surface(
+                                                        onClick = { if (!locked) selectedAvailableSlot = if (isSelected) null else slot },
+                                                        enabled = !locked,
+                                                        color = when {
+                                                            locked -> StatusErrorContainer.copy(alpha = 0.5f)
+                                                            isSelected -> FreshGreen.copy(alpha = 0.2f)
+                                                            else -> MaterialTheme.colorScheme.surface
+                                                        },
+                                                        shape = MaterialTheme.shapes.small,
+                                                        border = BorderStroke(if (isSelected) 1.5.dp else 1.dp,
+                                                            if (isSelected) FreshGreen else if (locked) StatusError.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                                                    ) {
+                                                        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp, horizontal = 10.dp),
+                                                            horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                                Box(modifier = Modifier.size(8.dp).clip(CircleShape)
+                                                                    .background(if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess))
+                                                                Text(displayShiftLabel, style = MaterialTheme.typography.bodySmall,
+                                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
+                                                            }
+                                                            Text(if (locked) "Rented" else if (isSelected) "Selected" else "Available",
+                                                                style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold,
+                                                                color = if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        RentalStrategyType.DAY_BASED -> {
+                                            slots.sortedBy { it.day }.forEach { slot ->
+                                                val locked = SpaceCalculationUtils.isSlotLocked(slot, liveSpace.id, acceptedBookings)
+                                                val isSelected = selectedAvailableSlot == slot
+                                                Surface(
+                                                    onClick = { if (!locked) selectedAvailableSlot = if (isSelected) null else slot },
+                                                    enabled = !locked,
+                                                    color = when {
+                                                        locked -> StatusErrorContainer.copy(alpha = 0.5f)
+                                                        isSelected -> FreshGreen.copy(alpha = 0.2f)
+                                                        else -> MaterialTheme.colorScheme.surface
+                                                    },
+                                                    shape = MaterialTheme.shapes.small,
+                                                    border = BorderStroke(if (isSelected) 1.5.dp else 1.dp,
+                                                        if (isSelected) FreshGreen else if (locked) StatusError.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                                                ) {
+                                                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp, horizontal = 10.dp),
+                                                        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                            Box(modifier = Modifier.size(8.dp).clip(CircleShape)
+                                                                .background(if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess))
+                                                            Text(slot.day, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                                        }
+                                                        Text(if (locked) "Rented" else if (isSelected) "Selected" else "Available",
+                                                            style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold,
+                                                            color = if (locked) StatusError else if (isSelected) FreshGreen else StatusSuccess)
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
+                    }
 
-                        if (selectedAvailableSlot != null) {
-                            val chosenSlot = selectedAvailableSlot!!
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // Action bar — send request / WhatsApp
+                    val hasHourlySelection = selectedHoursPerDay.values.any { it.isNotEmpty() }
+                    val canSubmit = selectedAvailableSlot != null || hasHourlySelection
+                    if (canSubmit) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { showSendConfirm = true },
+                                modifier = Modifier.weight(1f),
+                                shape = MaterialTheme.shapes.medium
                             ) {
-                                Button(
-                                    onClick = { showSendConfirm = true },
-                                    modifier = Modifier.weight(1f),
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Send Request", fontWeight = FontWeight.Bold)
-                                }
-
-                                Button(
-                                    onClick = {
-                                        val message = "Hello, I am interested in booking '${liveSpace.title}' for slot: ${chosenSlot.label} (${chosenSlot.day}). Is it still available?"
-                                        try {
-                                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://api.whatsapp.com/send?phone=${liveSpace.ownerPhone}&text=${java.net.URLEncoder.encode(message, "UTF-8")}"))
-                                            context.startActivity(intent)
-                                        } catch (e: Exception) {
-                                            android.widget.Toast.makeText(context, "WhatsApp not installed", android.widget.Toast.LENGTH_SHORT).show()
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("WhatsApp", fontWeight = FontWeight.Bold, color = Color.White)
-                                }
+                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Send Request", fontWeight = FontWeight.Bold)
+                            }
+                            val chosenSlot = selectedAvailableSlot
+                            Button(
+                                onClick = {
+                                    val label = chosenSlot?.label ?: selectedHoursPerDay.entries.joinToString { (d, hrs) -> "$d: ${hrs.joinToString()}" }
+                                    val message = "Hello, I am interested in booking '${liveSpace.title}' — slot: $label. Is it still available?"
+                                    try {
+                                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://api.whatsapp.com/send?phone=${liveSpace.ownerPhone}&text=${java.net.URLEncoder.encode(message, "UTF-8")}"))
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        android.widget.Toast.makeText(context, "WhatsApp not installed", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                                shape = MaterialTheme.shapes.medium
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("WhatsApp", fontWeight = FontWeight.Bold, color = Color.White)
                             }
                         }
                     }
@@ -1314,5 +1213,156 @@ fun SpaceDetailsScreenContent(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun SubdivisionRentalCard(
+    subdivision: Subdivision,
+    slots: List<RentableSlot>,
+    spaceId: String,
+    acceptedBookings: List<RentalBookingRequest>,
+    onClick: () -> Unit
+) {
+    val occupied = remember(slots, acceptedBookings) {
+        slots.isNotEmpty() && slots.all { SpaceCalculationUtils.isSlotLocked(it, spaceId, acceptedBookings) }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !occupied, onClick = onClick),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Box {
+            Column {
+                // Photo carousel / placeholder
+                if (subdivision.imageUrls.isNotEmpty()) {
+                    val pagerState = rememberPagerState { subdivision.imageUrls.size }
+                    Box(modifier = Modifier.fillMaxWidth().height(130.dp)) {
+                        HorizontalPager(state = pagerState) { page ->
+                            coil.compose.AsyncImage(
+                                model = subdivision.imageUrls[page],
+                                contentDescription = null,
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize().clip(
+                                    RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                                )
+                            )
+                        }
+                        if (subdivision.imageUrls.size > 1) {
+                            Row(
+                                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                repeat(subdivision.imageUrls.size) { i ->
+                                    Surface(
+                                        modifier = Modifier.size(if (i == pagerState.currentPage) 8.dp else 6.dp),
+                                        shape = CircleShape,
+                                        color = if (i == pagerState.currentPage) Color.White else Color.White.copy(alpha = 0.5f)
+                                    ) {}
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp)
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.primaryContainer,
+                                        MaterialTheme.colorScheme.secondaryContainer
+                                    )
+                                ),
+                                shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                            )
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            subdivision.name,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
+                        )
+                        SuggestionChip(
+                            onClick = {},
+                            label = { Text(subdivision.type.displayName, style = MaterialTheme.typography.labelSmall) }
+                        )
+                    }
+
+                    if (subdivision.amenities.isNotEmpty()) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            val visible = subdivision.amenities.take(3)
+                            val extra = subdivision.amenities.size - visible.size
+                            items(visible) { a ->
+                                SuggestionChip(onClick = {}, label = { Text(a, style = MaterialTheme.typography.labelSmall) })
+                            }
+                            if (extra > 0) {
+                                item { SuggestionChip(onClick = {}, label = { Text("+$extra more", style = MaterialTheme.typography.labelSmall) }) }
+                            }
+                        }
+                    }
+
+                    if (subdivision.hashtags.isNotEmpty()) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            subdivision.hashtags.take(2).forEach { tag ->
+                                Surface(color = MaterialTheme.colorScheme.tertiaryContainer, shape = MaterialTheme.shapes.small) {
+                                    Text("#$tag", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                }
+                            }
+                            val extra = subdivision.hashtags.size - 2
+                            if (extra > 0) {
+                                Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small) {
+                                    Text("[$extra more]", style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                }
+                            }
+                        }
+                    }
+
+                    val pricingSummary = run {
+                        val p = subdivision.pricing
+                        val strats = subdivision.rentalStrategies
+                        when {
+                            strats.any { it.strategy == RentalStrategy.SHIFT_BASED } ->
+                                "Shift · \$${"%.0f".format(strats.first { it.strategy == RentalStrategy.SHIFT_BASED }.rateUsd)}/session"
+                            strats.any { it.strategy == RentalStrategy.HOURLY } ->
+                                "Hourly from \$${"%.0f".format(strats.first { it.strategy == RentalStrategy.HOURLY }.rateUsd)}/hr"
+                            strats.any { it.strategy == RentalStrategy.DAILY } ->
+                                "Day · \$${"%.0f".format(strats.first { it.strategy == RentalStrategy.DAILY }.rateUsd)}/day"
+                            p.monthly?.rateUsd != null -> "Monthly · \$${"%.0f".format(p.monthly!!.rateUsd)}/mo"
+                            else -> "See availability"
+                        }
+                    }
+                    Text(pricingSummary, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = CarnationOrange)
+                }
+            }
+
+            if (occupied) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(Color.Black.copy(alpha = 0.55f), shape = MaterialTheme.shapes.medium),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
+                        Text("Currently Occupied", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            }
+        }
     }
 }

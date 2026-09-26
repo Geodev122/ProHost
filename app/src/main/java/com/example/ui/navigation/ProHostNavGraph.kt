@@ -260,6 +260,10 @@ fun ProHostAppRoot(
     LaunchedEffect(deepLinkSpaceId, deepLinkSpaces, currentUser?.id) {
         if (deepLinkSpaceId.isNullOrBlank() || currentUser == null) return@LaunchedEffect
         if (consumedDeepLinkSpaceId == deepLinkSpaceId) return@LaunchedEffect
+        // Don't re-open a listing the user already dismissed — an auth state change
+        // (e.g. token refresh) re-fires this effect; guard prevents a back-navigation
+        // loop where the detail screen re-appears after the user pressed back.
+        if (detailedSpace != null) return@LaunchedEffect
         val match = deepLinkSpaces.find { it.id == deepLinkSpaceId }
         if (match != null) {
             consumedDeepLinkSpaceId = deepLinkSpaceId
@@ -703,6 +707,12 @@ fun ProHostAppRoot(
 
         // KYC gate overlay: full-screen phone-verification step shown when a user
         // without a verified phone tries to access booking/listing features.
+        // BackHandler here must fire BEFORE the outer NavGraph handler so pressing
+        // back dismisses the KYC overlay rather than clearing detailedSpace.
+        BackHandler(enabled = showKycGate) {
+            showKycGate = false
+            kycReturnTab = null
+        }
         if (showKycGate) {
             KycScreen(
                 onKycComplete = {
