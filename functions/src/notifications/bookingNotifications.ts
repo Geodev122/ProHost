@@ -191,16 +191,21 @@ export const onBookingPaymentAcknowledged = onDocumentUpdated(
     }
 
     if (!before.paymentAcknowledgedBySpecialist && after.paymentAcknowledgedBySpecialist) {
-      await sendPushToUser(
-        after.ownerId,
-        "Specialist Marked Payment as Paid",
-        `${after.practitionerName ?? "The specialist"} has marked their lease payment for "${after.spaceTitle ?? "workspace"}" as paid.`,
-        {
-          category: "PAYMENT_REMINDER",
-          targetTab: "owner_progress",
-          bookingId: event.params.bookingId,
-        }
-      );
+      // Legacy booking docs created before ownerId was a required field may
+      // not carry it; skip silently rather than crashing the trigger.
+      const ownerId = after.ownerId as string | undefined;
+      if (ownerId) {
+        await sendPushToUser(
+          ownerId,
+          "Specialist Marked Payment as Paid",
+          `${after.practitionerName ?? "The specialist"} has marked their lease payment for "${after.spaceTitle ?? "workspace"}" as paid.`,
+          {
+            category: "PAYMENT_REMINDER",
+            targetTab: "owner_progress",
+            bookingId: event.params.bookingId,
+          }
+        );
+      }
     }
   }
 );

@@ -42,6 +42,7 @@ fun OwnerIncomingRequestsView(
 ) {
     val context = LocalContext.current
     val hasLoadedBookingsOnce by viewModel.hasLoadedBookingsOnce.collectAsState()
+    val isOffline by viewModel.isOfflineMode.collectAsState()
     var selectedFilter by remember { mutableStateOf("ALL") } // ALL, PENDING, ACCEPTED, REJECTED
     var rejectingRequestId by remember { mutableStateOf<String?>(null) }
     var rejectionReasonInput by remember { mutableStateOf("") }
@@ -108,7 +109,7 @@ fun OwnerIncomingRequestsView(
                 }
             }
 
-            if (!hasLoadedBookingsOnce) {
+            if (!hasLoadedBookingsOnce && !isOffline) {
                 // The first Firestore snapshot hasn't arrived yet — without this,
                 // an owner with real incoming requests briefly saw "No Requests"
                 // before the real list streamed in.
@@ -117,6 +118,34 @@ fun OwnerIncomingRequestsView(
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
+                }
+            } else if (!hasLoadedBookingsOnce && isOffline) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xl),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        Icon(
+                            Icons.Default.WifiOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(40.dp)
+                        )
+                        Text(
+                            "Can't reach server",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "Check your connection — cached requests may be stale.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
                 }
             } else if (filteredRequests.isEmpty()) {
                 ProEmptyState(

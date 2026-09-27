@@ -1,16 +1,7 @@
-import { onCall } from "./lib/callable";
 import { setGlobalOptions } from "firebase-functions/v2";
 import "./lib/admin";
 
 setGlobalOptions({ region: "europe-west1", maxInstances: 10 });
-
-/**
- * Trivial pipeline sanity check — kept around cheaply; useful for confirming
- * deploy/auth still works without touching anything stateful.
- */
-export const ping = onCall(() => {
-  return { ok: true, timestamp: Date.now() };
-});
 
 export { assignInitialRole } from "./roles/assignInitialRole";
 export { grantAdminRole } from "./roles/grantAdminRole";

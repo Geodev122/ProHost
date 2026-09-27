@@ -264,7 +264,7 @@ service cloud.firestore {
     // subscription_formulas — reference/catalog data, not per-user pricing
     // ---------------------------------------------------------------
     match /subscription_formulas/{formulaId} {
-      allow read: if true;
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
@@ -359,7 +359,16 @@ service cloud.firestore {
          resource.data.ownerId == request.auth.uid) &&
         (
           isAdmin() ||
-          request.auth.uid == resource.data.ownerId ||
+          // Owner (host) may only write fields they legitimately manage:
+          // status transitions, signed lease URL, review timestamp, own
+          // payment ack, and cancellation metadata. Core identity fields
+          // (practitionerId, spaceId, ownerId, totalAmountUsd, createdAt)
+          // must never be writable after document creation.
+          (request.auth.uid == resource.data.ownerId &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+             "status", "agreementUrl", "reviewedAt", "paymentAcknowledgedByHost",
+             "cancellationReasonCode", "cancellationNote", "cancelledByRole"
+           ])) ||
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(["paymentAcknowledgedBySpecialist"]) ||
           (request.resource.data.status == "CANCELLED" &&
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(

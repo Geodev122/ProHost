@@ -597,7 +597,7 @@ fun DrawerDialogsHandler(
                                                                                 "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> "owner_subscriptions"
                                                                                 "KYC_REJECTED" -> "pro_profile"
                                                                                 "LISTING_VERIFICATION", "LISTING_VERIFICATION_REQUEST" -> "manage_listings"
-                                                                                else -> "owner_progress"
+                                                                                else -> if (currentUser?.role == UserRole.SPECIALIST) "pro_rentals" else "owner_progress"
                                                                             }
                                                                         onNavigateToTab(resolvedTab)
                                                                     },
