@@ -297,7 +297,7 @@ fun CreateListingDialog(
     // resumed draft doesn't jump to Beirut before its pin is re-picked.
     var derivedGovernorate by rememberSaveable(stateSaver = GovernorateSaver) { mutableStateOf(existingDraft?.governorate ?: Governorate.BEIRUT) }
     var description by rememberSaveable { mutableStateOf(existingDraft?.description ?: "") }
-    var country by rememberSaveable { mutableStateOf(existingDraft?.let { "" } ?: "") }
+    var country by rememberSaveable { mutableStateOf("") }
     var city by rememberSaveable { mutableStateOf("") }
     var streetAddress by rememberSaveable { mutableStateOf(existingDraft?.streetAddress ?: "") }
 
@@ -1288,7 +1288,7 @@ fun CreateListingDialog(
                                 // configure every later step and pricing detail, then
                                 // find Publish permanently disabled with no indication
                                 // the missing piece was all the way back on Step 1.
-                                (title.isNotBlank() || district.isNotBlank()) && pickedLatLng != null
+                                (title.isNotBlank() || streetAddress.isNotBlank()) && pickedLatLng != null
                             } else {
                                 true
                             }

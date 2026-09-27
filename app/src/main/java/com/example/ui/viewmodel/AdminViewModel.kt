@@ -717,7 +717,7 @@ class AdminViewModel(
     }
 
     fun seedDefaultAmenities() {
-        val currentAmenities = _uiState.value.schema?.amenities ?: emptyList()
+        val currentAmenities = _uiState.value.schema.amenities
         if (currentAmenities.isNotEmpty()) return
         val defaults = listOf(
             "A/C Climate Control",

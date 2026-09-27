@@ -1142,6 +1142,14 @@ data class SpaceListing(
                         minAttendees = (sMap["minAttendees"] as? Number)?.toInt()
                     )
                 }
+            }?.let { rawSubs ->
+                // Duplicate sub IDs crash every LazyRow/LazyColumn keyed on them
+                // ("Key was already used"), so disambiguate deterministically on read.
+                val seen = HashSet<String>()
+                rawSubs.mapIndexed { index, sub ->
+                    if (seen.add(sub.id)) sub
+                    else sub.copy(id = "${sub.id}-dup$index").also { seen.add(it.id) }
+                }
             } ?: emptyList()
 
             return SpaceListing(

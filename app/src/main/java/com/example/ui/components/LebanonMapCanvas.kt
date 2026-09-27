@@ -350,13 +350,24 @@ fun LebanonMapCanvas(
         }
     }
 
+    // Flat list: one card per subdivision (or one space card if no subdivisions)
+    val divisionCards = remember(sortedSpaces) {
+        sortedSpaces.flatMap { space ->
+            if (space.subdivisions.isNotEmpty()) {
+                space.subdivisions.map { sub -> space to sub }
+            } else {
+                listOf(space to null)
+            }
+        }
+    }
+
     // Carousel swipe → update selected map marker when the user scrolls the strip.
-    LaunchedEffect(listState, sortedSpaces) {
+    LaunchedEffect(listState, divisionCards) {
         androidx.compose.runtime.snapshotFlow {
             listState.firstVisibleItemIndex to listState.isScrollInProgress
         }.collect { (index, isScrolling) ->
-            if (!isScrolling && sortedSpaces.isNotEmpty()) {
-                val space = sortedSpaces.getOrNull(index)
+            if (!isScrolling && divisionCards.isNotEmpty()) {
+                val space = divisionCards.getOrNull(index)?.first
                 if (space != null && activePinSpace?.id != space.id) {
                     activePinSpace = space
                     coroutineScope.launch {
@@ -427,7 +438,7 @@ fun LebanonMapCanvas(
                                     cameraPositionState.animate(
                                         CameraUpdateFactory.newLatLng(LatLng(space.lat - 0.012, space.lng))
                                     )
-                                    val idx = sortedSpaces.indexOfFirst { it.id == space.id }
+                                    val idx = divisionCards.indexOfFirst { it.first.id == space.id }
                                     if (idx >= 0) listState.animateScrollToItem(idx)
                                 }
                                 true
@@ -546,16 +557,6 @@ fun LebanonMapCanvas(
                 enter = slideInVertically { it } + fadeIn(),
                 exit = slideOutVertically { it } + fadeOut()
             ) {
-                // Flat list: one card per subdivision (or one space card if no subdivisions)
-                val divisionCards = remember(sortedSpaces) {
-                    sortedSpaces.flatMap { space ->
-                        if (space.subdivisions.isNotEmpty()) {
-                            space.subdivisions.map { sub -> space to sub }
-                        } else {
-                            listOf(space to null)
-                        }
-                    }
-                }
                 LazyRow(
                     state = listState,
                     flingBehavior = rememberSnapFlingBehavior(lazyListState = listState),

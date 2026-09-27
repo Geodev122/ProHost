@@ -342,10 +342,13 @@ fun SubdivisionEditorSection(
                                     }
                                     IconButton(onClick = {
                                         if (isEditingThis) {
-                                            editingSubdivisionIndex = null
-                                            subName = ""
-                                            subImageUrls = emptyList()
-                                            subPricing = RentalPricingConfig.default()
+                                            resetSubdivisionForm()
+                                        } else {
+                                            // Deleting a row above the one being edited shifts it
+                                            // down one; without this, Save Changes would overwrite
+                                            // the wrong room and duplicate the edited room's id.
+                                            val editIdx = editingSubdivisionIndex
+                                            if (editIdx != null && editIdx > index) editingSubdivisionIndex = editIdx - 1
                                         }
                                         onSubdivisionsChange(subdivisionsList.filterIndexed { i, _ -> i != index })
                                     }) {
@@ -935,7 +938,7 @@ fun SubdivisionEditorSection(
                 Text("Add Another Room", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
             OutlinedButton(
-                onClick = { justSaved = false },
+                onClick = { resetSubdivisionForm(); justSaved = false },
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium
             ) {
@@ -946,6 +949,7 @@ fun SubdivisionEditorSection(
                 onClick = {
                     val newSub = buildCurrentSubdivision()
                     onSubdivisionsChange(subdivisionsList + newSub)
+                    pendingSubId = "SUB-" + UUID.randomUUID().toString().take(6).uppercase()
                     justSaved = true
                 },
                 modifier = Modifier.fillMaxWidth(),

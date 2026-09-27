@@ -306,8 +306,15 @@ class PlayBillingManager(
         } else {
             "https://play.google.com/store/account/subscriptions?package=${context.packageName}"
         }
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uriStr))
-        activity.startActivity(intent)
+        launchViewSafely(activity, uriStr)
+    }
+
+    private fun launchViewSafely(activity: Activity, uri: String) {
+        try {
+            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
+        } catch (e: android.content.ActivityNotFoundException) {
+            emitMessage("No app available to open Google Play on this device.")
+        }
     }
 
     fun openRedeemPromoCode(activity: Activity) {
@@ -316,10 +323,10 @@ class PlayBillingManager(
         // launchRedeemPromoCode was removed in billing v7; use deep-link directly.
         // Fallback: market:// opens Play Store redeem page directly without browser redirect
         val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://redeem"))
-        if (marketIntent.resolveActivity(activity.packageManager) != null) {
+        try {
             activity.startActivity(marketIntent)
-        } else {
-            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(REDEEM_CODE_URL)))
+        } catch (e: android.content.ActivityNotFoundException) {
+            launchViewSafely(activity, REDEEM_CODE_URL)
         }
     }
 

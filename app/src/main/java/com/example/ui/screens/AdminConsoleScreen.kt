@@ -3578,7 +3578,11 @@ private fun IdReviewCard(
             TextButton(
                 onClick = {
                     val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(entry.storageUrl))
-                    context.startActivity(intent)
+                    try {
+                        context.startActivity(intent)
+                    } catch (e: android.content.ActivityNotFoundException) {
+                        android.widget.Toast.makeText(context, "No app available to open this document.", android.widget.Toast.LENGTH_SHORT).show()
+                    }
                 },
                 modifier = Modifier.padding(top = 2.dp)
             ) {

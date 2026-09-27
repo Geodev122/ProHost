@@ -452,13 +452,21 @@ class ProHostViewModel(
             } else {
                 "https://play.google.com/store/account/subscriptions?package=${activity.packageName}"
             }
-            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
+            openUriOrToast(activity, uri)
         }
     }
 
     fun openRedeemPromoCode(activity: android.app.Activity) {
         playBillingManager?.openRedeemPromoCode(activity) ?: run {
-            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(com.example.data.billing.PlayBillingManager.REDEEM_CODE_URL)))
+            openUriOrToast(activity, com.example.data.billing.PlayBillingManager.REDEEM_CODE_URL)
+        }
+    }
+
+    private fun openUriOrToast(activity: android.app.Activity, uri: String) {
+        try {
+            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
+        } catch (e: android.content.ActivityNotFoundException) {
+            Toast.makeText(activity, "No app available to open this link.", Toast.LENGTH_SHORT).show()
         }
     }
 
