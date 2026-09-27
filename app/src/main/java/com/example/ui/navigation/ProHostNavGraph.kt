@@ -330,7 +330,7 @@ fun ProHostAppRoot(
         val role = currentUser?.role
         when (role) {
             UserRole.SPECIALIST -> navigateTo("pro_rentals")
-            UserRole.PRO_HOST -> navigateTo("owner_rental_requests")
+            UserRole.PRO_HOST -> navigateTo("owner_requests")
             else -> {}
         }
     }

@@ -184,9 +184,9 @@ class MainActivity : FragmentActivity() {
         if (data != null && data.scheme == "prohost" && !isEmailVerified && !isEmailOtp) {
             val tabFromHost = when (data.host) {
                 "owner_subscriptions" -> "owner_subscriptions"
-                "profile" -> "profile"
-                "owner_hub" -> "owner_hub"
-                "my_bookings" -> "my_bookings"
+                "profile" -> "pro_profile"
+                "owner_hub" -> "manage_listings"
+                "my_bookings" -> "pro_rentals"
                 "discovery" -> "search_map"
                 else -> null
             }

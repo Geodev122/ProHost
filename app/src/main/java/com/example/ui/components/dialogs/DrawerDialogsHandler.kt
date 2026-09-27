@@ -591,12 +591,12 @@ fun DrawerDialogsHandler(
                                                                         val resolvedTab = alert.targetTab?.takeIf { it.isNotBlank() }
                                                                             ?: when (alert.category) {
                                                                                 "BOOKING_ACCEPTANCE" ->
-                                                                                    if (currentUser?.role == UserRole.SPECIALIST) "pro_rentals" else "owner_requests"
-                                                                                "BOOKING_REQUEST" -> "owner_rental_requests"
+                                                                                    if (currentUser?.role == UserRole.SPECIALIST) "pro_rentals" else "owner_progress"
+                                                                                "BOOKING_REQUEST" -> "owner_requests"
                                                                                 "PAYMENT_REMINDER", "PACKAGE_EXPIRED",
                                                                                 "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> "owner_subscriptions"
-                                                                                "KYC_REJECTED" -> "profile"
-                                                                                "LISTING_VERIFICATION", "LISTING_VERIFICATION_REQUEST" -> "owner_hub"
+                                                                                "KYC_REJECTED" -> "pro_profile"
+                                                                                "LISTING_VERIFICATION", "LISTING_VERIFICATION_REQUEST" -> "manage_listings"
                                                                                 else -> "owner_progress"
                                                                             }
                                                                         onNavigateToTab(resolvedTab)
