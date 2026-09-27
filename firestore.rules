@@ -242,15 +242,10 @@ service cloud.firestore {
       // activeListingCount is maintained only by listingCountTracker.ts's
       // triggers, for the same reason (it feeds admin analytics; a client-writable counter
       // would make those numbers meaningless).
-      // pinHash/pinSalt/pinSetAtMillis are written exclusively by setUserPin (Admin SDK via
-      // Cloud Function) — blocking direct client writes prevents a client from computing
-      // their own SHA-256 hash and overwriting the server-stored hash with a PIN they chose
-      // outside the verified OTP flow.
       // kycLevel: recomputeKycLevel.ts Firestore trigger (Admin SDK) — a client-writable
       // counter would let users self-upgrade their KYC tier.
-      // emailVerified/emailVerifiedAt: verifyEmailLink HTTP function (Admin SDK) sets these
-      // after validating the HMAC-signed token; a client write would let anyone claim
-      // email-verified status without clicking the link.
+      // emailVerified/emailVerifiedAt: set by Firebase Auth natively via email link; a
+      // client write would let anyone claim email-verified status without clicking the link.
       // idDocumentUrl/idDocumentVerificationStatus: submitIdDocument + reviewIdDocument
       // Cloud Functions own these entirely — client can't self-assert ID verified status.
       allow update: if (isOwner(userId) || isAdmin()) &&
@@ -258,8 +253,6 @@ service cloud.firestore {
           ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
            "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount", "proHostUpgradedAtMillis",
            "tosAcceptedAtMillis", "consentVersion",
-           "pinHash", "pinSalt", "pinSetAtMillis",
-           "pinFailedAttempts", "pinLockedUntilMillis",
            "kycLevel", "emailVerified", "emailVerifiedAt",
            "idDocumentUrl", "idDocumentVerificationStatus", "idDocumentSubmittedAt", "idDocumentReviewedAt"]
         );

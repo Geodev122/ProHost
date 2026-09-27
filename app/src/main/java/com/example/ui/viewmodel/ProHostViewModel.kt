@@ -64,15 +64,6 @@ class ProHostViewModel(
     private val _pinReauthRequired = MutableStateFlow(false)
     val pinReauthRequired: StateFlow<Boolean> = _pinReauthRequired.asStateFlow()
 
-    // Set during session restore when we detect the user has no PIN yet (registered before
-    // PIN was introduced). Gates the app behind PIN creation, same pattern as pinReauthRequired.
-    private val _requiresPinSetup = MutableStateFlow(false)
-    val requiresPinSetup: StateFlow<Boolean> = _requiresPinSetup.asStateFlow()
-
-    fun clearRequiresPinSetup() {
-        _requiresPinSetup.value = false
-    }
-
     fun requestPinReauth() {
         // Skip for ADMIN accounts — they have no phone-OTP registration and cannot verify PIN (NF1).
         val user = currentUser.value ?: return

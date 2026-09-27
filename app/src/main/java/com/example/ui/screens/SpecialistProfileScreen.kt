@@ -863,7 +863,7 @@ fun SpecialistProfileScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "v1.0.0.2 (Build 3) • ProHost is up to date",
+                            text = "v${com.example.BuildConfig.VERSION_NAME} • ProHost is up to date",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -885,7 +885,7 @@ fun SpecialistProfileScreen(
                                     inAppUpdateManager.checkForAppUpdate(preferImmediate = false)
                                     Toast.makeText(context, "Checking Google Play for updates...", Toast.LENGTH_SHORT).show()
                                 } else {
-                                    Toast.makeText(context, "ProHost v1.0.0.2 is up to date", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "ProHost v${com.example.BuildConfig.VERSION_NAME} is up to date", Toast.LENGTH_SHORT).show()
                                 }
                             },
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)

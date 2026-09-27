@@ -473,16 +473,25 @@ class FirebaseFunctionsClient {
         }
     }
 
-    /** Request a new email verification link (functions/src/auth/emailVerification.ts). */
-    suspend fun resendEmailVerification(): Result<Unit> {
+    /**
+     * Sends a Firebase Auth email verification link (functions/src/auth/emailLinkAuth.ts).
+     * The user taps the link in their email app → Firebase Auth marks emailVerified=true
+     * automatically — no OTP code entry or extra server round-trip needed.
+     *
+     * Replaces the legacy resendEmailVerification (HMAC-JWT + verifyEmailLink) pipeline.
+     */
+    suspend fun sendVerificationEmailLink(): Result<Unit> {
         return try {
-            functions.getHttpsCallable("resendEmailVerification").call(null).await()
+            functions.getHttpsCallable("sendVerificationEmailLink").call(null).await()
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(tag, "resendEmailVerification failed: ${e.message}", e)
+            Log.e(tag, "sendVerificationEmailLink failed: ${e.message}", e)
             Result.failure(e)
         }
     }
+
+    /** @deprecated Use [sendVerificationEmailLink] instead (Firebase Auth native link). */
+    suspend fun resendEmailVerification(): Result<Unit> = sendVerificationEmailLink()
 
     companion object {
         /**

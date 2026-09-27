@@ -61,7 +61,7 @@ class ProHostMessagingService : FirebaseMessagingService() {
         // Parse alert title and body from the FCM Remote Message package
         val title = remoteMessage.notification?.title ?: remoteMessage.data["title"] ?: "ProHost Notification"
         val body = remoteMessage.notification?.body ?: remoteMessage.data["body"] ?: "New alert received."
-        val categoryType = remoteMessage.data["category"] ?: "BOOKING_ACCEPTANCE"
+        val categoryType = remoteMessage.data["category"] ?: "GENERAL"
         val targetTab = remoteMessage.data["targetTab"]
         val bookingId = remoteMessage.data["bookingId"]
 
@@ -70,7 +70,8 @@ class ProHostMessagingService : FirebaseMessagingService() {
         val alert = FCMAlert(
             title = title,
             body = body,
-            category = categoryType
+            category = categoryType,
+            targetTab = targetTab
         )
         repository.addFCMAlert(alert)
 

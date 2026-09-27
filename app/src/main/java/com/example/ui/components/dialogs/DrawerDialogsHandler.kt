@@ -505,16 +505,23 @@ fun DrawerDialogsHandler(
                                                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                         ) {
                                                             Icon(
-                                                                imageVector = if (alert.category == "BOOKING_ACCEPTANCE") {
-                                                                    Icons.Default.CheckCircle
-                                                                } else {
-                                                                    Icons.Default.NotificationImportant
+                                                                imageVector = when (alert.category) {
+                                                                    "BOOKING_ACCEPTANCE" -> Icons.Default.CheckCircle
+                                                                    "BOOKING_REQUEST" -> Icons.Default.Inbox
+                                                                    "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> Icons.Default.Verified
+                                                                    "PACKAGE_EXPIRED" -> Icons.Default.EventBusy
+                                                                    "PAYMENT_REMINDER" -> Icons.Default.CreditCard
+                                                                    "KYC_REJECTED" -> Icons.Default.Warning
+                                                                    "LISTING_VERIFICATION", "LISTING_VERIFICATION_REQUEST" -> Icons.Default.FactCheck
+                                                                    else -> Icons.Default.Notifications
                                                                 },
                                                                 contentDescription = null,
-                                                                tint = if (alert.category == "BOOKING_ACCEPTANCE") {
-                                                                    StatusSuccess
-                                                                } else {
-                                                                    MaterialTheme.colorScheme.error
+                                                                tint = when (alert.category) {
+                                                                    "BOOKING_ACCEPTANCE" -> StatusSuccess
+                                                                    "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> MaterialTheme.colorScheme.primary
+                                                                    "PACKAGE_EXPIRED", "KYC_REJECTED" -> MaterialTheme.colorScheme.error
+                                                                    "PAYMENT_REMINDER" -> MaterialTheme.colorScheme.tertiary
+                                                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
                                                                 },
                                                                 modifier = Modifier.size(16.dp)
                                                             )
@@ -579,12 +586,20 @@ fun DrawerDialogsHandler(
                                                                 FilledTonalButton(
                                                                     onClick = {
                                                                         viewModel.markAlertAsRead(alert.id)
-                                                                        val targetTab = if (alert.category == "BOOKING_ACCEPTANCE") {
-                                                                            if (currentUser?.role == UserRole.SPECIALIST) "pro_rentals" else "owner_requests"
-                                                                        } else {
-                                                                            "owner_progress"
-                                                                        }
-                                                                        onNavigateToTab(targetTab)
+                                                                        // Prefer the server-provided targetTab; fall back to a
+                                                                        // category-to-tab mapping for legacy notifications.
+                                                                        val resolvedTab = alert.targetTab?.takeIf { it.isNotBlank() }
+                                                                            ?: when (alert.category) {
+                                                                                "BOOKING_ACCEPTANCE" ->
+                                                                                    if (currentUser?.role == UserRole.SPECIALIST) "pro_rentals" else "owner_requests"
+                                                                                "BOOKING_REQUEST" -> "owner_rental_requests"
+                                                                                "PAYMENT_REMINDER", "PACKAGE_EXPIRED",
+                                                                                "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> "owner_subscriptions"
+                                                                                "KYC_REJECTED" -> "profile"
+                                                                                "LISTING_VERIFICATION", "LISTING_VERIFICATION_REQUEST" -> "owner_hub"
+                                                                                else -> "owner_progress"
+                                                                            }
+                                                                        onNavigateToTab(resolvedTab)
                                                                     },
                                                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                                                                     modifier = Modifier.height(28.dp)

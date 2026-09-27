@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -12,12 +11,14 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.fragment.app.FragmentActivity
 import com.example.ui.navigation.ProHostAppRoot
 import com.example.ui.theme.ProHostTheme
 import com.example.util.InAppUpdateManager
 import com.example.util.NotificationPermissionManager
 
-class MainActivity : ComponentActivity() {
+// FragmentActivity is required by androidx.biometric.BiometricPrompt.
+class MainActivity : FragmentActivity() {
     private val permLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { /* OS handles rationale; no action needed here */ }
@@ -27,6 +28,8 @@ class MainActivity : ComponentActivity() {
     private var targetSpaceId by mutableStateOf<String?>(null)
     private var emailVerifiedDeepLink by mutableStateOf(false)
     private var emailSignInLink by mutableStateOf<String?>(null)
+    // One-click email OTP magic link: `prohost://emailotp/verified?token=<customToken>`
+    private var emailOtpToken by mutableStateOf<String?>(null)
     private var inAppUpdateManager: InAppUpdateManager? = null
     private var backgroundedAtMillis: Long = 0L
 
@@ -86,6 +89,8 @@ class MainActivity : ComponentActivity() {
                     emailVerifiedDeepLink = emailVerifiedDeepLink,
                     emailSignInLink = emailSignInLink,
                     onEmailSignInLinkConsumed = { emailSignInLink = null },
+                    emailOtpToken = emailOtpToken,
+                    onEmailOtpTokenConsumed = { emailOtpToken = null },
                     inAppUpdateManager = inAppUpdateManager
                 )
             }
@@ -162,6 +167,32 @@ class MainActivity : ComponentActivity() {
             data.host == "verify-email" && data.path?.startsWith("/success") == true
         if (isEmailVerified) {
             emailVerifiedDeepLink = true
+        }
+
+        // One-click email OTP magic link: prohost://emailotp/verified?token=<customToken>
+        // Sent by the clickEmailOtpLink Cloud Function after it validates the OTP code.
+        val isEmailOtp = data != null && data.scheme == "prohost" && data.host == "emailotp"
+        if (isEmailOtp) {
+            val token = data?.getQueryParameter("token")
+            if (!token.isNullOrBlank()) {
+                emailOtpToken = token
+            }
+        }
+
+        // Tab deep links: prohost://<tabId> — sent by notification action buttons and
+        // external links to navigate directly to a specific tab inside the app.
+        if (data != null && data.scheme == "prohost" && !isEmailVerified && !isEmailOtp) {
+            val tabFromHost = when (data.host) {
+                "owner_subscriptions" -> "owner_subscriptions"
+                "profile" -> "profile"
+                "owner_hub" -> "owner_hub"
+                "my_bookings" -> "my_bookings"
+                "discovery" -> "search_map"
+                else -> null
+            }
+            if (tabFromHost != null) {
+                targetTab = tabFromHost
+            }
         }
 
         // Firebase Auth email sign-in link: https://prohost-f766f.web.app/emaillink?oobCode=...

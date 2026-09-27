@@ -282,6 +282,39 @@ class AuthViewModel(
         }
     }
 
+    /**
+     * Signs in with a custom token received via the prohost://emailotp deep link
+     * (one-click OTP magic link from the email). Behaves identically to a successful
+     * [verifyEmailOtpCode] call, but the token arrives from the deep link rather than
+     * the user typing a code.
+     */
+    fun signInWithOtpToken(
+        activity: Activity,
+        customToken: String,
+        onVerified: (needsRegistration: Boolean) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                _isAuthenticating.value = true
+                _authErrorMessage.value = null
+                val authService = com.example.data.auth.FirebaseAuthService(activity)
+                when (val result = authService.signInWithCustomToken(customToken)) {
+                    is AuthResult.Success -> finishVerification(activity, result.isNewUser, onVerified)
+                    is AuthResult.Failure -> {
+                        _authErrorMessage.value = result.message
+                        _isAuthenticating.value = false
+                    }
+                    else -> _isAuthenticating.value = false
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+                _isAuthenticating.value = false
+            }
+        }
+    }
+
     fun startGoogleSignIn(activity: Activity, googleIdToken: String, onVerified: (needsRegistration: Boolean) -> Unit) {
         viewModelScope.launch {
             try {

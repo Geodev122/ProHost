@@ -1749,7 +1749,11 @@ data class FCMAlert(
     val body: String,
     val timestamp: Long = System.currentTimeMillis(),
     val isRead: Boolean = false,
-    val category: String // "BOOKING_ACCEPTANCE" or "PAYMENT_REMINDER"
+    // Server-sent categories: BOOKING_REQUEST, BOOKING_ACCEPTANCE, PAYMENT_REMINDER,
+    // PACKAGE_EXPIRED, PACKAGE_ACTIVATED, PACKAGE_RENEWED, KYC_REJECTED,
+    // LISTING_VERIFICATION, LISTING_VERIFICATION_REQUEST
+    val category: String,
+    val targetTab: String? = null // mirrors the FCM data "targetTab" key
 )
 
 /**

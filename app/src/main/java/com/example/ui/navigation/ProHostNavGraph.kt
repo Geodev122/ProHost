@@ -122,6 +122,8 @@ fun ProHostAppRoot(
     emailVerifiedDeepLink: Boolean = false,
     emailSignInLink: String? = null,
     onEmailSignInLinkConsumed: () -> Unit = {},
+    emailOtpToken: String? = null,
+    onEmailOtpTokenConsumed: () -> Unit = {},
     inAppUpdateManager: InAppUpdateManager? = null,
     viewModel: ProHostViewModel = viewModel()
 ) {
@@ -270,6 +272,25 @@ fun ProHostAppRoot(
             // No saved email — cannot complete without it; reset consumed flag
             emailLinkConsumed.value = false
             onEmailSignInLinkConsumed()
+        }
+    }
+
+    // One-click email OTP magic link: prohost://emailotp/verified?token=<customToken>
+    // Sent by clickEmailOtpLink CF; signs in using the custom token exactly as if
+    // the user had entered the OTP code manually in the OTP entry screen.
+    val emailOtpConsumed = remember { mutableStateOf(false) }
+    LaunchedEffect(emailOtpToken) {
+        val token = emailOtpToken ?: return@LaunchedEffect
+        if (emailOtpConsumed.value) return@LaunchedEffect
+        emailOtpConsumed.value = true
+        if (activity != null) {
+            authViewModelForEmailLink.signInWithOtpToken(activity, token) { needsRegistration ->
+                onEmailOtpTokenConsumed()
+                if (needsRegistration) activeTabId = "auth"
+            }
+        } else {
+            emailOtpConsumed.value = false
+            onEmailOtpTokenConsumed()
         }
     }
 
@@ -807,6 +828,49 @@ private fun PinReauthOverlay(
     onAuthenticated: () -> Unit,
     onSignOut: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val activity = context as? androidx.fragment.app.FragmentActivity
+
+    // Trigger biometric prompt as soon as the overlay appears.
+    LaunchedEffect(Unit) {
+        if (activity == null) {
+            // No FragmentActivity available (unlikely in this app) — just unlock so the
+            // user isn't permanently locked out. The session was only backgrounded, not
+            // transferred to another device, so this is an acceptable degraded path.
+            onAuthenticated()
+            return@LaunchedEffect
+        }
+        val executor = androidx.core.content.ContextCompat.getMainExecutor(activity)
+        val prompt = androidx.biometric.BiometricPrompt(
+            activity, executor,
+            object : androidx.biometric.BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: androidx.biometric.BiometricPrompt.AuthenticationResult) {
+                    onAuthenticated()
+                }
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    // If biometrics aren't enrolled or the device has none, fall through
+                    // so the user isn't permanently locked; every other error keeps the
+                    // lock up (user cancelled, too many attempts, etc.).
+                    val isFallthrough = errorCode == androidx.biometric.BiometricPrompt.ERROR_NO_BIOMETRICS ||
+                        errorCode == androidx.biometric.BiometricPrompt.ERROR_HW_NOT_PRESENT ||
+                        errorCode == androidx.biometric.BiometricPrompt.ERROR_HW_UNAVAILABLE ||
+                        errorCode == androidx.biometric.BiometricPrompt.ERROR_NEGATIVE_BUTTON
+                    if (isFallthrough) onAuthenticated()
+                }
+                override fun onAuthenticationFailed() { /* keep overlay; user may retry */ }
+            }
+        )
+        val info = androidx.biometric.BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Unlock ProHost")
+            .setSubtitle("Verify your identity to continue")
+            .setAllowedAuthenticators(
+                androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+            )
+            .build()
+        prompt.authenticate(info)
+    }
+
     Scaffold { padding ->
         Column(
             modifier = Modifier
@@ -816,19 +880,49 @@ private fun PinReauthOverlay(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
+            Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
             Spacer(modifier = Modifier.height(16.dp))
             Text("Session Locked", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "The app was in the background. Tap Unlock Session to continue.",
+                "Verify your identity to continue.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(24.dp))
             Button(
-                onClick = onAuthenticated,
+                onClick = {
+                    // Re-trigger the biometric prompt if the user dismissed it.
+                    if (activity != null) {
+                        val executor = androidx.core.content.ContextCompat.getMainExecutor(activity)
+                        val prompt = androidx.biometric.BiometricPrompt(
+                            activity, executor,
+                            object : androidx.biometric.BiometricPrompt.AuthenticationCallback() {
+                                override fun onAuthenticationSucceeded(result: androidx.biometric.BiometricPrompt.AuthenticationResult) { onAuthenticated() }
+                                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                                    val isFallthrough = errorCode == androidx.biometric.BiometricPrompt.ERROR_NO_BIOMETRICS ||
+                                        errorCode == androidx.biometric.BiometricPrompt.ERROR_HW_NOT_PRESENT ||
+                                        errorCode == androidx.biometric.BiometricPrompt.ERROR_HW_UNAVAILABLE ||
+                                        errorCode == androidx.biometric.BiometricPrompt.ERROR_NEGATIVE_BUTTON
+                                    if (isFallthrough) onAuthenticated()
+                                }
+                                override fun onAuthenticationFailed() {}
+                            }
+                        )
+                        val info = androidx.biometric.BiometricPrompt.PromptInfo.Builder()
+                            .setTitle("Unlock ProHost")
+                            .setSubtitle("Verify your identity to continue")
+                            .setAllowedAuthenticators(
+                                androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                                androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                            )
+                            .build()
+                        prompt.authenticate(info)
+                    } else {
+                        onAuthenticated()
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Unlock Session") }
             Spacer(modifier = Modifier.height(8.dp))

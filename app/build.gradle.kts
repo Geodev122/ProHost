@@ -184,6 +184,8 @@ dependencies {
   implementation(libs.firebase.functions)
   implementation(libs.androidx.credentials)
   implementation(libs.androidx.credentials.play.services)
+  implementation(libs.androidx.biometric)
+  implementation(libs.androidx.fragment.ktx)
   implementation(libs.google.identity)
   implementation(libs.firebase.appcheck.playintegrity)
   debugImplementation(libs.firebase.appcheck.debug)
