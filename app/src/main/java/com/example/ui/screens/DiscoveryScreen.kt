@@ -91,7 +91,7 @@ fun DiscoveryScreen(
 /**
  * Dumb Presentation Screen for Discovery & Search.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun DiscoveryScreenContent(
     spaces: List<SpaceListing>,

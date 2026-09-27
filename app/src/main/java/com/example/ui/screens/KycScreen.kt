@@ -313,6 +313,7 @@ fun KycScreen(
                             }
                             authViewModel.linkKycPhone(
                                 activity = currentActivity,
+                                e164Phone = e164Phone,
                                 smsCode = otpCode,
                                 onSuccess = {
                                     authViewModel.clearAuthMessages()

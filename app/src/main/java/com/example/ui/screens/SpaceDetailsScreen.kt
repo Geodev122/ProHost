@@ -1578,8 +1578,8 @@ fun SpaceDetailsScreenContent(
                                     else ""
                                     val message = "Hello! I'm interested in booking *${liveSpace.title}*.\n\n📍" +
                                         " ${liveSpace.district}, ${liveSpace.governorate.displayName}" +
-                                        "\n\n🗓 Selected Slots ($totalSelectedSlots):\n$slotLines$att" +
-                                        "endeeBlock\n\nAre these slots still available?"
+                                        "\n\n🗓 Selected Slots ($totalSelectedSlots):\n$slotLines${attendeeBlock}" +
+                                        "\n\nAre these slots still available?"
                                     try {
                                         val whatsappUrl = "https://api.whatsapp.com/send?phone=${liveSpace.ownerPhone}" +
                                             "&text=${java.net.URLEncoder.encode(message, "UTF-8")}"
