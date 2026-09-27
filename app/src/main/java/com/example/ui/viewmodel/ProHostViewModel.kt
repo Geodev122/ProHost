@@ -188,10 +188,12 @@ class ProHostViewModel(
     // cross-tenant privacy bug: any host whose name is a substring of another
     // host's listed owner name (e.g. "Sara" inside "Sara Khalil Clinic") would see
     // that other host's real listings merged into their own dashboard.
+    private val _pendingDeletionIds = mutableSetOf<String>()
+
     val ownerSpaces: StateFlow<List<SpaceListing>> = combine(spaces, currentUser) { list, user ->
         if (user == null) emptyList()
-        else if (user.role == UserRole.ADMIN) list
-        else list.filter { it.ownerId == user.id }
+        else if (user.role == UserRole.ADMIN) list.filter { it.id !in _pendingDeletionIds }
+        else list.filter { it.ownerId == user.id && it.id !in _pendingDeletionIds }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Practitioner active & past bookings
@@ -640,7 +642,10 @@ class ProHostViewModel(
     }
 
     suspend fun deleteOwnerListing(spaceId: String): Boolean {
-        return repository.deleteSpaceListing(spaceId)
+        _pendingDeletionIds.add(spaceId)
+        val result = repository.deleteSpaceListing(spaceId)
+        if (!result) _pendingDeletionIds.remove(spaceId)
+        return result
     }
 
     // Sign-in/registration (phone OTP + Google Sign-In) moved to AuthViewModel —

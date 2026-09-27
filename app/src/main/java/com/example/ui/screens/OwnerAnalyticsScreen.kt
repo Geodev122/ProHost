@@ -192,19 +192,75 @@ fun OwnerAnalyticsScreen(
 
                     HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
-                    // Financial performance tiles — confirmed revenue vs last month
+                    // Wide Revenue card: this month's total + month-over-month delta
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        color = StatusSuccess.copy(alpha = 0.08f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            ) {
+                                Icon(
+                                    Icons.Default.MonetizationOn,
+                                    contentDescription = null,
+                                    tint = StatusSuccess,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Column {
+                                    Text(
+                                        text = "$${confirmedRevThisMonth.toInt()} USD",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = StatusSuccess
+                                    )
+                                    Text(
+                                        text = "Revenue this month",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    if (revenueDelta >= 0) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
+                                    contentDescription = null,
+                                    tint = if (revenueDelta >= 0) StatusSuccess else StatusError,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = if (revenueDelta >= 0) "+$${revenueDelta.toInt()}" else "-$${(-revenueDelta).toInt()}",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (revenueDelta >= 0) StatusSuccess else StatusError
+                                    )
+                                    Text(
+                                        text = "vs last month",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Bookings + Pending side by side
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        ProMetricTile(
-                            title = "Revenue",
-                            value = "$${confirmedRevThisMonth.toInt()}",
-                            subtitle = "This month",
-                            icon = Icons.Default.MonetizationOn,
-                            iconTint = StatusSuccess,
-                            modifier = Modifier.weight(1f)
-                        )
                         ProMetricTile(
                             title = "Bookings",
                             value = "$bookingsThisMonth",
@@ -213,26 +269,12 @@ fun OwnerAnalyticsScreen(
                             iconTint = VibrantBlue,
                             modifier = Modifier.weight(1f)
                         )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
                         ProMetricTile(
                             title = "Pending",
                             value = "$${pendingRevenue.toInt()}",
                             subtitle = "Awaiting approval",
                             icon = Icons.Default.HourglassTop,
                             iconTint = CarnationOrange,
-                            modifier = Modifier.weight(1f)
-                        )
-                        ProMetricTile(
-                            title = "vs Last Mo.",
-                            value = if (revenueDelta >= 0) "+$${revenueDelta.toInt()}" else "-$${(-revenueDelta).toInt()}",
-                            subtitle = if (revenueDelta >= 0) "Revenue up" else "Revenue down",
-                            icon = if (revenueDelta >= 0) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
-                            iconTint = if (revenueDelta >= 0) StatusSuccess else StatusError,
                             modifier = Modifier.weight(1f)
                         )
                     }

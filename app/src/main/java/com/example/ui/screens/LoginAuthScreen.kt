@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.credentials.CredentialManager
@@ -54,7 +55,7 @@ import kotlinx.coroutines.launch
  * "Use phone number instead" from EMAIL_ENTRY. No forced migration.
  *  PHONE_ENTRY → OTP_ENTRY → (brand-new number only) REGISTRATION_FORM
  */
-private enum class AuthStep { EMAIL_ENTRY, EMAIL_OTP, PHONE_ENTRY, OTP_ENTRY, REGISTRATION_FORM }
+private enum class AuthStep { EMAIL_ENTRY, EMAIL_OTP, PASSWORD_ENTRY, PHONE_ENTRY, OTP_ENTRY, REGISTRATION_FORM }
 
 /** Matches Firebase Phone Auth's own typical SMS-resend throttling window. */
 private const val OTP_RESEND_COOLDOWN_SECONDS = 30
@@ -100,6 +101,7 @@ fun LoginAuthScreen(
 
     // --- Email entry state ---
     var emailInput by rememberSaveable { mutableStateOf("") }
+    var passwordInput by rememberSaveable { mutableStateOf("") }
     var emailResendCountdownSeconds by rememberSaveable { mutableStateOf(0) }
     LaunchedEffect(emailResendCountdownSeconds) {
         if (emailResendCountdownSeconds > 0) {
@@ -174,6 +176,9 @@ fun LoginAuthScreen(
                     }
                 }
             }
+            AuthViewModel.EmailLookupResult.HAS_PASSWORD -> {
+                step = AuthStep.PASSWORD_ENTRY
+            }
             AuthViewModel.EmailLookupResult.HAS_GOOGLE -> {
                 // Trigger Google Sign-In immediately
                 launchGoogleSignIn()
@@ -187,6 +192,7 @@ fun LoginAuthScreen(
     var phoneNumber by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
+        authViewModel.clearAuthMessages()
         // MainActivity already requests all permissions; detect country using available signals
         // (SIM/locale — no duplicate permission request here).
         phoneCountry = PhoneCountryDetector.detectCountry(context)
@@ -406,6 +412,80 @@ fun LoginAuthScreen(
                     )
                 }
 
+            }
+
+            AuthStep.PASSWORD_ENTRY -> ModernCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                contentPadding = PaddingValues(20.dp),
+                elevation = 3.dp
+            ) {
+                Text(
+                    text = "Sign in with password",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+                Text(
+                    text = pendingEmail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                OutlinedTextField(
+                    value = passwordInput,
+                    onValueChange = { passwordInput = it; localErrorMessage = null },
+                    label = { Text("Password") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) }
+                )
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                ProPrimaryButton(
+                    text = if (isAuthenticating) "Signing in..." else "Sign In",
+                    onClick = {
+                        if (passwordInput.isBlank()) {
+                            localErrorMessage = "Please enter your password"
+                            return@ProPrimaryButton
+                        }
+                        authViewModel.signInWithEmailPassword(
+                            email = pendingEmail,
+                            password = passwordInput,
+                            onSuccess = onLoginSuccess,
+                            onError = { localErrorMessage = it }
+                        )
+                    },
+                    enabled = !isAuthenticating,
+                    icon = Icons.Default.Login,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                TextButton(
+                    onClick = {
+                        com.google.firebase.auth.FirebaseAuth.getInstance().sendPasswordResetEmail(pendingEmail)
+                        localErrorMessage = null
+                        authViewModel.clearAuthMessages()
+                        android.widget.Toast.makeText(context, "Password reset email sent", android.widget.Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Forgot password?", fontWeight = FontWeight.SemiBold)
+                }
+                TextButton(
+                    onClick = {
+                        passwordInput = ""
+                        localErrorMessage = null
+                        authViewModel.clearAuthMessages()
+                        step = AuthStep.EMAIL_ENTRY
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text("Use a different email", fontWeight = FontWeight.SemiBold)
+                }
             }
 
             AuthStep.EMAIL_OTP -> ModernCard(

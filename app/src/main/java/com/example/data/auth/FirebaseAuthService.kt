@@ -343,6 +343,11 @@ class FirebaseAuthService(private val context: Context) {
         }
     }
 
+    suspend fun signInWithEmailAndPassword(email: String, password: String) {
+        val auth = firebaseAuth ?: throw Exception("Authentication service unavailable.")
+        auth.signInWithEmailAndPassword(email, password).awaitTask()
+    }
+
     suspend fun signInWithCustomToken(token: String): AuthResult {
         val auth = firebaseAuth ?: return AuthResult.Failure("Authentication service unavailable.")
         return try {

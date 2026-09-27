@@ -31,13 +31,14 @@ export interface EmailPayload {
 
 /**
  * Sends an email via Hostinger SMTP using the stored API key as the SMTP password.
- * Never throws — email delivery failures are logged but do not propagate.
+ * Returns true on success, false on any failure (missing secret, SMTP error).
+ * Never throws.
  */
-export async function sendEmail(payload: EmailPayload): Promise<void> {
+export async function sendEmail(payload: EmailPayload): Promise<boolean> {
   const smtpKey = hostingerSmtpSecret.value();
   if (!smtpKey) {
     logger.warn("email_send_skipped", { reason: "no SMTP secret", to: payload.to, subject: payload.subject });
-    return;
+    return false;
   }
 
   const transporter = nodemailer.createTransport({
@@ -57,12 +58,14 @@ export async function sendEmail(payload: EmailPayload): Promise<void> {
       replyTo: payload.replyTo,
     });
     logger.info("email_sent", { to: payload.to, subject: payload.subject, messageId: info.messageId });
+    return true;
   } catch (e) {
     logger.error("email_send_failed", {
       to: payload.to,
       subject: payload.subject,
       error: e instanceof Error ? e.message : String(e),
     });
+    return false;
   }
 }
 

@@ -74,7 +74,7 @@ class AuthViewModel(
 
     // --- Email lookup state (EMAIL_ENTRY step) ---
 
-    enum class EmailLookupResult { UNKNOWN, NEW_USER, HAS_EMAIL, HAS_GOOGLE }
+    enum class EmailLookupResult { UNKNOWN, NEW_USER, HAS_EMAIL, HAS_PASSWORD, HAS_GOOGLE }
 
     private val _emailLookupResult = MutableStateFlow(EmailLookupResult.UNKNOWN)
     val emailLookupResult: StateFlow<EmailLookupResult> = _emailLookupResult.asStateFlow()
@@ -119,6 +119,7 @@ class AuthViewModel(
                 _emailLookupResult.value = when {
                     methods.isEmpty() -> EmailLookupResult.NEW_USER
                     "google.com" in methods -> EmailLookupResult.HAS_GOOGLE
+                    "password" in methods -> EmailLookupResult.HAS_PASSWORD
                     else -> EmailLookupResult.HAS_EMAIL
                 }
                 _isAuthenticating.value = false
@@ -164,6 +165,29 @@ class AuthViewModel(
                 throw e
             } catch (e: Exception) {
                 _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+            }
+        }
+    }
+
+    fun signInWithEmailPassword(
+        email: String,
+        password: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                _isAuthenticating.value = true
+                val authService = com.example.data.auth.FirebaseAuthService(firebaseAppContext())
+                authService.signInWithEmailAndPassword(email, password)
+                _isAuthenticating.value = false
+                _authSuccessMessage.value = "Welcome back!"
+                onSuccess()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _isAuthenticating.value = false
+                onError(e.message ?: "Sign-in failed. Please check your password.")
             }
         }
     }

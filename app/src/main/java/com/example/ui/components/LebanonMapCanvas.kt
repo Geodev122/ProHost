@@ -707,7 +707,11 @@ fun LebanonMapCanvas(
                         val typePalette = getMarkerPalette(space, false, spaceTypeSchema)
                         val displayName = sub?.name ?: space.title
                         val typeBadge = sub?.type?.displayName ?: space.spaceType.displayName
-                        val lowestPrice = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
+                        val lowestPrice = if (sub != null) {
+                            com.example.ui.util.SpaceCalculationUtils.findLowestPriceForSubdivision(sub)
+                        } else {
+                            com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
+                        }
 
                         Card(
                             modifier = Modifier

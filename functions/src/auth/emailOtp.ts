@@ -57,11 +57,15 @@ export const sendEmailOtp = onCall(
     const encodedCode = encodeURIComponent(code);
     const clickUrl = `https://europe-west1-prohost-f766f.cloudfunctions.net/clickEmailOtpLink?email=${encodedEmail}&code=${encodedCode}`;
 
-    await sendEmail({
+    const delivered = await sendEmail({
       to: email,
       subject: "Your ProHost sign-in code",
       html: otpEmailHtml(code, clickUrl),
     });
+
+    if (!delivered) {
+      return { ok: false, error: "Email delivery failed. Please try again or contact support." };
+    }
 
     logger.info("email_otp_sent", { email });
     return { ok: true };

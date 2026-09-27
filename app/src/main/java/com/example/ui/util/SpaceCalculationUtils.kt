@@ -350,6 +350,30 @@ object SpaceCalculationUtils {
         return candidates.minByOrNull { it.amount } ?: PriceDisplay(space.baseMonthlyRateUsd.coerceAtLeast(0.0), "/mo")
     }
 
+    fun findLowestPriceForSubdivision(sub: com.example.data.model.Subdivision): PriceDisplay {
+        val pricing = sub.pricing
+        val candidates = mutableListOf<PriceDisplay>()
+        when (pricing.strategyType) {
+            RentalStrategyType.MONTHLY -> {
+                val rate = pricing.monthly?.rateUsd ?: 0.0
+                if (rate > 0.0) candidates.add(PriceDisplay(rate, "/mo"))
+            }
+            RentalStrategyType.HOURLY -> {
+                val rates = pricing.hourly?.cellPrices?.values?.filter { it > 0.0 } ?: emptyList()
+                rates.minOrNull()?.let { candidates.add(PriceDisplay(it, "/hr")) }
+            }
+            RentalStrategyType.SHIFT_BASED -> {
+                val shiftRates = pricing.shiftBased?.shifts?.map { it.price }?.filter { it > 0.0 } ?: emptyList()
+                shiftRates.minOrNull()?.let { candidates.add(PriceDisplay(it, "/shift")) }
+            }
+            RentalStrategyType.DAY_BASED -> {
+                val dayRates = pricing.dayBased?.distribution?.values?.map { it.price }?.filter { it > 0.0 } ?: emptyList()
+                dayRates.minOrNull()?.let { candidates.add(PriceDisplay(it, "/day")) }
+            }
+        }
+        return candidates.minByOrNull { it.amount } ?: PriceDisplay(0.0, "/mo")
+    }
+
     /**
      * The unit a formula's [RentalFormula.rateUsd] is actually denominated in, so a
      * rate can be labelled honestly instead of being stamped "/mo" regardless of type.
