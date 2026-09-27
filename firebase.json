@@ -22,10 +22,6 @@
     ],
     "rewrites": [
       {
-        "source": "/app",
-        "destination": "/app/index.html"
-      },
-      {
         "source": "/privacy",
         "destination": "/privacy.html"
       },
