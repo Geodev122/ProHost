@@ -141,6 +141,7 @@ class PlayBillingManager(
         }
     }
 
+    @Suppress("DEPRECATION")
     fun launchSubscriptionPurchase(
         activity: Activity,
         productDetails: ProductDetails,

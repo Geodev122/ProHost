@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -313,6 +314,7 @@ fun KycScreen(
                             }
                             authViewModel.linkKycPhone(
                                 activity = currentActivity,
+                                e164Phone = e164Phone,
                                 smsCode = otpCode,
                                 onSuccess = {
                                     authViewModel.clearAuthMessages()
@@ -368,7 +370,7 @@ fun KycScreen(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Change phone number", fontWeight = FontWeight.SemiBold)
                     }

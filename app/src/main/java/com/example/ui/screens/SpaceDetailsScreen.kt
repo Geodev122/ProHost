@@ -1579,8 +1579,8 @@ fun SpaceDetailsScreenContent(
                                     else ""
                                     val message = "Hello! I'm interested in booking *${liveSpace.title}*.\n\n📍" +
                                         " ${liveSpace.district}, ${liveSpace.governorate.displayName}" +
-                                        "\n\n🗓 Selected Slots ($totalSelectedSlots):\n$slotLines$att" +
-                                        "endeeBlock\n\nAre these slots still available?"
+                                        "\n\n🗓 Selected Slots ($totalSelectedSlots):\n$slotLines${attendeeBlock}" +
+                                        "\n\nAre these slots still available?"
                                     try {
                                         val whatsappUrl = "https://api.whatsapp.com/send?phone=${liveSpace.ownerPhone}" +
                                             "&text=${java.net.URLEncoder.encode(message, "UTF-8")}"
@@ -1646,7 +1646,7 @@ fun SpaceDetailsScreenContent(
                                 Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                             }
                         }
-                        Divider()
+                        HorizontalDivider()
                         // Slot summary
                         val allSelectedSlotLabels = buildList {
                             selectedSlots.forEach { add(it.label) }
@@ -1663,7 +1663,7 @@ fun SpaceDetailsScreenContent(
                         }
                         // Attendee block
                         if (isAttendeeModeDialog && pkgForDialog != null) {
-                            Divider()
+                            HorizontalDivider()
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("Attendees", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text("$sheetAttendeeCount pax", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
@@ -1673,7 +1673,7 @@ fun SpaceDetailsScreenContent(
                                 Text(pkgForDialog.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                             }
                         }
-                        Divider()
+                        HorizontalDivider()
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Estimated Total", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text("$${String.format("%.2f", totalCostForDialog)} USD",
