@@ -1172,7 +1172,6 @@ fun CreateListingDialog(
                         // agree with what the host currently sees on screen.
                         subdivisions = if (hasSubdivisions) subdivisionsList else emptyList(),
                         imageUrls = uploadedPhotoUrls,
-                        ownerIsIdVerified = activeUser.idDocumentUrl != null,
                         ownerProfilePictureUrl = activeUser.profilePictureUrl,
                         status = status
                     )

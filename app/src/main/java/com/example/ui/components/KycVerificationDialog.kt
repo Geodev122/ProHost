@@ -1,9 +1,7 @@
 package com.example.ui.components
 
 import android.app.Activity
-import android.net.Uri
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -24,18 +22,11 @@ import com.example.ui.theme.Spacing
 import com.example.ui.viewmodel.AuthViewModel
 
 /**
- * A comprehensive KYC Verification Popup Dialog presented when a Specialist
- * attempts to upgrade to ProHost (selecting a package in [OwnerSubscriptionsScreen]
- * or attempting to publish in [OwnerHubScreen]).
- *
+ * KYC Verification Dialog shown when a Specialist attempts to upgrade to ProHost.
  * Prompts the user to complete all missing KYC requirements:
- *  1. Phone SMS OTP Verification (if [user.isVerified] == false)
- *  2. Email OTP Code Verification (if [user.emailVerified] == false)
- *  3. ID / Passport Document Upload (if [user.idDocumentUrl] is missing)
- *  4. Address Input - Country & City (if [user.country] or [user.city] is blank)
- *
- * Once all missing requirements are verified, [onKycCompleted] is invoked to proceed
- * directly to the subscription/payment or publication flow.
+ *  1. Phone SMS OTP Verification (if phone is blank)
+ *  2. Email OTP Code Verification (if emailVerified == false)
+ *  3. Address Input — Country & City (if country or city is blank)
  */
 @Composable
 fun KycVerificationDialog(
@@ -49,27 +40,18 @@ fun KycVerificationDialog(
     var phoneInput by remember { mutableStateOf(user.phone) }
     var phoneOtpInput by remember { mutableStateOf("") }
     var isPhoneOtpSent by remember { mutableStateOf(false) }
-    // user.isVerified is a phone-OR-email flag (true for Google/email sign-ins via
-    // email_verified alone, with no phone involved at all) — using it here showed
-    // "Verified" with an empty phone number for Google users. user.phone is only
-    // ever populated once phone OTP linking has actually succeeded, so it's the
-    // real phone-specific signal.
     var isPhoneVerified by remember { mutableStateOf(user.phone.isNotBlank()) }
 
     var emailInput by remember { mutableStateOf(user.email) }
     var isEmailSent by remember { mutableStateOf(false) }
     var isEmailVerified by remember { mutableStateOf(user.emailVerified) }
 
-    var idDocState by remember { mutableStateOf(DocumentPickerState()) }
-    var isIdUploaded by remember { mutableStateOf(!user.idDocumentUrl.isNullOrBlank()) }
-
     var countryInput by remember { mutableStateOf(user.country.ifBlank { "Lebanon" }) }
     var cityInput by remember { mutableStateOf(user.city.ifBlank { "Beirut" }) }
 
     var localError by remember { mutableStateOf<String?>(null) }
-    val isAuthenticating by authViewModel.isAuthenticating.collectAsState()
 
-    val allComplete = isPhoneVerified && isEmailVerified && (isIdUploaded || idDocState.isSelected) && countryInput.isNotBlank() && cityInput.isNotBlank()
+    val allComplete = isPhoneVerified && isEmailVerified && countryInput.isNotBlank() && cityInput.isNotBlank()
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -99,7 +81,7 @@ fun KycVerificationDialog(
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Column {
-                            Text("ProHost Identity & KYC Verification", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text("ProHost Identity Verification", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             Text(
                                 "Complete verification to unlock hosting privileges",
                                 style = MaterialTheme.typography.bodySmall,
@@ -147,12 +129,6 @@ fun KycVerificationDialog(
                                 Button(
                                     onClick = {
                                         activity?.let { act ->
-                                            // Link this phone credential to the already-signed-in
-                                            // account (linkKycPhone) rather than
-                                            // submitPhoneVerificationCode, which signs in with the
-                                            // phone credential directly — that would swap the
-                                            // current Firebase Auth session to a different account
-                                            // entirely instead of adding phone KYC to this one.
                                             authViewModel.linkKycPhone(act, phoneInput, phoneOtpInput,
                                                 onSuccess = {
                                                     isPhoneVerified = true
@@ -214,26 +190,9 @@ fun KycVerificationDialog(
                     }
                 }
 
-                // Requirement 3: ID Document Upload
+                // Requirement 3: Address Details
                 KycRequirementCard(
-                    title = "3. National ID / Passport Document",
-                    isComplete = isIdUploaded || idDocState.isSelected,
-                    subtitle = if (isIdUploaded) "Document on file" else "Upload ID / Passport for identity verification"
-                ) {
-                    if (!isIdUploaded) {
-                        DocumentPickerField(
-                            label = "ID Document (PDF, JPG, or PNG)",
-                            helperText = "National ID or Passport",
-                            state = idDocState,
-                            onStateChanged = { idDocState = it },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-
-                // Requirement 4: Address Details
-                KycRequirementCard(
-                    title = "4. Residence Address Details",
+                    title = "3. Residence Address Details",
                     isComplete = countryInput.isNotBlank() && cityInput.isNotBlank(),
                     subtitle = "$countryInput, $cityInput"
                 ) {
@@ -271,7 +230,7 @@ fun KycVerificationDialog(
                 ) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null)
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Complete KYC & Proceed to Upgrade")
+                    Text("Complete Verification & Proceed to Upgrade")
                 }
             }
         }

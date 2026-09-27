@@ -26,16 +26,14 @@ class ProHostRepository {
 
         // Must stay in sync with firestore.rules' user_profiles update rule's own
         // protected-fields list — every one of these is exclusively server-maintained
-        // (assignInitialRole/grantAdminRole/setAccountSuspended/pinAuth/kycLevel/
-        // emailVerification/idDocument functions). Used by registerMember to filter its
+        // (assignInitialRole/grantAdminRole/setAccountSuspended/pinAuth/
+        // emailVerification functions). Used by registerMember to filter its
         // write down to a safe subset — see that function's own doc comment.
         private val PROTECTED_UPDATE_FIELDS = setOf(
             "role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
             "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount",
             "tosAcceptedAtMillis", "consentVersion",
-            // KYC / identity verification fields
-            "kycLevel", "emailVerified", "emailVerifiedAt",
-            "idDocumentUrl", "idDocumentVerificationStatus", "idDocumentSubmittedAt", "idDocumentReviewedAt"
+            "emailVerified", "emailVerifiedAt"
         )
 
         @Volatile
@@ -95,9 +93,6 @@ class ProHostRepository {
 
     private val _auditLogs = MutableStateFlow<List<AuditSecurityLog>>(emptyList())
     val auditLogs: StateFlow<List<AuditSecurityLog>> = _auditLogs.asStateFlow()
-
-    private val _idReviewQueue = MutableStateFlow<List<IdReviewEntry>>(emptyList())
-    val idReviewQueue: StateFlow<List<IdReviewEntry>> = _idReviewQueue.asStateFlow()
 
     // Starts signed out. This previously defaulted to a fully-populated Super Admin
     // AppUser, meaning every fresh install of the app opened directly into the Admin
@@ -227,9 +222,6 @@ class ProHostRepository {
                 onPackagePlansUpdated = { updatedCatalog ->
                     _packagePlans.value = updatedCatalog
                     _isCloudConnected.value = true
-                },
-                onIdReviewQueueUpdated = { updatedQueue ->
-                    _idReviewQueue.value = updatedQueue
                 }
             )
 
@@ -469,7 +461,6 @@ class ProHostRepository {
                 isActiveSubscription = current.isActiveSubscription,
                 subscriptionExpiryMillis = current.subscriptionExpiryMillis,
                 isOwnerSuspended = current.isOwnerSuspended,
-                ownerIsIdVerified = current.ownerIsIdVerified,
                 ownerProfilePictureUrl = current.ownerProfilePictureUrl
             )
         } else {
@@ -528,7 +519,6 @@ class ProHostRepository {
                 isActiveSubscription = current.isActiveSubscription,
                 subscriptionExpiryMillis = current.subscriptionExpiryMillis,
                 isOwnerSuspended = current.isOwnerSuspended,
-                ownerIsIdVerified = current.ownerIsIdVerified,
                 ownerProfilePictureUrl = current.ownerProfilePictureUrl
             )
         } else {
@@ -569,7 +559,6 @@ class ProHostRepository {
                 isVerified = current.isVerified,
                 isActiveSubscription = current.isActiveSubscription,
                 subscriptionExpiryMillis = current.subscriptionExpiryMillis,
-                ownerIsIdVerified = current.ownerIsIdVerified,
                 ownerProfilePictureUrl = current.ownerProfilePictureUrl
             )
         } else {
@@ -1738,7 +1727,6 @@ class ProHostRepository {
                 isVerified = current.isVerified,
                 isActiveSubscription = current.isActiveSubscription,
                 subscriptionExpiryMillis = current.subscriptionExpiryMillis,
-                ownerIsIdVerified = current.ownerIsIdVerified,
                 ownerProfilePictureUrl = current.ownerProfilePictureUrl
             )
         } else {
@@ -1879,10 +1867,7 @@ class ProHostRepository {
      * [com.example.data.auth.completeVerifiedRegistration]. [isVerified] reflects that
      * [uid]'s Firebase Auth account already completed phone-number SMS verification
      * before this is ever called (see LoginAuthScreen's OTP flow) — there is no admin
-     * accreditation step anymore. Registration never collects a government ID document
-     * (that's the KYC flow's job — see [updateIdDocument]); `idDocumentUrl` is also a
-     * Firestore-protected field ([PROTECTED_UPDATE_FIELDS]), so it couldn't be set from
-     * here even if [RegistrationDetails] carried one.
+     * accreditation step anymore.
      *
      * Suspend, and its Firestore write is awaited and checked, because of a real bug this
      * fixes: assignInitialRole.ts's Admin-SDK write always lands (and creates the
@@ -2141,30 +2126,6 @@ class ProHostRepository {
     }
 
     /**
-     * Sets/replaces the signed-in user's own ID document (Storage upload already
-     * done by the caller — this just records the resulting URL). idDocumentUrl was
-     * previously only ever written once, by the registration Cloud Function
-     * (assignInitialRole.ts) — any account that never went through registration
-     * (most notably an Admin created via bootstrapSuperAdmin/grantAdminRole, which
-     * only ever set role) had this field permanently null with no way to ever set
-     * it. firestore.rules' user_profiles update rule already permits a self-write
-     * to this field (it's not in the protected-fields list — unlike role/
-     * isVerified/etc., ID-document-on-file isn't an entitlement or a
-     * server-computed fact), so this is a direct client write, the same pattern
-     * updateCurrentUserProfile uses for its own targeted fields.
-     */
-    suspend fun updateIdDocument(idDocumentUrl: String): Boolean {
-        val current = _currentUser.value ?: return false
-        val success = functionsClient.submitIdDocument(idDocumentUrl).isSuccess
-        if (success) {
-            val updated = current.copy(idDocumentUrl = idDocumentUrl)
-            _currentUser.value = updated
-            _users.value = _users.value.map { if (it.id == updated.id) updated else it }
-        }
-        return success
-    }
-
-    /**
      * Records the purchase token so the RTDN handler can look up this user by token
      * as a fallback. Role promotion and expiry are written exclusively by the server
      * (billing/playBillingRtdn.ts grantSubscription) using Play's canonical expiryTimeMillis —
@@ -2290,13 +2251,13 @@ class ProHostRepository {
         sb.appendLine("Total Users,${_users.value.size}")
         sb.appendLine()
         sb.appendLine("User ID,Full Name,Email,Role,Specialty,Phone,Country,Governorate,City,Is Verified,Account Created,La" +
-            "st Sign-In,Profile Picture URL,ID Document URL")
+            "st Sign-In,Profile Picture URL")
         _users.value.forEach { u ->
             sb.appendLine(
                 "\"${u.id}\",\"${u.fullName.replace("\"", "\"\"")}\",\"${u.email}\",\"${u.role.name}\"," +
                     "\"${u.specialty.replace("\"", "\"\"")}\",\"${u.phone}\",\"${u.country}\",\"${u.governorate}\",\"${u.city}\"," +
                     "${u.isVerified},\"${formatAuditTimestamp(sdf, u.createdAtMillis)}\",\"${formatAuditTimestamp(sdf, u.lastSignInAtMillis)}\"," +
-                    "\"${u.profilePictureUrl ?: ""}\",\"${u.idDocumentUrl ?: ""}\""
+                    "\"${u.profilePictureUrl ?: ""}\""
             )
         }
         return sb.toString()
@@ -2325,8 +2286,7 @@ class ProHostRepository {
             sb.appendLine("      \"isVerified\": ${u.isVerified},")
             sb.appendLine("      \"createdAtMillis\": ${u.createdAtMillis ?: "null"},")
             sb.appendLine("      \"lastSignInAtMillis\": ${u.lastSignInAtMillis ?: "null"},")
-            sb.appendLine("      \"profilePictureUrl\": ${u.profilePictureUrl?.let { "\"$it\"" } ?: "null"},")
-            sb.appendLine("      \"idDocumentUrl\": ${u.idDocumentUrl?.let { "\"$it\"" } ?: "null"}")
+            sb.appendLine("      \"profilePictureUrl\": ${u.profilePictureUrl?.let { "\"$it\"" } ?: "null"}")
             sb.appendLine("    }$comma")
         }
         sb.appendLine("  ]")
@@ -2417,9 +2377,6 @@ class ProHostRepository {
     }
 
     fun exportUsersCsv(): String = exportOwnerRegistrationsToCsv()
-
-    /** One-shot fetch of the KYC ID review queue for the Admin Console ID Review tab. */
-    suspend fun loadIdReviewQueue(): List<IdReviewEntry> = firestoreService.loadIdReviewQueue()
 
     /**
      * Server-side verification + entitlement restore for a Google Play purchase whose

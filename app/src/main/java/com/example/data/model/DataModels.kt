@@ -903,10 +903,6 @@ data class SpaceListing(
     // restoreListingsAfterRenewal). Admin-SDK-only, same protected-field
     // pattern as isOwnerSuspended — see firestore.rules.
     val isOwnerPackageLapsed: Boolean = false,
-    // Set by reviewIdDocument.ts (Admin SDK) when an admin rejects a PRO_HOST's
-    // ID document. Hides listings from Discovery until the host re-submits a valid
-    // ID (submitIdDocument.ts clears it). Same server-only pattern as isOwnerSuspended.
-    val isOwnerIdRejected: Boolean = false,
     val subscriptionExpiryMillis: Long = 0L,
     val imageUrls: List<String> = emptyList(),
     val videoTourDurationSec: Int = 10,
@@ -914,13 +910,6 @@ data class SpaceListing(
     val avatarEngagementViews: Int = 0,
     val avatarInquiryClicks: Int = 0,
     val subdivisions: List<Subdivision> = emptyList(),
-    // Denormalized from the owner's own AppUser.idDocumentUrl at listing-creation
-    // time — the ID-Verified badge is an account-level fact, but user_profiles' read
-    // rule only lets a user read their own profile, so a Specialist viewing this
-    // listing has no other way to see whether the host has ID Verified status.
-    // Mirrors the existing pattern of denormalizing ownerName/ownerPhone/etc. onto
-    // the listing for exactly the same cross-role-visibility reason.
-    val ownerIsIdVerified: Boolean = false,
     val ownerProfilePictureUrl: String? = null,
     // The host's own lifecycle control (Draft while building it, Active once
     // published, Paused to take it off the market without deleting it) — distinct
@@ -1038,14 +1027,12 @@ data class SpaceListing(
             "isActiveSubscription" to isActiveSubscription,
             "isOwnerSuspended" to isOwnerSuspended,
             "isOwnerPackageLapsed" to isOwnerPackageLapsed,
-            "isOwnerIdRejected" to isOwnerIdRejected,
             "subscriptionExpiryMillis" to subscriptionExpiryMillis,
             "imageUrls" to imageUrls,
             "videoTourDurationSec" to videoTourDurationSec,
             "baseMonthlyRateUsd" to baseMonthlyRateUsd,
             "avatarEngagementViews" to avatarEngagementViews,
             "avatarInquiryClicks" to avatarInquiryClicks,
-            "ownerIsIdVerified" to ownerIsIdVerified,
             "ownerProfilePictureUrl" to ownerProfilePictureUrl,
             "status" to status.name,
             "publishBlockedReasons" to publishBlockedReasons,
@@ -1205,14 +1192,12 @@ data class SpaceListing(
                 isActiveSubscription = data["isActiveSubscription"] as? Boolean ?: true,
                 isOwnerSuspended = data["isOwnerSuspended"] as? Boolean ?: false,
                 isOwnerPackageLapsed = data["isOwnerPackageLapsed"] as? Boolean ?: false,
-                isOwnerIdRejected = data["isOwnerIdRejected"] as? Boolean ?: false,
                 subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong() ?: 0L,
                 imageUrls = (data["imageUrls"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                 videoTourDurationSec = (data["videoTourDurationSec"] as? Number)?.toInt() ?: 10,
                 baseMonthlyRateUsd = (data["baseMonthlyRateUsd"] as? Number)?.toDouble() ?: 450.0,
                 avatarEngagementViews = (data["avatarEngagementViews"] as? Number)?.toInt() ?: 0,
                 avatarInquiryClicks = (data["avatarInquiryClicks"] as? Number)?.toInt() ?: 0,
-                ownerIsIdVerified = data["ownerIsIdVerified"] as? Boolean ?: false,
                 ownerProfilePictureUrl = data["ownerProfilePictureUrl"] as? String,
                 status = (data["status"] as? String)?.let {
                     runCatching { ListingStatus.valueOf(it) }.getOrNull()
@@ -1285,9 +1270,8 @@ enum class SubscriptionBillingInterval(val displayName: String, val monthsDurati
  * [isVerified] means only "this account's phone number was confirmed via Firebase
  * Phone Auth SMS OTP at registration" (set server-side, see assignInitialRole.ts,
  * from the ID token's phone_number claim — never a manually-toggled admin flag).
- * [idDocumentUrl] (ID/passport, required at registration) is kept on file with no
- * review workflow; a PRO_HOST's proof of ownership / right-to-rent is uploaded per
- * listing instead (see [SpaceListing.ownershipProofUrl]), not on the user profile.
+ * A PRO_HOST's proof of ownership / right-to-rent is uploaded per listing
+ * (see [SpaceListing.ownershipProofUrl]), not on the user profile.
  * [createdAtMillis]/[lastSignInAtMillis] are written only by assignInitialRole.ts —
  * the account-creation and last-sign-in audit trail Admin's Users Directory export
  * relies on (see ProHostRepository.exportUsersToCsv/exportUsersToJson).
@@ -1300,7 +1284,6 @@ data class AppUser(
     val specialty: String,
     val phone: String,
     val profilePictureUrl: String? = null,
-    val idDocumentUrl: String? = null,
     val country: String = "Lebanon",
     val governorate: String = "",
     val city: String = "",
@@ -1351,18 +1334,12 @@ data class AppUser(
     // simply absent from firestore.rules' user_profiles protected-key list and writable
     // by the owner like any other profile field. See ProHostRepository.toggleSavedSpace.
     val savedSpaceIds: List<String> = emptyList(),
-    // Server-only KYC fields — all written exclusively by Cloud Functions (Admin SDK);
-    // firestore.rules blocks direct client writes to these fields.
-    // kycLevel: recomputeKycLevel.ts trigger keeps this in sync (0–3).
-    // emailVerified: verifyEmailLink HTTP function sets this on link click.
-    // idDocumentVerificationStatus: submitIdDocument (PENDING_REVIEW) and reviewIdDocument
-    //   (APPROVED | REJECTED) are the only writers.
-    val kycLevel: Int = 0,
-    val emailVerified: Boolean = false,
-    val idDocumentVerificationStatus: String? = null  // null | PENDING_REVIEW | APPROVED | REJECTED
+    // Server-only — set by Firebase Auth natively via email link; a client write would
+    // let anyone claim email-verified status without clicking the link.
+    val emailVerified: Boolean = false
 ) {
     val isKycComplete: Boolean
-        get() = isVerified && emailVerified && !idDocumentUrl.isNullOrBlank() && country.isNotBlank() && city.isNotBlank()
+        get() = isVerified && emailVerified && country.isNotBlank() && city.isNotBlank()
     // Full map — only for admin/server-side contexts (e.g. bootstrapping a new profile
     // from an admin console write). NEVER use for client-initiated profile updates;
     // firestore.rules blocks writes to protected fields (role, isVerified, ownerPackageId,
@@ -1378,7 +1355,6 @@ data class AppUser(
             "specialty" to specialty,
             "phone" to phone,
             "profilePictureUrl" to profilePictureUrl,
-            "idDocumentUrl" to idDocumentUrl,
             "country" to country,
             "governorate" to governorate,
             "city" to city,
@@ -1403,7 +1379,6 @@ data class AppUser(
             "specialty" to specialty,
             "phone" to phone,
             "profilePictureUrl" to profilePictureUrl,
-            "idDocumentUrl" to idDocumentUrl,
             "country" to country,
             "governorate" to governorate,
             "city" to city,
@@ -1427,7 +1402,6 @@ data class AppUser(
                 specialty = data["specialty"] as? String ?: "",
                 phone = data["phone"] as? String ?: "",
                 profilePictureUrl = data["profilePictureUrl"] as? String,
-                idDocumentUrl = data["idDocumentUrl"] as? String,
                 country = data["country"] as? String ?: "Lebanon",
                 governorate = data["governorate"] as? String ?: "",
                 city = data["city"] as? String ?: "",
@@ -1447,40 +1421,6 @@ data class AppUser(
                 idDocumentVerificationStatus = data["idDocumentVerificationStatus"] as? String
             )
         }
-    }
-}
-
-/**
- * A pending ID document review entry in the id_review_queue Firestore collection.
- * Created by submitIdDocument Cloud Function; read by the Admin Console ID Review tab.
- */
-data class IdReviewEntry(
-    val userId: String,
-    val fullName: String,
-    val email: String,
-    val phone: String,
-    val role: String,
-    val storageUrl: String,
-    val submittedAt: Long,
-    val status: String,          // PENDING_REVIEW | APPROVED | REJECTED
-    val reviewedAt: Long? = null,
-    val rejectionReason: String? = null
-) {
-    companion object {
-        const val COLLECTION_PATH = "id_review_queue"
-
-        fun fromFirestoreMap(docId: String, data: Map<String, Any?>): IdReviewEntry = IdReviewEntry(
-            userId = docId,
-            fullName = data["fullName"] as? String ?: "Unknown",
-            email = data["email"] as? String ?: "",
-            phone = data["phone"] as? String ?: "",
-            role = data["role"] as? String ?: "SPECIALIST",
-            storageUrl = data["storageUrl"] as? String ?: "",
-            submittedAt = (data["submittedAt"] as? Number)?.toLong() ?: 0L,
-            status = data["status"] as? String ?: "PENDING_REVIEW",
-            reviewedAt = (data["reviewedAt"] as? Number)?.toLong(),
-            rejectionReason = data["rejectionReason"] as? String
-        )
     }
 }
 

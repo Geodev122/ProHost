@@ -694,7 +694,6 @@ fun SpaceDetailsScreenContent(
                             name = liveSpace.ownerName,
                             specialty = "Space Host • WhatsApp: ${liveSpace.ownerPhone}",
                             isVerified = liveSpace.isVerified,
-                            isIdVerified = liveSpace.ownerIsIdVerified,
                             imageUrl = liveSpace.ownerProfilePictureUrl,
                             size = 40.dp,
                             modifier = Modifier.weight(1f)
@@ -959,7 +958,7 @@ fun SpaceDetailsScreenContent(
     ) {
         val user = currentUser
         if (user == null) return
-        if (user.kycLevel < 1) {
+        if (user.profilePictureUrl.isNullOrBlank()) {
             android.widget.Toast.makeText(context, "Please add a profile picture before making booking requests.", android.widget.Toast.LENGTH_LONG).show()
             return
         }

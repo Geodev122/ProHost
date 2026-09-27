@@ -212,25 +212,6 @@ fun DrawerIdentityCard(
                                 }
                             }
                         }
-                        if (user?.idDocumentUrl != null) {
-                            Surface(
-                                color = AmberWarning,
-                                shape = CircleShape,
-                                border = BorderStroke(2.dp, OxfordBlueDark),
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .align(Alignment.TopEnd)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Default.Badge,
-                                        contentDescription = "ID Verified",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                }
-                            }
-                        }
                     }
 
                     Column(modifier = Modifier.weight(1f)) {

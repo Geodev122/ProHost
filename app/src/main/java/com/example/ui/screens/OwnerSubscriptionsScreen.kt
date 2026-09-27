@@ -464,47 +464,6 @@ fun OwnerSubscriptionsScreen(
             }
         }
 
-        // B3: KYC gate — full identity verification (level 3: profile pic + email + ID
-        // upload) is required before purchasing a Pro Host package. Show a blocking
-        // notice card describing the specific missing step so the user knows what to do.
-        val kycLevel = currentUser?.kycLevel ?: 0
-        if (kycLevel < 3) {
-            val (kycTitle, kycBody) = when (kycLevel) {
-                0 -> "Profile picture required" to
-                        "Add a profile picture in the Security ID tab to continue."
-                1 -> "Email verification required" to
-                        "Verify your email address in the Security ID tab to continue."
-                else -> "ID document required" to
-                        "Upload a government-issued ID in the Security ID tab to unlock subscription purchases."
-            }
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            kycTitle,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Text(
-                            kycBody,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.75f)
-                        )
-                    }
-                }
-            }
-        }
-
         // Section header
         Row(
             modifier = Modifier.fillMaxWidth().padding(start = 4.dp, top = 8.dp),

@@ -445,7 +445,6 @@ fun ProCurrencyTag(
 private fun AvatarCircle(
     initials: String,
     isVerified: Boolean,
-    isIdVerified: Boolean,
     size: Dp,
     imageUrl: String? = null,
     modifier: Modifier = Modifier
@@ -493,25 +492,6 @@ private fun AvatarCircle(
                 }
             }
         }
-        if (isIdVerified) {
-            Surface(
-                color = AmberWarning,
-                shape = CircleShape,
-                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
-                modifier = Modifier
-                    .size(size * 0.4f)
-                    .align(Alignment.TopEnd)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Default.Badge,
-                        contentDescription = "ID Verified",
-                        tint = Color.White,
-                        modifier = Modifier.size(size * 0.24f)
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -520,7 +500,6 @@ fun ProMemberAvatar(
     name: String,
     specialty: String? = null,
     isVerified: Boolean = true,
-    isIdVerified: Boolean = false,
     size: Dp = 40.dp,
     imageUrl: String? = null,
     modifier: Modifier = Modifier
@@ -538,7 +517,7 @@ fun ProMemberAvatar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            AvatarCircle(initials = initials, isVerified = isVerified, isIdVerified = isIdVerified, size = size, imageUrl = imageUrl, modifier = Modifier)
+            AvatarCircle(initials = initials, isVerified = isVerified, size = size, imageUrl = imageUrl, modifier = Modifier)
 
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -557,15 +536,6 @@ fun ProMemberAvatar(
                             modifier = Modifier.size(16.dp)
                         )
                     }
-                    if (isIdVerified) {
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Icon(
-                            Icons.Default.Badge,
-                            contentDescription = "ID Verified",
-                            tint = AmberWarning,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
                 }
                 Text(
                     text = specialty,
@@ -578,7 +548,6 @@ fun ProMemberAvatar(
         AvatarCircle(
             initials = initials,
             isVerified = isVerified,
-            isIdVerified = isIdVerified,
             size = size,
             imageUrl = imageUrl,
             modifier = modifier
@@ -594,12 +563,11 @@ fun ProDoctorAvatar(
     name: String,
     specialty: String? = null,
     isVerified: Boolean = true,
-    isIdVerified: Boolean = false,
     size: Dp = 40.dp,
     imageUrl: String? = null,
     modifier: Modifier = Modifier
 ) {
-    ProMemberAvatar(name, specialty, isVerified, isIdVerified, size, imageUrl, modifier)
+    ProMemberAvatar(name, specialty, isVerified, size, imageUrl, modifier)
 }
 
 /**

@@ -102,23 +102,6 @@ object AppSystemDebugger {
                 )
             )
 
-            // ID Document On File — a real check against loaded profiles (there is no
-            // admin-reviewed accreditation system anymore; every account is required
-            // to upload an ID document at registration, so this just confirms none
-            // slipped through without one).
-            val userProfiles = repository.users.value
-            val profilesMissingIdDocument = userProfiles.filter { it.idDocumentUrl == null }
-            results.add(
-                DiagnosticItem(
-                    category = "Authentication & Identity",
-                    featureName = "Registrant ID Documents On File",
-                    status = if (profilesMissingIdDocument.isEmpty()) DiagnosticStatus.PASSED else DiagnosticStatus.WARNING,
-                    details = if (profilesMissingIdDocument.isEmpty())
-                        "All ${userProfiles.size} profiles have an ID document on file."
-                    else
-                        "${profilesMissingIdDocument.size} profile(s) missing an ID document."
-                )
-            )
         } catch (e: Exception) {
             results.add(
                 DiagnosticItem(

@@ -90,13 +90,6 @@ fun SpecialistProfileScreen(
     var city by remember(user) { mutableStateOf(user.city) }
     var pendingCancelRequest by remember { mutableStateOf<RentalBookingRequest?>(null) }
     var isSavingProfile by remember { mutableStateOf(false) }
-    var idDocState by remember { mutableStateOf(com.example.ui.components.DocumentPickerState()) }
-    var isUploadingIdDoc by remember { mutableStateOf(false) }
-    // uploadAndGetUrl (FirebaseStorageService) already catches its own failures and
-    // returns null rather than throwing — these surface that instead of leaving the
-    // picker looking like it silently did nothing, same pattern as
-    // CreateListingDialog's photoUploadError/ownershipUploadError.
-    var idDocUploadError by remember { mutableStateOf<String?>(null) }
     var profilePicUploadError by remember { mutableStateOf<String?>(null) }
 
     Box(
@@ -720,75 +713,6 @@ fun SpecialistProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
-
-                    Surface(
-                        shape = MaterialTheme.shapes.medium,
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(Spacing.md),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                if (user.idDocumentUrl != null) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
-                                contentDescription = null,
-                                tint = if (user.idDocumentUrl != null) StatusSuccess else MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(
-                                text = if (user.idDocumentUrl != null) "ID document on file" else "No ID document on file",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-
-                    // Real upload control — idDocumentUrl used to only ever be set once,
-                    // by the registration Cloud Function; there was no way for any
-                    // account to set/replace it afterward, which permanently stuck any
-                    // account that skips registration (most notably an Admin created via
-                    // bootstrapSuperAdmin/grantAdminRole) at "No ID document on file"
-                    // with no recourse. firestore.rules already permits this self-write.
-                    com.example.ui.components.DocumentPickerField(
-                        label = if (user.idDocumentUrl != null) "Replace ID Document" else "Upload ID Document",
-                        helperText = "PDF, JPG, or PNG",
-                        state = idDocState,
-                        onStateChanged = { newState ->
-                            idDocState = newState
-                            val uri = newState.uri
-                            if (uri != null) {
-                                coroutineScope.launch {
-                                    isUploadingIdDoc = true
-                                    idDocUploadError = null
-                                    val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
-                                    val ext = newState.fileName?.substringAfterLast('.', "pdf") ?: "pdf"
-                                    val url = storageService.uploadIdDocument(user.id, uri, ext)
-                                    if (url != null) {
-                                        if (!viewModel.updateIdDocument(url)) {
-                                            idDocUploadError = "Uploaded, but couldn't save it to your profile. Please try again."
-                                        }
-                                    } else {
-                                        idDocUploadError = "Couldn't upload that document. Check your connection and try again."
-                                    }
-                                    isUploadingIdDoc = false
-                                }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        required = false
-                    )
-                    if (isUploadingIdDoc) {
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    }
-                    idDocUploadError?.let { err ->
-                        Text(
-                            err,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
 
                     Spacer(modifier = Modifier.height(Spacing.xs))
 

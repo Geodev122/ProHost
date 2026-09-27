@@ -8,7 +8,6 @@ export interface UserContext {
   fullName: string;
   email: string;
   role: "SPECIALIST" | "PRO_HOST" | "ADMIN";
-  kycLevel?: number;           // 0–3
   activeListingCount?: number;
   packageName?: string;        // e.g. "Growth", "Pro", "Enterprise"
   joinedDays?: number;         // days since createdAtMillis
@@ -197,52 +196,6 @@ export function emailVerificationResendTemplate(ctx: UserContext, verifyUrl: str
     </div>
     <p class="fine">This link expires in 24 hours.</p>
   `, "New verification link for your ProHost account");
-  return { subject, html };
-}
-
-// ─── ID Document Review ──────────────────────────────────────────────────────
-
-export function idDocumentSubmittedTemplate(ctx: UserContext) {
-  const subject = "ID document received — under review";
-  const html = layout(subject, `
-    <h2>We've received your ID, ${ctx.fullName}</h2>
-    <p>Your identity document has been submitted for review. Our team will verify it within 1 business day.</p>
-    <div class="card">
-      <p>You'll receive an email once the review is complete.</p>
-      <p>You can check your verification status at any time in <strong>Profile → Verification</strong>.</p>
-    </div>
-    ${ctx.role === "SPECIALIST"
-      ? `<p>Once verified, you'll be able to upgrade to a <strong>Pro Host</strong> plan and start listing your spaces.</p>`
-      : ""}
-  `, "Your ProHost ID document is under review");
-  return { subject, html };
-}
-
-export function idDocumentApprovedTemplate(ctx: UserContext) {
-  const subject = "Identity verified ✓ — you can now upgrade to Pro Host";
-  const html = layout(subject, `
-    <h2>You're verified, ${ctx.fullName}!</h2>
-    <p>Your identity document has been approved. Your account is now fully verified.</p>
-    <p>You can now upgrade to a <strong>Pro Host</strong> plan to start publishing workspace listings and receiving bookings.</p>
-    <div class="cta">
-      <a class="btn" href="prohost://owner_subscriptions">Upgrade to Pro Host</a>
-    </div>
-  `, "Your ProHost identity is verified — upgrade to Pro Host");
-  return { subject, html };
-}
-
-export function idDocumentRejectedTemplate(ctx: UserContext, reason?: string) {
-  const subject = "Action needed — ID document could not be verified";
-  const html = layout(subject, `
-    <h2>Hi ${ctx.fullName},</h2>
-    <p>Unfortunately we weren't able to verify your identity document.${reason ? ` Reason: <em>${reason}</em>.` : ""}</p>
-    <div class="card">
-      <p>Please re-upload a clear, unobstructed photo of a valid government-issued ID (passport, national ID card, or driving licence).</p>
-    </div>
-    <div class="cta">
-      <a class="btn" href="prohost://profile">Re-upload ID Document</a>
-    </div>
-  `, "Action needed: re-upload your ProHost ID document");
   return { subject, html };
 }
 

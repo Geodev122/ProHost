@@ -36,7 +36,4 @@ export { sendEmailOtp, verifyEmailOtp, clickEmailOtpLink } from "./auth/emailOtp
 export { sendSignInEmailLink, sendVerificationEmailLink } from "./auth/emailLinkAuth";
 export { playBillingRtdn } from "./billing/playBillingRtdn";
 export { verifyAndRestorePurchase } from "./billing/verifyAndRestorePurchase";
-export { recomputeKycLevel } from "./users/kycLevel";
-export { submitIdDocument } from "./users/submitIdDocument";
-export { reviewIdDocument } from "./users/reviewIdDocument";
 export { sendInquiryEmail } from "./users/sendInquiryEmail";

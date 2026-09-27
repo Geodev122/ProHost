@@ -511,7 +511,6 @@ fun DrawerDialogsHandler(
                                                                     "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> Icons.Default.Verified
                                                                     "PACKAGE_EXPIRED" -> Icons.Default.EventBusy
                                                                     "PAYMENT_REMINDER" -> Icons.Default.CreditCard
-                                                                    "KYC_REJECTED" -> Icons.Default.Warning
                                                                     "LISTING_VERIFICATION", "LISTING_VERIFICATION_REQUEST" -> Icons.Default.FactCheck
                                                                     else -> Icons.Default.Notifications
                                                                 },
@@ -519,7 +518,7 @@ fun DrawerDialogsHandler(
                                                                 tint = when (alert.category) {
                                                                     "BOOKING_ACCEPTANCE" -> StatusSuccess
                                                                     "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> MaterialTheme.colorScheme.primary
-                                                                    "PACKAGE_EXPIRED", "KYC_REJECTED" -> MaterialTheme.colorScheme.error
+                                                                    "PACKAGE_EXPIRED" -> MaterialTheme.colorScheme.error
                                                                     "PAYMENT_REMINDER" -> MaterialTheme.colorScheme.tertiary
                                                                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                                                                 },
@@ -595,7 +594,6 @@ fun DrawerDialogsHandler(
                                                                                 "BOOKING_REQUEST" -> "owner_requests"
                                                                                 "PAYMENT_REMINDER", "PACKAGE_EXPIRED",
                                                                                 "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> "owner_subscriptions"
-                                                                                "KYC_REJECTED" -> "pro_profile"
                                                                                 "LISTING_VERIFICATION", "LISTING_VERIFICATION_REQUEST" -> "manage_listings"
                                                                                 else -> if (currentUser?.role == UserRole.SPECIALIST) "pro_rentals" else "owner_progress"
                                                                             }

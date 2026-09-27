@@ -84,8 +84,7 @@ class FirestoreService(
         onBookingsUpdated: (List<RentalBookingRequest>) -> Unit,
         onSchemaUpdated: (SpaceArchitectureSchema) -> Unit = {},
         onAuditLogsUpdated: (List<AuditSecurityLog>) -> Unit = {},
-        onPackagePlansUpdated: (PackagePlanCatalog) -> Unit = {},
-        onIdReviewQueueUpdated: (List<IdReviewEntry>) -> Unit = {}
+        onPackagePlansUpdated: (PackagePlanCatalog) -> Unit = {}
     ) {
         val db = firestore ?: return
 
@@ -124,7 +123,6 @@ class FirestoreService(
                     .whereEqualTo("status", "ACTIVE")
                     .whereEqualTo("isOwnerSuspended", false)
                     .whereEqualTo("isOwnerPackageLapsed", false)
-                    .whereEqualTo("isOwnerIdRejected", false)
                     .limit(200)
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
@@ -322,22 +320,6 @@ class FirestoreService(
                         }
                     }
                 activeListeners.add(auditLogListener)
-
-                val idReviewListener = db.collection(IdReviewEntry.COLLECTION_PATH)
-                    .orderBy("submittedAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            Log.w(TAG, "ID review queue sync note: ${error.message}")
-                            return@addSnapshotListener
-                        }
-                        if (snapshot != null) {
-                            val entries = snapshot.documents.mapNotNull { doc ->
-                                doc.data?.let { data -> IdReviewEntry.fromFirestoreMap(doc.id, data) }
-                            }
-                            onIdReviewQueueUpdated(entries)
-                        }
-                    }
-                activeListeners.add(idReviewListener)
             }
         } catch (e: Exception) {
             Log.w(TAG, "Live listeners attachment warning: ${e.message}")
@@ -793,14 +775,6 @@ class FirestoreService(
         }
     }
 
-    // CREDENTIAL DOCUMENTS (saveCredentialDocument/getCredentialDocument/
-    // deleteCredentialDocument/attachCredentialDocumentsListener) used to live here,
-    // backing the user_credentials collection and its admin-reviewed accreditation
-    // workflow — both are gone (see AppUser.idDocumentUrl / SpaceListing.
-    // ownershipProofUrl doc comments). An ID document and a listing's ownership
-    // proof are now just plain Storage-URL fields on the owning document, saved via
-    // the existing profile/listing-save paths, no dedicated collection.
-
     // ==========================================
     // AUDIT LOGS
     // ==========================================
@@ -819,17 +793,4 @@ class FirestoreService(
         }
     }
 
-    /** One-shot read of the full id_review_queue collection — admin-only. */
-    suspend fun loadIdReviewQueue(): List<IdReviewEntry> {
-        return try {
-            val db = firestore ?: return emptyList()
-            val snap = db.collection(IdReviewEntry.COLLECTION_PATH).get().await()
-            snap.documents.mapNotNull { doc ->
-                doc.data?.let { IdReviewEntry.fromFirestoreMap(doc.id, it) }
-            }.sortedByDescending { it.submittedAt }
-        } catch (e: Exception) {
-            Log.e(TAG, "loadIdReviewQueue failed: ${e.message}", e)
-            emptyList()
-        }
-    }
 }

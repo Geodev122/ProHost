@@ -19,26 +19,6 @@ service firebase.storage {
       return request.resource.size < 10 * 1024 * 1024;
     }
 
-    // Registrant ID documents (national ID / passport), one per account — required
-    // once at registration, kept on file with no admin review workflow (see
-    // AppUser.idDocumentUrl's doc comment: there is no accreditation system
-    // anymore). Only the owning user can read/write their own file; Admins can
-    // read for reference, never write.
-    match /id_documents/{uid}/{fileName} {
-      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
-      // create/update, not the "write" shorthand — write includes delete, which
-      // would make the "allow delete: if false" below a dead no-op (Storage
-      // rules OR every matching allow block for a method; a true delete below
-      // can't override a write rule that already permits it). Splitting these
-      // is what actually makes this file permanently non-deletable, matching
-      // the stated intent that a registrant's ID document is kept on file.
-      allow create, update: if isSignedIn() && request.auth.uid == uid &&
-        withinSizeLimit() &&
-        (request.resource.contentType == 'application/pdf' ||
-         request.resource.contentType.matches('image/.*'));
-      allow delete: if false;
-    }
-
     // Profile pictures. Publicly readable (shown wherever a member's identity is
     // displayed to someone else, e.g. a booking request) but writable only by the
     // account owner or an Admin.
@@ -126,9 +106,8 @@ service firebase.storage {
     // (Privacy Policy / Terms of Use / Revocation Policy) and the re-rental
     // authorization template PDF — see LegalDocumentVersion. Every version is
     // its own permanent object (legal_documents/{docId}/v{version}.{ext},
-    // {version} baked into the filename) — create-only, same "kept on file
-    // forever" reasoning as id_documents above, so a re-upload can never
-    // destroy or silently replace a prior published version. Public read:
+    // {version} baked into the filename) — create-only, so a re-upload can
+    // never destroy or silently replace a prior published version. Public read:
     // this is exactly what a signed-out user on the registration screen, or a
     // Pro Host downloading the re-rental template, needs to load.
     match /legal_documents/{docId}/{fileName} {

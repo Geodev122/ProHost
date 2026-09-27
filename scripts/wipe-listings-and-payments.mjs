@@ -43,7 +43,6 @@ const SAFE_COLLECTIONS = [
   "legal_documents",
   "audit_security_logs",
   "subscription_formulas",
-  "id_review_queue",
   "hashtag_usage",
 ];
 
