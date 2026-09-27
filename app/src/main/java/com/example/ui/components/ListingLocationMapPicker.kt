@@ -22,7 +22,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.example.data.model.Governorate
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
@@ -39,20 +38,21 @@ import java.util.Locale
 fun ListingLocationMapPicker(
     initialLat: Double?,
     initialLng: Double?,
-    onLocationConfirmed: (lat: Double, lng: Double, address: String, governorate: Governorate) -> Unit,
+    onLocationConfirmed: (lat: Double, lng: Double, street: String, city: String, country: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var isLocating by remember { mutableStateOf(false) }
 
-    val defaultCenter = LatLng(
-        initialLat ?: 33.8886,
-        initialLng ?: 35.5184
-    )
+    val defaultCenter = if (initialLat != null && initialLng != null) {
+        LatLng(initialLat, initialLng)
+    } else {
+        LatLng(20.0, 0.0) // world center — no country assumption
+    }
     
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(defaultCenter, if (initialLat != null) 15f else 12f)
+        position = CameraPosition.fromLatLngZoom(defaultCenter, if (initialLat != null && initialLng != null) 15f else 2f)
     }
 
     val fusedLocationClient = remember {
@@ -98,45 +98,28 @@ fun ListingLocationMapPicker(
     suspend fun resolveLocationAndConfirm(latLng: LatLng) {
         withContext(Dispatchers.IO) {
             try {
-                val geocoder = Geocoder(context, Locale("en", "LB"))
+                val geocoder = Geocoder(context, Locale.ENGLISH)
                 val addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
-                
+
                 if (!addresses.isNullOrEmpty()) {
                     val address = addresses[0]
-                    val thoroughfare = address.thoroughfare ?: ""
-                    val subLocality = address.subLocality ?: ""
-                    val locality = address.locality ?: ""
-                    val subAdminArea = address.subAdminArea ?: ""
-                    val adminArea = address.adminArea ?: ""
-                    
-                    val streetStr = listOf(thoroughfare, subLocality).filter { it.isNotBlank() }.joinToString(", ")
-                    val cityStr = listOf(locality, subAdminArea).filter { it.isNotBlank() }.joinToString(", ")
-                    val resolvedAddress = listOf(streetStr, cityStr).filter { it.isNotBlank() }.joinToString(", ")
-                    val finalAddress = resolvedAddress.ifBlank { "Beirut Central District" }
-
-                    val matchedGov = Governorate.entries.find { gov ->
-                        adminArea.contains(gov.displayName, ignoreCase = true) ||
-                        gov.displayName.contains(adminArea, ignoreCase = true) ||
-                        cityStr.contains(gov.displayName, ignoreCase = true) ||
-                        subAdminArea.contains(gov.displayName, ignoreCase = true)
-                    } ?: Governorate.BEIRUT
+                    val streetStr = listOf(address.thoroughfare ?: "", address.subLocality ?: "")
+                        .filter { it.isNotBlank() }.joinToString(", ")
+                    val cityStr = listOf(address.locality ?: "", address.subAdminArea ?: "")
+                        .filter { it.isNotBlank() }.joinToString(", ")
+                    val countryStr = address.countryName ?: ""
 
                     withContext(Dispatchers.Main) {
-                        onLocationConfirmed(latLng.latitude, latLng.longitude, finalAddress, matchedGov)
+                        onLocationConfirmed(latLng.latitude, latLng.longitude, streetStr, cityStr, countryStr)
                     }
                 } else {
                     withContext(Dispatchers.Main) {
-                        onLocationConfirmed(latLng.latitude, latLng.longitude, "Beirut Central District", Governorate.BEIRUT)
+                        onLocationConfirmed(latLng.latitude, latLng.longitude, "", "", "")
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    onLocationConfirmed(
-                        latLng.latitude,
-                        latLng.longitude,
-                        "Coordinates: ${String.format(Locale.US, "%.4f, %.4f", latLng.latitude, latLng.longitude)}",
-                        Governorate.BEIRUT
-                    )
+                    onLocationConfirmed(latLng.latitude, latLng.longitude, "", "", "")
                 }
             }
         }

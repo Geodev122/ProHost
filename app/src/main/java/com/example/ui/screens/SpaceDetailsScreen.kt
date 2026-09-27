@@ -201,7 +201,7 @@ fun SpaceDetailsScreenContent(
             }
             if (formula != null) onSelectFormula(formula)
             selectedSubdivisionId = sub.id
-            availabilityPanelState = "full"
+            availabilityPanelState = "peek"
         }
     }
 
@@ -455,7 +455,7 @@ fun SpaceDetailsScreenContent(
                     val heroScope = rememberCoroutineScope()
                     HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
                         coil.compose.AsyncImage(
-                            model = liveSpace.imageUrls[page],
+                            model = coil.request.ImageRequest.Builder(context).data(liveSpace.imageUrls[page]).size(800).build(),
                             contentDescription = liveSpace.title,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop
@@ -1084,7 +1084,7 @@ fun SpaceDetailsScreenContent(
                 selectedHoursPerDay = emptyMap()
             },
             modifier = Modifier.shadow(16.dp, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             // Blue design (matches the "Press to see option availability" trigger
             // bar) instead of the neutral grey Material surface, so the trigger and
@@ -1107,6 +1107,7 @@ fun SpaceDetailsScreenContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(scrollState)
+                    .navigationBarsPadding()
                     .padding(horizontal = Spacing.lg)
                     .padding(bottom = Spacing.xl),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -1803,7 +1804,7 @@ private fun SubdivisionRentalCard(
                     ) {
                         HorizontalPager(state = pagerState) { page ->
                             coil.compose.AsyncImage(
-                                model = imageUrls[page],
+                                model = coil.request.ImageRequest.Builder(context).data(imageUrls[page]).size(800).build(),
                                 contentDescription = name,
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = androidx.compose.ui.layout.ContentScale.Crop

@@ -716,6 +716,32 @@ class AdminViewModel(
         addNewSchemaItem(category, name, description, iconName, maxSubdivisions, scopedToIds, amenityGroup, markerColor)
     }
 
+    fun seedDefaultAmenities() {
+        val currentAmenities = _uiState.value.schema?.amenities ?: emptyList()
+        if (currentAmenities.isNotEmpty()) return
+        val defaults = listOf(
+            "A/C Climate Control",
+            "Dual-Monitor Setup",
+            "Whiteboard / Presentation Kit",
+            "High-Speed Wi-Fi",
+            "Soundproofing",
+            "Ergonomic Seating",
+            "Storage Locker",
+            "Keyless Access Control",
+            "Privacy Partition",
+            "Natural Lighting",
+            "Standing Desk"
+        )
+        defaults.forEach { name ->
+            addNewSchemaItem(
+                category = SchemaCategory.AMENITY,
+                name = name,
+                description = "",
+                iconName = "Star"
+            )
+        }
+    }
+
     fun addNewSchemaItem(
         category: String,
         name: String,

@@ -87,6 +87,8 @@ fun SubdivisionEditorSection(
     var subPricingMode by remember { mutableStateOf(SubdivisionPricingMode.STRATEGY_BASED) }
     var subCapacity by remember { mutableStateOf<Int?>(null) }
     var subCapacityInput by remember { mutableStateOf("") }
+    var subMinAttendees by remember { mutableStateOf<Int?>(null) }
+    var subMinAttendeesInput by remember { mutableStateOf("") }
 
     // Per-division operating-schedule override — off by default, meaning this room
     // just follows the whole space's own SpaceOperatingSchedule (the common case).
@@ -139,6 +141,8 @@ fun SubdivisionEditorSection(
         subPricingMode = SubdivisionPricingMode.STRATEGY_BASED
         subCapacity = null
         subCapacityInput = ""
+        subMinAttendees = null
+        subMinAttendeesInput = ""
         subScheduleOverrideEnabled = false
         subOverrideOpeningHour = openingHour
         subOverrideClosingHour = closingHour
@@ -162,6 +166,7 @@ fun SubdivisionEditorSection(
         pricing = subPricing,
         pricingMode = subPricingMode,
         capacity = subCapacity,
+        minAttendees = subMinAttendees,
         scheduleOverride = if (subScheduleOverrideEnabled) {
             SpaceOperatingSchedule(
                 openingHour = subOverrideOpeningHour,
@@ -319,6 +324,8 @@ fun SubdivisionEditorSection(
                                             subPricingMode = sub.pricingMode
                                             subCapacity = sub.capacity
                                             subCapacityInput = sub.capacity?.toString() ?: ""
+                                            subMinAttendees = sub.minAttendees
+                                            subMinAttendeesInput = sub.minAttendees?.toString() ?: ""
                                             val override = sub.scheduleOverride
                                             subScheduleOverrideEnabled = override != null
                                             subOverrideOpeningHour = override?.openingHour ?: openingHour
@@ -660,7 +667,20 @@ fun SubdivisionEditorSection(
                 }
 
                 if (subPricingMode == SubdivisionPricingMode.PER_ATTENDEE) {
-                    // Capacity input
+                    OutlinedTextField(
+                        value = subMinAttendeesInput,
+                        onValueChange = { raw ->
+                            val digits = raw.filter { it.isDigit() }
+                            subMinAttendeesInput = digits
+                            subMinAttendees = digits.toIntOrNull()?.takeIf { it > 0 }
+                        },
+                        label = { Text("Min Attendees") },
+                        placeholder = { Text("e.g. 1") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    )
                     OutlinedTextField(
                         value = subCapacityInput,
                         onValueChange = { raw ->
@@ -675,27 +695,8 @@ fun SubdivisionEditorSection(
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.medium
                     )
-                    // Info card
-                    Surface(
-                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
-                            Text(
-                                "Price is set per attendee at booking time via a selected package. The schedule below defines availability slots.",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
-                        }
-                    }
-                    // Keep the schedule editor visible so the host can still configure availability slots
                     Text(
-                        "Availability Schedule",
+                        "Pricing Strategy (per attendee)",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

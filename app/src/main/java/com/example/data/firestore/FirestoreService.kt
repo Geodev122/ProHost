@@ -8,6 +8,7 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -44,7 +45,7 @@ class FirestoreService(
         }
     }
 
-    private val listenerScope = CoroutineScope(Dispatchers.IO)
+    private val listenerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val activeListeners = mutableListOf<ListenerRegistration>()
 
     // initializeSchema() (wrote system_metadata/schema_info) was removed: Firestore rules
@@ -152,6 +153,7 @@ class FirestoreService(
             // --- workspace_listings ---
             if (isAdminCaller) {
                 val spaceListener = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
+                    .limit(500)
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
                             Log.w(TAG, "Workspaces sync note: ${error.message}")
@@ -183,6 +185,7 @@ class FirestoreService(
                     .whereEqualTo("isOwnerSuspended", false)
                     .whereEqualTo("isOwnerPackageLapsed", false)
                     .whereEqualTo("isOwnerIdRejected", false)
+                    .limit(200)
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
                             Log.w(TAG, "Public workspaces sync note: ${error.message}")

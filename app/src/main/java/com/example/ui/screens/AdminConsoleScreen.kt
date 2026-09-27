@@ -1925,6 +1925,15 @@ private fun AdminSchemaArchitectureTab(
                     }
                     if (visibleAmenities.isEmpty()) {
                         Text("No amenities in this group.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (schema.amenities.isEmpty()) {
+                            CustomButton(
+                                text = "Seed Defaults",
+                                onClick = { adminViewModel.seedDefaultAmenities() },
+                                variant = CustomButtonVariant.OUTLINED,
+                                icon = Icons.Default.AutoFixHigh,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
             }

@@ -297,9 +297,8 @@ fun CreateListingDialog(
     // resumed draft doesn't jump to Beirut before its pin is re-picked.
     var derivedGovernorate by rememberSaveable(stateSaver = GovernorateSaver) { mutableStateOf(existingDraft?.governorate ?: Governorate.BEIRUT) }
     var description by rememberSaveable { mutableStateOf(existingDraft?.description ?: "") }
-    var country by rememberSaveable { mutableStateOf("Lebanon") }
+    var country by rememberSaveable { mutableStateOf(existingDraft?.let { "" } ?: "") }
     var city by rememberSaveable { mutableStateOf("") }
-    var district by rememberSaveable { mutableStateOf(existingDraft?.district ?: "") }
     var streetAddress by rememberSaveable { mutableStateOf(existingDraft?.streetAddress ?: "") }
 
     // Real geolocation from the map picker below — required to publish. Distinct from
@@ -371,38 +370,6 @@ fun CreateListingDialog(
     }
     var showFacilityDialog by remember { mutableStateOf(false) }
 
-    // Equipment builder
-    val defaultEquipCatalog = listOf(
-        EquipmentItem("EQ-T1", "Motorized Standing Desk & Ergonomic Chair", EquipmentCategory.WORKSPACES, 1),
-        EquipmentItem("EQ-T2", "Executive Conference Table (Seats 8)", EquipmentCategory.WORKSPACES, 1),
-        EquipmentItem("EQ-T3", "Client Reception Lounge Sofa Set", EquipmentCategory.WORKSPACES, 1),
-        EquipmentItem("EQ-T4", "4K Ultra-HD Presentation Screen", EquipmentCategory.IT_TECH, 1),
-        EquipmentItem("EQ-T5", "High-Speed Laser Multi-Function Printer", EquipmentCategory.IT_TECH, 1),
-        EquipmentItem("EQ-T6", "Video Conferencing Camera & Mic Pod", EquipmentCategory.IT_TECH, 1),
-        EquipmentItem("EQ-T7", "Lockable Document Storage & Safe", EquipmentCategory.WORKSPACES, 1),
-        EquipmentItem("EQ-T8", "Studio Softbox Lighting Kit", EquipmentCategory.SPECIALIZED, 2),
-        EquipmentItem("EQ-T9", "Soundproof Acoustic Isolation Booth", EquipmentCategory.SPECIALIZED, 1),
-        EquipmentItem("EQ-T10", "Workstation PC Dual-Monitor Setup", EquipmentCategory.IT_TECH, 1),
-        EquipmentItem("EQ-T11", "Espresso Bar & Beverage Refrigerator", EquipmentCategory.OFFICE_AMENITIES, 1),
-        EquipmentItem("EQ-T12", "Magnetic Glass Presentation Whiteboard", EquipmentCategory.OFFICE_AMENITIES, 2)
-    )
-    var masterEquipmentCatalog by remember { mutableStateOf(defaultEquipCatalog) }
-    var showEquipmentDialog by remember { mutableStateOf(false) }
-
-    var chosenEquipment by rememberSaveable(stateSaver = EquipmentListSaver) {
-        mutableStateOf(
-            existingDraft?.equipment?.takeIf { it.isNotEmpty() }
-                ?: listOf(masterEquipmentCatalog[0], masterEquipmentCatalog[3], masterEquipmentCatalog[10])
-        )
-    }
-    var equipmentSearchQuery by rememberSaveable { mutableStateOf("") }
-    // Custom equipment entry — the fixed catalog above (defaultEquipCatalog) is a
-    // representative starting list, not exhaustive; a host whose space has
-    // something not on it (a piece of clinical gear, a specific tool) can add it
-    // by name instead of being stuck picking the closest fixed match.
-    var showAddCustomEquipment by remember { mutableStateOf(false) }
-    var customEquipmentName by rememberSaveable { mutableStateOf("") }
-    var customEquipmentCategory by rememberSaveable(stateSaver = EquipmentCategorySaver) { mutableStateOf(EquipmentCategory.WORKSPACES) }
 
     // Premises rules — real editable fields, replacing the previously-hardcoded
     // PremisesRules() default at listing construction.
@@ -589,10 +556,11 @@ fun CreateListingDialog(
                                         .fillMaxWidth()
                                         .height(300.dp)
                                         .clip(MaterialTheme.shapes.medium),
-                                    onLocationConfirmed = { lat, lng, address, gov ->
+                                    onLocationConfirmed = { lat, lng, street, resolvedCity, resolvedCountry ->
                                         pickedLatLng = LatLng(lat, lng)
-                                        streetAddress = address
-                                        derivedGovernorate = gov
+                                        if (street.isNotBlank()) streetAddress = street
+                                        if (resolvedCity.isNotBlank()) city = resolvedCity
+                                        if (resolvedCountry.isNotBlank()) country = resolvedCountry
                                     }
                                 )
 
@@ -608,14 +576,6 @@ fun CreateListingDialog(
                                     value = if (city.isNotBlank()) city else derivedGovernorate.displayName,
                                     onValueChange = { city = it },
                                     label = "City / Governorate",
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
-                                )
-
-                                InputField(
-                                    value = district,
-                                    onValueChange = { district = it; hasUserTyped = true },
-                                    label = "District / Neighborhood (e.g., Hamra / Sassine)",
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true
                                 )
@@ -858,104 +818,6 @@ fun CreateListingDialog(
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                     }
-                                }
-
-                                HorizontalDivider()
-
-                                Text("Professional Equipment Catalog", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                val firstEquip = chosenEquipment.firstOrNull()?.name
-                                val equipSummary = if (firstEquip != null) {
-                                    if (chosenEquipment.size > 1) "$firstEquip (+${chosenEquipment.size - 1} more selected)" else "$firstEquip selected"
-                                } else {
-                                    "No equipment selected"
-                                }
-                                Surface(
-                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = MaterialTheme.shapes.medium,
-                                    onClick = { showEquipmentDialog = true },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(12.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(equipSummary, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                            Text(
-                                                "Tap to open equipment catalog & manage master list",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                        Text(
-                                            "See More ➔",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-
-                                if (showAddCustomEquipment) {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(MaterialTheme.shapes.medium)
-                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                                            .padding(10.dp)
-                                    ) {
-                                        OutlinedTextField(
-                                            value = customEquipmentName,
-                                            onValueChange = { customEquipmentName = it },
-                                            label = { Text("Equipment name") },
-                                            placeholder = { Text("e.g. Portable Ultrasound Unit") },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            singleLine = true
-                                        )
-                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                            EquipmentCategory.values().forEach { cat ->
-                                                FilterChip(
-                                                    selected = customEquipmentCategory == cat,
-                                                    onClick = { customEquipmentCategory = cat },
-                                                    label = { Text(cat.displayName, style = MaterialTheme.typography.labelSmall) }
-                                                )
-                                            }
-                                        }
-                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                            ProOutlinedButton(
-                                                text = "Cancel",
-                                                onClick = { showAddCustomEquipment = false; customEquipmentName = "" },
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            ProPrimaryButton(
-                                                text = "Add",
-                                                onClick = {
-                                                    val trimmed = customEquipmentName.trim()
-                                                    if (trimmed.isNotEmpty() && chosenEquipment.none { it.name.equals(trimmed, ignoreCase = true) }) {
-                                                        chosenEquipment = chosenEquipment + EquipmentItem(
-                                                            id = "EQ-CUSTOM-" + UUID.randomUUID().toString().take(6).uppercase(),
-                                                            name = trimmed,
-                                                            category = customEquipmentCategory
-                                                        )
-                                                    }
-                                                    customEquipmentName = ""
-                                                    showAddCustomEquipment = false
-                                                },
-                                                modifier = Modifier.weight(1f),
-                                                enabled = customEquipmentName.isNotBlank()
-                                            )
-                                        }
-                                    }
-                                } else {
-                                    CustomButton(
-                                        text = "Add custom equipment not listed above",
-                                        onClick = { showAddCustomEquipment = true },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        variant = CustomButtonVariant.OUTLINED,
-                                        icon = Icons.Default.Add
-                                    )
                                 }
 
                                 HorizontalDivider()
@@ -1248,8 +1110,8 @@ fun CreateListingDialog(
                         spaceCategoryId = selectedCategoryId,
                         spaceCategoryName = selectedCategoryName,
                         governorate = derivedGovernorate,
-                        district = if (district.isNotBlank()) district else "Central ${derivedGovernorate.displayName}",
-                        streetAddress = if (streetAddress.isNotBlank()) streetAddress else "Main Business Street",
+                        district = "",
+                        streetAddress = if (streetAddress.isNotBlank()) streetAddress else "",
                         floorInfo = if (floorNumber == 0) "Ground Floor" else "Floor $floorNumber",
                         lat = geocodedLat,
                         lng = geocodedLng,
@@ -1263,7 +1125,7 @@ fun CreateListingDialog(
                         // actually accepted since publish.
                         residentPractitioners = existingDraft?.residentPractitioners ?: emptyList(),
                         essentialFacilities = selectedFacilities.toList(),
-                        equipment = chosenEquipment,
+                        equipment = existingDraft?.equipment ?: emptyList(),
                         pricing = pricingConfig,
                         rentalFormulas = formulas,
                         rules = PremisesRules(
@@ -1322,11 +1184,11 @@ fun CreateListingDialog(
                 @Suppress("DEPRECATION")
                 suspend fun resolveFallbackGeocode(): LatLng? {
                     if (pickedLatLng != null) return null
-                    if (streetAddress.isBlank() && district.isBlank()) return null
+                    if (streetAddress.isBlank()) return null
                     return withContext(Dispatchers.IO) {
                         try {
-                            val fullAddress = "${streetAddress}, ${district}, ${derivedGovernorate.displayName}, Lebanon"
-                            val geocoder = android.location.Geocoder(context, java.util.Locale.getDefault())
+                            val fullAddress = listOf(streetAddress, city, country).filter { it.isNotBlank() }.joinToString(", ")
+                            val geocoder = android.location.Geocoder(context, java.util.Locale.ENGLISH)
                             val addresses = geocoder.getFromLocationName(fullAddress, 1)
                             addresses?.firstOrNull()?.let { LatLng(it.latitude, it.longitude) }
                         } catch (e: Exception) {
@@ -1350,7 +1212,7 @@ fun CreateListingDialog(
                         .debounce(3000)
                         .distinctUntilChanged()
                         .collect { draft ->
-                            if (hasUserTyped && (draft.title.isNotBlank() || draft.district.isNotBlank())) {
+                            if (hasUserTyped && (draft.title.isNotBlank() || draft.streetAddress.isNotBlank())) {
                                 onAutoSaveDraft(draft)
                                 lastAutoSavedAtMillis = System.currentTimeMillis()
                             }
@@ -1458,18 +1320,6 @@ fun CreateListingDialog(
             )
         }
 
-        if (showEquipmentDialog) {
-            EquipmentPickerDialog(
-                catalog = masterEquipmentCatalog,
-                chosenEquipment = chosenEquipment,
-                onDismiss = { showEquipmentDialog = false },
-                onSave = { chosenEquipment = it },
-                onAddNewEquipment = { newItem ->
-                    masterEquipmentCatalog = masterEquipmentCatalog + newItem
-                    onAddCustomSchemaItem("AMENITY", newItem.name, emptyList())
-                }
-            )
-        }
     }
 }
 

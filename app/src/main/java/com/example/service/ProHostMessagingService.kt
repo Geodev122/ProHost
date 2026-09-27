@@ -14,10 +14,21 @@ import com.example.data.model.FCMAlert
 import com.example.data.repository.ProHostRepository
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.util.UUID
 
 class ProHostMessagingService : FirebaseMessagingService() {
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    override fun onDestroy() {
+        super.onDestroy()
+        serviceScope.cancel()
+    }
 
     @Suppress("DEPRECATION")
     @Deprecated("Overrides FirebaseMessagingService.onNewToken, itself deprecated by the Firebase SDK; no in-app replacement to migrate to yet")
@@ -38,7 +49,7 @@ class ProHostMessagingService : FirebaseMessagingService() {
         // if nobody's signed in yet — the post-login/registration path in
         // ProHostViewModel backfills the token once a session exists.
         val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
-        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+        serviceScope.launch {
             repository.registerFcmToken(uid, token)
         }
     }

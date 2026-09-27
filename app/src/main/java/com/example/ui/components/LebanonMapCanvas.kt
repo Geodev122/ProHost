@@ -55,8 +55,11 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.CameraUpdateFactory
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -321,9 +324,9 @@ fun LebanonMapCanvas(
             spaces.filter { space ->
                 space.lat in bounds.southwest.latitude..bounds.northeast.latitude &&
                 space.lng in bounds.southwest.longitude..bounds.northeast.longitude
-            }.ifEmpty { spaces }
+            }.ifEmpty { spaces.take(50) }
         } else {
-            spaces
+            spaces.take(50)
         }
     }
 
@@ -331,10 +334,8 @@ fun LebanonMapCanvas(
     LaunchedEffect(visibleSpaces) {
         arrivedPinIds.clear()
         visibleSpaces.forEachIndexed { index, space ->
-            launch {
-                delay(index * 40L)
-                arrivedPinIds.add(space.id)
-            }
+            delay(40L)
+            arrivedPinIds.add(space.id)
         }
     }
 
@@ -404,6 +405,9 @@ fun LebanonMapCanvas(
                     val space = group.first()
                     key(space.id) {
                         val isSelected = activePinSpace?.id == space.id
+                        val markerIcon = remember(space.id, isSelected, spaceTypeSchema) {
+                            createCustomMarker(context, space, isSelected, spaceTypeSchema)
+                        }
                         val pinAlpha by animateFloatAsState(
                             targetValue = if (space.id in arrivedPinIds) 1f else 0f,
                             animationSpec = tween(durationMillis = 300),
@@ -413,7 +417,7 @@ fun LebanonMapCanvas(
                             state = MarkerState(position = LatLng(space.lat, space.lng)),
                             title = space.title,
                             snippet = "$${space.baseMonthlyRateUsd.toInt()}/mo • ${space.spaceType.displayName}",
-                            icon = createCustomMarker(context, space, isSelected, spaceTypeSchema),
+                            icon = markerIcon,
                             anchor = androidx.compose.ui.geometry.Offset(0.5f, 1.0f),
                             alpha = pinAlpha,
                             zIndex = if (isSelected) 2f else 1f,
@@ -481,7 +485,7 @@ fun LebanonMapCanvas(
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = if (activePinSpace != null || !isStripCollapsed) 135.dp else 24.dp)
+                .padding(end = 16.dp, bottom = if (!isStripCollapsed) 135.dp else 24.dp)
                 .shadow(8.dp, CircleShape),
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -491,147 +495,6 @@ fun LebanonMapCanvas(
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = VibrantBlue)
             } else {
                 Icon(Icons.Default.MyLocation, contentDescription = "High-Accuracy GPS Locate")
-            }
-        }
-
-        // MARKER ULTRA CARD (Detailed card when a specific marker is pressed)
-        AnimatedVisibility(
-            visible = activePinSpace != null,
-            enter = slideInVertically { it } + fadeIn(),
-            exit = slideOutVertically { it } + fadeOut(),
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm)
-        ) {
-            activePinSpace?.let { space ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(12.dp, MaterialTheme.shapes.large),
-                    shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(Spacing.md)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    shape = MaterialTheme.shapes.small
-                                ) {
-                                    Text(
-                                        text = space.spaceType.displayName,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                                if (space.isVerified) {
-                                    Icon(
-                                        imageVector = Icons.Default.Verified,
-                                        contentDescription = "Verified",
-                                        tint = LebaneseCedarGreen,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-
-                            IconButton(
-                                onClick = { activePinSpace = null },
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Icon(Icons.Default.Close, contentDescription = "Close", modifier = Modifier.size(16.dp))
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = space.title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = "📍 ${space.district}, ${space.governorate.displayName}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                            val lowestPrice = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
-                            Row(verticalAlignment = Alignment.Bottom) {
-                                Text(
-                                    text = "$${lowestPrice.amount.toInt()}",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = " ${lowestPrice.unitLabel}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(Spacing.sm))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedButton(
-                                onClick = {
-                                    try {
-                                        val cleanPhone = space.ownerPhone.filter { it.isDigit() }.let { if (it.length in 7..8) "961$it" else it }
-                                        val url = "https://wa.me/$cleanPhone"
-                                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
-                                        context.startActivity(intent)
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, "Could not launch WhatsApp", Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                shape = MaterialTheme.shapes.small,
-                                contentPadding = PaddingValues(vertical = 6.dp)
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = WhatsAppGreen, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Contact", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                            }
-
-                            Button(
-                                onClick = { onNavigateToDetails(space) },
-                                modifier = Modifier.weight(1.5f),
-                                shape = MaterialTheme.shapes.small,
-                                contentPadding = PaddingValues(vertical = 6.dp)
-                            ) {
-                                Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Check Details", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
             }
         }
 
@@ -704,6 +567,11 @@ fun LebanonMapCanvas(
                 ) {
                     items(divisionCards, key = { (space, sub) -> "${space.id}_${sub?.id ?: "whole"}" }) { (space, sub) ->
                         val isSelected = activePinSpace?.id == space.id
+                        val cardScale by animateFloatAsState(
+                            targetValue = if (isSelected) 1.06f else 1.0f,
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                            label = "card_scale"
+                        )
                         val typePalette = getMarkerPalette(space, false, spaceTypeSchema)
                         val displayName = sub?.name ?: space.title
                         val typeBadge = sub?.type?.displayName ?: space.spaceType.displayName
@@ -716,6 +584,7 @@ fun LebanonMapCanvas(
                         Card(
                             modifier = Modifier
                                 .width(260.dp)
+                                .graphicsLayer { scaleX = cardScale; scaleY = cardScale }
                                 .shadow(if (isSelected) 8.dp else 4.dp, MaterialTheme.shapes.medium)
                                 .clickable {
                                     activePinSpace = space
@@ -724,6 +593,8 @@ fun LebanonMapCanvas(
                                     }
                                     if (sub != null) {
                                         onDivisionSelected(space, sub.id)
+                                    } else {
+                                        onNavigateToDetails(space)
                                     }
                                 },
                             shape = MaterialTheme.shapes.medium,
@@ -749,7 +620,7 @@ fun LebanonMapCanvas(
                                 ) {
                                     if (space.imageUrls.isNotEmpty()) {
                                         coil.compose.AsyncImage(
-                                            model = space.imageUrls.first(),
+                                            model = coil.request.ImageRequest.Builder(context).data(space.imageUrls.first()).size(200).build(),
                                             contentDescription = displayName,
                                             modifier = Modifier.fillMaxSize(),
                                             contentScale = androidx.compose.ui.layout.ContentScale.Crop

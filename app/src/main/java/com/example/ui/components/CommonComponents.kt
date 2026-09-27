@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.UserRole
 import com.example.ui.theme.*
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -451,7 +452,7 @@ private fun AvatarCircle(
     Box(modifier = modifier.size(size)) {
         if (imageUrl != null) {
             AsyncImage(
-                model = imageUrl,
+                model = ImageRequest.Builder(LocalContext.current).data(imageUrl).size(256).build(),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize().clip(CircleShape),
                 contentScale = ContentScale.Crop
@@ -1156,7 +1157,7 @@ fun WorkspaceCard(
         ) {
             if (imageUrl != null) {
                 AsyncImage(
-                    model = imageUrl,
+                    model = ImageRequest.Builder(LocalContext.current).data(imageUrl).size(800).build(),
                     contentDescription = title,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop

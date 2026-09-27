@@ -413,7 +413,8 @@ data class Subdivision(
     // so every screen that reads slots automatically respects it.
     val scheduleOverride: SpaceOperatingSchedule? = null,
     val pricingMode: SubdivisionPricingMode = SubdivisionPricingMode.STRATEGY_BASED,
-    val capacity: Int? = null
+    val capacity: Int? = null,
+    val minAttendees: Int? = null
 )
 
 enum class Governorate(val displayName: String, val centerLat: Double, val centerLng: Double) {
@@ -1006,7 +1007,8 @@ data class SpaceListing(
                     },
                     "scheduleOverride" to sub.scheduleOverride?.toFirestoreMap(),
                     "pricingMode" to sub.pricingMode.name,
-                    "capacity" to sub.capacity
+                    "capacity" to sub.capacity,
+                    "minAttendees" to sub.minAttendees
                 )
             },
             "rules" to mapOf(
@@ -1136,7 +1138,8 @@ data class SpaceListing(
                         rentalStrategies = stratsList,
                         scheduleOverride = SpaceOperatingSchedule.fromFirestoreMap(sMap["scheduleOverride"] as? Map<*, *>),
                         pricingMode = pricingMode,
-                        capacity = (sMap["capacity"] as? Number)?.toInt()
+                        capacity = (sMap["capacity"] as? Number)?.toInt(),
+                        minAttendees = (sMap["minAttendees"] as? Number)?.toInt()
                     )
                 }
             } ?: emptyList()
