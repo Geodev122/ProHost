@@ -1,0 +1,60 @@
+package com.example.data.billing
+
+import com.android.billingclient.api.ProductDetails
+
+/**
+ * Human-readable price terms for the offer PlayBillingManager.launchSubscriptionPurchase
+ * uses (the product's first offer), e.g. "Free for 7 days, then $4.99 / month".
+ * Play policy requires price, billing period and trial terms to be shown before purchase.
+ */
+object PlayOfferText {
+
+    fun describe(details: ProductDetails?): String? {
+        val phases = details?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList
+        if (phases.isNullOrEmpty()) return null
+        val recurring = phases.last()
+        val base = "${recurring.formattedPrice} / ${per(recurring.billingPeriod)}"
+        val intro = phases.dropLast(1).joinToString(", ") { phase ->
+            val span = duration(phase.billingPeriod, phase.billingCycleCount.coerceAtLeast(1))
+            if (phase.priceAmountMicros == 0L) "Free for $span"
+            else "${phase.formattedPrice} / ${per(phase.billingPeriod)} for $span"
+        }
+        return if (intro.isEmpty()) base else "$intro, then $base"
+    }
+
+    /** Line under a large price: "per month", or the full terms when there's an intro offer. */
+    fun caption(details: ProductDetails?): String? {
+        val phases = details?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList
+        if (phases.isNullOrEmpty()) return null
+        return if (phases.size > 1) describe(details) else "per ${per(phases.last().billingPeriod)}"
+    }
+
+    /** Recurring price only, e.g. "$4.99". */
+    fun recurringPrice(details: ProductDetails?): String? =
+        details?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.lastOrNull()?.formattedPrice
+
+    private fun parse(iso: String): Pair<Int, String>? {
+        val match = Regex("P(\\d+)([DWMY])").matchEntire(iso) ?: return null
+        val n = match.groupValues[1].toIntOrNull() ?: return null
+        val unit = when (match.groupValues[2]) {
+            "D" -> "day"
+            "W" -> "week"
+            "M" -> "month"
+            else -> "year"
+        }
+        return n to unit
+    }
+
+    /** "month" for P1M, "3 months" for P3M. */
+    private fun per(iso: String): String {
+        val (n, unit) = parse(iso) ?: return iso
+        return if (n == 1) unit else "$n ${unit}s"
+    }
+
+    /** Total length of [cycles] periods, e.g. P1W × 1 -> "1 week", P1M × 3 -> "3 months". */
+    private fun duration(iso: String, cycles: Int): String {
+        val (n, unit) = parse(iso) ?: return iso
+        val total = n * cycles
+        return if (total == 1) "1 $unit" else "$total ${unit}s"
+    }
+}

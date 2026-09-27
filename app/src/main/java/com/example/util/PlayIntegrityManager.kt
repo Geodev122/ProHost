@@ -23,24 +23,28 @@ class PlayIntegrityManager(private val context: Context) {
     }
 
     /**
-     * Requests a Play Integrity token signed by Google Play.
-     * Pass an optional [customNonce] or auto-generate a unique UUID nonce.
+     * Requests a Play Integrity token whose nonce is bound to [uid] (the server rejects a
+     * token whose nonce belongs to another user, so a captured token can't be replayed).
+     * Returns null for debug builds: they aren't installed from Play, so their verdict is
+     * always UNRECOGNIZED_VERSION and the server would block testers' sign-in.
      */
-    suspend fun requestIntegrityToken(customNonce: String? = null): Result<String> {
+    suspend fun requestIntegrityToken(uid: String): String? {
+        if (com.example.BuildConfig.DEBUG) return null
         return try {
-            val nonce = customNonce ?: UUID.randomUUID().toString()
+            val raw = "$uid:${UUID.randomUUID()}".toByteArray(Charsets.UTF_8)
+            val nonce = android.util.Base64.encodeToString(
+                raw,
+                android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP or android.util.Base64.NO_PADDING
+            )
             val request = IntegrityTokenRequest.builder()
                 .setCloudProjectNumber(cloudProjectNumber)
                 .setNonce(nonce)
                 .build()
-
             val response: IntegrityTokenResponse = integrityManager.requestIntegrityToken(request).await()
-            val token = response.token()
-            Log.d(tag, "Successfully obtained Play Integrity token (${token.length} chars)")
-            Result.success(token)
+            response.token()
         } catch (e: Exception) {
             Log.w(tag, "Play Integrity token request failed: ${e.message}", e)
-            Result.failure(e)
+            null
         }
     }
 }

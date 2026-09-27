@@ -3,7 +3,6 @@ package com.example
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.auth.FirebaseAuthService
-import com.example.data.crypto.WhishSecurity
 import com.example.data.firestore.FirestoreSchema
 import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
@@ -23,7 +22,7 @@ import org.robolectric.annotation.Config
  * Full system test suite verifying:
  * 1. App Feature and operations compliance.
  * 2. Firebase Firestore schema & Data Connect compliance.
- * 3. Whish Money and Auth APIs readiness and execution.
+ * 3. Auth API readiness.
  * 4. Master repository data flows and export pipelines.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -69,38 +68,10 @@ class AppFeatureComplianceAndDebuggerTest {
         assertEquals("user_profiles", FirestoreSchema.Collections.USER_PROFILES)
         assertEquals("booking_requests", FirestoreSchema.Collections.BOOKING_REQUESTS)
         assertEquals("subscription_formulas", FirestoreSchema.Collections.SUBSCRIPTION_FORMULAS)
-        assertEquals("whish_transactions", FirestoreSchema.Collections.WHISH_TRANSACTIONS)
         assertEquals("audit_security_logs", FirestoreSchema.Collections.AUDIT_SECURITY_LOGS)
     }
 
-    @Test
-    fun `test firestore service compliance auditor`() {
-        val report = firestoreService.runDataConnectComplianceAudit()
-        assertTrue("Data Connect compliance report must pass", report.isAllCompliant)
-        assertTrue("Must include all core schema checks", report.checks.isNotEmpty())
-    }
 
-    @Test
-    fun `test whish money security and api integrity`() {
-        // This only exercises the SHA-256 hashing utility with an explicit test key —
-        // WhishSecurity has no default secret to fall back on (removed along with
-        // requestCashOut, its last real client-side caller), so there is no way to
-        // produce a signature Whish would actually accept from the client anymore.
-        val signature = WhishSecurity.generateSignature(
-            channel = WhishSecurity.CHANNEL_ID,
-            amount = 150.0,
-            currency = "USD",
-            orderId = "TEST-ORDER-777",
-            secretKey = "unit-test-key"
-        )
-        assertNotNull(signature)
-        assertEquals(64, signature.length)
-
-        // The client no longer has a Whish API client of its own — WhishPayApi was
-        // deleted in Phase 5. Payments now go exclusively through the
-        // initiateWhishPayment/whishWebhook/checkWhishStatus Cloud Functions
-        // (functions/src/payments/), which hold the merchant secret server-side.
-    }
 
     @Test
     fun `test multi-tier rental formulas and booking lifecycle`() = kotlinx.coroutines.runBlocking {
@@ -143,11 +114,9 @@ class AppFeatureComplianceAndDebuggerTest {
         val spacesCsv = repository.exportWorkspacesCsv()
         val bookingsCsv = repository.exportBookingsCsv()
         val usersCsv = repository.exportUsersCsv()
-        val txCsv = repository.exportTransactionsCsv()
 
         assertTrue("Workspaces CSV must have headers and content", spacesCsv.contains("Space ID,Title"))
         assertTrue("Bookings CSV must have headers and content", bookingsCsv.contains("Booking ID,Space ID"))
         assertTrue("Users CSV must have headers and content", usersCsv.contains("User ID,Full Name"))
-        assertTrue("Transactions CSV must have headers and content", txCsv.contains("Transaction ID,Order ID"))
     }
 }

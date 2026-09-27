@@ -2,7 +2,6 @@ package com.example
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import com.example.data.crypto.WhishSecurity
 import com.example.data.repository.ProHostRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -22,18 +21,6 @@ class ExampleRobolectricTest {
     assertEquals("ProHost", appName)
   }
 
-  @Test
-  fun `test whish signature and crypto`() {
-    val sigSha256 = WhishSecurity.generateSignature(
-      channel = "15462415",
-      amount = 1.80,
-      currency = "USD",
-      orderId = "ORD-TEST-001",
-      secretKey = "test_secret_key"
-    )
-    assertNotNull(sigSha256)
-    assertEquals(64, sigSha256.length)
-  }
 
   @Test
   fun `test financial calculations`() {

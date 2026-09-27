@@ -148,7 +148,7 @@ fun OwnerHubScreen(
         isAdminUnlimited = currentUser?.role == UserRole.ADMIN,
         onSelectSpace = onSelectSpace,
         onManageSpace = onManageSpace,
-        onOpenWhishRenewal = {
+        onOpenRenewal = {
             val expiry = currentUser?.ownerPackageExpiryMillis
             if (expiry != null && expiry > System.currentTimeMillis()) {
                 // Active Play subscription — open Play Store subscription management
@@ -385,7 +385,7 @@ fun OwnerHubScreenContent(
     ownerPackageExpiryMillis: Long?,
     onSelectSpace: (SpaceListing) -> Unit,
     onManageSpace: (SpaceListing) -> Unit = onSelectSpace,
-    onOpenWhishRenewal: () -> Unit,
+    onOpenRenewal: () -> Unit,
     onOpenCreateListing: () -> Unit,
     onOpenPackageSelection: () -> Unit,
     isAdminUnlimited: Boolean = false,
@@ -532,7 +532,7 @@ fun OwnerHubScreenContent(
                             ) {
                                 val isActiveSubscription = ownerPackageExpiryMillis != null && ownerPackageExpiryMillis > System.currentTimeMillis()
                                 Button(
-                                    onClick = onOpenWhishRenewal,
+                                    onClick = onOpenRenewal,
                                     modifier = Modifier.weight(1f),
                                     shape = MaterialTheme.shapes.medium,
                                     colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)

@@ -13,7 +13,7 @@ import java.util.UUID
 
 /**
  * ViewModel managing Admin console operations, user directory governance, listings CRUD,
- * Whish Money audit monitoring, dynamic space architecture schema modifications, and multi-format exports.
+ * dynamic space architecture schema modifications, and multi-format exports.
  */
 class AdminViewModel(
     private val repository: ProHostRepository = ProHostRepository.getInstance()
@@ -70,17 +70,6 @@ class AdminViewModel(
                             }
                         )
                     }
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
-            }
-        }
-        viewModelScope.launch {
-            try {
-                repository.transactions.collect { txs ->
-                    _uiState.update { it.copy(allTransactions = txs) }
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -645,19 +634,6 @@ class AdminViewModel(
         }
     }
 
-    // --- Whish Money & Transaction Audit Filtering ---
-    fun setTxSearchQuery(query: String) {
-        _uiState.update { it.copy(txSearchQuery = query) }
-    }
-
-    fun setSelectedTxStatusFilter(status: String) {
-        _uiState.update { it.copy(selectedTxStatusFilter = status) }
-    }
-
-    fun setTxStatusFilter(status: String) {
-        setSelectedTxStatusFilter(status)
-    }
-
     // --- Dynamic Space Architecture Schema Management ---
     fun setSelectedSchemaCategoryFilter(category: String) {
         _uiState.update { it.copy(selectedSchemaCategoryFilter = category) }
@@ -1043,11 +1019,6 @@ class AdminViewModel(
     fun exportListingsCatalog(format: String = "CSV") {
         val content = if (format == "JSON") repository.exportListingsToJson() else repository.exportListingsToCsv()
         openExportDialog("ProHost Workspace Listings Catalog (${format})", content, format)
-    }
-
-    fun exportTransactionsLedger() {
-        val content = repository.exportTransactionsToCsv()
-        openExportDialog("Whish Pay Transactions Ledger (CSV)", content, "CSV")
     }
 
     fun exportOwnerRegistrations() {

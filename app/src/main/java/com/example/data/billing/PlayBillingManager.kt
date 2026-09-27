@@ -16,9 +16,7 @@ import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.ProductDetailsResult
-import com.android.billingclient.api.PurchaseHistoryRecord
 import com.android.billingclient.api.QueryPurchasesParams
-import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -30,9 +28,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * Lifecycle-aware manager for Google Play Billing (v7.1.1).
- * Manages BillingClient connection, product querying, launching Google Pay sheets,
- * acknowledgment, active purchase restoration, and Play Store subscription deep links.
+ * Google Play Billing (Billing Library 9): connection, subscription product lookup,
+ * purchase flow, acknowledgement (also done server-side by playBillingRtdn), active
+ * purchase restoration, and Play Store subscription links. Entitlement itself is
+ * granted server-side from Play's real-time developer notifications.
  */
 class PlayBillingManager(
     private val context: Context,
@@ -47,18 +46,12 @@ class PlayBillingManager(
         // generic 400 "the server cannot process the request" page. Single source
         // of truth so this can't drift out of sync between call sites again.
         const val REDEEM_CODE_URL = "https://play.google.com/redeem"
-
-        // Default Subscription Product IDs configured in Google Play Console
-        const val PRODUCT_ID_GROWTH = "package_growth_mrr"
-        const val PRODUCT_ID_PRO = "package_pro_mrr"
-        const val PRODUCT_ID_ENTERPRISE = "package_enterprise_mrr"
-
-        val ALL_SUBSCRIPTION_PRODUCT_IDS = listOf(
-            PRODUCT_ID_GROWTH,
-            PRODUCT_ID_PRO,
-            PRODUCT_ID_ENTERPRISE
-        )
+        const val ORDER_HISTORY_URL = "https://play.google.com/store/account/orderhistory"
     }
+
+    // Play subscription IDs to load, set from the admin-managed plan catalog.
+    @Volatile
+    private var catalogProductIds: List<String> = emptyList()
 
     private val _isConnected = MutableStateFlow(false)
     val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
@@ -83,6 +76,7 @@ class PlayBillingManager(
                 .enablePrepaidPlans()
                 .build()
         )
+        .enableAutoServiceReconnection()
         .build()
 
     fun startConnection(onConnected: (() -> Unit)? = null) {
@@ -113,11 +107,16 @@ class PlayBillingManager(
         })
     }
 
-    fun querySubscriptionProducts(productIds: List<String> = ALL_SUBSCRIPTION_PRODUCT_IDS) {
-        if (!billingClient.isReady) {
-            Log.w(TAG, "querySubscriptionProducts called before BillingClient is ready")
-            return
-        }
+    /** Updates the Play subscription IDs to load (from the plan catalog) and queries them. */
+    fun setCatalogProductIds(productIds: List<String>) {
+        val ids = productIds.filter { it.isNotBlank() }.distinct()
+        if (ids == catalogProductIds) return
+        catalogProductIds = ids
+        querySubscriptionProducts()
+    }
+
+    fun querySubscriptionProducts(productIds: List<String> = catalogProductIds) {
+        if (!billingClient.isReady || productIds.isEmpty()) return
 
         val productList = productIds.map { id ->
             QueryProductDetailsParams.Product.newBuilder()
@@ -177,8 +176,18 @@ class PlayBillingManager(
         val result = billingClient.launchBillingFlow(activity, billingFlowParamsBuilder.build())
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {
             Log.e(TAG, "Failed to launch billing flow: ${result.debugMessage}")
-            emitMessage("Unable to start purchase: ${result.debugMessage}")
+            emitMessage(userMessageFor(result.responseCode))
         }
+    }
+
+    private fun userMessageFor(responseCode: Int): String = when (responseCode) {
+        BillingClient.BillingResponseCode.SERVICE_UNAVAILABLE,
+        BillingClient.BillingResponseCode.SERVICE_DISCONNECTED,
+        BillingClient.BillingResponseCode.NETWORK_ERROR -> "Couldn't reach Google Play. Check your connection and try again."
+        BillingClient.BillingResponseCode.BILLING_UNAVAILABLE -> "Google Play billing isn't available on this device or account."
+        BillingClient.BillingResponseCode.ITEM_UNAVAILABLE -> "This plan isn't available right now."
+        BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> "You already have this subscription."
+        else -> "Google Play couldn't complete the purchase. Please try again."
     }
 
     override fun onPurchasesUpdated(billingResult: BillingResult, purchases: MutableList<Purchase>?) {
@@ -194,9 +203,13 @@ class PlayBillingManager(
                 Log.i(TAG, "User canceled Google Play purchase flow")
                 emitMessage("Purchase canceled")
             }
+            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
+                emitMessage("You already have this subscription.")
+                queryActivePurchases()
+            }
             else -> {
                 Log.e(TAG, "Purchases update failed: ${billingResult.debugMessage} (${billingResult.responseCode})")
-                emitMessage("Purchase error: ${billingResult.debugMessage}")
+                emitMessage(userMessageFor(billingResult.responseCode))
             }
         }
     }
@@ -317,6 +330,10 @@ class PlayBillingManager(
         }
     }
 
+    fun openOrderHistory(activity: Activity) {
+        launchViewSafely(activity, ORDER_HISTORY_URL)
+    }
+
     fun openRedeemPromoCode(activity: Activity) {
         // Use the Play Billing in-app redemption sheet (v4+).
         // Falls back to the market:// deep-link if the billing client isn't ready.
@@ -333,19 +350,6 @@ class PlayBillingManager(
     private fun emitMessage(msg: String) {
         coroutineScope.launch {
             _billingMessages.emit(msg)
-        }
-    }
-
-    suspend fun queryPurchaseHistory(): List<PurchaseHistoryRecord> = kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
-        if (!billingClient.isReady) {
-            continuation.resume(emptyList())
-            return@suspendCancellableCoroutine
-        }
-        val params = QueryPurchasesParams.newBuilder()
-            .setProductType(BillingClient.ProductType.SUBS)
-            .build()
-        billingClient.queryPurchasesAsync(params) { billingResult, purchases ->
-            continuation.resume(emptyList())
         }
     }
 

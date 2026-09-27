@@ -40,9 +40,7 @@ class ProHostViewModel(
     val repository: ProHostRepository = ProHostRepository.getInstance()
 ) : ViewModel() {
 
-    // Used by the Whish payment functions and sendPaymentReminder below — kept here
-    // (not moved to AuthViewModel with the rest of the FirebaseFunctionsClient calls)
-    // since those are cross-cutting, multi-screen actions, unlike the auth flow.
+    // Cross-cutting callables (e.g. sendPaymentReminder) used from several screens.
     private val functionsClient = com.example.data.auth.FirebaseFunctionsClient()
 
     // Cold-start session restoration — the actual fix for "signed out whenever the app
@@ -160,7 +158,6 @@ class ProHostViewModel(
     // hardcoded FacilityCatalog.standard object instead. Exposed here so both can
     // read the same live, admin-editable list.
     val spaceArchitectureSchema: StateFlow<SpaceArchitectureSchema> = repository.spaceArchitectureSchema
-    val transactions: StateFlow<List<WhishTransaction>> = repository.transactions
     val users: StateFlow<List<AppUser>> = repository.users
     val currentUser: StateFlow<AppUser?> = repository.currentUser
     val auditLogs: StateFlow<List<AuditSecurityLog>> = repository.auditLogs
@@ -169,12 +166,6 @@ class ProHostViewModel(
     val fcmAlerts: StateFlow<List<FCMAlert>> = repository.fcmAlerts
     val isOfflineMode: StateFlow<Boolean> = repository.isOfflineMode
     val syncStatusMessage: StateFlow<String?> = repository.syncStatusMessage
-    val pendingOfflineTransactions: StateFlow<List<WhishTransaction>> = repository.pendingOfflineTransactions
-
-    fun retryOfflineSync() {
-        repository.retryOfflineTransactions()
-        repository.startRealtimeSync()
-    }
 
     fun markAlertAsRead(alertId: String) {
         repository.markAlertAsRead(alertId)
@@ -232,7 +223,7 @@ class ProHostViewModel(
 
     val playBillingProducts = MutableStateFlow<List<com.android.billingclient.api.ProductDetails>>(emptyList())
     val playBillingConnected = MutableStateFlow(false)
-    val playPurchaseHistory = MutableStateFlow<List<com.android.billingclient.api.PurchaseHistoryRecord>>(emptyList())
+    val playActivePurchases = MutableStateFlow<List<com.android.billingclient.api.Purchase>>(emptyList())
 
     // Holds a deferred launch when billing was not yet connected at the time the user tapped
     // "Subscribe via Google Play". Cleared and retried once products arrive from Play.
@@ -275,8 +266,29 @@ class ProHostViewModel(
             }
             viewModelScope.launch {
                 try {
+                    manager.activePurchases.collect { playActivePurchases.value = it }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    android.util.Log.e("ProHostVM", "Operation failed", e)
+                }
+            }
+            // Load Google Play product details for whatever plans the admin catalog lists.
+            viewModelScope.launch {
+                try {
+                    packagePlans.collect { catalog ->
+                        manager.setCatalogProductIds(catalog.purchasablePlans().map { it.googlePlayProductId.ifBlank { it.id } })
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    android.util.Log.e("ProHostVM", "Operation failed", e)
+                }
+            }
+            viewModelScope.launch {
+                try {
                     manager.purchaseEvents.collect { purchase ->
-                        val productId = purchase.products.firstOrNull() ?: com.example.data.billing.PlayBillingManager.PRODUCT_ID_GROWTH
+                        val productId = purchase.products.firstOrNull() ?: return@collect
                         repository.recordActivePurchaseToken(productId, purchase.purchaseToken)
                     }
                 } catch (e: kotlinx.coroutines.CancellationException) {
@@ -460,7 +472,14 @@ class ProHostViewModel(
             _pendingRetryProductId = productId
             _pendingRetryActivity = java.lang.ref.WeakReference(activity)
             Toast.makeText(activity, "Connecting to Google Play Store…", Toast.LENGTH_SHORT).show()
-            manager?.querySubscriptionProducts()
+            // Merges into productDetailsList, whose collector above retries this launch.
+            manager?.queryProductDetailsForId(productId) { found ->
+                if (found == null) {
+                    _pendingRetryProductId = null
+                    _pendingRetryActivity = null
+                    Toast.makeText(activity, "This plan isn't available in Google Play right now.", Toast.LENGTH_LONG).show()
+                }
+            }
         }
     }
 
@@ -500,18 +519,16 @@ class ProHostViewModel(
         manager?.queryProductDetailsForId(productId, onResult) ?: onResult(null)
     }
 
-    fun loadPlayHistory(context: Context) {
+    fun refreshPlayPurchases(context: Context) {
         val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager } ?: return
-        viewModelScope.launch {
-            try {
-                playPurchaseHistory.value = manager.queryPurchaseHistory()
-            } catch (e: Exception) {
-                android.util.Log.w("ProHostViewModel", "loadPlayHistory failed: ${e.message}")
-            }
-        }
+        manager.queryActivePurchases()
     }
 
-    // Whish Pay settlement was removed — app is fully on Google Play Billing.
+    fun openPlayOrderHistory(activity: android.app.Activity) {
+        playBillingManager?.openOrderHistory(activity)
+            ?: openUriOrToast(activity, com.example.data.billing.PlayBillingManager.ORDER_HISTORY_URL)
+    }
+
 
     // Set by OwnerHubScreen right before redirecting to Subscriptions after a
     // NoActivePackage Publish rejection — the id of
@@ -520,7 +537,7 @@ class ProHostViewModel(
     // both screens) to surface a banner and thread the id into whichever purchase
     // the host makes next, so it auto-publishes without a second trip through the
     // wizard. Purely a client-side UX convenience — the real correlation once a
-    // payment is launched lives server-side on the Whish transaction itself.
+    // payment is launched is pendingPlayPublishDraftId, read by playBillingRtdn.
     private val _pendingAutoPublishDraftId = MutableStateFlow<String?>(null)
     val pendingAutoPublishDraftId: StateFlow<String?> = _pendingAutoPublishDraftId.asStateFlow()
 
@@ -669,7 +686,7 @@ class ProHostViewModel(
     // switchUserRole(...) was also removed — it let any already-logged-in user instantly
     // become ADMIN locally with no server check. A real role change now only happens via
     // grantAdminRole() (Admin-to-Admin grants) or grantEntitlement() promoting a SPECIALIST
-    // to PRO_HOST the moment their package/listing Whish payment settles — never a free,
+    // to PRO_HOST the moment their Google Play subscription activates — never a free,
     // client-invocable "upgrade" call.
 
     override fun onCleared() {

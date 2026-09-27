@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import android.widget.Toast
 import com.example.data.model.*
+import com.example.data.billing.PlayOfferText
 import com.example.ui.components.CustomButton
 import com.example.ui.components.CustomButtonVariant
 import com.example.ui.theme.*
@@ -88,11 +89,7 @@ fun OwnerSubscriptionsScreen(
 
     // Map Play product ID → live formatted price string (e.g. "$4.99") from the Play Store catalog.
     // PackagePlan.displayPrice falls back when Play hasn't loaded yet.
-    val playPriceMap: Map<String, String?> = remember(playBillingProducts) {
-        playBillingProducts.associate { d ->
-            d.productId to d.subscriptionOfferDetails
-                ?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice
-        }
+    val playProductMap = remember(playBillingProducts) { playBillingProducts.associateBy { it.productId } }
     }
     val pricesLoading = !billingConnected && playBillingProducts.isEmpty()
 
@@ -319,7 +316,7 @@ fun OwnerSubscriptionsScreen(
                         ) {
                             Icon(Icons.Default.Autorenew, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(14.dp))
                             Text(
-                                "Auto-renews monthly via Google Play",
+                                "Renews automatically via Google Play",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = FreshGreen
                             )
@@ -460,7 +457,7 @@ fun OwnerSubscriptionsScreen(
                 modifier = Modifier.padding(start = 4.dp)
             )
         } else {
-            // Horizontal scrollable plan cards (sorted by price ascending — least to most desirable)
+            // Featured plans first, then admin priority (PackagePlanCatalog.purchasablePlans).
             val sortedPlans = enabledPlans
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -472,7 +469,7 @@ fun OwnerSubscriptionsScreen(
                     CompactPlanCard(
                         plan = plan,
                         isCurrent = isCurrent,
-                        playFormattedPrice = playPriceMap[playProductId],
+                        playProduct = playProductMap[playProductId],
                         onSelect = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             // Same KYC gate as the primary CTA above — this per-plan
@@ -490,6 +487,13 @@ fun OwnerSubscriptionsScreen(
                     )
                 }
             }
+            Text(
+                "Subscriptions renew automatically at the price and period shown until you cancel. " +
+                    "Cancel anytime in Google Play › Payments & subscriptions; you keep access until the end of the paid period.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
         }
 
         Spacer(modifier = Modifier.height(Spacing.sm))
@@ -517,7 +521,7 @@ fun OwnerSubscriptionsScreen(
 fun CompactPlanCard(
     plan: PackagePlan,
     isCurrent: Boolean,
-    playFormattedPrice: String? = null,
+    playProduct: com.android.billingclient.api.ProductDetails? = null,
     onSelect: () -> Unit
 ) {
     val cardWidth = 200.dp
@@ -565,13 +569,13 @@ fun CompactPlanCard(
 
                 // Price — large and bold
                 Text(
-                    text = PackagePlan.displayPrice(plan, playFormattedPrice),
+                    text = PackagePlan.displayPrice(plan, PlayOfferText.recurringPrice(playProduct)),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Black,
                     color = if (isCurrent) PureWhite else CarnationOrange
                 )
                 Text(
-                    text = "/ month",
+                    text = PlayOfferText.caption(playProduct).orEmpty(),
                     style = MaterialTheme.typography.labelSmall,
                     color = if (isCurrent) LightGray else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.offset(y = (-6).dp)

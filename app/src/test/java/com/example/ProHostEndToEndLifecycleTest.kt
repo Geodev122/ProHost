@@ -2,7 +2,6 @@ package com.example
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import com.example.data.crypto.WhishSecurity
 import com.example.data.model.*
 import com.example.data.repository.ProHostRepository
 import com.example.ui.viewmodel.ProHostViewModel
@@ -153,7 +152,7 @@ class ProHostEndToEndLifecycleTest {
     }
 
     @Test
-    fun `test super admin pricing governance and listing verification override`() = kotlinx.coroutines.runBlocking {
+    fun `test super admin listing verification override`() = kotlinx.coroutines.runBlocking {
         // Admin login
         val admin = repository.login(uid = "uid-admin-test", email = "admin@prohost.test", verifiedRole = UserRole.ADMIN)
         assertEquals(UserRole.ADMIN, admin.role)
@@ -166,39 +165,8 @@ class ProHostEndToEndLifecycleTest {
         val toggledSpace = repository.spaces.value.find { it.id == space.id }
         assertEquals(!initialVerification, toggledSpace?.isVerified)
 
-        // Update pricing formula
-        repository.updateMonthlySubscriptionFee(2.50)
-        assertEquals(2.50, repository.pricingState.value.monthlySubscriptionFeeUsd, 0.001)
     }
 
-    @Test
-    fun `test resilient offline transaction queuing and network recovery`() {
-        val testTx = WhishTransaction(
-            id = "TX-OFFLINE-001",
-            orderId = "ORD-OFFLINE-001",
-            amountUsd = 45.0,
-            currency = "USD",
-            status = TransactionStatus.SUCCESS,
-            timestamp = System.currentTimeMillis(),
-            payerName = "Dr. Test Offline",
-            payerPhone = "+961 70 111 222",
-            channelId = WhishSecurity.CHANNEL_ID,
-            sourceEmail = WhishSecurity.SOURCE_EMAIL,
-            signatureHash = "SIG-OFFLINE",
-            spaceId = "SPC-BEI-01",
-            spaceTitle = "Offline Beirut Clinic",
-            daysGranted = 30
-        )
-
-        repository.queueOfflineTransaction(testTx)
-        assertEquals(1, repository.pendingOfflineTransactions.value.size)
-
-        repository.retryOfflineTransactions()
-        assertEquals(0, repository.pendingOfflineTransactions.value.size)
-
-        val auditLogs = repository.auditLogs.value
-        assertTrue(auditLogs.any { it.actionType == "OFFLINE_TX_RECOVERED" })
-    }
 
     @Test
     fun `fresh repository starts signed out, not pre-authenticated as Super Admin`() {

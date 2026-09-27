@@ -9,7 +9,6 @@ data class AdminUiState(
     val pricingState: AdminPricingState = AdminPricingState(),
     val allSpaces: List<SpaceListing> = emptyList(),
     val allUsers: List<AppUser> = emptyList(),
-    val allTransactions: List<WhishTransaction> = emptyList(),
     val allBookings: List<RentalBookingRequest> = emptyList(),
     val auditLogs: List<AuditSecurityLog> = emptyList(),
     val schema: SpaceArchitectureSchema = SpaceArchitectureSchema(),
@@ -28,8 +27,6 @@ data class AdminUiState(
     val selectedListingTypeFilter: String? = null,
     val selectedListingStatusFilter: String = "ALL", // "ALL", "ACTIVE_30D", "EXPIRED", "VERIFIED", "PENDING_VERIFICATION"
 
-    val txSearchQuery: String = "",
-    val selectedTxStatusFilter: String = "ALL", // "ALL", "SUCCESS", "PENDING", "FAILED"
 
     val selectedSchemaCategoryFilter: String = "ALL", // retained for potential use but God Schema tab no longer uses a flat filter
 
@@ -127,24 +124,6 @@ data class AdminUiState(
                 else -> true
             }
             matchesQuery && matchesType && matchesStatus
-        }
-
-    val filteredTransactions: List<WhishTransaction>
-        get() = allTransactions.filter { tx ->
-            val matchesQuery = txSearchQuery.isBlank() ||
-                    tx.id.contains(txSearchQuery, ignoreCase = true) ||
-                    tx.orderId.contains(txSearchQuery, ignoreCase = true) ||
-                    tx.payerName.contains(txSearchQuery, ignoreCase = true) ||
-                    tx.payerPhone.contains(txSearchQuery, ignoreCase = true) ||
-                    tx.spaceId.contains(txSearchQuery, ignoreCase = true)
-
-            val matchesStatus = when (selectedTxStatusFilter) {
-                "SUCCESS" -> tx.status == TransactionStatus.SUCCESS
-                "PENDING" -> tx.status == TransactionStatus.PENDING
-                "FAILED" -> tx.status == TransactionStatus.FAILED
-                else -> true
-            }
-            matchesQuery && matchesStatus
         }
 
     // "Owner"/"Host" here means the account holds the PRO_HOST role (i.e. has listed

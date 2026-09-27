@@ -336,7 +336,7 @@ class AuthViewModel(
         if (!isNewUser) {
             try {
                 val integrityToken = com.example.util.PlayIntegrityManager(activity)
-                    .requestIntegrityToken().getOrNull()
+                    .requestIntegrityToken(firebaseUser.uid)
                 val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser, integrityToken)
                 // Stranded-account recovery: only applies when THIS sign-in was
                 // via phone (phone-auth users with a blank phone in Firestore
@@ -568,7 +568,7 @@ class AuthViewModel(
                     storageService.uploadProfilePicture(firebaseUser.uid, uri, guessFileExtension(activity, uri, "jpg"))
                 }
                 val integrityToken = com.example.util.PlayIntegrityManager(activity)
-                    .requestIntegrityToken().getOrNull()
+                    .requestIntegrityToken(firebaseUser.uid)
                 val user = com.example.data.auth.completeVerifiedRegistration(
                     repository = repository,
                     functionsClient = functionsClient,

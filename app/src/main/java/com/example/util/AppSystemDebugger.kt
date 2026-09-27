@@ -3,9 +3,7 @@ package com.example.util
 import android.content.Context
 import android.util.Log
 import com.example.data.auth.FirebaseAuthService
-import com.example.data.crypto.WhishSecurity
 import com.example.data.firestore.FirestoreSchema
-import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
 import com.example.data.repository.ProHostRepository
 import kotlinx.coroutines.Dispatchers
@@ -133,23 +131,9 @@ object AppSystemDebugger {
         }
 
         // -------------------------------------------------------------
-        // 2. FIREBASE FIRESTORE & DATA CONNECT COMPLIANCE
+        // 2. FIREBASE FIRESTORE SCHEMA
         // -------------------------------------------------------------
         try {
-            val firestoreService = FirestoreService.getInstance()
-            val complianceReport = firestoreService.runDataConnectComplianceAudit()
-
-            complianceReport.checks.forEach { check ->
-                results.add(
-                    DiagnosticItem(
-                        category = "Firebase & Data Connect",
-                        featureName = check.name,
-                        status = if (check.isCompliant) DiagnosticStatus.PASSED else DiagnosticStatus.FAILED,
-                        details = check.details
-                    )
-                )
-            }
-
             // Schema version check — used to call firestoreService.initializeSchema(),
             // which writes system_metadata/schema_info. Firestore rules now deny every
             // client write to system_metadata (Phase 7), so that write always fails and
@@ -158,7 +142,7 @@ object AppSystemDebugger {
             // the app was built against, no write attempted.
             results.add(
                 DiagnosticItem(
-                    category = "Firebase & Data Connect",
+                    category = "Firebase",
                     featureName = "Firestore Schema Version",
                     status = DiagnosticStatus.PASSED,
                     details = "App built against schema version ${FirestoreSchema.SCHEMA_VERSION}."
@@ -174,7 +158,7 @@ object AppSystemDebugger {
             val offlineMode = repository.isOfflineMode.value
             results.add(
                 DiagnosticItem(
-                    category = "Firebase & Data Connect",
+                    category = "Firebase",
                     featureName = "Real-Time Snapshot StateFlow Synchronization",
                     status = when {
                         cloudConnected && !offlineMode -> DiagnosticStatus.PASSED
@@ -194,7 +178,7 @@ object AppSystemDebugger {
         } catch (e: Exception) {
             results.add(
                 DiagnosticItem(
-                    category = "Firebase & Data Connect",
+                    category = "Firebase",
                     featureName = "Firestore / Data Connect Pipeline",
                     status = DiagnosticStatus.FAILED,
                     details = "Firestore audit error: ${e.message}"
@@ -335,93 +319,20 @@ object AppSystemDebugger {
         }
 
         // -------------------------------------------------------------
-        // 6. WHISH MONEY FINANCIAL SETTLEMENT & SECURITY
-        // -------------------------------------------------------------
-        try {
-            // Test the SHA-256 hashing utility itself (not a real merchant signature —
-            // WhishSecurity no longer has a default secret to sign with; see below).
-            val signature = WhishSecurity.generateSignature(
-                channel = WhishSecurity.CHANNEL_ID,
-                amount = 250.0,
-                currency = "USD",
-                orderId = "TEST-ORDER-1001",
-                secretKey = "diagnostics-only-test-key"
-            )
-
-            val sigValid = signature.length == 64 // SHA-256 Hex is 64 chars
-            results.add(
-                DiagnosticItem(
-                    category = "Payment & Security",
-                    featureName = "Whish Money SHA-256 Hashing Utility",
-                    status = if (sigValid) DiagnosticStatus.PASSED else DiagnosticStatus.FAILED,
-                    details = "Generated a 64-char SHA-256 digest from a diagnostics-only test key — this is a hashing utility chec" +
-                        "k, not a real merchant signature (the client holds no merchant secret)."
-                )
-            )
-
-            // The client used to hold its own Retrofit client calling Whish's API
-            // directly (WhishPayApi), signing requests with a secret shipped in the
-            // APK. That's gone — initiateWhishPayment/whishWebhook/checkWhishStatus
-            // Cloud Functions are the only thing that talks to Whish now, and this
-            // diagnostics tool has no business making a real payment-initiation call
-            // just to "test" that it can, so this is a static architectural note, not
-            // a live check.
-            results.add(
-                DiagnosticItem(
-                    category = "Payment & Security",
-                    featureName = "Whish Money API Access",
-                    status = DiagnosticStatus.PASSED,
-                    details = "Client no longer calls Whish's API directly or holds a merchant secret — see initiateWhishPayment/wh" +
-                        "ishWebhook/checkWhishStatus Cloud Functions."
-                )
-            )
-
-            // Owner cash-out used to be "tested" here by actually calling
-            // repository.requestCashOut(), which fabricated and persisted a fake
-            // SUCCESS transaction as a side effect of running diagnostics — the same
-            // mutate-live-data-during-a-read-only-check bug already fixed for the RBAC
-            // and booking-lifecycle checks elsewhere in this file. That method has
-            // been removed: it wasn't wired into any real screen, and a real payout
-            // flow needs its own design, not a client-side secret. Nothing to check
-            // here until that flow exists.
-            results.add(
-                DiagnosticItem(
-                    category = "Payment & Security",
-                    featureName = "Owner Cash-Out",
-                    status = DiagnosticStatus.WARNING,
-                    details = "Not yet implemented server-side — the previous client-only flow self-reported success with no real d" +
-                        "isbursement and has been removed."
-                )
-            )
-        } catch (e: Exception) {
-            results.add(
-                DiagnosticItem(
-                    category = "Payment & Security",
-                    featureName = "Financial Subsystem",
-                    status = DiagnosticStatus.FAILED,
-                    details = "Financial audit error: ${e.message}"
-                )
-            )
-        }
-
-        // -------------------------------------------------------------
         // 7. ADMIN GOVERNANCE & DATA EXPORT ENGINE
         // -------------------------------------------------------------
         try {
             val csvSpaces = repository.exportWorkspacesCsv()
             val csvBookings = repository.exportBookingsCsv()
             val csvUsers = repository.exportUsersCsv()
-            val csvTransactions = repository.exportTransactionsCsv()
-
-            val exportsValid = csvSpaces.isNotBlank() && csvBookings.isNotBlank() &&
-                    csvUsers.isNotBlank() && csvTransactions.isNotBlank()
+            val exportsValid = csvSpaces.isNotBlank() && csvBookings.isNotBlank() && csvUsers.isNotBlank()
 
             results.add(
                 DiagnosticItem(
                     category = "Admin Governance",
                     featureName = "Master Data CSV Export Hub",
                     status = if (exportsValid) DiagnosticStatus.PASSED else DiagnosticStatus.FAILED,
-                    details = "Exported 4 dataset formats: Workspaces, Bookings, Users, and Transactions."
+                    details = "Exported 3 dataset formats: Workspaces, Bookings and Users."
                 )
             )
 

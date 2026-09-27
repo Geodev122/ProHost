@@ -50,9 +50,9 @@ import "../lib/admin";
  * cheap format checks (never uniqueness/business rules, which would need a
  * read this function has no reason to do on every plain sign-in call too).
  *
- * `integrityToken`, when present, is checked against Google Play Integrity —
- * see checkPlayIntegrityLogOnly's own doc comment for why this is strictly
- * log-only (never a gate on sign-in) for this initial rollout.
+ * `integrityToken`, when present (release builds only), is enforced by
+ * enforcePlayIntegrity (lib/playIntegrity.ts): user-bound nonce, freshness,
+ * app recognition and licensing verdicts.
  */
 interface RegistrationDraft {
   fullName?: unknown;

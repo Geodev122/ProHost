@@ -1,6 +1,5 @@
 package com.example.data.model
 
-import com.example.data.config.MerchantConfig
 import java.util.UUID
 
 enum class SpaceType(val displayName: String, val iconName: String) {
@@ -1226,85 +1225,6 @@ data class SpaceListing(
     }
 }
 
-enum class TransactionStatus {
-    SUCCESS,
-    PENDING,
-    FAILED
-}
-
-data class WhishTransaction(
-    val id: String,
-    val orderId: String,
-    val amountUsd: Double,
-    val currency: String = "USD",
-    val status: TransactionStatus,
-    val timestamp: Long,
-    val payerName: String,
-    val payerPhone: String,
-    val channelId: String = MerchantConfig.WHISH_CHANNEL_ID,
-    val sourceEmail: String = MerchantConfig.WHISH_MERCHANT_EMAIL,
-    val signatureHash: String,
-    val spaceId: String,
-    val spaceTitle: String,
-    val daysGranted: Int = 30,
-    val userId: String = "",
-    // Written by initiateWhishPayment.ts for every transaction — today always
-    // "OWNER_PACKAGE" (PAYG and the old flat-fee "SUBSCRIPTION" purposes were
-    // retired in Phase 15). targetId is the purchased PackagePlan's id.
-    val purpose: String = "",
-    val targetId: String? = null
-) {
-    fun toFirestoreMap(): Map<String, Any?> {
-        return mapOf(
-            "id" to id,
-            "orderId" to orderId,
-            "amountUsd" to amountUsd,
-            "currency" to currency,
-            "status" to status.name,
-            "timestamp" to timestamp,
-            "payerName" to payerName,
-            "payerPhone" to payerPhone,
-            "channelId" to channelId,
-            "sourceEmail" to sourceEmail,
-            "signatureHash" to signatureHash,
-            "spaceId" to spaceId,
-            "spaceTitle" to spaceTitle,
-            "daysGranted" to daysGranted,
-            "userId" to userId,
-            "purpose" to purpose,
-            "targetId" to targetId
-        )
-    }
-
-    companion object {
-        const val COLLECTION_PATH = "whish_transactions"
-
-        fun fromFirestoreMap(docId: String, data: Map<String, Any?>): WhishTransaction {
-            val statusStr = data["status"] as? String ?: TransactionStatus.PENDING.name
-            val stat = runCatching { TransactionStatus.valueOf(statusStr) }.getOrDefault(TransactionStatus.PENDING)
-            return WhishTransaction(
-                id = docId,
-                orderId = data["orderId"] as? String ?: "",
-                amountUsd = (data["amountUsd"] as? Number)?.toDouble() ?: 0.0,
-                currency = data["currency"] as? String ?: "USD",
-                status = stat,
-                timestamp = (data["timestamp"] as? Number)?.toLong() ?: System.currentTimeMillis(),
-                payerName = data["payerName"] as? String ?: "",
-                payerPhone = data["payerPhone"] as? String ?: "",
-                channelId = data["channelId"] as? String ?: MerchantConfig.WHISH_CHANNEL_ID,
-                sourceEmail = data["sourceEmail"] as? String ?: MerchantConfig.WHISH_MERCHANT_EMAIL,
-                signatureHash = data["signatureHash"] as? String ?: "",
-                spaceId = data["spaceId"] as? String ?: "",
-                spaceTitle = data["spaceTitle"] as? String ?: "",
-                daysGranted = (data["daysGranted"] as? Number)?.toInt() ?: 30,
-                userId = data["userId"] as? String ?: "",
-                purpose = data["purpose"] as? String ?: "",
-                targetId = data["targetId"] as? String
-            )
-        }
-    }
-}
-
 enum class UserRole(val displayName: String) {
     SPECIALIST("Specialist"),
     PRO_HOST("Pro Host"),
@@ -1667,7 +1587,7 @@ data class PackagePlan(
     val sortOrder: Int = 0,
     /** Admin-set: featured plans receive a "Most Popular" highlight on the Subscriptions screen. */
     val isFeatured: Boolean = false,
-    /** Subscription product ID in Google Play Console (e.g. "prohost_starter_30d"). Empty means Whish-only. */
+    /** Google Play subscription ID; empty means the catalog id is the Play ID. */
     val googlePlayProductId: String = "",
     /** Admin-grant only (e.g. [UNLIMITED_GRANT_PLAN_ID]); never offered for purchase. */
     val isGrantOnly: Boolean = false

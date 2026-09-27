@@ -3,7 +3,6 @@ package com.example.data.repository
 import android.util.Log
 import com.example.data.auth.FirebaseFunctionsClient
 import com.example.data.auth.RegistrationDetails
-import com.example.data.crypto.WhishSecurity
 import com.example.data.firestore.FirestoreSchema
 import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
@@ -74,8 +73,6 @@ class ProHostRepository {
     private val _syncStatusMessage = MutableStateFlow<String?>("Synced with Lebanese Cloud Network")
     val syncStatusMessage: StateFlow<String?> = _syncStatusMessage.asStateFlow()
 
-    private val _pendingOfflineTransactions = MutableStateFlow<List<WhishTransaction>>(emptyList())
-    val pendingOfflineTransactions: StateFlow<List<WhishTransaction>> = _pendingOfflineTransactions.asStateFlow()
 
     private val _fcmAlerts = MutableStateFlow<List<FCMAlert>>(emptyList())
     val fcmAlerts: StateFlow<List<FCMAlert>> = _fcmAlerts.asStateFlow()
@@ -96,8 +93,6 @@ class ProHostRepository {
     private val _spaces = MutableStateFlow<List<SpaceListing>>(emptyList())
     val spaces: StateFlow<List<SpaceListing>> = _spaces.asStateFlow()
 
-    private val _transactions = MutableStateFlow<List<WhishTransaction>>(emptyList())
-    val transactions: StateFlow<List<WhishTransaction>> = _transactions.asStateFlow()
 
     private val _users = MutableStateFlow<List<AppUser>>(emptyList())
     val users: StateFlow<List<AppUser>> = _users.asStateFlow()
@@ -161,7 +156,7 @@ class ProHostRepository {
         // public, role-independent listeners at that point). Before this,
         // startRealtimeSync() only ever ran once, in this init block, before any
         // user was ever signed in — so the four role-conditional collections
-        // (workspace_listings, user_profiles, booking_requests, whish_transactions
+        // (workspace_listings, user_profiles, booking_requests
         // — see FirestoreService.attachLiveListeners's own doc comment) were
         // always scoped to "signed out" and never re-scoped on sign-in, sign-out,
         // account switch, or an Admin promotion/demotion mid-session.
@@ -235,10 +230,6 @@ class ProHostRepository {
                     _subscriptionFormulas.value = updatedFormulas
                     _isCloudConnected.value = true
                 },
-                onTransactionsUpdated = { updatedTransactions ->
-                    _transactions.value = updatedTransactions
-                    _isCloudConnected.value = true
-                },
                 onSchemaUpdated = { updatedSchema ->
                     _spaceArchitectureSchema.value = updatedSchema
                     _isCloudConnected.value = true
@@ -256,8 +247,7 @@ class ProHostRepository {
             // configured pricing on this project, use it; otherwise keep the local
             // AdminPricingState() defaults, which match the fallback defaults
             // functions/src/lib/pricing.ts uses server-side when the doc doesn't
-            // exist yet — no client write needed to give initiateWhishPayment
-            // something real to read. Writing system_metadata/pricing at all is now
+            // exist yet — no client write needed. Writing system_metadata/pricing at all is now
             // exclusively the updatePricing Cloud Function's job (Phase 7 rules deny
             // every client write to it, admin or not).
             coroutineScope.launch {
@@ -271,23 +261,6 @@ class ProHostRepository {
             _isOfflineMode.value = true
             _syncStatusMessage.value = "Offline Cache Active"
         }
-    }
-
-    fun queueOfflineTransaction(tx: WhishTransaction) {
-        _pendingOfflineTransactions.value = _pendingOfflineTransactions.value + tx
-        _syncStatusMessage.value = "Transaction stored in resilient offline queue"
-    }
-
-    fun retryOfflineTransactions() {
-        if (_pendingOfflineTransactions.value.isEmpty()) return
-        val pending = _pendingOfflineTransactions.value
-        _pendingOfflineTransactions.value = emptyList()
-        _syncStatusMessage.value = "Recovered & synced ${pending.size} offline transactions"
-        addAuditLog(
-            actionType = "OFFLINE_TX_RECOVERED",
-            details = "Successfully processed ${pending.size} pending offline transactions upon network reconnect",
-            severity = "SECURE"
-        )
     }
 
     // Demo/placeholder listings below are seeded so the app has something to show before
@@ -343,7 +316,6 @@ class ProHostRepository {
         )
         _spaces.value = initialSpaces
 
-        _transactions.value = emptyList()
         _bookingRequests.value = emptyList()
     }
 
@@ -387,38 +359,20 @@ class ProHostRepository {
         _auditLogs.value = listOf(log) + _auditLogs.value
     }
 
-    // --- Admin Governance & Revenue Pricing ---
-    // Firestore rules deny every client write to system_metadata (it's read
-    // server-side by initiateWhishPayment to compute real charge amounts), so this
-    // now goes through the updatePricing Cloud Function instead of a direct write —
-    // it also writes its own audit log entry, so this intentionally doesn't call
-    // addAuditLog itself.
+    // --- Admin Governance (system_metadata/pricing) ---
+    // Firestore rules deny every client write to system_metadata, so this goes
+    // through the updatePricing Cloud Function, which also writes the audit entry.
     /** Returns whether the server actually accepted the change. */
     private suspend fun persistPricingState(fields: Map<String, Any>): Boolean {
         return functionsClient.updatePricing(fields).isSuccess
-    }
-
-    /** Returns whether the change actually succeeded, so the caller can show a real result. */
-    suspend fun updateMonthlySubscriptionFee(newFeeUsd: Double): Boolean {
-        val oldFee = _pricingState.value.monthlySubscriptionFeeUsd
-        val success = persistPricingState(mapOf("monthlySubscriptionFeeUsd" to newFeeUsd))
-        if (success) {
-            _pricingState.value = _pricingState.value.copy(monthlySubscriptionFeeUsd = newFeeUsd)
-            addLocalAuditLogEntry(
-                actionType = "PRICING_ADJUSTMENT",
-                details = "Monthly fee changed from $${String.format(Locale.US, "%.2f", oldFee)} to $${String.format(Locale.US, "%.2f", newFeeUsd)} USD",
-                severity = "WARN"
-            )
-        }
-        return success
     }
 
     // --- Admin-Managed Package Plans ---
     // Mirrors the Dynamic Space Architecture Schema Management block below (add/
     // toggle/delete via a direct, admin-role-gated Firestore write — no dedicated
     // Cloud Function needed for basic CRUD, matching SchemaItem's own pattern).
-    // The purchase-time price/validity lookup and expiry sweep remain genuine
-    // Cloud-Function trust-boundary logic (initiateWhishPayment.ts/expirePackages.ts).
+    // Prices and billing periods come from Google Play; entitlement and expiry are
+    // server-side (playBillingRtdn.ts / expirePackages.ts).
 
     /** Current published version of legal document [docId] ("privacy_policy" /
      * "terms_of_use" / "revocation_policy"), or null if never uploaded. Thin
@@ -520,32 +474,6 @@ class ProHostRepository {
         }
         return success
     }
-
-    suspend fun resetMonthlySubscriptionFee(): Boolean {
-        val baseline = _pricingState.value.baselineFeeUsd
-        val success = persistPricingState(mapOf("monthlySubscriptionFeeUsd" to baseline))
-        if (success) {
-            _pricingState.value = _pricingState.value.copy(monthlySubscriptionFeeUsd = baseline)
-            addLocalAuditLogEntry(
-                actionType = "PRICING_RESET",
-                details = "Monthly fee reset to official baseline $${String.format(Locale.US, "%.2f", baseline)} USD",
-                severity = "INFO"
-            )
-        }
-        return success
-    }
-
-    // --- Whish Pay Settlement Ledger ---
-    // processWhishPaySubscription/processOwnerPackagePayment/processPaygListingPayment/
-    // processWhishPayBooking used to live here: each one locally fabricated a "SUCCESS"
-    // WhishTransaction and granted the entitlement immediately, with no payment having
-    // actually happened — the client both decided the price AND self-reported success.
-    // Payment now goes through the initiateWhishPayment/whishWebhook/checkWhishStatus
-    // Cloud Functions (functions/src/payments/), which compute the real amount
-    // server-side and only grant entitlements after independently confirming success
-    // with Whish's own status API. Transactions arrive here via the whish_transactions
-    // Firestore listener (see startRealtimeSync) — the repository is a read-only
-    // observer of payment state now, not the thing deciding it.
 
     /**
      * Exports the System Audit Logs panel's content (optionally date-range filtered) —
@@ -1454,19 +1382,9 @@ class ProHostRepository {
         val withDoc = target.copy(verificationDocUrl = docUrl, verificationDocType = docType)
         if (!saveUpdatedSpace(withDoc)) return false
 
-        val result = functionsClient.requestListingVerification(spaceId)
-        if (result.isSuccess) {
-            // Does NOT flip isVerified locally — the badge is only granted once an
-            // Admin actually reviews the document (Admin Console's Listings Catalog,
-            // "Pending Review" filter) and calls setListingVerification. The live
-            // Firestore listener picks up that flip whenever it happens.
-            addAuditLog(
-                actionType = "LISTING_VERIFICATION_REQUESTED",
-                details = "Owner submitted workspace #$spaceId for verification review ($docType document on file).",
-                severity = "INFO"
-            )
-        }
-        return result.isSuccess
+        // Doesn't flip isVerified locally: the badge is granted only when an Admin reviews
+        // the document and calls setListingVerification; the live listener picks that up.
+        return functionsClient.requestListingVerification(spaceId).isSuccess
     }
 
     /**
@@ -2209,7 +2127,7 @@ class ProHostRepository {
     // login()/registerMember() paths above, which require a role already verified via
     // a Firebase Auth custom claim, through the grantAdminRole Cloud Function for an
     // explicit Admin grant, or through grantEntitlement() promoting a SPECIALIST to
-    // PRO_HOST the moment their package/listing Whish payment settles.
+    // PRO_HOST the moment their Google Play subscription activates.
 
     suspend fun updateCurrentUserProfile(
         name: String,
@@ -2364,51 +2282,24 @@ class ProHostRepository {
     // --- Multi-Format Data Export Hub ---
     fun exportToJson(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
-        val usersById = _users.value.associateBy { it.id }
-        val plansById = _packagePlans.value.packages
-        val mrrActive = _spaces.value.filter { it.isActiveSubscription }.distinctBy { it.ownerId }
-            .sumOf { usersById[it.ownerId]?.ownerPackageId?.let { id -> plansById[id]?.priceUsd } ?: 0.0 }
-        val mrrCapacity = _spaces.value.distinctBy { it.ownerId }
-            .sumOf { usersById[it.ownerId]?.ownerPackageId?.let { id -> plansById[id]?.priceUsd } ?: 0.0 }
-        val annualRate = mrrActive * 12.0
+        fun esc(v: String) = v.replace("\\", "\\\\").replace("\"", "\\\"")
         val sb = StringBuilder()
         sb.appendLine("{")
         sb.appendLine("  \"platform\": \"ProHost\",")
         sb.appendLine("  \"exportedAt\": \"${sdf.format(Date())}\",")
-        sb.appendLine("  \"adminGovernance\": {")
-        sb.appendLine("    \"currentMonthlyFeeUsd\": ${_pricingState.value.monthlySubscriptionFeeUsd},")
-        sb.appendLine("    \"mrrActiveUsd\": $mrrActive,")
-        sb.appendLine("    \"potentialCapacityMrrUsd\": $mrrCapacity,")
-        sb.appendLine("    \"annualRunRateUsd\": $annualRate,")
-        sb.appendLine("    \"merchantChannelId\": \"${WhishSecurity.CHANNEL_ID}\",")
-        sb.appendLine("    \"merchantSourceEmail\": \"${WhishSecurity.SOURCE_EMAIL}\"")
-        sb.appendLine("  },")
+        sb.appendLine("  \"proHostCount\": ${_users.value.count { it.role == UserRole.PRO_HOST }},")
         sb.appendLine("  \"totalSpacesCount\": ${_spaces.value.size},")
         sb.appendLine("  \"spaces\": [")
         _spaces.value.forEachIndexed { index, s ->
             val comma = if (index < _spaces.value.size - 1) "," else ""
             sb.appendLine("    {")
-            sb.appendLine("      \"id\": \"${s.id}\",")
-            sb.appendLine("      \"title\": \"${s.title.replace("\"", "\\\"")}\",")
+            sb.appendLine("      \"id\": \"${esc(s.id)}\",")
+            sb.appendLine("      \"title\": \"${esc(s.title)}\",")
             sb.appendLine("      \"type\": \"${s.spaceType.name}\",")
-            sb.appendLine("      \"governorate\": \"${s.governorate.name}\",")
-            sb.appendLine("      \"district\": \"${s.district}\",")
-            sb.appendLine("      \"monthlyPriceUsd\": ${s.baseMonthlyRateUsd},")
-            sb.appendLine("      \"owner\": \"${s.ownerName}\",")
-            sb.appendLine("      \"isActiveSubscription\": ${s.isActiveSubscription}")
-            sb.appendLine("    }$comma")
-        }
-        sb.appendLine("  ],")
-        sb.appendLine("  \"transactionsLedger\": [")
-        _transactions.value.forEachIndexed { index, tx ->
-            val comma = if (index < _transactions.value.size - 1) "," else ""
-            sb.appendLine("    {")
-            sb.appendLine("      \"txId\": \"${tx.id}\",")
-            sb.appendLine("      \"orderId\": \"${tx.orderId}\",")
-            sb.appendLine("      \"amountUsd\": ${tx.amountUsd},")
-            sb.appendLine("      \"status\": \"${tx.status}\",")
-            sb.appendLine("      \"signatureHash\": \"${tx.signatureHash}\",")
-            sb.appendLine("      \"payer\": \"${tx.payerName}\"")
+            sb.appendLine("      \"country\": \"${esc(s.country)}\",")
+            sb.appendLine("      \"city\": \"${esc(s.city)}\",")
+            sb.appendLine("      \"status\": \"${s.status.name}\",")
+            sb.appendLine("      \"owner\": \"${esc(s.ownerName)}\"")
             sb.appendLine("    }$comma")
         }
         sb.appendLine("  ]")
@@ -2418,53 +2309,21 @@ class ProHostRepository {
 
     fun exportToAuditText(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
-        val usersById = _users.value.associateBy { it.id }
-        val plansById = _packagePlans.value.packages
-        val mrrActive = _spaces.value.filter { it.isActiveSubscription }.distinctBy { it.ownerId }
-            .sumOf { usersById[it.ownerId]?.ownerPackageId?.let { id -> plansById[id]?.priceUsd } ?: 0.0 }
-        val mrrCapacity = _spaces.value.distinctBy { it.ownerId }
-            .sumOf { usersById[it.ownerId]?.ownerPackageId?.let { id -> plansById[id]?.priceUsd } ?: 0.0 }
-        val annualRate = mrrActive * 12.0
-        val settlementSum = _transactions.value.filter { it.status == TransactionStatus.SUCCESS }.sumOf { it.amountUsd }
-        return """
-================================================================================
-                       PROHOST LEBANON AUDIT & REVENUE REPORT
-================================================================================
-Generated: ${sdf.format(Date())}
-System Status: HEALTHY | Compliance Engine: SECURE MD5 CRYPTO
-
-[1] FINANCIAL & PRICING METRICS
---------------------------------------------------------------------------------
-Monthly Subscription Fee (USD) : $${String.format(Locale.US, "%.2f", _pricingState.value.monthlySubscriptionFeeUsd)} / space owner
-Active Subscribed Spaces        : ${_spaces.value.count { it.isActiveSubscription }} / ${_spaces.value.size} Total Spaces
-Active Monthly Recurring (MRR) : $${String.format(Locale.US, "%.2f", mrrActive)} USD
-100% Capacity Potential MRR    : $${String.format(Locale.US, "%.2f", mrrCapacity)} USD
-Projected Annual Run-Rate (ARR): $${String.format(Locale.US, "%.2f", annualRate)} USD
-Total Whish Settlement Volume  : $${String.format(Locale.US, "%.2f", settlementSum)} USD
-
-[2] WHISH PAY GATEWAY SETTLEMENT LEDGER
---------------------------------------------------------------------------------
-Channel ID    : ${WhishSecurity.CHANNEL_ID}
-Merchant Email: ${WhishSecurity.SOURCE_EMAIL}
-Auth Signature: MD5(channel|amount|currency|orderId|secretKey)
-
-TRANSACTIONS:
-${_transactions.value.joinToString("\n") { tx ->
-    "• [${tx.status}] ${tx.id} | Order: ${tx.orderId} | $${String.format(Locale.US, "%.2f", tx.amountUsd)}" +
-        " USD | Payer: ${tx.payerName} (${tx.payerPhone}) | Sig: ${tx.signatureHash.take(16)}..."
-}}
-
-[3] INVENTORY & LISTINGS CATALOG
---------------------------------------------------------------------------------
-${_spaces.value.joinToString("\n") { sp ->
-    "• [${if (sp.isActiveSubscription) "ACTIVE (30d)" else "EXPIRED"}] ${sp.id}: ${sp.title} (${sp.governorate.displayName}" +
-        " - ${sp.district}) | Base Rate: $${sp.baseMonthlyRateUsd}/mo | Owner: ${sp.ownerName}"
-}}
-
-================================================================================
-                      END OF PROHOST AUDIT LEDGER
-================================================================================
-        """.trimIndent()
+        val active = _spaces.value.count { it.status == ListingStatus.ACTIVE }
+        return buildString {
+            appendLine("PROHOST PLATFORM REPORT")
+            appendLine("Generated: ${sdf.format(Date())}")
+            appendLine()
+            appendLine("Users: ${_users.value.size} (Pro Hosts: ${_users.value.count { it.role == UserRole.PRO_HOST }})")
+            appendLine("Listings: ${_spaces.value.size} (published: $active)")
+            appendLine("Revenue: see Google Play Console (subscriptions are billed by Google Play).")
+            appendLine()
+            appendLine("LISTINGS")
+            _spaces.value.forEach { sp ->
+                val place = listOf(sp.city, sp.country).filter { it.isNotBlank() }.joinToString(", ")
+                appendLine("• [${sp.status.name}] ${sp.id}: ${sp.title} ($place) | Owner: ${sp.ownerName}")
+            }
+        }
     }
 
     /** Millis -> "yyyy-MM-dd HH:mm:ss", or "—" when the server hasn't stamped this account yet. */
@@ -2596,23 +2455,6 @@ ${_spaces.value.joinToString("\n") { sp ->
         return sb.toString()
     }
 
-    fun exportTransactionsToCsv(): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
-        val sb = StringBuilder()
-        sb.appendLine("=== PROHOST WHISH PAY TRANSACTIONS LEDGER (CSV) ===")
-        sb.appendLine("Export Date,${sdf.format(Date())}")
-        sb.appendLine("Total Transactions,${_transactions.value.size}")
-        sb.appendLine("Total Volume USD,${_transactions.value.filter { it.status == TransactionStatus.SUCCESS }.sumOf { it.amountUsd }}")
-        sb.appendLine()
-        sb.appendLine("Transaction ID,Order ID,Amount USD,Status,Date,Payer Name,Payer Phone,Space ID,Signature Hash,Channel ID")
-        _transactions.value.forEach { tx ->
-            sb.appendLine("\"${tx.id}\",\"${tx.orderId}\",${tx.amountUsd},\"${tx.status}\",\"${sdf.format(Date(tx.timestamp))}\"" +
-                ",\"${tx.payerName}\",\"${tx.payerPhone}\",\"${tx.spaceId}\",\"${tx.signatureHash}\",\"${tx.channelId}" +
-                "\"")
-        }
-        return sb.toString()
-    }
-
     fun exportWorkspacesCsv(): String = exportListingsToCsv()
 
     fun exportBookingsCsv(): String {
@@ -2631,16 +2473,6 @@ ${_spaces.value.joinToString("\n") { sp ->
     }
 
     fun exportUsersCsv(): String = exportOwnerRegistrationsToCsv()
-
-    fun exportTransactionsCsv(): String = exportTransactionsToCsv()
-
-    // Owner cash-out was never a real feature: it wasn't wired into any screen, and
-    // the "request" it used to build self-reported an instant SUCCESS with no actual
-    // Whish disbursement call — the same trust-the-client pattern removed from the
-    // real payment flows in Phase 5. Removed rather than fixed in place, since a
-    // real payout flow (does Whish's API even support merchant-to-user transfers?
-    // is this a manual settlement admins confirm, like most local integrations?) is
-    // a product decision, not a security patch.
 
     /** One-shot fetch of the KYC ID review queue for the Admin Console ID Review tab. */
     suspend fun loadIdReviewQueue(): List<IdReviewEntry> = firestoreService.loadIdReviewQueue()

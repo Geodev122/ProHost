@@ -53,7 +53,6 @@ fun MyBookingsScreen(
     val allBookingRequests by viewModel.bookingRequests.collectAsState()
     val hasLoadedBookingsOnce by viewModel.hasLoadedBookingsOnce.collectAsState()
     val isOffline by viewModel.isOfflineMode.collectAsState()
-    val pendingOfflineTx by viewModel.pendingOfflineTransactions.collectAsState()
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
 
     // Filter reservations belonging to the current logged-in user

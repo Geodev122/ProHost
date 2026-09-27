@@ -13,7 +13,6 @@ package com.example.data.firestore
 object FirestoreSchema {
 
     const val SCHEMA_VERSION = "2.0.0"
-    const val DATA_CONNECT_SERVICE_ID = "prospace-dataconnect-medlb"
     const val DEFAULT_DATABASE_ID = "(default)"
 
     // Core Collections
@@ -22,7 +21,6 @@ object FirestoreSchema {
         const val USER_PROFILES = "user_profiles"
         const val SUBSCRIPTION_FORMULAS = "subscription_formulas"
         const val BOOKING_REQUESTS = "booking_requests"
-        const val WHISH_TRANSACTIONS = "whish_transactions"
         const val AUDIT_SECURITY_LOGS = "audit_security_logs"
         const val SYSTEM_METADATA = "system_metadata"
         const val SCHEMA_ARCHITECTURE = "schema_architecture"

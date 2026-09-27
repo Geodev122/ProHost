@@ -12,7 +12,7 @@ interface RevokeProHostRoleData {
 
 /**
  * The downgrade path PRO_HOST never had — once granted (exclusively via a
- * settled Whish OWNER_PACKAGE payment, see grantEntitlement()),
+ * Google Play subscription or an admin grant),
  * a host previously only ever fell back to SPECIALIST passively, by letting
  * ownerPackageExpiryMillis lapse; there was no explicit Admin action to
  * revoke it outright (e.g. for a policy violation). Admin-only.

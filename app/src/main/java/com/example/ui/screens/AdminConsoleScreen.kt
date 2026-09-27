@@ -40,7 +40,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.data.crypto.WhishSecurity
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.state.AdminUiEvent
@@ -1667,7 +1666,7 @@ private fun AdminSchemaArchitectureTab(
                         text = "• Collection: 'workspace_listings' (Documents: SpaceListing)\n" +
                                 "• Collection: 'user_profiles' (Documents: AppUser)\n" +
                                 "• Collection: 'booking_requests' (Documents: RentalBookingRequest)\n" +
-                                "• Collection: 'whish_transactions' (Documents: WhishTransaction)\n" +
+                                "• Collection: 'package_plans' (Documents: PackagePlanCatalog)\n" +
                                 "• Collection: 'audit_security_logs' (Documents: AuditSecurityLog)\n" +
                                 "• Collection: 'system_metadata' (Documents: AdminPricingState)\n" +
                                 "• Collection: 'hashtag_usage' (Documents: HashtagUsageEntry)\n" +

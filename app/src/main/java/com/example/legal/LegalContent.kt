@@ -94,9 +94,8 @@ object LegalContent {
                     "infrastructure.",
                     "We do not collect payment-card or bank-account data of any kind. ProHost has no in-app payment processing for booking rent " +
                     "— Specialists and Pro Hosts settle rent between themselves, outside the app, by whatever means they agree (commonly cash or " +
-                    "bank transfer); subscription/package fees for Pro Host listing tiers, where applicable, are processed through Whish Money, " +
-                    "a third-party Lebanese payment provider, and ProHost's servers only ever receive a payment confirmation from Whish, never " +
-                    "your card or wallet credentials."
+                    "bank transfer); Pro Host subscription fees are processed by Google Play, and ProHost's servers only ever receive a " +
+                    "subscription status from Google Play, never your card or payment credentials."
                 )
             ),
             LegalSection(
@@ -123,8 +122,8 @@ object LegalContent {
                     "Firestore), file storage (Cloud Storage), push notifications (Cloud Messaging), and serverless backend logic (Cloud " +
                     "Functions) all run on Firebase. Data may accordingly be processed and stored on Google's servers outside Lebanon (see " +
                     "Section 6, International Transfers).",
-                    "Whish Money: receives only the minimum information needed to process a subscription/package payment you initiate (your " +
-                    "name, phone, and the amount) — it never receives, and ProHost never stores, your card or wallet credentials.",
+                    "Google Play: processes Pro Host subscription payments under Google's own terms and privacy policy; ProHost receives only " +
+                    "the subscription status (plan, renewal date, order reference), never your card or payment credentials.",
                     "The other party to a booking or Listing: a Specialist's name, specialty, and contact details are shared with a Pro Host " +
                     "when the Specialist submits a booking request to that Pro Host's Listing (and vice versa) — this is inherent to how the " +
                     "marketplace functions, and cannot be turned off without disabling the booking feature itself for your account.",
@@ -254,8 +253,8 @@ object LegalContent {
                     "never needs to submit a government-issued ID document and is not subject to identity verification (KYC) of any kind.",
                     "The \"Pro Host\" role — someone offering a workspace for rent and paying to list it — is granted automatically and " +
                     "exclusively once you (1) complete identity verification (see Section 3) and (2) successfully pay a Pro Host " +
-                    "subscription/package fee via Google Play in-app purchase or Whish Money; there is no other way to obtain it, and ProHost " +
-                    "Administrators do not grant it manually or for free except in the ordinary operation of that verification-then-payment flow.",
+                    "subscription fee via Google Play in-app purchase. ProHost Administrators may also grant Pro Host access directly, for a " +
+                    "set period or without expiry (for example as complimentary or promotional access).",
                     "You are responsible for maintaining the confidentiality of your account and for all activity that occurs under it. Notify " +
                     "us immediately if you suspect unauthorized access."
                 )
@@ -304,9 +303,9 @@ object LegalContent {
                     "hold, or disburse rental payments, and has no visibility into whether or how rent was actually paid beyond what either " +
                     "party chooses to record via the in-app \"Payment Due Reminder\" feature (which is a courtesy notification only, not proof " +
                     "of payment or non-payment).",
-                    "Where a Pro Host subscription/package fee applies, it is processed through Google Play (on Android) or Whish Money at the " +
-                    "price displayed in-app at the time of purchase. Fees, once successfully charged, are non-refundable except where required " +
-                    "by Lebanese consumer-protection law or expressly stated otherwise by ProHost.",
+                    "Pro Host subscription fees are processed by Google Play at the price and billing period shown in-app before purchase, and " +
+                    "renew automatically until you cancel in Google Play. Refunds are handled under Google Play's refund policies, and otherwise " +
+                    "only where required by applicable consumer-protection law or expressly stated by ProHost.",
                     "ProHost is not responsible for, and disclaims all liability arising from, any dispute between a Specialist and a Pro Host " +
                     "over rent, damages, deposits, or any other term of their leasing arrangement — you are strongly encouraged to document your " +
                     "agreement clearly and to consider your own legal recourse under ordinary Lebanese contract and tenancy principles for any " +

@@ -69,7 +69,7 @@ class FirebaseFunctionsClient {
     // requestRoleUpgrade Cloud Function) is gone: PRO_HOST is no longer a role
     // anyone can just ask for. It's granted exclusively, server-side, by
     // functions/src/lib/entitlements.ts's grantEntitlement() the moment a
-    // SPECIALIST's OWNER_PACKAGE or PAYG_LISTING Whish payment actually settles
+    // SPECIALIST's Google Play subscription activates or an admin grants access
     // — see ProHostRepository.refreshCurrentUserAfterEntitlement(), called
     // once client-side polling observes that success.
 

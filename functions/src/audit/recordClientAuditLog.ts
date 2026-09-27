@@ -19,7 +19,7 @@ const ALLOWED_SEVERITIES = ["INFO", "WARN", "SECURE"];
  * does NOT include actionTypes that are only ever written by a dedicated
  * Cloud Function directly (setListingVerification's VERIFICATION_OVERRIDE,
  * grantAdminRole's ADMIN_ROLE_GRANTED, setAccountSuspended's ACCOUNT_SUSPENDED,
- * WHISH_PAYMENT_SUCCESS, etc.) — without this allowlist, any signed-in user
+ * PACKAGE_GRANTED, etc.) — without this allowlist, any signed-in user
  * could call this function directly (bypassing the UI entirely) with one of
  * those exact strings and insert a fabricated entry into the real audit log
  * that's, at a glance, indistinguishable from a genuine Admin/server action
@@ -29,12 +29,11 @@ const ALLOWED_SEVERITIES = ["INFO", "WARN", "SECURE"];
  * site.
  */
 const ALLOWED_CLIENT_ACTION_TYPES = new Set([
-  "OFFLINE_TX_RECOVERED",
   "LISTING_CREATED",
   "LISTING_DRAFT_SAVED",
   "LISTING_UPDATED",
   "LISTING_DELETED",
-  "LISTING_BLOCKED_PACKAGE_LIMIT",
+  "LISTING_BLOCKED_NO_PACKAGE",
   "USER_UPDATED",
   "USER_DELETED",
   "SCHEMA_ITEM_ADDED",
@@ -62,6 +61,21 @@ const ALLOWED_CLIENT_ACTION_TYPES = new Set([
 ]);
 
 /**
+ * Admin Console actions logged by the client after a direct admin-only write
+ * (package catalog, schema, legal documents, governance). Accepted only when the
+ * caller's token role is ADMIN, so a regular user can't forge them.
+ */
+const ADMIN_CLIENT_ACTION_TYPES = new Set([
+  "LEGAL_DOCUMENT_PUBLISHED",
+  "PACKAGE_PLAN_ADDED",
+  "PACKAGE_PLAN_UPDATED",
+  "PACKAGE_PLAN_TOGGLED",
+  "PACKAGE_PLAN_DELETED",
+  "SCHEMA_ITEM_UPDATED",
+  "SCHEMA_ITEM_PRICING_UPDATED",
+]);
+
+/**
  * The only remaining path for routine, non-admin audit log entries (booking
  * created/accepted, document removed, profile edited, etc.) now that
  * audit_security_logs denies every direct client write. Unlike the old
@@ -85,8 +99,12 @@ export const recordClientAuditLog = onCall<RecordClientAuditLogData>(async (requ
   if (!actionType || typeof actionType !== "string" || !details || typeof details !== "string") {
     throw new HttpsError("invalid-argument", "actionType and details are required strings.");
   }
-  if (!ALLOWED_CLIENT_ACTION_TYPES.has(actionType)) {
+  const isAdminAction = ADMIN_CLIENT_ACTION_TYPES.has(actionType);
+  if (!ALLOWED_CLIENT_ACTION_TYPES.has(actionType) && !isAdminAction) {
     throw new HttpsError("invalid-argument", `Unknown actionType: ${actionType}`);
+  }
+  if (isAdminAction && auth.token.role !== "ADMIN") {
+    throw new HttpsError("permission-denied", "Only an Admin can record this action.");
   }
 
   await recordAuditLog({

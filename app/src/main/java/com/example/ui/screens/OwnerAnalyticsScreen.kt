@@ -320,7 +320,7 @@ fun OwnerAnalyticsScreen(
             }
         }
 
-        // Active Listings Health & Whish Status
+        // Active Listings Health
         item {
             ProSectionHeader(
                 title = "My Listings",

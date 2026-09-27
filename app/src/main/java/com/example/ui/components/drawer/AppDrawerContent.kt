@@ -55,13 +55,13 @@ private const val SUPPORT_EMAIL = "admin@pro-host.tech"
  *      that's what My Bookings' own filter chips are for.
  *   3. Every remaining item represents a genuinely distinct workflow or a
  *      piece of content that lives nowhere else (Subscription & Packages,
- *      Stats, Whish Money Transactions, the two static-content bulletins,
+ *      Stats, Billing, the two static-content bulletins,
  *      Legal). "PRO HOST" is the only section whose contents differ by
  *      role — a single "Become a Pro Host" CTA for a SPECIALIST (opens
  *      package purchasing full-screen), or the real Pro Host destination
  *      list for a PRO_HOST (each also opens full-screen — see
  *      PRO_HOST_FULLSCREEN_TABS in ProHostNavGraph.kt). Host-only resource
- *      links (Whish transactions, guidelines) only show once actually
+ *      links (billing, guidelines) only show once actually
  *      promoted to PRO_HOST; everything else here is genuinely cross-role
  *      (rent-law reference content, app updates, legal documents), so it's
  *      shown to both rather than hidden for one and not the other.
@@ -244,9 +244,9 @@ fun SpecialistDrawerContent(
             )
             Spacer(modifier = Modifier.height(Spacing.xs))
             NavigationDrawerItem(
-                label = { Text("Transactions", fontWeight = FontWeight.Bold) },
+                label = { Text("Billing", fontWeight = FontWeight.Bold) },
                 selected = false,
-                onClick = { onDrawerAction("owner_whish") },
+                onClick = { onDrawerAction("owner_billing") },
                 icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                 colors = NavigationDrawerItemDefaults.colors(
                     selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),

@@ -4,9 +4,7 @@ package com.example.util
  * Builds the public, shareable URL for a listing — pro-host.tech, ProHost's
  * own marketing/App-Link domain (a real registered domain, connected as a
  * custom domain on this same Firebase Hosting site, already carrying the
- * marketing landing page and legal docs). NOT hopebearer-award.com — that
- * domain is reserved solely for Whish's payment-gateway channel API
- * configuration and must not be reused for anything else. NOT the raw
+ * marketing landing page and legal docs). NOT the raw
  * prohost-f766f.web.app Firebase default either, now that a real branded
  * domain exists. pro-host.tech serves the exact same Hosting deployment
  * (including /.well-known/assetlinks.json), so it needs no extra setup to

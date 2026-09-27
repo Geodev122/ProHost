@@ -7,6 +7,7 @@ const PACKAGE_NAME = "app.geonajjar.prohost";
 
 interface DecodedIntegrityToken {
   tokenPayloadExternal?: {
+    requestDetails?: { requestPackageName?: string; nonce?: string; timestampMillis?: string };
     appIntegrity?: {
       appRecognitionVerdict?: string;
       packageName?: string;
@@ -64,6 +65,28 @@ async function decodeIntegrityToken(
   }
 }
 
+const MAX_TOKEN_AGE_MS = 10 * 60 * 1000;
+
+/**
+ * Rejects tokens requested for another app, too long ago, or for another user. The
+ * app's nonce is base64url("<uid>:<random>") (PlayIntegrityManager.requestIntegrityToken),
+ * so a token captured from one account can't be replayed for another.
+ */
+function assertRequestBinding(
+  details: { requestPackageName?: string; nonce?: string; timestampMillis?: string } | undefined,
+  uid: string
+): void {
+  const fail = (reason: string): never => {
+    logger.warn("play_integrity_request_binding_failed", { uid, reason });
+    throw new HttpsError("failed-precondition", "App integrity check failed. Please try again.");
+  };
+  if (details?.requestPackageName !== PACKAGE_NAME) fail("package_mismatch");
+  const ts = Number(details?.timestampMillis);
+  if (!Number.isFinite(ts) || Math.abs(Date.now() - ts) > MAX_TOKEN_AGE_MS) fail("stale_token");
+  const nonceText = Buffer.from(details?.nonce ?? "", "base64url").toString("utf8");
+  if (!nonceText.startsWith(`${uid}:`)) fail("nonce_user_mismatch");
+}
+
 /**
  * Enforces Play Integrity verdicts matching the enabled checks in Play Console:
  *
@@ -89,6 +112,7 @@ export async function enforcePlayIntegrity(token: string, uid: string): Promise<
   if (!decoded) return; // decode failure is non-blocking
 
   const payload = decoded.tokenPayloadExternal;
+  assertRequestBinding(payload?.requestDetails, uid);
   const appVerdict = payload?.appIntegrity?.appRecognitionVerdict;
   const deviceVerdicts = payload?.deviceIntegrity?.deviceRecognitionVerdict ?? [];
   const licensingVerdict = payload?.accountDetails?.appLicensingVerdict;
@@ -175,20 +199,3 @@ export async function enforcePlayIntegrity(token: string, uid: string): Promise<
   }
 }
 
-/**
- * Decode-and-log only — no enforcement. Kept for callers still in observation mode
- * or for testing new verdict categories before enabling enforcement.
- */
-export async function checkPlayIntegrityLogOnly(token: string, uid: string): Promise<void> {
-  const decoded = await decodeIntegrityToken(token, uid);
-  if (!decoded) return;
-
-  const payload = decoded.tokenPayloadExternal;
-  logger.info("play_integrity_evaluation", {
-    uid,
-    appVerdict: payload?.appIntegrity?.appRecognitionVerdict,
-    deviceVerdicts: payload?.deviceIntegrity?.deviceRecognitionVerdict,
-    licensingVerdict: payload?.accountDetails?.appLicensingVerdict,
-    playProtectVerdict: payload?.environmentDetails?.playProtectVerdict,
-  });
-}

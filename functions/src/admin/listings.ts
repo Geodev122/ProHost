@@ -72,7 +72,7 @@ interface SetListingSubscriptionActiveData {
  * Admin-only override of a listing's subscription-active flag — e.g. to
  * suspend a listing for a policy violation independent of its actual billing
  * state. The billing-driven path (a real subscription payment) still goes
- * through initiateWhishPayment/grantEntitlement, which also write this same
+ * through the subscription/grant functions, which also write this same
  * field via the Admin SDK; this is the manual override path, not a second
  * source of truth for real payments.
  */

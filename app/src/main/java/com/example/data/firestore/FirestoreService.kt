@@ -108,13 +108,12 @@ class FirestoreService(
      * `get()` dependency (see the matching comment there). The moment that stops being true —
      * e.g. a future change makes an admin-revocation take effect instantly the way
      * `isSuspended()`/`liveRole()` already do there — every unfiltered admin listener below
-     * (workspace_listings, user_profiles, booking_requests, whish_transactions,
+     * (workspace_listings, user_profiles, booking_requests,
      * audit_security_logs) will start failing PERMISSION_DENIED, and must be re-architected
      * into role-scoped queries in that same change, not discovered after the fact.
      *
-     * [currentUid]/[isAdminCaller] scope the four collections whose firestore.rules read
-     * rule is content-conditional (workspace_listings, user_profiles, booking_requests,
-     * whish_transactions) — an unconstrained `.collection().addSnapshotListener()` with no
+     * [currentUid]/[isAdminCaller] scope the three collections whose firestore.rules read
+     * rule is content-conditional (workspace_listings, user_profiles, booking_requests) — an unconstrained `.collection().addSnapshotListener()` with no
      * `where()` filter can never satisfy those rules for a non-admin caller: Firestore only
      * allows a LIST query when the query's own filters provably guarantee every possible
      * result satisfies the rule, and "no filter at all" proves nothing except for the
@@ -125,8 +124,8 @@ class FirestoreService(
      * content). A non-admin gets real, rule-satisfying queries instead: the public
      * Discovery set plus their own docs for workspace_listings/booking_requests (merged
      * client-side, since a single query can't match two different OR-branches), their own
-     * single document for user_profiles, and their own transactions for whish_transactions.
-     * [currentUid] null (signed out) attaches none of these four — nothing to show.
+     * single document for user_profiles.
+     * [currentUid] null (signed out) attaches none of these — nothing to show.
      *
      * The old `if (list.isNotEmpty()) callback(list)` gating on every one of these is also
      * gone: a genuinely empty result (no listings match, no bookings exist) now reaches the
@@ -142,7 +141,6 @@ class FirestoreService(
         onUsersUpdated: (List<AppUser>) -> Unit,
         onBookingsUpdated: (List<RentalBookingRequest>) -> Unit,
         onFormulasUpdated: (List<SubscriptionFormula>) -> Unit,
-        onTransactionsUpdated: (List<WhishTransaction>) -> Unit,
         onSchemaUpdated: (SpaceArchitectureSchema) -> Unit = {},
         onAuditLogsUpdated: (List<AuditSecurityLog>) -> Unit = {},
         onPackagePlansUpdated: (PackagePlanCatalog) -> Unit = {}
@@ -324,42 +322,6 @@ class FirestoreService(
                         }
                     }
                 activeListeners.add(practitionerBookingsListener)
-            }
-
-            // --- whish_transactions --- created/settled server-side by the Whish payment
-            // Cloud Functions (initiateWhishPayment/whishWebhook/checkWhishStatus) via
-            // Admin SDK — this listener is how the client ever finds out about them at all.
-            if (isAdminCaller) {
-                val transactionListener = db.collection(FirestoreSchema.Collections.WHISH_TRANSACTIONS)
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            Log.w(TAG, "Transactions sync note: ${error.message}")
-                            return@addSnapshotListener
-                        }
-                        if (snapshot != null) {
-                            val transactions = snapshot.documents.mapNotNull { doc ->
-                                doc.data?.let { data -> WhishTransaction.fromFirestoreMap(doc.id, data) }
-                            }
-                            onTransactionsUpdated(transactions)
-                        }
-                    }
-                activeListeners.add(transactionListener)
-            } else if (currentUid != null) {
-                val ownTransactionListener = db.collection(FirestoreSchema.Collections.WHISH_TRANSACTIONS)
-                    .whereEqualTo("userId", currentUid)
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            Log.w(TAG, "Own transactions sync note: ${error.message}")
-                            return@addSnapshotListener
-                        }
-                        if (snapshot != null) {
-                            val transactions = snapshot.documents.mapNotNull { doc ->
-                                doc.data?.let { data -> WhishTransaction.fromFirestoreMap(doc.id, data) }
-                            }
-                            onTransactionsUpdated(transactions)
-                        }
-                    }
-                activeListeners.add(ownTransactionListener)
             }
 
             // Single-document taxonomy: space types/subcategories/amenities/equipment/
@@ -632,7 +594,7 @@ class FirestoreService(
      * Admin-on-behalf-of-another-user): role/isVerified/createdAtMillis/
      * lastSignInAtMillis/isSuspended/ownerPackageTier/ownerPackageExpiryMillis are
      * exclusively server-maintained (assignInitialRole/grantAdminRole/
-     * setAccountSuspended/the Whish webhook — see firestore.rules' user_profiles
+     * setAccountSuspended/playBillingRtdn/grantPackageToUser — see firestore.rules' user_profiles
      * update rule) and must never appear in [fields]. Echoing a full AppUser's
      * toFirestoreMap() back unfiltered risks writing a locally-cached, possibly-stale
      * value for one of those fields that no longer matches the real server-stored one —
@@ -699,8 +661,7 @@ class FirestoreService(
     // ==========================================
     // ADMIN PRICING STATE
     // ==========================================
-    // The initiateWhishPayment Cloud Function reads this same document server-side to
-    // compute real charge amounts — see AdminPricingState.toFirestoreMap(). The only
+    // Holds admin governance settings (AdminPricingState). The only
     // way to WRITE it is the updatePricing Cloud Function (ProHostRepository.
     // persistPricingState) — firestore.rules denies every direct client write to
     // system_metadata, so a save*State function here would only ever fail.
@@ -1006,22 +967,8 @@ class FirestoreService(
     // the existing profile/listing-save paths, no dedicated collection.
 
     // ==========================================
-    // FINANCIAL TRANSACTIONS & AUDIT LOGS
+    // AUDIT LOGS
     // ==========================================
-
-    suspend fun recordTransaction(tx: WhishTransaction): Boolean {
-        return try {
-            val db = firestore ?: return false
-            db.collection(FirestoreSchema.Collections.WHISH_TRANSACTIONS)
-                .document(tx.id)
-                .set(tx.toFirestoreMap(), SetOptions.merge())
-                .await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error recording transaction: ${e.message}", e)
-            false
-        }
-    }
 
     suspend fun recordAuditLog(log: AuditSecurityLog): Boolean {
         return try {
@@ -1035,100 +982,6 @@ class FirestoreService(
             Log.e(TAG, "Error recording audit log: ${e.message}", e)
             false
         }
-    }
-
-    // ==========================================
-    // DATA CONNECT COMPLIANCE VALIDATOR
-    // ==========================================
-    // NOTE: this "audit" is largely self-congratulatory today (several checks are
-    // hardcoded to pass regardless of real state). It's rewritten to reflect actual
-    // runtime state in the remediation plan's testing-hardening phase — not touched here.
-
-    data class ComplianceCheck(
-        val name: String,
-        val isCompliant: Boolean,
-        val details: String
-    )
-
-    data class ComplianceReport(
-        val isAllCompliant: Boolean,
-        val timestamp: Long,
-        val checks: List<ComplianceCheck>
-    )
-
-    fun runDataConnectComplianceAudit(): ComplianceReport {
-        val checks = mutableListOf<ComplianceCheck>()
-
-        // 1. Check Schema Definitions
-        checks.add(
-            ComplianceCheck(
-                name = "Firestore Schema Version Contract",
-                isCompliant = FirestoreSchema.SCHEMA_VERSION == "2.0.0",
-                details = "Schema Version: ${FirestoreSchema.SCHEMA_VERSION}"
-            )
-        )
-
-        // 2. Check Data Connect Tables Mapping
-        val requiredCollections = listOf(
-            FirestoreSchema.Collections.WORKSPACE_LISTINGS,
-            FirestoreSchema.Collections.USER_PROFILES,
-            FirestoreSchema.Collections.SUBSCRIPTION_FORMULAS,
-            FirestoreSchema.Collections.BOOKING_REQUESTS,
-            FirestoreSchema.Collections.WHISH_TRANSACTIONS,
-            FirestoreSchema.Collections.AUDIT_SECURITY_LOGS
-        )
-        checks.add(
-            ComplianceCheck(
-                name = "Data Connect GraphQL Collections Mapping",
-                isCompliant = requiredCollections.size == 6,
-                details = "Mapped collections: ${requiredCollections.joinToString(", ")}"
-            )
-        )
-
-        // 3. Check Firestore Client Status
-        checks.add(
-            ComplianceCheck(
-                name = "Firebase Firestore Client Initialization",
-                isCompliant = firestore != null || true, // Offline-first compatible
-                details = if (firestore != null) "Firestore Client Active" else "Firestore Offline-First Fallback Active"
-            )
-        )
-
-        // 4. Check Data Connect Entities
-        checks.add(
-            ComplianceCheck(
-                name = "Data Connect GraphQL Entity: SpaceListing",
-                isCompliant = true,
-                details = "Table space_listings with 28 mapped columns verified"
-            )
-        )
-        checks.add(
-            ComplianceCheck(
-                name = "Data Connect GraphQL Entity: AppUser",
-                isCompliant = true,
-                details = "Table users with role & syndicate accreditation verified"
-            )
-        )
-        checks.add(
-            ComplianceCheck(
-                name = "Data Connect GraphQL Entity: BookingRequest",
-                isCompliant = true,
-                details = "Table booking_requests with lifecycle states verified"
-            )
-        )
-        checks.add(
-            ComplianceCheck(
-                name = "Whish Money & SHA-256 Protocol Parity",
-                isCompliant = true,
-                details = "HMAC/SHA-256 signature and dual verification layer operational"
-            )
-        )
-
-        return ComplianceReport(
-            isAllCompliant = checks.all { it.isCompliant },
-            timestamp = System.currentTimeMillis(),
-            checks = checks
-        )
     }
 
     /** One-shot read of the full id_review_queue collection — admin-only. */

@@ -52,14 +52,12 @@ fun SubscriptionRenewalDialog(
 
     val packagePlans by viewModel.packagePlans.collectAsState()
     val playBillingProducts by viewModel.playBillingProducts.collectAsState()
-    val playPriceMap: Map<String, String?> = remember(playBillingProducts) {
-        playBillingProducts.associate { d ->
-            d.productId to d.subscriptionOfferDetails
-                ?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice
-        }
-    }
+    val playProductMap = remember(playBillingProducts) { playBillingProducts.associateBy { it.productId } }
+    fun productOf(plan: PackagePlan) = playProductMap[plan.googlePlayProductId.ifBlank { plan.id }]
     fun priceOf(plan: PackagePlan): String =
-        PackagePlan.displayPrice(plan, playPriceMap[plan.googlePlayProductId.ifBlank { plan.id }])
+        PackagePlan.displayPrice(plan, com.example.data.billing.PlayOfferText.recurringPrice(productOf(plan)))
+    fun termsOf(plan: PackagePlan): String =
+        com.example.data.billing.PlayOfferText.describe(productOf(plan)) ?: priceOf(plan)
 
     val enabledPlans = remember(packagePlans) {
         packagePlans.purchasablePlans()
@@ -209,7 +207,7 @@ fun SubscriptionRenewalDialog(
                     Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
                         text = selectedPlan?.let {
-                            "Subscribe with Google Play — ${priceOf(it)}"
+                            "Subscribe with Google Play — ${termsOf(it)}"
                         } ?: "Subscribe with Google Play",
                         fontWeight = FontWeight.Bold
                     )
@@ -218,7 +216,8 @@ fun SubscriptionRenewalDialog(
                 Spacer(modifier = Modifier.height(Spacing.xs))
 
                 Text(
-                    text = "Managed by Google Play. Cancel anytime from Play Store.",
+                    text = "Renews automatically at the price and period shown until you cancel. " +
+                        "Cancel anytime in Google Play › Payments & subscriptions; access continues until the paid period ends.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth(),

@@ -50,30 +50,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Whish payment redirect App Link: hopebearer-award.com/payment/success|failure
-                 (see functions/src/payments/initiateWhishPayment.ts). This domain is
-                 reserved for Whish's payment-gateway channel API configuration only —
-                 do not add other link families to it. Verified via
-                 https://hopebearer-award.com/.well-known/assetlinks.json. -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:scheme="https"
-                    android:host="hopebearer-award.com"
-                    android:pathPrefix="/payment" />
-            </intent-filter>
-
             <!-- Listing share App Link: pro-host.tech/listing/{spaceId} (see
                  functions/src/listings/shareLanding.ts and ShareLinks.kt) —
                  ProHost's own registered marketing/App-Link domain, connected as
                  a custom domain to this same Firebase Hosting site (already
-                 carrying the marketing landing page + legal docs). Deliberately
-                 separate from hopebearer-award.com above, which is Whish's
-                 payment channel only. Verified via
+                 carrying the marketing landing page + legal docs). Verified via
                  https://pro-host.tech/.well-known/assetlinks.json. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
@@ -85,22 +66,6 @@
                     android:scheme="https"
                     android:host="pro-host.tech"
                     android:pathPrefix="/listing" />
-            </intent-filter>
-
-            <!-- Fallback for the same Whish redirect: a custom scheme needs no OS-level
-                 Digital Asset Links verification, so it still works when the App Link
-                 above silently fails to verify (stale cert fingerprint, a browser that
-                 doesn't honor App Links, "always open in browser" previously chosen).
-                 public/payment/success.html and failure.html link here. -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:scheme="prohost"
-                    android:host="payment" />
             </intent-filter>
 
             <!-- Firebase Auth email sign-in link: https://prohost-f766f.web.app/emaillink?oobCode=...

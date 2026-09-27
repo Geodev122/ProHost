@@ -7,7 +7,7 @@
  *
  * Every account starts SPECIALIST. PRO_HOST is never self-service or free —
  * it's granted exclusively by grantEntitlement() (see entitlements.ts) the
- * moment a real OWNER_PACKAGE Whish payment settles. There is no standalone
+ * moment a Google Play subscription or admin grant activates. There is no standalone
  * "request role upgrade" function anymore.
  */
 export type AppRole = "SPECIALIST" | "PRO_HOST" | "ADMIN";

@@ -74,7 +74,7 @@ private val PRO_HOST_FULLSCREEN_TABS = listOf(
 /**
  * Admin's own side-menu destinations, rendered full-screen the same way Pro Host's
  * are. "Admin Console" is a single side-menu entry (its own inner tabs are its
- * sub-tabs — Revenue, Users, Listings, Owners & Payments, Schema, Security Audit —
+ * sub-tabs — Packages, Users, Listings, Analytics, Schema, Security Audit, ID Review —
  * not separate peer destinations); "Security ID" is the same personal-profile
  * screen every role has. Admin has no bottom nav at all.
  */
@@ -190,8 +190,8 @@ fun ProHostAppRoot(
 
     // Routes to any tab id, transparently choosing full-screen presentation vs. the
     // regular bottom-nav tab switch — the single place that decides how a given
-    // destination id gets shown, used by the drawer, FCM alert taps, the
-    // payment-return deep link, and initial role-based routing alike.
+    // destination id gets shown, used by the drawer, FCM alert taps, deep
+    // links, and initial role-based routing alike.
     //
     // KYC gate: if the user has no verified phone and the target tab requires one,
     // show the KYC screen instead and remember where to route after completion.
@@ -215,16 +215,9 @@ fun ProHostAppRoot(
     // Synchronize initial tab based on user role or incoming deep link
     LaunchedEffect(currentUser?.role, deepLinkTab) {
         val role = currentUser?.role
-        if (deepLinkTab == "payment_return") {
-            // Returned via the Whish payment App Link (hopebearer-award.com/payment/...).
-            // No specific screen is encoded in the URL — route to wherever each role
-            // settles Whish payments, mirroring the alert-tap routing in
-            // DrawerDialogsHandler. The actual result comes from checkWhishStatus
-            // polling already running in that screen, not from this navigation event.
-            navigateTo(if (role == UserRole.SPECIALIST) "pro_rentals" else "owner_progress")
-        } else if (!deepLinkTab.isNullOrBlank() && role != null && deepLinkTab in allowedTabIdsForRole(role)) {
+        if (!deepLinkTab.isNullOrBlank() && role != null && deepLinkTab in allowedTabIdsForRole(role)) {
             // MainActivity is an exported activity (required for the launcher intent
-            // and the Whish payment App Link) and reads "target_tab" straight from an
+            // and App Links) and reads "target_tab" straight from an
             // Intent extra for FCM-notification-tap deep links. Without this check,
             // any other app on the device could launch MainActivity with
             // target_tab=admin_console and force a signed-in non-admin user into the

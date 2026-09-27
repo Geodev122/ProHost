@@ -265,7 +265,6 @@ fun SpecialistProfileScreen(
             // =========================================================================
             val ownerSpaces by viewModel.ownerSpaces.collectAsState()
             val allSpacesList by viewModel.spaces.collectAsState()
-            val pricingState by viewModel.pricingState.collectAsState()
             val practitionerBookingsForStats by viewModel.practitionerBookings.collectAsState()
             val ownerIncomingRequests by viewModel.ownerIncomingRequests.collectAsState()
 
@@ -433,10 +432,10 @@ fun SpecialistProfileScreen(
                                     modifier = Modifier.weight(1f)
                                 )
                                 ProMetricTile(
-                                    title = "Fee Corridor",
-                                    value = "$${pricingState.monthlySubscriptionFeeUsd} USD",
-                                    subtitle = "Host subscription rate",
-                                    icon = Icons.Default.Security,
+                                    title = "Published",
+                                    value = "${allSpacesList.count { it.status == ListingStatus.ACTIVE }}",
+                                    subtitle = "Live listings",
+                                    icon = Icons.Default.Storefront,
                                     iconTint = AmberWarning,
                                     modifier = Modifier.weight(1f)
                                 )
@@ -943,13 +942,29 @@ fun SpecialistProfileScreen(
                     icon = { Icon(Icons.Default.DeleteForever, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                     title = { Text("Delete your account?") },
                     text = {
-                        Text(
-                            (if (user.role == UserRole.PRO_HOST)
-                                "This permanently deletes your profile, uploaded ID document, and every listing you own. "
-                            else
-                                "This permanently deletes your profile and uploaded ID document. ") +
-                                "Your booking history stays on file for the other party's records, but you won't be able to sign back in."
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                (if (user.role == UserRole.PRO_HOST)
+                                    "This permanently deletes your profile, uploaded ID document, and every listing you own. "
+                                else
+                                    "This permanently deletes your profile and uploaded ID document. ") +
+                                    "Your booking history stays on file for the other party's records, but you won't be able to sign back in."
+                            )
+                            if (user.ownerPackageId != null) {
+                                val activity = androidx.activity.compose.LocalActivity.current
+                                Text(
+                                    "Deleting your account does not cancel your Google Play subscription. " +
+                                        "Cancel it in Google Play first to stop future charges.",
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                if (activity != null) {
+                                    TextButton(onClick = { viewModel.openManageSubscriptions(activity, user.ownerPackageId) }) {
+                                        Text("Manage subscription in Google Play")
+                                    }
+                                }
+                            }
+                        }
                     },
                     confirmButton = {
                         TextButton(

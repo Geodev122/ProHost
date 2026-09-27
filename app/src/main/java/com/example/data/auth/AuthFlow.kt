@@ -52,8 +52,8 @@ suspend fun completeVerifiedLogin(
 /**
  * Same as [completeVerifiedLogin], but for brand-new member registration. Every new
  * account is a SPECIALIST — there is no registration-time way to become a PRO_HOST
- * (that role is granted exclusively, server-side, once a real package/PAYG Whish
- * payment settles; see FirebaseFunctionsClient's note on grantEntitlement()), and
+ * (that role is granted exclusively, server-side, by a Google Play subscription or
+ * an admin grant; see FirebaseFunctionsClient's note on grantEntitlement()), and
  * requesting ADMIN is never honored by any reachable code path.
  *
  * [firebaseUser] here has already been phone-verified (see LoginAuthScreen's OTP flow)

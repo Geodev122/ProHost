@@ -47,6 +47,28 @@ async function queryPlaySubscription(productId: string, token: string) {
 }
 
 /**
+ * Acknowledges a new subscription server-side. Play auto-refunds purchases left
+ * unacknowledged for 3 days; the app also acknowledges, but it may be killed right
+ * after purchase or never opened (e.g. resubscribing from the Play Store).
+ */
+async function acknowledgeIfNeeded(productId: string, token: string, acknowledgementState: number | null | undefined) {
+  if (acknowledgementState !== 0) return;
+  try {
+    const publisher = await getPlayPublisher();
+    await publisher.purchases.subscriptions.acknowledge({
+      packageName: PACKAGE_NAME,
+      subscriptionId: productId,
+      token,
+      requestBody: {},
+    });
+    logger.info(`playBillingRtdn: acknowledged product=${productId}`);
+  } catch (e) {
+    // The app may have acknowledged concurrently; a later notification retries otherwise.
+    logger.warn(`playBillingRtdn: acknowledge failed for product=${productId}`, e);
+  }
+}
+
+/**
  * Grants (or extends) the Pro Host subscription for [uid] in Firestore.
  * Uses Play's own [expiryTimeMillis] as the canonical validity source so the
  * backend stays in sync with what Google actually charged for.
@@ -298,6 +320,14 @@ export const playBillingRtdn = onMessagePublished(
 
     const orderId = purchase.orderId ?? productId;
     const expiryMs = parseInt(purchase.expiryTimeMillis ?? "0", 10);
+
+    if (
+      notificationType === SUBSCRIPTION_PURCHASED ||
+      notificationType === SUBSCRIPTION_RESTARTED ||
+      notificationType === SUBSCRIPTION_RECOVERED
+    ) {
+      await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledgementState);
+    }
 
     // 3. Dispatch by notification type
     switch (notificationType) {

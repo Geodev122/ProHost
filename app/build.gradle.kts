@@ -164,7 +164,6 @@ dependencies {
   implementation(libs.firebase.crashlytics)
   implementation(libs.firebase.messaging)
   implementation(libs.firebase.storage)
-  implementation(libs.firebase.dataconnect)
 
   // Firebase Auth: phone-number SMS OTP for new-user signup and PIN reset;
   // Google Sign-In (play-services-auth) for one-tap sign-in via Google account.
@@ -174,7 +173,6 @@ dependencies {
   implementation(libs.androidx.credentials)
   implementation(libs.androidx.credentials.play.services)
   implementation(libs.google.identity)
-  implementation(libs.firebase.appcheck.recaptcha)
   implementation(libs.firebase.appcheck.playintegrity)
   debugImplementation(libs.firebase.appcheck.debug)
   implementation(libs.kotlinx.coroutines.android)

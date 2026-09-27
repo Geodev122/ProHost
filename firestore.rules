@@ -19,7 +19,7 @@ service cloud.firestore {
     // resource.data/get() dependency. FirestoreService.attachLiveListeners()
     // relies on exactly that: it runs 5 fully unfiltered
     // .collection().addSnapshotListener() calls (workspace_listings,
-    // user_profiles, booking_requests, whish_transactions,
+    // user_profiles, booking_requests,
     // audit_security_logs) for ADMIN callers, with no .where(...) at all.
     // Firestore can only prove an unfiltered LIST query safe against a rule
     // like `isAdmin() || <content-dependent-branch>` when isAdmin() itself is
@@ -133,8 +133,8 @@ service cloud.firestore {
 
       // isVerified / isActiveSubscription / subscriptionExpiryMillis are
       // money- and verification-status fields — only setListingVerification /
-      // requestListingVerification / setListingSubscriptionActive / the Whish
-      // entitlement grant (all via the Admin SDK, which bypasses rules) can
+      // requestListingVerification / setListingSubscriptionActive / the
+      // subscription and grant functions (all via the Admin SDK, which bypasses rules) can
       // change them. ownerId can never be reassigned by a client write.
       // isOwnerSuspended is likewise Admin-SDK-only (setAccountSuspended.ts) —
       // an owner could otherwise just un-hide their own suspended listings by
@@ -359,7 +359,7 @@ service cloud.firestore {
       // only ever run on a transition into ACCEPTED — a self-accept would never pass
       // through either. There is no in-app payment settlement to protect otherwise
       // (both sides handle payment outside the app entirely — the old
-      // isExternalPaymentSettled field, and the Pay Whish flow that set it, are gone).
+      // isExternalPaymentSettled field is gone).
       allow update: if isSignedIn() &&
         (isAdmin() ||
          resource.data.practitionerId == request.auth.uid ||
@@ -385,10 +385,7 @@ service cloud.firestore {
     // client-writable at listing-creation time — no dedicated collection or
     // rule needed for either.
 
-    // ---------------------------------------------------------------
-    // whish_transactions — server-only, ground truth for real payments
-    // ---------------------------------------------------------------
-    match /whish_transactions/{txId} {
+ {
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if false;
     }
@@ -438,7 +435,7 @@ service cloud.firestore {
     // Same direct-admin-write pattern as schema_architecture above rather than
     // system_metadata's Cloud-Function-only pattern: the trust boundary that
     // actually matters — never trusting a BUYER's claimed price — is enforced
-    // where money changes hands (initiateWhishPayment.ts reads this doc live,
+    // where money changes hands (Google Play verifies every purchase,
     // server-side, at charge time), not at admin-configuration time. Public
     // read is required: every client needs the live catalog to render
     // purchase/renewal screens and resolve a host's own package.

@@ -143,28 +143,9 @@ class MainActivity : ComponentActivity() {
             targetBookingId = bookingId
         }
 
-        // Return from the Whish checkout page, via either of two paths:
-        // 1. The https App Link (hopebearer-award.com/payment/...), which only reaches
-        //    us if Android's OS-level Digital Asset Links verification succeeded.
-        // 2. The prohost://payment fallback scheme, which needs no such verification —
-        //    it's what public/payment/success.html and failure.html link to when the
-        //    App Link above didn't intercept the redirect in the browser at all.
-        // Neither carries the specific transaction — checkWhishStatus polling, already
-        // running since initiateWhishPayment was called, is what actually confirms the
-        // result. This just brings the right tab to the front; role-based resolution of
-        // "payment_return" happens in ProHostNavGraph.
         val data = intent.data
-        val isWhishAppLinkReturn = data != null && data.scheme == "https" &&
-            data.host == "hopebearer-award.com" && data.path?.startsWith("/payment") == true
-        val isWhishFallbackReturn = data != null && data.scheme == "prohost" && data.host == "payment"
-        if (isWhishAppLinkReturn || isWhishFallbackReturn) {
-            targetTab = "payment_return"
-        }
-
         // A tapped listing share link (pro-host.tech/listing/{spaceId} — see
-        // functions/src/listings/shareLanding.ts; deliberately NOT
-        // hopebearer-award.com, which is reserved for Whish's payment channel only)
-        // only reaches here when the OS's App Link verification succeeded and the
+        // functions/src/listings/shareLanding.ts) only reaches here when the OS's App Link verification succeeded and the
         // app is installed; a link-preview crawler or a user without the app never
         // hits this code path at all, they see the landing page's own HTML instead.
         // ProHostNavGraph resolves the id against the live spaces list once the user
