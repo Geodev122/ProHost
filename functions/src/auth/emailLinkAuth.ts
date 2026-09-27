@@ -3,26 +3,11 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import { sendEmail, hostingerSmtpSecret } from "../lib/email";
-import { layout, emailVerificationTemplate, UserContext } from "../lib/emailTemplates";
+import { signInLinkTemplate, emailVerificationTemplate, UserContext } from "../lib/emailTemplates";
 import "../lib/admin";
 
 const CONTINUE_URL = "https://prohost-f766f.web.app/emaillink";
 const MAX_VERIFICATION_RESENDS_PER_DAY = 3;
-
-function signInLinkEmailHtml(email: string, link: string): string {
-  return layout("Sign in to ProHost", `
-    <h2>Sign in to ProHost</h2>
-    <p>Tap the button below to sign in as <strong>${email}</strong>.
-       This link expires in 60 minutes and can only be used once.</p>
-    <p style="text-align:center;margin-top:20px">
-      <a class="btn" href="${link}">Sign in to ProHost</a>
-    </p>
-    <p style="font-size:12px;color:#999;margin-top:16px">
-      If you didn't request this, you can safely ignore this email — your account is secure.
-      Never share this link; it grants direct access to your ProHost account.
-    </p>
-  `);
-}
 
 /**
  * Callable: sendSignInEmailLink({ email })
@@ -59,11 +44,8 @@ export const sendSignInEmailLink = onCall(
       throw new HttpsError("internal", "Failed to generate sign-in link. Please try again.");
     }
 
-    const delivered = await sendEmail({
-      to: email,
-      subject: "Sign in to ProHost",
-      html: signInLinkEmailHtml(email, link),
-    });
+    const tpl = signInLinkTemplate(email, link);
+    const delivered = await sendEmail({ to: email, ...tpl });
 
     if (!delivered) {
       logger.error("sign_in_link_email_failed", { email });
