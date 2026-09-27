@@ -465,7 +465,7 @@ private fun AvatarCircle(
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = initials,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = (size.value * 0.38f).sp
                     )
@@ -706,11 +706,19 @@ fun CustomButton(
     }
 ) {
     val minHeight = if (compact) 40.dp else 48.dp
+    // PRIMARY/SECONDARY/SUCCESS/DANGER/WHATSAPP intentionally use fixed brand colors —
+    // they're solid, always-colored surfaces (never the plain app background), so a
+    // fixed white/light-gray foreground reads correctly in both themes. OUTLINED and
+    // TONAL/TEXT sit directly on the app's own background/surface, which DOES flip
+    // brightness between themes (e.g. MaterialTheme.colorScheme.primary is dark navy
+    // in light mode but a light blue in dark mode) — those must use theme-aware `on*`
+    // tokens instead of a hardcoded OxfordBlue, or their text becomes near-invisible
+    // (dark navy on a near-black background) in dark mode.
     val containerColor = customContainerColor ?: when (variant) {
         CustomButtonVariant.PRIMARY -> CarnationOrange
         CustomButtonVariant.SECONDARY -> CoolGray
         CustomButtonVariant.OUTLINED -> Color.Transparent
-        CustomButtonVariant.TONAL -> LightGray
+        CustomButtonVariant.TONAL -> MaterialTheme.colorScheme.surfaceVariant
         CustomButtonVariant.TEXT -> Color.Transparent
         CustomButtonVariant.SUCCESS -> FreshGreen
         CustomButtonVariant.DANGER -> CrimsonRed
@@ -720,9 +728,9 @@ fun CustomButton(
     val contentColor = customContentColor ?: when (variant) {
         CustomButtonVariant.PRIMARY -> PureWhite
         CustomButtonVariant.SECONDARY -> LightGray
-        CustomButtonVariant.OUTLINED -> OxfordBlue
-        CustomButtonVariant.TONAL -> CoolGray
-        CustomButtonVariant.TEXT -> OxfordBlue
+        CustomButtonVariant.OUTLINED -> MaterialTheme.colorScheme.primary
+        CustomButtonVariant.TONAL -> MaterialTheme.colorScheme.onSurfaceVariant
+        CustomButtonVariant.TEXT -> MaterialTheme.colorScheme.primary
         CustomButtonVariant.SUCCESS -> PureWhite
         CustomButtonVariant.DANGER -> PureWhite
         CustomButtonVariant.WHATSAPP -> PureWhite
@@ -735,7 +743,10 @@ fun CustomButton(
                 modifier = modifier.defaultMinSize(minHeight = minHeight),
                 enabled = enabled && !isLoading,
                 shape = shape,
-                border = BorderStroke(1.dp, if (enabled) (customContainerColor ?: OxfordBlue) else LightGray),
+                border = BorderStroke(
+                    1.dp,
+                    if (enabled) (customContainerColor ?: MaterialTheme.colorScheme.primary) else MaterialTheme.colorScheme.outlineVariant
+                ),
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = contentColor,
                     disabledContentColor = contentColor.copy(alpha = 0.5f)
@@ -866,7 +877,7 @@ fun ProPrimaryButton(
 }
 
 /**
- * Standard Outlined Button (Transparent with Oxford Blue border, 12dp radius).
+ * Standard Outlined Button (transparent with a theme-aware primary-color border, 12dp radius).
  */
 @Composable
 fun ProOutlinedButton(
@@ -876,8 +887,8 @@ fun ProOutlinedButton(
     icon: ImageVector? = null,
     enabled: Boolean = true,
     compact: Boolean = false,
-    borderColor: Color = OxfordBlue,
-    contentColor: Color = OxfordBlue,
+    borderColor: Color = MaterialTheme.colorScheme.primary,
+    contentColor: Color = MaterialTheme.colorScheme.primary,
     shape: CornerBasedShape = MaterialTheme.shapes.medium
 ) {
     CustomButton(
@@ -1487,8 +1498,8 @@ fun ProChip(
         shape = MaterialTheme.shapes.medium,
         colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = MaterialTheme.colorScheme.primary,
-            selectedLabelColor = Color.White,
-            selectedLeadingIconColor = Color.White,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+            selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             labelColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
@@ -1704,7 +1715,7 @@ fun ProHostTopAppBar(
                         if (unreadAlertCount > 0) {
                             Badge(
                                 containerColor = MaterialTheme.colorScheme.error,
-                                contentColor = Color.White
+                                contentColor = MaterialTheme.colorScheme.onError
                             ) {
                                 Text(
                                     text = unreadAlertCount.toString(),

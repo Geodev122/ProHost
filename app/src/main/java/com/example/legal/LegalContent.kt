@@ -6,8 +6,10 @@ package com.example.legal
  * (LegalPdfGenerator.kt), so the two can never drift out of sync with each other.
  *
  * These three documents are drafted specifically for ProHost's actual features in
- * this app (phone-OTP registration, self-attested ID/ownership documents with no
- * admin review, workspace listings with real GPS location, booking requests, an
+ * this app (phone-OTP registration open to every user with no ID document required,
+ * an admin-reviewed ID verification/KYC step required only of a Specialist upgrading
+ * to Pro Host, a self-attested proof-of-ownership document for the optional Listing
+ * Verified badge, workspace listings with real GPS location, booking requests, an
  * admin suspend/revoke governance model, WhatsApp hand-off for direct contact, and
  * settlement that happens entirely outside the app) and reference the Lebanese
  * legal framework most relevant to a Lebanon-only marketplace app — principally
@@ -68,11 +70,15 @@ object LegalContent {
                 listOf(
                     "Account & identity data: full name, email address, phone number (verified by SMS one-time code through Firebase Phone " +
                     "Authentication), country/governorate/city, and the professional specialty you declare.",
-                    "Verification documents: a government-issued ID document you upload at registration, and — for Pro Hosts — a " +
-                    "proof-of-ownership or right-to-rent document uploaded when publishing a Listing. Both are stored as private files in " +
-                    "Firebase Cloud Storage, accessible only to you and to ProHost Administrators; ProHost does not operate an automated or " +
-                    "manual review/approval process for either document — they are kept on file, not verified for authenticity, and you remain " +
-                    "solely responsible for the accuracy and lawfulness of what you upload.",
+                    "Verification documents: registration itself never requires an ID document, and a Specialist is never asked for one. If you " +
+                    "upgrade to Pro Host, you first upload a government-issued ID document as part of identity verification (KYC) — a ProHost " +
+                    "Administrator reviews and approves or rejects it before your Pro Host subscription purchase is allowed to proceed. " +
+                    "Separately, a Pro Host may optionally upload a proof-of-ownership or right-to-rent document for a specific Listing to " +
+                    "request that Listing's \"Listing Verified\" badge; unlike the ID document, this one is reviewed by an Administrator only if " +
+                    "and when that badge is actively requested. All of these are stored as private files in Firebase Cloud Storage, accessible " +
+                    "only to you and to ProHost Administrators; outside of an active ID-verification or Listing Verified review, ProHost does " +
+                    "not operate an automated or manual review/approval process for these documents — they are kept on file, not verified for " +
+                    "authenticity, and you remain solely responsible for the accuracy and lawfulness of what you upload.",
                     "Location data: the precise GPS coordinates you place a pin at when publishing a Listing (used to plot it on the discovery " +
                     "map), and, with your device permission, your approximate location while browsing the map to show nearby Listings. We do not " +
                     "track your location in the background or outside active use of the map features.",
@@ -244,25 +250,36 @@ object LegalContent {
                     "You must be at least 18 years old and legally capable of entering into a binding contract under Lebanese law to register. " +
                     "You must provide accurate registration information and a real, working phone number, which you verify by SMS one-time code " +
                     "— this is currently the only sign-in method the Platform offers.",
-                    "Every new account is registered with the standard \"Specialist\" role. The \"Pro Host\" role — which allows publishing " +
-                    "workspace Listings — is granted automatically and exclusively upon your successful payment of a Pro Host " +
+                    "Every new account is registered with the standard \"Specialist\" role — someone seeking to book a workspace. A Specialist " +
+                    "never needs to submit a government-issued ID document and is not subject to identity verification (KYC) of any kind.",
+                    "The \"Pro Host\" role — someone offering a workspace for rent and paying to list it — is granted automatically and " +
+                    "exclusively once you (1) complete identity verification (see Section 3) and (2) successfully pay a Pro Host " +
                     "subscription/package fee via Google Play in-app purchase or Whish Money; there is no other way to obtain it, and ProHost " +
-                    "Administrators do not grant it manually or for free except in the ordinary operation of that payment flow.",
+                    "Administrators do not grant it manually or for free except in the ordinary operation of that verification-then-payment flow.",
                     "You are responsible for maintaining the confidentiality of your account and for all activity that occurs under it. Notify " +
                     "us immediately if you suspect unauthorized access."
                 )
             ),
             LegalSection(
-                "3. Self-Attested Documents — No Verification by ProHost",
+                "3. Identity Verification (KYC) — Pro Hosts Only",
                 listOf(
-                    "At registration, you upload a government-issued ID document. If you become a Pro Host, you additionally upload a document " +
-                    "evidencing your ownership of, or right to rent out, each Listing you publish.",
-                    "IMPORTANT: ProHost does not review, verify, or approve either document. They are kept on file for accountability purposes " +
-                    "only. You represent and warrant that every document you upload is genuine, current, and accurately represents your identity " +
-                    "and, for a proof-of-ownership document, your actual legal right to lease the specific space listed. You are solely and " +
-                    "fully responsible for the truthfulness of these representations, and for any consequence — civil, criminal, or otherwise — " +
-                    "of uploading a false or fraudulent document, including potential liability under the Lebanese Penal Code's provisions on " +
-                    "forgery (Articles 453 et seq.) and fraud (Articles 655 et seq.)."
+                    "Registration itself never asks for a government-issued ID document, and a Specialist — someone using ProHost only to " +
+                    "browse and book workspaces — is never required to submit one. If you later choose to become a Pro Host, you must first " +
+                    "complete identity verification (\"KYC\") from your Profile screen by uploading a government-issued ID document. A ProHost " +
+                    "Administrator reviews this document and either approves or rejects it; rejecting it hides your Listings from Discovery " +
+                    "until you re-submit an acceptable one. This ID verification is a precondition to purchasing a Pro Host " +
+                    "subscription/package — it is not required, and is never requested, of an account that remains a Specialist.",
+                    "Separately, once you are a Pro Host, you may upload a document evidencing your ownership of, or right to rent out, a " +
+                    "specific Listing to request the optional \"Listing Verified\" badge for that Listing. Unlike the ID document above, " +
+                    "this proof-of-ownership document is not required to publish a Listing, and ProHost does not automatically review or " +
+                    "verify it merely because it was uploaded — it is reviewed by a ProHost Administrator only if and when you actively " +
+                    "request the Listing Verified badge, and otherwise is kept on file for accountability purposes only.",
+                    "IMPORTANT: whether or not a document you upload has been reviewed, you represent and warrant that it is genuine, current, " +
+                    "and accurately represents your identity or, for a proof-of-ownership document, your actual legal right to lease the " +
+                    "specific space listed. You are solely and fully responsible for the truthfulness of these representations, and for any " +
+                    "consequence — civil, criminal, or otherwise — of uploading a false or fraudulent document, including potential liability " +
+                    "under the Lebanese Penal Code's provisions on forgery (Articles 453 et seq.) and fraud (Articles 655 et seq.), regardless " +
+                    "of whether ProHost's review process happened to catch it."
                 )
             ),
             LegalSection(
@@ -335,8 +352,9 @@ object LegalContent {
             LegalSection(
                 "9. Disclaimers and Limitation of Liability",
                 listOf(
-                    "The Platform is provided \"as is\" and \"as available.\" ProHost does not guarantee that any Listing is accurate, that any " +
-                    "Specialist or Pro Host is who they claim to be beyond the self-attested documents described in Section 3, or that the " +
+                    "The Platform is provided \"as is\" and \"as available.\" ProHost does not guarantee that any Listing is accurate, that a " +
+                    "Specialist is who they claim to be (Specialists are not subject to identity verification at all), or that a Pro Host's " +
+                    "proof-of-ownership document is genuine beyond the verification described in Section 3, or that the " +
                     "Platform will be uninterrupted or error-free.",
                     "To the maximum extent permitted by Lebanese law, ProHost's aggregate liability arising out of or relating to your use of " +
                     "the Platform shall not exceed the total fees you have paid to ProHost in the twelve (12) months preceding the claim, except " +

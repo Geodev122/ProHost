@@ -180,12 +180,12 @@ fun KycScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 16.dp)) {
                         Surface(
-                            color = OxfordBlue.copy(alpha = 0.1f),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                             shape = CircleShape,
                             modifier = Modifier.size(36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Phone, contentDescription = null, tint = OxfordBlue, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Phone, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                             }
                         }
                         Spacer(modifier = Modifier.width(10.dp))
@@ -268,12 +268,12 @@ fun KycScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 16.dp)) {
                         Surface(
-                            color = OxfordBlue.copy(alpha = 0.1f),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                             shape = CircleShape,
                             modifier = Modifier.size(36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Sms, contentDescription = null, tint = OxfordBlue, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Sms, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                             }
                         }
                         Spacer(modifier = Modifier.width(10.dp))

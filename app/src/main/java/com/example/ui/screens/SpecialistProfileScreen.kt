@@ -408,7 +408,7 @@ fun SpecialistProfileScreen(
                                     value = "${allSpacesList.size}",
                                     subtitle = "All active listings in Lebanon",
                                     icon = Icons.Default.Layers,
-                                    iconTint = OxfordBlue,
+                                    iconTint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.weight(1f)
                                 )
                                 ProMetricTile(

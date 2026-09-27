@@ -2,8 +2,18 @@ import * as logger from "firebase-functions/logger";
 import { defineSecret } from "firebase-functions/params";
 import * as nodemailer from "nodemailer";
 
-// Stored in Google Cloud Secret Manager (Firebase auto-uppercases the name).
-// To set: echo '<key>' | npx firebase functions:secrets:set hostinger_smtp_api_key
+// Stored in Google Cloud Secret Manager. IMPORTANT: Firebase does NOT
+// auto-uppercase or otherwise normalize secret names — whatever name you pass
+// to `firebase functions:secrets:set` becomes the literal Secret Manager
+// secret name, case-sensitive. Setting it as e.g. "hostinger_smtp_api_key"
+// (lowercase) creates a DIFFERENT secret than the "HOSTINGER_SMTP_API_KEY"
+// this code looks up below, so sendEmail() silently no-ops (see the
+// "no SMTP secret" warn log) with no exception ever thrown. Always set it
+// with the exact name below:
+// To set: echo '<key>' | npx firebase functions:secrets:set HOSTINGER_SMTP_API_KEY
+// After changing the secret's value, redeploy functions so they pick up the
+// latest version — an existing deployment keeps using the version it was
+// deployed with.
 export const hostingerSmtpSecret = defineSecret("HOSTINGER_SMTP_API_KEY");
 
 const FROM_ADDRESS = "ProHost <admin@pro-host.tech>";

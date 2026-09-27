@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -12,11 +13,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,10 +29,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
-import com.example.ui.theme.OxfordBlue
-import com.example.ui.theme.OxfordBlueContainer
 import com.example.ui.theme.Spacing
+import java.io.File
 
 /**
  * A required-document picker: tap to pick a file (PDF or image) from the device, shows
@@ -45,6 +50,11 @@ data class DocumentPickerState(
     val isSelected: Boolean get() = uri != null
 }
 
+private fun createCameraCaptureUri(context: Context): Uri {
+    val photoFile = File.createTempFile("kyc_doc_", ".jpg", context.cacheDir)
+    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", photoFile)
+}
+
 @Composable
 fun DocumentPickerField(
     label: String,
@@ -55,6 +65,9 @@ fun DocumentPickerField(
     required: Boolean = true
 ) {
     val context = LocalContext.current
+    var showSourceMenu by remember { mutableStateOf(false) }
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -67,6 +80,15 @@ fun DocumentPickerField(
             onStateChanged(DocumentPickerState(uri, resolvedName ?: (uri.lastPathSegment ?: "document")))
         }
     }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        val uri = pendingCameraUri
+        if (success && uri != null) {
+            onStateChanged(DocumentPickerState(uri, "document_photo.jpg"))
+        }
+        pendingCameraUri = null
+    }
 
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -77,17 +99,24 @@ fun DocumentPickerField(
             }
         }
         Spacer(modifier = Modifier.height(Spacing.xs))
+        Box {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.medium)
                 .border(
                     width = 1.5.dp,
-                    color = if (state.isSelected) OxfordBlue else MaterialTheme.colorScheme.outlineVariant,
+                    color = if (state.isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                     shape = MaterialTheme.shapes.medium
                 )
-                .background(if (state.isSelected) OxfordBlueContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                .clickable { filePickerLauncher.launch("application/pdf,image/*") },
+                .background(
+                    if (state.isSelected) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                    }
+                )
+                .clickable { showSourceMenu = true },
             shape = MaterialTheme.shapes.medium
         ) {
             if (!state.isSelected) {
@@ -98,7 +127,7 @@ fun DocumentPickerField(
                 ) {
                     Icon(Icons.Default.AttachFile, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                     Text(
-                        "Tap to Upload Document / PDF / Image",
+                        "Tap to Take a Photo or Upload a File",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -111,7 +140,7 @@ fun DocumentPickerField(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(Icons.Default.Description, contentDescription = null, tint = OxfordBlue, modifier = Modifier.size(28.dp))
+                    Icon(Icons.Default.Description, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                     Text(
                         text = state.fileName ?: "Document selected",
                         style = MaterialTheme.typography.bodyMedium,
@@ -123,6 +152,27 @@ fun DocumentPickerField(
                     }
                 }
             }
+        }
+        DropdownMenu(expanded = showSourceMenu, onDismissRequest = { showSourceMenu = false }) {
+            DropdownMenuItem(
+                text = { Text("Take Photo") },
+                leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
+                onClick = {
+                    showSourceMenu = false
+                    val uri = createCameraCaptureUri(context)
+                    pendingCameraUri = uri
+                    cameraLauncher.launch(uri)
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Choose File") },
+                leadingIcon = { Icon(Icons.Default.AttachFile, contentDescription = null) },
+                onClick = {
+                    showSourceMenu = false
+                    filePickerLauncher.launch("application/pdf,image/*")
+                }
+            )
+        }
         }
     }
 }
@@ -154,8 +204,8 @@ fun ProfilePicturePickerField(
         modifier = modifier
             .size(88.dp)
             .clip(CircleShape)
-            .background(OxfordBlueContainer.copy(alpha = 0.4f))
-            .border(1.5.dp, OxfordBlue, CircleShape)
+            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
+            .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
             .clickable { pickerLauncher.launch("image/*") },
         contentAlignment = Alignment.Center
     ) {
@@ -169,7 +219,12 @@ fun ProfilePicturePickerField(
             )
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Default.AddAPhoto, contentDescription = "Add profile picture", tint = OxfordBlue, modifier = Modifier.size(26.dp))
+                Icon(
+                    Icons.Default.AddAPhoto,
+                    contentDescription = "Add profile picture",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(26.dp)
+                )
             }
         }
     }

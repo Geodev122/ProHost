@@ -397,7 +397,11 @@ private fun MonthlyAvailabilityTable(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        if (cell.isRented) OxfordBlue.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        if (cell.isRented) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        },
                         MaterialTheme.shapes.small
                     )
                     .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
@@ -498,7 +502,7 @@ private fun AvailabilitySlotCell(
     }
 
     Surface(
-        color = if (isRented) OxfordBlue.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        color = if (isRented) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         shape = MaterialTheme.shapes.small,
         modifier = Modifier.width(84.dp)
     ) {
@@ -511,7 +515,7 @@ private fun AvailabilitySlotCell(
             Text(
                 if (isRented) "Rented" else "Open",
                 style = MaterialTheme.typography.labelSmall,
-                color = if (isRented) OxfordBlue else FreshGreen,
+                color = if (isRented) MaterialTheme.colorScheme.primary else FreshGreen,
                 fontWeight = FontWeight.Bold
             )
         }

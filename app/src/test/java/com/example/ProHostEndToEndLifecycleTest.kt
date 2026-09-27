@@ -213,7 +213,7 @@ class ProHostEndToEndLifecycleTest {
     fun `login role comes only from the verifiedRole argument, never inferred from email`() = kotlinx.coroutines.runBlocking {
         val user = repository.login(
             uid = "uid-arbitrary",
-            email = "geo.elnajjar@gmail.com",
+            email = "admin@pro-host.tech",
             verifiedRole = UserRole.SPECIALIST
         )
         assertEquals(

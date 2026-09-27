@@ -27,8 +27,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -50,6 +52,10 @@ import kotlinx.coroutines.launch
 fun SpaceDetailsScreen(
     space: SpaceListing,
     viewModel: ProHostViewModel,
+    // Set when the user tapped a specific division/subdivision card on Explore
+    // (list or map) — pre-selects that division and opens its availability sheet
+    // immediately instead of landing on the generic whole-space view.
+    intendedSubdivisionId: String? = null,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -121,6 +127,7 @@ fun SpaceDetailsScreen(
         },
         isSaved = currentUser?.savedSpaceIds?.contains(liveSpace.id) == true,
         onToggleSave = { viewModel.toggleSavedSpace(liveSpace.id) },
+        intendedSubdivisionId = intendedSubdivisionId,
         onBack = onBack
     )
 }
@@ -143,6 +150,7 @@ fun SpaceDetailsScreenContent(
     onCopyLinkClick: () -> Unit = {},
     isSaved: Boolean = false,
     onToggleSave: () -> Unit = {},
+    intendedSubdivisionId: String? = null,
     onBack: () -> Unit
 ) {
     val liveSpace = space
@@ -176,6 +184,25 @@ fun SpaceDetailsScreenContent(
             .groupBy({ (type, _) -> type }, { (_, slot) -> slot })
             .toList()
             .sortedBy { (type, _) -> type.ordinal }
+    }
+
+    // Arrived here via a division-card tap on Explore — pre-select that division
+    // and open its availability sheet immediately (skip the "peek" intermediate
+    // step), instead of landing on the generic whole-space view.
+    LaunchedEffect(intendedSubdivisionId, liveSpace.id) {
+        val sub = intendedSubdivisionId?.let { id -> liveSpace.subdivisions.firstOrNull { it.id == id } }
+        if (sub != null) {
+            val subSlots = availableSlots.filter { it.sourceFormulaId == sub.id }
+            val cheapestSlot = subSlots.minByOrNull {
+                it.pricesByRecurrence[BookingRecurrence.FLAT] ?: Double.MAX_VALUE
+            }
+            val formula = cheapestSlot?.let {
+                SpaceCalculationUtils.representativeFormula(listOf(it), BookingRecurrence.FLAT)
+            }
+            if (formula != null) onSelectFormula(formula)
+            selectedSubdivisionId = sub.id
+            availabilityPanelState = "full"
+        }
     }
 
     Scaffold(
@@ -257,7 +284,7 @@ fun SpaceDetailsScreenContent(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -313,7 +340,7 @@ fun SpaceDetailsScreenContent(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = Spacing.lg, vertical = 10.dp),
+                                    .padding(horizontal = Spacing.lg, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -347,7 +374,7 @@ fun SpaceDetailsScreenContent(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -420,11 +447,12 @@ fun SpaceDetailsScreenContent(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(210.dp)
+                    .height(180.dp)
                     .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
             ) {
                 if (liveSpace.imageUrls.isNotEmpty()) {
                     val pagerState = rememberPagerState(pageCount = { liveSpace.imageUrls.size })
+                    val heroScope = rememberCoroutineScope()
                     HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
                         coil.compose.AsyncImage(
                             model = liveSpace.imageUrls[page],
@@ -448,6 +476,42 @@ fun SpaceDetailsScreenContent(
                             )
                     )
                     if (liveSpace.imageUrls.size > 1) {
+                        if (pagerState.currentPage > 0) {
+                            IconButton(
+                                onClick = { heroScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
+                                modifier = Modifier
+                                    .align(Alignment.CenterStart)
+                                    .padding(start = 4.dp)
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.35f))
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBackIos,
+                                    contentDescription = "Previous photo",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                        if (pagerState.currentPage < liveSpace.imageUrls.size - 1) {
+                            IconButton(
+                                onClick = { heroScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
+                                modifier = Modifier
+                                    .align(Alignment.CenterEnd)
+                                    .padding(end = 4.dp)
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.35f))
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowForwardIos,
+                                    contentDescription = "Next photo",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
                         Row(
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
@@ -484,7 +548,7 @@ fun SpaceDetailsScreenContent(
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .padding(20.dp)
+                        .padding(14.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Surface(
@@ -713,6 +777,10 @@ fun SpaceDetailsScreenContent(
                                 onClick = {
                                     selectedSubdivisionId = null
                                     availabilityPanelState = "peek"
+                                },
+                                onCheckAvailability = {
+                                    selectedSubdivisionId = null
+                                    availabilityPanelState = "full"
                                 }
                             )
                         } else {
@@ -732,6 +800,24 @@ fun SpaceDetailsScreenContent(
                                         "from $$minPrice/day"
                                     }
                                 }
+                                // Shared by the whole-card tap (peek) and the explicit "Check
+                                // Availability" button (jumps straight to the full slide-up
+                                // sheet) — selects this division and its cheapest slot's price.
+                                fun selectSubdivision(targetPanelState: String) {
+                                    // Show the division's lowest per-slot price on the bottom
+                                    // strip, not the sum of every open slot for the week —
+                                    // representativeFormula sums whatever slot list it's given,
+                                    // so pass just the cheapest slot, not all of subSlots.
+                                    val cheapestSlot = subSlots.minByOrNull {
+                                        it.pricesByRecurrence[BookingRecurrence.FLAT] ?: Double.MAX_VALUE
+                                    }
+                                    val formula = cheapestSlot?.let {
+                                        SpaceCalculationUtils.representativeFormula(listOf(it), BookingRecurrence.FLAT)
+                                    }
+                                    if (formula != null) onSelectFormula(formula)
+                                    selectedSubdivisionId = sub.id
+                                    availabilityPanelState = targetPanelState
+                                }
                                 SubdivisionRentalCard(
                                     info = SubdivisionRentalCardInfo(
                                         name = sub.name,
@@ -740,14 +826,13 @@ fun SpaceDetailsScreenContent(
                                         amenities = sub.amenities,
                                         hashtags = sub.hashtags,
                                         priceSummary = "${sub.pricing.strategyType.displayName} · $priceSummary",
-                                        isOccupied = isOccupied
+                                        isOccupied = isOccupied,
+                                        capacity = sub.capacity,
+                                        hasCustomHours = sub.scheduleOverride != null,
+                                        isPerAttendee = sub.pricingMode == SubdivisionPricingMode.PER_ATTENDEE
                                     ),
-                                    onClick = {
-                                        val formula = SpaceCalculationUtils.representativeFormula(subSlots, BookingRecurrence.FLAT)
-                                        if (formula != null) onSelectFormula(formula)
-                                        selectedSubdivisionId = sub.id
-                                        availabilityPanelState = "peek"
-                                    }
+                                    onClick = { selectSubdivision("peek") },
+                                    onCheckAvailability = { selectSubdivision("full") }
                                 )
                             }
                         }
@@ -998,7 +1083,14 @@ fun SpaceDetailsScreenContent(
                 selectedSlots = emptySet()
                 selectedHoursPerDay = emptyMap()
             },
+            modifier = Modifier.shadow(16.dp, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            // Blue design (matches the "Press to see option availability" trigger
+            // bar) instead of the neutral grey Material surface, so the trigger and
+            // the sheet it opens read as one consistent design.
+            containerColor = VibrantBlue.copy(alpha = 0.06f).compositeOver(MaterialTheme.colorScheme.surface),
+            tonalElevation = 4.dp,
             scrimColor = Color.Black.copy(alpha = 0.35f),
             dragHandle = {
                 Box(
@@ -1006,7 +1098,7 @@ fun SpaceDetailsScreenContent(
                         .padding(vertical = 8.dp)
                         .width(28.dp)
                         .height(4.dp)
-                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f), RoundedCornerShape(2.dp))
+                        .background(VibrantBlue.copy(alpha = 0.6f), RoundedCornerShape(2.dp))
                 )
             }
         ) {
@@ -1602,7 +1694,7 @@ fun SpaceDetailsScreenContent(
                         enabled = !isSendingSlotRequest
                     ) {
                         if (isSendingSlotRequest) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                         } else {
                             Text("Send")
                         }
@@ -1666,14 +1758,18 @@ data class SubdivisionRentalCardInfo(
     val amenities: List<String>,
     val hashtags: List<String>,
     val priceSummary: String,
-    val isOccupied: Boolean
+    val isOccupied: Boolean,
+    val capacity: Int? = null,
+    val hasCustomHours: Boolean = false,
+    val isPerAttendee: Boolean = false
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SubdivisionRentalCard(
     info: SubdivisionRentalCardInfo,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onCheckAvailability: () -> Unit
 ) {
     val name = info.name
     val typeBadge = info.typeBadge
@@ -1682,6 +1778,9 @@ private fun SubdivisionRentalCard(
     val hashtags = info.hashtags
     val priceSummary = info.priceSummary
     val isOccupied = info.isOccupied
+    val capacity = info.capacity
+    val hasCustomHours = info.hasCustomHours
+    val isPerAttendee = info.isPerAttendee
     Surface(
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -1695,6 +1794,7 @@ private fun SubdivisionRentalCard(
                 // Photo carousel
                 if (imageUrls.isNotEmpty()) {
                     val pagerState = rememberPagerState(pageCount = { imageUrls.size })
+                    val cardScope = rememberCoroutineScope()
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1710,6 +1810,42 @@ private fun SubdivisionRentalCard(
                             )
                         }
                         if (imageUrls.size > 1) {
+                            if (pagerState.currentPage > 0) {
+                                IconButton(
+                                    onClick = { cardScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
+                                    modifier = Modifier
+                                        .align(Alignment.CenterStart)
+                                        .padding(start = 2.dp)
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.Black.copy(alpha = 0.35f))
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBackIos,
+                                        contentDescription = "Previous photo",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
+                            if (pagerState.currentPage < imageUrls.size - 1) {
+                                IconButton(
+                                    onClick = { cardScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
+                                    modifier = Modifier
+                                        .align(Alignment.CenterEnd)
+                                        .padding(end = 2.dp)
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.Black.copy(alpha = 0.35f))
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowForwardIos,
+                                        contentDescription = "Next photo",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
                             Row(
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
@@ -1776,11 +1912,45 @@ private fun SubdivisionRentalCard(
 
                     // Pricing
                     Text(
-                        priceSummary,
+                        priceSummary + if (isPerAttendee) " / person" else "",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = CarnationOrange
                     )
+
+                    // Capacity / custom-hours / per-attendee badges — surfaced here so
+                    // a user isn't left to discover them only after opening the sheet.
+                    if (capacity != null || hasCustomHours || isPerAttendee) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            if (capacity != null) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                                    shape = MaterialTheme.shapes.extraSmall
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Icon(Icons.Default.Groups, contentDescription = null, modifier = Modifier.size(12.dp))
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Text("Up to $capacity", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                            }
+                            if (hasCustomHours) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                                    shape = MaterialTheme.shapes.extraSmall
+                                ) {
+                                    Text(
+                                        "Custom hours",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
 
                     // Amenities chips (first 3 + overflow)
                     if (amenities.isNotEmpty()) {
@@ -1853,6 +2023,23 @@ private fun SubdivisionRentalCard(
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    // Explicit CTA — the whole card is also tappable (peek preview),
+                    // but this button jumps straight to the full availability sheet
+                    // so it's never left implicit that this card can be booked from.
+                    if (!isOccupied) {
+                        Button(
+                            onClick = onCheckAvailability,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.small,
+                            colors = ButtonDefaults.buttonColors(containerColor = VibrantBlue),
+                            contentPadding = PaddingValues(vertical = 8.dp)
+                        ) {
+                            Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Check Availability", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

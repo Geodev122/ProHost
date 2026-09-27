@@ -42,6 +42,12 @@ class PlayBillingManager(
     companion object {
         private const val TAG = "PlayBillingManager"
 
+        // The correct Play Store redeem-code URL. There is no "/store/" segment —
+        // https://play.google.com/store/redeem is malformed and produces Google's
+        // generic 400 "the server cannot process the request" page. Single source
+        // of truth so this can't drift out of sync between call sites again.
+        const val REDEEM_CODE_URL = "https://play.google.com/redeem"
+
         // Default Subscription Product IDs configured in Google Play Console
         const val PRODUCT_ID_GROWTH = "package_growth_mrr"
         const val PRODUCT_ID_PRO = "package_pro_mrr"
@@ -312,7 +318,7 @@ class PlayBillingManager(
         if (marketIntent.resolveActivity(activity.packageManager) != null) {
             activity.startActivity(marketIntent)
         } else {
-            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/redeem")))
+            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(REDEEM_CODE_URL)))
         }
     }
 

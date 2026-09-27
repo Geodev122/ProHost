@@ -260,7 +260,11 @@ fun OwnerAnalyticsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     } else {
-                        val demandColors = listOf(OxfordBlue, VibrantBlue, CarnationOrange, BrightOrange, LebaneseCedarGreen)
+                        // Uses MaterialTheme.colorScheme.primary (not a fixed OxfordBlue) so the first
+                        // bar's percentage label — rendered in this same color directly on the
+                        // screen's ambient background (see DisciplineDemandBar) — stays legible in
+                        // dark mode, where a hardcoded dark navy would be near-invisible.
+                        val demandColors = listOf(MaterialTheme.colorScheme.primary, VibrantBlue, CarnationOrange, BrightOrange, LebaneseCedarGreen)
                         val maxCount = specialtyDemand.first().second
                         specialtyDemand.forEachIndexed { index, (specialty, count) ->
                             DisciplineDemandBar(

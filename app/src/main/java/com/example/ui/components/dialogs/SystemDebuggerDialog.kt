@@ -80,7 +80,7 @@ fun SystemDebuggerDialog(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Surface(
-                            color = OxfordBlue.copy(alpha = 0.12f),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                             shape = MaterialTheme.shapes.medium,
                             modifier = Modifier.size(44.dp)
                         ) {
@@ -88,7 +88,7 @@ fun SystemDebuggerDialog(
                                 Icon(
                                     Icons.Default.BugReport,
                                     contentDescription = null,
-                                    tint = OxfordBlue,
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -173,7 +173,7 @@ fun SystemDebuggerDialog(
                             .height(100.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = OxfordBlue)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 }
 
@@ -202,7 +202,7 @@ fun SystemDebuggerDialog(
                                         text = cat,
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isSelected) OxfordBlue else MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             )
@@ -327,7 +327,10 @@ fun SystemDebuggerDialog(
                         onClick = { runAudit() },
                         enabled = !isRunning,
                         shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(containerColor = OxfordBlue),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))

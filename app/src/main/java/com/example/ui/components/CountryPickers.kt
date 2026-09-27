@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.COUNTRIES
 import com.example.data.model.Country
-import com.example.ui.theme.OxfordBlue
 
 /**
  * Search-and-tap country chooser, used to let the user correct an auto-detected dial
@@ -79,7 +78,7 @@ fun CountryPickerDialog(
                                 modifier = Modifier.weight(1f),
                                 fontWeight = if (country == selected) FontWeight.Bold else FontWeight.Normal
                             )
-                            Text(country.dialCode, fontWeight = FontWeight.Bold, color = OxfordBlue)
+                            Text(country.dialCode, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -165,7 +164,7 @@ fun CountryDropdownField(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.Public, contentDescription = null, tint = OxfordBlue, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Public, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                     Column {
                         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(

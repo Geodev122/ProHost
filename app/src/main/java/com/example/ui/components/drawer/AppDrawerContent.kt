@@ -36,7 +36,7 @@ import com.example.ui.theme.*
 // privacy page (public/privacy.html) — single source of truth for the
 // drawer's "Contact Support" action, rather than a second hardcoded copy
 // that could drift from the published one.
-private const val SUPPORT_EMAIL = "geo.elnajjar@gmail.com"
+private const val SUPPORT_EMAIL = "admin@pro-host.tech"
 
 /**
  * The unified drawer for both SPECIALIST and PRO_HOST.
@@ -210,11 +210,17 @@ fun SpecialistDrawerContent(
                 label = { Text("Financials", fontWeight = FontWeight.Bold) },
                 selected = activeProHostTabId == "stats",
                 onClick = { onTabSelected("stats") },
-                icon = { Icon(Icons.Default.Analytics, contentDescription = null, tint = if (activeProHostTabId == "stats") FreshGreen else OxfordBlue) },
+                icon = {
+                    Icon(
+                        Icons.Default.Analytics,
+                        contentDescription = null,
+                        tint = if (activeProHostTabId == "stats") FreshGreen else MaterialTheme.colorScheme.primary
+                    )
+                },
                 colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                    selectedTextColor = OxfordBlue,
-                    unselectedTextColor = CoolGray
+                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
             Spacer(modifier = Modifier.height(Spacing.xs))
@@ -226,13 +232,13 @@ fun SpecialistDrawerContent(
                     Icon(
                         Icons.Default.Layers,
                         contentDescription = null,
-                        tint = if (activeProHostTabId == "owner_subscriptions") FreshGreen else OxfordBlue
+                        tint = if (activeProHostTabId == "owner_subscriptions") FreshGreen else MaterialTheme.colorScheme.primary
                     )
                 },
                 colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                    selectedTextColor = OxfordBlue,
-                    unselectedTextColor = CoolGray
+                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
             Spacer(modifier = Modifier.height(Spacing.xs))
@@ -240,11 +246,11 @@ fun SpecialistDrawerContent(
                 label = { Text("Transactions", fontWeight = FontWeight.Bold) },
                 selected = false,
                 onClick = { onDrawerAction("owner_whish") },
-                icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = OxfordBlue) },
+                icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                 colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                    selectedTextColor = OxfordBlue,
-                    unselectedTextColor = CoolGray
+                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
         }
@@ -252,7 +258,7 @@ fun SpecialistDrawerContent(
         HorizontalDivider(
             modifier = Modifier.padding(vertical = Spacing.lg),
             thickness = 0.5.dp,
-            color = OxfordBlue.copy(alpha = 0.08f)
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
         )
 
         // "PRACTICE RESOURCES" and "CONFIGURATION & SETTINGS" used to be two
@@ -280,7 +286,7 @@ fun SpecialistDrawerContent(
                 label = { Text("My Favorites", fontWeight = FontWeight.SemiBold) },
                 selected = activeProHostTabId == "my_favorites",
                 onClick = { onTabSelected("my_favorites") },
-                icon = { Icon(Icons.Default.Favorite, contentDescription = null, tint = OxfordBlue) }
+                icon = { Icon(Icons.Default.Favorite, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
             )
         }
 
@@ -289,7 +295,7 @@ fun SpecialistDrawerContent(
                 label = { Text("Explore Workspaces", fontWeight = FontWeight.SemiBold) },
                 selected = false, // Since it's not a tab for ProHost, it acts as an action
                 onClick = { onTabSelected("search_map") },
-                icon = { Icon(Icons.Default.TravelExplore, contentDescription = null, tint = OxfordBlue) }
+                icon = { Icon(Icons.Default.TravelExplore, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
             )
         }
 
@@ -297,7 +303,7 @@ fun SpecialistDrawerContent(
             label = { Text("Legal (Privacy, Terms & Policies)", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { onDrawerAction("legal_documents") },
-            icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = OxfordBlue) }
+            icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
         )
 
         val context = LocalContext.current
@@ -319,7 +325,7 @@ fun SpecialistDrawerContent(
                     Toast.makeText(context, "No email app found — you can also reach us at $SUPPORT_EMAIL", Toast.LENGTH_LONG).show()
                 }
             },
-            icon = { Icon(Icons.AutoMirrored.Filled.Help, contentDescription = null, tint = OxfordBlue) }
+            icon = { Icon(Icons.AutoMirrored.Filled.Help, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
         )
 
         ProHostDrawerFooter()
@@ -421,7 +427,7 @@ fun AdminDrawerContent(
             text = "CENTRAL SECURITY CORES",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
-            color = CoolGray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             letterSpacing = 1.2.sp,
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
@@ -434,13 +440,13 @@ fun AdminDrawerContent(
                 Icon(
                     Icons.Default.AdminPanelSettings,
                     contentDescription = null,
-                    tint = if (activeTabId == "admin_console") CarnationOrange else OxfordBlue
+                    tint = if (activeTabId == "admin_console") CarnationOrange else MaterialTheme.colorScheme.primary
                 )
             },
             colors = NavigationDrawerItemDefaults.colors(
-                selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                selectedTextColor = OxfordBlue,
-                unselectedTextColor = CoolGray
+                selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                selectedTextColor = MaterialTheme.colorScheme.primary,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
@@ -448,18 +454,24 @@ fun AdminDrawerContent(
             label = { Text("Security ID Card", fontWeight = FontWeight.Bold) },
             selected = activeTabId == "admin_profile",
             onClick = { onTabSelected("admin_profile") },
-            icon = { Icon(Icons.Default.Shield, contentDescription = null, tint = if (activeTabId == "admin_profile") CarnationOrange else OxfordBlue) },
+            icon = {
+                Icon(
+                    Icons.Default.Shield,
+                    contentDescription = null,
+                    tint = if (activeTabId == "admin_profile") CarnationOrange else MaterialTheme.colorScheme.primary
+                )
+            },
             colors = NavigationDrawerItemDefaults.colors(
-                selectedContainerColor = OxfordBlue.copy(alpha = 0.08f),
-                selectedTextColor = OxfordBlue,
-                unselectedTextColor = CoolGray
+                selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                selectedTextColor = MaterialTheme.colorScheme.primary,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
 
         HorizontalDivider(
             modifier = Modifier.padding(vertical = Spacing.lg),
             thickness = 0.5.dp,
-            color = OxfordBlue.copy(alpha = 0.08f)
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
         )
 
         // Admin gets every Pro Host capability unconditionally — unlimited listings,
@@ -469,7 +481,7 @@ fun AdminDrawerContent(
             text = "PRO HOST ACCESS (UNLIMITED)",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
-            color = OxfordBlue,
+            color = MaterialTheme.colorScheme.primary,
             letterSpacing = 1.2.sp,
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
@@ -478,41 +490,65 @@ fun AdminDrawerContent(
             label = { Text("My Listings", fontWeight = FontWeight.SemiBold) },
             selected = activeTabId == "manage_listings",
             onClick = { onTabSelected("manage_listings") },
-            icon = { Icon(Icons.Default.HomeWork, contentDescription = null, tint = if (activeTabId == "manage_listings") CarnationOrange else OxfordBlue) }
+            icon = {
+                Icon(
+                    Icons.Default.HomeWork,
+                    contentDescription = null,
+                    tint = if (activeTabId == "manage_listings") CarnationOrange else MaterialTheme.colorScheme.primary
+                )
+            }
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
             label = { Text("Explore Workspaces", fontWeight = FontWeight.SemiBold) },
             selected = activeTabId == "search_map",
             onClick = { onTabSelected("search_map") },
-            icon = { Icon(Icons.Default.TravelExplore, contentDescription = null, tint = if (activeTabId == "search_map") CarnationOrange else OxfordBlue) }
+            icon = {
+                Icon(
+                    Icons.Default.TravelExplore,
+                    contentDescription = null,
+                    tint = if (activeTabId == "search_map") CarnationOrange else MaterialTheme.colorScheme.primary
+                )
+            }
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
             label = { Text("Renting Progress", fontWeight = FontWeight.SemiBold) },
             selected = activeTabId == "owner_progress",
             onClick = { onTabSelected("owner_progress") },
-            icon = { Icon(Icons.Default.Schedule, contentDescription = null, tint = if (activeTabId == "owner_progress") CarnationOrange else OxfordBlue) }
+            icon = {
+                Icon(
+                    Icons.Default.Schedule,
+                    contentDescription = null,
+                    tint = if (activeTabId == "owner_progress") CarnationOrange else MaterialTheme.colorScheme.primary
+                )
+            }
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
             label = { Text("Stats", fontWeight = FontWeight.SemiBold) },
             selected = activeTabId == "stats",
             onClick = { onTabSelected("stats") },
-            icon = { Icon(Icons.Default.Analytics, contentDescription = null, tint = if (activeTabId == "stats") CarnationOrange else OxfordBlue) }
+            icon = {
+                Icon(
+                    Icons.Default.Analytics,
+                    contentDescription = null,
+                    tint = if (activeTabId == "stats") CarnationOrange else MaterialTheme.colorScheme.primary
+                )
+            }
         )
 
         HorizontalDivider(
             modifier = Modifier.padding(vertical = Spacing.lg),
             thickness = 0.5.dp,
-            color = OxfordBlue.copy(alpha = 0.08f)
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
         )
 
         Text(
             text = "SYSTEM AUDIT & PRICING",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
-            color = OxfordBlue,
+            color = MaterialTheme.colorScheme.primary,
             letterSpacing = 1.2.sp,
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
@@ -521,7 +557,7 @@ fun AdminDrawerContent(
             label = { Text("System Audit Logs", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { onDrawerAction("admin_audit") },
-            icon = { Icon(Icons.Default.Terminal, contentDescription = null, tint = OxfordBlue) }
+            icon = { Icon(Icons.Default.Terminal, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
@@ -563,7 +599,7 @@ fun ProHostDrawerFooter() {
             .padding(top = 16.dp, bottom = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        HorizontalDivider(modifier = Modifier.padding(bottom = 12.dp), color = LightGray)
+        HorizontalDivider(modifier = Modifier.padding(bottom = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -577,7 +613,7 @@ fun ProHostDrawerFooter() {
                     text = "ProHost Lebanon",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = OxfordBlue
+                    color = MaterialTheme.colorScheme.primary
                 )
                 ProHostCedarBadge(text = "v2.5", isCompact = true)
             }

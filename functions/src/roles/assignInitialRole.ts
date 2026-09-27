@@ -56,7 +56,6 @@ import "../lib/admin";
 interface RegistrationDraft {
   fullName?: unknown;
   email?: unknown;
-  idDocumentUrl?: unknown;
   tosAccepted?: unknown;
 }
 
@@ -92,16 +91,6 @@ async function validateRegistrationDraft(draft: RegistrationDraft, callerUid: st
     if (e instanceof HttpsError) throw e;
     const code = (e as { code?: string })?.code;
     if (code !== "auth/user-not-found") throw e;
-  }
-
-  // idDocumentUrl is optional at the type level but required by the registration
-  // form's own UI gating — if present, it must actually be a Firebase Storage
-  // download URL, not an arbitrary client-supplied string.
-  if (draft.idDocumentUrl !== undefined && draft.idDocumentUrl !== null) {
-    const idDocumentUrl = typeof draft.idDocumentUrl === "string" ? draft.idDocumentUrl : "";
-    if (!/^https:\/\/firebasestorage\.googleapis\.com\//.test(idDocumentUrl)) {
-      throw new HttpsError("invalid-argument", "ID document must be a real uploaded file.");
-    }
   }
 
   // The registration screen's Terms of Use / Privacy Policy checkbox used to be
@@ -185,13 +174,6 @@ export const assignInitialRole = onCall(
       // original timestamp is preserved — we never overwrite a recorded consent.
       ...(registration && !profileSnap.data()?.tosAcceptedAtMillis
         ? { tosAcceptedAtMillis: now, consentVersion: CURRENT_CONSENT_VERSION }
-        : {}),
-      ...(registration?.idDocumentUrl
-        ? {
-            idDocumentUrl: registration.idDocumentUrl,
-            idDocumentVerificationStatus: "PENDING",
-            idDocumentSubmittedAt: now,
-          }
         : {}),
       ...(auth.token.email_verified === true
         ? { emailVerified: true, emailVerifiedAt: now }

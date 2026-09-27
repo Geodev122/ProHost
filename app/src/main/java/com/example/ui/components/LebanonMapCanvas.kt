@@ -227,6 +227,11 @@ fun LebanonMapCanvas(
     onNavigateToDetails: (SpaceListing) -> Unit,
     modifier: Modifier = Modifier,
     spaceTypeSchema: List<SchemaItem> = emptyList(),
+    // Fired only when the user taps a specific division/subdivision card in the
+    // bottom strip — the one case where a tap should navigate straight to the
+    // listing page instead of just updating the local marker preview (see
+    // onSpaceSelected's doc note above the LazyRow card below).
+    onDivisionSelected: (SpaceListing, String) -> Unit = { _, _ -> },
     topControls: (@Composable BoxScope.() -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -715,6 +720,12 @@ fun LebanonMapCanvas(
                                     coroutineScope.launch {
                                         cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(LatLng(space.lat - 0.012, space.lng), 14f))
                                     }
+                                    // A specific division card is an explicit intent to view
+                                    // that division's availability, unlike a plain marker/whole-
+                                    // space tap which only previews — so navigate immediately.
+                                    if (sub != null) {
+                                        onDivisionSelected(space, sub.id)
+                                    }
                                 },
                             shape = MaterialTheme.shapes.medium,
                             colors = CardDefaults.cardColors(
@@ -762,7 +773,7 @@ fun LebanonMapCanvas(
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontSize = 8.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color.White,
+                                                color = MaterialTheme.colorScheme.onPrimary,
                                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                             )
                                         }

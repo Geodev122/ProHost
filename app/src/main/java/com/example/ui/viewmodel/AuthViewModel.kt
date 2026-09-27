@@ -52,6 +52,9 @@ class AuthViewModel(
      * Everything the registration form collects, submitted only AFTER the user is
      * already authenticated (phone OTP, email link, or Google). [phoneE164] defaults
      * to "" for email/Google-auth users — phone verification moves to the KYC gate.
+     * Registration never collects a government ID document — that's the KYC flow's
+     * job (KycScreen.kt / KycVerificationDialog.kt), required before a Specialist can
+     * book a space or before upgrading to Pro Host.
      */
     data class PendingRegistration(
         val fullName: String,
@@ -62,7 +65,6 @@ class AuthViewModel(
         val governorate: String,
         val city: String,
         val profilePictureUri: Uri?,
-        val idDocumentUri: Uri? = null,
         // The registration form's Terms of Use / Privacy Policy checkbox must have
         // actually been checked before this reaches here — enforced client-side by
         // the form's own submit gate, and again server-side by assignInitialRole.ts,
@@ -253,7 +255,14 @@ class AuthViewModel(
     private suspend fun finishVerification(
         activity: Activity,
         isNewUser: Boolean,
-        onVerified: (needsRegistration: Boolean) -> Unit
+        onVerified: (needsRegistration: Boolean) -> Unit,
+        // The sign-in method used for THIS call, not whichever providers the
+        // account happens to have linked overall — firebaseUser.providerData
+        // lists every provider ever linked (e.g. once phone KYC has been
+        // completed), so checking it directly used to misfire for a returning
+        // Google/email user who also has a linked phone, bouncing them back to
+        // the registration form on every subsequent sign-in.
+        viaPhoneSignIn: Boolean = false
     ) {
         val authService = com.example.data.auth.FirebaseAuthService(activity)
         val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
@@ -268,13 +277,13 @@ class AuthViewModel(
                 val integrityToken = com.example.util.PlayIntegrityManager(activity)
                     .requestIntegrityToken().getOrNull()
                 val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser, integrityToken)
-                // Stranded-account recovery: only applies when the user's Firebase Auth
-                // account was authenticated via phone (phone-auth users with a blank phone
-                // in Firestore means the registration form was never submitted). Email/Google
-                // users have phone blank by design until KYC; they must not be re-routed
-                // to the registration form on every subsequent sign-in.
-                val isPhoneAuth = firebaseUser.providerData.any { it.providerId == "phone" }
-                if (isPhoneAuth && user.role != com.example.data.model.UserRole.ADMIN && user.phone.isBlank()) {
+                // Stranded-account recovery: only applies when THIS sign-in was
+                // via phone (phone-auth users with a blank phone in Firestore
+                // means the registration form was never submitted). Email/Google
+                // users have phone blank by design until KYC; they must not be
+                // re-routed to the registration form on every subsequent sign-in
+                // just because they happen to have a phone linked from KYC.
+                if (viaPhoneSignIn && user.role != com.example.data.model.UserRole.ADMIN && user.phone.isBlank()) {
                     repository.discardIncompleteSession()
                     onVerified(true)
                 } else {
@@ -365,7 +374,7 @@ class AuthViewModel(
         when (result) {
             is com.example.data.auth.AuthResult.Success -> {
                 _pendingVerificationId.value = null
-                finishVerification(activity, result.isNewUser, onVerified)
+                finishVerification(activity, result.isNewUser, onVerified, viaPhoneSignIn = true)
             }
             is com.example.data.auth.AuthResult.Error -> {
                 _isAuthenticating.value = false
@@ -433,6 +442,7 @@ class AuthViewModel(
      */
     fun linkKycPhone(
         activity: Activity,
+        e164Phone: String,
         smsCode: String,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
@@ -450,6 +460,11 @@ class AuthViewModel(
                 when (val result = authService.linkPhoneCredentialToCurrentUser(credential)) {
                     is AuthResult.Success -> {
                         _pendingVerificationId.value = null
+                        // linkPhoneCredentialToCurrentUser only links the credential at
+                        // the Firebase Auth level — persist it to Firestore too, or the
+                        // KYC gate and the "needs registration" check both keep treating
+                        // this account as if phone was never verified.
+                        repository.updatePhoneAfterKycLink(e164Phone)
                         _isAuthenticating.value = false
                         onSuccess()
                     }
@@ -491,9 +506,6 @@ class AuthViewModel(
                 val profilePictureUrl = registration.profilePictureUri?.let { uri ->
                     storageService.uploadProfilePicture(firebaseUser.uid, uri, guessFileExtension(activity, uri, "jpg"))
                 }
-                val idDocumentUrl = registration.idDocumentUri?.let { uri ->
-                    storageService.uploadIdDocument(firebaseUser.uid, uri, guessFileExtension(activity, uri, "pdf"))
-                }
                 val integrityToken = com.example.util.PlayIntegrityManager(activity)
                     .requestIntegrityToken().getOrNull()
                 val user = com.example.data.auth.completeVerifiedRegistration(
@@ -506,7 +518,6 @@ class AuthViewModel(
                         phone = registration.phoneE164,
                         specialty = registration.specialty,
                         profilePictureUrl = profilePictureUrl,
-                        idDocumentUrl = idDocumentUrl,
                         country = registration.country,
                         governorate = registration.governorate,
                         city = registration.city,
@@ -518,7 +529,6 @@ class AuthViewModel(
                 registerFcmTokenForCurrentUser(user.id)
                 val missedUploads = buildList {
                     if (registration.profilePictureUri != null && profilePictureUrl == null) add("profile photo")
-                    if (registration.idDocumentUri != null && idDocumentUrl == null) add("ID document")
                 }
                 _authSuccessMessage.value = if (missedUploads.isEmpty()) {
                     "Account created successfully for ${user.fullName}!"

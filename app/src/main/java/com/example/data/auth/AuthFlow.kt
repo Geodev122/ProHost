@@ -23,7 +23,6 @@ data class RegistrationDetails(
     val phone: String,
     val specialty: String,
     val profilePictureUrl: String?,
-    val idDocumentUrl: String?,
     val country: String,
     val governorate: String,
     val city: String,
@@ -61,8 +60,11 @@ suspend fun completeVerifiedLogin(
  * — that's what [firebaseUser.uid] and [firebaseUser.phoneNumber] represent. [email]
  * comes from the registration form, not [firebaseUser.email] (a phone-auth FirebaseUser
  * has no email of its own). There is no admin accreditation review anymore: profile
- * picture and ID document are simply kept on file (their Storage URLs, already
- * uploaded by the caller once [firebaseUser.uid] existed to key the upload path on).
+ * picture is simply kept on file (its Storage URL, already uploaded by the caller once
+ * [firebaseUser.uid] existed to key the upload path on). Registration never collects a
+ * government ID — that only happens later, through the KYC flow (KycScreen.kt /
+ * KycVerificationDialog.kt) required before a Specialist can book, or before upgrading
+ * to Pro Host.
  */
 suspend fun completeVerifiedRegistration(
     repository: ProHostRepository,
@@ -75,19 +77,11 @@ suspend fun completeVerifiedRegistration(
         registrationDraft = mapOf(
             "fullName" to details.fullName,
             "email" to details.email,
-            "idDocumentUrl" to details.idDocumentUrl,
             "tosAccepted" to details.tosAccepted
         ),
         integrityToken = integrityToken
     ).getOrThrow()
     val role = resolveVerifiedRole(functionsClient, firebaseUser, integrityToken)
-    if (!details.idDocumentUrl.isNullOrBlank()) {
-        try {
-            functionsClient.submitIdDocument(details.idDocumentUrl)
-        } catch (e: Exception) {
-            android.util.Log.w("AuthFlow", "submitIdDocument note: ${e.message}")
-        }
-    }
     return repository.registerMember(
         uid = firebaseUser.uid,
         verifiedRole = role,
@@ -111,7 +105,7 @@ suspend fun completeGoogleSignIn(
  * Registers a brand-new user who signed up via Google Sign-In.
  * The Google account provides email, display name, and photo — the caller
  * should pre-fill the registration form with these values and pass them here
- * after the user completes the remaining required fields (specialty, location, ID doc).
+ * after the user completes the remaining required fields (specialty, location).
  */
 suspend fun completeGoogleRegistration(
     repository: ProHostRepository,
@@ -123,6 +117,10 @@ suspend fun completeGoogleRegistration(
     repository = repository,
     functionsClient = functionsClient,
     firebaseUser = firebaseUser,
+    // firebaseUser.phoneNumber is always null for Google Sign-In — Google's Auth
+    // API exposes no phone number at all, so this fallback is a no-op for Google
+    // users and phone correctly stays blank until real phone OTP KYC verification
+    // (linkKycPhone) writes it. Never treat a Google account as phone-verified.
     details = details.copy(phone = details.phone.ifBlank { firebaseUser.phoneNumber ?: "" }),
     integrityToken = integrityToken
 )
