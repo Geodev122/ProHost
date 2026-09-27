@@ -10,6 +10,7 @@ plugins {
   alias(libs.plugins.google.devtools.ksp)
   alias(libs.plugins.roborazzi)
   alias(libs.plugins.google.services)
+  alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
@@ -160,6 +161,7 @@ dependencies {
   // implementation(libs.firebase.ai)  // unused — auto-inits and may crash without config
   // Uncomment to use Firestore:
   implementation(libs.firebase.firestore)
+  implementation(libs.firebase.crashlytics)
   implementation(libs.firebase.messaging)
   implementation(libs.firebase.storage)
   implementation(libs.firebase.dataconnect)

@@ -14,26 +14,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      # gradle/gradle-daemon-jvm.properties pins the Gradle daemon to a JetBrains
+      # JDK 21; any other JDK fails before the build starts.
+      - name: Set up JDK 21 (JetBrains)
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: "17"
+          distribution: jetbrains
+          java-version: "21"
 
-      # This repo doesn't commit a Gradle wrapper (gradlew/gradle-wrapper.jar), so
-      # install the exact version gradle/wrapper/gradle-wrapper.properties expects
-      # and invoke `gradle` directly instead of `./gradlew`. Gradle 8.10.2 is the
-      # version actually compatible with this project's AGP 8.8.1 + Kotlin 2.1.10 +
-      # KSP 2.1.10-1.0.29 — the wrapper properties previously pinned Gradle 9.3.1,
-      # which predates AGP 8.8.1's supported Gradle range entirely and was never
-      # validated (the wrapper jar itself was never committed to this repo, so no
-      # one had actually built with that version pin before this workflow's first
-      # run surfaced it as a bizarre "Unclosed comment" error from KSP's stub
-      # compiler on a file with no such syntax problem).
+      # No Gradle wrapper jar is committed, so install Gradle directly. AGP 8.13
+      # requires Gradle 8.13+.
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.10.2"
+          gradle-version: "8.14.3"
 
       # app/build.gradle.kts points the debug signing config at ${rootDir}/debug.keystore,
       # which is gitignored (never committed) — generate the standard Android debug
@@ -46,8 +40,10 @@ jobs:
               -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
 
-      - name: Build debug APK
-        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      # compileReleaseKotlin catches release-only compile errors (the shipped
+      # variant) without needing the upload keystore.
+      - name: Build debug APK and compile release
+        run: gradle :app:assembleDebug :app:compileReleaseKotlin --no-daemon --stacktrace
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -67,3 +63,22 @@ jobs:
           file: app/build/outputs/apk/debug/app-debug.apk
           releaseNotes: |
             Automated build from commit ${{ github.sha }} on ${{ github.ref_name }}.
+
+  functions-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install and build Cloud Functions
+        working-directory: functions
+        run: |
+          npm ci
+          npm run build

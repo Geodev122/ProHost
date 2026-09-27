@@ -1,4 +1,5 @@
-import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { HttpsError } from "firebase-functions/v2/https";
+import { onCall } from "../lib/callable";
 import { getFirestore } from "firebase-admin/firestore";
 import { sendPushToUser } from "../lib/push";
 import "../lib/admin";

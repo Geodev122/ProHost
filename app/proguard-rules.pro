@@ -91,3 +91,8 @@
 -allowaccessmodification
 -repackageclasses 'com.example.opt'
 -mergeinterfacesaggressively
+
+# Crashlytics: keep line numbers for readable stack traces (the plugin uploads the
+# R8 mapping file on release builds) and keep custom exception class names.
+-keepattributes SourceFile,LineNumberTable
+-keep public class * extends java.lang.Exception

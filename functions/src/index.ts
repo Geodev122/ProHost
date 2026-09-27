@@ -1,4 +1,4 @@
-import { onCall } from "firebase-functions/v2/https";
+import { onCall } from "./lib/callable";
 import { setGlobalOptions } from "firebase-functions/v2";
 import "./lib/admin";
 

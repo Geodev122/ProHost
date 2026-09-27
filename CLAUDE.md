@@ -54,6 +54,15 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
   origin/main` to see if your branch is already behind. If so, merge/fast-forward first so you
   aren't duplicating check numbers or fixes already on `main`.
 
+## Crashlytics & App Check
+
+- Crashlytics is on in debug and release (testers get debug APKs via App Distribution). Don't
+  call `setUserId` or log PII — `public/privacy.html` promises crash logs are anonymised.
+- Every callable must use `onCall` from `functions/src/lib/callable.ts`, not
+  `firebase-functions/v2/https`. That wrapper applies `ENFORCE_APP_CHECK` and logs
+  `app_check_unverified` for calls without a valid token. Only flip `ENFORCE_APP_CHECK` to `true`
+  after those logs show real app traffic is verified.
+
 ## Branch policy
 
 Direct pushes and merges to `main` are allowed. Feature branches (e.g.

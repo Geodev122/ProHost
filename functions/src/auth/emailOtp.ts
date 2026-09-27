@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
-import { onCall, onRequest } from "firebase-functions/v2/https";
+import { onRequest } from "firebase-functions/v2/https";
+import { onCall } from "../lib/callable";
 import { sendEmail, hostingerSmtpSecret } from "../lib/email";
 import { otpSignInTemplate } from "../lib/emailTemplates";
 

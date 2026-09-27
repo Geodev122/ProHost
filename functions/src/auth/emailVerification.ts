@@ -1,4 +1,5 @@
-import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
+import { onRequest, HttpsError } from "firebase-functions/v2/https";
+import { onCall } from "../lib/callable";
 import { defineSecret } from "firebase-functions/params";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
