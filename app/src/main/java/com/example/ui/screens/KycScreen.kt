@@ -369,7 +369,7 @@ fun KycScreen(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text("Change phone number", fontWeight = FontWeight.SemiBold)
                     }

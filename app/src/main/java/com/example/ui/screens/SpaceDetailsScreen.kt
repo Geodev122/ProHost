@@ -1645,7 +1645,7 @@ fun SpaceDetailsScreenContent(
                                 Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                             }
                         }
-                        Divider()
+                        HorizontalDivider()
                         // Slot summary
                         val allSelectedSlotLabels = buildList {
                             selectedSlots.forEach { add(it.label) }
@@ -1662,7 +1662,7 @@ fun SpaceDetailsScreenContent(
                         }
                         // Attendee block
                         if (isAttendeeModeDialog && pkgForDialog != null) {
-                            Divider()
+                            HorizontalDivider()
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("Attendees", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text("$sheetAttendeeCount pax", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
@@ -1672,7 +1672,7 @@ fun SpaceDetailsScreenContent(
                                 Text(pkgForDialog.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                             }
                         }
-                        Divider()
+                        HorizontalDivider()
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Estimated Total", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text("$${String.format("%.2f", totalCostForDialog)} USD",

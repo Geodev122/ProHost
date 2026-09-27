@@ -166,6 +166,7 @@ class PlayBillingManager(
 
         // Handle upgrade/downgrade replacement mode
         if (!oldPurchaseToken.isNullOrBlank()) {
+            @Suppress("DEPRECATION")
             val subscriptionUpdateParams = BillingFlowParams.SubscriptionUpdateParams.newBuilder()
                 .setOldPurchaseToken(oldPurchaseToken)
                 .setSubscriptionReplacementMode(BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_FULL_PRICE)
