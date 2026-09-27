@@ -471,7 +471,13 @@ fun OwnerSubscriptionsScreen(
                         playFormattedPrice = playPriceMap[playProductId],
                         onSelect = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            if (activity != null) {
+                            // Same KYC gate as the primary CTA above — this per-plan
+                            // "Select" button used to skip it entirely and let an
+                            // un-verified user reach Google Pay billing directly.
+                            if (currentUser?.isKycComplete == false) {
+                                pendingProductId = playProductId
+                                showKycDialog = true
+                            } else if (activity != null) {
                                 viewModel.launchGooglePaySubscription(activity, playProductId)
                             } else {
                                 Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()

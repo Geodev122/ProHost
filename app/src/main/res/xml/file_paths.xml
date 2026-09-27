@@ -5,4 +5,10 @@
          needed on any API level — then exposed to the system PDF viewer / share sheet
          via a content:// Uri through this provider. See LegalPdfGenerator.kt. -->
     <external-files-path name="legal_documents" path="documents/" />
+
+    <!-- Temporary camera-capture photos for DocumentPickerField's "Take Photo"
+         option (ID/passport scanning) — written to the app cache dir, then
+         exposed to the system camera app via a content:// Uri through this
+         provider so the camera can write the photo back into it. -->
+    <cache-path name="kyc_camera_captures" path="." />
 </paths>

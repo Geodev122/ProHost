@@ -2257,6 +2257,29 @@ class ProHostRepository {
     }
 
     /**
+     * Persists the phone number to Firestore right after a successful KYC phone
+     * link (FirebaseAuthService.linkPhoneCredentialToCurrentUser only links the
+     * credential at the Firebase Auth level — it never touches Firestore). Without
+     * this write, a Google/email user who completes phone KYC keeps a blank
+     * user_profiles.phone forever, which both re-triggers the "needs KYC" gate
+     * (ProHostNavGraph) and re-sends them to the registration form on their next
+     * sign-in (AuthViewModel.finishVerification's stranded-account check).
+     */
+    suspend fun updatePhoneAfterKycLink(e164Phone: String): Boolean {
+        val current = _currentUser.value ?: return false
+        val success = firestoreService.updateUserProfileFields(
+            current.id,
+            mapOf("phone" to e164Phone)
+        )
+        if (success) {
+            val updated = current.copy(phone = e164Phone)
+            _currentUser.value = updated
+            _users.value = _users.value.map { if (it.id == updated.id) updated else it }
+        }
+        return success
+    }
+
+    /**
      * Sets/replaces the signed-in user's own ID document (Storage upload already
      * done by the caller — this just records the resulting URL). idDocumentUrl was
      * previously only ever written once, by the registration Cloud Function

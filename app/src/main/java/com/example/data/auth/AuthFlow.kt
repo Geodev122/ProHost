@@ -117,6 +117,10 @@ suspend fun completeGoogleRegistration(
     repository = repository,
     functionsClient = functionsClient,
     firebaseUser = firebaseUser,
+    // firebaseUser.phoneNumber is always null for Google Sign-In — Google's Auth
+    // API exposes no phone number at all, so this fallback is a no-op for Google
+    // users and phone correctly stays blank until real phone OTP KYC verification
+    // (linkKycPhone) writes it. Never treat a Google account as phone-verified.
     details = details.copy(phone = details.phone.ifBlank { firebaseUser.phoneNumber ?: "" }),
     integrityToken = integrityToken
 )

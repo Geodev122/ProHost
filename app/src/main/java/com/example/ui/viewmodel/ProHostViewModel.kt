@@ -456,7 +456,7 @@ class ProHostViewModel(
 
     fun openRedeemPromoCode(activity: android.app.Activity) {
         playBillingManager?.openRedeemPromoCode(activity) ?: run {
-            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/redeem")))
+            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(com.example.data.billing.PlayBillingManager.REDEEM_CODE_URL)))
         }
     }
 

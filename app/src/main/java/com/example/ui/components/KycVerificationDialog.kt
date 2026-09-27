@@ -49,7 +49,12 @@ fun KycVerificationDialog(
     var phoneInput by remember { mutableStateOf(user.phone) }
     var phoneOtpInput by remember { mutableStateOf("") }
     var isPhoneOtpSent by remember { mutableStateOf(false) }
-    var isPhoneVerified by remember { mutableStateOf(user.isVerified) }
+    // user.isVerified is a phone-OR-email flag (true for Google/email sign-ins via
+    // email_verified alone, with no phone involved at all) — using it here showed
+    // "Verified" with an empty phone number for Google users. user.phone is only
+    // ever populated once phone OTP linking has actually succeeded, so it's the
+    // real phone-specific signal.
+    var isPhoneVerified by remember { mutableStateOf(user.phone.isNotBlank()) }
 
     var emailInput by remember { mutableStateOf(user.email) }
     var isEmailSent by remember { mutableStateOf(false) }
@@ -142,10 +147,21 @@ fun KycVerificationDialog(
                                 Button(
                                     onClick = {
                                         activity?.let { act ->
-                                            authViewModel.submitPhoneVerificationCode(act, phoneOtpInput) {
-                                                isPhoneVerified = true
-                                                Toast.makeText(context, "Phone verified!", Toast.LENGTH_SHORT).show()
-                                            }
+                                            // Link this phone credential to the already-signed-in
+                                            // account (linkKycPhone) rather than
+                                            // submitPhoneVerificationCode, which signs in with the
+                                            // phone credential directly — that would swap the
+                                            // current Firebase Auth session to a different account
+                                            // entirely instead of adding phone KYC to this one.
+                                            authViewModel.linkKycPhone(act, phoneInput, phoneOtpInput,
+                                                onSuccess = {
+                                                    isPhoneVerified = true
+                                                    Toast.makeText(context, "Phone verified!", Toast.LENGTH_SHORT).show()
+                                                },
+                                                onError = { message ->
+                                                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                                }
+                                            )
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth()

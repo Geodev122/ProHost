@@ -255,7 +255,14 @@ class AuthViewModel(
     private suspend fun finishVerification(
         activity: Activity,
         isNewUser: Boolean,
-        onVerified: (needsRegistration: Boolean) -> Unit
+        onVerified: (needsRegistration: Boolean) -> Unit,
+        // The sign-in method used for THIS call, not whichever providers the
+        // account happens to have linked overall — firebaseUser.providerData
+        // lists every provider ever linked (e.g. once phone KYC has been
+        // completed), so checking it directly used to misfire for a returning
+        // Google/email user who also has a linked phone, bouncing them back to
+        // the registration form on every subsequent sign-in.
+        viaPhoneSignIn: Boolean = false
     ) {
         val authService = com.example.data.auth.FirebaseAuthService(activity)
         val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
@@ -270,13 +277,13 @@ class AuthViewModel(
                 val integrityToken = com.example.util.PlayIntegrityManager(activity)
                     .requestIntegrityToken().getOrNull()
                 val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser, integrityToken)
-                // Stranded-account recovery: only applies when the user's Firebase Auth
-                // account was authenticated via phone (phone-auth users with a blank phone
-                // in Firestore means the registration form was never submitted). Email/Google
-                // users have phone blank by design until KYC; they must not be re-routed
-                // to the registration form on every subsequent sign-in.
-                val isPhoneAuth = firebaseUser.providerData.any { it.providerId == "phone" }
-                if (isPhoneAuth && user.role != com.example.data.model.UserRole.ADMIN && user.phone.isBlank()) {
+                // Stranded-account recovery: only applies when THIS sign-in was
+                // via phone (phone-auth users with a blank phone in Firestore
+                // means the registration form was never submitted). Email/Google
+                // users have phone blank by design until KYC; they must not be
+                // re-routed to the registration form on every subsequent sign-in
+                // just because they happen to have a phone linked from KYC.
+                if (viaPhoneSignIn && user.role != com.example.data.model.UserRole.ADMIN && user.phone.isBlank()) {
                     repository.discardIncompleteSession()
                     onVerified(true)
                 } else {
@@ -367,7 +374,7 @@ class AuthViewModel(
         when (result) {
             is com.example.data.auth.AuthResult.Success -> {
                 _pendingVerificationId.value = null
-                finishVerification(activity, result.isNewUser, onVerified)
+                finishVerification(activity, result.isNewUser, onVerified, viaPhoneSignIn = true)
             }
             is com.example.data.auth.AuthResult.Error -> {
                 _isAuthenticating.value = false
@@ -435,6 +442,7 @@ class AuthViewModel(
      */
     fun linkKycPhone(
         activity: Activity,
+        e164Phone: String,
         smsCode: String,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
@@ -452,6 +460,11 @@ class AuthViewModel(
                 when (val result = authService.linkPhoneCredentialToCurrentUser(credential)) {
                     is AuthResult.Success -> {
                         _pendingVerificationId.value = null
+                        // linkPhoneCredentialToCurrentUser only links the credential at
+                        // the Firebase Auth level — persist it to Firestore too, or the
+                        // KYC gate and the "needs registration" check both keep treating
+                        // this account as if phone was never verified.
+                        repository.updatePhoneAfterKycLink(e164Phone)
                         _isAuthenticating.value = false
                         onSuccess()
                     }

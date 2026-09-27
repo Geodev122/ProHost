@@ -45,7 +45,7 @@ import com.example.ui.theme.Spacing
 @Composable
 fun DiscoveryScreen(
     viewModel: ProHostViewModel,
-    onSelectSpace: (SpaceListing) -> Unit,
+    onSelectSpace: (SpaceListing, String?) -> Unit,
     discoveryViewModel: DiscoveryViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -117,7 +117,7 @@ fun DiscoveryScreenContent(
     onToggleSavedOnly: (Boolean) -> Unit,
     onToggleSavedSpace: (String) -> Unit,
     onResetFilters: () -> Unit,
-    onSelectSpace: (SpaceListing) -> Unit,
+    onSelectSpace: (SpaceListing, String?) -> Unit,
     onQuickWhatsApp: (SpaceListing) -> Unit
 ) {
     val context = LocalContext.current
@@ -135,8 +135,14 @@ fun DiscoveryScreenContent(
         if (isMapView) {
             LebanonMapCanvas(
                 spaces = spaces,
-                onSpaceSelected = { space -> if (space != null) onSelectSpace(space) },
-                onNavigateToDetails = { onSelectSpace(it) },
+                // Only update the map's own local marker preview — never navigate here.
+                // Navigation only happens from an explicit "Check Details" tap
+                // (onNavigateToDetails) or an explicit division-card tap
+                // (onDivisionSelected); a plain marker tap, cluster tap, or the
+                // carousel settling from a scroll must never leave this screen.
+                onSpaceSelected = {},
+                onNavigateToDetails = { onSelectSpace(it, null) },
+                onDivisionSelected = { space, subdivisionId -> onSelectSpace(space, subdivisionId) },
                 modifier = Modifier.fillMaxSize().clipToBounds(),
                 spaceTypeSchema = spaceTypeSchema,
                 topControls = {
@@ -314,7 +320,7 @@ fun DiscoveryScreenContent(
                                 space = space,
                                 subdivision = sub,
                                 isSaved = savedSpaceIds.contains(space.id),
-                                onClick = { onSelectSpace(space) },
+                                onClick = { onSelectSpace(space, sub.id) },
                                 onQuickWhatsApp = { onQuickWhatsApp(space) },
                                 onToggleSave = { onToggleSavedSpace(space.id) }
                             )
@@ -322,7 +328,7 @@ fun DiscoveryScreenContent(
                             SpaceListingCard(
                                 space = space,
                                 isSaved = savedSpaceIds.contains(space.id),
-                                onClick = { onSelectSpace(space) },
+                                onClick = { onSelectSpace(space, null) },
                                 onQuickWhatsApp = { onQuickWhatsApp(space) },
                                 onToggleSave = { onToggleSavedSpace(space.id) }
                             )
@@ -446,24 +452,26 @@ fun DiscoveryScreenContent(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Filter Workspaces", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    TextButton(onClick = onResetFilters) {
-                        Text("Reset")
+                    Text("Filter Workspaces", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    TextButton(onClick = onResetFilters, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                        Text("Reset", style = MaterialTheme.typography.labelMedium)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(Spacing.md))
-
-                Text("Space Category", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(categoryOptions) { category ->
+                Text("Space Category", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    categoryOptions.forEach { category ->
                         FilterChip(
                             selected = selectedCategoryId == category.id,
                             onClick = { onSelectCategory(if (selectedCategoryId == category.id) null else category.id) },
@@ -472,11 +480,12 @@ fun DiscoveryScreenContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(Spacing.md))
-
-                Text("Rental Formula", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(RentalStrategyType.entries) { strategy ->
+                Text("Rental Formula", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    RentalStrategyType.entries.forEach { strategy ->
                         FilterChip(
                             selected = selectedStrategyType == strategy,
                             onClick = { onSelectStrategyType(if (selectedStrategyType == strategy) null else strategy) },
@@ -485,39 +494,35 @@ fun DiscoveryScreenContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(Spacing.md))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Verified listings only", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                    Switch(checked = onlyVerified, onCheckedChange = onToggleVerifiedOnly)
+                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilterChip(
+                        selected = onlyVerified,
+                        onClick = { onToggleVerifiedOnly(!onlyVerified) },
+                        leadingIcon = if (onlyVerified) {
+                            { Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                        } else null,
+                        label = { Text("Verified only", style = MaterialTheme.typography.labelSmall) }
+                    )
+                    FilterChip(
+                        selected = onlySaved,
+                        onClick = { onToggleSavedOnly(!onlySaved) },
+                        leadingIcon = if (onlySaved) {
+                            { Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                        } else null,
+                        label = { Text("Saved only", style = MaterialTheme.typography.labelSmall) }
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Saved workspaces only", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                    Switch(checked = onlySaved, onCheckedChange = onToggleSavedOnly)
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 Button(
                     onClick = { onSetFilterSheetVisible(false) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium
+                    shape = MaterialTheme.shapes.medium,
+                    contentPadding = PaddingValues(vertical = 10.dp)
                 ) {
                     Text("Apply Filters (${spaces.size} Results)")
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }

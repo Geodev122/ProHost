@@ -135,6 +135,11 @@ fun ProHostAppRoot(
         ownerIncomingRequestsForBadge.count { it.status == BookingRequestStatus.PENDING }
     }
     var detailedSpace by remember { mutableStateOf<SpaceListing?>(null) }
+    // Paired with detailedSpace: set when the user tapped a specific division/
+    // subdivision card (Explore list or map) so SpaceDetailsScreen can pre-select
+    // that division and open its availability sheet immediately, instead of
+    // landing on the generic whole-space view.
+    var detailedSpaceSubdivisionId by remember { mutableStateOf<String?>(null) }
     var managingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var activeTabId by remember { mutableStateOf("search_map") }
     var activeDrawerTabDialog by remember { mutableStateOf<String?>(null) }
@@ -585,6 +590,7 @@ fun ProHostAppRoot(
                         managingSpace = null
                     } else if (detailedSpace != null) {
                         detailedSpace = null
+                        detailedSpaceSubdivisionId = null
                     } else if (safeFullScreenDrawerTab != null) {
                         if (currentRole == UserRole.ADMIN) {
                             fullScreenDrawerTab = AppNavTab.AdminConsole.id
@@ -626,7 +632,8 @@ fun ProHostAppRoot(
                                 SpaceDetailsScreen(
                                     space = detailedSpace!!,
                                     viewModel = viewModel,
-                                    onBack = { detailedSpace = null }
+                                    intendedSubdivisionId = detailedSpaceSubdivisionId,
+                                    onBack = { detailedSpace = null; detailedSpaceSubdivisionId = null }
                                 )
                             } else if (safeFullScreenDrawerTab != null) {
                                 when (safeFullScreenDrawerTab) {
@@ -669,7 +676,11 @@ fun ProHostAppRoot(
                                 when (safeActiveTabId) {
                                     AppNavTab.SearchMap.id -> DiscoveryScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpace = it },
+                                        onSelectSpace = { space, subdivisionId ->
+                                            scope.launch { drawerState.close() }
+                                            detailedSpace = space
+                                            detailedSpaceSubdivisionId = subdivisionId
+                                        },
                                         discoveryViewModel = discoveryViewModel
                                     )
                                     AppNavTab.ManageListings.id -> OwnerHubScreen(
@@ -694,7 +705,11 @@ fun ProHostAppRoot(
                                     )
                                     else -> DiscoveryScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpace = it },
+                                        onSelectSpace = { space, subdivisionId ->
+                                            scope.launch { drawerState.close() }
+                                            detailedSpace = space
+                                            detailedSpaceSubdivisionId = subdivisionId
+                                        },
                                         discoveryViewModel = discoveryViewModel
                                     )
                                 }
