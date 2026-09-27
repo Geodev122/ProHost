@@ -6,9 +6,6 @@
   "storage": {
     "rules": "storage.rules"
   },
-  "dataconnect": {
-    "source": "./dataconnect"
-  },
   "functions": {
     "source": "functions",
     "runtime": "nodejs20",
@@ -39,14 +36,6 @@
       {
         "source": "/delete-account",
         "destination": "/delete-account.html"
-      },
-      {
-        "source": "/payment/success",
-        "destination": "/payment/success.html"
-      },
-      {
-        "source": "/payment/failure",
-        "destination": "/payment/failure.html"
       },
       {
         "source": "/listing/**",

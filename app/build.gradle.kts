@@ -93,9 +93,21 @@ android {
       isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
+      // Release builds attest with Play Integrity only; never a debug token.
+      buildConfigField("String", "APP_CHECK_DEBUG_TOKEN", "\"\"")
     }
     debug {
       signingConfig = signingConfigs.findByName("debugConfig") ?: signingConfigs.getByName("debug")
+      // One shared App Check debug token for every tester's debug APK (CI secret
+      // APP_CHECK_DEBUG_TOKEN, registered once in Firebase console > App Check >
+      // Manage debug tokens). Empty = each install generates its own token.
+      val localProps = Properties()
+      rootProject.file("local.properties").takeIf { it.exists() }?.let { f ->
+          FileInputStream(f).use { localProps.load(it) }
+      }
+      val appCheckDebugToken = System.getenv("APP_CHECK_DEBUG_TOKEN")
+          ?: localProps.getProperty("APP_CHECK_DEBUG_TOKEN") ?: ""
+      buildConfigField("String", "APP_CHECK_DEBUG_TOKEN", "\"$appCheckDebugToken\"")
     }
   }
   compileOptions {

@@ -37,8 +37,10 @@ class ProHostApplication : Application() {
         val providerName = if (BuildConfig.DEBUG) {
             try {
                 // Loaded reflectively: firebase-appcheck-debug is debugImplementation only.
-                // The debug secret is printed to logcat ("DebugAppCheckProvider") and must be
-                // registered in Firebase console > App Check > Manage debug tokens.
+                // Without a shared token each install generates its own secret (printed to
+                // logcat by DebugAppCheckProvider) that must be registered in Firebase
+                // console > App Check > Manage debug tokens, or enforced APIs reject it.
+                seedSharedDebugToken()
                 val debugFactoryClass = Class.forName("com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory")
                 val debugFactory = debugFactoryClass.getMethod("getInstance").invoke(null)
                     as com.google.firebase.appcheck.AppCheckProviderFactory
@@ -55,5 +57,19 @@ class ProHostApplication : Application() {
         firebaseAppCheck.setTokenAutoRefreshEnabled(true)
         FirebaseCrashlytics.getInstance().setCustomKey("app_check_provider", providerName)
         Log.d("ProHostApplication", "FirebaseAppCheck initialized with $providerName provider")
+    }
+
+    /**
+     * Stores BuildConfig.APP_CHECK_DEBUG_TOKEN where DebugAppCheckProvider reads its secret
+     * (firebase-appcheck-debug StorageHelper), so every tester build shares the one token
+     * registered in the console. No-op when the token is blank (local builds).
+     */
+    private fun seedSharedDebugToken() {
+        val token = BuildConfig.APP_CHECK_DEBUG_TOKEN
+        if (token.isBlank()) return
+        val prefsName = "com.google.firebase.appcheck.debug.store.${FirebaseApp.getInstance().persistenceKey}"
+        getSharedPreferences(prefsName, MODE_PRIVATE).edit()
+            .putString("com.google.firebase.appcheck.debug.DEBUG_SECRET", token)
+            .commit()
     }
 }

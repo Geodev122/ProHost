@@ -633,10 +633,7 @@ function checkLintIssues() {
 // ─── NEW CHECK 28: Detekt Static Analysis for Kotlin ──────────────────────────
 
 function checkDetektKotlin() {
-  // Exclude Firebase DataConnect generated sources (app/src/main/java/com/example/data/dataconnect) —
-  // these are codegen output (@file:Suppress(...) + GeneratedMutation/GeneratedQuery interfaces),
-  // regenerated from the GraphQL schema, and must never be hand-edited or refactored.
-  const ktFiles = walkFiles(KT_ROOT, '.kt').filter(f => !f.includes(`${path.sep}dataconnect${path.sep}`));
+  const ktFiles = walkFiles(KT_ROOT, '.kt');
   let issues = 0;
 
   for (const f of ktFiles) {

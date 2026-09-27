@@ -43,6 +43,8 @@ jobs:
       # compileReleaseKotlin catches release-only compile errors (the shipped
       # variant) without needing the upload keystore.
       - name: Build debug APK and compile release
+        env:
+          APP_CHECK_DEBUG_TOKEN: ${{ secrets.APP_CHECK_DEBUG_TOKEN }}
         run: gradle :app:assembleDebug :app:compileReleaseKotlin --no-daemon --stacktrace
 
       - name: Upload build artifact
@@ -82,3 +84,42 @@ jobs:
         run: |
           npm ci
           npm run build
+
+  # Deploys functions, Firestore rules/indexes, Storage rules and Hosting on every push
+  # to main (and on manual runs). --force lets the deploy delete functions that were
+  # removed from the source instead of stopping at the confirmation prompt.
+  # The FIREBASE_SERVICE_ACCOUNT service account needs deploy roles: Firebase Admin,
+  # Cloud Functions Admin, Service Account User, Secret Manager Secret Accessor.
+  deploy-firebase:
+    if: github.event_name != 'pull_request'
+    needs: functions-build
+    runs-on: ubuntu-latest
+    concurrency: firebase-deploy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install function dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Write service account credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+
+      - name: Deploy to Firebase
+        run: >
+          npx --yes firebase-tools@14 deploy
+          --project prohost-f766f
+          --only functions,firestore,storage,hosting
+          --non-interactive --force
