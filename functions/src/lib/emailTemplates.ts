@@ -16,8 +16,8 @@ export interface UserContext {
 
 // ─── Base layout ────────────────────────────────────────────────────────────
 
-// House SVG icon — matches the ProHost app icon
-const HOUSE_SVG = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:10px;flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`;
+// ProHost logo — served from Firebase Hosting, already live at pro-host.tech/logo.png
+const LOGO_URL = "https://pro-host.tech/logo.png";
 
 /**
  * @param title    <title> tag and fallback subject label
@@ -52,9 +52,8 @@ export function layout(title: string, body: string, preheader = ""): string {
 
     /* ── Header ── */
     .hd { padding:28px 36px 24px; background:linear-gradient(145deg,#FF6635 0%,#E84C00 100%); }
-    .hd-row { display:flex; align-items:center; }
-    .hd-wordmark { margin:0; color:#FFF; font-size:22px; font-weight:800; letter-spacing:-0.5px; line-height:1; display:inline; }
-    .hd-sub { margin:7px 0 0; color:rgba(255,255,255,.7); font-size:11.5px; font-weight:500; letter-spacing:0.7px; text-transform:uppercase; }
+    .hd-wordmark { margin:0; color:#FFF; font-size:22px; font-weight:800; letter-spacing:-0.5px; line-height:1; display:block; }
+    .hd-sub { margin:5px 0 0; color:rgba(255,255,255,.7); font-size:11.5px; font-weight:500; letter-spacing:0.7px; text-transform:uppercase; }
 
     /* ── Body ── */
     .bd { padding:36px 36px 28px; }
@@ -103,11 +102,18 @@ export function layout(title: string, body: string, preheader = ""): string {
     <div class="wrap">
 
       <div class="hd">
-        <div class="hd-row">
-          ${HOUSE_SVG}
-          <span class="hd-wordmark">ProHost</span>
-        </div>
-        <p class="hd-sub">Workspace Hosting Platform</p>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="vertical-align:middle;padding-right:13px">
+              <img src="${LOGO_URL}" alt="ProHost" width="44" height="44"
+                   style="display:block;border:0;border-radius:10px"/>
+            </td>
+            <td style="vertical-align:middle">
+              <span class="hd-wordmark">ProHost</span>
+              <div class="hd-sub">Workspace Hosting Platform</div>
+            </td>
+          </tr>
+        </table>
       </div>
 
       <div class="bd">${body}</div>
@@ -122,6 +128,28 @@ export function layout(title: string, body: string, preheader = ""): string {
   </div>
 </body>
 </html>`;
+}
+
+// ─── OTP sign-in (legacy 6-digit code flow) ──────────────────────────────────
+
+export function otpSignInTemplate(email: string, code: string, clickUrl: string) {
+  const subject = "Your ProHost sign-in code";
+  const html = layout(subject, `
+    <h2>Your sign-in code</h2>
+    <p>Use the code below to sign in as <strong style="color:#1A1A1A">${email}</strong>.
+       It expires in <strong style="color:#1A1A1A">10 minutes</strong>.</p>
+    <div style="text-align:center;margin:28px 0">
+      <span style="display:inline-block;font-size:36px;font-weight:800;letter-spacing:10px;color:#111;background:#F5F0EC;padding:16px 28px;border-radius:12px">${code}</span>
+    </div>
+    <div class="cta">
+      <a class="btn" href="${clickUrl}">Sign in automatically</a>
+    </div>
+    <div class="notice">
+      <p><strong>Security:</strong> Never share this code. ProHost will never ask for it.</p>
+    </div>
+    <p class="fine">If you didn't request this, ignore this email. Your account is secure.</p>
+  `, `Your ProHost sign-in code is ${code}`);
+  return { subject, html };
 }
 
 // ─── Sign-in link (magic link) ────────────────────────────────────────────────

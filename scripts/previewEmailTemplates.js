@@ -10,7 +10,7 @@
 const path = require("path");
 const fs = require("fs");
 
-const { signInLinkTemplate, emailVerificationTemplate, subscriptionActivatedTemplate, newBookingRequestTemplate } = require(
+const { otpSignInTemplate, signInLinkTemplate, emailVerificationTemplate, subscriptionActivatedTemplate, newBookingRequestTemplate } = require(
   path.join(__dirname, "../functions/lib/lib/emailTemplates")
 );
 
@@ -21,8 +21,11 @@ const MOCK_VERIFY_LINK = "https://prohost-f766f.web.app/emaillink?oobCode=TEST_C
 const MOCK_USER = { fullName: "Alex Johnson", email: PREVIEW_EMAIL, role: "SPECIALIST" };
 const MOCK_PRO_HOST = { fullName: "Sara Khalil", email: "sara@example.com", role: "PRO_HOST", activeListingCount: 2 };
 
+const MOCK_OTP_URL = "https://europe-west1-prohost-f766f.cloudfunctions.net/clickEmailOtpLink?email=alex%40example.com&code=482931";
+
 // Templates to preview
 const previews = [
+  { name: "otp",           tpl: otpSignInTemplate(PREVIEW_EMAIL, "482 931", MOCK_OTP_URL) },
   { name: "signin",        tpl: signInLinkTemplate(PREVIEW_EMAIL, MOCK_LINK) },
   { name: "verify",        tpl: emailVerificationTemplate(MOCK_USER, MOCK_VERIFY_LINK) },
   { name: "sub-activated", tpl: subscriptionActivatedTemplate(MOCK_PRO_HOST, "Growth") },

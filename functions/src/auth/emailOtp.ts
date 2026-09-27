@@ -2,7 +2,7 @@ import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import { onCall, onRequest } from "firebase-functions/v2/https";
 import { sendEmail, hostingerSmtpSecret } from "../lib/email";
-import { layout } from "../lib/emailTemplates";
+import { otpSignInTemplate } from "../lib/emailTemplates";
 
 const db = admin.firestore();
 
@@ -11,21 +11,6 @@ const APP_OTP_SCHEME = "prohost://emailotp/verified";
 
 function sanitizeEmailKey(email: string): string {
   return email.toLowerCase().replace(/[^a-z0-9@._-]/g, "_").slice(0, 200);
-}
-
-function otpEmailHtml(code: string, clickUrl: string): string {
-  return layout("Your ProHost sign-in code", `
-    <h2>Your sign-in code</h2>
-    <p>Use the code below to sign in to ProHost, or tap the button to sign in automatically.</p>
-    <div class="card" style="text-align:center">
-      <p style="font-size:32px;font-weight:700;letter-spacing:8px;color:#FF6B35;margin:8px 0">${code}</p>
-      <p style="margin:0;font-size:12px;color:#999">Valid for 10 minutes</p>
-    </div>
-    <p style="text-align:center;margin-top:16px">
-      <a class="btn" href="${clickUrl}">Sign in automatically</a>
-    </p>
-    <p style="font-size:12px;color:#999">Never share this code. ProHost staff will never ask for it.</p>
-  `);
 }
 
 /**
@@ -57,11 +42,8 @@ export const sendEmailOtp = onCall(
     const encodedCode = encodeURIComponent(code);
     const clickUrl = `https://europe-west1-prohost-f766f.cloudfunctions.net/clickEmailOtpLink?email=${encodedEmail}&code=${encodedCode}`;
 
-    const delivered = await sendEmail({
-      to: email,
-      subject: "Your ProHost sign-in code",
-      html: otpEmailHtml(code, clickUrl),
-    });
+    const tpl = otpSignInTemplate(email, code, clickUrl);
+    const delivered = await sendEmail({ to: email, ...tpl });
 
     if (!delivered) {
       return { ok: false, error: "Email delivery failed. Please try again or contact support." };
