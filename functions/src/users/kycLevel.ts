@@ -15,7 +15,7 @@ import "../lib/admin";
  * stale / missing kycLevel value.
  */
 function computeKycLevel(data: Record<string, unknown>): number {
-  if (data.idDocumentUrl && data.idDocumentVerificationStatus !== "REJECTED" && data.country && data.city) return 3;
+  if (data.idDocumentUrl && data.idDocumentVerificationStatus === "APPROVED" && data.country && data.city) return 3;
   if (data.emailVerified === true) return 2;
   if (data.isVerified === true) return 1;
   return 0;

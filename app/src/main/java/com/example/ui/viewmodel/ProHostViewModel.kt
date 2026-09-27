@@ -711,12 +711,14 @@ class ProHostViewModel(
     }
 
     fun logout() {
-        // repository.logout() fires the (fire-and-forget) FCM-token-clear write
-        // before we invalidate the local Firebase Auth session below — reversed,
-        // that write would leave with no real auth context and likely get
-        // rejected by firestore.rules.
-        repository.logout()
-        com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+        // Run in viewModelScope so repository.logout() (suspend) completes the
+        // FCM-token-clear write *before* signOut() invalidates the auth context —
+        // previously repository.logout() launched a fire-and-forget coroutine that
+        // raced against signOut() and the write often arrived with no auth.
+        viewModelScope.launch {
+            repository.logout()
+            com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+        }
     }
 
     /**

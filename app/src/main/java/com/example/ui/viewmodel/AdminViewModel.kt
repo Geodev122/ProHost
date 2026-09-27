@@ -121,6 +121,17 @@ class AdminViewModel(
                 _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
             }
         }
+        viewModelScope.launch {
+            try {
+                repository.idReviewQueue.collect { queue ->
+                    _uiState.update { it.copy(idReviewQueue = queue, isIdReviewLoading = false) }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
+        }
     }
 
     // --- Navigation & Pricing ---

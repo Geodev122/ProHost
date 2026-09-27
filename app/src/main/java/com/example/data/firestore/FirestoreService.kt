@@ -84,7 +84,8 @@ class FirestoreService(
         onBookingsUpdated: (List<RentalBookingRequest>) -> Unit,
         onSchemaUpdated: (SpaceArchitectureSchema) -> Unit = {},
         onAuditLogsUpdated: (List<AuditSecurityLog>) -> Unit = {},
-        onPackagePlansUpdated: (PackagePlanCatalog) -> Unit = {}
+        onPackagePlansUpdated: (PackagePlanCatalog) -> Unit = {},
+        onIdReviewQueueUpdated: (List<IdReviewEntry>) -> Unit = {}
     ) {
         val db = firestore ?: return
 
@@ -321,6 +322,22 @@ class FirestoreService(
                         }
                     }
                 activeListeners.add(auditLogListener)
+
+                val idReviewListener = db.collection(IdReviewEntry.COLLECTION_PATH)
+                    .orderBy("submittedAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "ID review queue sync note: ${error.message}")
+                            return@addSnapshotListener
+                        }
+                        if (snapshot != null) {
+                            val entries = snapshot.documents.mapNotNull { doc ->
+                                doc.data?.let { data -> IdReviewEntry.fromFirestoreMap(doc.id, data) }
+                            }
+                            onIdReviewQueueUpdated(entries)
+                        }
+                    }
+                activeListeners.add(idReviewListener)
             }
         } catch (e: Exception) {
             Log.w(TAG, "Live listeners attachment warning: ${e.message}")

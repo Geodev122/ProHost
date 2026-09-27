@@ -96,6 +96,9 @@ class ProHostRepository {
     private val _auditLogs = MutableStateFlow<List<AuditSecurityLog>>(emptyList())
     val auditLogs: StateFlow<List<AuditSecurityLog>> = _auditLogs.asStateFlow()
 
+    private val _idReviewQueue = MutableStateFlow<List<IdReviewEntry>>(emptyList())
+    val idReviewQueue: StateFlow<List<IdReviewEntry>> = _idReviewQueue.asStateFlow()
+
     // Starts signed out. This previously defaulted to a fully-populated Super Admin
     // AppUser, meaning every fresh install of the app opened directly into the Admin
     // console with zero authentication — no login screen ever shown, no credential
@@ -224,6 +227,9 @@ class ProHostRepository {
                 onPackagePlansUpdated = { updatedCatalog ->
                     _packagePlans.value = updatedCatalog
                     _isCloudConnected.value = true
+                },
+                onIdReviewQueueUpdated = { updatedQueue ->
+                    _idReviewQueue.value = updatedQueue
                 }
             )
 
@@ -650,7 +656,6 @@ class ProHostRepository {
                 "governorate" to safeUpdate.governorate,
                 "city" to safeUpdate.city,
                 "profilePictureUrl" to safeUpdate.profilePictureUrl,
-                "idDocumentUrl" to safeUpdate.idDocumentUrl,
                 "subscriptionExpiryMillis" to safeUpdate.subscriptionExpiryMillis
             )
         )
@@ -2014,12 +2019,14 @@ class ProHostRepository {
      * already been deleted server-side, and a merge write after that would just
      * resurrect a stub user_profiles/{uid} doc with nothing in it but this field.
      */
-    fun logout(clearRemotePushToken: Boolean = true) {
+    suspend fun logout(clearRemotePushToken: Boolean = true) {
         val loggedOutUser = _currentUser.value
         val previous = loggedOutUser?.email ?: "Unknown"
         if (clearRemotePushToken && loggedOutUser != null) {
-            coroutineScope.launch {
+            try {
                 firestoreService.updateUserProfileFields(loggedOutUser.id, mapOf("fcmToken" to null))
+            } catch (e: Exception) {
+                Log.w(TAG, "FCM token clear on logout failed: ${e.message}")
             }
         }
         // Also clear the in-app "Real-time Alerts Terminal" — this StateFlow is a
