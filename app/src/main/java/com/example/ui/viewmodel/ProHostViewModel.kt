@@ -332,6 +332,27 @@ class ProHostViewModel(
         }
     }
 
+    // currentUser.role follows user_profiles live, but firestore.rules checks that read
+    // the token's role claim only see an admin grant/revocation after a token refresh.
+    init {
+        viewModelScope.launch {
+            var lastRole: UserRole? = null
+            currentUser.collectLatest { user ->
+                val role = user?.role
+                if (role != null && lastRole != null && role != lastRole) {
+                    try {
+                        com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.getIdToken(true)?.await()
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        android.util.Log.w("ProHostVM", "Token refresh after role change failed: ${e.message}")
+                    }
+                }
+                lastRole = role
+            }
+        }
+    }
+
     fun clearBillingMessages() {
         _billingError.value = null
         _billingSuccess.value = null

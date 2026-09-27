@@ -104,12 +104,63 @@ class FirebaseFunctionsClient {
     }
 
     /** functions/src/admin/grantPackage.ts — Admin-only: grants a package plan to a user. */
-    suspend fun grantPackageToUser(targetUserId: String, packageId: String, durationDays: Int): Result<Unit> {
+    /** functions/src/admin/lookupUserForGrant.ts — Admin-only identity check before a grant. */
+    suspend fun lookupUserForGrant(email: String): Result<GrantLookupResult> {
         return try {
-            functions.getHttpsCallable("grantPackageToUser")
-                .call(mapOf("targetUserId" to targetUserId, "packageId" to packageId, "durationDays" to durationDays))
+            val result = functions.getHttpsCallable("lookupUserForGrant")
+                .call(mapOf("email" to email.trim()))
                 .await()
-            Result.success(Unit)
+            @Suppress("UNCHECKED_CAST")
+            val data = result.data as? Map<String, Any?>
+                ?: return Result.failure(IllegalStateException("Empty lookup response"))
+            Result.success(
+                GrantLookupResult(
+                    uid = data["uid"] as? String ?: return Result.failure(IllegalStateException("Lookup returned no UID")),
+                    email = data["email"] as? String ?: email,
+                    fullName = data["fullName"] as? String ?: "",
+                    role = data["role"] as? String ?: "SPECIALIST",
+                    hasProfile = data["hasProfile"] as? Boolean ?: false,
+                    isSuspended = data["isSuspended"] as? Boolean ?: false,
+                    isDisabled = data["isDisabled"] as? Boolean ?: false,
+                    ownerPackageId = data["ownerPackageId"] as? String,
+                    ownerPackageExpiryMillis = (data["ownerPackageExpiryMillis"] as? Number)?.toLong(),
+                    activeListingCount = (data["activeListingCount"] as? Number)?.toInt() ?: 0
+                )
+            )
+        } catch (e: Exception) {
+            Log.e(tag, "lookupUserForGrant failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * functions/src/admin/grantPackage.ts — grants a package plus the PRO_HOST role to the
+     * UID verified via [lookupUserForGrant]. [unlimited] ignores [packageId]/[durationDays]
+     * and grants unlimited listings that never expire.
+     */
+    suspend fun grantPackageToUser(
+        targetUid: String,
+        packageId: String?,
+        durationDays: Int?,
+        unlimited: Boolean
+    ): Result<GrantResult> {
+        return try {
+            val payload = mutableMapOf<String, Any>("targetUid" to targetUid, "unlimited" to unlimited)
+            if (!unlimited) {
+                packageId?.let { payload["packageId"] = it }
+                durationDays?.let { payload["durationDays"] = it }
+            }
+            val result = functions.getHttpsCallable("grantPackageToUser").call(payload).await()
+            @Suppress("UNCHECKED_CAST")
+            val data = result.data as? Map<String, Any?> ?: emptyMap()
+            Result.success(
+                GrantResult(
+                    role = data["role"] as? String ?: "PRO_HOST",
+                    packageId = data["packageId"] as? String ?: packageId.orEmpty(),
+                    expiryMillis = (data["expiryMillis"] as? Number)?.toLong(),
+                    restoredListings = (data["restoredListings"] as? Number)?.toInt() ?: 0
+                )
+            )
         } catch (e: Exception) {
             Log.e(tag, "grantPackageToUser failed: ${e.message}", e)
             Result.failure(e)
@@ -362,3 +413,23 @@ class FirebaseFunctionsClient {
         }
     }
 }
+
+data class GrantLookupResult(
+    val uid: String,
+    val email: String,
+    val fullName: String,
+    val role: String,
+    val hasProfile: Boolean,
+    val isSuspended: Boolean,
+    val isDisabled: Boolean,
+    val ownerPackageId: String?,
+    val ownerPackageExpiryMillis: Long?,
+    val activeListingCount: Int
+)
+
+data class GrantResult(
+    val role: String,
+    val packageId: String,
+    val expiryMillis: Long?,
+    val restoredListings: Int
+)

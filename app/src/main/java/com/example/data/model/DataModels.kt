@@ -1662,7 +1662,9 @@ data class PackagePlan(
     /** Admin-set: featured plans receive a "Most Popular" highlight on the Subscriptions screen. */
     val isFeatured: Boolean = false,
     /** Subscription product ID in Google Play Console (e.g. "prohost_starter_30d"). Empty means Whish-only. */
-    val googlePlayProductId: String = ""
+    val googlePlayProductId: String = "",
+    /** Admin-grant only (e.g. [UNLIMITED_GRANT_PLAN_ID]); never offered for purchase. */
+    val isGrantOnly: Boolean = false
 ) {
     fun toFirestoreMap(): Map<String, Any?> = mapOf(
         "id" to id,
@@ -1675,10 +1677,20 @@ data class PackagePlan(
         "isEnabled" to isEnabled,
         "sortOrder" to sortOrder,
         "isFeatured" to isFeatured,
-        "googlePlayProductId" to googlePlayProductId
+        "googlePlayProductId" to googlePlayProductId,
+        "isGrantOnly" to isGrantOnly
     )
 
     companion object {
+        /** Mirrors UNLIMITED_GRANT_PLAN_ID in functions/src/lib/packagePlans.ts. */
+        const val UNLIMITED_GRANT_PLAN_ID = "admin_unlimited_grant"
+
+        /** Mirrors LIFETIME_EXPIRY_MILLIS (2100-01-01 UTC) in functions/src/lib/packagePlans.ts. */
+        const val LIFETIME_EXPIRY_MILLIS = 4_102_444_800_000L
+
+        fun isLifetimeExpiry(expiryMillis: Long?): Boolean =
+            expiryMillis != null && expiryMillis >= LIFETIME_EXPIRY_MILLIS
+
         fun fromFirestoreMap(id: String, data: Map<String, Any?>): PackagePlan = PackagePlan(
             id = id,
             name = data["name"] as? String ?: "Package",
@@ -1690,7 +1702,8 @@ data class PackagePlan(
             isEnabled = data["isEnabled"] as? Boolean ?: true,
             sortOrder = (data["sortOrder"] as? Number)?.toInt() ?: 0,
             isFeatured = data["isFeatured"] as? Boolean ?: false,
-            googlePlayProductId = data["googlePlayProductId"] as? String ?: ""
+            googlePlayProductId = data["googlePlayProductId"] as? String ?: "",
+            isGrantOnly = data["isGrantOnly"] as? Boolean ?: false
         )
     }
 }

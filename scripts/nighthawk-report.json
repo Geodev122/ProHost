@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-27T14:17:09.561Z",
+  "generatedAt": "2026-09-27T15:32:13.314Z",
   "trigger": "NIGHTHAWK",
   "summary": {
     "total": 0,
@@ -14,7 +14,7 @@
   "passes": [
     {
       "check": "CF Name Consistency",
-      "message": "All 19 getHttpsCallable() calls match exported functions in index.ts."
+      "message": "All 20 getHttpsCallable() calls match exported functions in index.ts."
     },
     {
       "check": "Firestore Rules Coverage",

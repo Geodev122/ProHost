@@ -509,6 +509,8 @@ fun OwnerHubScreenContent(
                             Text(
                                 text = if (currentPackage == null) {
                                     "No Active Package"
+                                } else if (PackagePlan.isLifetimeExpiry(ownerPackageExpiryMillis)) {
+                                    "${currentPackage.name} - never expires"
                                 } else if (daysRemaining != null) {
                                     "${currentPackage.name} â€” renews in $daysRemaining days"
                                 } else {

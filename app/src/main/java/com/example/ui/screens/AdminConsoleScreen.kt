@@ -546,7 +546,9 @@ private fun AdminPackagesTab(
                     // list. Price/limit/validity are the trust boundary that matters:
                     // initiateWhishPayment.ts always re-reads this same package_plans
                     // doc server-side at charge time, never trusting the client.
-                    uiState.packagePlans.packages.values.sortedBy { it.sortOrder }.forEach { plan ->
+                    // Grant-only plans are system-managed by grantPackageToUser; editing or deleting
+                    // them here would silently break publishing for every grantee.
+                    uiState.packagePlans.packages.values.filterNot { it.isGrantOnly }.sortedBy { it.sortOrder }.forEach { plan ->
                         var nameInput by remember(plan.id, plan.name) { mutableStateOf(plan.name) }
                         var unlimitedInput by remember(plan.id, plan.listingLimit) { mutableStateOf(plan.listingLimit == null) }
                         var limitInput by remember(plan.id, plan.listingLimit) { mutableStateOf((plan.listingLimit ?: 3).toString()) }
@@ -803,6 +805,12 @@ private fun AdminUsersDirectoryTab(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item {
+            AdminGrantAccessCard(
+                adminViewModel = adminViewModel,
+                packagePlans = uiState.packagePlans
+            )
+        }
         item {
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1623,98 +1631,6 @@ private fun AdminOwnersAndPaymentsTab(
             }
         }
 
-        // Grant Package to User
-        item {
-            var grantExpanded by remember { mutableStateOf(false) }
-            ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { grantExpanded = !grantExpanded },
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        ProSectionHeader(title = "Grant Package to User", icon = Icons.Default.CardGiftcard)
-                        Icon(
-                            if (grantExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    AnimatedVisibility(visible = grantExpanded) {
-                        var grantUid by remember { mutableStateOf("") }
-                        var grantDays by remember { mutableStateOf("30") }
-                        var selectedPlanId by remember { mutableStateOf<String?>(null) }
-                        var dropdownExpanded by remember { mutableStateOf(false) }
-                        val plans = uiState.packagePlans.packages.values.toList()
-                        val selectedPlanName = plans.find { it.id == selectedPlanId }?.name ?: "Select Plan"
-
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(
-                                value = grantUid,
-                                onValueChange = { grantUid = it },
-                                label = { Text("User UID or Email") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Box {
-                                OutlinedTextField(
-                                    value = selectedPlanName,
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    label = { Text("Package Plan") },
-                                    trailingIcon = {
-                                        IconButton(onClick = { dropdownExpanded = true }) {
-                                            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                DropdownMenu(
-                                    expanded = dropdownExpanded,
-                                    onDismissRequest = { dropdownExpanded = false }
-                                ) {
-                                    plans.forEach { plan ->
-                                        DropdownMenuItem(
-                                            text = { Text(plan.name) },
-                                            onClick = { selectedPlanId = plan.id; dropdownExpanded = false }
-                                        )
-                                    }
-                                }
-                            }
-
-                            OutlinedTextField(
-                                value = grantDays,
-                                onValueChange = { if (it.all { c -> c.isDigit() }) grantDays = it },
-                                label = { Text("Duration (days)") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Button(
-                                onClick = {
-                                    val planId = selectedPlanId
-                                    val days = grantDays.toIntOrNull() ?: 0
-                                    if (grantUid.isNotBlank() && planId != null && days > 0) {
-                                        adminViewModel.grantPackageToUser(grantUid.trim(), planId, days)
-                                        grantUid = ""; grantDays = "30"; selectedPlanId = null
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                enabled = grantUid.isNotBlank() && selectedPlanId != null && (grantDays.toIntOrNull() ?: 0) > 0
-                            ) {
-                                Icon(Icons.Default.CardGiftcard, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(Spacing.sm))
-                                Text("Grant Package", fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 

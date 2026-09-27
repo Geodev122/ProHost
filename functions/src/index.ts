@@ -21,6 +21,7 @@ export { deleteOwnAccount } from "./roles/deleteOwnAccount";
 
 export { updatePricing } from "./admin/pricing";
 export { grantPackageToUser } from "./admin/grantPackage";
+export { lookupUserForGrant } from "./admin/lookupUserForGrant";
 export { setListingVerification, setListingSubscriptionActive, requestListingVerification } from "./admin/listings";
 
 export { recordClientAuditLog } from "./audit/recordClientAuditLog";

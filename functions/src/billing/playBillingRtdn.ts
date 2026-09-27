@@ -9,6 +9,7 @@ import { setClaimsThenFirestore } from "../lib/roles";
 import { sendEmail, hostingerSmtpSecret } from "../lib/email";
 import { subscriptionActivatedTemplate, subscriptionRenewedTemplate, UserContext } from "../lib/emailTemplates";
 import { validateListingForPublish, WorkspaceListingDoc } from "../listings/publishValidation";
+import { UNLIMITED_GRANT_PLAN_ID } from "../lib/packagePlans";
 import "../lib/admin";
 
 // Must match applicationId in app/build.gradle.kts
@@ -67,6 +68,12 @@ async function grantSubscription(
   // Keep the later of: Play's expiry vs any still-valid current expiry on the
   // same plan — prevents a RENEWED notification from shrinking an already-extended term.
   const currentExpiry = userData?.ownerPackageExpiryMillis as number | undefined;
+  // An admin's complimentary unlimited grant outranks any paid plan; a Play
+  // purchase/renewal must not downgrade it to a limited, expiring package.
+  if (userData?.ownerPackageId === UNLIMITED_GRANT_PLAN_ID && typeof currentExpiry === "number" && currentExpiry > now) {
+    logger.info(`playBillingRtdn: uid=${uid} holds an admin unlimited grant; not replacing it with ${planId}`);
+    return;
+  }
   const isSameActivePlan =
     userData?.ownerPackageId === planId &&
     typeof currentExpiry === "number" &&

@@ -264,8 +264,9 @@ service cloud.firestore {
       // admin-reviewed accreditation system anymore, so no separate
       // verificationStatus/verificationTier/trustScore fields to protect.
       // ownerPackageId/ownerPackageExpiryMillis are entitlement fields set
-      // exclusively by grantEntitlement() (the Whish webhook), expirePackages.ts
-      // (the hourly expiry sweep), or revokeProHostRole (Admin SDK) — a client
+      // exclusively by Admin SDK code — playBillingRtdn.ts, grantPackageToUser
+      // (admin grants), expirePackages.ts (the hourly expiry sweep), and
+      // revokeProHostRole — a client
       // write could otherwise self-grant a package for free or dodge real expiry.
       // activeListingCount is maintained only by listingCountTracker.ts's
       // triggers, for the same reason (see withinListingLimit() above — a

@@ -83,7 +83,7 @@ fun OwnerSubscriptionsScreen(
         }
     }
 
-    val enabledPlans = remember(packagePlans) { packagePlans.packages.values.filter { it.isEnabled }.sortedBy { it.sortOrder } }
+    val enabledPlans = remember(packagePlans) { packagePlans.packages.values.filter { it.isEnabled && !it.isGrantOnly }.sortedBy { it.sortOrder } }
     val currentPlan = currentUser?.ownerPackageId?.let { packagePlans.packages[it] }
 
     // Map Play product ID → live formatted price string (e.g. "$4.99") from the Play Store catalog.
@@ -105,6 +105,7 @@ fun OwnerSubscriptionsScreen(
     // True when the host previously had a package that has now lapsed (expiry passed but the
     // sweep hasn't cleared ownerPackageId yet, or they just hit the limit cutover).
     val isSubscriptionExpired = currentPlan != null && remainingDays == null
+    val isLifetimeGrant = PackagePlan.isLifetimeExpiry(expiryMillis)
 
     Column(
         modifier = Modifier
@@ -272,7 +273,8 @@ fun OwnerSubscriptionsScreen(
                         Column {
                             Text("Days Until Renewal", style = MaterialTheme.typography.bodySmall, color = LightGray)
                             Text(
-                                remainingDays?.let { if (it == 0) "< 1 day" else "$it days" } ?: "—",
+                                if (isLifetimeGrant) "Never expires"
+                                else remainingDays?.let { if (it == 0) "< 1 day" else "$it days" } ?: "—",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = PureWhite
@@ -301,6 +303,17 @@ fun OwnerSubscriptionsScreen(
                                 color = StatusError
                             )
                         }
+                        currentPlan.isGrantOnly || isLifetimeGrant -> Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.CardGiftcard, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(14.dp))
+                            Text(
+                                "Complimentary access granted by ProHost",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = FreshGreen
+                            )
+                        }
                         remainingDays != null -> Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -323,7 +336,7 @@ fun OwnerSubscriptionsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (currentPlan != null && !isSubscriptionExpired && activity != null) {
+                    if (currentPlan != null && !currentPlan.isGrantOnly && !isSubscriptionExpired && activity != null) {
                         OutlinedButton(
                             onClick = { viewModel.openManageSubscriptions(activity, currentPlan.id) },
                             modifier = Modifier.weight(1f),

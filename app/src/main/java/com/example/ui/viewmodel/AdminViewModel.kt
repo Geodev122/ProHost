@@ -175,22 +175,57 @@ class AdminViewModel(
         }
     }
 
-    fun grantPackageToUser(targetUserId: String, packageId: String, durationDays: Int) {
+    private val _grantAccess = MutableStateFlow(GrantAccessUiState())
+    val grantAccess: StateFlow<GrantAccessUiState> = _grantAccess.asStateFlow()
+
+    fun lookupUserForGrant(email: String) {
+        val trimmed = email.trim()
+        if (trimmed.isBlank()) return
+        _grantAccess.value = GrantAccessUiState(isLookingUp = true)
         viewModelScope.launch {
             try {
-                val result = functionsClient.grantPackageToUser(targetUserId, packageId, durationDays)
-                _events.emit(
-                    AdminUiEvent.ShowToast(
-                        if (result.isSuccess) "Package granted to user successfully"
-                        else "Failed to grant package: ${result.exceptionOrNull()?.message}"
-                    )
+                val result = functionsClient.lookupUserForGrant(trimmed)
+                _grantAccess.value = result.fold(
+                    onSuccess = { GrantAccessUiState(target = it) },
+                    onFailure = { GrantAccessUiState(error = it.message ?: "Lookup failed") }
                 )
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _grantAccess.value = GrantAccessUiState(error = e.message ?: "Lookup failed")
             }
         }
+    }
+
+    /** [targetUid] must be the UID shown to the admin by [lookupUserForGrant]. */
+    fun grantAccess(targetUid: String, packageId: String?, durationDays: Int?, unlimited: Boolean) {
+        val target = _grantAccess.value.target ?: return
+        if (target.uid != targetUid || _grantAccess.value.isGranting) return
+        _grantAccess.update { it.copy(isGranting = true, error = null, lastGrant = null) }
+        viewModelScope.launch {
+          try {
+            val result = functionsClient.grantPackageToUser(targetUid, packageId, durationDays, unlimited)
+            result.fold(
+                onSuccess = { grant ->
+                    // Re-read from the server so the card shows the persisted role/package.
+                    val refreshed = functionsClient.lookupUserForGrant(target.email).getOrNull() ?: target
+                    _grantAccess.value = GrantAccessUiState(target = refreshed, lastGrant = grant)
+                    _events.emit(AdminUiEvent.ShowToast("Access granted to ${refreshed.fullName.ifBlank { refreshed.email }}"))
+                },
+                onFailure = { e ->
+                    _grantAccess.update { it.copy(isGranting = false, error = e.message ?: "Grant failed") }
+                }
+            )
+          } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+          } catch (e: Exception) {
+            _grantAccess.update { it.copy(isGranting = false, error = e.message ?: "Grant failed") }
+          }
+        }
+    }
+
+    fun resetGrantAccess() {
+        _grantAccess.value = GrantAccessUiState()
     }
 
     fun togglePackagePlan(planId: String) {
@@ -1046,3 +1081,11 @@ class AdminViewModel(
         }
     }
 }
+
+data class GrantAccessUiState(
+    val isLookingUp: Boolean = false,
+    val target: com.example.data.auth.GrantLookupResult? = null,
+    val isGranting: Boolean = false,
+    val lastGrant: com.example.data.auth.GrantResult? = null,
+    val error: String? = null
+)

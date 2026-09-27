@@ -53,7 +53,7 @@ fun SubscriptionRenewalDialog(
     val packagePlans by viewModel.packagePlans.collectAsState()
 
     val enabledPlans = remember(packagePlans) {
-        packagePlans.packages.values.filter { it.isEnabled }.sortedBy { it.sortOrder }
+        packagePlans.packages.values.filter { it.isEnabled && !it.isGrantOnly }.sortedBy { it.sortOrder }
     }
     val currentPlan = currentUser.ownerPackageId?.let { packagePlans.packages[it] }
     var selectedPlan by remember(currentPlan, enabledPlans) {
