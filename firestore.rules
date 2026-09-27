@@ -366,12 +366,10 @@ service cloud.firestore {
     }
 
     // user_credentials (the old admin-reviewed accreditation document
-    // collection) is gone — there is no admin review workflow anymore. An
-    // ID document is a single URL field on user_profiles (idDocumentUrl,
-    // client-writable, no review); a Pro Host's proof of ownership is a
-    // single URL field on workspace_listings (ownershipProofUrl), also
-    // client-writable at listing-creation time — no dedicated collection or
-    // rule needed for either.
+    // collection) is gone — there is no admin review workflow and no ID
+    // document upload feature. A Pro Host's proof of ownership is a single
+    // URL field on workspace_listings (ownershipProofUrl), client-writable
+    // at listing-creation time — no dedicated collection or rule needed.
 
     // ---------------------------------------------------------------
     // audit_security_logs — server-only (see recordClientAuditLog /

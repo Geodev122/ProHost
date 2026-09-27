@@ -1416,9 +1416,7 @@ data class AppUser(
                 isSuspended = data["isSuspended"] as? Boolean ?: false,
                 activeListingCount = (data["activeListingCount"] as? Number)?.toInt() ?: 0,
                 savedSpaceIds = (data["savedSpaceIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
-                kycLevel = (data["kycLevel"] as? Number)?.toInt() ?: 0,
-                emailVerified = data["emailVerified"] as? Boolean ?: false,
-                idDocumentVerificationStatus = data["idDocumentVerificationStatus"] as? String
+                emailVerified = data["emailVerified"] as? Boolean ?: false
             )
         }
     }
@@ -1691,7 +1689,7 @@ data class FCMAlert(
     val timestamp: Long = System.currentTimeMillis(),
     val isRead: Boolean = false,
     // Server-sent categories: BOOKING_REQUEST, BOOKING_ACCEPTANCE, PAYMENT_REMINDER,
-    // PACKAGE_EXPIRED, PACKAGE_ACTIVATED, PACKAGE_RENEWED, KYC_REJECTED,
+    // PACKAGE_EXPIRED, PACKAGE_ACTIVATED, PACKAGE_RENEWED,
     // LISTING_VERIFICATION, LISTING_VERIFICATION_REQUEST
     val category: String,
     val targetTab: String? = null // mirrors the FCM data "targetTab" key

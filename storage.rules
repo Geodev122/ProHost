@@ -24,9 +24,8 @@ service firebase.storage {
     // account owner or an Admin.
     match /profile_pictures/{uid}/{fileName} {
       allow read: if true;
-      // See id_documents above for why this is "create, update" rather than
-      // "write" — write already includes delete, which would make the
-      // "allow delete: if false" below dead.
+      // "create, update" rather than "write" — write includes delete, which
+      // would make the "allow delete: if false" below dead.
       allow create, update: if isSignedIn() && (request.auth.uid == uid || isAdmin()) &&
         withinSizeLimit() &&
         request.resource.contentType.matches('image/.*');

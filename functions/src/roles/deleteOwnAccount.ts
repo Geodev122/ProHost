@@ -57,9 +57,7 @@ export const deleteOwnAccount = onCall(async (request) => {
     await bulkWriter.close();
   }
 
-  // 2. Remove this account's own documents — unlike booking_requests, an ID
-  // document and profile picture belong solely to this account.
-  await deleteStoragePrefix(`id_documents/${uid}/`);
+  // 2. Remove the profile picture — belongs solely to this account.
   await deleteStoragePrefix(`profile_pictures/${uid}/`);
 
   // 3. Remove the Firestore profile.

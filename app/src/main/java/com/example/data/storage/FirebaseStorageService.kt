@@ -49,21 +49,6 @@ class FirebaseStorageService(
     }
 
     /**
-     * Uploads a registrant's ID document (national ID / passport) to
-     * `id_documents/{uid}.{ext}`.
-     */
-    suspend fun uploadIdDocument(
-        uid: String,
-        fileUri: Uri,
-        fileExtension: String,
-        onProgress: (Float) -> Unit = {}
-    ): String? = uploadAndGetUrl(
-        ref = storage?.reference?.child("id_documents/$uid/document.$fileExtension"),
-        fileUri = fileUri,
-        onProgress = onProgress
-    )
-
-    /**
      * Uploads a registrant's profile picture to `profile_pictures/{uid}.{ext}` with automatic compression.
      */
     suspend fun uploadProfilePicture(
