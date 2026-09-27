@@ -1046,6 +1046,7 @@ data class SpaceListing(
             "avatarEngagementViews" to avatarEngagementViews,
             "avatarInquiryClicks" to avatarInquiryClicks,
             "ownerIsIdVerified" to ownerIsIdVerified,
+            "ownerProfilePictureUrl" to ownerProfilePictureUrl,
             "status" to status.name,
             "publishBlockedReasons" to publishBlockedReasons,
             "updatedAt" to System.currentTimeMillis()

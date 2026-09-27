@@ -1557,9 +1557,11 @@ class ProHostRepository {
             val oldRequest = _bookingRequests.value.find { it.id == oldId }
             if (oldRequest != null && oldRequest.status == BookingRequestStatus.ACCEPTED) {
                 val supersededReason = "Superseded by an accepted edit (Ref #$requestId)"
-                firestoreService.updateBookingStatus(oldId, BookingRequestStatus.CANCELLED, rejectionReason = supersededReason)
-                _bookingRequests.value = _bookingRequests.value.map {
-                    if (it.id == oldId) it.copy(status = BookingRequestStatus.CANCELLED, rejectionReason = supersededReason) else it
+                val cancelledOld = firestoreService.updateBookingStatus(oldId, BookingRequestStatus.CANCELLED, rejectionReason = supersededReason)
+                if (cancelledOld) {
+                    _bookingRequests.value = _bookingRequests.value.map {
+                        if (it.id == oldId) it.copy(status = BookingRequestStatus.CANCELLED, rejectionReason = supersededReason) else it
+                    }
                 }
             }
         }

@@ -84,7 +84,7 @@ export const reviewIdDocument = onCall(
         userId,
         "ID Document Rejected",
         `Your ID document was not accepted${reason ? `: ${reason}` : ""}. Please re-upload a clear, valid government-issued ID to restore your listings.`,
-        { category: "KYC_REJECTED", targetTab: "specialist_profile" }
+        { category: "KYC_REJECTED", targetTab: "pro_profile" }
       );
     }
 

@@ -367,13 +367,20 @@ service cloud.firestore {
           (request.auth.uid == resource.data.ownerId &&
            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
              "status", "agreementUrl", "reviewedAt", "paymentAcknowledgedByHost",
-             "cancellationReasonCode", "cancellationNote", "cancelledByRole"
+             "rejectionReason", "cancellationReasonCode", "cancellationNote", "cancelledByRole"
            ])) ||
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["paymentAcknowledgedBySpecialist"]) ||
+          (request.auth.uid == resource.data.practitionerId &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(["paymentAcknowledgedBySpecialist"])) ||
           (request.resource.data.status == "CANCELLED" &&
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-              ["status", "reviewedAt", "cancellationReasonCode", "cancellationNote", "cancelledByRole"]
-            ))
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+             ["status", "reviewedAt", "cancellationReasonCode", "cancellationNote", "cancelledByRole"]
+           ) &&
+           (
+             (request.auth.uid == resource.data.practitionerId &&
+              request.resource.data.get("cancelledByRole", "") in ["SPECIALIST", "ADMIN"]) ||
+             (request.auth.uid == resource.data.ownerId &&
+              request.resource.data.get("cancelledByRole", "") in ["PRO_HOST", "ADMIN"])
+           ))
         );
 
       allow delete: if isAdmin();

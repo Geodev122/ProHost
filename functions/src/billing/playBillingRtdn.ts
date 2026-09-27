@@ -123,7 +123,7 @@ export const playBillingRtdn = onMessagePublished(
           await grantSubscription(uid, productId, expiryMs, orderId);
           await sendPushToUser(uid, "Pro Host Subscription Activated", "Welcome! Your Pro Host subscription is now active — start publishing workspace listings.", {
             category: "PACKAGE_ACTIVATED",
-            targetTab: "owner_hub",
+            targetTab: "manage_listings",
           });
           try {
             const db = getFirestore();
@@ -150,7 +150,7 @@ export const playBillingRtdn = onMessagePublished(
           await grantSubscription(uid, productId, expiryMs, orderId);
           await sendPushToUser(uid, "Subscription Renewed", "Your Pro Host subscription has renewed — your access continues uninterrupted.", {
             category: "PACKAGE_RENEWED",
-            targetTab: "owner_hub",
+            targetTab: "manage_listings",
           });
           try {
             const db = getFirestore();
