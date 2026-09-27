@@ -56,5 +56,7 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
 
 ## Branch policy
 
-Development happens on feature branches (currently `claude/mobile-app-analysis-sqxny6`).
-Never push directly to `main` — open a PR.
+Direct pushes and merges to `main` are allowed. Feature branches (e.g.
+`claude/mobile-app-analysis-sqxny6`) may still be used for larger or
+in-progress work, but merging or pushing straight to `main` no longer
+requires opening a PR first.
