@@ -90,7 +90,6 @@ fun OwnerSubscriptionsScreen(
     // Map Play product ID → live formatted price string (e.g. "$4.99") from the Play Store catalog.
     // PackagePlan.displayPrice falls back when Play hasn't loaded yet.
     val playProductMap = remember(playBillingProducts) { playBillingProducts.associateBy { it.productId } }
-    }
     val pricesLoading = !billingConnected && playBillingProducts.isEmpty()
 
     val expiryMillis = currentUser?.ownerPackageExpiryMillis
