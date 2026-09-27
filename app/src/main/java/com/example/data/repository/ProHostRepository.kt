@@ -2411,4 +2411,14 @@ class ProHostRepository {
 
     /** One-shot fetch of the KYC ID review queue for the Admin Console ID Review tab. */
     suspend fun loadIdReviewQueue(): List<IdReviewEntry> = firestoreService.loadIdReviewQueue()
+
+    /**
+     * Server-side verification + entitlement restore for a Google Play purchase whose
+     * RTDN delivery may have been dropped. Delegates to verifyAndRestorePurchase Cloud
+     * Function (functions/src/billing/verifyAndRestorePurchase.ts).
+     *
+     * Returns the verified expiry timestamp in milliseconds on success.
+     */
+    suspend fun verifyAndRestorePlayPurchase(purchaseToken: String, productId: String): Result<Long> =
+        functionsClient.verifyAndRestorePurchase(purchaseToken, productId)
 }

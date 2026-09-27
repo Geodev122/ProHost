@@ -280,6 +280,30 @@ class FirebaseFunctionsClient {
     // claim — there is nothing left for a human to submit, approve, or override.
 
     /**
+     * Verifies a Google Play purchase token server-side and restores the Pro Host
+     * entitlement (functions/src/billing/verifyAndRestorePurchase.ts). Called when
+     * the client detects an active Play subscription with no matching Firestore
+     * entitlement — e.g. because the original RTDN Pub/Sub delivery was dropped.
+     *
+     * Returns the verified expiry timestamp (ms) on success.
+     */
+    suspend fun verifyAndRestorePurchase(purchaseToken: String, productId: String): Result<Long> {
+        return try {
+            val result = functions.getHttpsCallable("verifyAndRestorePurchase")
+                .call(mapOf("purchaseToken" to purchaseToken, "productId" to productId))
+                .await()
+            @Suppress("UNCHECKED_CAST")
+            val data = result.data as? Map<String, Any?>
+            val expiryMillis = (data?.get("expiryMillis") as? Number)?.toLong()
+                ?: return Result.failure(IllegalStateException("verifyAndRestorePurchase returned no expiryMillis."))
+            Result.success(expiryMillis)
+        } catch (e: Exception) {
+            Log.e(tag, "verifyAndRestorePurchase failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Sends a real cross-device push reminding the specialist to settle payment for
      * an accepted booking (functions/src/notifications/sendPaymentReminder.ts) — the
      * server verifies the caller actually owns the booking's space before sending.

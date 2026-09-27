@@ -527,7 +527,26 @@ class ProHostViewModel(
 
     fun refreshPlayPurchases(context: Context) {
         val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager } ?: return
-        manager.queryActivePurchases()
+        // If the user already has a Firestore entitlement, just refresh the local
+        // purchases cache — no server call needed.
+        if (currentUser.value?.ownerPackageId != null) {
+            manager.queryActivePurchases()
+            return
+        }
+        // No entitlement yet — query Play and, if an active purchase is found,
+        // verify it server-side to restore the entitlement (handles dropped RTDNs).
+        viewModelScope.launch {
+            manager.queryActivePurchases()
+            // Wait for the state flow to reflect the fresh query result.
+            val purchases = manager.activePurchases.drop(1).first()
+            val activePurchase = purchases.firstOrNull {
+                it.purchaseState == com.android.billingclient.api.Purchase.PurchaseState.PURCHASED
+            } ?: return@launch
+            val productId = activePurchase.products.firstOrNull() ?: return@launch
+            repository.verifyAndRestorePlayPurchase(activePurchase.purchaseToken, productId)
+                .onSuccess { android.util.Log.i("ProHostViewModel", "verifyAndRestorePurchase: restored product=$productId") }
+                .onFailure { android.util.Log.w("ProHostViewModel", "verifyAndRestorePurchase failed: ${it.message}") }
+        }
     }
 
     fun openPlayOrderHistory(activity: android.app.Activity) {

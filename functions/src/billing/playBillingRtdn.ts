@@ -1,19 +1,18 @@
 import { onMessagePublished } from "firebase-functions/v2/pubsub";
 import { getFirestore } from "firebase-admin/firestore";
-import { getAuth } from "firebase-admin/auth";
 import { logger } from "firebase-functions/v2";
-import { google } from "googleapis";
-import { recordAuditLog } from "../lib/auditLog";
 import { sendPushToUser } from "../lib/push";
-import { setClaimsThenFirestore } from "../lib/roles";
 import { sendEmail, hostingerSmtpSecret } from "../lib/email";
 import { subscriptionActivatedTemplate, subscriptionRenewedTemplate, UserContext } from "../lib/emailTemplates";
-import { validateListingForPublish, WorkspaceListingDoc } from "../listings/publishValidation";
-import { UNLIMITED_GRANT_PLAN_ID } from "../lib/packagePlans";
+import { recordAuditLog } from "../lib/auditLog";
+import {
+  PACKAGE_NAME,
+  queryPlaySubscription,
+  acknowledgeIfNeeded,
+  grantSubscription,
+  revokeSubscription,
+} from "./billingHelpers";
 import "../lib/admin";
-
-// Must match applicationId in app/build.gradle.kts
-const PACKAGE_NAME = "app.geonajjar.prohost";
 
 // Google Play subscription notification types (DeveloperNotification spec)
 const SUBSCRIPTION_RECOVERED = 1;     // payment recovered after a hold
@@ -28,224 +27,12 @@ const SUBSCRIPTION_PAUSED = 10;       // user paused
 const SUBSCRIPTION_REVOKED = 12;      // refunded/revoked by Google
 const SUBSCRIPTION_EXPIRED = 13;      // fully expired
 
-async function getPlayPublisher() {
-  const auth = new google.auth.GoogleAuth({
-    scopes: ["https://www.googleapis.com/auth/androidpublisher"],
-  });
-  return google.androidpublisher({ version: "v3", auth });
-}
-
-/** Fetches live subscription details from Play Developer API. */
-async function queryPlaySubscription(productId: string, token: string) {
-  const publisher = await getPlayPublisher();
-  const { data } = await publisher.purchases.subscriptions.get({
-    packageName: PACKAGE_NAME,
-    subscriptionId: productId,
-    token,
-  });
-  return data;
-}
-
-/**
- * Acknowledges a new subscription server-side. Play auto-refunds purchases left
- * unacknowledged for 3 days; the app also acknowledges, but it may be killed right
- * after purchase or never opened (e.g. resubscribing from the Play Store).
- */
-async function acknowledgeIfNeeded(productId: string, token: string, acknowledgementState: number | null | undefined) {
-  if (acknowledgementState !== 0) return;
-  try {
-    const publisher = await getPlayPublisher();
-    await publisher.purchases.subscriptions.acknowledge({
-      packageName: PACKAGE_NAME,
-      subscriptionId: productId,
-      token,
-      requestBody: {},
-    });
-    logger.info(`playBillingRtdn: acknowledged product=${productId}`);
-  } catch (e) {
-    // The app may have acknowledged concurrently; a later notification retries otherwise.
-    logger.warn(`playBillingRtdn: acknowledge failed for product=${productId}`, e);
-  }
-}
-
-/**
- * Grants (or extends) the Pro Host subscription for [uid] in Firestore.
- * Uses Play's own [expiryTimeMillis] as the canonical validity source so the
- * backend stays in sync with what Google actually charged for.
- */
-async function grantSubscription(
-  uid: string,
-  planId: string,
-  expiryTimeMillis: number,
-  orderId: string
-): Promise<void> {
-  const db = getFirestore();
-  const auth = getAuth();
-  const now = Date.now();
-
-  const userRef = db.collection("user_profiles").doc(uid);
-  const userSnap = await userRef.get();
-  const userData = userSnap.data();
-
-  // Keep the later of: Play's expiry vs any still-valid current expiry on the
-  // same plan — prevents a RENEWED notification from shrinking an already-extended term.
-  const currentExpiry = userData?.ownerPackageExpiryMillis as number | undefined;
-  // An admin's complimentary unlimited grant outranks any paid plan; a Play
-  // purchase/renewal must not downgrade it to a limited, expiring package.
-  if (userData?.ownerPackageId === UNLIMITED_GRANT_PLAN_ID && typeof currentExpiry === "number" && currentExpiry > now) {
-    logger.info(`playBillingRtdn: uid=${uid} holds an admin unlimited grant; not replacing it with ${planId}`);
-    return;
-  }
-  const isSameActivePlan =
-    userData?.ownerPackageId === planId &&
-    typeof currentExpiry === "number" &&
-    currentExpiry > now;
-  const newExpiry = isSameActivePlan ? Math.max(expiryTimeMillis, currentExpiry) : expiryTimeMillis;
-
-  await userRef.set(
-    { ownerPackageId: planId, ownerPackageExpiryMillis: newExpiry, expiryWarningSent: false, updatedAt: now },
-    { merge: true }
-  );
-
-  // Promote SPECIALIST → PRO_HOST if needed (idempotent)
-  const authUser = await auth.getUser(uid);
-  const currentRole = authUser.customClaims?.role;
-  if (currentRole !== "ADMIN" && currentRole !== "PRO_HOST") {
-    await auth.setCustomUserClaims(uid, { ...authUser.customClaims, role: "PRO_HOST" });
-    await userRef.set({ role: "PRO_HOST", proHostUpgradedAtMillis: Date.now() }, { merge: true });
-    await recordAuditLog({
-      actionType: "ROLE_PROMOTED_PRO_HOST",
-      details: `uid=${uid} promoted to PRO_HOST via Google Play subscription (order ${orderId}).`,
-      actorEmail: "play-billing@system.prohost.app",
-      severity: "SECURE",
-    });
-  }
-
-  // Un-hide any listings that were hidden when a prior package lapsed
-  const lapsedListings = await db
-    .collection("workspace_listings")
-    .where("ownerId", "==", uid)
-    .where("isOwnerPackageLapsed", "==", true)
-    .get();
-  if (!lapsedListings.empty) {
-    const bw = db.bulkWriter();
-    lapsedListings.docs.forEach((doc) => bw.set(doc.ref, { isOwnerPackageLapsed: false }, { merge: true }));
-    await bw.close();
-    logger.info(`playBillingRtdn: restored ${lapsedListings.size} lapsed listing(s) for uid=${uid}`);
-  }
-
-  // Auto-publish a draft listing that was saved when the host hit their listing
-  // limit and was redirected here — the client writes pendingPlayPublishDraftId
-  // to user_profiles before the Play sheet opens so we can pick it up here.
-  const pendingDraftId = userData?.pendingPlayPublishDraftId as string | undefined;
-  if (pendingDraftId) {
-    try {
-      const draftRef = db.collection("workspace_listings").doc(pendingDraftId);
-      const draftSnap = await draftRef.get();
-      if (draftSnap.exists) {
-        const draftData = draftSnap.data() ?? {};
-        if (draftData.ownerId === uid && draftData.status === "DRAFT") {
-          const problems = validateListingForPublish(draftData as WorkspaceListingDoc);
-          if (problems.length > 0) {
-            await draftRef.set({ publishBlockedReasons: problems, updatedAt: now }, { merge: true });
-            logger.warn(`playBillingRtdn: draft ${pendingDraftId} NOT auto-published for uid=${uid} — missing: ${problems.join(", ")}`);
-          } else {
-            await draftRef.set(
-              { status: "ACTIVE", isOwnerPackageLapsed: false, publishBlockedReasons: [], updatedAt: now },
-              { merge: true }
-            );
-            logger.info(`playBillingRtdn: auto-published draft ${pendingDraftId} for uid=${uid}`);
-          }
-          await userRef.set({ pendingPlayPublishDraftId: null }, { merge: true });
-        }
-      }
-    } catch (e) {
-      logger.warn(`playBillingRtdn: failed to auto-publish draft for uid=${uid}:`, e);
-    }
-  }
-
-  await recordAuditLog({
-    actionType: "PLAY_BILLING_SUBSCRIPTION_GRANTED",
-    details: `Plan ${planId} granted for uid=${uid}, order=${orderId}, expires=${new Date(newExpiry).toISOString()}.`,
-    actorEmail: "play-billing@system.prohost.app",
-    severity: "SECURE",
-  });
-}
-
-/**
- * Revokes Pro Host access immediately (refund, hard expiry, or hold).
- * Skips if [uid]'s current plan is already different — prevents an RTDN for
- * an old subscription from revoking a freshly-purchased upgrade.
- */
-async function revokeSubscription(
-  uid: string,
-  planId: string,
-  orderId: string,
-  pushMessage: string
-): Promise<void> {
-  const db = getFirestore();
-  const auth = getAuth();
-  const now = Date.now();
-
-  const userSnap = await db.collection("user_profiles").doc(uid).get();
-  const userData = userSnap.data();
-  if (userData?.ownerPackageId !== planId) {
-    logger.info(`playBillingRtdn: revokeSubscription uid=${uid}: current plan (${userData?.ownerPackageId}) != ${planId}, skipping`);
-    return;
-  }
-
-  const authUser = await auth.getUser(uid);
-  const isProHost = authUser.customClaims?.role === "PRO_HOST";
-
-  if (isProHost) {
-    await setClaimsThenFirestore(
-      auth,
-      uid,
-      authUser.customClaims,
-      { ...authUser.customClaims, role: "SPECIALIST" },
-      async () => {
-        await db.collection("user_profiles").doc(uid).set(
-          { role: "SPECIALIST", ownerPackageId: null, ownerPackageExpiryMillis: null, updatedAt: now },
-          { merge: true }
-        );
-      }
-    );
-
-    const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", uid).get();
-    if (!ownedListings.empty) {
-      const bw = db.bulkWriter();
-      ownedListings.docs.forEach((doc) => bw.set(doc.ref, { isOwnerPackageLapsed: true }, { merge: true }));
-      await bw.close();
-    }
-
-    await sendPushToUser(uid, "Subscription Ended", pushMessage, {
-      category: "PACKAGE_EXPIRED",
-      targetTab: "owner_subscriptions",
-    });
-  } else {
-    await db.collection("user_profiles").doc(uid).set(
-      { ownerPackageId: null, ownerPackageExpiryMillis: null },
-      { merge: true }
-    );
-  }
-
-  await recordAuditLog({
-    actionType: "PLAY_BILLING_SUBSCRIPTION_REVOKED",
-    details: `Plan ${planId} revoked for uid=${uid}, order=${orderId}. Reason: ${pushMessage}`,
-    actorEmail: "play-billing@system.prohost.app",
-    severity: "WARN",
-  });
-}
-
 /**
  * Google Play Real-Time Developer Notification handler.
  *
  * Setup in Google Play Console: Monetize → Subscriptions → Real-time developer
  * notifications → Set a Pub/Sub topic named "play-billing-rtdn". The topic must
- * exist in the same Google Cloud project. The service account running this function
- * (the App Engine default service account or a custom one) must have the
- * "Android Publisher" OAuth scope, which Application Default Credentials supply
- * automatically when the Cloud project is linked to Google Play Console.
+ * exist in the same Google Cloud project.
  *
  * Subscription product IDs in Google Play Console MUST match the Firestore
  * package_plans document keys exactly (the plan's "id" field) so the RTDN
@@ -326,7 +113,7 @@ export const playBillingRtdn = onMessagePublished(
       notificationType === SUBSCRIPTION_RESTARTED ||
       notificationType === SUBSCRIPTION_RECOVERED
     ) {
-      await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledgementState);
+      await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledgementState, "playBillingRtdn");
     }
 
     // 3. Dispatch by notification type
