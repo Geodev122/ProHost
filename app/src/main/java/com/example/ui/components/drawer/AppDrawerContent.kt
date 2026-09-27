@@ -92,6 +92,7 @@ fun SpecialistDrawerContent(
     // notification, so a new request is visible at a glance without opening the tab.
     pendingRequestsCount: Int = 0,
     activeProHostTabId: String?,
+    activeMainTabId: String? = null,
     onTabSelected: (String) -> Unit,
     onDrawerAction: (String) -> Unit,
     onSignOut: () -> Unit
@@ -293,7 +294,7 @@ fun SpecialistDrawerContent(
         if (isProHost) {
             NavigationDrawerItem(
                 label = { Text("Explore Workspaces", fontWeight = FontWeight.SemiBold) },
-                selected = false, // Since it's not a tab for ProHost, it acts as an action
+                selected = activeMainTabId == "search_map",
                 onClick = { onTabSelected("search_map") },
                 icon = { Icon(Icons.Default.TravelExplore, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
             )

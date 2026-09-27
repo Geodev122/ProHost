@@ -409,6 +409,7 @@ fun ProHostAppRoot(
                                 currentRole = currentRole,
                                 pendingRequestsCount = pendingIncomingRequestsCount,
                                 activeProHostTabId = fullScreenDrawerTab,
+                                activeMainTabId = activeTabId,
                                 onTabSelected = { tabId ->
                                     navigateTo(tabId)
                                     scope.launch { drawerState.close() }
@@ -479,7 +480,7 @@ fun ProHostAppRoot(
                                 onMenuClick = { scope.launch { drawerState.open() } },
                                 onAlertsClick = { activeDrawerTabDialog = "fcm_alerts" },
                                 pageTitle = "Explore",
-                                showBrand = false
+                                showBrand = true
                             )
                         } else {
                             val alertsList = viewModel.fcmAlerts.collectAsState().value
@@ -538,7 +539,9 @@ fun ProHostAppRoot(
                             NavigationBar(
                                 containerColor = MaterialTheme.colorScheme.surface,
                                 tonalElevation = 0.dp,
-                                modifier = Modifier.testTag("bottom_navigation_bar")
+                                modifier = Modifier
+                                    .height(64.dp)
+                                    .testTag("bottom_navigation_bar")
                             ) {
                                 roleTabs.forEach { tab ->
                                     val isSelected = activeTabId == tab.id

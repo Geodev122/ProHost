@@ -986,56 +986,56 @@ fun OwnerHubScreenContent(
                     }
                 }
             }
-            if (atListingLimit) {
-                FloatingActionButton(
-                    onClick = {},
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(bottom = 80.dp, end = 16.dp),
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ) {
-                    Icon(Icons.Default.Lock, contentDescription = "Listing limit reached")
-                }
-            } else {
-                FloatingActionButton(
-                    onClick = {
-                        hubHaptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onOpenCreateListing()
-                    },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(bottom = 80.dp, end = 16.dp),
-                    containerColor = CarnationOrange,
-                    contentColor = Color.White
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Image(
-                            painter = painterResource(id = com.example.R.drawable.prohost_checkmark_logo),
-                            contentDescription = "Add Listing",
-                            modifier = Modifier.size(26.dp),
-                            colorFilter = ColorFilter.tint(Color.White)
+        }
+    }
+        if (atListingLimit) {
+            FloatingActionButton(
+                onClick = {},
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 72.dp, end = 16.dp),
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            ) {
+                Icon(Icons.Default.Lock, contentDescription = "Listing limit reached")
+            }
+        } else {
+            FloatingActionButton(
+                onClick = {
+                    hubHaptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onOpenCreateListing()
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 72.dp, end = 16.dp),
+                containerColor = CarnationOrange,
+                contentColor = Color.White
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Image(
+                        painter = painterResource(id = com.example.R.drawable.prohost_checkmark_logo),
+                        contentDescription = "Add Listing",
+                        modifier = Modifier.size(26.dp),
+                        colorFilter = ColorFilter.tint(Color.White)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 6.dp, y = (-6).dp)
+                            .size(14.dp)
+                            .background(Color.White, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = null,
+                            tint = CarnationOrange,
+                            modifier = Modifier.size(10.dp)
                         )
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .offset(x = 6.dp, y = (-6).dp)
-                                .size(14.dp)
-                                .background(Color.White, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = null,
-                                tint = CarnationOrange,
-                                modifier = Modifier.size(10.dp)
-                            )
-                        }
                     }
                 }
             }
         }
-    }
 }
 }
 }

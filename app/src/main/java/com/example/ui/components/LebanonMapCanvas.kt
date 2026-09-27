@@ -358,7 +358,6 @@ fun LebanonMapCanvas(
                 val space = sortedSpaces.getOrNull(index)
                 if (space != null && activePinSpace?.id != space.id) {
                     activePinSpace = space
-                    onSpaceSelected(space)
                     coroutineScope.launch {
                         cameraPositionState.animate(
                             CameraUpdateFactory.newLatLng(LatLng(space.lat - 0.012, space.lng))
@@ -420,7 +419,6 @@ fun LebanonMapCanvas(
                             zIndex = if (isSelected) 2f else 1f,
                             onClick = {
                                 activePinSpace = space
-                                onSpaceSelected(space)
                                 coroutineScope.launch {
                                     cameraPositionState.animate(
                                         CameraUpdateFactory.newLatLng(LatLng(space.lat - 0.012, space.lng))
@@ -452,7 +450,6 @@ fun LebanonMapCanvas(
                             onClick = {
                                 val representative = group.firstOrNull { it.id == activePinSpace?.id } ?: group.first()
                                 activePinSpace = representative
-                                onSpaceSelected(representative)
                                 coroutineScope.launch {
                                     cameraPositionState.animate(
                                         CameraUpdateFactory.newLatLngZoom(LatLng(centLat - 0.008, centLng), 16f)
@@ -701,7 +698,9 @@ fun LebanonMapCanvas(
                     flingBehavior = rememberSnapFlingBehavior(lazyListState = listState),
                     contentPadding = PaddingValues(horizontal = Spacing.md),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
                 ) {
                     items(divisionCards, key = { (space, sub) -> "${space.id}_${sub?.id ?: "whole"}" }) { (space, sub) ->
                         val isSelected = activePinSpace?.id == space.id
@@ -716,13 +715,9 @@ fun LebanonMapCanvas(
                                 .shadow(if (isSelected) 8.dp else 4.dp, MaterialTheme.shapes.medium)
                                 .clickable {
                                     activePinSpace = space
-                                    onSpaceSelected(space)
                                     coroutineScope.launch {
                                         cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(LatLng(space.lat - 0.012, space.lng), 14f))
                                     }
-                                    // A specific division card is an explicit intent to view
-                                    // that division's availability, unlike a plain marker/whole-
-                                    // space tap which only previews — so navigate immediately.
                                     if (sub != null) {
                                         onDivisionSelected(space, sub.id)
                                     }
@@ -809,6 +804,23 @@ fun LebanonMapCanvas(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.KeyboardArrowUp,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(10.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                        Text(
+                                            text = "Select choices, and Request",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontSize = 8.sp,
+                                            color = MaterialTheme.colorScheme.primary
                                         )
                                     }
                                 }

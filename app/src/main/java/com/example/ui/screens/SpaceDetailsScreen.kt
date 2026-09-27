@@ -374,7 +374,7 @@ fun SpaceDetailsScreenContent(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
