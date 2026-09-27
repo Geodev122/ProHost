@@ -493,9 +493,16 @@ class ProHostViewModel(
         }
     }
 
-    fun openRedeemPromoCode(activity: android.app.Activity) {
-        playBillingManager?.openRedeemPromoCode(activity) ?: run {
-            openUriOrToast(activity, com.example.data.billing.PlayBillingManager.REDEEM_CODE_URL)
+    fun openRedeemPromoCode(activity: android.app.Activity, code: String? = null) {
+        playBillingManager?.openRedeemPromoCode(activity, code) ?: run {
+            val suffix = if (!code.isNullOrBlank()) "?code=${Uri.encode(code.trim())}" else ""
+            openUriOrToast(activity, "${com.example.data.billing.PlayBillingManager.REDEEM_CODE_URL}$suffix")
+        }
+    }
+
+    fun showBillingInAppMessages(activity: android.app.Activity) {
+        playBillingManager?.showInAppMessages(activity) {
+            refreshPlayPurchases(activity)
         }
     }
 

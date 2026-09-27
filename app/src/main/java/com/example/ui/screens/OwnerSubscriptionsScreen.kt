@@ -1,14 +1,9 @@
 package com.example.ui.screens
 
-import android.app.Activity
-import android.content.Context
 import android.content.ContextWrapper
 import android.media.AudioAttributes
 import android.media.MediaPlayer
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -23,19 +18,21 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import android.widget.Toast
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.data.model.*
 import com.example.data.billing.PlayOfferText
 import com.example.ui.components.CustomButton
 import com.example.ui.components.CustomButtonVariant
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,6 +53,8 @@ fun OwnerSubscriptionsScreen(
     val haptic = LocalHapticFeedback.current
     var showKycDialog by remember { mutableStateOf(false) }
     var pendingProductId by remember { mutableStateOf<String?>(null) }
+    var showRedeemDialog by remember { mutableStateOf(false) }
+    var redeemCodeInput by remember { mutableStateOf("") }
     val currentUser by viewModel.currentUser.collectAsState()
     val packagePlans by viewModel.packagePlans.collectAsState()
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
@@ -65,6 +64,24 @@ fun OwnerSubscriptionsScreen(
     val billingSuccess by viewModel.billingSuccess.collectAsState()
     val playBillingProducts by viewModel.playBillingProducts.collectAsState()
     val billingConnected by viewModel.playBillingConnected.collectAsState()
+    val playActivePurchases by viewModel.playActivePurchases.collectAsState()
+
+    // Refresh purchases every time the screen resumes (e.g. returning from Play Store).
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshPlayPurchases(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // Show Play's native in-app subscription messages on screen entry (grace period, hold, etc.).
+    LaunchedEffect(Unit) {
+        activity?.let { viewModel.showBillingInAppMessages(it) }
+    }
 
     // SO3: Play branded chime when a purchase completes (billingSuccess transitions to non-null).
     LaunchedEffect(billingSuccess) {
@@ -93,15 +110,25 @@ fun OwnerSubscriptionsScreen(
     val pricesLoading = !billingConnected && playBillingProducts.isEmpty()
 
     val expiryMillis = currentUser?.ownerPackageExpiryMillis
-    val remainingDays = if (expiryMillis != null && expiryMillis > System.currentTimeMillis()) {
-        ((expiryMillis - System.currentTimeMillis()) / (1000L * 60 * 60 * 24)).toInt()
+    val now = System.currentTimeMillis()
+    val remainingDays = if (expiryMillis != null && expiryMillis > now) {
+        ((expiryMillis - now) / (1000L * 60 * 60 * 24)).toInt()
     } else {
         null
     }
-    // True when the host previously had a package that has now lapsed (expiry passed but the
-    // sweep hasn't cleared ownerPackageId yet, or they just hit the limit cutover).
     val isSubscriptionExpired = currentPlan != null && remainingDays == null
     val isLifetimeGrant = PackagePlan.isLifetimeExpiry(expiryMillis)
+    val expiryDateString = remember(expiryMillis, isLifetimeGrant) {
+        if (expiryMillis != null && !isLifetimeGrant) {
+            SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date(expiryMillis))
+        } else null
+    }
+    // Find the Play purchase for the current plan so we can read isAutoRenewing.
+    val currentPlayPurchase = remember(playActivePurchases, currentPlan) {
+        val pid = currentPlan?.googlePlayProductId?.ifBlank { currentPlan.id } ?: return@remember null
+        playActivePurchases.firstOrNull { p -> p.products.contains(pid) }
+    }
+    val isAutoRenewing = currentPlayPurchase?.isAutoRenewing ?: true
 
     Column(
         modifier = Modifier
@@ -267,13 +294,26 @@ fun OwnerSubscriptionsScreen(
                 if (currentPlan != null) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
-                            Text("Days Until Renewal", style = MaterialTheme.typography.bodySmall, color = LightGray)
                             Text(
-                                if (isLifetimeGrant) "Never expires"
-                                else remainingDays?.let { if (it == 0) "< 1 day" else "$it days" } ?: "—",
+                                when {
+                                    isLifetimeGrant -> "Expires"
+                                    !isAutoRenewing && remainingDays != null -> "Ends"
+                                    else -> "Renews"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = LightGray
+                            )
+                            Text(
+                                when {
+                                    isLifetimeGrant -> "Never"
+                                    remainingDays == null -> "Expired"
+                                    remainingDays == 0 -> "< 1 day"
+                                    expiryDateString != null -> expiryDateString
+                                    else -> "$remainingDays days"
+                                },
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = PureWhite
+                                color = if (remainingDays != null || isLifetimeGrant) PureWhite else StatusError
                             )
                         }
                         Column(horizontalAlignment = Alignment.End) {
@@ -307,6 +347,17 @@ fun OwnerSubscriptionsScreen(
                                 "Complimentary access granted by ProHost",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = FreshGreen
+                            )
+                        }
+                        !isAutoRenewing && remainingDays != null -> Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.EventBusy, contentDescription = null, tint = CarnationOrange, modifier = Modifier.size(14.dp))
+                            Text(
+                                "Cancelled — access continues until $expiryDateString",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = CarnationOrange
                             )
                         }
                         remainingDays != null -> Row(
@@ -346,7 +397,7 @@ fun OwnerSubscriptionsScreen(
 
                     if (activity != null) {
                         OutlinedButton(
-                            onClick = { viewModel.openRedeemPromoCode(activity) },
+                            onClick = { showRedeemDialog = true },
                             modifier = Modifier.weight(1f),
                             shape = MaterialTheme.shapes.medium,
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = PureWhite),
@@ -357,6 +408,29 @@ fun OwnerSubscriptionsScreen(
                             Text("Redeem Code", style = MaterialTheme.typography.labelSmall)
                         }
                     }
+
+                    if (activity != null) {
+                        OutlinedButton(
+                            onClick = { viewModel.openPlayOrderHistory(activity) },
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PureWhite),
+                            border = BorderStroke(1.dp, PureWhite.copy(alpha = 0.5f))
+                        ) {
+                            Icon(Icons.Default.Receipt, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Order History", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+
+                TextButton(
+                    onClick = { viewModel.refreshPlayPurchases(context) },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(14.dp), tint = LightGray)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Restore Purchases", style = MaterialTheme.typography.labelSmall, color = LightGray)
                 }
 
                 if ((currentPlan == null || isSubscriptionExpired) && enabledPlans.isNotEmpty()) {
@@ -513,6 +587,46 @@ fun OwnerSubscriptionsScreen(
                 }
             )
         }
+    }
+
+    if (showRedeemDialog) {
+        AlertDialog(
+            onDismissRequest = { showRedeemDialog = false; redeemCodeInput = "" },
+            icon = { Icon(Icons.Default.CardGiftcard, contentDescription = null) },
+            title = { Text("Redeem a Code") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Enter your promo or gift code and we'll open Google Play with it pre-filled.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    OutlinedTextField(
+                        value = redeemCodeInput,
+                        onValueChange = { redeemCodeInput = it.uppercase().trim() },
+                        label = { Text("Promo code") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val code = redeemCodeInput.trim()
+                        showRedeemDialog = false
+                        redeemCodeInput = ""
+                        if (activity != null) {
+                            viewModel.openRedeemPromoCode(activity, code.ifBlank { null })
+                        }
+                    }
+                ) { Text(if (redeemCodeInput.isBlank()) "Open Play Store" else "Redeem") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRedeemDialog = false; redeemCodeInput = "" }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

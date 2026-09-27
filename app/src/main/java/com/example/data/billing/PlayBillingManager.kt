@@ -10,6 +10,8 @@ import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.InAppMessageParams
+import com.android.billingclient.api.InAppMessageResult
 import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
@@ -334,16 +336,36 @@ class PlayBillingManager(
         launchViewSafely(activity, ORDER_HISTORY_URL)
     }
 
-    fun openRedeemPromoCode(activity: Activity) {
-        // Use the Play Billing in-app redemption sheet (v4+).
-        // Falls back to the market:// deep-link if the billing client isn't ready.
-        // launchRedeemPromoCode was removed in billing v7; use deep-link directly.
-        // Fallback: market:// opens Play Store redeem page directly without browser redirect
-        val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://redeem"))
+    /**
+     * Opens the Play Store redeem-code page. When [code] is provided, the code is appended as a
+     * query parameter so the Play Store pre-fills it for the user. Falls back to the browser URL
+     * if the Play Store app is not installed.
+     */
+    fun openRedeemPromoCode(activity: Activity, code: String? = null) {
+        val suffix = if (!code.isNullOrBlank()) "?code=${Uri.encode(code.trim())}" else ""
+        val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://redeem$suffix"))
         try {
             activity.startActivity(marketIntent)
         } catch (e: android.content.ActivityNotFoundException) {
-            launchViewSafely(activity, REDEEM_CODE_URL)
+            launchViewSafely(activity, "$REDEEM_CODE_URL$suffix")
+        }
+    }
+
+    /**
+     * Shows Play's in-app subscription messages (grace-period recovery, account hold, etc.).
+     * Calls [onSubscriptionUpdated] and re-queries active purchases if the user takes action
+     * (e.g. fixes a failed payment) inside the Play-managed dialog.
+     */
+    fun showInAppMessages(activity: Activity, onSubscriptionUpdated: (() -> Unit)? = null) {
+        if (!billingClient.isReady) return
+        val params = InAppMessageParams.newBuilder()
+            .addInAppMessageCategoryToShow(InAppMessageParams.InAppMessageCategoryId.TRANSACTIONAL)
+            .build()
+        billingClient.showInAppMessages(activity, params) { result ->
+            if (result.responseCode == InAppMessageResult.InAppMessageResponseCode.SUBSCRIPTION_STATUS_UPDATED) {
+                queryActivePurchases()
+                onSubscriptionUpdated?.invoke()
+            }
         }
     }
 
