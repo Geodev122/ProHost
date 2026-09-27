@@ -6,13 +6,9 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -45,62 +41,11 @@ class FirestoreService(
         }
     }
 
-    private val listenerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val activeListeners = mutableListOf<ListenerRegistration>()
-
-    // initializeSchema() (wrote system_metadata/schema_info) was removed: Firestore rules
-    // deny every client write to system_metadata (Phase 7), so it could never succeed
-    // again, and it was cascading into aborting the rest of seedInitialData() below
-    // whenever it ran first in that shared try block.
-
-    /**
-     * Fire-and-forget seed of default/starter data (subscription formulas, and whatever
-     * initial spaces/users the caller already holds in memory) using merge writes, so this
-     * is safe to call repeatedly without clobbering documents that already exist server-side.
-     */
-    fun seedInitialData(
-        initialSpaces: List<SpaceListing>,
-        initialUsers: List<AppUser>,
-        initialFormulas: List<SubscriptionFormula> = getDefaultSubscriptionFormulas()
-    ) {
-        val db = firestore ?: return
-        listenerScope.launch {
-            try {
-                // initializeSchema() used to run first here, writing system_metadata/
-                // schema_info — Firestore rules now deny every client write to
-                // system_metadata (Phase 7), so that call always threw and — since
-                // everything below was one shared try block — silently aborted the
-                // formulas/spaces/users seeding beneath it too, every single time.
-                initialFormulas.forEach { formula ->
-                    db.collection(FirestoreSchema.Collections.SUBSCRIPTION_FORMULAS)
-                        .document(formula.id)
-                        .set(formula.toFirestoreMap(), SetOptions.merge())
-                        .await()
-                }
-                if (com.example.BuildConfig.DEBUG) {
-                    initialSpaces.forEach { space ->
-                        db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
-                            .document(space.id)
-                            .set(space.toFirestoreMap(), SetOptions.merge())
-                            .await()
-                    }
-                    initialUsers.forEach { user ->
-                        db.collection(FirestoreSchema.Collections.USER_PROFILES)
-                            .document(user.id)
-                            .set(user.toFirestoreMap(), SetOptions.merge())
-                            .await()
-                    }
-                }
-                Log.d(TAG, "Initial data seed complete.")
-            } catch (e: Exception) {
-                Log.w(TAG, "Initial data seed fallback: ${e.message}")
-            }
-        }
-    }
 
     /**
      * Attaches real-time snapshot listeners for the collections that need live cross-device
-     * sync (workspaces, users, subscription formulas, bookings). Returns nothing; call
+     * sync (workspaces, users, bookings, schema, plans, audit logs). Returns nothing; call
      * [clearListeners] to detach everything this has registered.
      *
      * INVARIANT this whole function depends on for its ADMIN branches: firestore.rules'
@@ -129,10 +74,7 @@ class FirestoreService(
      *
      * The old `if (list.isNotEmpty()) callback(list)` gating on every one of these is also
      * gone: a genuinely empty result (no listings match, no bookings exist) now reaches the
-     * caller like any other real snapshot, instead of being silently dropped — which used to
-     * leave whatever stale/placeholder data was already on screen (e.g. seedInitialData()'s
-     * hardcoded "Achrafieh Executive Medical Suite" listing) displayed indefinitely whenever
-     * the real result happened to be empty.
+     * caller like any other real snapshot, instead of being silently dropped.
      */
     fun attachLiveListeners(
         currentUid: String?,
@@ -140,7 +82,6 @@ class FirestoreService(
         onWorkspacesUpdated: (List<SpaceListing>) -> Unit,
         onUsersUpdated: (List<AppUser>) -> Unit,
         onBookingsUpdated: (List<RentalBookingRequest>) -> Unit,
-        onFormulasUpdated: (List<SubscriptionFormula>) -> Unit,
         onSchemaUpdated: (SpaceArchitectureSchema) -> Unit = {},
         onAuditLogsUpdated: (List<AuditSecurityLog>) -> Unit = {},
         onPackagePlansUpdated: (PackagePlanCatalog) -> Unit = {}
@@ -249,20 +190,6 @@ class FirestoreService(
                 activeListeners.add(ownProfileListener)
             }
 
-            val formulaListener = db.collection(FirestoreSchema.Collections.SUBSCRIPTION_FORMULAS)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.w(TAG, "Formulas sync note: ${error.message}")
-                        return@addSnapshotListener
-                    }
-                    if (snapshot != null) {
-                        val formulas = snapshot.documents.mapNotNull { doc ->
-                            doc.data?.let { data -> SubscriptionFormula.fromFirestoreMap(doc.id, data) }
-                        }
-                        onFormulasUpdated(formulas)
-                    }
-                }
-            activeListeners.add(formulaListener)
 
             // --- booking_requests --- the single collection ("booking_requests") that both
             // reads and writes must agree on. See ProHostRepository for the write side.
@@ -680,115 +607,6 @@ class FirestoreService(
         }
     }
 
-    // ==========================================
-    // SUBSCRIPTION FORMULAS
-    // ==========================================
-
-    suspend fun saveSubscriptionFormula(formula: SubscriptionFormula): Boolean {
-        return try {
-            val db = firestore ?: return false
-            db.collection(FirestoreSchema.Collections.SUBSCRIPTION_FORMULAS)
-                .document(formula.id)
-                .set(formula.toFirestoreMap(), SetOptions.merge())
-                .await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error saving subscription formula: ${e.message}", e)
-            false
-        }
-    }
-
-    /**
-     * Standard Lebanese workspace subscription packages, used to seed a fresh project.
-     */
-    fun getDefaultSubscriptionFormulas(): List<SubscriptionFormula> {
-        return listOf(
-            SubscriptionFormula(
-                id = "SUB-FRM-001",
-                title = "Flex Day-Pass (Hourly / Half-Day)",
-                type = RentalFormulaType.HOURLY,
-                billingInterval = SubscriptionBillingInterval.HOURLY,
-                priceUsd = 15.0,
-                description = "On-demand access for client consultations, depositions, and agile team huddles",
-                daysPerWeek = 1,
-                hoursPerDay = 4,
-                startHour = "08:00",
-                endHour = "20:00",
-                targetSpecialties = listOf("Consultants", "Attorneys", "Engineers", "Financial Advisors"),
-                includedPerks = listOf(
-                    "High-speed Fiber Wi-Fi",
-                    "Receptionist Greeting",
-                    "Coffee & Tea Bar",
-                    "24/7 Power Continuity"
-                ),
-                isFeatured = false
-            ),
-            SubscriptionFormula(
-                id = "SUB-FRM-002",
-                title = "Practitioner Shift Formula",
-                type = RentalFormulaType.SHIFT,
-                billingInterval = SubscriptionBillingInterval.SHIFT,
-                priceUsd = 180.0,
-                description = "Dedicated morning or afternoon shift access (Mon - Fri) tailored for active practice",
-                daysPerWeek = 5,
-                hoursPerDay = 6,
-                startHour = "08:00",
-                endHour = "14:00",
-                targetSpecialties = listOf("Healthcare Specialists", "Architects", "Designers", "Chartered Accountants"),
-                includedPerks = listOf(
-                    "Dedicated Desk or Clinic Room",
-                    "Client Lounge & Waiting Area",
-                    "Syndicate Verified Listing Badge",
-                    "10 Hours Conference Room Access",
-                    "Fiber Internet & Generator Backup"
-                ),
-                isFeatured = true
-            ),
-            SubscriptionFormula(
-                id = "SUB-FRM-003",
-                title = "Day-per-Week Retainer",
-                type = RentalFormulaType.DAY_PER_WEEK,
-                billingInterval = SubscriptionBillingInterval.DAY_PER_WEEK,
-                priceUsd = 120.0,
-                description = "Reserve a specific fixed day every week throughout the entire month (e.g., Every Wednesday)",
-                daysPerWeek = 1,
-                hoursPerDay = 10,
-                startHour = "08:00",
-                endHour = "18:00",
-                targetSpecialties = listOf("Visiting Doctors", "Legal Counsel", "Auditors", "Consulting Engineers"),
-                includedPerks = listOf(
-                    "Guaranteed Room Reservation",
-                    "Receptionist Patient/Client Check-in",
-                    "Private File Storage Locker",
-                    "Fast Wi-Fi & Generator Power"
-                ),
-                isFeatured = false
-            ),
-            SubscriptionFormula(
-                id = "SUB-FRM-004",
-                title = "Full Dedicated Executive Suite (Monthly)",
-                type = RentalFormulaType.FULL_MONTH,
-                billingInterval = SubscriptionBillingInterval.MONTHLY,
-                priceUsd = 450.0,
-                description = "24/7 exclusive private office with premier commercial address and full receptionist support",
-                daysPerWeek = 6,
-                hoursPerDay = 24,
-                startHour = "00:00",
-                endHour = "23:59",
-                targetSpecialties = listOf("Law Firms", "Engineering Consultancies", "Medical Centers", "Tech Startups"),
-                includedPerks = listOf(
-                    "24/7 Keycard & Smart Lock Access",
-                    "Commercial Business Address Registration",
-                    "Full Receptionist & Mail Handling",
-                    "Unlimited High-Speed Fiber Internet",
-                    "Solar + Generator Uninterrupted Power",
-                    "20 Hours Executive Boardroom Credits"
-                ),
-                discountPercent = 10.0,
-                isFeatured = true
-            )
-        )
-    }
 
     // ==========================================
     // BOOKING REQUESTS (schema.gql BookingRequest)

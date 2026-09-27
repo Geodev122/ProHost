@@ -102,7 +102,7 @@ fun SpecialistProfileScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(PremiumBackgroundGradient)
+            .background(premiumBackgroundBrush())
             .testTag("specialist_profile_screen"),
         contentAlignment = Alignment.TopCenter
     ) {

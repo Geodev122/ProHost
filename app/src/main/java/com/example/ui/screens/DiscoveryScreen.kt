@@ -36,7 +36,7 @@ import com.example.ui.components.*
 import com.example.ui.state.DiscoveryUiState
 import com.example.ui.viewmodel.DiscoveryViewModel
 import com.example.ui.viewmodel.ProHostViewModel
-import com.example.ui.theme.PremiumBackgroundGradient
+import com.example.ui.theme.premiumBackgroundBrush
 import com.example.ui.theme.Spacing
 
 /**
@@ -131,7 +131,7 @@ fun DiscoveryScreenContent(
             onlySaved
     Box(modifier = Modifier
         .fillMaxSize()
-        .background(PremiumBackgroundGradient)) {
+        .background(premiumBackgroundBrush())) {
         if (isMapView) {
             LebanonMapCanvas(
                 spaces = spaces,

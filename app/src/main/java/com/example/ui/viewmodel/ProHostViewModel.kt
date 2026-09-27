@@ -150,7 +150,6 @@ class ProHostViewModel(
     // Admin-managed, purchasable Pro Host packages — see PackagePlan/PackagePlanCatalog.
     val packagePlans: StateFlow<PackagePlanCatalog> = repository.packagePlans
     val spaces: StateFlow<List<SpaceListing>> = repository.spaces
-    val subscriptionFormulas: StateFlow<List<SubscriptionFormula>> = repository.subscriptionFormulas
     val isCloudConnected: StateFlow<Boolean> = repository.isCloudConnected
     // Admin-managed facility/category catalog — previously read only by AdminConsoleScreen
     // itself, so an admin's additions in "Schema Architecture" never reached the

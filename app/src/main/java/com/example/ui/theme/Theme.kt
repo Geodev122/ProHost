@@ -2,6 +2,8 @@ package com.example.ui.theme
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -99,6 +101,23 @@ private val DarkColorScheme = darkColorScheme(
 
     scrim = Color.Black
 )
+
+private val PremiumDarkBackgroundGradient = Brush.verticalGradient(
+    colors = listOf(
+        DarkPrimaryContainer.copy(alpha = 0.35f),
+        DarkBackground,
+        DarkSurfaceVariant.copy(alpha = 0.55f)
+    )
+)
+
+/**
+ * Screen background gradient for the active theme. The light [PremiumBackgroundGradient]
+ * alone left dark-theme text (light on light) unreadable.
+ */
+@Composable
+fun premiumBackgroundBrush(): Brush =
+    if (MaterialTheme.colorScheme.background.luminance() < 0.5f) PremiumDarkBackgroundGradient
+    else PremiumBackgroundGradient
 
 /**
  * ProHost Brand Theme

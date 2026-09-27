@@ -59,10 +59,6 @@ class ProHostRepository {
     private val firestoreService = FirestoreService.getInstance()
     private val functionsClient = FirebaseFunctionsClient()
 
-    private val _subscriptionFormulas = MutableStateFlow<List<SubscriptionFormula>>(
-        firestoreService.getDefaultSubscriptionFormulas()
-    )
-    val subscriptionFormulas: StateFlow<List<SubscriptionFormula>> = _subscriptionFormulas.asStateFlow()
 
     private val _isCloudConnected = MutableStateFlow(false)
     val isCloudConnected: StateFlow<Boolean> = _isCloudConnected.asStateFlow()
@@ -148,7 +144,6 @@ class ProHostRepository {
     val packagePlans: StateFlow<PackagePlanCatalog> = _packagePlans.asStateFlow()
 
     init {
-        seedInitialData()
         // Watches _currentUser and (re)attaches the live listeners whenever the
         // signed-in user's identity or admin status changes — including the very
         // first attach, since this collector fires immediately with _currentUser's
@@ -178,13 +173,6 @@ class ProHostRepository {
             // detach any previous listeners first so they don't stack up and fire
             // duplicate/stale-scoped updates.
             firestoreService.clearListeners()
-
-            // Seed default/starter structures (merge writes — safe to repeat).
-            firestoreService.seedInitialData(
-                initialSpaces = _spaces.value,
-                initialUsers = _users.value,
-                initialFormulas = _subscriptionFormulas.value
-            )
 
             val scopeUser = _currentUser.value
 
@@ -226,10 +214,6 @@ class ProHostRepository {
                     _hasLoadedBookingsOnce.value = true
                     _isCloudConnected.value = true
                 },
-                onFormulasUpdated = { updatedFormulas ->
-                    _subscriptionFormulas.value = updatedFormulas
-                    _isCloudConnected.value = true
-                },
                 onSchemaUpdated = { updatedSchema ->
                     _spaceArchitectureSchema.value = updatedSchema
                     _isCloudConnected.value = true
@@ -263,61 +247,12 @@ class ProHostRepository {
         }
     }
 
-    // Demo/placeholder listings below are seeded so the app has something to show before
-    // the real Firestore listeners attach — harmless, since they use fictional owner
-    // identities. Users/audit logs/credential documents used to be seeded with a fake
-    // "USR-ADMIN-ROOT" identity hardcoded to the real developer's email
-    // (geo.elnajjar@gmail.com), pre-marked VERIFIED/ADMIN/Tier-3, with fabricated audit
-    // log entries ("Root security & governance clearance granted to...") and fabricated
-    // "verified" ID/tax documents attached to it — the same hardcoded-real-identity
-    // pattern already fixed elsewhere this session, just in the seed data instead of a
-    // screen fallback. These all get overwritten moments later by the real Firestore
-    // listeners anyway, so there's no functional loss in starting them empty instead.
-    private fun seedInitialData() {
-        _users.value = emptyList()
-        _auditLogs.value = emptyList()
-
-        val initialSpaces = listOf(
-            SpaceListing(
-                id = "SP-001",
-                title = "Achrafieh Executive Medical Suite",
-                spaceType = SpaceType.POLYCLINIC,
-                governorate = Governorate.BEIRUT,
-                district = "Achrafieh",
-                streetAddress = "Sursock Street, Beirut",
-                floorInfo = "2nd Floor, Suite 204",
-                lat = 33.8886,
-                lng = 35.5142,
-                isShared = true,
-                complementarySpecialties = listOf("Cardiology", "Dermatology", "Pediatrics"),
-                residentPractitioners = listOf("Dr. Sami Haddad"),
-                essentialFacilities = listOf("High-Speed Wi-Fi", "Receptionist", "Sterilization Suite"),
-                equipment = listOf(EquipmentItem("EQ-1", "Exam Table", EquipmentCategory.WORKSPACES, 1, "Hydraulic exam table")),
-                rentalFormulas = listOf(
-                    RentalFormula(
-                        id = "F1",
-                        type = RentalFormulaType.SHIFT,
-                        rateUsd = 350.0,
-                        scheduleDescription = "Morning Shift (08:00 - 14:00)",
-                        daysOfWeek = listOf("Mon", "Wed", "Fri"),
-                        startHour = "08:00",
-                        endHour = "14:00",
-                        totalWeeklyHours = 18,
-                        shiftName = "Morning Shift"
-                    )
-                ),
-                rules = PremisesRules(),
-                ownerId = "USR-OWNER-01",
-                ownerName = "Achrafieh Commercial Properties",
-                ownerPhone = "+961 3 123456",
-                ownerEmail = "host.achrafieh@prohost.lb",
-                baseMonthlyRateUsd = 450.0
-            )
-        )
-        _spaces.value = initialSpaces
-
-        _bookingRequests.value = emptyList()
+    /** Test hook: Robolectric tests have no Firestore, so they inject listings directly. */
+    @androidx.annotation.VisibleForTesting
+    internal fun replaceSpacesForTest(spaces: List<SpaceListing>) {
+        _spaces.value = spaces
     }
+
 
     // --- Security & Audit Logging ---
     // actorEmail is kept as a parameter only for the local optimistic display copy

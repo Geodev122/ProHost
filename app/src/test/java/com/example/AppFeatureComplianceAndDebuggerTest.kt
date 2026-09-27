@@ -37,6 +37,7 @@ class AppFeatureComplianceAndDebuggerTest {
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
         repository = ProHostRepository()
+        repository.replaceSpacesForTest(demoSpaces())
         firestoreService = FirestoreService.getInstance()
     }
 
@@ -67,7 +68,6 @@ class AppFeatureComplianceAndDebuggerTest {
         assertEquals("workspace_listings", FirestoreSchema.Collections.WORKSPACE_LISTINGS)
         assertEquals("user_profiles", FirestoreSchema.Collections.USER_PROFILES)
         assertEquals("booking_requests", FirestoreSchema.Collections.BOOKING_REQUESTS)
-        assertEquals("subscription_formulas", FirestoreSchema.Collections.SUBSCRIPTION_FORMULAS)
         assertEquals("audit_security_logs", FirestoreSchema.Collections.AUDIT_SECURITY_LOGS)
     }
 

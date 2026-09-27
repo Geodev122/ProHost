@@ -131,7 +131,7 @@ fun MyBookingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(PremiumBackgroundGradient)
+            .background(premiumBackgroundBrush())
             .testTag("my_bookings_screen")
     ) {
         // 3-tab segmented toggle: Active / Pending / Past

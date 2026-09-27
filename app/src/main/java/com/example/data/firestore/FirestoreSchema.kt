@@ -19,7 +19,6 @@ object FirestoreSchema {
     object Collections {
         const val WORKSPACE_LISTINGS = "workspace_listings"
         const val USER_PROFILES = "user_profiles"
-        const val SUBSCRIPTION_FORMULAS = "subscription_formulas"
         const val BOOKING_REQUESTS = "booking_requests"
         const val AUDIT_SECURITY_LOGS = "audit_security_logs"
         const val SYSTEM_METADATA = "system_metadata"

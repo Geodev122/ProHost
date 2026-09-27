@@ -28,6 +28,7 @@ class ProHostEndToEndLifecycleTest {
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
         repository = ProHostRepository()
+        repository.replaceSpacesForTest(demoSpaces())
         viewModel = ProHostViewModel(repository)
     }
 
