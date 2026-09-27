@@ -54,6 +54,9 @@ import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import com.google.android.gms.maps.CameraUpdateFactory
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -66,6 +69,10 @@ import java.util.Locale
 import kotlin.math.*
 
 private data class MarkerPalette(val topColor: Int, val baseColor: Int)
+
+// Hard cap on pins drawn at once; each marker is a native Maps SDK object.
+private const val MAX_MAP_PINS = 200
+private const val MAX_CLUSTER_LABEL = 99
 
 // A fixed rotation of palettes assigned deterministically by spaceCategoryId (via a
 // stable hash) so every admin-defined category — old or new, without the app ever
@@ -124,7 +131,7 @@ private fun getMarkerPalette(space: SpaceListing, isSelected: Boolean, schema: L
     return getMarkerPaletteFallback(space)
 }
 
-private fun createCustomMarker(context: Context, space: SpaceListing, isSelected: Boolean, schema: List<SchemaItem> = emptyList()): BitmapDescriptor {
+private fun createCustomMarker(context: Context, palette: MarkerPalette, isSelected: Boolean): BitmapDescriptor {
     val scale = context.resources.displayMetrics.density
     val pinScale = if (isSelected) 1.25f else 1.0f
     val width = (36 * scale * pinScale).toInt()
@@ -143,7 +150,6 @@ private fun createCustomMarker(context: Context, space: SpaceListing, isSelected
     }
     canvas.drawOval(android.graphics.RectF(65f, 248f, 135f, 265f), shadowPaint)
 
-    val palette = getMarkerPalette(space, isSelected, schema)
     val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
     }
@@ -218,7 +224,7 @@ private fun createClusterMarker(context: Context, count: Int, hasSelected: Boole
         textAlign = Paint.Align.CENTER
     }
     val textY = cy - (textPaint.descent() + textPaint.ascent()) / 2
-    canvas.drawText(count.toString(), cx, textY, textPaint)
+    canvas.drawText(if (count > MAX_CLUSTER_LABEL) "$MAX_CLUSTER_LABEL+" else count.toString(), cx, textY, textPaint)
 
     return BitmapDescriptorFactory.fromBitmap(bitmap)
 }
@@ -241,11 +247,9 @@ fun LebanonMapCanvas(
     val coroutineScope = rememberCoroutineScope()
 
     var userLocation by remember { mutableStateOf<LatLng?>(null) }
-    var sortedSpaces by remember { mutableStateOf(spaces) }
     var isLocating by remember { mutableStateOf(false) }
     var activePinSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var isStripCollapsed by remember { mutableStateOf(false) }
-    val arrivedPinIds = remember { mutableStateListOf<String>() }
     
     val defaultCenter = LatLng(33.8886, 35.5184) // Beirut
     val cameraPositionState = rememberCameraPositionState {
@@ -317,37 +321,26 @@ fun LebanonMapCanvas(
         return r * c
     }
 
-    // Viewport Culling
-    val visibleSpaces = remember(spaces, cameraPositionState.position) {
-        val bounds = cameraPositionState.projection?.visibleRegion?.latLngBounds
-        if (bounds != null) {
-            spaces.filter { space ->
-                space.lat in bounds.southwest.latitude..bounds.northeast.latitude &&
-                space.lng in bounds.southwest.longitude..bounds.northeast.longitude
-            }.ifEmpty { spaces.take(50) }
-        } else {
-            spaces.take(50)
+    // Recomputed only when the camera settles (and once the map has loaded).
+    // Keying this on cameraPositionState.position re-ran filtering, sorting and the
+    // carousel list on every animation frame while panning.
+    var visibleBounds by remember { mutableStateOf<LatLngBounds?>(null) }
+    LaunchedEffect(cameraPositionState.isMoving) {
+        if (!cameraPositionState.isMoving) {
+            cameraPositionState.projection?.visibleRegion?.latLngBounds?.let { visibleBounds = it }
         }
     }
-
-    // Stagger-drop each visible pin when the set of visible spaces changes.
-    LaunchedEffect(visibleSpaces) {
-        arrivedPinIds.clear()
-        visibleSpaces.forEachIndexed { index, space ->
-            delay(40L)
-            arrivedPinIds.add(space.id)
-        }
+    val visibleSpaces = remember(spaces, visibleBounds) {
+        val bounds = visibleBounds
+        // contains() handles viewports that cross the antimeridian.
+        val inView = if (bounds != null) spaces.filter { bounds.contains(LatLng(it.lat, it.lng)) } else emptyList()
+        inView.ifEmpty { spaces }.take(MAX_MAP_PINS)
     }
 
-    LaunchedEffect(visibleSpaces, userLocation) {
+    val sortedSpaces = remember(visibleSpaces, userLocation) {
         val userLoc = userLocation
-        if (userLoc != null) {
-            sortedSpaces = visibleSpaces.sortedBy { space ->
-                calculateDistanceKm(userLoc.latitude, userLoc.longitude, space.lat, space.lng)
-            }
-        } else {
-            sortedSpaces = visibleSpaces
-        }
+        if (userLoc == null) visibleSpaces
+        else visibleSpaces.sortedBy { calculateDistanceKm(userLoc.latitude, userLoc.longitude, it.lat, it.lng) }
     }
 
     // Flat list: one card per subdivision (or one space card if no subdivisions)
@@ -361,15 +354,21 @@ fun LebanonMapCanvas(
         }
     }
 
-    // Carousel swipe → update selected map marker when the user scrolls the strip.
-    LaunchedEffect(listState, divisionCards) {
-        androidx.compose.runtime.snapshotFlow {
-            listState.firstVisibleItemIndex to listState.isScrollInProgress
-        }.collect { (index, isScrolling) ->
-            if (!isScrolling && divisionCards.isNotEmpty()) {
-                val space = divisionCards.getOrNull(index)?.first
+    // Carousel swipe → select that listing's pin. Reacts only to a finished scroll,
+    // never to the list changing underneath it: re-running on every list change
+    // moved the camera, which changed the list again (a camera/carousel loop).
+    val currentCards by rememberUpdatedState(divisionCards)
+    LaunchedEffect(listState) {
+        androidx.compose.runtime.snapshotFlow { listState.isScrollInProgress }
+            .distinctUntilChanged()
+            .drop(1)
+            .collect { isScrolling ->
+                if (isScrolling) return@collect
+                val space = currentCards.getOrNull(listState.firstVisibleItemIndex)?.first
                 if (space != null && activePinSpace?.id != space.id) {
                     activePinSpace = space
+                    // Separate job: a user gesture cancels animate() with a
+                    // CancellationException, which must not end this collector.
                     coroutineScope.launch {
                         cameraPositionState.animate(
                             CameraUpdateFactory.newLatLng(LatLng(space.lat - 0.012, space.lng))
@@ -377,7 +376,19 @@ fun LebanonMapCanvas(
                     }
                 }
             }
-        }
+    }
+
+    // BitmapDescriptors are registered natively and never freed, so build one per
+    // distinct look (palette + selection) instead of one per marker per recomposition.
+    val markerIconCache = remember { HashMap<Pair<MarkerPalette, Boolean>, BitmapDescriptor>() }
+    val clusterIconCache = remember { HashMap<Pair<Int, Boolean>, BitmapDescriptor>() }
+    fun markerIconFor(space: SpaceListing, isSelected: Boolean): BitmapDescriptor {
+        val palette = getMarkerPalette(space, isSelected, spaceTypeSchema)
+        return markerIconCache.getOrPut(palette to isSelected) { createCustomMarker(context, palette, isSelected) }
+    }
+    fun clusterIconFor(count: Int, hasSelected: Boolean): BitmapDescriptor {
+        val label = count.coerceAtMost(MAX_CLUSTER_LABEL + 1)
+        return clusterIconCache.getOrPut(label to hasSelected) { createClusterMarker(context, label, hasSelected) }
     }
 
     Box(
@@ -399,38 +410,33 @@ fun LebanonMapCanvas(
                 compassEnabled = true,
                 mapToolbarEnabled = false
             ),
+            onMapLoaded = {
+                cameraPositionState.projection?.visibleRegion?.latLngBounds?.let { visibleBounds = it }
+            },
             onMapClick = {
                 activePinSpace = null
                 onSpaceSelected(null)
             }
         ) {
             // Group markers at same ~100m location (3 decimal lat/lng precision).
-            val markerGroups = visibleSpaces.groupBy { space ->
-                val latK = (space.lat * 1000).toLong()
-                val lngK = (space.lng * 1000).toLong()
-                latK to lngK
+            val markerGroups = remember(visibleSpaces) {
+                visibleSpaces.groupBy { space -> (space.lat * 1000).toLong() to (space.lng * 1000).toLong() }
             }
 
-            markerGroups.forEach { (_, group) ->
+            markerGroups.forEach { (cell, group) ->
                 if (group.size == 1) {
                     val space = group.first()
                     key(space.id) {
                         val isSelected = activePinSpace?.id == space.id
-                        val markerIcon = remember(space.id, isSelected, spaceTypeSchema) {
-                            createCustomMarker(context, space, isSelected, spaceTypeSchema)
+                        val markerState = remember(space.id, space.lat, space.lng) {
+                            MarkerState(position = LatLng(space.lat, space.lng))
                         }
-                        val pinAlpha by animateFloatAsState(
-                            targetValue = if (space.id in arrivedPinIds) 1f else 0f,
-                            animationSpec = tween(durationMillis = 300),
-                            label = "pin_alpha"
-                        )
                         Marker(
-                            state = MarkerState(position = LatLng(space.lat, space.lng)),
+                            state = markerState,
                             title = space.title,
-                            snippet = "$${space.baseMonthlyRateUsd.toInt()}/mo • ${space.spaceType.displayName}",
-                            icon = markerIcon,
+                            snippet = space.spaceType.displayName,
+                            icon = markerIconFor(space, isSelected),
                             anchor = androidx.compose.ui.geometry.Offset(0.5f, 1.0f),
-                            alpha = pinAlpha,
                             zIndex = if (isSelected) 2f else 1f,
                             onClick = {
                                 activePinSpace = space
@@ -446,20 +452,17 @@ fun LebanonMapCanvas(
                         )
                     }
                 } else {
-                    // Cluster marker for co-located spaces
+                    // Cluster marker for co-located spaces, keyed by its grid cell.
                     val centLat = group.map { it.lat }.average()
                     val centLng = group.map { it.lng }.average()
-                    val clusterKey = "cluster_${centLat}_${centLng}"
                     val hasSelected = group.any { it.id == activePinSpace?.id }
-                    key(clusterKey) {
-                        val clusterBitmap = remember(group.size, hasSelected) {
-                            createClusterMarker(context, group.size, hasSelected)
-                        }
+                    key("cluster_${cell.first}_${cell.second}") {
+                        val markerState = remember(centLat, centLng) { MarkerState(position = LatLng(centLat, centLng)) }
                         Marker(
-                            state = MarkerState(position = LatLng(centLat, centLng)),
+                            state = markerState,
                             title = "${group.size} workspaces here",
                             snippet = group.take(3).joinToString(", ") { it.title },
-                            icon = clusterBitmap,
+                            icon = clusterIconFor(group.size, hasSelected),
                             anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f),
                             zIndex = if (hasSelected) 3f else 1.5f,
                             onClick = {

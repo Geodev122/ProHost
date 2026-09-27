@@ -224,6 +224,62 @@ class AdminViewModel(
         }
     }
 
+    private val _analytics = MutableStateFlow(AdminAnalyticsUiState())
+    val analytics: StateFlow<AdminAnalyticsUiState> = _analytics.asStateFlow()
+    private var analyticsJob: kotlinx.coroutines.Job? = null
+
+    fun setAnalyticsRange(fromMillis: Long?, toMillis: Long?) {
+        _analytics.update { it.copy(fromMillis = fromMillis, toMillis = toMillis) }
+        loadAnalytics()
+    }
+
+    fun setAnalyticsCountry(country: String?) {
+        _analytics.update { it.copy(country = country) }
+        loadAnalytics()
+    }
+
+    fun loadAnalytics() {
+        val filters = _analytics.value
+        analyticsJob?.cancel()
+        _analytics.update { it.copy(isLoading = true, error = null) }
+        analyticsJob = viewModelScope.launch {
+            try {
+                val result = functionsClient.getAdminAnalytics(filters.fromMillis, filters.toMillis, filters.country)
+                _analytics.update { state ->
+                    result.fold(
+                        onSuccess = { state.copy(isLoading = false, data = it) },
+                        onFailure = { state.copy(isLoading = false, error = it.message ?: "Couldn't load analytics") }
+                    )
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _analytics.update { it.copy(isLoading = false, error = e.message ?: "Couldn't load analytics") }
+            }
+        }
+    }
+
+    fun backfillProHostUpgradeDates() {
+        viewModelScope.launch {
+            try {
+                val result = functionsClient.backfillProHostUpgradeDates()
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        result.fold(
+                            onSuccess = { (updated, missing) -> "Filled $updated upgrade date(s); $missing had no record" },
+                            onFailure = { it.message ?: "Backfill failed" }
+                        )
+                    )
+                )
+                if (result.isSuccess) loadAnalytics()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.message ?: "Backfill failed"))
+            }
+        }
+    }
+
     fun resetGrantAccess() {
         _grantAccess.value = GrantAccessUiState()
     }
@@ -1087,5 +1143,15 @@ data class GrantAccessUiState(
     val target: com.example.data.auth.GrantLookupResult? = null,
     val isGranting: Boolean = false,
     val lastGrant: com.example.data.auth.GrantResult? = null,
+    val error: String? = null
+)
+
+data class AdminAnalyticsUiState(
+    val fromMillis: Long? = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000,
+    val toMillis: Long? = System.currentTimeMillis(),
+    /** Null = all countries. */
+    val country: String? = null,
+    val isLoading: Boolean = false,
+    val data: com.example.data.auth.AdminAnalytics? = null,
     val error: String? = null
 )

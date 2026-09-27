@@ -167,6 +167,65 @@ class FirebaseFunctionsClient {
         }
     }
 
+    /** functions/src/admin/adminAnalytics.ts — Admin-only platform analytics. */
+    suspend fun getAdminAnalytics(fromMillis: Long?, toMillis: Long?, country: String?): Result<AdminAnalytics> {
+        return try {
+            val payload = mutableMapOf<String, Any>()
+            fromMillis?.let { payload["fromMillis"] = it }
+            toMillis?.let { payload["toMillis"] = it }
+            country?.takeIf { it.isNotBlank() }?.let { payload["country"] = it }
+            val result = functions.getHttpsCallable("getAdminAnalytics").call(payload).await()
+            val data = result.data as? Map<*, *> ?: return Result.failure(IllegalStateException("Empty analytics response"))
+            fun counts(key: String): Map<String, Int> =
+                (data[key] as? Map<*, *>)?.entries?.mapNotNull { (k, v) ->
+                    val name = k as? String ?: return@mapNotNull null
+                    val n = (v as? Number)?.toInt() ?: return@mapNotNull null
+                    name to n
+                }?.toMap() ?: emptyMap()
+            Result.success(
+                AdminAnalytics(
+                    upgrades = (data["upgrades"] as? List<*>)?.mapNotNull { item ->
+                        val m = item as? Map<*, *> ?: return@mapNotNull null
+                        val day = (m["dayMillis"] as? Number)?.toLong() ?: return@mapNotNull null
+                        day to ((m["count"] as? Number)?.toInt() ?: 0)
+                    } ?: emptyList(),
+                    upgradesTotal = (data["upgradesTotal"] as? Number)?.toInt() ?: 0,
+                    proHostsWithoutDate = (data["proHostsWithoutDate"] as? Number)?.toInt() ?: 0,
+                    listingsTotal = (data["listingsTotal"] as? Number)?.toInt() ?: 0,
+                    undatedListings = (data["undatedListings"] as? Number)?.toInt() ?: 0,
+                    byCountry = counts("byCountry"),
+                    byCity = counts("byCity"),
+                    bySpaceType = counts("bySpaceType"),
+                    divisionsBySpaceType = (data["divisionsBySpaceType"] as? Map<*, *>)?.entries?.mapNotNull { (k, v) ->
+                        val type = k as? String ?: return@mapNotNull null
+                        type to ((v as? Map<*, *>)?.entries?.mapNotNull { (dk, dv) ->
+                            val name = dk as? String ?: return@mapNotNull null
+                            name to ((dv as? Number)?.toInt() ?: 0)
+                        }?.toMap() ?: emptyMap())
+                    }?.toMap() ?: emptyMap(),
+                    countries = (data["countries"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                )
+            )
+        } catch (e: Exception) {
+            Log.e(tag, "getAdminAnalytics failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /** functions/src/admin/adminAnalytics.ts — fills missing Pro Host upgrade dates from the audit log. */
+    suspend fun backfillProHostUpgradeDates(): Result<Pair<Int, Int>> {
+        return try {
+            val result = functions.getHttpsCallable("backfillProHostUpgradeDates").call(emptyMap<String, Any>()).await()
+            val data = result.data as? Map<*, *> ?: emptyMap<String, Any>()
+            Result.success(
+                ((data["updated"] as? Number)?.toInt() ?: 0) to ((data["stillMissing"] as? Number)?.toInt() ?: 0)
+            )
+        } catch (e: Exception) {
+            Log.e(tag, "backfillProHostUpgradeDates failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     /** functions/src/roles/revokeProHostRole.ts — Admin-only downgrade to SPECIALIST. */
     suspend fun revokeProHostRole(targetUid: String): Result<Unit> {
         return try {
@@ -432,4 +491,19 @@ data class GrantResult(
     val packageId: String,
     val expiryMillis: Long?,
     val restoredListings: Int
+)
+
+data class AdminAnalytics(
+    /** (UTC day start millis, upgrades that day), ascending. */
+    val upgrades: List<Pair<Long, Int>>,
+    val upgradesTotal: Int,
+    val proHostsWithoutDate: Int,
+    val listingsTotal: Int,
+    val undatedListings: Int,
+    /** Empty when a single country is selected. */
+    val byCountry: Map<String, Int>,
+    val byCity: Map<String, Int>,
+    val bySpaceType: Map<String, Int>,
+    val divisionsBySpaceType: Map<String, Map<String, Int>>,
+    val countries: List<String>
 )

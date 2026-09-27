@@ -52,7 +52,7 @@ async function resolveTarget(targetUid?: string, targetUserId?: string): Promise
 /**
  * Admin-only: grants a package and the PRO_HOST role (an ADMIN keeps ADMIN).
  * Writes the same entitlement fields as a Play purchase (ownerPackageId /
- * ownerPackageExpiryMillis), so firestore.rules' withinListingLimit(),
+ * ownerPackageExpiryMillis), so firestore.rules' hasActivePackage(),
  * expirePackages and every client screen treat it identically, and restores
  * listings previously hidden by expiry or a Pro Host revocation.
  */
@@ -111,6 +111,7 @@ export const grantPackageToUser = onCall<GrantPackageData>(async (request) => {
 
   const previousClaims = targetUser.customClaims ?? {};
   const newRole = previousClaims.role === "ADMIN" ? "ADMIN" : "PRO_HOST";
+  const isPromotion = newRole === "PRO_HOST" && previousClaims.role !== "PRO_HOST";
   const now = Date.now();
   let restoredListings = 0;
 
@@ -128,6 +129,7 @@ export const grantPackageToUser = onCall<GrantPackageData>(async (request) => {
             ownerPackageExpiryMillis: expiryMillis,
             expiryWarningSent: false,
             updatedAt: now,
+            ...(isPromotion ? { proHostUpgradedAtMillis: now } : {}),
           },
           { merge: true }
         );
@@ -148,6 +150,15 @@ export const grantPackageToUser = onCall<GrantPackageData>(async (request) => {
     );
   } catch (err) {
     throw new HttpsError("internal", err instanceof Error ? err.message : "Failed to grant package.");
+  }
+
+  if (isPromotion) {
+    await recordAuditLog({
+      actionType: "ROLE_PROMOTED_PRO_HOST",
+      details: `uid=${targetUser.uid} promoted to PRO_HOST via admin grant by ${auth.token.email ?? auth.uid}.`,
+      actorEmail: auth.token.email ?? "system@prohost.app",
+      severity: "SECURE",
+    });
   }
 
   const expiryText = unlimited === true ? "never expires" : `expires ${new Date(expiryMillis).toISOString()}`;

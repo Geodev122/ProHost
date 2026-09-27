@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-27T15:32:13.314Z",
+  "generatedAt": "2026-09-27T16:00:49.409Z",
   "trigger": "NIGHTHAWK",
   "summary": {
     "total": 0,
@@ -14,7 +14,7 @@
   "passes": [
     {
       "check": "CF Name Consistency",
-      "message": "All 20 getHttpsCallable() calls match exported functions in index.ts."
+      "message": "All 22 getHttpsCallable() calls match exported functions in index.ts."
     },
     {
       "check": "Firestore Rules Coverage",
@@ -30,7 +30,7 @@
     },
     {
       "check": "Screen Loading State",
-      "message": "15/15 screens have a loading indicator."
+      "message": "16/16 screens have a loading indicator."
     },
     {
       "check": "Screen Error State",

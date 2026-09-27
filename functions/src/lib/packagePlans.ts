@@ -5,7 +5,8 @@ import { getFirestore } from "firebase-admin/firestore";
  * (app/src/main/java/com/example/data/model/DataModels.kt). Replaces the old closed
  * OwnerPackageTier union + PAYG credit system entirely. Stored keyed by id as a map
  * inside package_plans/main (see PackagePlanCatalog's Kotlin doc comment for why a
- * map, not a list — the same reasoning applies to firestore.rules' withinListingLimit()).
+ * map, not a list). Every plan is unlimited in listings; price and billing period
+ * come from Google Play. Admins control only display order (sortOrder) and isFeatured.
  */
 export interface PackagePlan {
   id: string;
@@ -13,7 +14,6 @@ export interface PackagePlan {
   description?: string;
   badgeName?: string;
   priceUsd: number;
-  listingLimit: number | null; // null == unlimited
   validityDays: number;
   isEnabled: boolean;
   sortOrder?: number;
@@ -23,8 +23,8 @@ export interface PackagePlan {
 
 /**
  * Reserved catalog entry for admin "Unlimited" grants. It lives in package_plans/main
- * like any plan so firestore.rules' withinListingLimit() and every client screen that
- * resolves packages[ownerPackageId] treat it as a real, unlimited, enabled plan.
+ * like any plan so every client screen that resolves packages[ownerPackageId]
+ * shows it as a real plan.
  */
 export const UNLIMITED_GRANT_PLAN_ID = "admin_unlimited_grant";
 
@@ -37,11 +37,10 @@ export const LIFETIME_EXPIRY_MILLIS = Date.UTC(2100, 0, 1);
 
 export const UNLIMITED_GRANT_PLAN: PackagePlan = {
   id: UNLIMITED_GRANT_PLAN_ID,
-  name: "Unlimited (Admin Grant)",
-  description: "Complimentary unlimited listings granted by an administrator",
-  badgeName: "Unlimited",
+  name: "Lifetime Pro Host",
+  description: "Complimentary lifetime Pro Host access granted by an administrator",
+  badgeName: "Lifetime",
   priceUsd: 0,
-  listingLimit: null,
   validityDays: 36500,
   isEnabled: true,
   sortOrder: 999,

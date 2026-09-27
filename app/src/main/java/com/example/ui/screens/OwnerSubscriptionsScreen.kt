@@ -83,11 +83,11 @@ fun OwnerSubscriptionsScreen(
         }
     }
 
-    val enabledPlans = remember(packagePlans) { packagePlans.packages.values.filter { it.isEnabled && !it.isGrantOnly }.sortedBy { it.sortOrder } }
+    val enabledPlans = remember(packagePlans) { packagePlans.purchasablePlans() }
     val currentPlan = currentUser?.ownerPackageId?.let { packagePlans.packages[it] }
 
     // Map Play product ID → live formatted price string (e.g. "$4.99") from the Play Store catalog.
-    // Falls back to PackagePlan.priceUsd when Play hasn't loaded yet.
+    // PackagePlan.displayPrice falls back when Play hasn't loaded yet.
     val playPriceMap: Map<String, String?> = remember(playBillingProducts) {
         playBillingProducts.associate { d ->
             d.productId to d.subscriptionOfferDetails
@@ -281,10 +281,9 @@ fun OwnerSubscriptionsScreen(
                             )
                         }
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("Listings Consumed", style = MaterialTheme.typography.bodySmall, color = LightGray)
-                            val limit = currentPlan.listingLimit
+                            Text("Listings", style = MaterialTheme.typography.bodySmall, color = LightGray)
                             Text(
-                                "${ownerSpaces.size} / ${limit?.toString() ?: "Unlimited"}",
+                                "${ownerSpaces.size} · Unlimited",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = PureWhite
@@ -329,7 +328,6 @@ fun OwnerSubscriptionsScreen(
                     }
                 }
 
-                val atCap = currentPlan != null && currentPlan.listingLimit != null && ownerSpaces.size >= currentPlan.listingLimit
                 val activity = androidx.activity.compose.LocalActivity.current
 
                 Row(
@@ -365,22 +363,15 @@ fun OwnerSubscriptionsScreen(
                     }
                 }
 
-                if ((currentPlan == null || atCap || isSubscriptionExpired) && enabledPlans.isNotEmpty()) {
-                    // Renewal: re-subscribe to the same plan. Upsell: cheapest plan with more capacity.
+                if ((currentPlan == null || isSubscriptionExpired) && enabledPlans.isNotEmpty()) {
+                    // Renewal re-subscribes to the same plan; otherwise offer the admin's top-priority plan.
                     val upsellPlan = if (isSubscriptionExpired) {
                         enabledPlans.firstOrNull { it.id == currentPlan?.id } ?: enabledPlans.firstOrNull()
                     } else {
-                        enabledPlans
-                            .filter { it.listingLimit == null || it.listingLimit > (currentPlan?.listingLimit ?: 0) }
-                            .minByOrNull { it.priceUsd }
-                            ?: enabledPlans.firstOrNull()
+                        enabledPlans.firstOrNull()
                     }
                     CustomButton(
-                        text = when {
-                            isSubscriptionExpired -> "Renew Subscription"
-                            currentPlan == null -> "Choose a Package"
-                            else -> "Package Limit Reached — Upgrade Package"
-                        },
+                        text = if (isSubscriptionExpired) "Renew Subscription" else "Choose a Package",
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             upsellPlan?.let { plan ->
@@ -470,7 +461,7 @@ fun OwnerSubscriptionsScreen(
             )
         } else {
             // Horizontal scrollable plan cards (sorted by price ascending — least to most desirable)
-            val sortedPlans = enabledPlans.sortedWith(compareBy({ !it.isFeatured }, { it.sortOrder }))
+            val sortedPlans = enabledPlans
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(horizontal = 4.dp)
@@ -497,31 +488,6 @@ fun OwnerSubscriptionsScreen(
                             }
                         }
                     )
-                }
-            }
-        }
-
-        // Listing-limit enforcement notice when at cap
-        val atCap = currentPlan != null && currentPlan.listingLimit != null && ownerSpaces.size >= currentPlan.listingLimit
-        if (atCap) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                color = CarnationOrangeContainer
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Icon(Icons.Default.UploadFile, contentDescription = null, tint = CarnationOrange, modifier = Modifier.size(20.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Listing limit reached", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = OxfordBlue)
-                        Text(
-                            "You've used all ${currentPlan?.listingLimit} listing slots. Upgrade to publish more.",
-                            style = MaterialTheme.typography.bodySmall, color = OxfordBlue.copy(alpha = 0.8f)
-                        )
-                    }
                 }
             }
         }
@@ -599,7 +565,7 @@ fun CompactPlanCard(
 
                 // Price — large and bold
                 Text(
-                    text = playFormattedPrice ?: "$${String.format(Locale.US, "%.2f", plan.priceUsd)}",
+                    text = PackagePlan.displayPrice(plan, playFormattedPrice),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Black,
                     color = if (isCurrent) PureWhite else CarnationOrange
@@ -613,7 +579,7 @@ fun CompactPlanCard(
 
                 HorizontalDivider(color = if (isCurrent) PureWhite.copy(alpha = 0.2f) else LightGray.copy(alpha = 0.5f))
 
-                // Listing limit row
+                // Listings row
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(
                         Icons.Default.CheckCircle,
@@ -622,7 +588,7 @@ fun CompactPlanCard(
                         modifier = Modifier.size(14.dp)
                     )
                     Text(
-                        text = plan.listingLimit?.let { "$it listing${if (it == 1) "" else "s"}" } ?: "Unlimited",
+                        text = "Unlimited listings",
                         style = MaterialTheme.typography.bodySmall,
                         color = if (isCurrent) PureWhite else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold

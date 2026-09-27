@@ -297,8 +297,8 @@ fun CreateListingDialog(
     // resumed draft doesn't jump to Beirut before its pin is re-picked.
     var derivedGovernorate by rememberSaveable(stateSaver = GovernorateSaver) { mutableStateOf(existingDraft?.governorate ?: Governorate.BEIRUT) }
     var description by rememberSaveable { mutableStateOf(existingDraft?.description ?: "") }
-    var country by rememberSaveable { mutableStateOf("") }
-    var city by rememberSaveable { mutableStateOf("") }
+    var country by rememberSaveable { mutableStateOf(existingDraft?.country ?: "") }
+    var city by rememberSaveable { mutableStateOf(existingDraft?.city ?: "") }
     var streetAddress by rememberSaveable { mutableStateOf(existingDraft?.streetAddress ?: "") }
 
     // Real geolocation from the map picker below — required to publish. Distinct from
@@ -573,9 +573,9 @@ fun CreateListingDialog(
                                 )
 
                                 InputField(
-                                    value = if (city.isNotBlank()) city else derivedGovernorate.displayName,
+                                    value = city,
                                     onValueChange = { city = it },
-                                    label = "City / Governorate",
+                                    label = "City",
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true
                                 )
@@ -1104,14 +1104,19 @@ fun CreateListingDialog(
 
                     return SpaceListing(
                         id = listingId,
-                        title = if (title.isNotBlank()) title else "${derivedGovernorate.displayName} ${selectedCategoryName ?: selectedSpaceType.displayName}",
+                        title = title.ifBlank {
+                            listOf(city.trim(), selectedCategoryName ?: selectedSpaceType.displayName)
+                                .filter { it.isNotBlank() }.joinToString(" ")
+                        },
                         description = description,
                         spaceType = selectedSpaceType,
                         spaceCategoryId = selectedCategoryId,
                         spaceCategoryName = selectedCategoryName,
                         governorate = derivedGovernorate,
                         district = "",
-                        streetAddress = if (streetAddress.isNotBlank()) streetAddress else "",
+                        streetAddress = streetAddress.trim(),
+                        country = country.trim(),
+                        city = city.trim(),
                         floorInfo = if (floorNumber == 0) "Ground Floor" else "Floor $floorNumber",
                         lat = geocodedLat,
                         lng = geocodedLng,

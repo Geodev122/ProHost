@@ -26,9 +26,8 @@ import "../lib/admin";
  * "host is in verification process" note for them instead, reached via My Bookings,
  * not Discovery). Both are reversed automatically the moment the host's package
  * renews — see entitlements.ts's restoreListingsAfterRenewal. firestore.rules'
- * withinListingLimit() also checks the live expiry timestamp itself, so a package
- * that's lapsed but not yet swept by this function is still correctly treated as
- * "no package" for publish-quota purposes in the meantime.
+ * hasActivePackage() also checks the live expiry timestamp itself, so a package
+ * that's lapsed but not yet swept by this function already blocks publishing.
  */
 export const expirePackages = onSchedule({ schedule: "0 * * * *", secrets: [hostingerSmtpSecret] }, async () => {
   const db = getFirestore();

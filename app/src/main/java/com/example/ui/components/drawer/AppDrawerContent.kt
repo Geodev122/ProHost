@@ -527,7 +527,7 @@ fun AdminDrawerContent(
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
-            label = { Text("Stats", fontWeight = FontWeight.SemiBold) },
+            label = { Text("Analytics", fontWeight = FontWeight.SemiBold) },
             selected = activeTabId == "stats",
             onClick = { onTabSelected("stats") },
             icon = {

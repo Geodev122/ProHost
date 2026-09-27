@@ -23,10 +23,8 @@ import java.net.URLEncoder
  */
 sealed class ListingCreateResult {
     object Success : ListingCreateResult()
-    // Covers both "no active package at all" and "at the current package's listing
-    // cap" — either way the fix is the same: upgrade to a package with room. See
-    // createNewSpaceListing's own doc comment.
-    object PackageLimitReached : ListingCreateResult()
+    // Publishing needs an active (non-expired) subscription; there is no listing limit.
+    object NoActivePackage : ListingCreateResult()
     object Failed : ListingCreateResult()
 }
 
@@ -516,7 +514,7 @@ class ProHostViewModel(
     // Whish Pay settlement was removed — app is fully on Google Play Billing.
 
     // Set by OwnerHubScreen right before redirecting to Subscriptions after a
-    // PackageLimitReached Publish rejection — the id of
+    // NoActivePackage Publish rejection — the id of
     // the Draft that was just saved in place of the blocked Publish attempt.
     // OwnerSubscriptionsScreen reads this (same shared ViewModel instance across
     // both screens) to surface a banner and thread the id into whichever purchase
@@ -611,30 +609,15 @@ class ProHostViewModel(
         // an account that never has one.
         val isAdmin = user?.role == UserRole.ADMIN
 
-        // Publishing straight to ACTIVE requires an active, enabled, non-expired
-        // package with room under its listing limit; saving as a Draft is always
-        // exempt (nothing to consume yet). "No package" and "at the package's cap"
-        // both resolve to the same PackageLimitReached outcome — the fix in either
-        // case is the same upgrade-to-a-package flow (firestore.rules'
-        // withinListingLimit() enforces the identical rule server-side).
-        if (!isAdmin && listing.status == ListingStatus.ACTIVE) {
-            val plan = user?.ownerPackageId?.let { packagePlans.value.packages[it] }
-            val expiry = user?.ownerPackageExpiryMillis
-            val isExpired = expiry != null && expiry <= System.currentTimeMillis()
-            val withinLimit = plan != null && plan.isEnabled && !isExpired &&
-                (plan.listingLimit == null || (user.activeListingCount) < plan.listingLimit)
-            if (!withinLimit) {
-                repository.addAuditLog(
-                    actionType = "LISTING_BLOCKED_PACKAGE_LIMIT",
-                    details = if (plan == null) {
-                        "Owner attempted to publish with no active package."
-                    } else {
-                        "Owner reached '${plan.name}' limit (${plan.listingLimit} listings max). Upgrade required."
-                    },
-                    severity = "WARN"
-                )
-                return ListingCreateResult.PackageLimitReached
-            }
+        // Publishing straight to ACTIVE requires an active, non-expired subscription
+        // (firestore.rules' hasActivePackage() enforces the same rule); Drafts are exempt.
+        if (!isAdmin && listing.status == ListingStatus.ACTIVE && !hasActivePackage(user)) {
+            repository.addAuditLog(
+                actionType = "LISTING_BLOCKED_NO_PACKAGE",
+                details = "Owner attempted to publish without an active subscription.",
+                severity = "WARN"
+            )
+            return ListingCreateResult.NoActivePackage
         }
 
         // Reports the real Firestore result now — this used to return an
@@ -642,22 +625,17 @@ class ProHostViewModel(
         return if (repository.addSpaceListing(listing)) ListingCreateResult.Success else ListingCreateResult.Failed
     }
 
-    /** Fast, synchronous check for the "Add New Workspace Listing" card — lets
-     * OwnerHubScreen grey out/redirect that entry point before the host spends
-     * time on a multi-step wizard that [createNewSpaceListing] will just reject. */
-    fun isAtListingLimit(): Boolean {
+    /** True when the signed-in host can't publish (no active subscription). Admins never need one. */
+    fun needsActivePackage(): Boolean {
         val user = currentUser.value ?: return false
-        // ADMIN never purchases/holds a real package (see createNewSpaceListing's
-        // own identical bypass and its doc comment) — without this, an Admin's
-        // always-null ownerPackageId fell through to the "no package" branch
-        // below and read as permanently at-limit, blocking Admin from ever
-        // opening the "Add New Workspace Listing" card.
         if (user.role == UserRole.ADMIN) return false
-        val plan = user.ownerPackageId?.let { packagePlans.value.packages[it] } ?: return true
+        return !hasActivePackage(user)
+    }
+
+    private fun hasActivePackage(user: AppUser?): Boolean {
+        if (user?.ownerPackageId == null) return false
         val expiry = user.ownerPackageExpiryMillis
-        val isExpired = expiry != null && expiry <= System.currentTimeMillis()
-        if (isExpired || !plan.isEnabled) return true
-        return plan.listingLimit != null && user.activeListingCount >= plan.listingLimit
+        return expiry == null || expiry > System.currentTimeMillis()
     }
 
     // An owner had no in-app way to correct a mistake in, or take down, their own

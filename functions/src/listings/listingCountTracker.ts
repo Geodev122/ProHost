@@ -3,15 +3,9 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
 /**
  * Maintains `user_profiles/{ownerId}.activeListingCount` — a denormalized
- * counter, since Firestore security rules have no way to COUNT a query
- * (`workspace_listings where ownerId == X`) directly. This is what lets
- * firestore.rules' `withinListingLimit()` reject a create server-side instead
- * of trusting the client's own count (ProSpaceViewModel.createNewSpaceListing
- * did this check, but only client-side — nothing stopped a raw Firestore SDK
- * write from skipping it entirely).
- *
- * Only ACTIVE listings consume the host's quota — a Draft being built or a
- * Paused listing taken off the market shouldn't count against it. Status is
+ * count of the host's ACTIVE listings (Drafts and Paused listings excluded),
+ * shown in the Owner Hub and admin views. Informational only: subscriptions
+ * carry no listing limit. Status is
  * missing on documents written before this field existed, which reads as
  * ACTIVE (its own default) rather than as "not counted".
  */
@@ -50,10 +44,8 @@ export const onWorkspaceListingDeleted = onDocumentDeleted(
     if (!isActiveStatus(listing?.status)) return;
     // Plain FieldValue.increment(-1) would let this go negative for any
     // listing that existed before this tracker was deployed (never counted by
-    // onWorkspaceListingCreated in the first place) — and a negative count
-    // paradoxically satisfies withinListingLimit()'s `count < limit` check,
-    // granting a LIMITED_3_TIER host *unlimited* headroom instead of none.
-    // Clamp at 0 in a transaction instead of a raw increment.
+    // onWorkspaceListingCreated in the first place). Clamp at 0 in a
+    // transaction instead of a raw increment.
     const db = getFirestore();
     const profileRef = db.collection("user_profiles").doc(ownerId);
     await db.runTransaction(async (tx) => {
@@ -68,8 +60,8 @@ export const onWorkspaceListingDeleted = onDocumentDeleted(
  * Tracks status transitions (Draft/Paused <-> Active) so activeListingCount
  * stays in sync when a host publishes a draft or pauses/resumes a listing —
  * without this, a Draft never counted at create time would also never get
- * counted once published, and a Paused listing would keep occupying a slot
- * in the host's quota forever. A create landing directly as ACTIVE is
+ * counted once published, and a Paused listing would stay counted as active
+ * forever. A create landing directly as ACTIVE is
  * already handled by onWorkspaceListingCreated above, not here — on a create
  * event there is no "before" document, so this trigger simply doesn't fire.
  */

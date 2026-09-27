@@ -27,6 +27,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -233,7 +235,7 @@ fun AdminConsoleScreen(
                     Tab(
                         selected = uiState.selectedTab == 3,
                         onClick = { adminViewModel.setSelectedTab(3) },
-                        text = { Text("Owners & Payments", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                        text = { Text("Analytics", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = uiState.selectedTab == 4,
@@ -277,7 +279,7 @@ fun AdminConsoleScreen(
                     0 -> AdminPackagesTab(uiState = uiState, adminViewModel = adminViewModel)
                     1 -> AdminUsersDirectoryTab(uiState = uiState, adminViewModel = adminViewModel)
                     2 -> AdminListingsCatalogTab(uiState = uiState, adminViewModel = adminViewModel)
-                    3 -> AdminOwnersAndPaymentsTab(uiState = uiState, adminViewModel = adminViewModel)
+                    3 -> AdminAnalyticsScreen(adminViewModel = adminViewModel)
                     4 -> AdminSchemaArchitectureTab(uiState = uiState, adminViewModel = adminViewModel)
                     5 -> AdminSecurityAuditTab(uiState = uiState, adminViewModel = adminViewModel, currentUser = currentUser)
                     6 -> AdminIdReviewTab(uiState = uiState, adminViewModel = adminViewModel)
@@ -504,13 +506,20 @@ private fun AdminPackagesTab(
 
                     HorizontalDivider()
 
-                    Text(
-                        text = "Packages",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    // Packages are defined in Google Play Console (Monetise → Subscriptions).
-                    // Admin controls listing limits, display names, and enable/disable here.
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Subscription Plans", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        CustomButton(
+                            text = "Add Plan",
+                            onClick = { adminViewModel.openAddPackagePlanDialog() },
+                            variant = CustomButtonVariant.SECONDARY,
+                            icon = Icons.Default.Add,
+                            compact = true
+                        )
+                    }
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -525,37 +534,33 @@ private fun AdminPackagesTab(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(14.dp))
                             Text(
-                                "New plans are created in Google Play Console. Set listing limits and display names below.",
+                                "Price and billing period come from Google Play Console, and every plan allows unlimited listings. " +
+                                    "Here you only set display priority (lower shows first) and which plan is featured.",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
 
-                    if (uiState.packagePlans.packages.isEmpty()) {
+                    // Grant-only plans are system-managed by grantPackageToUser.
+                    val adminPlans = uiState.packagePlans.packages.values.filterNot { it.isGrantOnly }
+                        .sortedWith(compareBy({ !it.isFeatured }, { it.sortOrder }))
+                    if (adminPlans.isEmpty()) {
                         Text(
-                            "No packages configured yet — add one above.",
+                            "No plans yet — tap Add Plan and enter a Google Play subscription ID.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
-                    // Each row is buffered locally and committed on its own Save (task
-                    // #106's pattern), not on keystroke — replaces the old fixed
-                    // Package-2/Package-3 fee+limit inputs with a real, admin-creatable
-                    // list. Price/limit/validity are the trust boundary that matters:
-                    // initiateWhishPayment.ts always re-reads this same package_plans
-                    // doc server-side at charge time, never trusting the client.
-                    // Grant-only plans are system-managed by grantPackageToUser; editing or deleting
-                    // them here would silently break publishing for every grantee.
-                    uiState.packagePlans.packages.values.filterNot { it.isGrantOnly }.sortedBy { it.sortOrder }.forEach { plan ->
-                        var nameInput by remember(plan.id, plan.name) { mutableStateOf(plan.name) }
-                        var unlimitedInput by remember(plan.id, plan.listingLimit) { mutableStateOf(plan.listingLimit == null) }
-                        var limitInput by remember(plan.id, plan.listingLimit) { mutableStateOf((plan.listingLimit ?: 3).toString()) }
-                        var googlePlayProductIdInput by remember(plan.id, plan.googlePlayProductId) { mutableStateOf(plan.googlePlayProductId) }
+                    adminPlans.forEach { plan ->
+                        var priorityInput by remember(plan.id, plan.sortOrder) { mutableStateOf(plan.sortOrder.toString()) }
+                        var featuredInput by remember(plan.id, plan.isFeatured) { mutableStateOf(plan.isFeatured) }
                         var isFetchingPlay by remember(plan.id) { mutableStateOf(false) }
-                        var playFetchStatus by remember(plan.id) { mutableStateOf<String?>(null) }
                         var playLiveInfo by remember(plan.id) { mutableStateOf<String?>(null) }
+                        val productId = plan.googlePlayProductId.ifBlank { plan.id }
+                        val priority = priorityInput.toIntOrNull()
+                        val isDirty = (priority != null && priority != plan.sortOrder) || featuredInput != plan.isFeatured
 
                         Column(
                             modifier = Modifier
@@ -564,177 +569,79 @@ private fun AdminPackagesTab(
                                 .padding(10.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            val isPlayLinked = plan.googlePlayProductId.isNotBlank()
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column {
-                                    Text("#${plan.id}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    if (isPlayLinked) {
-                                        Text("Google Play", style = MaterialTheme.typography.labelSmall, color = FreshGreen)
-                                    }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(plan.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                    Text("Play ID: $productId", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        if (plan.isEnabled) "Enabled" else "Disabled",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (plan.isEnabled) FreshGreen else StatusError
-                                    )
-                                    Switch(checked = plan.isEnabled, onCheckedChange = { adminViewModel.togglePackagePlan(plan.id) })
-                                    // Play-linked plans cannot be deleted here — manage them in Play Console
-                                    IconButton(
-                                        onClick = { if (!isPlayLinked) adminViewModel.deletePackagePlan(plan.id) },
-                                        enabled = !isPlayLinked
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = if (isPlayLinked) "Managed in Google Play Console" else "Delete package",
-                                            tint = if (isPlayLinked) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f) else StatusError
-                                        )
-                                    }
+                                Switch(checked = plan.isEnabled, onCheckedChange = { adminViewModel.togglePackagePlan(plan.id) })
+                                IconButton(onClick = { adminViewModel.deletePackagePlan(plan.id) }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Remove plan", tint = StatusError)
                                 }
                             }
-                            OutlinedTextField(
-                                value = nameInput,
-                                onValueChange = { nameInput = it },
-                                label = { Text("Internal Name") },
-                                supportingText = { Text("Reference label only — Play Store shows its own title.") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-                            // Listing limit (the only attribute admin controls)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (!unlimitedInput) {
-                                    OutlinedTextField(
-                                        value = limitInput,
-                                        onValueChange = { limitInput = it.filter { c -> c.isDigit() } },
-                                        label = { Text("Listing limit") },
-                                        modifier = Modifier.weight(1f),
-                                        singleLine = true
-                                    )
-                                }
-                                Row(
-                                    modifier = if (unlimitedInput) Modifier.fillMaxWidth() else Modifier,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("Unlimited", style = MaterialTheme.typography.labelSmall)
-                                    Switch(checked = unlimitedInput, onCheckedChange = { unlimitedInput = it })
-                                }
-                            }
-                            // Live Play Store info card (shown once fetched)
-                            playLiveInfo?.let { liveInfo ->
-                                Surface(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    color = FreshGreen.copy(alpha = 0.1f),
-                                    shape = MaterialTheme.shapes.small
-                                ) {
-                                    Text(
-                                        text = liveInfo,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = FreshGreen,
-                                        modifier = androidx.compose.ui.Modifier.padding(8.dp)
-                                    )
-                                }
-                            }
-                            if (plan.googlePlayProductId.isNotBlank()) {
-                                // Product ID is locked once set — it maps to a real Play subscription
-                                // that exists in Google Play Console. Changing it here would break
-                                // the RTDN handler's ability to resolve purchases to this plan.
-                                Surface(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                    shape = MaterialTheme.shapes.small
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .padding(horizontal = 10.dp, vertical = 8.dp)
-                                            .fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Icon(Icons.Default.Lock, contentDescription = null,
-                                                tint = FreshGreen, modifier = Modifier.size(14.dp))
-                                            Column {
-                                                Text("Google Play Product ID", style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                Text(plan.googlePlayProductId,
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = MaterialTheme.colorScheme.onSurface)
-                                            }
-                                        }
-                                        if (isFetchingPlay) {
-                                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = BrightOrange)
-                                        } else {
-                                            TextButton(
-                                                onClick = {
-                                                    isFetchingPlay = true
-                                                    playFetchStatus = null
-                                                    viewModel.fetchPlayProductDetails(context, plan.googlePlayProductId) { details ->
-                                                        isFetchingPlay = false
-                                                        if (details != null) {
-                                                            val formattedPrice = details.subscriptionOfferDetails
-                                                                ?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice
-                                                            playLiveInfo = "Play Store: ${details.name} · ${formattedPrice ?: "—"}"
-                                                            playFetchStatus = "✓ Synced from Google Play"
-                                                        } else {
-                                                            playFetchStatus = "Could not fetch from Play — check the product ID"
-                                                        }
-                                                    }
-                                                },
-                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                                            ) {
-                                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
-                                                Spacer(Modifier.width(4.dp))
-                                                Text("Refresh from Play", style = MaterialTheme.typography.labelSmall)
-                                            }
-                                        }
-                                    }
-                                }
-                                playFetchStatus?.let { status ->
-                                    Text(
-                                        status,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (status.startsWith("✓")) FreshGreen else StatusError
-                                    )
-                                }
-                            } else {
                                 OutlinedTextField(
-                                    value = googlePlayProductIdInput,
-                                    onValueChange = { googlePlayProductIdInput = it },
-                                    label = { Text("Google Play Product ID") },
-                                    placeholder = { Text("e.g. package_growth_mrr") },
-                                    supportingText = { Text("Must exactly match a Subscription ID in Google Play Console.") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
+                                    value = priorityInput,
+                                    onValueChange = { v -> if (v.length <= 3 && v.all { it.isDigit() }) priorityInput = v },
+                                    label = { Text("Priority") },
+                                    isError = priority == null,
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Featured", style = MaterialTheme.typography.labelMedium)
+                                    Spacer(Modifier.width(4.dp))
+                                    Switch(checked = featuredInput, onCheckedChange = { featuredInput = it })
+                                }
+                            }
+                            playLiveInfo?.let { liveInfo ->
+                                Text(liveInfo, style = MaterialTheme.typography.labelSmall, color = FreshGreen)
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                TextButton(
+                                    onClick = {
+                                        isFetchingPlay = true
+                                        playLiveInfo = null
+                                        viewModel.fetchPlayProductDetails(context, productId) { details ->
+                                            isFetchingPlay = false
+                                            playLiveInfo = if (details != null) {
+                                                val price = details.subscriptionOfferDetails?.firstOrNull()
+                                                    ?.pricingPhases?.pricingPhaseList?.firstOrNull()
+                                                val period = price?.billingPeriod?.let { " / $it" }.orEmpty()
+                                                "Google Play: ${details.name} · ${price?.formattedPrice ?: "—"}$period"
+                                            } else {
+                                                "Not found in Google Play — check the subscription ID in Play Console."
+                                            }
+                                        }
+                                    },
+                                    enabled = !isFetchingPlay
+                                ) {
+                                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Check Google Play", style = MaterialTheme.typography.labelSmall)
+                                }
+                                Spacer(Modifier.weight(1f))
+                                CustomButton(
+                                    text = "Save",
+                                    onClick = {
+                                        if (priority != null) {
+                                            adminViewModel.updatePackagePlan(plan.copy(sortOrder = priority, isFeatured = featuredInput))
+                                        }
+                                    },
+                                    enabled = isDirty && priority != null,
+                                    variant = CustomButtonVariant.PRIMARY,
+                                    compact = true
                                 )
                             }
-                            CustomButton(
-                                text = "Save Package",
-                                onClick = {
-                                    adminViewModel.updatePackagePlan(
-                                        plan.copy(
-                                            name = nameInput.ifBlank { plan.name },
-                                            listingLimit = if (unlimitedInput) null else (limitInput.toIntOrNull()?.takeIf { it >= 1 } ?: plan.listingLimit),
-                                            googlePlayProductId = googlePlayProductIdInput.trim()
-                                        )
-                                    )
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                variant = CustomButtonVariant.PRIMARY,
-                                compact = true
-                            )
                         }
                     }
                 }
@@ -1367,270 +1274,6 @@ private fun AdminListingsCatalogTab(
                 }
             }
         }
-    }
-}
-
-// =========================================================================
-// TAB 3: OWNERS & PAYMENTS (WHISH MONEY LEDGER)
-// =========================================================================
-/** Two cumulative-count lines for the Hosts & Properties chart, each bucketed
- * by day within the optional [fromMillis]/[toMillis] range (null = unbounded, same
- * "Any" semantics as DateRangePickerRow). Pro Host upgrades come from the one
- * reliable dated record of that event — audit log entries with
- * actionType == "ROLE_PROMOTED_PRO_HOST" — the promotion write itself only stamps a
- * generic updatedAt that many other things overwrite too. Properties-listed uses the
- * new server-stamped SpaceListing.createdAtMillis (null/missing for any listing
- * created before that field existed — simply excluded, not backfilled). */
-private fun computeHostsAndPropertiesSeries(
-    auditLogs: List<AuditSecurityLog>,
-    spaces: List<SpaceListing>,
-    fromMillis: Long?,
-    toMillis: Long?
-): List<ChartSeries> {
-    fun inRange(millis: Long) = (fromMillis == null || millis >= fromMillis) && (toMillis == null || millis <= toMillis)
-
-    fun dayBucket(millis: Long): Long {
-        val cal = java.util.Calendar.getInstance()
-        cal.timeInMillis = millis
-        cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
-        cal.set(java.util.Calendar.MINUTE, 0)
-        cal.set(java.util.Calendar.SECOND, 0)
-        cal.set(java.util.Calendar.MILLISECOND, 0)
-        return cal.timeInMillis
-    }
-
-    fun cumulative(events: List<Pair<Long, Double>>): List<Pair<Long, Double>> {
-        val byDay = events.groupBy { dayBucket(it.first) }.mapValues { (_, v) -> v.sumOf { it.second } }
-        var running = 0.0
-        return byDay.toSortedMap().map { (day, dayTotal) ->
-            running += dayTotal
-            day to running
-        }
-    }
-
-    val upgrades = auditLogs
-        .filter { it.actionType == "ROLE_PROMOTED_PRO_HOST" && inRange(it.timestamp) }
-        .map { it.timestamp to 1.0 }
-    val listed = spaces
-        .mapNotNull { it.createdAtMillis }
-        .filter { inRange(it) }
-        .map { it to 1.0 }
-
-    return listOf(
-        ChartSeries("Pro Host Upgrades", FreshGreen, cumulative(upgrades)),
-        ChartSeries("Properties Listed", VibrantBlue, cumulative(listed))
-    )
-}
-
-@Composable
-private fun AdminOwnersAndPaymentsTab(
-    uiState: com.example.ui.state.AdminUiState,
-    adminViewModel: AdminViewModel
-) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        // Space Hosts Summary
-        item {
-            ProSurfaceCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        ProSectionHeader(
-                            title = "Hosts & Properties",
-                            icon = Icons.Default.HomeWork
-                        )
-
-                        CustomButton(
-                            text = "Export Hosts",
-                            onClick = { adminViewModel.exportOwnerRegistrations() },
-                            variant = CustomButtonVariant.SECONDARY,
-                            icon = Icons.Default.Download,
-                            compact = true
-                        )
-                    }
-
-                    var chartFromMillis by remember { mutableStateOf<Long?>(null) }
-                    var chartToMillis by remember { mutableStateOf<Long?>(null) }
-                    DateRangePickerRow(
-                        fromMillis = chartFromMillis,
-                        toMillis = chartToMillis,
-                        onFromChange = { chartFromMillis = it },
-                        onToChange = { chartToMillis = it }
-                    )
-
-                    val series = remember(uiState.auditLogs, uiState.allSpaces, chartFromMillis, chartToMillis) {
-                        computeHostsAndPropertiesSeries(uiState.auditLogs, uiState.allSpaces, chartFromMillis, chartToMillis)
-                    }
-                    MultiSeriesLineChart(series = series)
-                }
-            }
-        }
-
-        // Whish Pay Cryptographic Protocol Card
-        item {
-            ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                color = FreshGreen,
-                                shape = CircleShape,
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.Security, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                                }
-                            }
-                            Spacer(modifier = Modifier.width(Spacing.sm))
-                            Text(
-                                text = "Google Play Billing & Pub/Sub RTDN Protocol",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        CustomButton(
-                            text = "Export Ledger",
-                            onClick = { adminViewModel.exportTransactionsLedger() },
-                            variant = CustomButtonVariant.PRIMARY,
-                            icon = Icons.Default.Download,
-                            compact = true
-                        )
-                    }
-
-                    Text(
-                        text = "• Google Play Pub/Sub RTDN Topic: projects/{project_id}/topics/play-billing-rtdn\n" +
-                                "• RSA Licensing Verification: Active (Base64 Key Configured)\n" +
-                                "• Signature Algorithm: SHA256withRSA",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace,
-                        lineHeight = 16.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    // Search & Status Filters for Transactions
-                    InputField(
-                        value = uiState.txSearchQuery,
-                        onValueChange = { adminViewModel.setTxSearchQuery(it) },
-                        label = "Search Tx by Order ID, Payer Name, Phone...",
-                        leadingIcon = Icons.Default.Search,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf(
-                            "ALL" to "All (${uiState.allTransactions.size})",
-                            "SUCCESS" to "Success",
-                            "PENDING" to "Pending",
-                            "FAILED" to "Failed"
-                        ).forEach { (key, label) ->
-                            FilterChip(
-                                selected = uiState.selectedTxStatusFilter == key,
-                                onClick = { adminViewModel.setTxStatusFilter(key) },
-                                label = { Text(label) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        item {
-            ProSectionHeader(
-                title = "Live Audit Transactions (${uiState.filteredTransactions.size})",
-                subtitle = "Signed checkout events",
-                icon = Icons.AutoMirrored.Filled.ReceiptLong
-            )
-        }
-
-        if (uiState.filteredTransactions.isEmpty()) {
-            item {
-                ProEmptyState(
-                    title = "No Transactions Found",
-                    description = "No transaction records match the specified filters.",
-                    icon = Icons.Default.Receipt
-                )
-            }
-        }
-
-        items(uiState.filteredTransactions, key = { it.id }) { tx ->
-            ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        when (tx.status) {
-                            TransactionStatus.SUCCESS -> ProStatusBadge(ProBadgeType.CUSTOM_SUCCESS, customText = "SUCCESS")
-                            TransactionStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = "PENDING")
-                            TransactionStatus.FAILED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = "FAILED")
-                        }
-
-                        Text(
-                            text = "$${String.format(Locale.US, "%.2f", tx.amountUsd)} USD",
-                            fontWeight = FontWeight.ExtraBold,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    Text(
-                        text = tx.spaceTitle,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column {
-                            Text("Payer:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("${tx.payerName} (${tx.payerPhone})", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                        }
-                        Column {
-                            Text("Order ID:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(tx.orderId, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
-                        }
-                    }
-
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = MaterialTheme.shapes.small,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                // Not MD5 (the signing function is SHA-256) and not something
-                                // this client — or an admin reading it — ever verifies; it's
-                                // just the server's own audit record of what it sent Whish.
-                                text = "Server signature (audit record): ${tx.signatureHash}",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "Timestamp: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date(tx.timestamp))}",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
     }
 }
 
@@ -3171,10 +2814,9 @@ private fun AdminResetSchemaDialog(
 }
 
 /**
- * 8. Add Package Plan Dialog — this used to be fully missing: the "Add Package"
- * button toggled isAddPackagePlanDialogOpen but no composable ever read that
- * state, so nothing happened when tapped and no package could ever be created
- * from the Admin Console.
+ * Adds a Google Play subscription to the in-app catalog. The plan id IS the Play
+ * subscription ID: playBillingRtdn.ts stores that ID as ownerPackageId, and the app
+ * resolves the host's current plan via packages[ownerPackageId].
  */
 @Composable
 private fun AdminAddPackagePlanDialog(
@@ -3182,23 +2824,17 @@ private fun AdminAddPackagePlanDialog(
     onDismiss: () -> Unit,
     onAdd: (PackagePlan) -> Unit
 ) {
+    var productId by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var badgeName by remember { mutableStateOf("") }
-    var priceInput by remember { mutableStateOf("") }
-    var unlimited by remember { mutableStateOf(false) }
-    var limitInput by remember { mutableStateOf("") }
-    var validityInput by remember { mutableStateOf("30") }
-    var newPlanGooglePlayProductId by remember { mutableStateOf("") }
+    var priorityInput by remember { mutableStateOf("0") }
+    var featured by remember { mutableStateOf(false) }
 
-    // Derived from the name so the admin never has to think about it, but still
-    // shown read-only — collisions (e.g. re-adding "LIMITED_3_TIER") are refused
-    // client-side with a clear message rather than silently overwriting an
-    // existing package via a same-id merge write.
-    val derivedId = remember(name) {
-        name.trim().uppercase().replace(Regex("[^A-Z0-9]+"), "_").trim('_').ifBlank { "PACKAGE" }
-    }
-    val idCollision = derivedId in existingIds
+    val cleanId = productId.trim()
+    val idValid = cleanId.matches(Regex("[a-z0-9][a-z0-9._]{0,39}"))
+    val idCollision = cleanId in existingIds
+    val priority = priorityInput.toIntOrNull()
+    val canAdd = idValid && !idCollision && name.isNotBlank() && priority != null
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -3220,91 +2856,60 @@ private fun AdminAddPackagePlanDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Add Package", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Add Plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = "Close") }
                 }
 
-                InputField(
+                OutlinedTextField(
+                    value = productId,
+                    onValueChange = { productId = it.lowercase() },
+                    label = { Text("Google Play subscription ID") },
+                    placeholder = { Text("e.g. prohost_monthly") },
+                    supportingText = {
+                        Text(
+                            when {
+                                cleanId.isEmpty() -> "Must exactly match the subscription ID in Play Console."
+                                !idValid -> "Lowercase letters, digits, dots and underscores only."
+                                idCollision -> "This plan is already in the catalog."
+                                else -> "Price and billing period are read from Google Play."
+                            }
+                        )
+                    },
+                    isError = cleanId.isNotEmpty() && (!idValid || idCollision),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = "Package Name (e.g. Growth Plan)",
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    label = { Text("Display name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
                 )
-                if (name.isNotBlank()) {
-                    Text(
-                        if (idCollision) "A package with id \"$derivedId\" already exists — choose a different name." else "Package id: $derivedId",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (idCollision) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                InputField(
+                OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = "Description",
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = false
+                    label = { Text("Short description (optional)") },
+                    modifier = Modifier.fillMaxWidth()
                 )
-
-                InputField(
-                    value = badgeName,
-                    onValueChange = { badgeName = it },
-                    label = "Badge text (shown in the drawer/hero)",
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
-                InputField(
-                    value = priceInput,
-                    onValueChange = { priceInput = it.filter { c -> c.isDigit() || c == '.' } },
-                    label = "Price (USD)",
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (!unlimited) {
-                        InputField(
-                            value = limitInput,
-                            onValueChange = { limitInput = it.filter { c -> c.isDigit() } },
-                            label = "Listing limit",
-                            modifier = Modifier.weight(1f),
-                            singleLine = true
-                        )
-                    }
-                    Row(
-                        modifier = if (unlimited) Modifier.weight(1f) else Modifier,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Unlimited", style = MaterialTheme.typography.labelSmall)
-                        Switch(checked = unlimited, onCheckedChange = { unlimited = it })
-                    }
-                    InputField(
-                        value = validityInput,
-                        onValueChange = { validityInput = it.filter { c -> c.isDigit() } },
-                        label = "Validity (days)",
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = priorityInput,
+                        onValueChange = { v -> if (v.length <= 3 && v.all { it.isDigit() }) priorityInput = v },
+                        label = { Text("Priority") },
+                        supportingText = { Text("Lower shows first") },
+                        isError = priority == null,
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f)
                     )
+                    Text("Featured", style = MaterialTheme.typography.labelMedium)
+                    Switch(checked = featured, onCheckedChange = { featured = it })
                 }
-
-                OutlinedTextField(
-                    value = newPlanGooglePlayProductId,
-                    onValueChange = { newPlanGooglePlayProductId = it },
-                    label = { Text("Google Play Product ID") },
-                    placeholder = { Text("e.g. package_growth_mrr") },
-                    supportingText = { Text("Must exactly match a Subscription ID in Google Play Console. Leave blank for Whish-only plans.") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                val canAdd = name.isNotBlank() && !idCollision &&
-                    priceInput.toDoubleOrNull() != null &&
-                    (unlimited || limitInput.toIntOrNull()?.let { it >= 1 } == true) &&
-                    (validityInput.toIntOrNull()?.let { it >= 1 } == true)
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     CustomButton(
@@ -3314,19 +2919,17 @@ private fun AdminAddPackagePlanDialog(
                         variant = CustomButtonVariant.OUTLINED
                     )
                     CustomButton(
-                        text = "Add Package",
+                        text = "Add Plan",
                         onClick = {
                             onAdd(
                                 PackagePlan(
-                                    id = derivedId,
+                                    id = cleanId,
                                     name = name.trim(),
-                                    description = description,
-                                    badgeName = badgeName,
-                                    priceUsd = priceInput.toDoubleOrNull() ?: 0.0,
-                                    listingLimit = if (unlimited) null else limitInput.toIntOrNull(),
-                                    validityDays = validityInput.toIntOrNull() ?: 30,
+                                    description = description.trim(),
                                     isEnabled = true,
-                                    googlePlayProductId = newPlanGooglePlayProductId.trim()
+                                    sortOrder = priority ?: 0,
+                                    isFeatured = featured,
+                                    googlePlayProductId = cleanId
                                 )
                             )
                         },

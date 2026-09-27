@@ -76,7 +76,7 @@ fun AdminGrantAccessCard(
     var showConfirm by remember { mutableStateOf(false) }
 
     val purchasablePlans = remember(packagePlans) {
-        packagePlans.packages.values.filter { it.isEnabled && !it.isGrantOnly }.sortedBy { it.sortOrder }
+        packagePlans.purchasablePlans()
     }
     val isUnlimited = selectedPlanId == PackagePlan.UNLIMITED_GRANT_PLAN_ID
     val selectedPlan = purchasablePlans.firstOrNull { it.id == selectedPlanId }
@@ -148,8 +148,8 @@ fun AdminGrantAccessCard(
                 Text("Package to grant", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 PlanOption(
                     selected = isUnlimited,
-                    title = "Unlimited",
-                    detail = "Unlimited listings · never expires",
+                    title = "Lifetime Pro Host",
+                    detail = "Full Pro Host access · never expires",
                     highlight = true,
                     onSelect = { selectedPlanId = PackagePlan.UNLIMITED_GRANT_PLAN_ID }
                 )
@@ -157,8 +157,7 @@ fun AdminGrantAccessCard(
                     PlanOption(
                         selected = selectedPlanId == plan.id,
                         title = plan.name,
-                        detail = (plan.listingLimit?.let { "Up to $it listings" } ?: "Unlimited listings") +
-                            " · normally ${plan.validityDays} days",
+                        detail = "Pro Host access for a set number of days",
                         highlight = false,
                         onSelect = { selectedPlanId = plan.id }
                     )
@@ -193,7 +192,7 @@ fun AdminGrantAccessCard(
 
                 state.lastGrant?.let { grant ->
                     val planName = packagePlans.packages[grant.packageId]?.name
-                        ?: if (grant.packageId == PackagePlan.UNLIMITED_GRANT_PLAN_ID) "Unlimited" else grant.packageId
+                        ?: if (grant.packageId == PackagePlan.UNLIMITED_GRANT_PLAN_ID) "Lifetime Pro Host" else grant.packageId
                     Surface(color = StatusSuccess.copy(alpha = 0.12f), shape = MaterialTheme.shapes.medium) {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -221,7 +220,7 @@ fun AdminGrantAccessCard(
     }
 
     if (showConfirm && target != null) {
-        val planName = if (isUnlimited) "Unlimited (never expires)" else "${selectedPlan?.name} for $durationDays days"
+        val planName = if (isUnlimited) "Lifetime (never expires)" else "${selectedPlan?.name} for $durationDays days"
         val newRole = if (target.role == "ADMIN") "Admin (unchanged)" else "Pro Host"
         AlertDialog(
             onDismissRequest = { showConfirm = false },

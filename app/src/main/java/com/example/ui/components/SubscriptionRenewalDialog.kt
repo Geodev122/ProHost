@@ -24,10 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.AppUser
+import com.example.data.model.PackagePlan
 import com.example.ui.theme.FreshGreen
 import com.example.ui.theme.Spacing
 import com.example.ui.viewmodel.ProHostViewModel
-import java.util.Locale
 
 /**
  * Subscription renewal/upgrade carousel. Launches Google Play Billing for all
@@ -51,9 +51,18 @@ fun SubscriptionRenewalDialog(
     }
 
     val packagePlans by viewModel.packagePlans.collectAsState()
+    val playBillingProducts by viewModel.playBillingProducts.collectAsState()
+    val playPriceMap: Map<String, String?> = remember(playBillingProducts) {
+        playBillingProducts.associate { d ->
+            d.productId to d.subscriptionOfferDetails
+                ?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice
+        }
+    }
+    fun priceOf(plan: PackagePlan): String =
+        PackagePlan.displayPrice(plan, playPriceMap[plan.googlePlayProductId.ifBlank { plan.id }])
 
     val enabledPlans = remember(packagePlans) {
-        packagePlans.packages.values.filter { it.isEnabled && !it.isGrantOnly }.sortedBy { it.sortOrder }
+        packagePlans.purchasablePlans()
     }
     val currentPlan = currentUser.ownerPackageId?.let { packagePlans.packages[it] }
     var selectedPlan by remember(currentPlan, enabledPlans) {
@@ -158,8 +167,7 @@ fun SubscriptionRenewalDialog(
                                         }
                                     }
                                     Text(
-                                        text = plan.listingLimit?.let { "Up to $it listings · ${plan.validityDays}d" }
-                                            ?: "Unlimited · ${plan.validityDays}d",
+                                        text = "Unlimited listings",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 2,
@@ -167,7 +175,7 @@ fun SubscriptionRenewalDialog(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "$${String.format(Locale.US, "%.2f", plan.priceUsd)}/mo",
+                                        text = priceOf(plan),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = MaterialTheme.colorScheme.primary
@@ -201,7 +209,7 @@ fun SubscriptionRenewalDialog(
                     Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
                         text = selectedPlan?.let {
-                            "Subscribe with Google Play — $${String.format(Locale.US, "%.2f", it.priceUsd)}/mo"
+                            "Subscribe with Google Play — ${priceOf(it)}"
                         } ?: "Subscribe with Google Play",
                         fontWeight = FontWeight.Bold
                     )

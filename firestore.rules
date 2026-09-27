@@ -67,37 +67,15 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/user_profiles/$(uid)).data.get('role', 'SPECIALIST');
     }
 
-    // Package listing-limit enforcement (previously client-side only —
-    // ProHostViewModel.createNewSpaceListing checked this, but nothing
-    // stopped a direct Firestore write from skipping it). `activeListingCount`
-    // is a denormalized counter maintained by listingCountTracker.ts's
-    // Firestore triggers, since rules can't COUNT a query directly. Packages
-    // are now an admin-managed, arbitrary-length catalog (package_plans/main,
-    // keyed by id — see PackagePlan/PackagePlanCatalog) rather than a fixed
-    // 2-tier enum, so this resolves the caller's OWN purchased package live
-    // instead of hardcoding a single tier name/field. Treats no package,
-    // an unresolvable/disabled package, and an expired-but-not-yet-swept
-    // package (see expirePackages.ts) all identically as "no active package".
-    function withinListingLimit(uid) {
+    // Publishing gate: every subscription is unlimited in listings and bounded
+    // only by its renewal date (set from Google Play by playBillingRtdn.ts, or by
+    // an admin grant). A missing expiry is treated as not expired, matching the
+    // previous behavior for legacy grants.
+    function hasActivePackage(uid) {
       let profile = get(/databases/$(database)/documents/user_profiles/$(uid)).data;
       let packageId = profile.get('ownerPackageId', null);
       let expiry = profile.get('ownerPackageExpiryMillis', null);
-      let isExpired = expiry != null && expiry <= request.time.toMillis();
-      // get() on a document that doesn't exist THROWS in rules (unlike a
-      // missing field, which .get(key, default) tolerates) — guard with
-      // exists() so a fresh deploy, before any package has ever been created
-      // via the Admin Console, fails closed (empty catalog -> nobody can
-      // publish ACTIVE) instead of erroring out on every write.
-      let plansPath = /databases/$(database)/documents/package_plans/main;
-      let allPlans = exists(plansPath) ? get(plansPath).data.get('packages', {}) : {};
-      // Guard the map lookup with a null key — package_plans/main's map is
-      // keyed by string package ids only, never a null/missing entry.
-      let plan = packageId != null ? allPlans.get(packageId, null) : null;
-      let count = profile.get('activeListingCount', 0);
-      let limit = plan != null ? plan.get('listingLimit', null) : null;
-      return packageId != null && !isExpired && plan != null &&
-        plan.get('isEnabled', false) == true &&
-        (limit == null || count < limit);
+      return packageId != null && (expiry == null || expiry > request.time.toMillis());
     }
 
     // ---------------------------------------------------------------
@@ -127,13 +105,11 @@ service cloud.firestore {
         (liveRole(request.auth.uid) == "PRO_HOST" || isAdmin()) &&
         request.resource.data.ownerId == request.auth.uid &&
         !isSuspended() &&
-        // A Draft doesn't consume the host's quota (see ListingStatus's doc
-        // comment) — only a create that lands directly as ACTIVE is gated by
-        // withinListingLimit(); saving a brand-new Draft is exempt the same
-        // way listingCountTracker.ts's create trigger only counts ACTIVE.
+        // Saving a Draft needs no active package; only a create that lands
+        // directly as ACTIVE does.
         (isAdmin() ||
           request.resource.data.get('status', 'ACTIVE') != 'ACTIVE' ||
-          withinListingLimit(request.auth.uid)) &&
+          hasActivePackage(request.auth.uid)) &&
         // The update rule below has always blocked isVerified/ownerIsIdVerified
         // on an existing document, but create() is a separate rule block with no
         // "before" document to diff against — without this, a brand-new listing
@@ -176,17 +152,11 @@ service cloud.firestore {
             ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended", "isOwnerPackageLapsed", "isOwnerIdRejected", "ownerIsIdVerified", "favoriteCount"]
           ) &&
           // Publishing a Draft or resuming a Paused listing (status -> ACTIVE)
-          // is the moment it starts consuming the host's quota — gate that
-          // transition the same way create() gates a straight-to-ACTIVE
-          // create. Any other status change (staying Draft/Paused, Active ->
-          // Paused, or an ACTIVE listing simply changing category) never
-          // needs the quota re-check — packages gate the OVERALL listing
-          // count only, with no per-category credit concept anymore, so
-          // there's nothing left for a category swap to abuse.
+          // requires an active package, same as a straight-to-ACTIVE create.
           (isAdmin() ||
             resource.data.get('status', 'ACTIVE') == 'ACTIVE' ||
             request.resource.data.get('status', 'ACTIVE') != 'ACTIVE' ||
-            withinListingLimit(request.auth.uid))
+            hasActivePackage(request.auth.uid))
         ) ||
         // Engagement counters are incremented by the Specialist viewing/
         // contacting the listing, not the owner — the owner-only clause above
@@ -249,6 +219,7 @@ service cloud.firestore {
         // actually happened through assignInitialRole.ts, none of which the
         // update rule below would ever let a client set afterward.
         request.resource.data.get('ownerPackageExpiryMillis', null) == null &&
+        request.resource.data.get('proHostUpgradedAtMillis', null) == null &&
         request.resource.data.get('isSuspended', false) == false &&
         request.resource.data.get('createdAtMillis', null) == null &&
         request.resource.data.get('lastSignInAtMillis', null) == null &&
@@ -269,8 +240,8 @@ service cloud.firestore {
       // revokeProHostRole — a client
       // write could otherwise self-grant a package for free or dodge real expiry.
       // activeListingCount is maintained only by listingCountTracker.ts's
-      // triggers, for the same reason (see withinListingLimit() above — a
-      // client-writable counter would make that check trivially bypassable).
+      // triggers, for the same reason (it feeds admin analytics; a client-writable counter
+      // would make those numbers meaningless).
       // pinHash/pinSalt/pinSetAtMillis are written exclusively by setUserPin (Admin SDK via
       // Cloud Function) — blocking direct client writes prevents a client from computing
       // their own SHA-256 hash and overwriting the server-stored hash with a PIN they chose
@@ -285,7 +256,7 @@ service cloud.firestore {
       allow update: if (isOwner(userId) || isAdmin()) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
           ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
-           "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount",
+           "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount", "proHostUpgradedAtMillis",
            "tosAcceptedAtMillis", "consentVersion",
            "pinHash", "pinSalt", "pinSetAtMillis",
            "pinFailedAttempts", "pinLockedUntilMillis",

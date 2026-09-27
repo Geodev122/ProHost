@@ -90,7 +90,7 @@ async function grantSubscription(
   const currentRole = authUser.customClaims?.role;
   if (currentRole !== "ADMIN" && currentRole !== "PRO_HOST") {
     await auth.setCustomUserClaims(uid, { ...authUser.customClaims, role: "PRO_HOST" });
-    await userRef.set({ role: "PRO_HOST" }, { merge: true });
+    await userRef.set({ role: "PRO_HOST", proHostUpgradedAtMillis: Date.now() }, { merge: true });
     await recordAuditLog({
       actionType: "ROLE_PROMOTED_PRO_HOST",
       details: `uid=${uid} promoted to PRO_HOST via Google Play subscription (order ${orderId}).`,

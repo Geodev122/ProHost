@@ -146,10 +146,8 @@ class ProHostRepository {
     // fresh deploy (before package_plans/main even exists), AND got them
     // silently persisted to Firestore the moment an admin added their first
     // real package (addPackagePlan merges into whatever this StateFlow held).
-    // An already-migrated host's stored legacy ownerPackageId simply resolves
-    // to "no active package" (see withinListingLimit() in firestore.rules)
-    // until an admin creates a real package via Add Package — no seed/migration
-    // tool fabricates one on their behalf. This StateFlow only ever reflects
+    // No seed/migration tool fabricates a package on an admin's behalf.
+    // This StateFlow only ever reflects
     // the real, live package_plans/main document.
     private val _packagePlans = MutableStateFlow(PackagePlanCatalog.DEFAULT_CATALOG)
     val packagePlans: StateFlow<PackagePlanCatalog> = _packagePlans.asStateFlow()
@@ -456,7 +454,7 @@ class ProHostRepository {
             addAuditLog(
                 actionType = "PACKAGE_PLAN_ADDED",
                 details = "Admin added package '${plan.name}' — $${String.format(Locale.US, "%.2f", plan.priceUsd)}, " +
-                    "limit ${plan.listingLimit ?: "unlimited"}, ${plan.validityDays} days validity",
+                    "${plan.validityDays} days validity",
                 severity = "SECURE"
             )
         }
@@ -472,7 +470,7 @@ class ProHostRepository {
             addAuditLog(
                 actionType = "PACKAGE_PLAN_UPDATED",
                 details = "Admin updated package '${plan.name}' (#${plan.id}) — $${String.format(Locale.US, "%.2f", plan.priceUsd)}, " +
-                    "limit ${plan.listingLimit ?: "unlimited"}, ${plan.validityDays} days validity",
+                    "${plan.validityDays} days validity",
                 severity = "SECURE"
             )
         }

@@ -675,9 +675,11 @@ fun ProHostAppRoot(
                                     AppNavTab.OwnerRentalRequests.id -> OwnerRentalRequestsScreen(
                                         viewModel = viewModel
                                     )
-                                    AppNavTab.Stats.id -> OwnerAnalyticsScreen(
-                                        viewModel = viewModel
-                                    )
+                                    AppNavTab.Stats.id -> if (currentUser?.role == UserRole.ADMIN) {
+                                        AdminAnalyticsScreen()
+                                    } else {
+                                        OwnerAnalyticsScreen(viewModel = viewModel)
+                                    }
                                     AppNavTab.OwnerSubscriptions.id -> OwnerSubscriptionsScreen(
                                         viewModel = viewModel
                                     )
