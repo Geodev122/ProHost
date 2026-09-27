@@ -40,7 +40,7 @@ export { onUserFavoritesChanged } from "./users/favoritesSync";
 
 export { expirePackages } from "./packages/expirePackages";
 
-export { resendEmailVerification, verifyEmailLink } from "./auth/emailVerification";
+export { verifyEmailLink } from "./auth/emailVerification";
 export { sendEmailOtp, verifyEmailOtp, clickEmailOtpLink } from "./auth/emailOtp";
 export { sendSignInEmailLink, sendVerificationEmailLink } from "./auth/emailLinkAuth";
 export { playBillingRtdn } from "./billing/playBillingRtdn";

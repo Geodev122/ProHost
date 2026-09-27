@@ -166,7 +166,9 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
 );
 
 /**
- * Notifies the specialist when the host marks their lease payment as paid.
+ * Notifies both parties when either side marks the lease payment as acknowledged.
+ * - Host marks paid → notifies the specialist (pro_rentals tab).
+ * - Specialist marks paid → notifies the host (owner_progress tab).
  */
 export const onBookingPaymentAcknowledged = onDocumentUpdated(
   "booking_requests/{bookingId}",
@@ -183,6 +185,19 @@ export const onBookingPaymentAcknowledged = onDocumentUpdated(
         {
           category: "PAYMENT_REMINDER",
           targetTab: "pro_rentals",
+          bookingId: event.params.bookingId,
+        }
+      );
+    }
+
+    if (!before.paymentAcknowledgedBySpecialist && after.paymentAcknowledgedBySpecialist) {
+      await sendPushToUser(
+        after.ownerId,
+        "Specialist Marked Payment as Paid",
+        `${after.practitionerName ?? "The specialist"} has marked their lease payment for "${after.spaceTitle ?? "workspace"}" as paid.`,
+        {
+          category: "PAYMENT_REMINDER",
+          targetTab: "owner_progress",
           bookingId: event.params.bookingId,
         }
       );

@@ -1384,7 +1384,6 @@ class ProHostViewModel(
 
     // --- Data Export Hub ---
     fun getJsonExport(): String = repository.exportToJson()
-    fun getAuditTextExport(): String = repository.exportToAuditText()
 
     fun shareExportData(context: Context, format: String, content: String) {
         val intent = Intent(Intent.ACTION_SEND).apply {

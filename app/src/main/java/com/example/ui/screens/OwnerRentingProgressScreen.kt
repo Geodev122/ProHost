@@ -35,6 +35,7 @@ fun OwnerRentingProgressScreen(
     val allBookingRequests by viewModel.bookingRequests.collectAsState()
     val packagePlans by viewModel.packagePlans.collectAsState()
     val hasLoadedBookingsOnce by viewModel.hasLoadedBookingsOnce.collectAsState()
+    val isOffline by viewModel.isOfflineMode.collectAsState()
 
     // ownerId is the sole, authoritative match — see ProHostViewModel.ownerSpaces'
     // doc comment for why the "ownerName contains fullName" fallback that used to
@@ -77,6 +78,7 @@ fun OwnerRentingProgressScreen(
         currentPackage = currentUser?.ownerPackageId?.let { packagePlans.packages[it] },
         ownerPackageExpiryMillis = currentUser?.ownerPackageExpiryMillis,
         hasLoadedBookingsOnce = hasLoadedBookingsOnce,
+        isOffline = isOffline,
         onWhatsAppPractitioner = { booking ->
             viewModel.launchWhatsAppToPractitioner(context, booking)
         },
@@ -103,6 +105,7 @@ fun OwnerRentingProgressScreenContent(
     currentPackage: PackagePlan?,
     ownerPackageExpiryMillis: Long?,
     hasLoadedBookingsOnce: Boolean = true,
+    isOffline: Boolean = false,
     onWhatsAppPractitioner: (BookingRequest) -> Unit,
     onSendPaymentReminder: (BookingRequest) -> Unit,
     onCancelAcceptedBooking: (BookingRequest) -> Unit = {},
@@ -260,7 +263,7 @@ fun OwnerRentingProgressScreenContent(
             )
         }
 
-        if (!hasLoadedBookingsOnce) {
+        if (!hasLoadedBookingsOnce && !isOffline) {
             // The first Firestore snapshot hasn't arrived yet — without this, a
             // host with real active tenancies briefly saw "No Active Tenancies"
             // before the real list streamed in.
@@ -270,6 +273,36 @@ fun OwnerRentingProgressScreenContent(
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = CarnationOrange)
+                }
+            }
+        } else if (!hasLoadedBookingsOnce && isOffline) {
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xl),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        Icon(
+                            Icons.Default.WifiOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(40.dp)
+                        )
+                        Text(
+                            "Can't reach server",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "Check your connection — cached data may be stale.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
                 }
             }
         } else if (activeBookings.isEmpty()) {

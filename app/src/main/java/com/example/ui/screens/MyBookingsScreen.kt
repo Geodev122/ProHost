@@ -172,12 +172,40 @@ fun MyBookingsScreen(
             UserRole.ADMIN -> BrightOrange
             else -> VibrantBlue
         }
-        if (!hasLoadedBookingsOnce) {
+        if (!hasLoadedBookingsOnce && !isOffline) {
             // The first Firestore snapshot hasn't arrived yet — without this, an
             // account with real bookings briefly showed "No bookings" before the
             // real list streamed in, indistinguishable from actually having none.
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = roleAccent)
+            }
+        } else if (!hasLoadedBookingsOnce && isOffline) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.WifiOff,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Text(
+                        "Can't reach server",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        "Check your connection and try again.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
             }
         } else if (filteredBookings.isEmpty()) {
             Box(
