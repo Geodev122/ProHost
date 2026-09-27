@@ -40,6 +40,7 @@ export { expirePackages } from "./packages/expirePackages";
 
 export { resendEmailVerification, verifyEmailLink } from "./auth/emailVerification";
 export { sendEmailOtp, verifyEmailOtp, clickEmailOtpLink } from "./auth/emailOtp";
+export { sendSignInEmailLink, sendVerificationEmailLink } from "./auth/emailLinkAuth";
 export { playBillingRtdn } from "./billing/playBillingRtdn";
 export { recomputeKycLevel } from "./users/kycLevel";
 export { submitIdDocument } from "./users/submitIdDocument";

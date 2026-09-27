@@ -292,6 +292,21 @@ class FirebaseFunctionsClient {
         }
     }
 
+    /**
+     * Generates a Firebase Auth sign-in link server-side and emails it to [email]
+     * (functions/src/auth/emailLinkAuth.ts). Replaces sendEmailOtp for new sign-ins.
+     * The client completes sign-in via signInWithEmailLink after tapping the link.
+     */
+    suspend fun sendSignInEmailLink(email: String): Result<Unit> {
+        return try {
+            functions.getHttpsCallable("sendSignInEmailLink").call(mapOf("email" to email)).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(tag, "sendSignInEmailLink failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     /** Send a 6-digit email OTP to [email] (functions/src/auth/emailOtp.ts). */
     suspend fun sendEmailOtp(email: String): Result<Unit> {
         return try {

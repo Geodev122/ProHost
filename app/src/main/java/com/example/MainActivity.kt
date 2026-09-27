@@ -26,6 +26,7 @@ class MainActivity : ComponentActivity() {
     private var targetBookingId by mutableStateOf<String?>(null)
     private var targetSpaceId by mutableStateOf<String?>(null)
     private var emailVerifiedDeepLink by mutableStateOf(false)
+    private var emailSignInLink by mutableStateOf<String?>(null)
     private var inAppUpdateManager: InAppUpdateManager? = null
     private var backgroundedAtMillis: Long = 0L
 
@@ -83,6 +84,8 @@ class MainActivity : ComponentActivity() {
                     deepLinkBookingId = targetBookingId,
                     deepLinkSpaceId = targetSpaceId,
                     emailVerifiedDeepLink = emailVerifiedDeepLink,
+                    emailSignInLink = emailSignInLink,
+                    onEmailSignInLinkConsumed = { emailSignInLink = null },
                     inAppUpdateManager = inAppUpdateManager
                 )
             }
@@ -178,6 +181,20 @@ class MainActivity : ComponentActivity() {
             data.host == "verify-email" && data.path?.startsWith("/success") == true
         if (isEmailVerified) {
             emailVerifiedDeepLink = true
+        }
+
+        // Firebase Auth email sign-in link: https://prohost-f766f.web.app/emaillink?oobCode=...
+        // Sent by the sendSignInEmailLink Cloud Function; the OS delivers this to the app
+        // via the App Link intent filter (autoVerify=true) in the manifest.
+        if (data != null) {
+            try {
+                val firebaseAuth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                if (firebaseAuth.isSignInWithEmailLink(data.toString())) {
+                    emailSignInLink = data.toString()
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("MainActivity", "Email link check failed: ${e.message}")
+            }
         }
     }
 }

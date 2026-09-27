@@ -55,7 +55,7 @@ import kotlinx.coroutines.launch
  * "Use phone number instead" from EMAIL_ENTRY. No forced migration.
  *  PHONE_ENTRY → OTP_ENTRY → (brand-new number only) REGISTRATION_FORM
  */
-private enum class AuthStep { EMAIL_ENTRY, EMAIL_OTP, PASSWORD_ENTRY, PHONE_ENTRY, OTP_ENTRY, REGISTRATION_FORM }
+private enum class AuthStep { EMAIL_ENTRY, EMAIL_OTP, EMAIL_LINK_SENT, PASSWORD_ENTRY, PHONE_ENTRY, OTP_ENTRY, REGISTRATION_FORM }
 
 /** Matches Firebase Phone Auth's own typical SMS-resend throttling window. */
 private const val OTP_RESEND_COOLDOWN_SECONDS = 30
@@ -168,12 +168,11 @@ fun LoginAuthScreen(
         when (emailLookupResult) {
             AuthViewModel.EmailLookupResult.NEW_USER,
             AuthViewModel.EmailLookupResult.HAS_EMAIL -> {
-                // Send 6-digit OTP to email and advance to EMAIL_OTP entry step
-                authViewModel.sendEmailOtp(email = emailInput.trim().lowercase()) { sent ->
-                    if (sent) {
-                        emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
-                        step = AuthStep.EMAIL_OTP
-                    }
+                // Generate a Firebase Auth magic link server-side and email it
+                val normalizedEmail = emailInput.trim().lowercase()
+                authViewModel.savePendingEmailLink(normalizedEmail)
+                authViewModel.sendEmailLinkViaFunction(email = normalizedEmail) { sent ->
+                    if (sent) step = AuthStep.EMAIL_LINK_SENT
                 }
             }
             AuthViewModel.EmailLookupResult.HAS_PASSWORD -> {
@@ -598,6 +597,89 @@ fun LoginAuthScreen(
                         localErrorMessage = null
                         authViewModel.clearAuthMessages()
                         emailOtpCode = ""
+                        step = AuthStep.EMAIL_ENTRY
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(
+                        "Use a different email",
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            AuthStep.EMAIL_LINK_SENT -> ModernCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                contentPadding = PaddingValues(20.dp),
+                elevation = 3.dp
+            ) {
+                AuthStepHeader(
+                    icon = Icons.Default.MarkEmailRead,
+                    title = "Check your email",
+                    subtitle = "We sent a sign-in link to $pendingEmail. Tap the link to sign in automatically.",
+                    isBusy = isAuthenticating
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
+
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "The link expires in 60 minutes. Check your spam folder if it doesn't arrive.",
+                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
+
+                if (emailResendCountdownSeconds > 0) {
+                    Text(
+                        text = "Resend link in ${emailResendCountdownSeconds}s",
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                } else {
+                    OutlinedButton(
+                        onClick = {
+                            localErrorMessage = null
+                            authViewModel.savePendingEmailLink(pendingEmail)
+                            authViewModel.sendEmailLinkViaFunction(email = pendingEmail) { sent ->
+                                if (sent) emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
+                            }
+                        },
+                        enabled = !isAuthenticating,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Resend link", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                TextButton(
+                    onClick = {
+                        localErrorMessage = null
+                        authViewModel.clearAuthMessages()
                         step = AuthStep.EMAIL_ENTRY
                     },
                     modifier = Modifier.fillMaxWidth()

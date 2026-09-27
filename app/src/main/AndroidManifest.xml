@@ -103,6 +103,23 @@
                     android:host="payment" />
             </intent-filter>
 
+            <!-- Firebase Auth email sign-in link: https://prohost-f766f.web.app/emaillink?oobCode=...
+                 Sent by the sendSignInEmailLink Cloud Function. The OS delivers this to the
+                 app as an App Link (autoVerify=true) when the user taps the sign-in email
+                 on the same device. MainActivity detects it via FirebaseAuth.isSignInWithEmailLink()
+                 and completes sign-in via AuthViewModel.handleEmailLink(). -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="https"
+                    android:host="prohost-f766f.web.app"
+                    android:pathPrefix="/emaillink" />
+            </intent-filter>
+
             <!-- Email verification return link: prohost://verify-email/success
                  The verifyEmailLink Cloud Function (functions/src/auth/emailVerification.ts)
                  redirects to this URI on successful JWT verification so the app can

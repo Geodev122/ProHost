@@ -147,6 +147,43 @@ class AuthViewModel(
         }
     }
 
+    /**
+     * Calls the sendSignInEmailLink Cloud Function which generates a Firebase Auth
+     * magic link server-side and delivers it via SMTP with a branded template.
+     * The caller saves the pending email before calling this, and completes sign-in
+     * via handleEmailLink() once the deep link arrives in MainActivity.
+     */
+    fun sendEmailLinkViaFunction(email: String, onSent: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                _isAuthenticating.value = true
+                val result = functionsClient.sendSignInEmailLink(email)
+                _isAuthenticating.value = false
+                onSent(result.isSuccess)
+                if (result.isFailure) {
+                    _authErrorMessage.value = result.exceptionOrNull()?.message ?: "Failed to send sign-in link."
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Exception) {
+                _isAuthenticating.value = false
+                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+                onSent(false)
+            }
+        }
+    }
+
+    fun savePendingEmailLink(email: String) {
+        firebaseAppContext().getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
+            .edit().putString("pending_email_link", email).apply()
+    }
+
+    fun consumePendingEmailLink(): String? {
+        val prefs = firebaseAppContext().getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
+        val email = prefs.getString("pending_email_link", null)
+        prefs.edit().remove("pending_email_link").apply()
+        return email
+    }
+
     fun handleEmailLink(activity: Activity, email: String, link: String, onVerified: (needsRegistration: Boolean) -> Unit) {
         viewModelScope.launch {
             try {

@@ -289,7 +289,7 @@ class FirebaseAuthService(private val context: Context) {
             val settings = ActionCodeSettings.newBuilder()
                 .setUrl(continueUrl)
                 .setHandleCodeInApp(true)
-                .setAndroidPackageName("com.example", true, null)
+                .setAndroidPackageName("app.geonajjar.prohost", true, "24")
                 .build()
             auth.sendSignInLinkToEmail(email, settings).awaitTask()
             true

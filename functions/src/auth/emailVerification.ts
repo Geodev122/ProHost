@@ -1,5 +1,6 @@
 import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
+import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { createHmac } from "crypto";
 import * as logger from "firebase-functions/logger";
@@ -52,9 +53,42 @@ function verifyToken(token: string, secret: string): VerificationPayload {
   return payload;
 }
 
-// ─── sendVerificationEmail (internal helper + exported callable) ─────────────
+// ─── sendEmailVerificationInternal — called by assignInitialRole on first registration
+//
+// Uses Firebase Admin SDK generateEmailVerificationLink() — Firebase owns the
+// token lifecycle; HMAC-JWT is used only by the legacy resendEmailVerification /
+// verifyEmailLink endpoints below (kept for backward compatibility until deprecated).
 
-async function dispatchVerificationEmail(uid: string, db: FirebaseFirestore.Firestore, isResend: boolean): Promise<void> {
+const VERIFICATION_CONTINUE_URL = "https://prohost-f766f.web.app/emaillink";
+
+export async function sendEmailVerificationInternal(uid: string): Promise<void> {
+  const db = getFirestore();
+  const profileSnap = await db.collection("user_profiles").doc(uid).get();
+  const profileData = profileSnap.data();
+  if (!profileData?.email || profileData.emailVerified === true) return;
+
+  try {
+    const link = await getAuth().generateEmailVerificationLink(profileData.email, {
+      url: VERIFICATION_CONTINUE_URL,
+    });
+    const userCtx: UserContext = {
+      fullName: profileData.fullName ?? "Member",
+      email: profileData.email,
+      role: (profileData.role ?? "SPECIALIST") as UserContext["role"],
+    };
+    const tpl = emailVerificationTemplate(userCtx, link);
+    await sendEmail({ to: profileData.email, ...tpl });
+    logger.info("email_verification_sent", { uid });
+  } catch (e) {
+    // Degrade gracefully — don't block registration if verification email fails
+    logger.warn("send_email_verification_failed", { uid, error: String(e) });
+  }
+}
+
+// ─── Legacy helpers (used only by resendEmailVerification + verifyEmailLink below)
+// DEPRECATED: will be removed once all clients use sendVerificationEmailLink.
+
+async function dispatchVerificationEmailLegacy(uid: string, db: FirebaseFirestore.Firestore, isResend: boolean): Promise<void> {
   const profileSnap = await db.collection("user_profiles").doc(uid).get();
   const profileData = profileSnap.data();
   if (!profileData?.email) {
@@ -84,14 +118,7 @@ async function dispatchVerificationEmail(uid: string, db: FirebaseFirestore.Fire
     : emailVerificationTemplate(userCtx, verifyUrl);
 
   await sendEmail({ to: profileData.email, ...tpl });
-  logger.info("email_verification_sent", { uid, isResend });
-}
-
-// ─── sendEmailVerification — called by assignInitialRole on first registration
-
-export async function sendEmailVerificationInternal(uid: string): Promise<void> {
-  const db = getFirestore();
-  await dispatchVerificationEmail(uid, db, false);
+  logger.info("email_verification_sent_legacy", { uid, isResend });
 }
 
 // ─── resendEmailVerification callable — rate-limited, for the profile screen ─
@@ -125,7 +152,7 @@ export const resendEmailVerification = onCall(
       emailVerificationLastResendAt: Date.now(),
     });
 
-    await dispatchVerificationEmail(uid, db, true);
+    await dispatchVerificationEmailLegacy(uid, db, true);
     return { ok: true };
   }
 );

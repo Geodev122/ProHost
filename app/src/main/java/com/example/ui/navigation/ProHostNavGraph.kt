@@ -120,6 +120,8 @@ fun ProHostAppRoot(
     deepLinkBookingId: String? = null,
     deepLinkSpaceId: String? = null,
     emailVerifiedDeepLink: Boolean = false,
+    emailSignInLink: String? = null,
+    onEmailSignInLinkConsumed: () -> Unit = {},
     inAppUpdateManager: InAppUpdateManager? = null,
     viewModel: ProHostViewModel = viewModel()
 ) {
@@ -250,6 +252,31 @@ fun ProHostAppRoot(
                 "Email verified! Your account is now Level 2.",
                 android.widget.Toast.LENGTH_LONG
             ).show()
+        }
+    }
+
+    // Firebase Auth email sign-in link deep link: arrives from MainActivity when the
+    // user taps a sign-in link email on the same device. Completes the sign-in by
+    // retrieving the pending email from SharedPreferences and calling signInWithEmailLink.
+    val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
+    val authViewModelForEmailLink: com.example.ui.viewmodel.AuthViewModel = viewModel()
+    val emailLinkConsumed = remember { mutableStateOf(false) }
+    LaunchedEffect(emailSignInLink) {
+        val link = emailSignInLink ?: return@LaunchedEffect
+        if (emailLinkConsumed.value) return@LaunchedEffect
+        emailLinkConsumed.value = true
+        val savedEmail = authViewModelForEmailLink.consumePendingEmailLink()
+        if (savedEmail != null && activity != null) {
+            authViewModelForEmailLink.handleEmailLink(activity, savedEmail, link) { needsRegistration ->
+                onEmailSignInLinkConsumed()
+                if (needsRegistration) {
+                    activeTabId = "auth"
+                }
+            }
+        } else {
+            // No saved email — cannot complete without it; reset consumed flag
+            emailLinkConsumed.value = false
+            onEmailSignInLinkConsumed()
         }
     }
 
