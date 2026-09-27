@@ -988,6 +988,7 @@ fun OwnerHubScreenContent(
             }
         }
     }
+        }
         if (atListingLimit) {
             FloatingActionButton(
                 onClick = {},
@@ -1036,6 +1037,5 @@ fun OwnerHubScreenContent(
                 }
             }
         }
-}
 }
 }

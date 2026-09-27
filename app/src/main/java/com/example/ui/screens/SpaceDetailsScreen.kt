@@ -1804,7 +1804,7 @@ private fun SubdivisionRentalCard(
                     ) {
                         HorizontalPager(state = pagerState) { page ->
                             coil.compose.AsyncImage(
-                                model = coil.request.ImageRequest.Builder(context).data(imageUrls[page]).size(800).build(),
+                                model = coil.request.ImageRequest.Builder(LocalContext.current).data(imageUrls[page]).size(800).build(),
                                 contentDescription = name,
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = androidx.compose.ui.layout.ContentScale.Crop
