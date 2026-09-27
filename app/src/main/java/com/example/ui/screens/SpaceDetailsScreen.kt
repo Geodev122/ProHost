@@ -777,6 +777,10 @@ fun SpaceDetailsScreenContent(
                                 onClick = {
                                     selectedSubdivisionId = null
                                     availabilityPanelState = "peek"
+                                },
+                                onCheckAvailability = {
+                                    selectedSubdivisionId = null
+                                    availabilityPanelState = "full"
                                 }
                             )
                         } else {
@@ -796,6 +800,24 @@ fun SpaceDetailsScreenContent(
                                         "from $$minPrice/day"
                                     }
                                 }
+                                // Shared by the whole-card tap (peek) and the explicit "Check
+                                // Availability" button (jumps straight to the full slide-up
+                                // sheet) — selects this division and its cheapest slot's price.
+                                fun selectSubdivision(targetPanelState: String) {
+                                    // Show the division's lowest per-slot price on the bottom
+                                    // strip, not the sum of every open slot for the week —
+                                    // representativeFormula sums whatever slot list it's given,
+                                    // so pass just the cheapest slot, not all of subSlots.
+                                    val cheapestSlot = subSlots.minByOrNull {
+                                        it.pricesByRecurrence[BookingRecurrence.FLAT] ?: Double.MAX_VALUE
+                                    }
+                                    val formula = cheapestSlot?.let {
+                                        SpaceCalculationUtils.representativeFormula(listOf(it), BookingRecurrence.FLAT)
+                                    }
+                                    if (formula != null) onSelectFormula(formula)
+                                    selectedSubdivisionId = sub.id
+                                    availabilityPanelState = targetPanelState
+                                }
                                 SubdivisionRentalCard(
                                     info = SubdivisionRentalCardInfo(
                                         name = sub.name,
@@ -809,21 +831,8 @@ fun SpaceDetailsScreenContent(
                                         hasCustomHours = sub.scheduleOverride != null,
                                         isPerAttendee = sub.pricingMode == SubdivisionPricingMode.PER_ATTENDEE
                                     ),
-                                    onClick = {
-                                        // Show the division's lowest per-slot price on the bottom
-                                        // strip, not the sum of every open slot for the week —
-                                        // representativeFormula sums whatever slot list it's given,
-                                        // so pass just the cheapest slot, not all of subSlots.
-                                        val cheapestSlot = subSlots.minByOrNull {
-                                            it.pricesByRecurrence[BookingRecurrence.FLAT] ?: Double.MAX_VALUE
-                                        }
-                                        val formula = cheapestSlot?.let {
-                                            SpaceCalculationUtils.representativeFormula(listOf(it), BookingRecurrence.FLAT)
-                                        }
-                                        if (formula != null) onSelectFormula(formula)
-                                        selectedSubdivisionId = sub.id
-                                        availabilityPanelState = "peek"
-                                    }
+                                    onClick = { selectSubdivision("peek") },
+                                    onCheckAvailability = { selectSubdivision("full") }
                                 )
                             }
                         }
@@ -1759,7 +1768,8 @@ data class SubdivisionRentalCardInfo(
 @Composable
 private fun SubdivisionRentalCard(
     info: SubdivisionRentalCardInfo,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onCheckAvailability: () -> Unit
 ) {
     val name = info.name
     val typeBadge = info.typeBadge
@@ -2013,6 +2023,23 @@ private fun SubdivisionRentalCard(
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    // Explicit CTA — the whole card is also tappable (peek preview),
+                    // but this button jumps straight to the full availability sheet
+                    // so it's never left implicit that this card can be booked from.
+                    if (!isOccupied) {
+                        Button(
+                            onClick = onCheckAvailability,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.small,
+                            colors = ButtonDefaults.buttonColors(containerColor = VibrantBlue),
+                            contentPadding = PaddingValues(vertical = 8.dp)
+                        ) {
+                            Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Check Availability", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
