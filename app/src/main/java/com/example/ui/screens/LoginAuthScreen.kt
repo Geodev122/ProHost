@@ -214,7 +214,7 @@ fun LoginAuthScreen(
     var regProfilePicUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     var regFullName by rememberSaveable { mutableStateOf("") }
     var regSpecialty by rememberSaveable { mutableStateOf("") }
-    var regWhatsAppNumber by rememberSaveable { mutableStateOf("") }
+    var regPhoneNumber by rememberSaveable { mutableStateOf("") }
     var regCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
     var regGovernorateArea by rememberSaveable { mutableStateOf("") }
     var regCity by rememberSaveable { mutableStateOf("") }
@@ -1086,8 +1086,8 @@ fun LoginAuthScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 InputField(
-                    value = regWhatsAppNumber,
-                    onValueChange = { regWhatsAppNumber = it },
+                    value = regPhoneNumber,
+                    onValueChange = { regPhoneNumber = it },
                     label = "WhatsApp Number (Optional)",
                     placeholder = "e.g. +961 71 234 567",
                     leadingIcon = Icons.Default.Phone,
@@ -1173,8 +1173,7 @@ fun LoginAuthScreen(
                             registration = AuthViewModel.PendingRegistration(
                                 fullName = regFullName,
                                 email = registrationEmail,
-                                phoneE164 = verifiedPhoneE164,
-                                whatsappNumber = regWhatsAppNumber,
+                                phoneE164 = verifiedPhoneE164.ifBlank { regPhoneNumber },
                                 specialty = regSpecialty,
                                 country = regCountry.name,
                                 governorate = regGovernorateArea,

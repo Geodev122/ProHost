@@ -60,7 +60,6 @@ class AuthViewModel(
         val fullName: String,
         val email: String,
         val phoneE164: String = "",
-        val whatsappNumber: String = "",
         val specialty: String,
         val country: String,
         val governorate: String,
@@ -366,29 +365,36 @@ class AuthViewModel(
             _authErrorMessage.value = "Phone verification did not return a valid session. Please try again."
             return
         }
-        _isAuthenticating.value = false
         if (!isNewUser) {
             try {
                 val integrityToken = com.example.util.PlayIntegrityManager(activity)
                     .requestIntegrityToken(firebaseUser.uid)
                 val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser, integrityToken)
-                // Stranded-account recovery: only applies when THIS sign-in was
-                // via phone (phone-auth users with a blank phone in Firestore
-                // means the registration form was never submitted). Email/Google
-                // users have phone blank by design until KYC; they must not be
-                // re-routed to the registration form on every subsequent sign-in
-                // just because they happen to have a phone linked from KYC.
-                if (viaPhoneSignIn && user.role != com.example.data.model.UserRole.ADMIN && user.phone.isBlank()) {
+                // Stranded-account recovery path 1: phone-auth user with blank phone means
+                // the registration form was never submitted.
+                // Stranded-account recovery path 2: Google/email user with blank fullName means
+                // the profile is incomplete (interrupted registration or admin-created UID).
+                val isIncompleteProfile = when {
+                    viaPhoneSignIn -> user.role != com.example.data.model.UserRole.ADMIN && user.phone.isBlank()
+                    else -> user.role != com.example.data.model.UserRole.ADMIN && user.fullName.isBlank()
+                }
+                if (isIncompleteProfile) {
                     repository.discardIncompleteSession()
+                    _isAuthenticating.value = false
                     onVerified(true)
                 } else {
                     registerFcmTokenForCurrentUser(user.id)
+                    _isAuthenticating.value = false
                     _authSuccessMessage.value = "Welcome back, ${user.fullName}!"
                     onVerified(false)
                 }
             } catch (e: com.example.data.auth.AccountSuspendedException) {
+                _isAuthenticating.value = false
                 authService.signOut()
                 _authErrorMessage.value = e.message
+            } catch (e: Exception) {
+                _isAuthenticating.value = false
+                _authErrorMessage.value = "Sign-in failed. Please try again."
             }
         } else {
             // Brand-new account — the caller needs to complete their profile.
@@ -597,6 +603,15 @@ class AuthViewModel(
         _authErrorMessage.value = null
         viewModelScope.launch {
             try {
+                // Idempotency guard: if this UID already has a complete profile
+                // (e.g. double-tap on submit, or process-death resume), skip the
+                // registration write and just complete a normal login.
+                val existingProfile = repository.getUserProfile(firebaseUser.uid)
+                if (existingProfile != null && existingProfile.fullName.isNotBlank()) {
+                    _isAuthenticating.value = false
+                    onSuccess()
+                    return@launch
+                }
                 val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
                 val profilePictureUrl = registration.profilePictureUri?.let { uri ->
                     storageService.uploadProfilePicture(firebaseUser.uid, uri, guessFileExtension(activity, uri, "jpg"))
@@ -611,7 +626,6 @@ class AuthViewModel(
                         fullName = registration.fullName,
                         email = registration.email,
                         phone = registration.phoneE164,
-                        whatsappNumber = registration.whatsappNumber,
                         specialty = registration.specialty,
                         profilePictureUrl = profilePictureUrl,
                         country = registration.country,

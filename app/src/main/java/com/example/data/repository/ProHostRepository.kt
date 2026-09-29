@@ -1892,7 +1892,6 @@ class ProHostRepository {
             role = verifiedRole,
             specialty = details.specialty.trim(),
             phone = details.phone.trim(),
-            whatsappNumber = details.whatsappNumber.trim(),
             profilePictureUrl = details.profilePictureUrl,
             country = details.country.trim(),
             governorate = details.governorate.trim(),
@@ -1949,6 +1948,12 @@ class ProHostRepository {
      * cache is still checked first as a fast path, but a cache miss now falls through
      * to Firestore itself rather than assuming "no profile exists yet."
      */
+
+    /** Cache-first lookup used for idempotency checks (e.g. before re-writing a profile). */
+    suspend fun getUserProfile(uid: String): AppUser? =
+        _users.value.find { it.id == uid }
+            ?: firestoreService.getUserProfile(uid)?.let { AppUser.fromFirestoreMap(uid, it) }
+
     suspend fun login(uid: String, email: String, verifiedRole: UserRole): AppUser {
         val cleanEmail = email.trim().lowercase()
         val existing = _users.value.find { it.id == uid }
