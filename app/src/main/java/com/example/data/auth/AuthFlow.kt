@@ -21,6 +21,7 @@ data class RegistrationDetails(
     val fullName: String,
     val email: String,
     val phone: String,
+    val whatsappNumber: String = "",
     val specialty: String,
     val profilePictureUrl: String?,
     val country: String,

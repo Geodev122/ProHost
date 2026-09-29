@@ -1892,6 +1892,7 @@ class ProHostRepository {
             role = verifiedRole,
             specialty = details.specialty.trim(),
             phone = details.phone.trim(),
+            whatsappNumber = details.whatsappNumber.trim(),
             profilePictureUrl = details.profilePictureUrl,
             country = details.country.trim(),
             governorate = details.governorate.trim(),

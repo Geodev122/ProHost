@@ -581,7 +581,7 @@ fun ProHostAppRoot(
                                 containerColor = MaterialTheme.colorScheme.surface,
                                 tonalElevation = 0.dp,
                                 modifier = Modifier
-                                    .height(64.dp)
+                                    .height(72.dp)
                                     .testTag("bottom_navigation_bar")
                             ) {
                                 roleTabs.forEach { tab ->

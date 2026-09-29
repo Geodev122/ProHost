@@ -1,11 +1,5 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -265,11 +259,7 @@ fun SpaceDetailsScreenContent(
                 // Peek availability slice — slides up when a division card is tapped.
                 // Specialists only; hidden for Pro Host / Admin preview.
                 if (currentUserRole != UserRole.PRO_HOST && currentUserRole != UserRole.ADMIN) {
-                    AnimatedVisibility(
-                        visible = availabilityPanelState == "peek",
-                        enter = slideInVertically { it } + fadeIn(animationSpec = spring()),
-                        exit = slideOutVertically { it } + fadeOut()
-                    ) {
+                    if (availabilityPanelState == "peek") {
                         val peekSub = liveSpace.subdivisions.firstOrNull { it.id == selectedSubdivisionId }
                         val peekSlotCount = if (peekSub != null) {
                             availableSlots.count { it.sourceFormulaId == peekSub.id && !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
@@ -325,11 +315,7 @@ fun SpaceDetailsScreenContent(
                         }
                     }
                     // Generic check-availability bar — visible only when no division is selected
-                    AnimatedVisibility(
-                        visible = availabilityPanelState == "hidden",
-                        enter = slideInVertically { it } + fadeIn(),
-                        exit = slideOutVertically { it } + fadeOut()
-                    ) {
+                    if (availabilityPanelState == "hidden") {
                         Surface(
                             color = if (availableSlots.isNotEmpty()) VibrantBlue else MaterialTheme.colorScheme.surfaceVariant,
                             shape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp),
@@ -1078,7 +1064,7 @@ fun SpaceDetailsScreenContent(
 
         ModalBottomSheet(
             onDismissRequest = {
-                availabilityPanelState = "hidden"
+                availabilityPanelState = if (selectedSubdivisionId != null) "peek" else "hidden"
                 selectedSlots = emptySet()
                 selectedHoursPerDay = emptyMap()
             },
