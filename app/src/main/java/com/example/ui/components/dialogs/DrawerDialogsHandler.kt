@@ -590,12 +590,17 @@ fun DrawerDialogsHandler(
                                                                         val resolvedTab = alert.targetTab?.takeIf { it.isNotBlank() }
                                                                             ?: when (alert.category) {
                                                                                 "BOOKING_ACCEPTANCE" ->
-                                                                                    if (currentUser?.role == UserRole.SPECIALIST) "pro_rentals" else "owner_progress"
+                                                                                    if (currentUser?.role == UserRole.SPECIALIST)
+                                                                                        "pro_rentals"
+                                                                                    else "owner_progress"
                                                                                 "BOOKING_REQUEST" -> "owner_requests"
                                                                                 "PAYMENT_REMINDER", "PACKAGE_EXPIRED",
                                                                                 "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> "owner_subscriptions"
                                                                                 "LISTING_VERIFICATION", "LISTING_VERIFICATION_REQUEST" -> "manage_listings"
-                                                                                else -> if (currentUser?.role == UserRole.SPECIALIST) "pro_rentals" else "owner_progress"
+                                                                                else ->
+                                                                                    if (currentUser?.role == UserRole.SPECIALIST)
+                                                                                        "pro_rentals"
+                                                                                    else "owner_progress"
                                                                             }
                                                                         onNavigateToTab(resolvedTab)
                                                                     },

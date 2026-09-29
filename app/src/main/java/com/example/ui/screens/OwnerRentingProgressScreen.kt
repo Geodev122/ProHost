@@ -134,8 +134,8 @@ fun OwnerRentingProgressScreenContent(
             }
         }
 
-        // 2. Outside payment reminders
-        activeBookings.forEach { booking ->
+        // 2. Outside payment reminders — only for bookings not yet acknowledged as paid
+        activeBookings.filter { !it.paymentAcknowledgedByHost }.forEach { booking ->
             list.add(Pair(true, "Outside-App Rent due from Dr. ${booking.practitionerName} fo" +
                 "r slot '${booking.selectedDateTimeRange.ifBlank { booking.formula.scheduleDescription }}" +
                 "' (Amount: $${booking.totalAmountUsd.toInt()} USD)."))

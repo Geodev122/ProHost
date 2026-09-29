@@ -243,7 +243,7 @@ fun MyBookingsScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Browse verified medical, legal, and engineering workspaces across Lebanon and book with instant availability checks.",
+                        text = "Browse verified professional workspaces and send a booking request to get started.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -355,7 +355,13 @@ fun MyBookingsScreen(
         // is always set alongside editTargetSpaceId by BookingReservationCard's
         // onEditBooking callback, but the type itself doesn't guarantee that, so this
         // guards it explicitly rather than force-unwrapping.
-        if (targetSpace != null && sourceBooking != null) {
+        if (targetSpace == null) {
+            LaunchedEffect(editTargetSpaceId) {
+                Toast.makeText(context, "This space is no longer available to edit.", Toast.LENGTH_SHORT).show()
+                editTargetSpaceId = null
+                editSourceBooking = null
+            }
+        } else if (sourceBooking != null) {
             EditBookingDialog(
                 space = targetSpace,
                 initialFormula = sourceBooking.formula,

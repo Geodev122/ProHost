@@ -32,19 +32,27 @@
 <body>
 <header>
   <h1>🦅 NIGHTHAWK — ProHost Enhanced Debug Report</h1>
-  <p>0 issues found · 30 checks passed</p>
+  <p>1 issues found · 30 checks passed</p>
 </header>
 <div class="stats">
   <div class="stat crit"><div class="num">0</div><div class="lbl">Critical</div></div>
   <div class="stat high"><div class="num">0</div><div class="lbl">High</div></div>
-  <div class="stat med"><div class="num">0</div><div class="lbl">Medium</div></div>
+  <div class="stat med"><div class="num">1</div><div class="lbl">Medium</div></div>
   <div class="stat low"><div class="num">0</div><div class="lbl">Low</div></div>
   <div class="stat pass"><div class="num">30</div><div class="lbl">Passing</div></div>
 </div>
 <h2>Findings</h2>
 <table>
   <thead><tr><th>Severity</th><th>Category</th><th>Check</th><th>Location</th><th>Issue</th><th>Suggestion</th></tr></thead>
-  <tbody><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--sub)">No issues found 🎉</td></tr></tbody>
+  <tbody>
+  <tr style="background:#FFF3E0">
+    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
+    <td><code class="tag">consistency</code></td>
+    <td><strong>Orphaned Module</strong></td>
+    <td><code>functions/src/billing/billingHelpers.ts</code></td>
+    <td>Module &quot;billing/billingHelpers&quot; has exports but is not imported from index.ts.</td>
+    <td class="suggestion">Export or remove.</td>
+  </tr></tbody>
 </table>
 <h2>Passing Checks</h2>
 <table>
@@ -52,13 +60,13 @@
   <tbody>
   <tr>
     <td><span class="badge" style="background:#388E3C">PASS</span></td>
-    <td colspan="4">All 22 getHttpsCallable() calls match exported functions in index.ts.</td>
+    <td colspan="4">All 21 getHttpsCallable() calls match exported functions in index.ts.</td>
     <td>—</td>
   </tr>
 
   <tr>
     <td><span class="badge" style="background:#388E3C">PASS</span></td>
-    <td colspan="4">All 9 Firestore collections used in Cloud Functions are covered.</td>
+    <td colspan="4">All 8 Firestore collections used in Cloud Functions are covered.</td>
     <td>—</td>
   </tr>
 

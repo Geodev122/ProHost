@@ -1,11 +1,5 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -172,6 +166,7 @@ fun SpaceDetailsScreenContent(
     var selectedHoursPerDay by remember { mutableStateOf(mapOf<String, Set<String>>()) }
     var showSendConfirm by remember { mutableStateOf(false) }
     var isSendingSlotRequest by remember { mutableStateOf(false) }
+    var showProfilePicRequiredDialog by remember { mutableStateOf(false) }
     var selectedSubdivisionId by remember { mutableStateOf<String?>(null) }
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
 
@@ -265,11 +260,7 @@ fun SpaceDetailsScreenContent(
                 // Peek availability slice — slides up when a division card is tapped.
                 // Specialists only; hidden for Pro Host / Admin preview.
                 if (currentUserRole != UserRole.PRO_HOST && currentUserRole != UserRole.ADMIN) {
-                    AnimatedVisibility(
-                        visible = availabilityPanelState == "peek",
-                        enter = slideInVertically { it } + fadeIn(animationSpec = spring()),
-                        exit = slideOutVertically { it } + fadeOut()
-                    ) {
+                    if (availabilityPanelState == "peek") {
                         val peekSub = liveSpace.subdivisions.firstOrNull { it.id == selectedSubdivisionId }
                         val peekSlotCount = if (peekSub != null) {
                             availableSlots.count { it.sourceFormulaId == peekSub.id && !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
@@ -325,11 +316,7 @@ fun SpaceDetailsScreenContent(
                         }
                     }
                     // Generic check-availability bar — visible only when no division is selected
-                    AnimatedVisibility(
-                        visible = availabilityPanelState == "hidden",
-                        enter = slideInVertically { it } + fadeIn(),
-                        exit = slideOutVertically { it } + fadeOut()
-                    ) {
+                    if (availabilityPanelState == "hidden") {
                         Surface(
                             color = if (availableSlots.isNotEmpty()) VibrantBlue else MaterialTheme.colorScheme.surfaceVariant,
                             shape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp),
@@ -959,7 +946,7 @@ fun SpaceDetailsScreenContent(
         val user = currentUser
         if (user == null) return
         if (user.profilePictureUrl.isNullOrBlank()) {
-            android.widget.Toast.makeText(context, "Please add a profile picture before making booking requests.", android.widget.Toast.LENGTH_LONG).show()
+            showProfilePicRequiredDialog = true
             return
         }
         // Flatten HOURLY hourlySelections to RentableSlot list
@@ -1078,12 +1065,13 @@ fun SpaceDetailsScreenContent(
 
         ModalBottomSheet(
             onDismissRequest = {
-                availabilityPanelState = "hidden"
+                availabilityPanelState = if (selectedSubdivisionId != null) "peek" else "hidden"
                 selectedSlots = emptySet()
                 selectedHoursPerDay = emptyMap()
             },
             modifier = Modifier.shadow(16.dp, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
+            windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             // Blue design (matches the "Press to see option availability" trigger
             // bar) instead of the neutral grey Material surface, so the trigger and
@@ -1708,6 +1696,29 @@ fun SpaceDetailsScreenContent(
     }
 
     // Email Inquiry Dialog
+    if (showProfilePicRequiredDialog) {
+        AlertDialog(
+            onDismissRequest = { showProfilePicRequiredDialog = false },
+            title = { Text("Profile Photo Required") },
+            text = {
+                Text(
+                    "Please add a profile photo before sending a booking request. Hosts use your photo to verify your identity.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(onClick = { showProfilePicRequiredDialog = false; onBack() }) {
+                    Text("Go to Profile")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showProfilePicRequiredDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     if (showInquiryDialog) {
         AlertDialog(
             onDismissRequest = { showInquiryDialog = false; inquiryMessage = "" },

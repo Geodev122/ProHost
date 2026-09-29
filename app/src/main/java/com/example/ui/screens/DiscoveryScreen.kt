@@ -494,6 +494,20 @@ fun DiscoveryScreenContent(
                     }
                 }
 
+                Text("Area", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    com.example.data.model.Governorate.entries.forEach { gov ->
+                        FilterChip(
+                            selected = selectedGovernorate == gov,
+                            onClick = { onSelectGovernorate(if (selectedGovernorate == gov) null else gov) },
+                            label = { Text(gov.displayName, style = MaterialTheme.typography.labelSmall) }
+                        )
+                    }
+                }
+
                 androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     FilterChip(
                         selected = onlyVerified,
