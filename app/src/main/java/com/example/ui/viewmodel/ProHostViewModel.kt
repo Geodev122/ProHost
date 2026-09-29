@@ -527,16 +527,18 @@ class ProHostViewModel(
         // No entitlement yet — query Play and, if an active purchase is found,
         // verify it server-side to restore the entitlement (handles dropped RTDNs).
         viewModelScope.launch {
-            manager.queryActivePurchases()
-            // Wait for the state flow to reflect the fresh query result.
-            val purchases = manager.activePurchases.drop(1).first()
-            val activePurchase = purchases.firstOrNull {
-                it.purchaseState == com.android.billingclient.api.Purchase.PurchaseState.PURCHASED
-            } ?: return@launch
-            val productId = activePurchase.products.firstOrNull() ?: return@launch
-            repository.verifyAndRestorePlayPurchase(activePurchase.purchaseToken, productId)
-                .onSuccess { android.util.Log.i("ProHostViewModel", "verifyAndRestorePurchase: restored product=$productId") }
-                .onFailure { android.util.Log.w("ProHostViewModel", "verifyAndRestorePurchase failed: ${it.message}") }
+            runCatching {
+                manager.queryActivePurchases()
+                // Wait for the state flow to reflect the fresh query result.
+                val purchases = manager.activePurchases.drop(1).first()
+                val activePurchase = purchases.firstOrNull {
+                    it.purchaseState == com.android.billingclient.api.Purchase.PurchaseState.PURCHASED
+                } ?: return@runCatching
+                val productId = activePurchase.products.firstOrNull() ?: return@runCatching
+                repository.verifyAndRestorePlayPurchase(activePurchase.purchaseToken, productId)
+                    .onSuccess { android.util.Log.i("ProHostViewModel", "verifyAndRestorePurchase: restored product=$productId") }
+                    .onFailure { android.util.Log.w("ProHostViewModel", "verifyAndRestorePurchase failed: ${it.message}") }
+            }.onFailure { e -> android.util.Log.e("ProHostViewModel", "restorePlayPurchases error: ${e.message}") }
         }
     }
 
@@ -716,7 +718,11 @@ class ProHostViewModel(
         // previously repository.logout() launched a fire-and-forget coroutine that
         // raced against signOut() and the write often arrived with no auth.
         viewModelScope.launch {
-            repository.logout()
+            runCatching {
+                repository.logout()
+            }.onFailure { e ->
+                android.util.Log.w("ProHostViewModel", "logout error: ${e.message}")
+            }
             com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
         }
     }

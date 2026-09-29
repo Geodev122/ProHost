@@ -166,6 +166,7 @@ fun SpaceDetailsScreenContent(
     var selectedHoursPerDay by remember { mutableStateOf(mapOf<String, Set<String>>()) }
     var showSendConfirm by remember { mutableStateOf(false) }
     var isSendingSlotRequest by remember { mutableStateOf(false) }
+    var showProfilePicRequiredDialog by remember { mutableStateOf(false) }
     var selectedSubdivisionId by remember { mutableStateOf<String?>(null) }
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
 
@@ -945,7 +946,7 @@ fun SpaceDetailsScreenContent(
         val user = currentUser
         if (user == null) return
         if (user.profilePictureUrl.isNullOrBlank()) {
-            android.widget.Toast.makeText(context, "Please add a profile picture before making booking requests.", android.widget.Toast.LENGTH_LONG).show()
+            showProfilePicRequiredDialog = true
             return
         }
         // Flatten HOURLY hourlySelections to RentableSlot list
@@ -1695,6 +1696,29 @@ fun SpaceDetailsScreenContent(
     }
 
     // Email Inquiry Dialog
+    if (showProfilePicRequiredDialog) {
+        AlertDialog(
+            onDismissRequest = { showProfilePicRequiredDialog = false },
+            title = { Text("Profile Photo Required") },
+            text = {
+                Text(
+                    "Please add a profile photo before sending a booking request. Hosts use your photo to verify your identity.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(onClick = { showProfilePicRequiredDialog = false; onBack() }) {
+                    Text("Go to Profile")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showProfilePicRequiredDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     if (showInquiryDialog) {
         AlertDialog(
             onDismissRequest = { showInquiryDialog = false; inquiryMessage = "" },
