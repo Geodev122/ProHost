@@ -144,7 +144,9 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+                _isAuthenticating.value = false
+                _authErrorMessage.value = e.localizedMessage ?: "Failed to send sign-in link. Please try again."
+                onSent(false)
             }
         }
     }
@@ -246,7 +248,9 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+                _isAuthenticating.value = false
+                _authErrorMessage.value = e.localizedMessage ?: "Failed to send code. Please check your connection."
+                onSent(false)
             }
         }
     }
@@ -280,7 +284,8 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+                _isAuthenticating.value = false
+                _authErrorMessage.value = e.localizedMessage ?: "Code verification failed. Please try again."
             }
         }
     }
@@ -530,7 +535,8 @@ class AuthViewModel(
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e
                     } catch (e: Exception) {
-                        _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+                        _isAuthenticating.value = false
+                        _authErrorMessage.value = e.localizedMessage ?: "Phone linking failed. Please try again."
                     }
                 }
             },
@@ -582,7 +588,8 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+                _isAuthenticating.value = false
+                onError(e.localizedMessage ?: "Phone verification failed. Please try again.")
             }
         }
     }

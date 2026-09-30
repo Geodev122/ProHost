@@ -984,7 +984,8 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                android.util.Log.e("ProHostVM", "submitBookingRequest error", e)
+                Toast.makeText(appContext, "Failed to send request — please check your connection and try again.", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -1028,7 +1029,8 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                android.util.Log.e("ProHostVM", "acceptBookingRequest error", e)
+                Toast.makeText(appContext, "Failed to accept booking — please check your connection and try again.", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -1051,7 +1053,8 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                android.util.Log.e("ProHostVM", "sendPaymentReminder error", e)
+                Toast.makeText(appContext, "Failed to send reminder — please check your connection and try again.", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -1069,7 +1072,8 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                android.util.Log.e("ProHostVM", "rejectBookingRequest error", e)
+                Toast.makeText(appContext, "Failed to decline request — please check your connection and try again.", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -1087,7 +1091,8 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                android.util.Log.e("ProHostVM", "cancelBookingRequest error", e)
+                Toast.makeText(appContext, "Failed to cancel request — please check your connection and try again.", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -1123,7 +1128,8 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                android.util.Log.e("ProHostVM", "cancelAcceptedBooking error", e)
+                Toast.makeText(appContext, "Failed to cancel booking — please check your connection and try again.", Toast.LENGTH_LONG).show()
             }
         }
     }

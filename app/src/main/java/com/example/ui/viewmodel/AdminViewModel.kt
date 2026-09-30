@@ -764,7 +764,8 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _uiState.update { it.copy(isUploadingLegalDocument = null) }
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Upload failed — check your connection and try again"))
             }
         }
     }
