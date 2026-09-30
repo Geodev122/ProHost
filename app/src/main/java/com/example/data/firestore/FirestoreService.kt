@@ -288,6 +288,7 @@ class FirestoreService(
                         db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
                             .document(PackagePlanCatalog.DOCUMENT_ID)
                             .set(PackagePlanCatalog.DEFAULT_CATALOG.toFirestoreMap(), SetOptions.merge())
+                            .addOnFailureListener { e -> Log.e(TAG, "Failed to seed package plans catalog: ${e.message}") }
                         onPackagePlansUpdated(PackagePlanCatalog.DEFAULT_CATALOG)
                     } else {
                         onPackagePlansUpdated(PackagePlanCatalog.fromFirestoreMap(data))
@@ -499,6 +500,7 @@ class FirestoreService(
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.w(TAG, "Error observing workspaces: ${error.message}")
+                    close(error)
                     return@addSnapshotListener
                 }
                 if (snapshot != null) {

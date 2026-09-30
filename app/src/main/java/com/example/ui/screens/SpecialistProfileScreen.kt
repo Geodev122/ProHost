@@ -724,34 +724,39 @@ fun SpecialistProfileScreen(
                             isSavingProfile = true
                             profilePicUploadError = null
                             coroutineScope.launch {
-                                var profilePictureUrl: String? = null
-                                val localPicUri = pendingProfilePicUri
-                                var pictureUploadFailed = false
-                                if (localPicUri != null) {
-                                    val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
-                                    val mime = context.contentResolver.getType(localPicUri)
-                                    val ext = mime?.let { android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(it) } ?: "jpg"
-                                    profilePictureUrl = storageService.uploadProfilePicture(user.id, localPicUri, ext)
-                                    pictureUploadFailed = profilePictureUrl == null
-                                }
-                                val success = viewModel.updateProfile(
-                                    name, specialty, phone,
-                                    selectedCountry.name, governorateArea, city,
-                                    profilePictureUrl
-                                )
-                                isSavingProfile = false
-                                // A failed picture upload must never read as a full success —
-                                // updateCurrentUserProfile falls back to the existing picture
-                                // when profilePictureUrl is null, so the rest of the edit still
-                                // saved; only the new picture didn't, and that needs its own
-                                // message rather than a blanket "Updated Successfully!".
-                                when {
-                                    !success -> Toast.makeText(context, "Failed to update profile — please try again", Toast.LENGTH_SHORT).show()
-                                    pictureUploadFailed -> {
-                                        profilePicUploadError = "Profile saved, but the new photo couldn't be uploaded. Check your connection and try again."
-                                        Toast.makeText(context, "Profile saved — photo upload failed, please retry", Toast.LENGTH_LONG).show()
+                                try {
+                                    var profilePictureUrl: String? = null
+                                    val localPicUri = pendingProfilePicUri
+                                    var pictureUploadFailed = false
+                                    if (localPicUri != null) {
+                                        val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
+                                        val mime = context.contentResolver.getType(localPicUri)
+                                        val ext = mime?.let { android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(it) } ?: "jpg"
+                                        profilePictureUrl = storageService.uploadProfilePicture(user.id, localPicUri, ext)
+                                        pictureUploadFailed = profilePictureUrl == null
                                     }
-                                    else -> Toast.makeText(context, "Profile Updated Successfully!", Toast.LENGTH_SHORT).show()
+                                    val success = viewModel.updateProfile(
+                                        name, specialty, phone,
+                                        selectedCountry.name, governorateArea, city,
+                                        profilePictureUrl
+                                    )
+                                    isSavingProfile = false
+                                    // A failed picture upload must never read as a full success —
+                                    // updateCurrentUserProfile falls back to the existing picture
+                                    // when profilePictureUrl is null, so the rest of the edit still
+                                    // saved; only the new picture didn't, and that needs its own
+                                    // message rather than a blanket "Updated Successfully!".
+                                    when {
+                                        !success -> Toast.makeText(context, "Failed to update profile — please try again", Toast.LENGTH_SHORT).show()
+                                        pictureUploadFailed -> {
+                                            profilePicUploadError = "Profile saved, but the new photo couldn't be uploaded. Check your connection and try again."
+                                            Toast.makeText(context, "Profile saved — photo upload failed, please retry", Toast.LENGTH_LONG).show()
+                                        }
+                                        else -> Toast.makeText(context, "Profile Updated Successfully!", Toast.LENGTH_SHORT).show()
+                                    }
+                                } catch (e: Exception) {
+                                    isSavingProfile = false
+                                    Toast.makeText(context, "An error occurred — please try again", Toast.LENGTH_SHORT).show()
                                 }
                             }
                         },
@@ -764,7 +769,10 @@ fun SpecialistProfileScreen(
             // =========================================================================
             // 7. COMPACT APP VERSION & UPDATE CHECK
             // =========================================================================
-            val updateState by (inAppUpdateManager?.updateState?.collectAsState() ?: remember { mutableStateOf(UpdateState.UP_TO_DATE) })
+            var updateState by remember { mutableStateOf(UpdateState.UP_TO_DATE) }
+            LaunchedEffect(inAppUpdateManager) {
+                inAppUpdateManager?.updateState?.collect { updateState = it }
+            }
 
             Surface(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
