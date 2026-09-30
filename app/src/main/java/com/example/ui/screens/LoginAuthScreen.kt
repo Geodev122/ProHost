@@ -677,6 +677,30 @@ fun LoginAuthScreen(
                     }
                 }
 
+                OutlinedButton(
+                    onClick = {
+                        localErrorMessage = null
+                        authViewModel.clearAuthMessages()
+                        authViewModel.sendEmailOtp(email = pendingEmail) { sent ->
+                            if (sent) {
+                                emailOtpCode = ""
+                                emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
+                                step = AuthStep.EMAIL_OTP
+                            }
+                        }
+                    },
+                    enabled = !isAuthenticating,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Sms, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(
+                        "Use a code instead",
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
                 TextButton(
                     onClick = {
                         localErrorMessage = null

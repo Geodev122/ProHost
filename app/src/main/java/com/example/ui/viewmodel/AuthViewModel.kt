@@ -113,6 +113,7 @@ class AuthViewModel(
         viewModelScope.launch {
             try {
                 _isAuthenticating.value = true
+                _emailLookupResult.value = EmailLookupResult.UNKNOWN  // reset so LaunchedEffect re-fires on retry
                 val authService = com.example.data.auth.FirebaseAuthService(firebaseAppContext())
                 val methods = authService.fetchSignInMethodsForEmail(email)
                 _pendingEmail.value = email
@@ -126,7 +127,8 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+                _isAuthenticating.value = false
+                _authErrorMessage.value = e.localizedMessage ?: "Unable to reach the server. Please check your connection."
             }
         }
     }
@@ -201,7 +203,8 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+                _isAuthenticating.value = false
+                _authErrorMessage.value = e.localizedMessage ?: "Sign-in link verification failed. Try again."
             }
         }
     }
@@ -332,7 +335,8 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+                _isAuthenticating.value = false
+                _authErrorMessage.value = e.localizedMessage ?: "Google sign-in failed. Please try again."
             }
         }
     }
