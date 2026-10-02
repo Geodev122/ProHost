@@ -384,7 +384,7 @@ object SpaceCalculationUtils {
 
     /**
      * Maps a real [RentalStrategyType] onto the legacy [RentalFormulaType] that
-     * [RentalBookingRequest]/the host's Accept-Reject screens/the Digital Key Pass/
+     * [RentalBookingRequest]/the host's Accept-Reject screens/
      * WhatsApp templates still key off downstream — a deliberately thin, honest
      * mapping, not a data-model migration (see [representativeFormula]'s doc comment).
      */

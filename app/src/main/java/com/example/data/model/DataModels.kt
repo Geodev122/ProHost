@@ -595,7 +595,7 @@ data class BookingRequest(
     // acceptance — see OwnerRentalRequestsScreen's Accept flow. This, not any
     // in-app payment flag, is now the record that host and specialist reached and
     // evidenced a real agreement; nobody at ProHost reviews it, it's kept on file.
-    // The Specialist's Digital Key Pass (MyBookingsScreen) links here.
+    // The specialist opens this from My Bookings ("View signed agreement").
     val agreementUrl: String? = null,
     // Early-termination record — set only when an already-ACCEPTED booking is
     // cancelled (as opposed to a PENDING request simply withdrawn/declined, which

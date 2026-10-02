@@ -237,6 +237,21 @@ class ProHostViewModel(
                     android.util.Log.e("ProHostVM", "Operation failed", e)
                 }
             }
+            // Every billing outcome (no offer, launch failure, cancel, success) reaches
+            // the Subscriptions screen banners; before, nothing collected these, so a
+            // failed tap on a plan looked like nothing happened.
+            viewModelScope.launch {
+                manager.billingMessages.collect { message ->
+                    if (message.isError) {
+                        _billingSuccess.value = null
+                        _billingError.value = message.text
+                        dismissBillingActivationPending()
+                    } else {
+                        _billingError.value = null
+                        _billingSuccess.value = message.text
+                    }
+                }
+            }
             viewModelScope.launch {
                 try {
                     manager.activePurchases.collect { playActivePurchases.value = it }
@@ -399,7 +414,11 @@ class ProHostViewModel(
         activity: android.app.Activity,
         productId: String
     ) {
-        val uid = currentUser.value?.id ?: return
+        val uid = currentUser.value?.id ?: run {
+            _billingError.value = "Your session expired — please sign in again to subscribe."
+            return
+        }
+        clearBillingMessages()
         // Persist the pending draft ID before the billing sheet opens so the RTDN
         // Cloud Function can auto-publish it when the subscription is confirmed.
         val draftId = _pendingAutoPublishDraftId.value
@@ -426,7 +445,8 @@ class ProHostViewModel(
                 manager.activePurchases.value.firstOrNull { it.products.any { id -> id == currentPlanId } }?.purchaseToken
             } else null
 
-            manager.launchSubscriptionPurchase(activity, product, userId = uid, oldPurchaseToken = oldPurchaseToken)
+            val launched = manager.launchSubscriptionPurchase(activity, product, userId = uid, oldPurchaseToken = oldPurchaseToken)
+            if (!launched) return
             _billingPriorExpiryMillis.value = currentUser.value?.ownerPackageExpiryMillis
             _billingActivationPending.value = true
             billingActivationTimeoutJob?.cancel()
@@ -450,7 +470,8 @@ class ProHostViewModel(
                 if (found == null) {
                     _pendingRetryProductId = null
                     _pendingRetryActivity = null
-                    Toast.makeText(activity, "This plan isn't available in Google Play right now.", Toast.LENGTH_LONG).show()
+                    // Billing callbacks may arrive off the main thread: use state, not a Toast.
+                    _billingError.value = "This plan isn't available in Google Play right now (product \"$productId\")."
                 }
             }
         }

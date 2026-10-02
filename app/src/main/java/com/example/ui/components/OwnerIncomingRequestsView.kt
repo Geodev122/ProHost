@@ -250,7 +250,7 @@ fun OwnerIncomingRequestsView(
                     )
                     DocumentPickerField(
                         label = "Signed Leasing Agreement",
-                        helperText = "PDF, JPG, or PNG — kept on file, links to the specialist's Digital Key Pass",
+                        helperText = "PDF, JPG, or PNG — kept on file, the specialist can open it from My Bookings",
                         state = agreementDocState,
                         onStateChanged = { agreementDocState = it },
                         modifier = Modifier.fillMaxWidth(),

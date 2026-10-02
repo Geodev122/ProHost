@@ -20,6 +20,7 @@ class ProHostApplication : Application() {
         } catch (e: Exception) {
             Log.e("ProHostApplication", "Failed to initialize FirebaseApp or App Check: ${e.message}", e)
         }
+        com.example.service.ProHostMessagingService.ensureNotificationChannel(this)
     }
 
     // Collection stays on in debug builds too: CI distributes debug APKs to testers

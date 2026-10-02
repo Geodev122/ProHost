@@ -31,8 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
@@ -118,7 +116,6 @@ fun MyBookingsScreen(
     // instead of coexisting alongside it as an independent new lease.
     var editTargetSpaceId by remember { mutableStateOf<String?>(null) }
     var editSourceBooking by remember { mutableStateOf<BookingRequest?>(null) }
-    var showDigitalPassBooking by remember { mutableStateOf<BookingRequest?>(null) }
     var cancelTargetBooking by remember { mutableStateOf<BookingRequest?>(null) }
     var pendingCancelTarget by remember { mutableStateOf<BookingRequest?>(null) }
 
@@ -286,8 +283,17 @@ fun MyBookingsScreen(
                             editTargetSpaceId = space?.id
                             editSourceBooking = booking
                         },
-                        onViewDigitalPass = {
-                            showDigitalPassBooking = booking
+                        onAddPaymentReminders = {
+                            com.example.ui.util.PaymentCalendar.addPaymentReminders(context, booking, "#${booking.id}")
+                        },
+                        onViewAgreement = {
+                            booking.agreementUrl?.let { url ->
+                                try {
+                                    context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Could not open the agreement.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
                         },
                         onContactWhatsApp = {
                             if (space != null) {
@@ -422,111 +428,6 @@ fun MyBookingsScreen(
         )
     }
 
-    // Digital Access Pass Dialog — the QR-style card is now what it visually
-    // claimed to be all along: a link to the real signed leasing agreement the
-    // host uploaded when accepting (BookingRequest.agreementUrl), not a
-    // decorative code nothing ever checks. "View Agreement" as a separate action
-    // is gone — this is the one place to reach it now.
-    showDigitalPassBooking?.let { bkg ->
-        Dialog(onDismissRequest = { showDigitalPassBooking = null }) {
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 6.dp,
-                modifier = Modifier.fillMaxWidth().padding(Spacing.lg)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Icon(Icons.Default.QrCode2, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(54.dp))
-                    Text("Digital Workspace Key Pass", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(
-                        "Booking Reference: #${bkg.id}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(
-                                Icons.Default.LocationOn to bkg.spaceTitle,
-                                Icons.Default.Person to "Renter: ${bkg.practitionerName} (${bkg.practitionerSpecialty})",
-                                Icons.Default.CalendarMonth to "Dates: ${bkg.startDate} → ${bkg.endDate}",
-                                Icons.Default.Schedule to "Schedule: ${bkg.selectedDays.joinToString()} • ${bkg.selectedStartHour} - ${bkg.selectedEndHour}"
-                            ).forEach { (icon, text) ->
-                                Row(verticalAlignment = Alignment.Top) {
-                                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(text, style = MaterialTheme.typography.labelMedium)
-                                }
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.VpnKey, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    "Smart Key Pass: PRO-PASS-${bkg.id.take(6).uppercase()}",
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                        }
-                    }
-
-                    if (bkg.agreementUrl != null) {
-                        Text(
-                            text = "This pass links to the signed leasing agreement your host uploaded when accepting.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Button(
-                            onClick = {
-                                try {
-                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(bkg.agreementUrl))
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    Toast.makeText(context, "Could not open the agreement.", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            shape = MaterialTheme.shapes.medium,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("View Signed Agreement")
-                        }
-                    } else {
-                        Surface(
-                            color = StatusWarningContainer,
-                            shape = MaterialTheme.shapes.medium,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "No signed agreement on file for this booking yet — contact your host on WhatsApp.",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = StatusOnWarningContainer,
-                                modifier = Modifier.padding(10.dp)
-                            )
-                        }
-                    }
-
-                    TextButton(
-                        onClick = { showDigitalPassBooking = null },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Done")
-                    }
-                }
-            }
-        }
-    }
 }
 
 @Composable
@@ -536,7 +437,8 @@ fun BookingReservationCard(
     onSelectSpace: () -> Unit,
     onRebook: () -> Unit,
     onEditBooking: () -> Unit,
-    onViewDigitalPass: () -> Unit,
+    onAddPaymentReminders: () -> Unit,
+    onViewAgreement: () -> Unit,
     onContactWhatsApp: () -> Unit,
     onCancelRequest: () -> Unit,
     onCancelAcceptedBooking: () -> Unit = {},
@@ -749,8 +651,8 @@ fun BookingReservationCard(
             HorizontalDivider()
 
             // Interactive Actions Bar — Re-book and WhatsApp stay directly
-            // tappable (the two most common actions); everything else (Digital
-            // Pass, Edit Booking, Cancel Request, Cancel Accepted Booking) collapses
+            // tappable (the two most common actions); everything else (payment
+            // reminders, agreement, Edit Booking, Cancel Request, Cancel Accepted Booking) collapses
             // into one "More" overflow menu so this row never grows past 3 controls
             // regardless of a booking's status.
             var showMoreMenu by remember { mutableStateOf(false) }
@@ -809,12 +711,20 @@ fun BookingReservationCard(
                         }
                         DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
                             if (booking.status == BookingRequestStatus.ACCEPTED) {
-                                // Digital Key Pass — links to the signed agreement
+                                // Due dates go to the user's own calendar app, which
+                                // gives local reminders for each payment.
                                 DropdownMenuItem(
-                                    text = { Text("Digital Pass") },
-                                    leadingIcon = { Icon(Icons.Default.VpnKey, contentDescription = null) },
-                                    onClick = { showMoreMenu = false; onViewDigitalPass() }
+                                    text = { Text("Add payment reminders") },
+                                    leadingIcon = { Icon(Icons.Default.EventAvailable, contentDescription = null) },
+                                    onClick = { showMoreMenu = false; onAddPaymentReminders() }
                                 )
+                                if (booking.agreementUrl != null) {
+                                    DropdownMenuItem(
+                                        text = { Text("View signed agreement") },
+                                        leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
+                                        onClick = { showMoreMenu = false; onViewAgreement() }
+                                    )
+                                }
                                 // Edit Booking — submits a change for host approval;
                                 // replaces this booking if/when accepted, distinct from
                                 // Re-book/Extend (which creates an independent new lease).

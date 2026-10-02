@@ -1,4 +1,4 @@
-import { getFirestore } from "firebase-admin/firestore";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import { logger } from "firebase-functions/v2";
 import "./admin";
@@ -32,11 +32,27 @@ export async function sendPushToUser(
       return;
     }
 
-    await getMessaging().send({
-      token,
-      data: { title, body, ...data },
-      android: { priority: "high" },
-    });
+    try {
+      await getMessaging().send({
+        token,
+        data: { title, body, ...data },
+        android: { priority: "high" },
+      });
+    } catch (sendError) {
+      const code = (sendError as { code?: string }).code;
+      // An uninstalled app or a rotated token: forget it so future pushes don't keep
+      // failing, but only if the profile still holds that same token.
+      if (code === "messaging/registration-token-not-registered" || code === "messaging/invalid-registration-token") {
+        await db.runTransaction(async (tx) => {
+          const ref = db.collection("user_profiles").doc(uid);
+          const current = (await tx.get(ref)).data()?.fcmToken;
+          if (current === token) tx.update(ref, { fcmToken: FieldValue.delete() });
+        });
+        logger.info(`sendPushToUser: removed stale fcmToken for ${uid}`);
+        return;
+      }
+      throw sendError;
+    }
   } catch (e) {
     logger.error(`sendPushToUser failed for ${uid}: ${(e as Error).message}`);
   }

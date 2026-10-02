@@ -70,7 +70,7 @@ export const onWorkspaceListingDeletedCleanup = onDocumentDeleted(
             "Listing Removed",
             `"${listing?.title ?? "A workspace listing"}" was removed by its host, so your booking request has been cancelled.`,
             {
-              category: "BOOKING_REQUEST",
+              category: "BOOKING_UPDATE",
               targetTab: "pro_rentals",
               bookingId: doc.id,
             }

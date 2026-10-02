@@ -64,6 +64,7 @@ class ProHostMessagingService : FirebaseMessagingService() {
         val categoryType = remoteMessage.data["category"] ?: "GENERAL"
         val targetTab = remoteMessage.data["targetTab"]
         val bookingId = remoteMessage.data["bookingId"]
+        val spaceId = remoteMessage.data["spaceId"]
 
         // Store inside the active singleton repository to immediately push updates to standard Compose UI flow
         val repository = ProHostRepository.getInstance()
@@ -84,7 +85,8 @@ class ProHostMessagingService : FirebaseMessagingService() {
             title,
             body,
             targetTab = targetTab,
-            bookingId = bookingId
+            bookingId = bookingId,
+            spaceId = spaceId
         )
     }
 
@@ -97,28 +99,39 @@ class ProHostMessagingService : FirebaseMessagingService() {
          * Core notification routine triggered by real-time Firebase Cloud Messaging and in-app system events.
          * Supports deep-linking directly to target screens.
          */
+        /**
+         * Registers the alerts channel. Called from ProHostApplication.onCreate so the
+         * channel exists (and shows in system settings) before the first push arrives —
+         * the manifest names it as FCM's default channel.
+         */
+        fun ensureNotificationChannel(context: Context) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = CHANNEL_DESCRIPTION
+                enableLights(true)
+                enableVibration(true)
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+
         fun showPhysicalNotification(
             context: Context,
             title: String,
             body: String,
             targetTab: String? = null,
-            bookingId: String? = null
+            bookingId: String? = null,
+            spaceId: String? = null
         ) {
+            // Without POST_NOTIFICATIONS (Android 13+) notify() is silently dropped; the
+            // alert is still in the in-app alerts list either way.
+            if (!com.example.util.NotificationPermissionManager.isGranted(context)) return
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-            // Ensure the dynamic system channel is registered on Android O and above
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val channel = NotificationChannel(
-                    CHANNEL_ID,
-                    CHANNEL_NAME,
-                    NotificationManager.IMPORTANCE_HIGH
-                ).apply {
-                    description = CHANNEL_DESCRIPTION
-                    enableLights(true)
-                    enableVibration(true)
-                }
-                notificationManager.createNotificationChannel(channel)
-            }
+            ensureNotificationChannel(context)
 
             // Create a pending intent to open the MainActivity when clicked with target tab deep linking
             val intent = Intent(context, MainActivity::class.java).apply {
@@ -128,6 +141,9 @@ class ProHostMessagingService : FirebaseMessagingService() {
                 }
                 if (bookingId != null) {
                     putExtra("booking_id", bookingId)
+                }
+                if (spaceId != null) {
+                    putExtra("space_id", spaceId)
                 }
             }
             val pendingIntent = PendingIntent.getActivity(

@@ -78,7 +78,7 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
         "Booking Request Accepted",
         `${after.ownerName ?? "The host"} accepted your request for "${after.spaceTitle ?? "the workspace"}".`,
         {
-          category: "BOOKING_ACCEPTANCE",
+          category: "BOOKING_UPDATE",
           targetTab: "pro_rentals",
           bookingId: event.params.bookingId,
         }
@@ -156,7 +156,7 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
         "Booking Cancelled",
         `${initiatorLabel} ended the accepted booking for "${after.spaceTitle ?? "the workspace"}" early${after.cancellationReasonCode ? ` (${String(after.cancellationReasonCode).replace(/_/g, " ").toLowerCase()})` : ""}.`,
         {
-          category: "BOOKING_ACCEPTANCE",
+          category: "BOOKING_UPDATE",
           targetTab,
           bookingId: event.params.bookingId,
         }

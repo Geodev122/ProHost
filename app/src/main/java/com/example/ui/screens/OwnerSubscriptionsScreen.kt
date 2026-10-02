@@ -84,6 +84,11 @@ fun OwnerSubscriptionsScreen(
     }
 
     // SO3: Play branded chime when a purchase completes (billingSuccess transitions to non-null).
+    // The banners sit at the top of a scrolling screen, out of view from the plan
+    // cards — also toast errors so a failed tap never looks like nothing happened.
+    LaunchedEffect(billingError) {
+        billingError?.let { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
+    }
     LaunchedEffect(billingSuccess) {
         if (billingSuccess != null) {
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -589,6 +594,7 @@ fun OwnerSubscriptionsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CompactPlanCard(
     plan: PackagePlan,
@@ -600,7 +606,10 @@ fun CompactPlanCard(
     val isFeatured = plan.isFeatured
 
     Box(modifier = Modifier.width(cardWidth)) {
+        // The whole card is the tap target, not just the small button inside it.
         Card(
+            onClick = onSelect,
+            enabled = !isCurrent,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(

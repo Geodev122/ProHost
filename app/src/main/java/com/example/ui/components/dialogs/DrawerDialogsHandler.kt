@@ -508,6 +508,7 @@ fun DrawerDialogsHandler(
                                                                 imageVector = when (alert.category) {
                                                                     "BOOKING_ACCEPTANCE" -> Icons.Default.CheckCircle
                                                                     "BOOKING_REQUEST" -> Icons.Default.Inbox
+                                                                    "BOOKING_UPDATE" -> Icons.Default.EventNote
                                                                     "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> Icons.Default.Verified
                                                                     "PACKAGE_EXPIRED" -> Icons.Default.EventBusy
                                                                     "PAYMENT_REMINDER" -> Icons.Default.CreditCard

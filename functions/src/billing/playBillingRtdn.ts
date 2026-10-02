@@ -123,7 +123,9 @@ export const playBillingRtdn = onMessagePublished(
           await grantSubscription(uid, productId, expiryMs, orderId);
           await sendPushToUser(uid, "Pro Host Subscription Activated", "Welcome! Your Pro Host subscription is now active — start publishing workspace listings.", {
             category: "PACKAGE_ACTIVATED",
-            targetTab: "manage_listings",
+            // owner_subscriptions is reachable even while the device still holds the
+            // pre-upgrade SPECIALIST claim; manage_listings is not.
+            targetTab: "owner_subscriptions",
           });
           try {
             const db = getFirestore();
@@ -150,7 +152,7 @@ export const playBillingRtdn = onMessagePublished(
           await grantSubscription(uid, productId, expiryMs, orderId);
           await sendPushToUser(uid, "Subscription Renewed", "Your Pro Host subscription has renewed — your access continues uninterrupted.", {
             category: "PACKAGE_RENEWED",
-            targetTab: "manage_listings",
+            targetTab: "owner_subscriptions",
           });
           try {
             const db = getFirestore();

@@ -64,8 +64,18 @@ class PlayBillingManager(
     private val _activePurchases = MutableStateFlow<List<Purchase>>(emptyList())
     val activePurchases: StateFlow<List<Purchase>> = _activePurchases.asStateFlow()
 
-    private val _billingMessages = MutableSharedFlow<String>()
-    val billingMessages: SharedFlow<String> = _billingMessages.asSharedFlow()
+    /** A user-facing outcome of a billing action. */
+    data class BillingMessage(val text: String, val isError: Boolean)
+
+    // Buffered so a message emitted while no screen is collecting isn't dropped.
+    private val _billingMessages = MutableSharedFlow<BillingMessage>(extraBufferCapacity = 8)
+    val billingMessages: SharedFlow<BillingMessage> = _billingMessages.asSharedFlow()
+
+    // startConnection can be called again while a connection is still being set up
+    // (e.g. init + an immediate product lookup); queue callers instead of starting a
+    // second connection, which used to drop the second caller's callback.
+    private val pendingOnConnected = mutableListOf<() -> Unit>()
+    private var isConnecting = false
 
     private val _purchaseEvents = MutableSharedFlow<Purchase>()
     val purchaseEvents: SharedFlow<Purchase> = _purchaseEvents.asSharedFlow()
@@ -87,23 +97,34 @@ class PlayBillingManager(
             onConnected?.invoke()
             return
         }
+        synchronized(pendingOnConnected) {
+            onConnected?.let { pendingOnConnected += it }
+            if (isConnecting) return
+            isConnecting = true
+        }
 
         billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(billingResult: BillingResult) {
+                val callbacks = synchronized(pendingOnConnected) {
+                    isConnecting = false
+                    pendingOnConnected.toList().also { pendingOnConnected.clear() }
+                }
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     Log.d(TAG, "BillingClient connected successfully")
                     _isConnected.value = true
                     querySubscriptionProducts()
                     queryActivePurchases()
-                    onConnected?.invoke()
+                    callbacks.forEach { it() }
                 } else {
                     Log.e(TAG, "Billing setup failed: ${billingResult.debugMessage} (${billingResult.responseCode})")
                     _isConnected.value = false
+                    if (callbacks.isNotEmpty()) emitMessage(userMessageFor(billingResult.responseCode))
                 }
             }
 
             override fun onBillingServiceDisconnected() {
                 Log.w(TAG, "Billing service disconnected")
+                synchronized(pendingOnConnected) { isConnecting = false }
                 _isConnected.value = false
             }
         })
@@ -133,7 +154,7 @@ class PlayBillingManager(
 
         billingClient.queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                val list = (queryProductDetailsResult as ProductDetailsResult).productDetailsList.orEmpty()
+                val list = (queryProductDetailsResult as? ProductDetailsResult)?.productDetailsList?.filterNotNull().orEmpty()
                 Log.d(TAG, "Retrieved ${list.size} subscription products from Google Play")
                 _productDetailsList.value = list
             } else {
@@ -142,6 +163,7 @@ class PlayBillingManager(
         }
     }
 
+    /** Returns true when Play's purchase sheet was actually opened. */
     @Suppress("DEPRECATION")
     fun launchSubscriptionPurchase(
         activity: Activity,
@@ -149,12 +171,12 @@ class PlayBillingManager(
         userId: String,
         selectedOfferToken: String? = null,
         oldPurchaseToken: String? = null
-    ) {
+    ): Boolean {
         val offerToken = selectedOfferToken
             ?: productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken
             ?: run {
-                emitMessage("No valid subscription offer found for ${productDetails.title}")
-                return
+                emitMessage("\"${productDetails.title}\" has no active offer in Google Play yet. Please try again later.")
+                return false
             }
 
         val productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
@@ -179,7 +201,9 @@ class PlayBillingManager(
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {
             Log.e(TAG, "Failed to launch billing flow: ${result.debugMessage}")
             emitMessage(userMessageFor(result.responseCode))
+            return false
         }
+        return true
     }
 
     private fun userMessageFor(responseCode: Int): String = when (responseCode) {
@@ -189,6 +213,9 @@ class PlayBillingManager(
         BillingClient.BillingResponseCode.BILLING_UNAVAILABLE -> "Google Play billing isn't available on this device or account."
         BillingClient.BillingResponseCode.ITEM_UNAVAILABLE -> "This plan isn't available right now."
         BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> "You already have this subscription."
+        BillingClient.BillingResponseCode.DEVELOPER_ERROR ->
+            "Purchases only work in the app installed from Google Play. Please update from the Play Store."
+        BillingClient.BillingResponseCode.FEATURE_NOT_SUPPORTED -> "Your Google Play app doesn't support subscriptions. Please update it."
         else -> "Google Play couldn't complete the purchase. Please try again."
     }
 
@@ -203,7 +230,7 @@ class PlayBillingManager(
             }
             BillingClient.BillingResponseCode.USER_CANCELED -> {
                 Log.i(TAG, "User canceled Google Play purchase flow")
-                emitMessage("Purchase canceled")
+                emitMessage("Purchase canceled — you weren't charged.", isError = false)
             }
             BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
                 emitMessage("You already have this subscription.")
@@ -250,12 +277,12 @@ class PlayBillingManager(
             if (!purchase.isAcknowledged) {
                 acknowledgePurchase(purchase)
             } else {
-                emitMessage("Subscription verified and active!")
+                emitMessage("Subscription verified and active!", isError = false)
                 coroutineScope.launch { _purchaseEvents.emit(purchase) }
             }
             queryActivePurchases()
         } else if (purchase.purchaseState == Purchase.PurchaseState.PENDING) {
-            emitMessage("Purchase is pending completion")
+            emitMessage("Your payment is pending — your plan activates once Google Play confirms it.", isError = false)
         }
     }
 
@@ -267,7 +294,7 @@ class PlayBillingManager(
         billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.d(TAG, "Purchase acknowledged successfully: ${purchase.orderId}")
-                emitMessage("Subscription activated successfully!")
+                emitMessage("Subscription activated successfully!", isError = false)
                 coroutineScope.launch { _purchaseEvents.emit(purchase) }
             } else {
                 Log.e(TAG, "Failed to acknowledge purchase: ${billingResult.debugMessage}")
@@ -295,7 +322,7 @@ class PlayBillingManager(
                 .build()
             billingClient.queryProductDetailsAsync(params) { billingResult, results ->
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    val found = (results as ProductDetailsResult).productDetailsList?.firstOrNull()
+                    val found = (results as? ProductDetailsResult)?.productDetailsList?.filterNotNull()?.firstOrNull()
                     // Merge into the main list so future launch calls don't need a re-query
                     if (found != null) {
                         val merged = _productDetailsList.value.filter { it.productId != productId } + found
@@ -369,9 +396,9 @@ class PlayBillingManager(
         }
     }
 
-    private fun emitMessage(msg: String) {
+    private fun emitMessage(msg: String, isError: Boolean = true) {
         coroutineScope.launch {
-            _billingMessages.emit(msg)
+            _billingMessages.emit(BillingMessage(msg, isError))
         }
     }
 
