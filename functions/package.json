@@ -2,7 +2,7 @@
   "name": "prohost-functions",
   "description": "ProHost Cloud Functions: server-verified auth/role claims, Play Integrity enforcement, and Google Play Billing.",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "lib/index.js",
   "scripts": {

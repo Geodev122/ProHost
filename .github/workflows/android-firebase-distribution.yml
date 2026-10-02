@@ -22,12 +22,12 @@ jobs:
           distribution: jetbrains
           java-version: "21"
 
-      # No Gradle wrapper jar is committed, so install Gradle directly. AGP 8.13
-      # requires Gradle 8.13+.
+      # No Gradle wrapper jar is committed, so install Gradle directly. Keep this
+      # equal to gradle-wrapper.properties — AGP 9.4 refuses to run below 9.6.0.
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.14.3"
+          gradle-version: "9.6.0"
 
       # app/build.gradle.kts points the debug signing config at ${rootDir}/debug.keystore,
       # which is gitignored (never committed) — generate the standard Android debug
@@ -75,7 +75,7 @@ jobs:
       - name: Set up Node 20
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: functions/package-lock.json
 
@@ -102,7 +102,7 @@ jobs:
       - name: Set up Node 20
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: functions/package-lock.json
 
