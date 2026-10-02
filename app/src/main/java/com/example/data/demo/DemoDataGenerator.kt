@@ -146,6 +146,7 @@ object DemoDataGenerator {
                     EquipmentItem("EQ-D1", "Hydraulic Exam Table", EquipmentCategory.WORKSPACES, 1, "Electric position control"),
                     EquipmentItem("EQ-D2", "Echocardiogram 4K Doppler", EquipmentCategory.WORKSPACES, 1, "4K Color Doppler")
                 ),
+                pricing = RentalPricingConfig.fromLegacyFormula(f1),
                 rentalFormulas = listOf(f1, f2, f3),
                 rules = PremisesRules(
                     smokingAllowed = false,
@@ -166,13 +167,15 @@ object DemoDataGenerator {
                         id = "demo-sub-001",
                         name = "Cardiology Bay A",
                         type = Level2Type.ROOMS,
-                        amenities = listOf("ECG Machine", "Patient Exam Bed", "Doctor Desk")
+                        amenities = listOf("ECG Machine", "Patient Exam Bed", "Doctor Desk"),
+                        pricing = RentalPricingConfig.fromLegacyFormula(f1)
                     ),
                     Subdivision(
                         id = "demo-sub-002",
                         name = "Dermatology Clinic B",
                         type = Level2Type.ROOMS,
-                        amenities = listOf("Surgical Light", "Sterilization Tray")
+                        amenities = listOf("Surgical Light", "Sterilization Tray"),
+                        pricing = RentalPricingConfig.fromLegacyFormula(f2)
                     )
                 ),
                 isDemo = true
@@ -195,6 +198,7 @@ object DemoDataGenerator {
                 residentPractitioners = listOf("Dr. Tariq Mansour"),
                 essentialFacilities = listOf("Dental Chair", "X-Ray Autoclave", "Waiting Lounge"),
                 equipment = listOf(EquipmentItem("EQ-D3", "Full Dental Surgery Chair", EquipmentCategory.WORKSPACES, 1, "Hydraulic control")),
+                pricing = RentalPricingConfig.fromLegacyFormula(f2),
                 rentalFormulas = listOf(f2),
                 rules = PremisesRules(),
                 ownerId = "demo-host-01",
@@ -225,6 +229,7 @@ object DemoDataGenerator {
                 residentPractitioners = listOf("Nour El-Khoury"),
                 essentialFacilities = listOf("Private Restroom", "High-Speed Internet", "Janitorial Service"),
                 equipment = emptyList(),
+                pricing = RentalPricingConfig.fromLegacyFormula(f1),
                 rentalFormulas = listOf(f1),
                 rules = PremisesRules(),
                 ownerId = "demo-host-02",

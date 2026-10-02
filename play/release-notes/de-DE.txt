@@ -1,0 +1,5 @@
+ProHost v1.0.26 (Build 26) Veröffentlichungsnotizen:
+• Vollständiges Verwaltungssystem für Demosysteme mit Erstellungs- und Bereinigungsfunktionen in der Admin-Konsole.
+• Aktualisierte Konfiguration des Google Play Signaturschlüssels.
+• Verbesserte Schutzfunktionen für Vorschau- und Authentifizierungsabläufe.
+• Optimierte Echtzeit-Datenbanksynchronisierung.
