@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.model.*
 import com.example.data.repository.ProHostRepository
 import com.example.util.guessFileExtension
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -53,7 +54,7 @@ class ProHostViewModel(
     // the custom claim, then repository.login) rather than inventing a second way to
     // build an AppUser.
     private val _isRestoringSession = MutableStateFlow(
-        com.google.firebase.auth.FirebaseAuth.getInstance().currentUser != null
+        runCatching { FirebaseAuth.getInstance().currentUser != null }.getOrDefault(false)
     )
     val isRestoringSession: StateFlow<Boolean> = _isRestoringSession.asStateFlow()
     private val _sessionRestoreError = MutableStateFlow<String?>(null)

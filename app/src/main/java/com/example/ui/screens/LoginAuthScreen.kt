@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -110,11 +111,12 @@ fun LoginAuthScreen(
         }
     }
 
-    val emailLookupResult by authViewModel.emailLookupResult.collectAsState()
-    val pendingEmail by authViewModel.pendingEmail.collectAsState()
+    val isPreview = LocalInspectionMode.current
+    val emailLookupResult = if (!isPreview) authViewModel.emailLookupResult.collectAsState().value else AuthViewModel.EmailLookupResult.UNKNOWN
+    val pendingEmail = if (!isPreview) authViewModel.pendingEmail.collectAsState().value else ""
 
     // Credential Manager for Google One Tap
-    val credentialManager = remember { CredentialManager.create(context) }
+    val credentialManager = remember(context, isPreview) { if (!isPreview) CredentialManager.create(context) else null }
 
     // Pre-fill values extracted from Google credential — applied to the registration form
     // via LaunchedEffect(step) below, after regFullName/regProfilePicUri are initialized.
@@ -125,14 +127,15 @@ fun LoginAuthScreen(
     fun launchGoogleSignIn() {
         coroutineScope.launch {
             try {
+                val webClientId = runCatching { context.getString(R.string.default_web_client_id) }.getOrDefault("mock_web_client_id")
                 val googleIdOption = GetGoogleIdOption.Builder()
                     .setFilterByAuthorizedAccounts(false)
-                    .setServerClientId(context.getString(R.string.default_web_client_id))
+                    .setServerClientId(webClientId)
                     .build()
                 val request = GetCredentialRequest.Builder()
                     .addCredentialOption(googleIdOption)
                     .build()
-                val result = credentialManager.getCredential(context, request)
+                val result = credentialManager?.getCredential(context, request) ?: return@launch
                 val credential = result.credential
                 if (credential is CustomCredential &&
                     credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
@@ -165,6 +168,7 @@ fun LoginAuthScreen(
 
     // React to email lookup results: send an OTP or trigger Google sign-in
     LaunchedEffect(emailLookupResult) {
+        if (isPreview) return@LaunchedEffect
         when (emailLookupResult) {
             AuthViewModel.EmailLookupResult.NEW_USER,
             AuthViewModel.EmailLookupResult.HAS_EMAIL -> {
@@ -191,6 +195,7 @@ fun LoginAuthScreen(
     var phoneNumber by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
+        if (isPreview) return@LaunchedEffect
         authViewModel.clearAuthMessages()
         // MainActivity already requests all permissions; detect country using available signals
         // (SIM/locale — no duplicate permission request here).
