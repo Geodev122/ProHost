@@ -18,22 +18,31 @@ import androidx.core.content.ContextCompat
  * already-signed-in returning user, not just the fresh sign-in flow in LoginAuthScreen
  * (which separately requests location permissions for the same reason).
  */
-class NotificationPermissionManager(private val activity: ComponentActivity) {
+class NotificationPermissionManager(
+    private val activity: ComponentActivity,
+    private val onResult: () -> Unit = {},
+) {
     private val tag = "NotificationPermissionManager"
 
     private val permissionLauncher: ActivityResultLauncher<String> =
         activity.registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             Log.d(tag, "POST_NOTIFICATIONS permission result: $granted")
+            onResult()
         }
 
+    /** Calls [onResult] once the prompt is answered, or immediately when no prompt is needed. */
     fun requestIfNeeded() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        val alreadyGranted = ContextCompat.checkSelfPermission(
-            activity,
-            Manifest.permission.POST_NOTIFICATIONS
-        ) == PackageManager.PERMISSION_GRANTED
-        if (!alreadyGranted) {
-            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || isGranted(activity)) {
+            onResult()
+            return
         }
+        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    companion object {
+        fun isGranted(context: android.content.Context): Boolean =
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
     }
 }

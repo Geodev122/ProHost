@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -2042,20 +2043,16 @@ class ProHostRepository {
         val existing = _users.value.find { it.id == uid }
             ?: firestoreService.getUserProfile(uid)?.let { AppUser.fromFirestoreMap(uid, it) }
 
+        // No stored profile yet → a blank name, so isProfileComplete() routes the user to
+        // the registration form instead of into the app with an invented identity.
         val user = existing?.copy(role = verifiedRole, email = cleanEmail.ifBlank { existing.email }) ?: AppUser(
             id = uid,
             email = cleanEmail,
-            fullName = if (cleanEmail.contains("@")) {
-                cleanEmail.substringBefore("@").replace(".", " ").replaceFirstChar {
-                    if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString()
-                }
-            } else {
-                "Member"
-            },
+            fullName = "",
             role = verifiedRole,
             specialty = "",
             phone = "",
-            country = "Lebanon",
+            country = "",
             governorate = "",
             city = "",
             isVerified = true
@@ -2100,7 +2097,15 @@ class ProHostRepository {
         val previous = loggedOutUser?.email ?: "Unknown"
         if (clearRemotePushToken && loggedOutUser != null) {
             try {
-                firestoreService.updateUserProfileFields(loggedOutUser.id, mapOf("fcmToken" to null))
+                // Only clear the stored token when it is THIS device's — otherwise signing
+                // out here would silence push on the user's other, still-signed-in phone.
+                val deviceToken = runCatching {
+                    com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
+                }.getOrNull()
+                val storedToken = firestoreService.getUserProfile(loggedOutUser.id)?.get("fcmToken") as? String
+                if (storedToken != null && (deviceToken == null || storedToken == deviceToken)) {
+                    firestoreService.updateUserProfileFields(loggedOutUser.id, mapOf("fcmToken" to null))
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "FCM token clear on logout failed: ${e.message}")
             }

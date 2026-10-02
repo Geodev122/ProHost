@@ -1282,6 +1282,13 @@ enum class SubscriptionBillingInterval(val displayName: String, val monthsDurati
  * the account-creation and last-sign-in audit trail Admin's Users Directory export
  * relies on (see ProHostRepository.exportUsersToCsv/exportUsersToJson).
  */
+/**
+ * The single rule for "has this account finished registration" — used by the cold-start
+ * session restore and by every sign-in path. Admin accounts are provisioned server-side
+ * and never go through the registration form.
+ */
+fun AppUser.isProfileComplete(): Boolean = role == UserRole.ADMIN || fullName.isNotBlank()
+
 data class AppUser(
     val id: String,
     val email: String,

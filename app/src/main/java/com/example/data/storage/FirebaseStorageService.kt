@@ -49,28 +49,35 @@ class FirebaseStorageService(
     }
 
     /**
-     * Uploads a registrant's profile picture to `profile_pictures/{uid}.{ext}` with automatic compression.
+     * Uploads a profile picture to `profile_pictures/{uid}/photo.jpg` (always JPEG after
+     * compression). Accepts a picker `content://` URI or a remote `https://` photo URL —
+     * Google sign-in pre-fills the latter, which ContentResolver cannot open.
      */
     suspend fun uploadProfilePicture(
         uid: String,
         fileUri: Uri,
-        fileExtension: String = "jpg",
-        context: Context = try {
-            FirebaseApp.getInstance().applicationContext
-        } catch (e: Exception) {
-            android.os.Environment.getDataDirectory() /* fallback */
-            throw e
-        },
+        context: Context = FirebaseApp.getInstance().applicationContext,
         onProgress: (Float) -> Unit = {}
     ): String? {
-        val bytes = withContext(Dispatchers.IO) {
-            context.contentResolver.openInputStream(fileUri)?.use { it.readBytes() }
+        val bytes = try {
+            readImageBytes(context, fileUri)
+        } catch (e: Exception) {
+            lastUploadError = e.message ?: e.toString()
+            Log.e(TAG, "Reading profile picture $fileUri failed: ${e.message}", e)
+            null
         } ?: return null
         return uploadCompressedImageBytesAndGetUrl(
-            ref = storage?.reference?.child("profile_pictures/$uid/photo.$fileExtension"),
+            ref = storage?.reference?.child("profile_pictures/$uid/photo.jpg"),
             rawBytes = bytes,
             onProgress = onProgress
         )
+    }
+
+    private suspend fun readImageBytes(context: Context, uri: Uri): ByteArray? = withContext(Dispatchers.IO) {
+        when (uri.scheme?.lowercase()) {
+            "http", "https" -> java.net.URL(uri.toString()).openStream().use { it.readBytes() }
+            else -> context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+        }
     }
 
     /**
@@ -139,20 +146,22 @@ class FirebaseStorageService(
     suspend fun purgeListingStorage(spaceId: String): Boolean {
         val rootRef = storage?.reference?.child("listings/$spaceId") ?: return false
         return try {
-            val listResult = rootRef.listAll().await()
-            for (fileRef in listResult.items) {
-                try { fileRef.delete().await() } catch (e: Exception) { Log.w(TAG, "Failed deleting ${fileRef.path}: ${e.message}") }
-            }
-            for (prefixRef in listResult.prefixes) {
-                val subList = prefixRef.listAll().await()
-                for (fileRef in subList.items) {
-                    try { fileRef.delete().await() } catch (e: Exception) { Log.w(TAG, "Failed deleting ${fileRef.path}: ${e.message}") }
-                }
-            }
+            deleteRecursively(rootRef)
             true
         } catch (e: Exception) {
             Log.w(TAG, "purgeListingStorage failed for spaceId $spaceId: ${e.message}")
             false
+        }
+    }
+
+    // listings/{id}/subdivisions/{subId}/… is three levels deep, so walk every prefix.
+    private suspend fun deleteRecursively(ref: StorageReference) {
+        val listResult = ref.listAll().await()
+        for (fileRef in listResult.items) {
+            try { fileRef.delete().await() } catch (e: Exception) { Log.w(TAG, "Failed deleting ${fileRef.path}: ${e.message}") }
+        }
+        for (prefixRef in listResult.prefixes) {
+            deleteRecursively(prefixRef)
         }
     }
 

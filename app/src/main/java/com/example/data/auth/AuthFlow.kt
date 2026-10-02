@@ -81,7 +81,9 @@ suspend fun completeVerifiedRegistration(
         ),
         integrityToken = integrityToken
     ).getOrThrow()
-    val role = resolveVerifiedRole(functionsClient, firebaseUser, integrityToken)
+    // assignInitialRole just ran and set the claim — read it rather than calling it a second time.
+    val role = FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true)
+        ?.let { runCatching { UserRole.valueOf(it) }.getOrNull() } ?: UserRole.SPECIALIST
     return repository.registerMember(
         uid = firebaseUser.uid,
         verifiedRole = role,

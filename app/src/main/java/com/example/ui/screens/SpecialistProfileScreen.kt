@@ -730,9 +730,7 @@ fun SpecialistProfileScreen(
                                     var pictureUploadFailed = false
                                     if (localPicUri != null) {
                                         val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
-                                        val mime = context.contentResolver.getType(localPicUri)
-                                        val ext = mime?.let { android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(it) } ?: "jpg"
-                                        profilePictureUrl = storageService.uploadProfilePicture(user.id, localPicUri, ext)
+                                        profilePictureUrl = storageService.uploadProfilePicture(user.id, localPicUri)
                                         pictureUploadFailed = profilePictureUrl == null
                                     }
                                     val success = viewModel.updateProfile(
@@ -907,10 +905,13 @@ fun SpecialistProfileScreen(
                                     val result = viewModel.deleteAccount()
                                     isDeletingAccount = false
                                     showDeleteConfirmation = false
-                                    if (result.isFailure) {
+                                    result.exceptionOrNull()?.let { error ->
                                         Toast.makeText(
                                             context,
-                                            "Couldn't delete your account — please check your connection and try again.",
+                                            com.example.util.friendlyErrorMessage(
+                                                error,
+                                                "Couldn't delete your account. Please try again, or contact support."
+                                            ),
                                             Toast.LENGTH_LONG
                                         ).show()
                                     }

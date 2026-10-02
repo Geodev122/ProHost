@@ -60,30 +60,10 @@ class ProHostViewModel(
     private val _sessionRestoreError = MutableStateFlow<String?>(null)
     val sessionRestoreError: StateFlow<String?> = _sessionRestoreError.asStateFlow()
 
-    // Set to true by MainActivity.onResume when the app was in the background for >60s
-    // with a signed-in user — gates the UI behind PIN entry (H1).
-    private val _pinReauthRequired = MutableStateFlow(false)
-    val pinReauthRequired: StateFlow<Boolean> = _pinReauthRequired.asStateFlow()
-
-    fun requestPinReauth() {
-        // Skip for ADMIN accounts — they have no phone-OTP registration and cannot verify PIN (NF1).
-        val user = currentUser.value ?: return
-        if (user.role == com.example.data.model.UserRole.ADMIN) return
-        _pinReauthRequired.value = true
-    }
-
-    fun clearPinReauth() {
-        _pinReauthRequired.value = false
-    }
-
-    // Set when cold-start restoration finds a Firebase-Auth-verified session whose
-    // registration was never actually completed (app killed between OTP
-    // verification and submitting the registration form) — see the init block
-    // below and ProHostRepository.discardIncompleteSession's doc comment for the
-    // full story. ProHostAppRoot routes to LoginAuthScreen's registration form
-    // directly (skipping phone/OTP entry, since this session is already verified)
-    // instead of either silently completing a broken "login" or bouncing the user
-    // to a plain phone-entry screen with no memory of which number this was.
+    // Non-null when cold-start restoration finds a verified Firebase session (any
+    // provider — email, Google or phone) whose registration was never completed.
+    // ProHostAppRoot then opens LoginAuthScreen directly on the registration form.
+    // The value is the verified phone for a phone sign-in, or "" for email/Google.
     private val _pendingRegistrationPhone = MutableStateFlow<String?>(null)
     val pendingRegistrationPhone: StateFlow<String?> = _pendingRegistrationPhone.asStateFlow()
 
@@ -108,15 +88,17 @@ class ProHostViewModel(
                     val user = kotlinx.coroutines.withTimeout(SESSION_RESTORE_TIMEOUT_MS) {
                         com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
                     }
-                    // A real, previously-completed account always has a real phone on
-                    // file (registerMember always writes one) — ADMIN is the one
-                    // legitimate exception, created via bootstrapSuperAdmin/
-                    // grantAdminRole, which never goes through registerMember at all.
-                    // Anything else with a blank phone here is exactly the stranded
-                    // mid-registration case, not a coincidence.
-                    if (user.role != UserRole.ADMIN && user.phone.isBlank()) {
+                    // Same completeness rule every sign-in path uses. Email/Google users have
+                    // no phone until KYC, so a phone check here used to sign them out on
+                    // every cold start.
+                    if (!user.isProfileComplete()) {
                         repository.discardIncompleteSession()
-                        _pendingRegistrationPhone.value = firebaseUser.phoneNumber
+                        _pendingRegistrationPhone.value = firebaseUser.phoneNumber.orEmpty()
+                    } else {
+                        runCatching {
+                            val token = com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
+                            repository.registerFcmToken(user.id, token)
+                        }
                     }
                 } catch (e: com.example.data.auth.AccountSuspendedException) {
                     // Same handling the explicit sign-in flow uses for this exception — the

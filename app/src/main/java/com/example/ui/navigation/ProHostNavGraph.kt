@@ -2,11 +2,9 @@ package com.example.ui.navigation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Celebration
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
@@ -36,8 +34,6 @@ import com.example.ui.viewmodel.DiscoveryViewModel
 import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.InAppUpdateManager
 import com.example.util.UpdateState
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import kotlinx.coroutines.launch
 
 /**
@@ -110,7 +106,8 @@ private fun allowedTabIdsForRole(role: UserRole): Set<String> {
         UserRole.SPECIALIST -> SPECIALIST_BOTTOM_TABS.map { it.id }.toSet() + AppNavTab.OwnerSubscriptions.id + shared
         UserRole.PRO_HOST -> PRO_HOST_BOTTOM_TABS.map { it.id }.toSet() + PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() + AppNavTab.SearchMap.id
         UserRole.ADMIN -> ADMIN_FULLSCREEN_TABS.map { it.id }.toSet() +
-            (PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() - AppNavTab.OwnerSubscriptions.id) + AppNavTab.ManageListings.id + AppNavTab.OwnerRentingProgress.id
+            (PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() - AppNavTab.OwnerSubscriptions.id) + AppNavTab.ManageListings.id + AppNavTab.OwnerRentingProgress.id +
+            AppNavTab.SearchMap.id
     }
 }
 
@@ -329,6 +326,9 @@ fun ProHostAppRoot(
         if (consumedDeepLinkBookingId == deepLinkBookingId) return@LaunchedEffect
         consumedDeepLinkBookingId = deepLinkBookingId
         val role = currentUser?.role
+        // A notification that names its own target tab (handled by the role-validated
+        // deep-link effect above) wins; this is only the fallback for a bare booking id.
+        if (role != null && !deepLinkTab.isNullOrBlank() && deepLinkTab in allowedTabIdsForRole(role)) return@LaunchedEffect
         when (role) {
             UserRole.SPECIALIST -> navigateTo("pro_rentals")
             UserRole.PRO_HOST -> navigateTo("owner_requests")
@@ -380,7 +380,7 @@ fun ProHostAppRoot(
             }
             LoginAuthScreen(
                 resumeAtRegistration = pendingRegistrationPhone != null,
-                resumePhoneE164 = pendingRegistrationPhone,
+                resumePhoneE164 = pendingRegistrationPhone?.ifBlank { null },
                 onCancelResume = { viewModel.clearPendingRegistrationPhone() },
                 onLoginSuccess = {
                     viewModel.clearPendingRegistrationPhone()
@@ -404,21 +404,11 @@ fun ProHostAppRoot(
             }
         )
     } else {
-        val pinReauthRequired by viewModel.pinReauthRequired.collectAsState()
         val discoveryViewModel: DiscoveryViewModel = viewModel()
         val isMapViewActive by discoveryViewModel.isMapViewActive.collectAsState()
         val currentRole = currentUser?.role ?: UserRole.SPECIALIST
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         val scope = rememberCoroutineScope()
-
-        // Session re-auth overlay — shown when the app returns from background after >60s.
-        if (pinReauthRequired) {
-            PinReauthOverlay(
-                viewModel = viewModel,
-                onAuthenticated = { viewModel.clearPinReauth() },
-                onSignOut = { viewModel.logout() }
-            )
-        } else {
 
         // Determine visible bottom-nav tabs strictly according to role
         val roleTabs: List<AppNavTab> = when (currentRole) {
@@ -581,9 +571,9 @@ fun ProHostAppRoot(
                             NavigationBar(
                                 containerColor = MaterialTheme.colorScheme.surface,
                                 tonalElevation = 0.dp,
-                                modifier = Modifier
-                                    .height(72.dp)
-                                    .testTag("bottom_navigation_bar")
+                                // No fixed height: NavigationBar adds the system nav-bar inset
+                                // inside its own bounds, so a fixed height squeezed the items.
+                                modifier = Modifier.testTag("bottom_navigation_bar")
                             ) {
                                 roleTabs.forEach { tab ->
                                     val isSelected = activeTabId == tab.id
@@ -630,12 +620,16 @@ fun ProHostAppRoot(
                 // and the system default (minimize/exit) applies, same as it always has
                 // for Pro Host/Specialist sitting on their own root tab.
                 val isAdminAtRoot = currentRole == UserRole.ADMIN && safeFullScreenDrawerTab == AppNavTab.AdminConsole.id
-                BackHandler(enabled = managingSpace != null || detailedSpace != null || (safeFullScreenDrawerTab != null && !isAdminAtRoot)) {
+                val isAdminOnMainTab = currentRole == UserRole.ADMIN && safeFullScreenDrawerTab == null
+                BackHandler(enabled = managingSpace != null || detailedSpace != null || isAdminOnMainTab ||
+                    (safeFullScreenDrawerTab != null && !isAdminAtRoot)) {
                     if (managingSpace != null) {
                         managingSpace = null
                     } else if (detailedSpace != null) {
                         detailedSpace = null
                         detailedSpaceSubdivisionId = null
+                    } else if (isAdminOnMainTab) {
+                        fullScreenDrawerTab = AppNavTab.AdminConsole.id
                     } else if (safeFullScreenDrawerTab != null) {
                         if (currentRole == UserRole.ADMIN) {
                             fullScreenDrawerTab = AppNavTab.AdminConsole.id
@@ -818,116 +812,6 @@ fun ProHostAppRoot(
                     }
                 }
             )
-        }
-        } // end main app (pinReauthRequired == false) branch
-    }
-}
-
-@Composable
-private fun PinReauthOverlay(
-    viewModel: ProHostViewModel,
-    onAuthenticated: () -> Unit,
-    onSignOut: () -> Unit
-) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val activity = context as? androidx.fragment.app.FragmentActivity
-
-    // Trigger biometric prompt as soon as the overlay appears.
-    LaunchedEffect(Unit) {
-        if (activity == null) {
-            // No FragmentActivity available (unlikely in this app) — just unlock so the
-            // user isn't permanently locked out. The session was only backgrounded, not
-            // transferred to another device, so this is an acceptable degraded path.
-            onAuthenticated()
-            return@LaunchedEffect
-        }
-        val executor = androidx.core.content.ContextCompat.getMainExecutor(activity)
-        val prompt = androidx.biometric.BiometricPrompt(
-            activity, executor,
-            object : androidx.biometric.BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationSucceeded(result: androidx.biometric.BiometricPrompt.AuthenticationResult) {
-                    onAuthenticated()
-                }
-                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                    // If biometrics aren't enrolled or the device has none, fall through
-                    // so the user isn't permanently locked; every other error keeps the
-                    // lock up (user cancelled, too many attempts, etc.).
-                    val isFallthrough = errorCode == androidx.biometric.BiometricPrompt.ERROR_NO_BIOMETRICS ||
-                        errorCode == androidx.biometric.BiometricPrompt.ERROR_HW_NOT_PRESENT ||
-                        errorCode == androidx.biometric.BiometricPrompt.ERROR_HW_UNAVAILABLE ||
-                        errorCode == androidx.biometric.BiometricPrompt.ERROR_NEGATIVE_BUTTON
-                    if (isFallthrough) onAuthenticated()
-                }
-                override fun onAuthenticationFailed() { /* keep overlay; user may retry */ }
-            }
-        )
-        val info = androidx.biometric.BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Unlock ProHost")
-            .setSubtitle("Verify your identity to continue")
-            .setAllowedAuthenticators(
-                androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or
-                androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
-            )
-            .build()
-        prompt.authenticate(info)
-    }
-
-    Scaffold { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Session Locked", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                "Verify your identity to continue.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = {
-                    // Re-trigger the biometric prompt if the user dismissed it.
-                    if (activity != null) {
-                        val executor = androidx.core.content.ContextCompat.getMainExecutor(activity)
-                        val prompt = androidx.biometric.BiometricPrompt(
-                            activity, executor,
-                            object : androidx.biometric.BiometricPrompt.AuthenticationCallback() {
-                                override fun onAuthenticationSucceeded(result: androidx.biometric.BiometricPrompt.AuthenticationResult) { onAuthenticated() }
-                                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                                    val isFallthrough = errorCode == androidx.biometric.BiometricPrompt.ERROR_NO_BIOMETRICS ||
-                                        errorCode == androidx.biometric.BiometricPrompt.ERROR_HW_NOT_PRESENT ||
-                                        errorCode == androidx.biometric.BiometricPrompt.ERROR_HW_UNAVAILABLE ||
-                                        errorCode == androidx.biometric.BiometricPrompt.ERROR_NEGATIVE_BUTTON
-                                    if (isFallthrough) onAuthenticated()
-                                }
-                                override fun onAuthenticationFailed() {}
-                            }
-                        )
-                        val info = androidx.biometric.BiometricPrompt.PromptInfo.Builder()
-                            .setTitle("Unlock ProHost")
-                            .setSubtitle("Verify your identity to continue")
-                            .setAllowedAuthenticators(
-                                androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or
-                                androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
-                            )
-                            .build()
-                        prompt.authenticate(info)
-                    } else {
-                        onAuthenticated()
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Unlock Session") }
-            Spacer(modifier = Modifier.height(8.dp))
-            TextButton(onClick = onSignOut) { Text("Sign Out") }
         }
     }
 }

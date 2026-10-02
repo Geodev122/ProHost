@@ -118,10 +118,10 @@ export const sendVerificationEmailLink = onCall(
     const tpl = emailVerificationTemplate(userCtx, link);
     const delivered = await sendEmail({ to: fbUser.email, ...tpl });
 
-    await db.collection("user_profiles").doc(uid).update({
+    await db.collection("user_profiles").doc(uid).set({
       emailVerificationResendCount: lastResendAt < oneDayAgo ? 1 : recentResends + 1,
       emailVerificationLastResendAt: Date.now(),
-    });
+    }, { merge: true });
 
     if (!delivered) {
       logger.error("verification_email_failed", { uid });

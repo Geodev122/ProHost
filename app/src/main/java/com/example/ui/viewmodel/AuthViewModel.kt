@@ -5,8 +5,10 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.auth.AuthResult
+import com.example.data.auth.isCallableUnavailable
+import com.example.data.auth.toUserMessage
+import com.example.data.model.isProfileComplete
 import com.example.data.repository.ProHostRepository
-import com.example.util.guessFileExtension
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -72,15 +74,23 @@ class AuthViewModel(
         val tosAccepted: Boolean
     )
 
-    // --- Email lookup state (EMAIL_ENTRY step) ---
+    // --- Email sign-in state ---
 
-    enum class EmailLookupResult { UNKNOWN, NEW_USER, HAS_EMAIL, HAS_PASSWORD, HAS_GOOGLE }
-
-    private val _emailLookupResult = MutableStateFlow(EmailLookupResult.UNKNOWN)
-    val emailLookupResult: StateFlow<EmailLookupResult> = _emailLookupResult.asStateFlow()
+    /** How the sign-in email was delivered, so the screen can show the matching step. */
+    enum class EmailDelivery { LINK, CODE }
 
     private val _pendingEmail = MutableStateFlow("")
     val pendingEmail: StateFlow<String> = _pendingEmail.asStateFlow()
+
+    // Raised whenever a verified sign-in turns out to need the registration form. The
+    // email-link and one-click-code deep links complete sign-in from ProHostAppRoot, not
+    // from LoginAuthScreen, so the screen observes this instead of relying on a callback.
+    private val _registrationRequested = MutableStateFlow(false)
+    val registrationRequested: StateFlow<Boolean> = _registrationRequested.asStateFlow()
+
+    fun consumeRegistrationRequest() {
+        _registrationRequested.value = false
+    }
 
     // ---
 
@@ -109,54 +119,49 @@ class AuthViewModel(
 
     // --- Email / Google auth methods ---
 
-    fun lookupEmail(email: String) {
-        viewModelScope.launch {
-            try {
-                _isAuthenticating.value = true
-                _emailLookupResult.value = EmailLookupResult.UNKNOWN  // reset so LaunchedEffect re-fires on retry
-                val authService = com.example.data.auth.FirebaseAuthService(firebaseAppContext())
-                val methods = authService.fetchSignInMethodsForEmail(email)
-                _pendingEmail.value = email
-                _emailLookupResult.value = when {
-                    methods.isEmpty() -> EmailLookupResult.NEW_USER
-                    "google.com" in methods -> EmailLookupResult.HAS_GOOGLE
-                    "password" in methods -> EmailLookupResult.HAS_PASSWORD
-                    else -> EmailLookupResult.HAS_EMAIL
-                }
-                _isAuthenticating.value = false
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _isAuthenticating.value = false
-                _authErrorMessage.value = e.localizedMessage ?: "Unable to reach the server. Please check your connection."
-            }
-        }
-    }
-
-    fun sendEmailSignInLink(email: String, continueUrl: String, onSent: (Boolean) -> Unit) {
-        viewModelScope.launch {
-            try {
-                _isAuthenticating.value = true
-                val authService = com.example.data.auth.FirebaseAuthService(firebaseAppContext())
-                val sent = authService.sendSignInLinkToEmail(email, continueUrl)
-                _isAuthenticating.value = false
-                onSent(sent)
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _isAuthenticating.value = false
-                _authErrorMessage.value = e.localizedMessage ?: "Failed to send sign-in link. Please try again."
-                onSent(false)
-            }
-        }
-    }
-
     /**
-     * Calls the sendSignInEmailLink Cloud Function which generates a Firebase Auth
-     * magic link server-side and delivers it via SMTP with a branded template.
-     * The caller saves the pending email before calling this, and completes sign-in
-     * via handleEmailLink() once the deep link arrives in MainActivity.
+     * Starts email sign-in/sign-up. There is deliberately no "does this email exist"
+     * lookup: Firebase's email-enumeration protection makes that answer always empty,
+     * and new vs. returning is decided after verification from the stored profile.
+     * Sends a magic link; if the link service is unavailable, falls back to a 6-digit
+     * code so a new user is never stuck on a raw backend error.
      */
+    fun startEmailSignIn(email: String, onDelivered: (EmailDelivery) -> Unit) {
+        viewModelScope.launch {
+            _isAuthenticating.value = true
+            _authErrorMessage.value = null
+            _pendingEmail.value = email
+            savePendingEmailLink(email)
+            try {
+                val link = functionsClient.sendSignInEmailLink(email)
+                if (link.isSuccess) {
+                    onDelivered(EmailDelivery.LINK)
+                    return@launch
+                }
+                val linkError = link.exceptionOrNull()
+                if (linkError is com.google.firebase.functions.FirebaseFunctionsException && !linkError.isCallableUnavailable()) {
+                    _authErrorMessage.value = linkError.toUserMessage("Couldn't send the sign-in email. Please try again.")
+                    return@launch
+                }
+                val code = functionsClient.sendEmailOtp(email)
+                if (code.isSuccess) {
+                    onDelivered(EmailDelivery.CODE)
+                } else {
+                    _authErrorMessage.value = (code.exceptionOrNull() ?: linkError)
+                        ?.toUserMessage("Couldn't send the sign-in email. Please try again.")
+                        ?: "Couldn't send the sign-in email. Please try again."
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _authErrorMessage.value = e.toUserMessage("Couldn't send the sign-in email. Please try again.")
+            } finally {
+                _isAuthenticating.value = false
+            }
+        }
+    }
+
+    /** Re-sends the magic link (used by the "Resend link" button). */
     fun sendEmailLinkViaFunction(email: String, onSent: (Boolean) -> Unit) {
         viewModelScope.launch {
             try {
@@ -165,7 +170,9 @@ class AuthViewModel(
                 _isAuthenticating.value = false
                 onSent(result.isSuccess)
                 if (result.isFailure) {
-                    _authErrorMessage.value = result.exceptionOrNull()?.message ?: "Failed to send sign-in link."
+                    _authErrorMessage.value = result.exceptionOrNull()
+                        ?.toUserMessage("Failed to send sign-in link. Try \"Use a code instead\".")
+                        ?: "Failed to send sign-in link."
                 }
             } catch (e: kotlinx.coroutines.CancellationException) { throw e }
             catch (e: Exception) {
@@ -211,29 +218,6 @@ class AuthViewModel(
         }
     }
 
-    fun signInWithEmailPassword(
-        email: String,
-        password: String,
-        onSuccess: () -> Unit,
-        onError: (String) -> Unit
-    ) {
-        viewModelScope.launch {
-            try {
-                _isAuthenticating.value = true
-                val authService = com.example.data.auth.FirebaseAuthService(firebaseAppContext())
-                authService.signInWithEmailAndPassword(email, password)
-                _isAuthenticating.value = false
-                _authSuccessMessage.value = "Welcome back!"
-                onSuccess()
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _isAuthenticating.value = false
-                onError(e.message ?: "Sign-in failed. Please check your password.")
-            }
-        }
-    }
-
     /** Sends a 6-digit OTP to [email] via Cloud Function → Hostinger SMTP. */
     fun sendEmailOtp(email: String, onSent: (Boolean) -> Unit) {
         viewModelScope.launch {
@@ -242,7 +226,9 @@ class AuthViewModel(
                 val result = functionsClient.sendEmailOtp(email)
                 _isAuthenticating.value = false
                 if (result.isFailure) {
-                    _authErrorMessage.value = "Failed to send code. Please try again."
+                    _authErrorMessage.value = result.exceptionOrNull()
+                        ?.toUserMessage("Failed to send code. Please try again.")
+                        ?: "Failed to send code. Please try again."
                 }
                 onSent(result.isSuccess)
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -268,7 +254,9 @@ class AuthViewModel(
                 _authErrorMessage.value = null
                 val tokenResult = functionsClient.verifyEmailOtp(email, code)
                 if (tokenResult.isFailure) {
-                    _authErrorMessage.value = "Invalid or expired code. Please try again."
+                    _authErrorMessage.value = tokenResult.exceptionOrNull()
+                        ?.toUserMessage("Invalid or expired code. Please try again.")
+                        ?: "Invalid or expired code. Please try again."
                     _isAuthenticating.value = false
                     return@launch
                 }
@@ -349,66 +337,54 @@ class AuthViewModel(
     /**
      * Common post-authentication logic shared by phone, email, and Google sign-in paths.
      * After any credential is verified by Firebase Auth, this decides whether the caller
-     * needs to complete registration (brand-new account) or can go straight into the app.
-     *
-     * Stranded-account recovery (a phone-auth user who got interrupted between OTP and
-     * the profile form) is scoped to phone-auth only — email/Google users always have
-     * phone blank by design until they complete the KYC step.
+     * needs to complete registration or can go straight into the app — always from the
+     * stored profile ([isProfileComplete]), never from Firebase's isNewUser flag alone:
+     * the email-code flow creates the Auth user server-side, so a brand-new person
+     * arrives here with isNewUser = false.
      */
     private suspend fun finishVerification(
         activity: Activity,
         isNewUser: Boolean,
-        onVerified: (needsRegistration: Boolean) -> Unit,
-        // The sign-in method used for THIS call, not whichever providers the
-        // account happens to have linked overall — firebaseUser.providerData
-        // lists every provider ever linked (e.g. once phone KYC has been
-        // completed), so checking it directly used to misfire for a returning
-        // Google/email user who also has a linked phone, bouncing them back to
-        // the registration form on every subsequent sign-in.
-        viaPhoneSignIn: Boolean = false
+        onVerified: (needsRegistration: Boolean) -> Unit
     ) {
         val authService = com.example.data.auth.FirebaseAuthService(activity)
         val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
         if (firebaseUser == null) {
             _isAuthenticating.value = false
-            _authErrorMessage.value = "Phone verification did not return a valid session. Please try again."
+            _authErrorMessage.value = "Verification did not return a valid session. Please try again."
             return
         }
-        if (!isNewUser) {
-            try {
-                val integrityToken = com.example.util.PlayIntegrityManager(activity)
-                    .requestIntegrityToken(firebaseUser.uid)
-                val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser, integrityToken)
-                // Stranded-account recovery path 1: phone-auth user with blank phone means
-                // the registration form was never submitted.
-                // Stranded-account recovery path 2: Google/email user with blank fullName means
-                // the profile is incomplete (interrupted registration or admin-created UID).
-                val isIncompleteProfile = when {
-                    viaPhoneSignIn -> user.role != com.example.data.model.UserRole.ADMIN && user.phone.isBlank()
-                    else -> user.role != com.example.data.model.UserRole.ADMIN && user.fullName.isBlank()
-                }
-                if (isIncompleteProfile) {
-                    repository.discardIncompleteSession()
-                    _isAuthenticating.value = false
-                    onVerified(true)
-                } else {
-                    registerFcmTokenForCurrentUser(user.id)
-                    _isAuthenticating.value = false
-                    _authSuccessMessage.value = "Welcome back, ${user.fullName}!"
-                    onVerified(false)
-                }
-            } catch (e: com.example.data.auth.AccountSuspendedException) {
-                _isAuthenticating.value = false
-                authService.signOut()
-                _authErrorMessage.value = e.message
-            } catch (e: Exception) {
-                _isAuthenticating.value = false
-                _authErrorMessage.value = "Sign-in failed. Please try again."
-            }
-        } else {
-            // Brand-new account — the caller needs to complete their profile.
-            onVerified(true)
+        if (isNewUser) {
+            requestRegistration(onVerified)
+            return
         }
+        try {
+            val integrityToken = com.example.util.PlayIntegrityManager(activity)
+                .requestIntegrityToken(firebaseUser.uid)
+            val user = com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser, integrityToken)
+            if (!user.isProfileComplete()) {
+                repository.discardIncompleteSession()
+                requestRegistration(onVerified)
+            } else {
+                registerFcmTokenForCurrentUser(user.id)
+                _isAuthenticating.value = false
+                _authSuccessMessage.value = "Welcome back, ${user.fullName}!"
+                onVerified(false)
+            }
+        } catch (e: com.example.data.auth.AccountSuspendedException) {
+            _isAuthenticating.value = false
+            authService.signOut()
+            _authErrorMessage.value = e.message
+        } catch (e: Exception) {
+            _isAuthenticating.value = false
+            _authErrorMessage.value = e.toUserMessage("Sign-in failed. Please try again.")
+        }
+    }
+
+    private fun requestRegistration(onVerified: (needsRegistration: Boolean) -> Unit) {
+        _isAuthenticating.value = false
+        _registrationRequested.value = true
+        onVerified(true)
     }
 
     // --- Phone OTP (legacy parallel path for existing phone-only users) ---
@@ -484,7 +460,7 @@ class AuthViewModel(
         when (result) {
             is com.example.data.auth.AuthResult.Success -> {
                 _pendingVerificationId.value = null
-                finishVerification(activity, result.isNewUser, onVerified, viaPhoneSignIn = true)
+                finishVerification(activity, result.isNewUser, onVerified)
             }
             is com.example.data.auth.AuthResult.Error -> {
                 _isAuthenticating.value = false
@@ -625,7 +601,7 @@ class AuthViewModel(
                 }
                 val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
                 val profilePictureUrl = registration.profilePictureUri?.let { uri ->
-                    storageService.uploadProfilePicture(firebaseUser.uid, uri, guessFileExtension(activity, uri, "jpg"))
+                    storageService.uploadProfilePicture(firebaseUser.uid, uri)
                 }
                 val integrityToken = com.example.util.PlayIntegrityManager(activity)
                     .requestIntegrityToken(firebaseUser.uid)
@@ -664,28 +640,9 @@ class AuthViewModel(
                 _authErrorMessage.value = e.message
             } catch (e: Exception) {
                 _isAuthenticating.value = false
-                _authErrorMessage.value = friendlyRegistrationErrorMessage(e)
+                _authErrorMessage.value = e.toUserMessage("Registration failed. Please try again.")
             }
         }
     }
 
-    /**
-     * A Cloud Function's own rejection message (e.g. assignInitialRole's format
-     * validation) is already written for end users and safe to show as-is. Raw
-     * SDK/network errors are never shown verbatim.
-     */
-    private fun friendlyRegistrationErrorMessage(e: Exception): String {
-        val msg = (e as? com.google.firebase.functions.FirebaseFunctionsException)?.message
-            ?: e.message ?: ""
-        // Pass through server-supplied messages — they're already user-friendly
-        // (assignInitialRole.ts's HttpsError messages, account suspension, etc.)
-        if (e is com.google.firebase.functions.FirebaseFunctionsException && msg.isNotBlank()) {
-            return msg
-        }
-        return when {
-            msg.contains("network", ignoreCase = true) -> "Network error. Please check your connection."
-            msg.contains("too-many-requests", ignoreCase = true) -> "Too many attempts. Please try again later."
-            else -> "Registration failed. Please try again."
-        }
-    }
 }
