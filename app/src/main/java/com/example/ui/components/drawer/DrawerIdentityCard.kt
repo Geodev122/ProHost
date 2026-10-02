@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.data.model.AppUser
+import com.example.data.model.publicCode
 import com.example.data.model.PackagePlan
 import com.example.data.model.UserRole
 import com.example.ui.theme.*
@@ -288,7 +289,7 @@ fun DrawerIdentityCard(
                     ) {
                         Icon(Icons.Default.Badge, contentDescription = null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
                         Text(
-                            text = "ID: ${user?.id?.take(10) ?: "—"}",
+                            text = "ID: ${user?.publicCode ?: "—"}",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.9f),
                             fontWeight = FontWeight.Medium,

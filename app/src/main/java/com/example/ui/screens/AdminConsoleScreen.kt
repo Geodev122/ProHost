@@ -2366,6 +2366,15 @@ private fun AdminDemoControlTab(
                             icon = Icons.Default.DeleteSweep
                         )
                     }
+                    // Short public codes (U-/L-/D-/B-) are assigned automatically to new
+                    // documents; this fills in everything created before codes existed.
+                    CustomButton(
+                        text = "Assign Display Codes to Existing Records",
+                        onClick = { adminViewModel.backfillDisplayCodes() },
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = CustomButtonVariant.OUTLINED,
+                        icon = Icons.Default.Tag
+                    )
                 }
             }
         }
@@ -2437,7 +2446,7 @@ private fun AdminEditUserDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Edit User: ${user.id}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Edit User: ${user.publicCode}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = "Close") }
                 }
 

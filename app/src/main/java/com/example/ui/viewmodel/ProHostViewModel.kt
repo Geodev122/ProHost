@@ -818,7 +818,7 @@ class ProHostViewModel(
             val shiftStr = if (request.selectedShift.isNotBlank()) " (${request.selectedShift})" else ""
 
             "\n\n[In-App Booking Request Details]\n" +
-            "• Request ID: #${request.id}\n" +
+            (if (request.displayCode.isNotBlank()) "• Request: ${request.displayCode}\n" else "") +
             "• Formula: ${request.formula.type.displayName} - ${request.formula.scheduleDescription}\n" +
             "• Chosen Availability: $daysStr @ $timesStr$shiftStr\n" +
             "• Start Date: ${request.startDate}" +
@@ -833,7 +833,7 @@ class ProHostViewModel(
                 "I am contacting you regarding your space \"${space.title}\" located in ${space.district}, ${space.governorate.displayName} on ProHost.\n" +
                 "Selected Formula: ${formulaText}$requestSnippet\n\n" +
                 "I would like to finalize payment and walk-through details.\n" +
-                "Listing Ref: ProHost #LB-${space.id}"
+                "Listing Ref: ProHost ${space.publicCode}"
 
         try {
             val encoded = URLEncoder.encode(rawMessage, "UTF-8")
@@ -863,7 +863,7 @@ class ProHostViewModel(
         }
 
         val rawMessage = "Hello ${request.practitionerName},\n\n" +
-                "I am $ownerName regarding your booking request (#${request.id}) for space \"${request.spaceTitle}\".\n" +
+                "I am $ownerName regarding your booking request (${request.publicCode}) for space \"${request.spaceTitle}\".\n" +
                 "Requested Schedule: $daysStr @ $timesStr (${request.formula.type.displayName}).\n" +
                 "Status: ${request.status.displayName}\n\n" +
                 "Let's discuss onboarding and walk-through details."
@@ -1006,9 +1006,9 @@ class ProHostViewModel(
                     appContext,
                     if (synced) {
                         if (replacesBookingId != null) {
-                            "Edit Request #${request.id} Sent! Your current booking stays active until the host approves this change."
+                            "Edit request sent! Your current booking stays active until the host approves this change."
                         } else {
-                            "Rental Request #${request.id} Sent! Space hours remain open until owner approval."
+                            "Rental request sent! Space hours remain open until owner approval."
                         }
                     } else {
                         "Couldn't reach the server to send your request — check your connection and try again. The host has not been notified."
@@ -1043,10 +1043,12 @@ class ProHostViewModel(
             try {
                 // Refuse before the upload: accepting this would double-book a slot an
                 // ACCEPTED booking already holds. Named so the host knows which one.
+                val requestCode = bookingRequests.value.firstOrNull { it.id == requestId }?.publicCode
+                    ?: publicCode("", requestId)
                 repository.findAcceptConflict(requestId)?.let { clash ->
                     Toast.makeText(
                         appContext,
-                        "Can't accept #$requestId — it overlaps accepted booking #${clash.id} (${clash.practitionerName}, ${clash.selectedDateTimeRange}).",
+                        "Can't accept $requestCode — it overlaps accepted booking ${clash.publicCode} (${clash.practitionerName}, ${clash.selectedDateTimeRange}).",
                         Toast.LENGTH_LONG
                     ).show()
                     return@launch
@@ -1060,7 +1062,7 @@ class ProHostViewModel(
                 }
                 val success = repository.acceptBookingRequest(requestId, agreementUrl)
                 if (success) {
-                    Toast.makeText(appContext, "Booking Request #$requestId ACCEPTED! Agreement saved.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(appContext, "Booking request $requestCode accepted! Agreement saved.", Toast.LENGTH_LONG).show()
                 } else {
                     Toast.makeText(appContext, "Could not finalize acceptance. Please try again.", Toast.LENGTH_LONG).show()
                 }

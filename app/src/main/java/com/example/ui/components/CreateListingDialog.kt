@@ -183,7 +183,8 @@ fun CreateListingDialog(
     // Reuses the draft's own id when continuing one, so "Save as Draft" -> "Continue
     // Editing" -> "Publish" all write to the same document instead of forking a
     // second listing.
-    val listingId = remember { existingDraft?.id ?: ("SPC-LB-" + UUID.randomUUID().toString().take(6).uppercase()) }
+    // Internal key only — people see the server-assigned L- display code.
+    val listingId = remember { existingDraft?.id ?: ("SPC-" + UUID.randomUUID().toString().replace("-", "").take(10).uppercase()) }
     var hasUserTyped by rememberSaveable { mutableStateOf(existingDraft != null) }
     // Drives the small "Draft auto-saved" caption in the header — set once the
     // auto-save LaunchedEffect below has actually fired at least once.

@@ -35,7 +35,7 @@ class ProHostRepository {
             "role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
             "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount",
             "tosAcceptedAtMillis", "consentVersion",
-            "emailVerified", "emailVerifiedAt"
+            "emailVerified", "emailVerifiedAt", "displayCode"
         )
 
         @Volatile
@@ -1629,7 +1629,8 @@ class ProHostRepository {
         request.replacesBookingId?.let { oldId ->
             val oldRequest = _bookingRequests.value.find { it.id == oldId }
             if (oldRequest != null && oldRequest.status == BookingRequestStatus.ACCEPTED) {
-                val supersededReason = "Superseded by an accepted edit (Ref #$requestId)"
+                val editCode = _bookingRequests.value.find { it.id == requestId }?.publicCode ?: publicCode("", requestId)
+                val supersededReason = "Superseded by an accepted edit ($editCode)"
                 val cancelledOld = firestoreService.updateBookingStatus(oldId, BookingRequestStatus.CANCELLED, rejectionReason = supersededReason)
                 if (cancelledOld) {
                     _bookingRequests.value = _bookingRequests.value.map {

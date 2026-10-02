@@ -133,7 +133,7 @@ service cloud.firestore {
         (
           (isAdmin() || (role() == "PRO_HOST" && resource.data.ownerId == request.auth.uid)) &&
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-            ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended", "isOwnerPackageLapsed", "favoriteCount"]
+            ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended", "isOwnerPackageLapsed", "favoriteCount", "displayCode"]
           ) &&
           // Publishing a Draft or resuming a Paused listing (status -> ACTIVE)
           // requires an active package, same as a straight-to-ACTIVE create.
@@ -233,7 +233,7 @@ service cloud.firestore {
           ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
            "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount", "proHostUpgradedAtMillis",
            "tosAcceptedAtMillis", "consentVersion",
-           "emailVerified", "emailVerifiedAt"]
+           "emailVerified", "emailVerifiedAt", "displayCode"]
         );
 
       allow delete: if isAdmin();

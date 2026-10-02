@@ -596,7 +596,7 @@ fun SpaceDetailsScreenContent(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Your In-App Rental Request #${req.id}",
+                                    text = "Your In-App Rental Request ${req.publicCode}",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )

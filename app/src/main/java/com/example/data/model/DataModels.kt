@@ -413,7 +413,9 @@ data class Subdivision(
     val scheduleOverride: SpaceOperatingSchedule? = null,
     val pricingMode: SubdivisionPricingMode = SubdivisionPricingMode.STRATEGY_BASED,
     val capacity: Int? = null,
-    val minAttendees: Int? = null
+    val minAttendees: Int? = null,
+    // Server-assigned public code ("D-XXXXXX", functions/src/ids/displayCodes.ts); echoed on save because the subdivisions array is rewritten whole.
+    val displayCode: String = ""
 )
 
 enum class Governorate(val displayName: String, val centerLat: Double, val centerLng: Double) {
@@ -614,7 +616,9 @@ data class BookingRequest(
     val selectedAttendeePackageId: String? = null,
     val attendeePackageName: String? = null,
     val attendeePackagePriceUsd: Double = 0.0,
-    val isDemo: Boolean = false
+    val isDemo: Boolean = false,
+    // Server-assigned public code ("B-XXXXXX"); read-only on the client, never written back.
+    val displayCode: String = ""
 ) {
     val isPending: Boolean get() = status == BookingRequestStatus.PENDING
     val isAccepted: Boolean get() = status == BookingRequestStatus.ACCEPTED
@@ -720,6 +724,7 @@ data class BookingRequest(
 
             return BookingRequest(
                 id = docId,
+                displayCode = data["displayCode"] as? String ?: "",
                 spaceId = data["spaceId"] as? String ?: "",
                 spaceTitle = data["spaceTitle"] as? String ?: "",
                 spaceDistrict = data["spaceDistrict"] as? String ?: "Beirut",
@@ -940,7 +945,9 @@ data class SpaceListing(
     // Surfaced on OwnerAnalyticsScreen as the concrete "listing performance" signal
     // behind a specialist pressing/unpressing the heart icon.
     val favoriteCount: Int = 0,
-    val isDemo: Boolean = false
+    val isDemo: Boolean = false,
+    // Server-assigned public code ("L-XXXXXX"); read-only on the client, never written back.
+    val displayCode: String = ""
 ) {
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
@@ -990,6 +997,8 @@ data class SpaceListing(
             "subdivisions" to subdivisions.map { sub ->
                 mapOf(
                     "id" to sub.id,
+                    // Echoed (never invented) so a save doesn't wipe the server's code.
+                    "displayCode" to sub.displayCode.ifBlank { null },
                     "name" to sub.name,
                     "type" to sub.type.name,
                     "imageUrls" to sub.imageUrls,
@@ -1128,6 +1137,7 @@ data class SpaceListing(
                     val pricingMode = runCatching { SubdivisionPricingMode.valueOf(pricingModeStr) }.getOrDefault(SubdivisionPricingMode.STRATEGY_BASED)
                     Subdivision(
                         id = sMap["id"] as? String ?: ("SUB-" + UUID.randomUUID().toString().take(6)),
+                        displayCode = sMap["displayCode"] as? String ?: "",
                         name = sMap["name"] as? String ?: "Subdivision Unit",
                         type = lvlType,
                         imageUrls = (sMap["imageUrls"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
@@ -1153,6 +1163,7 @@ data class SpaceListing(
 
             return SpaceListing(
                 id = docId,
+                displayCode = data["displayCode"] as? String ?: "",
                 title = data["title"] as? String ?: "Executive Workspace",
                 description = data["description"] as? String ?: "",
                 spaceType = spaceType,
@@ -1289,6 +1300,18 @@ enum class SubscriptionBillingInterval(val displayName: String, val monthsDurati
  */
 fun AppUser.isProfileComplete(): Boolean = role == UserRole.ADMIN || fullName.isNotBlank()
 
+/**
+ * The ID shown to people: the server-assigned display code, or — for the few
+ * seconds before the server assigns one — a short uppercase form of the internal id.
+ */
+fun publicCode(displayCode: String, internalId: String): String =
+    displayCode.ifBlank { internalId.takeLast(6).uppercase() }
+
+val AppUser.publicCode: String get() = publicCode(displayCode, id)
+val SpaceListing.publicCode: String get() = publicCode(displayCode, id)
+val Subdivision.publicCode: String get() = publicCode(displayCode, id)
+val BookingRequest.publicCode: String get() = publicCode(displayCode, id)
+
 data class AppUser(
     val id: String,
     val email: String,
@@ -1350,7 +1373,9 @@ data class AppUser(
     // Server-only — set by Firebase Auth natively via email link; a client write would
     // let anyone claim email-verified status without clicking the link.
     val emailVerified: Boolean = false,
-    val isDemo: Boolean = false
+    val isDemo: Boolean = false,
+    // Server-assigned public code ("U-XXXXXX"); read-only on the client, never written back.
+    val displayCode: String = ""
 ) {
     val isKycComplete: Boolean
         get() = isVerified && emailVerified && country.isNotBlank() && city.isNotBlank()
@@ -1411,6 +1436,7 @@ data class AppUser(
 
             return AppUser(
                 id = docId,
+                displayCode = data["displayCode"] as? String ?: "",
                 email = data["email"] as? String ?: "",
                 fullName = data["fullName"] as? String ?: "Member",
                 role = role,

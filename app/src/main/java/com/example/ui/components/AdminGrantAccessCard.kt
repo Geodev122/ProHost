@@ -107,7 +107,7 @@ fun AdminGrantAccessCard(
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("User email") },
+                    label = { Text("Email or account code") },
                     singleLine = true,
                     enabled = !state.isLookingUp && !state.isGranting,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Search),
@@ -229,7 +229,7 @@ fun AdminGrantAccessCard(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("${target.fullName.ifBlank { "(no name)" }} · ${target.email}")
-                    Text("UID: ${target.uid}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                    Text("Account: ${target.displayCode.ifBlank { target.uid }}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                     Text("Package: $planName")
                     Text("Role: $newRole")
                 }
@@ -258,7 +258,7 @@ private fun VerificationPanel(target: GrantLookupResult, packagePlans: PackagePl
             Text(target.fullName.ifBlank { "(no name on profile)" }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(target.email, style = MaterialTheme.typography.bodyMedium)
             SelectionContainer {
-                Text("UID: ${target.uid}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                Text("Account: ${target.displayCode.ifBlank { target.uid }}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
             }
             val packageName = target.ownerPackageId?.let { packagePlans.packages[it]?.name ?: it } ?: "None"
             Text(

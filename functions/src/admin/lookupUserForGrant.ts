@@ -21,16 +21,26 @@ export const lookupUserForGrant = onCall<LookupUserForGrantData>(async (request)
     throw new HttpsError("permission-denied", "Only an Admin can look up users.");
   }
 
-  const email = request.data?.email?.trim().toLowerCase();
-  if (!email || !email.includes("@")) {
-    throw new HttpsError("invalid-argument", "A valid email is required.");
+  // Accepts an email or an account code ("U-7K3Q9P").
+  const input = request.data?.email?.trim() ?? "";
+  const accountCode = /^U-[0-9A-Z]{6}$/i.test(input) ? input.toUpperCase() : null;
+  const email = input.toLowerCase();
+  if (!accountCode && (!email || !email.includes("@"))) {
+    throw new HttpsError("invalid-argument", "Enter an email address or an account code like U-7K3Q9P.");
   }
 
   let user;
   try {
-    user = await getAuth().getUserByEmail(email);
+    if (accountCode) {
+      const match = await getFirestore().collection("user_profiles")
+        .where("displayCode", "==", accountCode).limit(1).get();
+      if (match.empty) throw new Error("no match");
+      user = await getAuth().getUser(match.docs[0].id);
+    } else {
+      user = await getAuth().getUserByEmail(email);
+    }
   } catch {
-    throw new HttpsError("not-found", `No account is registered with ${email}.`);
+    throw new HttpsError("not-found", `No account matches ${accountCode ?? email}.`);
   }
 
   const profileSnap = await getFirestore().collection("user_profiles").doc(user.uid).get();
@@ -38,6 +48,7 @@ export const lookupUserForGrant = onCall<LookupUserForGrantData>(async (request)
 
   return {
     uid: user.uid,
+    displayCode: (profile.displayCode as string | undefined) ?? "",
     email: user.email ?? email,
     fullName: (profile.fullName as string | undefined) || user.displayName || "",
     role: (user.customClaims?.role as string | undefined) ?? (profile.role as string | undefined) ?? "SPECIALIST",

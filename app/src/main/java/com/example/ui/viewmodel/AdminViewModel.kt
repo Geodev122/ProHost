@@ -248,6 +248,28 @@ class AdminViewModel(
         }
     }
 
+    fun backfillDisplayCodes() {
+        viewModelScope.launch {
+            try {
+                val result = functionsClient.backfillDisplayCodes()
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        result.fold(
+                            onSuccess = { c ->
+                                "Codes assigned — users: ${c["users"]}, listings: ${c["listings"]}, bookings: ${c["bookings"]}"
+                            },
+                            onFailure = { com.example.util.friendlyErrorMessage(it, "Code backfill failed") }
+                        )
+                    )
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("AdminViewModel", "backfillDisplayCodes failed", e)
+            }
+        }
+    }
+
     fun backfillProHostUpgradeDates() {
         viewModelScope.launch {
             try {

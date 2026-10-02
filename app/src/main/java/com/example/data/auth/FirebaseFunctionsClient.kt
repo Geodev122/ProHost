@@ -124,7 +124,8 @@ class FirebaseFunctionsClient {
                     isDisabled = data["isDisabled"] as? Boolean ?: false,
                     ownerPackageId = data["ownerPackageId"] as? String,
                     ownerPackageExpiryMillis = (data["ownerPackageExpiryMillis"] as? Number)?.toLong(),
-                    activeListingCount = (data["activeListingCount"] as? Number)?.toInt() ?: 0
+                    activeListingCount = (data["activeListingCount"] as? Number)?.toInt() ?: 0,
+                    displayCode = data["displayCode"] as? String ?: ""
                 )
             )
         } catch (e: Exception) {
@@ -213,6 +214,20 @@ class FirebaseFunctionsClient {
     }
 
     /** functions/src/admin/adminAnalytics.ts — fills missing Pro Host upgrade dates from the audit log. */
+    /** Admin-only: functions/src/ids/displayCodes.ts — codes for docs created before codes existed. */
+    suspend fun backfillDisplayCodes(): Result<Map<String, Int>> {
+        return try {
+            val result = functions.getHttpsCallable("backfillDisplayCodes").call(emptyMap<String, Any>()).await()
+            val data = result.data as? Map<*, *> ?: emptyMap<String, Any>()
+            Result.success(
+                listOf("users", "listings", "bookings").associateWith { (data[it] as? Number)?.toInt() ?: 0 }
+            )
+        } catch (e: Exception) {
+            Log.e(tag, "backfillDisplayCodes failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     suspend fun backfillProHostUpgradeDates(): Result<Pair<Int, Int>> {
         return try {
             val result = functions.getHttpsCallable("backfillProHostUpgradeDates").call(emptyMap<String, Any>()).await()
@@ -487,7 +502,8 @@ data class GrantLookupResult(
     val isDisabled: Boolean,
     val ownerPackageId: String?,
     val ownerPackageExpiryMillis: Long?,
-    val activeListingCount: Int
+    val activeListingCount: Int,
+    val displayCode: String = ""
 )
 
 data class GrantResult(

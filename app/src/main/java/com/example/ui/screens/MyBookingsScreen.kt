@@ -284,7 +284,7 @@ fun MyBookingsScreen(
                             editSourceBooking = booking
                         },
                         onAddPaymentReminders = {
-                            com.example.ui.util.PaymentCalendar.addPaymentReminders(context, booking, "#${booking.id}")
+                            com.example.ui.util.PaymentCalendar.addPaymentReminders(context, booking, booking.publicCode)
                         },
                         onViewAgreement = {
                             booking.agreementUrl?.let { url ->
@@ -507,7 +507,7 @@ fun BookingReservationCard(
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
-                            text = "${booking.spaceDistrict}, ${booking.governorate.displayName} • Ref #${booking.id}",
+                            text = "${booking.spaceDistrict}, ${booking.governorate.displayName} • Ref ${booking.publicCode}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

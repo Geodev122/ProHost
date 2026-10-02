@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AppUser
+import com.example.data.model.publicCode
 import com.example.data.model.UserRole
 import com.example.ui.components.ProHostBrandLogo
 import com.example.ui.components.ProHostCedarBadge
@@ -345,7 +346,7 @@ fun SpecialistDrawerContent(
                 val subject = Uri.encode("ProHost Support — ${currentRole.name} account")
                 val body = Uri.encode(
                     "Account: ${currentUser?.fullName ?: ""} (${currentUser?.email ?: ""})\n" +
-                        "User ID: ${currentUser?.id ?: ""}\n\nDescribe your question or issue below:\n"
+                        "Account code: ${currentUser?.publicCode ?: ""}\n\nDescribe your question or issue below:\n"
                 )
                 val intent = Intent(Intent.ACTION_SENDTO).apply {
                     data = Uri.parse("mailto:$SUPPORT_EMAIL?subject=$subject&body=$body")
