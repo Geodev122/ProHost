@@ -42,7 +42,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.*
 import com.example.ui.components.*
+import androidx.compose.foundation.BorderStroke
 import com.example.ui.state.AdminUiEvent
+import com.example.ui.state.AdminUiState
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AdminViewModel
 import com.example.ui.util.SpaceCalculationUtils
@@ -246,6 +248,11 @@ fun AdminConsoleScreen(
                         onClick = { adminViewModel.setSelectedTab(5) },
                         text = { Text("Security", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                     )
+                    Tab(
+                        selected = uiState.selectedTab == 6,
+                        onClick = { adminViewModel.setSelectedTab(6) },
+                        text = { Text("Demo Control", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                    )
                 }
             }
         }
@@ -269,6 +276,7 @@ fun AdminConsoleScreen(
                     3 -> AdminAnalyticsScreen(adminViewModel = adminViewModel)
                     4 -> AdminSchemaArchitectureTab(uiState = uiState, adminViewModel = adminViewModel)
                     5 -> AdminSecurityAuditTab(uiState = uiState, adminViewModel = adminViewModel, currentUser = currentUser)
+                    6 -> AdminDemoControlTab(uiState = uiState, adminViewModel = adminViewModel, viewModel = viewModel)
                 }
             }
             if (uiState.selectedTab == 2) {
@@ -2245,6 +2253,149 @@ private fun AdminExportDataDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AdminDemoControlTab(
+    uiState: AdminUiState,
+    adminViewModel: AdminViewModel,
+    viewModel: ProHostViewModel
+) {
+    var showPurgeConfirmDialog by remember { mutableStateOf(false) }
+    val allSpaces = uiState.allSpaces
+    val allUsers = uiState.allUsers
+    val allBookings by viewModel.bookingRequests.collectAsState()
+
+    val demoSpacesCount = remember(allSpaces) {
+        allSpaces.count { it.isDemo || it.id.startsWith("demo-") || it.id.startsWith("DEMO-") }
+    }
+    val demoUsersCount = remember(allUsers) {
+        allUsers.count { it.isDemo || it.id.startsWith("demo-") || it.id.startsWith("DEMO-") || it.email.startsWith("demo.") }
+    }
+    val demoBookingsCount = remember(allBookings) {
+        allBookings.count { it.isDemo || it.id.startsWith("demo-") || it.id.startsWith("DEMO-") }
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                shape = MaterialTheme.shapes.large,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Icon(Icons.Default.Science, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                        Text("Demo Content Management", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    }
+                    Text(
+                        "Generate or purge legitimate demo listings, fake rental requests, and demo specialist/host accounts for testing, client showcases, and UI verification before going live in production.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        item {
+            ProSurfaceCard {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text("Active Demo Metrics", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text("Demo Listings", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("$demoSpacesCount", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text("Fake Requests", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("$demoBookingsCount", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = FreshGreen)
+                            }
+                        }
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text("Demo Users", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("$demoUsersCount", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = AmberWarning)
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CustomButton(
+                            text = "Generate Demo Content",
+                            onClick = { adminViewModel.seedDemoContent() },
+                            modifier = Modifier.weight(1f),
+                            variant = CustomButtonVariant.PRIMARY,
+                            icon = Icons.Default.AutoAwesome
+                        )
+
+                        CustomButton(
+                            text = "Purge Demo Content",
+                            onClick = { showPurgeConfirmDialog = true },
+                            modifier = Modifier.weight(1f),
+                            variant = CustomButtonVariant.DANGER,
+                            icon = Icons.Default.DeleteSweep
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showPurgeConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showPurgeConfirmDialog = false },
+            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            title = { Text("Purge All Demo Content?") },
+            text = {
+                Text("This will permanently delete all $demoSpacesCount demo listings, $demoBookingsCount fake rental requests, and $demoUsersCount demo user accounts from Firestore and local memory before production.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showPurgeConfirmDialog = false
+                        adminViewModel.purgeDemoContent()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Purge Everything", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPurgeConfirmDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

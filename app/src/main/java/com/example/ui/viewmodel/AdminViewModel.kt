@@ -7,6 +7,7 @@ import com.example.data.model.*
 import com.example.data.repository.ProHostRepository
 import com.example.ui.state.AdminUiEvent
 import com.example.ui.state.AdminUiState
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -978,6 +979,36 @@ class AdminViewModel(
                         if (success) "Database schema architecture reset to Lebanese defaults" else "Failed to reset schema — please try again"
                     )
                 )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
+        }
+    }
+
+    fun seedDemoContent() {
+        viewModelScope.launch {
+            try {
+                val success = repository.seedDemoContent()
+                if (success) {
+                    _events.emit(AdminUiEvent.ShowToast("Successfully generated legit demo listings, fake requests, and demo users!"))
+                } else {
+                    _events.emit(AdminUiEvent.ShowToast("Failed to seed demo content"))
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
+        }
+    }
+
+    fun purgeDemoContent() {
+        viewModelScope.launch {
+            try {
+                val purged = repository.purgeDemoContent()
+                _events.emit(AdminUiEvent.ShowToast("Successfully purged all demo content ($purged items removed)"))
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {

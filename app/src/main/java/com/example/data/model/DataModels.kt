@@ -613,7 +613,8 @@ data class BookingRequest(
     val attendeeCount: Int = 0,
     val selectedAttendeePackageId: String? = null,
     val attendeePackageName: String? = null,
-    val attendeePackagePriceUsd: Double = 0.0
+    val attendeePackagePriceUsd: Double = 0.0,
+    val isDemo: Boolean = false
 ) {
     val isPending: Boolean get() = status == BookingRequestStatus.PENDING
     val isAccepted: Boolean get() = status == BookingRequestStatus.ACCEPTED
@@ -681,7 +682,8 @@ data class BookingRequest(
             "attendeeCount" to attendeeCount,
             "selectedAttendeePackageId" to selectedAttendeePackageId,
             "attendeePackageName" to attendeePackageName,
-            "attendeePackagePriceUsd" to attendeePackagePriceUsd
+            "attendeePackagePriceUsd" to attendeePackagePriceUsd,
+            "isDemo" to isDemo
         )
     }
 
@@ -758,7 +760,8 @@ data class BookingRequest(
                 attendeeCount = (data["attendeeCount"] as? Number)?.toInt() ?: 0,
                 selectedAttendeePackageId = data["selectedAttendeePackageId"] as? String,
                 attendeePackageName = data["attendeePackageName"] as? String,
-                attendeePackagePriceUsd = (data["attendeePackagePriceUsd"] as? Number)?.toDouble() ?: 0.0
+                attendeePackagePriceUsd = (data["attendeePackagePriceUsd"] as? Number)?.toDouble() ?: 0.0,
+                isDemo = data["isDemo"] as? Boolean ?: (docId.startsWith("demo-") || docId.startsWith("DEMO-"))
             )
         }
     }
@@ -936,7 +939,8 @@ data class SpaceListing(
     // (absent from toFirestoreMap below), so a host can't inflate their own count.
     // Surfaced on OwnerAnalyticsScreen as the concrete "listing performance" signal
     // behind a specialist pressing/unpressing the heart icon.
-    val favoriteCount: Int = 0
+    val favoriteCount: Int = 0,
+    val isDemo: Boolean = false
 ) {
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
@@ -1036,6 +1040,7 @@ data class SpaceListing(
             "ownerProfilePictureUrl" to ownerProfilePictureUrl,
             "status" to status.name,
             "publishBlockedReasons" to publishBlockedReasons,
+            "isDemo" to isDemo,
             "updatedAt" to System.currentTimeMillis()
         )
     }
@@ -1205,7 +1210,8 @@ data class SpaceListing(
                 publishBlockedReasons = (data["publishBlockedReasons"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                 subdivisions = subsList,
                 createdAtMillis = (data["createdAtMillis"] as? Number)?.toLong(),
-                favoriteCount = (data["favoriteCount"] as? Number)?.toInt() ?: 0
+                favoriteCount = (data["favoriteCount"] as? Number)?.toInt() ?: 0,
+                isDemo = data["isDemo"] as? Boolean ?: (docId.startsWith("demo-") || docId.startsWith("DEMO-"))
             )
         }
     }
@@ -1336,7 +1342,8 @@ data class AppUser(
     val savedSpaceIds: List<String> = emptyList(),
     // Server-only — set by Firebase Auth natively via email link; a client write would
     // let anyone claim email-verified status without clicking the link.
-    val emailVerified: Boolean = false
+    val emailVerified: Boolean = false,
+    val isDemo: Boolean = false
 ) {
     val isKycComplete: Boolean
         get() = isVerified && emailVerified && country.isNotBlank() && city.isNotBlank()
@@ -1365,6 +1372,7 @@ data class AppUser(
             // Including them here would overwrite entitlement state on any admin-context full
             // document write, so they are intentionally excluded.
             "savedSpaceIds" to savedSpaceIds,
+            "isDemo" to isDemo,
             "updatedAt" to System.currentTimeMillis()
         )
     }
@@ -1416,7 +1424,8 @@ data class AppUser(
                 isSuspended = data["isSuspended"] as? Boolean ?: false,
                 activeListingCount = (data["activeListingCount"] as? Number)?.toInt() ?: 0,
                 savedSpaceIds = (data["savedSpaceIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
-                emailVerified = data["emailVerified"] as? Boolean ?: false
+                emailVerified = data["emailVerified"] as? Boolean ?: false,
+                isDemo = data["isDemo"] as? Boolean ?: (docId.startsWith("demo-") || docId.startsWith("DEMO-") || (data["email"] as? String)?.startsWith("demo.") == true)
             )
         }
     }

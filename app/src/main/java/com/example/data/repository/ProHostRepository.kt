@@ -3,6 +3,7 @@ package com.example.data.repository
 import android.util.Log
 import com.example.data.auth.FirebaseFunctionsClient
 import com.example.data.auth.RegistrationDetails
+import com.example.data.demo.DemoDataGenerator
 import com.example.data.firestore.FirestoreSchema
 import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
@@ -796,6 +797,88 @@ class ProHostRepository {
             )
         }
         return success
+    }
+
+    suspend fun seedDemoContent(): Boolean {
+        val demoUsers = DemoDataGenerator.generateDemoUsers()
+        val demoListings = DemoDataGenerator.generateDemoListings()
+        val demoRequests = DemoDataGenerator.generateDemoBookings()
+
+        var userCount = 0
+        var spaceCount = 0
+        var reqCount = 0
+
+        demoUsers.forEach { u ->
+            if (firestoreService.saveUserProfile(u)) userCount++
+        }
+
+        demoListings.forEach { s ->
+            if (firestoreService.saveWorkspace(s)) spaceCount++
+        }
+
+        demoRequests.forEach { r ->
+            if (firestoreService.saveBookingRequest(r)) reqCount++
+        }
+
+        val updatedUserMap = _users.value.associateBy { it.id }.toMutableMap()
+        demoUsers.forEach { updatedUserMap[it.id] = it }
+        _users.value = updatedUserMap.values.toList()
+
+        val updatedSpaceMap = _spaces.value.associateBy { it.id }.toMutableMap()
+        demoListings.forEach { updatedSpaceMap[it.id] = it }
+        _spaces.value = updatedSpaceMap.values.toList()
+
+        val updatedBookingMap = _bookingRequests.value.associateBy { it.id }.toMutableMap()
+        demoRequests.forEach { updatedBookingMap[it.id] = it }
+        _bookingRequests.value = updatedBookingMap.values.toList()
+
+        addAuditLog(
+            actionType = "DEMO_CONTENT_SEEDED",
+            details = "Admin generated $spaceCount demo listings, $reqCount fake requests, and $userCount demo users.",
+            severity = "INFO"
+        )
+        return true
+    }
+
+    suspend fun purgeDemoContent(): Int {
+        var purgedCount = 0
+
+        val demoSpaces = _spaces.value.filter {
+            it.isDemo || it.id.startsWith("demo-") || it.id.startsWith("DEMO-")
+        }
+        demoSpaces.forEach { space ->
+            if (firestoreService.deleteWorkspace(space.id)) purgedCount++
+        }
+        _spaces.value = _spaces.value.filterNot {
+            it.isDemo || it.id.startsWith("demo-") || it.id.startsWith("DEMO-")
+        }
+
+        val demoBookings = _bookingRequests.value.filter {
+            it.isDemo || it.id.startsWith("demo-") || it.id.startsWith("DEMO-")
+        }
+        demoBookings.forEach { booking ->
+            if (firestoreService.deleteBookingRequest(booking.id)) purgedCount++
+        }
+        _bookingRequests.value = _bookingRequests.value.filterNot {
+            it.isDemo || it.id.startsWith("demo-") || it.id.startsWith("DEMO-")
+        }
+
+        val demoUsers = _users.value.filter {
+            it.isDemo || it.id.startsWith("demo-") || it.id.startsWith("DEMO-") || it.email.startsWith("demo.")
+        }
+        demoUsers.forEach { user ->
+            if (firestoreService.deleteUserProfile(user.id)) purgedCount++
+        }
+        _users.value = _users.value.filterNot {
+            it.isDemo || it.id.startsWith("demo-") || it.id.startsWith("DEMO-") || it.email.startsWith("demo.")
+        }
+
+        addAuditLog(
+            actionType = "DEMO_CONTENT_PURGED",
+            details = "Admin purged $purgedCount demo listings, fake requests, and demo users from system before production.",
+            severity = "SECURE"
+        )
+        return purgedCount
     }
 
     private fun createDefaultSchema(): SpaceArchitectureSchema {

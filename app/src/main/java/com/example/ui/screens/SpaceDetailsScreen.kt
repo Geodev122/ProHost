@@ -1071,7 +1071,7 @@ fun SpaceDetailsScreenContent(
             },
             modifier = Modifier.shadow(16.dp, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
-            windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+            contentWindowInsets = { WindowInsets(0) },
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             // Blue design (matches the "Press to see option availability" trigger
             // bar) instead of the neutral grey Material surface, so the trigger and

@@ -529,6 +529,20 @@ class FirestoreService(
      * Firestore then rejects the *entire* write as an attempted protected-field
      * change, even though the caller only meant to edit their name.
      */
+    suspend fun saveUserProfile(user: AppUser): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.USER_PROFILES)
+                .document(user.id)
+                .set(user.toFirestoreMap(), SetOptions.merge())
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving user profile: ${e.message}", e)
+            false
+        }
+    }
+
     suspend fun updateUserProfileFields(uid: String, fields: Map<String, Any?>): Boolean {
         return try {
             val db = firestore ?: return false
@@ -623,6 +637,17 @@ class FirestoreService(
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error saving booking request: ${e.message}", e)
+            false
+        }
+    }
+
+    suspend fun deleteBookingRequest(bookingId: String): Boolean {
+        return try {
+            val db = firestore ?: return false
+            db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS).document(bookingId).delete().await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting booking request: ${e.message}", e)
             false
         }
     }

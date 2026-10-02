@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -41,6 +42,15 @@ class MainActivity : FragmentActivity() {
         // Theme.MyApplication.Starting doc comment for the full root cause).
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        
+        // IMPROVE APP INTEGRITY: Prevent screen capturing/recording of the app
+        // This mitigates the "UNKNOWN_CAPTURING" risk from the Play Integrity API payload
+        // by making the OS block screen-reading malware from stealing sensitive PII or Auth/Payment info.
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE
+        )
+        
         enableEdgeToEdge()
         handleIncomingIntent(intent)
 

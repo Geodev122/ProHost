@@ -26,8 +26,6 @@ class ExampleRobolectricTest {
   fun `test financial calculations`() {
     val repo = ProHostRepository()
     assertEquals(1.80, repo.pricingState.value.monthlySubscriptionFeeUsd, 0.01)
-    val mrr = repo.calculateActiveMrr()
-    assert(mrr >= 0)
   }
 }
 

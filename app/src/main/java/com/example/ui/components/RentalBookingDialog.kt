@@ -1187,7 +1187,7 @@ private fun BookingSlotSelectorDialog(
                             Text(
                                 text = "• Space hours remain AVAILABLE to other professionals until the space owner accepts your request.\n" +
                                        "• Once accepted by the owner, your chosen schedule ($chosenSlotSummary) is locked exclusively for your use.\n" +
-                                       "• Payment is settled directly with the space owner (Cash / Whish Money / Wire Transfer).",
+                                       "• Payment is settled directly with the space owner (Cash / Wire Transfer).",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = StatusOnSuccessContainer,
                                 lineHeight = 16.sp

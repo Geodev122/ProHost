@@ -15,14 +15,14 @@ plugins {
 
 android {
   namespace = "com.example"
-  compileSdk = 36
+  compileSdk = 37
 
   defaultConfig {
     applicationId = "app.geonajjar.prohost"
     minSdk = 24
-    targetSdk = 36
-    versionCode = 21
-    versionName = "1.0.20"
+    targetSdk = 37
+    versionCode = 25
+    versionName = "1.0.25"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     
@@ -45,7 +45,7 @@ android {
 
     create("release") {
       val keystorePath = System.getenv("KEYSTORE_PATH") ?: localProperties.getProperty("keystore.path") ?: "${rootDir}/my-upload-key.jks"
-      storeFile = file(keystorePath)
+      storeFile = rootProject.file(keystorePath.removePrefix("${rootDir}/").removePrefix("C:\\:/Users/Psy/StudioProjects/ProHost/").removePrefix("C\\:/Users/Psy/StudioProjects/ProHost/"))
       storePassword = System.getenv("STORE_PASSWORD") ?: localProperties.getProperty("keystore.password")
       keyAlias = System.getenv("KEY_ALIAS") ?: localProperties.getProperty("key.alias") ?: "upload"
       keyPassword = System.getenv("KEY_PASSWORD") ?: localProperties.getProperty("key.password")

@@ -8,13 +8,11 @@ import {
 import * as logger from "firebase-functions/logger";
 
 /**
- * Single switch for App Check on every callable. Leave false until the App Check
- * console shows (nearly) all Android traffic as verified — see the
- * `app_check_unverified` log below — then flip to true and redeploy. Enforcing
- * before Play Integrity is registered rejects every call from the app,
- * including sign-in.
+ * Single switch for App Check on every callable.
+ * Enforcing blocks unauthorized clients (e.g., cURL, scripts, modified APKs)
+ * from invoking your Cloud Functions.
  */
-export const ENFORCE_APP_CHECK = false;
+export const ENFORCE_APP_CHECK = true;
 
 type Handler<T, Return, Stream> = (request: CallableRequest<T>, response?: CallableResponse<Stream>) => Return;
 type Result<Return> = Return extends Promise<unknown> ? Return : Promise<Return>;
