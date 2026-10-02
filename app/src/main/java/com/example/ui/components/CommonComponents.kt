@@ -1334,7 +1334,7 @@ fun WorkspaceCard(
             }
         }
 
-        // Footer: Details + WhatsApp buttons
+        // Footer: Check Space + WhatsApp buttons
         if (onDetailsClick != null || onWhatsAppClick != null) {
             Spacer(modifier = Modifier.height(10.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -1346,10 +1346,10 @@ fun WorkspaceCard(
             ) {
                 if (onDetailsClick != null) {
                     CustomButton(
-                        text = "Details",
+                        text = "Check Space",
                         onClick = onDetailsClick,
                         variant = CustomButtonVariant.OUTLINED,
-                        icon = Icons.Default.Info,
+                        icon = Icons.Default.Visibility,
                         modifier = Modifier.weight(1f),
                         compact = true
                     )

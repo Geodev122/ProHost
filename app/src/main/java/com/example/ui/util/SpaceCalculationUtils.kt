@@ -350,28 +350,19 @@ object SpaceCalculationUtils {
         return candidates.minByOrNull { it.amount } ?: PriceDisplay(space.baseMonthlyRateUsd.coerceAtLeast(0.0), "/mo")
     }
 
-    fun findLowestPriceForSubdivision(sub: com.example.data.model.Subdivision): PriceDisplay {
-        val pricing = sub.pricing
-        val candidates = mutableListOf<PriceDisplay>()
-        when (pricing.strategyType) {
-            RentalStrategyType.MONTHLY -> {
-                val rate = pricing.monthly?.rateUsd ?: 0.0
-                if (rate > 0.0) candidates.add(PriceDisplay(rate, "/mo"))
-            }
-            RentalStrategyType.HOURLY -> {
-                val rates = pricing.hourly?.cellPrices?.values?.filter { it > 0.0 } ?: emptyList()
-                rates.minOrNull()?.let { candidates.add(PriceDisplay(it, "/hr")) }
-            }
-            RentalStrategyType.SHIFT_BASED -> {
-                val shiftRates = pricing.shiftBased?.shifts?.map { it.price }?.filter { it > 0.0 } ?: emptyList()
-                shiftRates.minOrNull()?.let { candidates.add(PriceDisplay(it, "/shift")) }
-            }
-            RentalStrategyType.DAY_BASED -> {
-                val dayRates = pricing.dayBased?.distribution?.values?.map { it.price }?.filter { it > 0.0 } ?: emptyList()
-                dayRates.minOrNull()?.let { candidates.add(PriceDisplay(it, "/day")) }
-            }
+    fun findLowestPriceForSubdivision(sub: com.example.data.model.Subdivision): PriceDisplay =
+        lowestPriceFor(sub.pricing) ?: PriceDisplay(0.0, strategyUnitLabel(sub.pricing.strategyType))
+
+    /** Lowest configured price of one pricing config, in that config's own unit; null if unpriced. */
+    fun lowestPriceFor(pricing: com.example.data.model.RentalPricingConfig): PriceDisplay? {
+        val unit = strategyUnitLabel(pricing.strategyType)
+        val amount = when (pricing.strategyType) {
+            RentalStrategyType.MONTHLY -> pricing.monthly?.rateUsd?.takeIf { it > 0.0 }
+            RentalStrategyType.HOURLY -> pricing.hourly?.cellPrices?.values?.filter { it > 0.0 }?.minOrNull()
+            RentalStrategyType.SHIFT_BASED -> pricing.shiftBased?.shifts?.map { it.price }?.filter { it > 0.0 }?.minOrNull()
+            RentalStrategyType.DAY_BASED -> pricing.dayBased?.distribution?.values?.map { it.price }?.filter { it > 0.0 }?.minOrNull()
         }
-        return candidates.minByOrNull { it.amount } ?: PriceDisplay(0.0, "/mo")
+        return amount?.let { PriceDisplay(it, unit) }
     }
 
     /**
@@ -403,6 +394,9 @@ object SpaceCalculationUtils {
         RentalStrategyType.SHIFT_BASED -> RentalFormulaType.SHIFT
         RentalStrategyType.DAY_BASED -> RentalFormulaType.DAY_PER_WEEK
     }
+
+    /** "/hr", "/shift", "/day" or "/mo" for a pricing strategy — never hard-code a suffix. */
+    fun strategyUnitLabel(strategy: RentalStrategyType): String = rateUnitLabel(legacyFormulaType(strategy))
 
     /**
      * Returns the lowest configured price for a space and its correct unit label

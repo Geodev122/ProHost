@@ -45,10 +45,9 @@ private const val SUPPORT_EMAIL = "admin@pro-host.tech"
  * account is still a Specialist underneath, §1 of the workflow doc, so without
  * this discipline the drawer would show both roles' full item sets at once):
  *   1. Never duplicate a destination the bottom nav already shows at all times
- *      — the three bottom-nav tabs (Explore/My Bookings/Profile) are NOT
- *      repeated here; there used to be a "PRIMARY CORES" section that did
- *      exactly that, adding a second, always-visible way to reach a
- *      screen that's one tap away regardless of whether the drawer is open.
+ *      (My Bookings/Profile). The one deliberate exception is Explore: it is
+ *      pinned, highlighted, at the top of every role's drawer
+ *      (DrawerExploreHighlight) as the app's primary destination.
  *   2. Never keep a drawer item that's just a pre-filtered view of a screen
  *      already reachable another way — "Pending Requests"/"Payment Due
  *      Reminders" used to route here to a filtered version of My Bookings;
@@ -66,6 +65,40 @@ private const val SUPPORT_EMAIL = "admin@pro-host.tech"
  *      (rent-law reference content, app updates, legal documents), so it's
  *      shown to both rather than hidden for one and not the other.
  */
+/** Pinned, highlighted entry to Explore at the top of every role's drawer. */
+@Composable
+private fun DrawerExploreHighlight(isActive: Boolean, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = Color.Transparent,
+        border = if (isActive) BorderStroke(2.dp, CarnationOrange) else null,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .background(Brush.horizontalGradient(listOf(OxfordBlue, VibrantBlue)))
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color.White.copy(alpha = 0.18f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.TravelExplore, contentDescription = null, tint = Color.White)
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Explore Workspaces", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                Text("Browse and book verified spaces", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
+            }
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White)
+        }
+    }
+}
+
 /** A drawer nav-item icon with a small red dot in the corner when [showDot] is
  * true — the "new pending request" indicator on "Renting Requests", alongside
  * the existing push notification for the same event. */
@@ -197,6 +230,12 @@ fun SpecialistDrawerContent(
 
         Column(modifier = Modifier.padding(horizontal = Spacing.lg)) {
 
+        DrawerExploreHighlight(
+            isActive = activeProHostTabId == null && activeMainTabId == "search_map",
+            onClick = { onTabSelected("search_map") }
+        )
+        Spacer(modifier = Modifier.height(Spacing.md))
+
         if (isProHost) {
             Text(
                 text = "PRO HOST",
@@ -288,15 +327,6 @@ fun SpecialistDrawerContent(
                 selected = activeProHostTabId == "my_favorites",
                 onClick = { onTabSelected("my_favorites") },
                 icon = { Icon(Icons.Default.Favorite, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
-            )
-        }
-
-        if (isProHost) {
-            NavigationDrawerItem(
-                label = { Text("Explore Workspaces", fontWeight = FontWeight.SemiBold) },
-                selected = activeMainTabId == "search_map",
-                onClick = { onTabSelected("search_map") },
-                icon = { Icon(Icons.Default.TravelExplore, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
             )
         }
 
@@ -424,6 +454,12 @@ fun AdminDrawerContent(
 
         Column(modifier = Modifier.padding(horizontal = Spacing.lg)) {
 
+        DrawerExploreHighlight(
+            isActive = activeTabId == "search_map",
+            onClick = { onTabSelected("search_map") }
+        )
+        Spacer(modifier = Modifier.height(Spacing.md))
+
         Text(
             text = "CENTRAL SECURITY CORES",
             style = MaterialTheme.typography.labelSmall,
@@ -496,19 +532,6 @@ fun AdminDrawerContent(
                     Icons.Default.HomeWork,
                     contentDescription = null,
                     tint = if (activeTabId == "manage_listings") CarnationOrange else MaterialTheme.colorScheme.primary
-                )
-            }
-        )
-        Spacer(modifier = Modifier.height(Spacing.xs))
-        NavigationDrawerItem(
-            label = { Text("Explore Workspaces", fontWeight = FontWeight.SemiBold) },
-            selected = activeTabId == "search_map",
-            onClick = { onTabSelected("search_map") },
-            icon = {
-                Icon(
-                    Icons.Default.TravelExplore,
-                    contentDescription = null,
-                    tint = if (activeTabId == "search_map") CarnationOrange else MaterialTheme.colorScheme.primary
                 )
             }
         )

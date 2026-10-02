@@ -160,6 +160,11 @@ fun SpaceDetailsScreenContent(
     // full = full ModalBottomSheet open
     var availabilityPanelState by remember { mutableStateOf("hidden") }
     val showAvailabilityPanel = availabilityPanelState == "full"
+    // Opens straight to full height: a half-expanded first stop made the long, scrollable
+    // content drag the sheet instead of scrolling it.
+    val availabilitySheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Hosts and admins can look at availability but only specialists can request slots.
+    val isSpecialistViewer = currentUserRole != UserRole.PRO_HOST && currentUserRole != UserRole.ADMIN
     // Multi-select: SHIFT_BASED, DAY_BASED, MONTHLY slots
     var selectedSlots by remember { mutableStateOf(setOf<RentableSlot>()) }
     // Multi-day HOURLY selection: day → set of selected start-hour strings
@@ -196,7 +201,7 @@ fun SpaceDetailsScreenContent(
             }
             if (formula != null) onSelectFormula(formula)
             selectedSubdivisionId = sub.id
-            availabilityPanelState = "peek"
+            availabilityPanelState = if (isSpecialistViewer) "full" else "peek"
         }
     }
 
@@ -257,93 +262,52 @@ fun SpaceDetailsScreenContent(
         },
         bottomBar = {
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Peek availability slice — slides up when a division card is tapped.
-                // Specialists only; hidden for Pro Host / Admin preview.
-                if (currentUserRole != UserRole.PRO_HOST && currentUserRole != UserRole.ADMIN) {
-                    if (availabilityPanelState == "peek") {
-                        val peekSub = liveSpace.subdivisions.firstOrNull { it.id == selectedSubdivisionId }
-                        val peekSlotCount = if (peekSub != null) {
-                            availableSlots.count { it.sourceFormulaId == peekSub.id && !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
-                        } else {
-                            availableSlots.count { !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
-                        }
-                        Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-                            modifier = Modifier.fillMaxWidth().clickable { availabilityPanelState = "full" }
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = peekSub?.name ?: liveSpace.title,
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        maxLines = 1,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = if (peekSlotCount > 0) "$peekSlotCount slot(s) available · Tap to view" else "Tap to view full availability",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
-                                    )
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Default.KeyboardArrowUp,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                    IconButton(
-                                        onClick = { availabilityPanelState = "hidden" },
-                                        modifier = Modifier.size(32.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Close,
-                                            contentDescription = "Dismiss",
-                                            modifier = Modifier.size(16.dp),
-                                            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                // One availability trigger, same design whether or not a division is
+                // selected — it used to switch between two differently styled bars.
+                if (isSpecialistViewer && !showAvailabilityPanel) {
+                    val stripSub = liveSpace.subdivisions.firstOrNull { it.id == selectedSubdivisionId }
+                    val hasSlots = availableSlots.isNotEmpty()
+                    val openSlotCount = availableSlots.count {
+                        (stripSub == null || it.sourceFormulaId == stripSub.id) &&
+                            !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings)
                     }
-                    // Generic check-availability bar — visible only when no division is selected
-                    if (availabilityPanelState == "hidden") {
-                        Surface(
-                            color = if (availableSlots.isNotEmpty()) VibrantBlue else MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp),
+                    val stripContent = if (hasSlots) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                    Surface(
+                        color = if (hasSlots) VibrantBlue else MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = hasSlots) { availabilityPanelState = "full" }
+                    ) {
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable(enabled = availableSlots.isNotEmpty()) { availabilityPanelState = "full" }
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = Spacing.lg, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.KeyboardArrowUp,
-                                    contentDescription = null,
-                                    tint = if (availableSlots.isNotEmpty()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
+                            Icon(Icons.Default.EventAvailable, contentDescription = null, tint = stripContent, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = if (availableSlots.isNotEmpty()) "Press to see option availability" else "No slots configured",
-                                    style = MaterialTheme.typography.labelMedium,
+                                    text = stripSub?.name ?: "Check availability",
+                                    style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (availableSlots.isNotEmpty()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = stripContent,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
+                                Text(
+                                    text = when {
+                                        !hasSlots -> "No bookable slots configured yet"
+                                        openSlotCount > 0 -> "$openSlotCount slot(s) available · Tap to choose"
+                                        else -> "Fully booked · Tap to see the schedule"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = stripContent.copy(alpha = 0.8f)
+                                )
+                            }
+                            if (hasSlots) {
+                                Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Open availability", tint = stripContent)
                             }
                         }
                     }
@@ -1009,6 +973,7 @@ fun SpaceDetailsScreenContent(
             if (synced) {
                 selectedSlots = emptySet()
                 selectedHoursPerDay = emptyMap()
+                availabilitySheetState.hide()
                 availabilityPanelState = "hidden"
                 val result = snackbarHostState.showSnackbar(
                     message = "Request sent! The host has been notified.",
@@ -1070,7 +1035,7 @@ fun SpaceDetailsScreenContent(
                 selectedHoursPerDay = emptyMap()
             },
             modifier = Modifier.shadow(16.dp, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
+            sheetState = availabilitySheetState,
             contentWindowInsets = { WindowInsets(0) },
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             // Blue design (matches the "Press to see option availability" trigger
@@ -1532,7 +1497,13 @@ fun SpaceDetailsScreenContent(
                     }
 
                     // ── Action bar ───────────────────────────────────────────────
-                    if (canSubmit) {
+                    if (!isSpecialistViewer) {
+                        Text(
+                            "Viewing as host — only professionals can request slots.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else if (canSubmit) {
                         val slotLabel = if (totalSelectedSlots == 1) "1 Slot" else "$totalSelectedSlots Slots"
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1550,7 +1521,8 @@ fun SpaceDetailsScreenContent(
                                 onClick = {
                                     val slotLines = buildString {
                                         selectedSlots.forEachIndexed { i, s ->
-                                            val priceSuffix = s.pricesByRecurrence[BookingRecurrence.FLAT]?.let { " — \$${it.toInt()}" } ?: ""
+                                            val unit = s.strategyType?.let { SpaceCalculationUtils.strategyUnitLabel(it) } ?: ""
+                                            val priceSuffix = s.pricesByRecurrence[BookingRecurrence.FLAT]?.let { " — \$${it.toInt()}$unit" } ?: ""
                                             appendLine("  ${i + 1}. ${s.label}$priceSuffix")
                                         }
                                         selectedHoursPerDay.entries.forEachIndexed { di, (day, hrs) ->
@@ -1569,8 +1541,8 @@ fun SpaceDetailsScreenContent(
                                         "\n\n🗓 Selected Slots ($totalSelectedSlots):\n$slotLines${attendeeBlock}" +
                                         "\n\nAre these slots still available?"
                                     try {
-                                        val whatsappUrl = "https://api.whatsapp.com/send?phone=${liveSpace.ownerPhone}" +
-                                            "&text=${java.net.URLEncoder.encode(message, "UTF-8")}"
+                                        val whatsappUrl = "https://wa.me/${viewModel.formatWhatsAppNumber(liveSpace.ownerPhone)}" +
+                                            "?text=${java.net.URLEncoder.encode(message, "UTF-8")}"
                                         val intent = android.content.Intent(
                                             android.content.Intent.ACTION_VIEW,
                                             android.net.Uri.parse(whatsappUrl)

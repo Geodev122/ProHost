@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,8 +27,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.example.R
 import com.example.data.model.*
 import com.example.ui.theme.*
@@ -459,22 +458,33 @@ private fun BookingSlotSelectorDialog(
         }
     }
 
-    Dialog(
+    // Same sheet shell as SpaceDetailsScreen's Check Availability sheet, so rebooking
+    // and editing look like the booking flow the user already knows.
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        contentWindowInsets = { WindowInsets(0) },
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        containerColor = VibrantBlue.copy(alpha = 0.06f).compositeOver(MaterialTheme.colorScheme.surface),
+        tonalElevation = 4.dp,
+        scrimColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.35f),
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(vertical = 8.dp)
+                    .width(28.dp)
+                    .height(4.dp)
+                    .background(VibrantBlue.copy(alpha = 0.6f), RoundedCornerShape(2.dp))
+            )
+        }
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.94f)
-                .clip(MaterialTheme.shapes.extraLarge),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp
-        ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(20.dp)
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.92f)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 20.dp)
             ) {
                 // Header
                 Row(
@@ -1399,7 +1409,7 @@ private fun BookingSlotSelectorDialog(
                     )
                 }
             }
-        }
+        
     }
 
     // Real calendar-date picker for a Shift-Based commitment (item 7b) — the

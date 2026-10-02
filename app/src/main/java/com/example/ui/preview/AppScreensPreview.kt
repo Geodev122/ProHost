@@ -245,33 +245,33 @@ fun Preview01_DiscoveryScreen() {
     ProHostTheme {
         DiscoveryScreenContent(
             spaces = listOf(mockSpace1, mockSpace2, mockSpace3),
-            searchQuery = "Achrafieh Medical",
-            selectedGovernorate = Governorate.BEIRUT,
+            filterState = com.example.ui.state.DiscoveryFilterState(
+                query = "Achrafieh Medical",
+                selectedCategoryIds = setOf("POLYCLINIC"),
+                onlyVerified = true
+            ),
             categoryOptions = listOf(
                 SchemaItem("POLYCLINIC", "Polyclinic", "Multi-specialty polyclinic", "SPACE_TYPE"),
                 SchemaItem("CENTER", "Medical Center", "Full center facility", "SPACE_TYPE"),
                 SchemaItem("PRIVATE_OFFICE", "Private Office", "Private consultation office", "SPACE_TYPE"),
                 SchemaItem("COWORKING", "Co-working Hub", "Shared practice hub", "SPACE_TYPE")
             ),
-            selectedCategoryId = "POLYCLINIC",
-            selectedStrategyType = null,
-            onlyVerified = true,
-            onlySaved = false,
             savedSpaceIds = listOf(mockSpace1.id),
             isMapView = false,
             showFilterSheet = false,
             onSearchQueryChange = {},
             onToggleMapView = {},
             onSetFilterSheetVisible = {},
-            onSelectGovernorate = {},
-            onSelectCategory = {},
-            onSelectStrategyType = {},
+            onSelectCategories = {},
+            onSelectDivisionTypes = {},
+            onSelectStrategies = {},
+            onPriceRangeChange = {},
             onToggleVerifiedOnly = {},
             onToggleSavedOnly = {},
             onToggleSavedSpace = {},
             onResetFilters = {},
             onSelectSpace = { _, _ -> },
-            onQuickWhatsApp = {}
+            onQuickWhatsApp = { _, _ -> }
         )
     }
 }
@@ -306,31 +306,27 @@ fun Preview03_MapViewScreen() {
     ProHostTheme {
         DiscoveryScreenContent(
             spaces = listOf(mockSpace1, mockSpace2, mockSpace3, mockSpaceDraft),
-            searchQuery = "Beirut Workspaces",
-            selectedGovernorate = Governorate.BEIRUT,
+            filterState = com.example.ui.state.DiscoveryFilterState(query = "Beirut Workspaces"),
             categoryOptions = listOf(
                 SchemaItem("POLYCLINIC", "Polyclinic", "Multi-specialty polyclinic", "SPACE_TYPE"),
                 SchemaItem("CENTER", "Medical Center", "Full center facility", "SPACE_TYPE")
             ),
-            selectedCategoryId = null,
-            selectedStrategyType = null,
-            onlyVerified = false,
-            onlySaved = false,
             savedSpaceIds = emptyList(),
             isMapView = true,
             showFilterSheet = false,
             onSearchQueryChange = {},
             onToggleMapView = {},
             onSetFilterSheetVisible = {},
-            onSelectGovernorate = {},
-            onSelectCategory = {},
-            onSelectStrategyType = {},
+            onSelectCategories = {},
+            onSelectDivisionTypes = {},
+            onSelectStrategies = {},
+            onPriceRangeChange = {},
             onToggleVerifiedOnly = {},
             onToggleSavedOnly = {},
             onToggleSavedSpace = {},
             onResetFilters = {},
             onSelectSpace = { _, _ -> },
-            onQuickWhatsApp = {}
+            onQuickWhatsApp = { _, _ -> }
         )
     }
 }

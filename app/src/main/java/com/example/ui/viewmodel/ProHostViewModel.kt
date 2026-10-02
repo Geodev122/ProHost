@@ -754,13 +754,38 @@ class ProHostViewModel(
     }
 
     // --- WhatsApp Direct Connection ---
-    fun launchWhatsAppInquiry(context: Context, space: SpaceListing, selectedFormula: RentalFormula?, request: RentalBookingRequest? = null) {
+    fun launchWhatsAppInquiry(
+        context: Context,
+        space: SpaceListing,
+        selectedFormula: RentalFormula? = null,
+        request: RentalBookingRequest? = null,
+        subdivision: Subdivision? = null
+    ) {
         val user = currentUser.value
         val professionalName = user?.fullName ?: "Specialist Member"
         val specialty = user?.specialty?.ifBlank { "Independent Specialist" } ?: "Independent Specialist"
+        val cleanPhone = formatWhatsAppNumber(space.ownerPhone)
+        if (cleanPhone.isBlank()) {
+            Toast.makeText(context, "This host hasn't added a WhatsApp number yet.", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-        val formulaText = selectedFormula?.let { "${it.type.displayName} (${it.scheduleDescription} @ $${it.rateUsd}/mo)" }
-            ?: "Full Practice Month ($${space.baseMonthlyRateUsd})"
+        // The price line always carries the unit of the formula it came from.
+        val formulaText = when {
+            subdivision != null -> {
+                val price = com.example.ui.util.SpaceCalculationUtils.findLowestPriceForSubdivision(subdivision)
+                val priceText = if (price.amount > 0.0) " · from $${price.amount.toInt()}${price.unitLabel}" else ""
+                "${subdivision.name} — ${subdivision.pricing.strategyType.displayName}$priceText"
+            }
+            selectedFormula != null -> {
+                val unit = com.example.ui.util.SpaceCalculationUtils.rateUnitLabel(selectedFormula.type)
+                "${selectedFormula.type.displayName} (${selectedFormula.scheduleDescription}) @ $${selectedFormula.rateUsd.toInt()}$unit"
+            }
+            else -> {
+                val price = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
+                "Starting from $${price.amount.toInt()}${price.unitLabel}"
+            }
+        }
 
         val requestSnippet = if (request != null) {
             val daysStr = if (request.selectedDays.isNotEmpty()) request.selectedDays.joinToString() else request.formula.daysOfWeek.joinToString()
@@ -775,7 +800,8 @@ class ProHostViewModel(
             "• Request ID: #${request.id}\n" +
             "• Formula: ${request.formula.type.displayName} - ${request.formula.scheduleDescription}\n" +
             "• Chosen Availability: $daysStr @ $timesStr$shiftStr\n" +
-            "• Start Date: ${request.startDate} (${request.durationMonths} month${if (request.durationMonths > 1) "s" else ""})\n" +
+            "• Start Date: ${request.startDate}" +
+                (if (request.formula.type == RentalFormulaType.FULL_MONTH) " (${request.durationMonths} month${if (request.durationMonths > 1) "s" else ""})" else "") + "\n" +
             "• Total Agreement Value: $${request.totalAmountUsd.toInt()} USD\n" +
             "• Specialist Notes: ${request.clinicalNotes}\n" +
             "• In-App Status: PENDING HOST APPROVAL"
@@ -790,7 +816,6 @@ class ProHostViewModel(
 
         try {
             val encoded = URLEncoder.encode(rawMessage, "UTF-8")
-            val cleanPhone = formatWhatsAppNumber(space.ownerPhone)
             val url = "https://wa.me/$cleanPhone?text=$encoded"
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             context.startActivity(intent)
@@ -822,9 +847,13 @@ class ProHostViewModel(
                 "Status: ${request.status.displayName}\n\n" +
                 "Let's discuss onboarding and walk-through details."
 
+        val cleanPhone = formatWhatsAppNumber(request.practitionerPhone)
+        if (cleanPhone.isBlank()) {
+            Toast.makeText(context, "This professional hasn't added a WhatsApp number yet.", Toast.LENGTH_SHORT).show()
+            return
+        }
         try {
             val encoded = URLEncoder.encode(rawMessage, "UTF-8")
-            val cleanPhone = formatWhatsAppNumber(request.practitionerPhone)
             val url = "https://wa.me/$cleanPhone?text=$encoded"
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             context.startActivity(intent)
@@ -838,8 +867,13 @@ class ProHostViewModel(
         }
     }
 
-    private fun formatWhatsAppNumber(raw: String): String {
+    /** Digits for a wa.me link, or "" when there is no usable number. */
+    fun formatWhatsAppNumber(raw: String): String {
         val digits = raw.filter { it.isDigit() }
+        if (digits.length < 7) return ""
+        // Already international (E.164 "+…" or "00…" prefix) — use as-is.
+        if (raw.trim().startsWith("+")) return digits
+        if (digits.startsWith("00")) return digits.removePrefix("00")
         if (digits.startsWith("961") && digits.length >= 11) {
             return digits
         }
@@ -853,7 +887,7 @@ class ProHostViewModel(
         if (digits.length in 7..8) {
             return "961$digits"
         }
-        return digits.ifBlank { "9613000000" }
+        return digits
     }
 
     // --- In-App Rental Request Engine ---
