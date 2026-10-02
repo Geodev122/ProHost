@@ -241,15 +241,21 @@ class ProHostViewModel(
             // the Subscriptions screen banners; before, nothing collected these, so a
             // failed tap on a plan looked like nothing happened.
             viewModelScope.launch {
-                manager.billingMessages.collect { message ->
-                    if (message.isError) {
-                        _billingSuccess.value = null
-                        _billingError.value = message.text
-                        dismissBillingActivationPending()
-                    } else {
-                        _billingError.value = null
-                        _billingSuccess.value = message.text
+                try {
+                    manager.billingMessages.collect { message ->
+                        if (message.isError) {
+                            _billingSuccess.value = null
+                            _billingError.value = message.text
+                            dismissBillingActivationPending()
+                        } else {
+                            _billingError.value = null
+                            _billingSuccess.value = message.text
+                        }
                     }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    android.util.Log.e("ProHostVM", "Billing message collection failed", e)
                 }
             }
             viewModelScope.launch {
@@ -822,7 +828,9 @@ class ProHostViewModel(
             "• Formula: ${request.formula.type.displayName} - ${request.formula.scheduleDescription}\n" +
             "• Chosen Availability: $daysStr @ $timesStr$shiftStr\n" +
             "• Start Date: ${request.startDate}" +
-                (if (request.formula.type == RentalFormulaType.FULL_MONTH) " (${request.durationMonths} month${if (request.durationMonths > 1) "s" else ""})" else "") + "\n" +
+                (if (request.formula.type == RentalFormulaType.FULL_MONTH) {
+                    " (${request.durationMonths} month${if (request.durationMonths > 1) "s" else ""})"
+                } else "") + "\n" +
             "• Total Agreement Value: $${request.totalAmountUsd.toInt()} USD\n" +
             "• Specialist Notes: ${request.clinicalNotes}\n" +
             "• In-App Status: PENDING HOST APPROVAL"
@@ -1048,7 +1056,8 @@ class ProHostViewModel(
                 repository.findAcceptConflict(requestId)?.let { clash ->
                     Toast.makeText(
                         appContext,
-                        "Can't accept $requestCode — it overlaps accepted booking ${clash.publicCode} (${clash.practitionerName}, ${clash.selectedDateTimeRange}).",
+                        "Can't accept $requestCode — it overlaps accepted booking ${clash.publicCode} " +
+                            "(${clash.practitionerName}, ${clash.selectedDateTimeRange}).",
                         Toast.LENGTH_LONG
                     ).show()
                     return@launch

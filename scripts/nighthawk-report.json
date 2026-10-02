@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-09-29T09:30:24.359Z",
+  "generatedAt": "2026-10-02T23:19:43.906Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 1,
+    "total": 8,
     "critical": 0,
     "high": 0,
-    "medium": 1,
-    "low": 0,
+    "medium": 2,
+    "low": 6,
     "info": 0,
-    "passes": 30
+    "passes": 28
   },
   "findings": [
     {
@@ -19,12 +19,75 @@
       "line": null,
       "message": "Module \"billing/billingHelpers\" has exports but is not imported from index.ts.",
       "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "gradle",
+      "check": "Target SDK Compliance",
+      "file": "app/build.gradle.kts",
+      "line": null,
+      "message": "compileSdk is below Google Play requirements (must be 34+).",
+      "suggestion": "Update compileSdk and targetSdk to 35 or 36."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/data/model/DataModels.kt",
+      "line": 1461,
+      "message": "Line has 170 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/navigation/ProHostNavGraph.kt",
+      "line": 109,
+      "message": "Line has 162 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
+      "line": 2299,
+      "message": "Line has 210 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
+      "line": 2322,
+      "message": "Line has 177 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
+      "line": 2389,
+      "message": "Line has 219 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt",
+      "line": 750,
+      "message": "Line has 161 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
     }
   ],
   "passes": [
     {
       "check": "CF Name Consistency",
-      "message": "All 21 getHttpsCallable() calls match exported functions in index.ts."
+      "message": "All 22 getHttpsCallable() calls match exported functions in index.ts."
     },
     {
       "check": "Firestore Rules Coverage",
@@ -127,16 +190,8 @@
       "message": "No prominent hardcoded strings or resource lint violations in XML files."
     },
     {
-      "check": "Detekt Static Analysis",
-      "message": "No excessive parameter lists or extreme line lengths found."
-    },
-    {
       "check": "Manifest Validation",
       "message": "All components with intent filters have explicit exported attributes; permissions validated."
-    },
-    {
-      "check": "Gradle Build Config Audit",
-      "message": "SDK targets compliant, release signing configured, R8 and shrinking enabled."
     },
     {
       "check": "Code Style Enforcement",
