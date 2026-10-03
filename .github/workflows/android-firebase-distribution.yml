@@ -53,18 +53,10 @@ jobs:
           name: prohost-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
 
-      # Only distribute on an actual push/manual run — not on every PR, to avoid
-      # spamming testers with in-progress branch builds.
-      - name: Distribute to Firebase App Distribution
+      # Upload Firebase Crashlytics mapping symbols for release deobfuscation
+      - name: Upload Firebase Crashlytics Symbols
         if: github.event_name != 'pull_request'
-        uses: wzieba/Firebase-Distribution-Github-Action@v1
-        with:
-          appId: "1:646730915838:android:345a7e12d5994456c8eaaf"
-          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          groups: testers
-          file: app/build/outputs/apk/debug/app-debug.apk
-          releaseNotes: |
-            Automated build from commit ${{ github.sha }} on ${{ github.ref_name }}.
+        run: gradle :app:uploadCrashlyticsSymbolFileRelease --no-daemon --stacktrace
 
   functions-build:
     runs-on: ubuntu-latest

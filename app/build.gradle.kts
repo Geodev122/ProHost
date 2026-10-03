@@ -1,3 +1,4 @@
+import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import java.util.Properties
 import java.io.FileInputStream
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
@@ -95,6 +96,11 @@ android {
       signingConfig = signingConfigs.getByName("release")
       // Release builds attest with Play Integrity only; never a debug token.
       buildConfigField("String", "APP_CHECK_DEBUG_TOKEN", "\"\"")
+
+      // Upload Proguard/R8 mapping file to Firebase Crashlytics (enabled during CI/CD)
+      configure<CrashlyticsExtension> {
+          mappingFileUploadEnabled = System.getenv("CI") == "true" || System.getenv("GITHUB_ACTIONS") == "true"
+      }
     }
     debug {
       signingConfig = signingConfigs.findByName("debugConfig") ?: signingConfigs.getByName("debug")

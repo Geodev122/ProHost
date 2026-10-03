@@ -15,7 +15,7 @@ import * as logger from "firebase-functions/logger";
  * including sign-in; testers on App Distribution debug APKs are rejected too
  * unless their debug token is registered.
  */
-export const ENFORCE_APP_CHECK = false;
+export const ENFORCE_APP_CHECK = process.env.ENFORCE_APP_CHECK === "true" || true;
 
 type Handler<T, Return, Stream> = (request: CallableRequest<T>, response?: CallableResponse<Stream>) => Return;
 type Result<Return> = Return extends Promise<unknown> ? Return : Promise<Return>;
