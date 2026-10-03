@@ -69,6 +69,18 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
   room choice — tab (page or availability sheet), Explore deep link, card buttons — goes through
   `selectRoom()` in `SpaceDetailsScreenContent`, so page, bottom strip and sheet share one active
   room and the sheet is never a mixed view of all rooms. A space with rooms always has one selected.
+- Listing saves go through `SpaceListing.keepingServerOwnedFields(current)` in `ProHostRepository`
+  (isVerified, subscription fields, isOwnerSuspended, isOwnerPackageLapsed, ownerId). Never echo
+  those from a wizard-built listing: rules deny any save whose changed keys include them, which
+  blocked hosts with a lapsed plan from even saving drafts.
+- Never `set(..., merge: true)` / batch-set a counter or flag onto a document that might not exist
+  (a deleted listing): it recreates a ghost doc. Use `update()` and skip not-found
+  (see `favoritesSync.ts`). Analytics and the admin feed ignore ownerless listing docs.
+- Unauthenticated email callables (`sendEmailOtp`, `sendSignInEmailLink`) must call
+  `takeEmailSendSlot` (5/hour per address) and throw `HttpsError` (never plain `Error`, which
+  reaches users as a generic internal error). Throwing inside a Firestore transaction rolls its
+  writes back — return an outcome and throw after commit. Server-only collections
+  (`email_otps`, `email_send_limits`) need explicit deny rules.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 
