@@ -1,4 +1,5 @@
-ProHost v1.0.30 (Build 30) Veröffentlichungsnotizen:
-• Mehrschichtiges E-Mail-Zustellungssystem garantiert 100%ige Zustellbarkeit von Anmeldelinks.
-• Optimierter automatischer Fallback für E-Mail-Authentifizierungslinks.
-• Verbesserte Echtzeit-Synchronisierung und Leistung.
+ProHost v1.0.31 (Build 31) Veröffentlichungsnotizen:
+• WhatsApp-Ländervorwahl-Auswahl mit E.164-Formatierung und offizieller Google-Grafik.
+• Vereinheitlichte Erkundungseinstellungen mit Anzeigenzähler und automatischer Ländererkennung.
+• Optimierte Raumdetails, Anfragenseiten und Mietvertrag-Upload.
+• Automatische FCM-Token-Registrierung bei jedem Anmelden.

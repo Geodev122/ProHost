@@ -1,4 +1,5 @@
-Notas de la versión ProHost v1.0.30 (Build 30):
-• Sistema de entrega de correo electrónico con respaldo multicapa que garantiza el 100% de entregabilidad de enlaces.
-• Alternativa automática optimizada para enlaces de autenticación.
-• Sincronización en tiempo real y rendimiento mejorados.
+Notas de la versión ProHost v1.0.31 (Build 31):
+• Selector de código de país de WhatsApp con formato E.164 y logo oficial de Google.
+• Controles de exploración unificados con contador de espacios y detección de país.
+• Detalles de espacios mejorados, tarjetas de solicitud y flujo de contrato de arrendamiento.
+• Registro automático del token FCM en cada inicio de sesión.

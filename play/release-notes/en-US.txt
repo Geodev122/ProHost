@@ -1,4 +1,5 @@
-ProHost v1.0.30 (Build 30) Release Notes:
-• Multi-layered fail-safe email delivery system ensuring 100% email link deliverability to Gmail, Outlook, and all providers.
-• Enhanced sign-in email link & OTP verification fallback.
-• Improved real-time database synchronization and performance.
+ProHost v1.0.31 (Build 31) Release Notes:
+• Added international WhatsApp country-code picker with E.164 formatting & official Google logo assets.
+• Unified Explore search controls with real-time listing count indicators & automatic country detection.
+• Upgraded Space Details modal dialogs, request cards, and host acceptance lease upload flows.
+• Auto-registered FCM device tokens on every sign-in with fixed push notification category handling.

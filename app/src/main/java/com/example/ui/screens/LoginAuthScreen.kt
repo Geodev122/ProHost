@@ -203,6 +203,7 @@ fun LoginAuthScreen(
     // --- Phone entry state (legacy parallel path) ---
     var phoneCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
     var phoneNumber by rememberSaveable { mutableStateOf("") }
+    var regWhatsAppCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
 
     LaunchedEffect(Unit) {
         if (isPreview) return@LaunchedEffect
@@ -232,7 +233,6 @@ fun LoginAuthScreen(
     var regFullName by rememberSaveable { mutableStateOf("") }
     var regSpecialty by rememberSaveable { mutableStateOf("") }
     var regPhoneNumber by rememberSaveable { mutableStateOf("") }
-    var regWhatsAppCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
     var regCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
     var regGovernorateArea by rememberSaveable { mutableStateOf("") }
     var regCity by rememberSaveable { mutableStateOf("") }
