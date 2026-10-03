@@ -584,7 +584,7 @@ fun OwnerHubScreenContent(
             item {
                 ProEmptyState(
                     title = "No Listings Published",
-                    description = "You don't have any workspace listings yet. Click 'Add New Workspace Listing' above to publish your first office or clinic.",
+                    description = "You don't have any workspace listings yet. Tap the '+' button below to publish your first office or clinic.",
                     icon = Icons.Default.HomeWork
                 )
             }
@@ -593,7 +593,11 @@ fun OwnerHubScreenContent(
             items(ownerSpaces, key = { it.id }) { space ->
                 val spaceAcceptedBookings = allBookingRequests.filter { it.spaceId == space.id && it.status == BookingRequestStatus.ACCEPTED }
                 val rentedH = spaceAcceptedBookings.sumOf { it.formula.totalWeeklyHours }
-                val blackoutH = space.schedule.blackoutSlots.size * 2
+                val blackoutH = space.schedule.blackoutSlots.sumOf { slot ->
+                    val start = slot.startTime.substringBefore(":").toIntOrNull() ?: 18
+                    val end = slot.endTime.substringBefore(":").toIntOrNull() ?: 22
+                    (end - start).coerceAtLeast(0)
+                }
                 val totalOperatingDays = space.schedule.operatingDays.size
                 val dailyH = (space.schedule.closingHour.substringBefore(":").toIntOrNull() ?: 20) -
                     (space.schedule.openingHour.substringBefore(":").toIntOrNull() ?: 8)

@@ -338,7 +338,7 @@ fun OwnerRentingProgressScreenContent(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Dr. ${booking.practitionerName}",
+                                    text = booking.practitionerName,
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface

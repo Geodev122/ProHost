@@ -35,10 +35,14 @@ fun MyFavoritesScreen(
     onNavigateToExplore: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val isLoading by viewModel.isRestoringSession.collectAsState()
-    val errorMessage by viewModel.sessionRestoreError.collectAsState()
+    val isRestoringSession by viewModel.isRestoringSession.collectAsState()
+    val sessionError by viewModel.sessionRestoreError.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val allSpaces by viewModel.spaces.collectAsState()
+    // Show loading only while the session is still restoring AND no spaces have loaded yet.
+    // Once spaces arrive, show the real content regardless of session state.
+    val isLoading = isRestoringSession && allSpaces.isEmpty() && currentUser == null
+    val errorMessage = if (!isLoading) sessionError else null
 
     val savedIds = currentUser?.savedSpaceIds.orEmpty().toSet()
     val savedSpaces = allSpaces.filter { it.id in savedIds }

@@ -794,58 +794,63 @@ fun BookingStatusProgressStepper(
         BookingRequestStatus.ACCEPTED -> 3
         BookingRequestStatus.CANCELLED, BookingRequestStatus.REJECTED -> 0
     }
+    val active = status != BookingRequestStatus.CANCELLED && status != BookingRequestStatus.REJECTED
 
     Row(
         modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top
     ) {
         steps.forEachIndexed { index, stepName ->
-            val isCompleted = index <= currentStepIndex && status != BookingRequestStatus.CANCELLED && status != BookingRequestStatus.REJECTED
-            val isCurrent = index == currentStepIndex && status != BookingRequestStatus.CANCELLED && status != BookingRequestStatus.REJECTED
+            val isCompleted = active && index <= currentStepIndex
+            val circleColor = if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+            val labelColor = if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.weight(1f)
             ) {
-                // Circle Step
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(
-                            when {
-                                isCompleted -> MaterialTheme.colorScheme.primary
-                                status == BookingRequestStatus.CANCELLED || status == BookingRequestStatus.REJECTED -> MaterialTheme.colorScheme.surfaceVariant
-                                else -> MaterialTheme.colorScheme.surfaceVariant
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isCompleted) {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(10.dp))
-                    } else {
-                        Text("${index + 1}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Left connector (skip for first step)
+                    if (index > 0) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(2.dp)
+                                .background(if (active && index <= currentStepIndex) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                        )
                     }
-                }
-
-                // Connector line
-                if (index < steps.size - 1) {
                     Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .height(2.dp)
-                            .background(
-                                if (index < currentStepIndex &&
-                                    status != BookingRequestStatus.CANCELLED &&
-                                    status != BookingRequestStatus.REJECTED
-                                ) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                }
-                            )
-                    )
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(circleColor),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isCompleted) {
+                            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(10.dp))
+                        } else {
+                            Text("${index + 1}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    // Right connector (skip for last step)
+                    if (index < steps.lastIndex) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(2.dp)
+                                .background(if (active && index < currentStepIndex) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                        )
+                    }
                 }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = stepName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = labelColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
             }
         }
     }

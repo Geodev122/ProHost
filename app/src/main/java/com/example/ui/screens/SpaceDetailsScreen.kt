@@ -50,6 +50,7 @@ fun SpaceDetailsScreen(
     // (list or map) — pre-selects that division and opens its availability sheet
     // immediately instead of landing on the generic whole-space view.
     intendedSubdivisionId: String? = null,
+    onNavigateToProfile: () -> Unit = {},
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -122,6 +123,7 @@ fun SpaceDetailsScreen(
         isSaved = currentUser?.savedSpaceIds?.contains(liveSpace.id) == true,
         onToggleSave = { viewModel.toggleSavedSpace(liveSpace.id) },
         intendedSubdivisionId = intendedSubdivisionId,
+        onNavigateToProfile = onNavigateToProfile,
         onBack = onBack
     )
 }
@@ -145,6 +147,7 @@ fun SpaceDetailsScreenContent(
     isSaved: Boolean = false,
     onToggleSave: () -> Unit = {},
     intendedSubdivisionId: String? = null,
+    onNavigateToProfile: () -> Unit = {},
     onBack: () -> Unit
 ) {
     val liveSpace = space
@@ -153,8 +156,6 @@ fun SpaceDetailsScreenContent(
     val currentUser by viewModel.currentUser.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showShareMenu by remember { mutableStateOf(false) }
-    var showInquiryDialog by remember { mutableStateOf(false) }
-    var inquiryMessage by remember { mutableStateOf("") }
     // "hidden" | "peek" | "full"
     // peek = division selected, animated slice visible above bottom of screen; press to expand
     // full = full ModalBottomSheet open
@@ -1681,7 +1682,7 @@ fun SpaceDetailsScreenContent(
                 )
             },
             confirmButton = {
-                Button(shape = MaterialTheme.shapes.medium, onClick = { showProfilePicRequiredDialog = false; onBack() }) {
+                Button(shape = MaterialTheme.shapes.medium, onClick = { showProfilePicRequiredDialog = false; onNavigateToProfile() }) {
                     Text("Go to Profile")
                 }
             },
@@ -1693,48 +1694,6 @@ fun SpaceDetailsScreenContent(
         )
     }
 
-    if (showInquiryDialog) {
-        AlertDialog(
-            onDismissRequest = { showInquiryDialog = false; inquiryMessage = "" },
-            title = { Text("Email the Host") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "Your message will be sent to the space owner by email. They can reply directly to you.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    OutlinedTextField(
-                        value = inquiryMessage,
-                        onValueChange = { inquiryMessage = it },
-                        label = { Text("Message") },
-                        placeholder = { Text("Hi, I'm interested in your space…") },
-                        minLines = 4,
-                        maxLines = 8,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    shape = MaterialTheme.shapes.medium,
-                    onClick = {
-                        viewModel.sendInquiryEmail(context, liveSpace.id, inquiryMessage)
-                        showInquiryDialog = false
-                        inquiryMessage = ""
-                    },
-                    enabled = inquiryMessage.trim().length >= 5
-                ) {
-                    Text("Send")
-                }
-            },
-            dismissButton = {
-                TextButton(shape = MaterialTheme.shapes.medium, onClick = { showInquiryDialog = false; inquiryMessage = "" }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
 }
 
 data class SubdivisionRentalCardInfo(

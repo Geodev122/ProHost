@@ -25,6 +25,8 @@ fun KycCompletionBanner(
     user: AppUser,
     onResendVerificationEmail: () -> Unit,
     onNavigateToIdUpload: () -> Unit = {},
+    onAddProfilePhoto: () -> Unit = {},
+    onAddAddress: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (user.isKycComplete) return
@@ -42,23 +44,35 @@ fun KycCompletionBanner(
         KycStep(Icons.Default.LocationOn, "Address set", hasAddress)
     )
 
-    val (nextTitle, nextDesc, nextAction) = when {
-        !hasProfilePic -> Triple(
-            "Add a profile picture",
-            "Upload a photo to unlock booking features.",
-            null as (() -> Unit)?
-        )
-        !emailVerified -> Triple(
-            "Verify your email",
-            "Check your inbox for a verification link. Tap below to resend if needed.",
-            onResendVerificationEmail
-        )
-        !hasAddress -> Triple(
-            "Add your address",
-            "Set your country and city in the profile tab.",
-            null as (() -> Unit)?
-        )
-        else -> Triple("", "", null)
+    val nextTitle: String
+    val nextDesc: String
+    val nextAction: (() -> Unit)?
+    val nextActionLabel: String
+    when {
+        !hasProfilePic -> {
+            nextTitle = "Add a profile picture"
+            nextDesc = "Upload a photo to unlock booking features."
+            nextAction = onAddProfilePhoto
+            nextActionLabel = "Upload Photo"
+        }
+        !emailVerified -> {
+            nextTitle = "Verify your email"
+            nextDesc = "Check your inbox for a verification link. Tap below to resend if needed."
+            nextAction = onResendVerificationEmail
+            nextActionLabel = "Resend Verification Email"
+        }
+        !hasAddress -> {
+            nextTitle = "Add your address"
+            nextDesc = "Set your country and city in the profile fields below."
+            nextAction = onAddAddress
+            nextActionLabel = "Set Address"
+        }
+        else -> {
+            nextTitle = ""
+            nextDesc = ""
+            nextAction = null
+            nextActionLabel = ""
+        }
     }
 
     Surface(
@@ -136,7 +150,7 @@ fun KycCompletionBanner(
                     border = androidx.compose.foundation.BorderStroke(1.5.dp, CarnationOrange),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = CarnationOrange)
                 ) {
-                    Text("Resend Verification Email", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    Text(nextActionLabel, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 }
             }
         }

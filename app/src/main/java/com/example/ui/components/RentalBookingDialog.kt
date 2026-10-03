@@ -1372,7 +1372,10 @@ private fun BookingSlotSelectorDialog(
                     CustomButton(
                         text = secondaryButtonText,
                         onClick = {
-                            val formula = buildFormulaForSubmission() ?: return@CustomButton
+                            val formula = buildFormulaForSubmission() ?: run {
+                                Toast.makeText(context, "Please select a time slot before sending via WhatsApp.", Toast.LENGTH_SHORT).show()
+                                return@CustomButton
+                            }
                             viewModel.submitBookingRequest(
                                 space = space,
                                 context = context,

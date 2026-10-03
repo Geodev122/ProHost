@@ -207,8 +207,10 @@ fun SpecialistDrawerContent(
                                 )
                             }
                         }
+                        val planName = currentUser?.ownerPackageId
+                            ?.let { packagePlans.packages[it]?.name }
                         Text(
-                            text = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
+                            text = if (planName != null) "Plan: $planName" else "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
                             style = MaterialTheme.typography.labelSmall,
                             color = PureWhite.copy(alpha = 0.85f),
                             maxLines = 1
@@ -248,6 +250,30 @@ fun SpecialistDrawerContent(
                 letterSpacing = 1.2.sp,
                 modifier = Modifier.padding(start = Spacing.lg, bottom = Spacing.sm)
             )
+
+            NavigationDrawerItem(
+                shape = MaterialTheme.shapes.medium,
+                label = { Text("Renting Requests", fontWeight = FontWeight.SemiBold) },
+                selected = activeProHostTabId == "owner_requests",
+                onClick = { onTabSelected("owner_requests") },
+                icon = {
+                    DrawerBadgedIcon(
+                        icon = Icons.Default.Inbox,
+                        tint = if (activeProHostTabId == "owner_requests") {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        showDot = pendingRequestsCount > 0
+                    )
+                },
+                colors = NavigationDrawerItemDefaults.colors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
 
             NavigationDrawerItem(
 
@@ -672,7 +698,7 @@ fun ProHostDrawerFooter() {
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                ProHostCedarBadge(text = "v2.5", isCompact = true)
+                ProHostCedarBadge(text = "v${com.example.BuildConfig.VERSION_NAME}", isCompact = true)
             }
         }
     }

@@ -120,7 +120,13 @@ fun SpecialistProfileScreen(
                 com.example.ui.components.KycCompletionBanner(
                     user = user,
                     onResendVerificationEmail = { viewModel.resendEmailVerification(context) },
-                    onNavigateToIdUpload = { /* ID upload is in the Security ID section below — scroll to it */ }
+                    onNavigateToIdUpload = { /* ID upload is in the Security ID section below — scroll to it */ },
+                    onAddProfilePhoto = {
+                        Toast.makeText(context, "Scroll down to the Profile Details section to add your photo.", Toast.LENGTH_LONG).show()
+                    },
+                    onAddAddress = {
+                        Toast.makeText(context, "Scroll down to the Profile Details section to set your Country and City.", Toast.LENGTH_LONG).show()
+                    }
                 )
             }
 
@@ -795,7 +801,14 @@ fun SpecialistProfileScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "v${com.example.BuildConfig.VERSION_NAME} • ProHost is up to date",
+                            text = "v${com.example.BuildConfig.VERSION_NAME} • ${when (updateState) {
+                            UpdateState.CHECKING -> "Checking for updates…"
+                            UpdateState.UPDATE_AVAILABLE_FLEXIBLE, UpdateState.UPDATE_AVAILABLE_IMMEDIATE -> "Update available"
+                            UpdateState.DOWNLOADING -> "Downloading update…"
+                            UpdateState.DOWNLOADED -> "Ready to install"
+                            UpdateState.FAILED -> "Update check failed"
+                            else -> "ProHost is up to date"
+                        }}",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold
                         )

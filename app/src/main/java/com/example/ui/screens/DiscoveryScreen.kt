@@ -64,6 +64,7 @@ fun DiscoveryScreen(
         }
     }
 
+    val loadError by viewModel.sessionRestoreError.collectAsState()
     DiscoveryScreenContent(
         spaces = uiState.filteredSpaces,
         filterState = uiState.filterState,
@@ -75,6 +76,7 @@ fun DiscoveryScreen(
         isMapView = uiState.isMapViewActive,
         showFilterSheet = uiState.isFilterSheetVisible,
         isLoading = uiState.isLoading,
+        loadError = if (!uiState.isLoading && uiState.filteredSpaces.isEmpty() && loadError != null) loadError else null,
         spaceTypeSchema = architectureSchema.spaceTypes,
         onSearchQueryChange = { discoveryViewModel.updateSearchQuery(it) },
         onToggleMapView = { discoveryViewModel.toggleMapView() },
@@ -110,6 +112,7 @@ fun DiscoveryScreenContent(
     isMapView: Boolean,
     showFilterSheet: Boolean,
     isLoading: Boolean = false,
+    loadError: String? = null,
     spaceTypeSchema: List<SchemaItem> = emptyList(),
     onSearchQueryChange: (String) -> Unit,
     onToggleMapView: () -> Unit,
@@ -164,6 +167,16 @@ fun DiscoveryScreenContent(
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+            } else if (loadError != null) {
+                Box(modifier = Modifier.fillMaxSize().padding(top = 72.dp)) {
+                    ProEmptyState(
+                        title = "Couldn't Load Workspaces",
+                        description = loadError,
+                        icon = Icons.Default.WifiOff,
+                        actionButtonText = "Retry",
+                        onActionClick = onResetFilters
+                    )
                 }
             } else if (spaces.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize().padding(top = 72.dp)) {
@@ -222,7 +235,7 @@ fun DiscoveryScreenContent(
                                 )
                                 Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text(
-                                    text = "${spaces.size} verified workspace${if (spaces.size == 1) "" else "s"}" +
+                                    text = "${spaces.count { it.isVerified }} verified workspace${if (spaces.count { it.isVerified } == 1) "" else "s"}" +
                                         (detectedCountryName?.let { " in $it" } ?: ""),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,

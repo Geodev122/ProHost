@@ -668,6 +668,11 @@ fun ProHostAppRoot(
                                     space = detailedSpace!!,
                                     viewModel = viewModel,
                                     intendedSubdivisionId = detailedSpaceSubdivisionId,
+                                    onNavigateToProfile = {
+                                        detailedSpace = null
+                                        detailedSpaceSubdivisionId = null
+                                        navigateTo(AppNavTab.ProfessionalProfile.id)
+                                    },
                                     onBack = { detailedSpace = null; detailedSpaceSubdivisionId = null }
                                 )
                             } else if (safeFullScreenDrawerTab != null) {

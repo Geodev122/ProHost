@@ -22,10 +22,13 @@ import com.example.ui.viewmodel.ProHostViewModel
 fun OwnerRentalRequestsScreen(
     viewModel: ProHostViewModel
 ) {
-    val isLoading by viewModel.isRestoringSession.collectAsState()
-    val errorMessage by viewModel.sessionRestoreError.collectAsState()
+    val isRestoringSession by viewModel.isRestoringSession.collectAsState()
+    val sessionError by viewModel.sessionRestoreError.collectAsState()
     val incomingRequests by viewModel.ownerIncomingRequests.collectAsState()
     val spaces by viewModel.spaces.collectAsState()
+    // Show loading only while restoring and no requests have arrived yet.
+    val isLoading = isRestoringSession && incomingRequests.isEmpty()
+    val errorMessage = if (!isLoading) sessionError else null
 
     when {
         isLoading -> {
