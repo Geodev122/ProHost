@@ -1,5 +1,5 @@
-Notas de versão do ProHost v1.0.26 (Build 26):
-• Sistema completo de gerenciamento de conteúdo de demonstração com geração e eliminação no console do administrador.
-• Configuração atualizada da chave de assinatura do Google Play.
-• Proteções aprimoradas para modo de visualização e autenticação.
-• Sincronização de banco de dados em tempo real e rastreamento otimizados.
+Notas de versão do ProHost v1.0.28 (Build 28):
+• Filtros de seleção múltipla aprimorados para especialidades e divisões.
+• Chave de assinatura do Google Play e regras de segurança atualizadas.
+• Exclusão de conta simplificada, remoção de dados PII e códigos de exibição.
+• Sincronização de banco de dados em tempo real e calendário de pagamentos otimizado.
