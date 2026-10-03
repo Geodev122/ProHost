@@ -100,6 +100,9 @@ fun DiscoveryScreen(
         },
         onQuickWhatsApp = { space, subdivision ->
             viewModel.launchWhatsAppInquiry(context, space, subdivision = subdivision)
+        },
+        onMapCenterCountryDetected = { country ->
+            discoveryViewModel.setMapCenterCountry(country)
         }
     )
 }
@@ -137,7 +140,8 @@ fun DiscoveryScreenContent(
     onToggleSavedSpace: (String) -> Unit,
     onResetFilters: () -> Unit,
     onSelectSpace: (SpaceListing, String?) -> Unit,
-    onQuickWhatsApp: (SpaceListing, Subdivision?) -> Unit
+    onQuickWhatsApp: (SpaceListing, Subdivision?) -> Unit,
+    onMapCenterCountryDetected: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     var searchExpanded by rememberSaveable { mutableStateOf(filterState.query.isNotEmpty()) }
@@ -161,6 +165,7 @@ fun DiscoveryScreenContent(
                 onSpaceSelected = {},
                 onNavigateToDetails = { onSelectSpace(it, null) },
                 onDivisionSelected = { space, subdivisionId -> onSelectSpace(space, subdivisionId) },
+                onCenterCountryDetected = { country -> onMapCenterCountryDetected(country) },
                 modifier = Modifier.fillMaxSize().clipToBounds(),
                 spaceTypeSchema = spaceTypeSchema,
                 topControls = {

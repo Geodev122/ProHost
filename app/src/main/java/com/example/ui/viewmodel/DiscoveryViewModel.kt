@@ -2,6 +2,7 @@ package com.example.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.analytics.AnalyticsTracker
 import com.example.data.model.*
 import com.example.data.repository.ProHostRepository
 import com.example.ui.state.DiscoveryFilterState
@@ -232,6 +233,12 @@ class DiscoveryViewModel(
     fun setCountryFilter(countries: Set<String>) {
         _filterState.update { it.copy(selectedCountries = countries) }
         com.example.analytics.AnalyticsTracker.filterApply("country", countries.sorted().joinToString(",").ifEmpty { "any" })
+    }
+
+    fun setMapCenterCountry(country: String) {
+        if (country.isNotBlank()) {
+            AnalyticsTracker.filterApply("map_center_country", country)
+        }
     }
 
     fun toggleSavedSpace(spaceId: String) {
