@@ -106,3 +106,13 @@ firebase deploy --only firestore:rules,storage
   only relevant for service-account/CI-style deploys (see
   `.github/workflows/android-firebase-distribution.yml` for the app's own
   CI example).
+
+## 7. IAM Policy Bindings & Service Account Permissions
+
+To grant service accounts access for Firebase Extensions, Cloud Functions, and CI/CD pipelines, execute the following Google Cloud IAM policy binding command:
+
+```bash
+gcloud projects add-iam-policy-binding prohost-f766f \
+  --member="serviceAccount:<client_email>" \
+  --role="roles/firebaseextensions.viewer"
+```
