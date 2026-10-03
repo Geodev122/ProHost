@@ -165,9 +165,9 @@ fun MyBookingsScreen(
 
         // Main Bookings Content List
         val roleAccent = when (currentUser?.role) {
-            UserRole.PRO_HOST -> CarnationOrange
-            UserRole.ADMIN -> BrightOrange
-            else -> VibrantBlue
+            UserRole.PRO_HOST -> MaterialTheme.colorScheme.secondary
+            UserRole.ADMIN -> MaterialTheme.proColors.warning
+            else -> MaterialTheme.colorScheme.primary
         }
         if (!hasLoadedBookingsOnce && !isOffline) {
             // The first Firestore snapshot hasn't arrived yet — without this, an
@@ -392,7 +392,7 @@ fun MyBookingsScreen(
     // was tapped, with no confirmation at all; a mis-tap silently withdrew a request
     // still awaiting the host's response with no way to undo it.
     pendingCancelTarget?.let { target ->
-        AlertDialog(
+        ProHostDialog(
             onDismissRequest = { pendingCancelTarget = null },
             icon = { Icon(Icons.Default.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
             title = { Text("Cancel this request?") },
@@ -446,16 +446,16 @@ fun BookingReservationCard(
     modifier: Modifier = Modifier
 ) {
     val statusAccent = when (booking.status) {
-        BookingRequestStatus.ACCEPTED -> FreshGreen
-        BookingRequestStatus.PENDING -> BrightOrange
-        BookingRequestStatus.CANCELLED -> CoolGray
-        BookingRequestStatus.REJECTED -> CrimsonRed
+        BookingRequestStatus.ACCEPTED -> MaterialTheme.proColors.success
+        BookingRequestStatus.PENDING -> MaterialTheme.proColors.warning
+        BookingRequestStatus.CANCELLED -> MaterialTheme.colorScheme.onSurfaceVariant
+        BookingRequestStatus.REJECTED -> MaterialTheme.colorScheme.error
     }
     Card(
         modifier = modifier
             .fillMaxWidth()
             .testTag("booking_card_${booking.id}"),
-        shape = RoundedCornerShape(18.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
@@ -609,10 +609,10 @@ fun BookingReservationCard(
                 }
 
                 if (booking.status == BookingRequestStatus.ACCEPTED && booking.agreementUrl != null) {
-                    Surface(color = StatusSuccessContainer, shape = MaterialTheme.shapes.small) {
+                    Surface(color = MaterialTheme.proColors.successContainer, shape = MaterialTheme.shapes.small) {
                         Text(
                             "Agreement On File",
-                            color = StatusOnSuccessContainer,
+                            color = MaterialTheme.proColors.onSuccessContainer,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -631,13 +631,13 @@ fun BookingReservationCard(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (booking.paymentAcknowledgedBySpecialist) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = StatusSuccess, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.proColors.success, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                         }
                         Text(
                             text = if (booking.paymentAcknowledgedBySpecialist) "You marked this paid" else "Not marked paid yet",
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (booking.paymentAcknowledgedBySpecialist) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (booking.paymentAcknowledgedBySpecialist) MaterialTheme.proColors.success else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     if (!booking.paymentAcknowledgedBySpecialist) {

@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -11,8 +12,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.AppUser
-import com.example.ui.theme.CarnationOrange
-import com.example.ui.theme.FreshGreen
+import com.example.ui.theme.Spacing
+import com.example.ui.theme.proColors
 
 /**
  * Inline KYC progress card for SpecialistProfileScreen.
@@ -63,15 +64,15 @@ fun KycCompletionBanner(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+        color = MaterialTheme.colorScheme.secondaryContainer,
         tonalElevation = 1.dp
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.Shield, contentDescription = null, tint = CarnationOrange, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
                 Text(
                     "Profile Verification",
                     style = MaterialTheme.typography.titleSmall,
@@ -88,9 +89,9 @@ fun KycCompletionBanner(
                 steps.forEachIndexed { index, step ->
                     val isCurrent = !step.done && steps.take(index).all { it.done }
                     val color = when {
-                        step.done -> FreshGreen
-                        isCurrent -> CarnationOrange
-                        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                        step.done -> MaterialTheme.proColors.onSuccessContainer
+                        isCurrent -> MaterialTheme.colorScheme.onSecondaryContainer
+                        else -> MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.55f)
                     }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -131,7 +132,9 @@ fun KycCompletionBanner(
                 OutlinedButton(
                     onClick = nextAction,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = CarnationOrange)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
                 ) {
                     Text("Resend Verification Email", style = MaterialTheme.typography.labelMedium)
                 }

@@ -235,7 +235,7 @@ fun OwnerRentingProgressScreenContent(
                                     Icon(
                                         imageVector = if (isUrgent) Icons.Default.PriorityHigh else Icons.Default.Info,
                                         contentDescription = null,
-                                        tint = if (isUrgent) StatusWarning else MaterialTheme.colorScheme.primary,
+                                        tint = if (isUrgent) MaterialTheme.proColors.warning else MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
@@ -272,7 +272,7 @@ fun OwnerRentingProgressScreenContent(
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.lg),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = CarnationOrange)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
                 }
             }
         } else if (!hasLoadedBookingsOnce && isOffline) {
@@ -324,7 +324,7 @@ fun OwnerRentingProgressScreenContent(
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = MaterialTheme.shapes.large,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -400,7 +400,7 @@ fun OwnerRentingProgressScreenContent(
                             Text(
                                 text = if (booking.paymentAcknowledgedByHost) "✓ You marked this paid" else "Not marked paid yet",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (booking.paymentAcknowledgedByHost) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (booking.paymentAcknowledgedByHost) MaterialTheme.proColors.success else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             if (!booking.paymentAcknowledgedByHost) {
                                 TextButton(onClick = { onMarkPaid(booking) }) {

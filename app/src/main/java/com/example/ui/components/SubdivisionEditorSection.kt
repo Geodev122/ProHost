@@ -914,7 +914,7 @@ fun SubdivisionEditorSection(
             }
         } else if (justSaved) {
             Surface(
-                color = StatusSuccessContainer,
+                color = MaterialTheme.proColors.successContainer,
                 shape = MaterialTheme.shapes.small,
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -923,8 +923,8 @@ fun SubdivisionEditorSection(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
-                    Icon(Icons.Default.Check, contentDescription = null, tint = StatusSuccess, modifier = Modifier.size(16.dp))
-                    Text("Room saved", style = MaterialTheme.typography.labelMedium, color = StatusSuccess, fontWeight = FontWeight.SemiBold)
+                    Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.proColors.success, modifier = Modifier.size(16.dp))
+                    Text("Room saved", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.proColors.success, fontWeight = FontWeight.SemiBold)
                 }
             }
             Spacer(modifier = Modifier.height(Spacing.sm))

@@ -253,8 +253,8 @@ private fun DivisionPerformanceCard(
                             fontWeight = FontWeight.ExtraBold,
                             color = when {
                                 allSlots.isEmpty() -> MaterialTheme.colorScheme.onSurfaceVariant
-                                occupancyPct >= 66 -> FreshGreen
-                                occupancyPct >= 33 -> CarnationOrange
+                                occupancyPct >= 66 -> MaterialTheme.proColors.success
+                                occupancyPct >= 33 -> MaterialTheme.colorScheme.secondary
                                 else -> MaterialTheme.colorScheme.error
                             }
                         )
@@ -283,7 +283,7 @@ private fun DivisionPerformanceCard(
                             Icon(
                                 if (delta >= 0) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
                                 contentDescription = null,
-                                tint = if (delta >= 0) FreshGreen else MaterialTheme.colorScheme.error,
+                                tint = if (delta >= 0) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(12.dp)
                             )
                             Spacer(modifier = Modifier.width(3.dp))
@@ -515,7 +515,7 @@ private fun AvailabilitySlotCell(
             Text(
                 if (isRented) "Rented" else "Open",
                 style = MaterialTheme.typography.labelSmall,
-                color = if (isRented) MaterialTheme.colorScheme.primary else FreshGreen,
+                color = if (isRented) MaterialTheme.colorScheme.primary else MaterialTheme.proColors.success,
                 fontWeight = FontWeight.Bold
             )
         }

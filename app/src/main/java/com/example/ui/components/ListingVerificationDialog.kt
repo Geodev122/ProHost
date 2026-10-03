@@ -74,7 +74,7 @@ fun ListingVerificationDialog(
             modifier = Modifier
                 .fillMaxWidth(0.94f)
                 .fillMaxHeight(0.85f),
-            shape = RoundedCornerShape(20.dp),
+            shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surface
         ) {
             Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {

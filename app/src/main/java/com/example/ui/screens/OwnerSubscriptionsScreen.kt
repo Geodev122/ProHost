@@ -29,6 +29,7 @@ import com.example.data.model.*
 import com.example.data.billing.PlayOfferText
 import com.example.ui.components.CustomButton
 import com.example.ui.components.CustomButtonVariant
+import com.example.ui.components.ProHostDialog
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
 import java.text.SimpleDateFormat
@@ -146,18 +147,18 @@ fun OwnerSubscriptionsScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
-                color = CarnationOrangeContainer
+                color = MaterialTheme.colorScheme.secondaryContainer
             ) {
                 Row(
                     modifier = Modifier.padding(Spacing.md),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Info, contentDescription = null, tint = CarnationOrange)
+                    Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
                     Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
                         "You have a saved Draft waiting on a purchase. Buy the package it needs below and it will publish automatically.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = OxfordBlue
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
             }
@@ -167,7 +168,7 @@ fun OwnerSubscriptionsScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
-                color = FreshGreen.copy(alpha = 0.12f)
+                color = MaterialTheme.proColors.success.copy(alpha = 0.12f)
             ) {
                 Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(
@@ -176,7 +177,7 @@ fun OwnerSubscriptionsScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = FreshGreen, strokeWidth = 2.dp)
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = MaterialTheme.proColors.success, strokeWidth = 2.dp)
                             Spacer(modifier = Modifier.width(Spacing.sm))
                             Text(
                                 "Activating your subscription — this usually takes a few seconds.",
@@ -206,7 +207,7 @@ fun OwnerSubscriptionsScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
-                color = FreshGreen.copy(alpha = 0.12f)
+                color = MaterialTheme.proColors.success.copy(alpha = 0.12f)
             ) {
                 Row(
                     modifier = Modifier.padding(Spacing.md),
@@ -214,12 +215,12 @@ fun OwnerSubscriptionsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.proColors.success, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(msg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
                     }
                     IconButton(onClick = { viewModel.clearBillingMessages() }, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = CoolGray, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                     }
                 }
             }
@@ -259,7 +260,7 @@ fun OwnerSubscriptionsScreen(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
-            color = OxfordBlue,
+            color = MaterialTheme.proColors.brandHeaderStart,
             shadowElevation = 4.dp
         ) {
             Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -268,17 +269,17 @@ fun OwnerSubscriptionsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(color = CarnationOrange, shape = MaterialTheme.shapes.small) {
+                    Surface(color = MaterialTheme.colorScheme.secondary, shape = MaterialTheme.shapes.small) {
                         Text(
                             text = currentPlan?.badgeName?.ifBlank { currentPlan.name } ?: "No Package",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = PureWhite,
+                            color = MaterialTheme.colorScheme.onSecondary,
                             modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                         )
                     }
                     if (currentPlan != null) {
-                        Icon(Icons.Default.Verified, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.Verified, contentDescription = null, tint = MaterialTheme.proColors.headerSuccess, modifier = Modifier.size(24.dp))
                     }
                 }
 
@@ -286,15 +287,15 @@ fun OwnerSubscriptionsScreen(
                     currentPlan?.name ?: "No Active Package",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Black,
-                    color = PureWhite
+                    color = MaterialTheme.proColors.onBrandHeader
                 )
                 Text(
                     currentPlan?.description?.ifBlank { null } ?: "Choose a package below to start publishing workspace listings.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = LightGray
+                    color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f)
                 )
 
-                HorizontalDivider(color = LightGray.copy(alpha = 0.3f))
+                HorizontalDivider(color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.3f))
 
                 if (currentPlan != null) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -306,7 +307,7 @@ fun OwnerSubscriptionsScreen(
                                     else -> "Renews"
                                 },
                                 style = MaterialTheme.typography.bodySmall,
-                                color = LightGray
+                                color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f)
                             )
                             Text(
                                 when {
@@ -318,16 +319,16 @@ fun OwnerSubscriptionsScreen(
                                 },
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = if (remainingDays != null || isLifetimeGrant) PureWhite else StatusError
+                                color = if (remainingDays != null || isLifetimeGrant) MaterialTheme.proColors.onBrandHeader else MaterialTheme.proColors.headerError
                             )
                         }
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("Listings", style = MaterialTheme.typography.bodySmall, color = LightGray)
+                            Text("Listings", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f))
                             Text(
                                 "${ownerSpaces.size} · Unlimited",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = PureWhite
+                                color = MaterialTheme.proColors.onBrandHeader
                             )
                         }
                     }
@@ -336,44 +337,44 @@ fun OwnerSubscriptionsScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.proColors.headerError, modifier = Modifier.size(14.dp))
                             Text(
                                 "Subscription expired — your listings are hidden until you renew",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = StatusError
+                                color = MaterialTheme.proColors.headerError
                             )
                         }
                         currentPlan.isGrantOnly || isLifetimeGrant -> Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(Icons.Default.CardGiftcard, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.CardGiftcard, contentDescription = null, tint = MaterialTheme.proColors.headerSuccess, modifier = Modifier.size(14.dp))
                             Text(
                                 "Complimentary access granted by ProHost",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = FreshGreen
+                                color = MaterialTheme.proColors.headerSuccess
                             )
                         }
                         !isAutoRenewing && remainingDays != null -> Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(Icons.Default.EventBusy, contentDescription = null, tint = CarnationOrange, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.EventBusy, contentDescription = null, tint = MaterialTheme.proColors.headerWarning, modifier = Modifier.size(14.dp))
                             Text(
                                 "Cancelled — access continues until $expiryDateString",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = CarnationOrange
+                                color = MaterialTheme.proColors.headerWarning
                             )
                         }
                         remainingDays != null -> Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(Icons.Default.Autorenew, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Autorenew, contentDescription = null, tint = MaterialTheme.proColors.headerSuccess, modifier = Modifier.size(14.dp))
                             Text(
                                 "Renews automatically via Google Play",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = FreshGreen
+                                color = MaterialTheme.proColors.headerSuccess
                             )
                         }
                         else -> Unit
@@ -391,8 +392,8 @@ fun OwnerSubscriptionsScreen(
                             onClick = { viewModel.openManageSubscriptions(activity, currentPlan.id) },
                             modifier = Modifier.weight(1f),
                             shape = MaterialTheme.shapes.medium,
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PureWhite),
-                            border = BorderStroke(1.dp, PureWhite.copy(alpha = 0.5f))
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader),
+                            border = BorderStroke(1.dp, MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.5f))
                         ) {
                             Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
@@ -405,8 +406,8 @@ fun OwnerSubscriptionsScreen(
                             onClick = { showRedeemDialog = true },
                             modifier = Modifier.weight(1f),
                             shape = MaterialTheme.shapes.medium,
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PureWhite),
-                            border = BorderStroke(1.dp, PureWhite.copy(alpha = 0.5f))
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader),
+                            border = BorderStroke(1.dp, MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.5f))
                         ) {
                             Icon(Icons.Default.CardGiftcard, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
@@ -419,8 +420,8 @@ fun OwnerSubscriptionsScreen(
                             onClick = { viewModel.openPlayOrderHistory(activity) },
                             modifier = Modifier.weight(1f),
                             shape = MaterialTheme.shapes.medium,
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PureWhite),
-                            border = BorderStroke(1.dp, PureWhite.copy(alpha = 0.5f))
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader),
+                            border = BorderStroke(1.dp, MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.5f))
                         ) {
                             Icon(Icons.Default.Receipt, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
@@ -433,9 +434,9 @@ fun OwnerSubscriptionsScreen(
                     onClick = { viewModel.refreshPlayPurchases(context) },
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 ) {
-                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(14.dp), tint = LightGray)
+                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Restore Purchases", style = MaterialTheme.typography.labelSmall, color = LightGray)
+                    Text("Restore Purchases", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f))
                 }
 
                 if ((currentPlan == null || isSubscriptionExpired) && enabledPlans.isNotEmpty()) {
@@ -482,7 +483,7 @@ fun OwnerSubscriptionsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (pricesLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = CarnationOrange)
+                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.secondary)
             }
         }
 
@@ -554,7 +555,7 @@ fun OwnerSubscriptionsScreen(
     }
 
     if (showRedeemDialog) {
-        AlertDialog(
+        ProHostDialog(
             onDismissRequest = { showRedeemDialog = false; redeemCodeInput = "" },
             icon = { Icon(Icons.Default.CardGiftcard, contentDescription = null) },
             title = { Text("Redeem a Code") },
@@ -611,18 +612,18 @@ fun CompactPlanCard(
             onClick = onSelect,
             enabled = !isCurrent,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(
                 containerColor = when {
-                    isCurrent -> OxfordBlue
-                    isFeatured -> OxfordBlue.copy(alpha = 0.06f)
+                    isCurrent -> MaterialTheme.proColors.brandHeaderStart
+                    isFeatured -> MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
                     else -> MaterialTheme.colorScheme.surface
                 }
             ),
             border = when {
                 isCurrent -> null
-                isFeatured -> BorderStroke(2.dp, CarnationOrange)
-                else -> BorderStroke(1.dp, LightGray.copy(alpha = 0.4f))
+                isFeatured -> BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
+                else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             },
             elevation = CardDefaults.cardElevation(if (isFeatured || isCurrent) 6.dp else 2.dp)
         ) {
@@ -640,11 +641,11 @@ fun CompactPlanCard(
                         text = plan.badgeName.ifBlank { plan.name },
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
-                        color = if (isCurrent) PureWhite else MaterialTheme.colorScheme.onSurface,
+                        color = if (isCurrent) MaterialTheme.proColors.onBrandHeader else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1
                     )
                     if (isCurrent) {
-                        Icon(Icons.Default.Verified, contentDescription = null, tint = FreshGreen, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Verified, contentDescription = null, tint = MaterialTheme.proColors.success, modifier = Modifier.size(18.dp))
                     }
                 }
 
@@ -653,29 +654,29 @@ fun CompactPlanCard(
                     text = PackagePlan.displayPrice(plan, PlayOfferText.recurringPrice(playProduct)),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Black,
-                    color = if (isCurrent) PureWhite else CarnationOrange
+                    color = if (isCurrent) MaterialTheme.proColors.onBrandHeader else MaterialTheme.colorScheme.secondary
                 )
                 Text(
                     text = PlayOfferText.caption(playProduct).orEmpty(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isCurrent) LightGray else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isCurrent) MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.offset(y = (-6).dp)
                 )
 
-                HorizontalDivider(color = if (isCurrent) PureWhite.copy(alpha = 0.2f) else LightGray.copy(alpha = 0.5f))
+                HorizontalDivider(color = if (isCurrent) MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.2f) else MaterialTheme.colorScheme.outlineVariant)
 
                 // Listings row
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(
                         Icons.Default.CheckCircle,
                         contentDescription = null,
-                        tint = if (isCurrent) FreshGreen else FreshGreen,
+                        tint = if (isCurrent) MaterialTheme.proColors.headerSuccess else MaterialTheme.proColors.success,
                         modifier = Modifier.size(14.dp)
                     )
                     Text(
                         text = "Unlimited listings",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (isCurrent) PureWhite else MaterialTheme.colorScheme.onSurface,
+                        color = if (isCurrent) MaterialTheme.proColors.onBrandHeader else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -684,7 +685,7 @@ fun CompactPlanCard(
                     Text(
                         text = plan.description,
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (isCurrent) LightGray else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (isCurrent) MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2
                     )
                 }
@@ -696,10 +697,11 @@ fun CompactPlanCard(
                     onClick = onSelect,
                     enabled = !isCurrent,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = MaterialTheme.shapes.medium,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isFeatured && !isCurrent) CarnationOrange else OxfordBlue,
-                        disabledContainerColor = FreshGreen.copy(alpha = 0.18f)
+                        containerColor = if (isFeatured && !isCurrent) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
+                        contentColor = if (isFeatured && !isCurrent) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onPrimary,
+                        disabledContainerColor = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.14f)
                     ),
                     contentPadding = PaddingValues(vertical = 10.dp)
                 ) {
@@ -713,7 +715,7 @@ fun CompactPlanCard(
                         text = if (isCurrent) "Active" else "Select",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (isCurrent) FreshGreen else PureWhite
+                        color = if (isCurrent) MaterialTheme.proColors.headerSuccess else if (isFeatured) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -725,7 +727,7 @@ fun CompactPlanCard(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .offset(x = 8.dp, y = (-8).dp),
-                color = CarnationOrange,
+                color = MaterialTheme.colorScheme.secondary,
                 shape = RoundedCornerShape(6.dp),
                 shadowElevation = 4.dp
             ) {
@@ -733,7 +735,7 @@ fun CompactPlanCard(
                     text = "★ POPULAR",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Black,
-                    color = PureWhite,
+                    color = MaterialTheme.colorScheme.onSecondary,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                 )
             }

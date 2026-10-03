@@ -11,3 +11,9 @@ val Shapes = Shapes(
     large = RoundedCornerShape(16.dp),
     extraLarge = RoundedCornerShape(24.dp)
 )
+
+/** Top-rounded shape shared by every bottom sheet. */
+val SheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+
+/** Drawer panel: rounds only the edge facing the content. */
+val DrawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp)

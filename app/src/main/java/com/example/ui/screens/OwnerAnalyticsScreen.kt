@@ -177,7 +177,7 @@ fun OwnerAnalyticsScreen(
                             value = "$${totalRevenuePotential.toInt()}",
                             subtitle = "Monthly Potential",
                             icon = Icons.Default.AttachMoney,
-                            iconTint = StatusSuccess,
+                            iconTint = MaterialTheme.proColors.success,
                             modifier = Modifier.weight(1f)
                         )
                         ProMetricTile(
@@ -185,7 +185,7 @@ fun OwnerAnalyticsScreen(
                             value = "$totalFavorites",
                             subtitle = "By Specialists",
                             icon = Icons.Default.Favorite,
-                            iconTint = CrimsonRed,
+                            iconTint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -195,7 +195,7 @@ fun OwnerAnalyticsScreen(
                     // Wide Revenue card: this month's total + month-over-month delta
                     Surface(
                         shape = MaterialTheme.shapes.medium,
-                        color = StatusSuccess.copy(alpha = 0.08f),
+                        color = MaterialTheme.proColors.success.copy(alpha = 0.08f),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -212,7 +212,7 @@ fun OwnerAnalyticsScreen(
                                 Icon(
                                     Icons.Default.MonetizationOn,
                                     contentDescription = null,
-                                    tint = StatusSuccess,
+                                    tint = MaterialTheme.proColors.success,
                                     modifier = Modifier.size(28.dp)
                                 )
                                 Column {
@@ -220,7 +220,7 @@ fun OwnerAnalyticsScreen(
                                         text = "$${confirmedRevThisMonth.toInt()} USD",
                                         style = MaterialTheme.typography.headlineSmall,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = StatusSuccess
+                                        color = MaterialTheme.proColors.success
                                     )
                                     Text(
                                         text = "Revenue this month",
@@ -236,7 +236,7 @@ fun OwnerAnalyticsScreen(
                                 Icon(
                                     if (revenueDelta >= 0) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
                                     contentDescription = null,
-                                    tint = if (revenueDelta >= 0) StatusSuccess else StatusError,
+                                    tint = if (revenueDelta >= 0) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Column(horizontalAlignment = Alignment.End) {
@@ -244,7 +244,7 @@ fun OwnerAnalyticsScreen(
                                         text = if (revenueDelta >= 0) "+$${revenueDelta.toInt()}" else "-$${(-revenueDelta).toInt()}",
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (revenueDelta >= 0) StatusSuccess else StatusError
+                                        color = if (revenueDelta >= 0) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error
                                     )
                                     Text(
                                         text = "vs last month",
@@ -266,7 +266,7 @@ fun OwnerAnalyticsScreen(
                             value = "$bookingsThisMonth",
                             subtitle = "Confirmed this mo.",
                             icon = Icons.Default.EventAvailable,
-                            iconTint = VibrantBlue,
+                            iconTint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f)
                         )
                         ProMetricTile(
@@ -274,7 +274,7 @@ fun OwnerAnalyticsScreen(
                             value = "$${pendingRevenue.toInt()}",
                             subtitle = "Awaiting approval",
                             icon = Icons.Default.HourglassTop,
-                            iconTint = CarnationOrange,
+                            iconTint = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -306,7 +306,7 @@ fun OwnerAnalyticsScreen(
                         // bar's percentage label — rendered in this same color directly on the
                         // screen's ambient background (see DisciplineDemandBar) — stays legible in
                         // dark mode, where a hardcoded dark navy would be near-invisible.
-                        val demandColors = listOf(MaterialTheme.colorScheme.primary, VibrantBlue, CarnationOrange, BrightOrange, LebaneseCedarGreen)
+                        val demandColors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary, MaterialTheme.proColors.warning, MaterialTheme.proColors.success)
                         val maxCount = specialtyDemand.first().second
                         specialtyDemand.forEachIndexed { index, (specialty, count) ->
                             DisciplineDemandBar(
@@ -383,7 +383,7 @@ fun OwnerAnalyticsScreen(
                                         text = if (diff >= 0) "+$${diff.toInt()}" else "-$${(-diff).toInt()}",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (diff >= 0) StatusSuccess else MaterialTheme.colorScheme.error
+                                        color = if (diff >= 0) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error
                                     )
                                 }
                                 Row(
@@ -393,7 +393,7 @@ fun OwnerAnalyticsScreen(
                                     Text(
                                         text = "This month: $${thisMonth.toInt()}",
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = if (thisMonth >= prevMonth) StatusSuccess else MaterialTheme.colorScheme.error
+                                        color = if (thisMonth >= prevMonth) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error
                                     )
                                     Text(
                                         text = "Last month: $${prevMonth.toInt()}",
@@ -455,7 +455,7 @@ fun OwnerAnalyticsScreen(
                                                     text = if (subDiff >= 0) "+$${subDiff.toInt()}" else "-$${(-subDiff).toInt()}",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     fontWeight = FontWeight.SemiBold,
-                                                    color = if (subDiff >= 0) StatusSuccess else MaterialTheme.colorScheme.error
+                                                    color = if (subDiff >= 0) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error
                                                 )
                                             }
                                         }
@@ -526,7 +526,7 @@ fun ListingHealthCard(space: SpaceListing) {
                 modifier = Modifier.weight(1f)
             ) {
                 Surface(
-                    color = if (space.isActiveSubscription) StatusSuccessContainer else StatusErrorContainer,
+                    color = if (space.isActiveSubscription) MaterialTheme.proColors.successContainer else MaterialTheme.colorScheme.errorContainer,
                     shape = CircleShape,
                     modifier = Modifier.size(42.dp)
                 ) {
@@ -534,7 +534,7 @@ fun ListingHealthCard(space: SpaceListing) {
                         Icon(
                             imageVector = if (space.isActiveSubscription) Icons.Default.CheckCircle else Icons.Default.Warning,
                             contentDescription = null,
-                            tint = if (space.isActiveSubscription) StatusSuccess else StatusError,
+                            tint = if (space.isActiveSubscription) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -558,7 +558,7 @@ fun ListingHealthCard(space: SpaceListing) {
                         text = if (space.isActiveSubscription) "Subscription Active" else "Renewal Required",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (space.isActiveSubscription) StatusSuccess else StatusError
+                        color = if (space.isActiveSubscription) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error
                     )
                 }
             }
@@ -584,7 +584,7 @@ fun ListingHealthCard(space: SpaceListing) {
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Icon(Icons.Default.Favorite, contentDescription = null, tint = CrimsonRed, modifier = Modifier.size(12.dp))
+                    Icon(Icons.Default.Favorite, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(12.dp))
                     Text(
                         text = "${space.favoriteCount} saved",
                         style = MaterialTheme.typography.labelSmall,

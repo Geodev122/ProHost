@@ -47,7 +47,7 @@ fun CountryPickerDialog(
             }
         }
     }
-    AlertDialog(
+    ProHostDialog(
         onDismissRequest = onDismiss,
         title = { Text("Choose your country") },
         text = {

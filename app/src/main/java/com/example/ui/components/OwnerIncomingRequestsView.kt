@@ -187,9 +187,9 @@ fun OwnerIncomingRequestsView(
 
     // Rejection Reason Modal Dialog
     if (rejectingRequestId != null) {
-        AlertDialog(
+        ProHostDialog(
             onDismissRequest = { rejectingRequestId = null },
-            icon = { Icon(Icons.Default.Cancel, contentDescription = null, tint = StatusError) },
+            icon = { Icon(Icons.Default.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
             title = { Text("Decline Booking Request", style = MaterialTheme.typography.titleMedium) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -235,7 +235,7 @@ fun OwnerIncomingRequestsView(
     // the signed lease as the record of that; there's no in-app payment step anymore.
     if (acceptingRequestId != null) {
         val reqId = acceptingRequestId!!
-        AlertDialog(
+        ProHostDialog(
             onDismissRequest = { acceptingRequestId = null },
             icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
             title = { Text("Accept & Upload Agreement", style = MaterialTheme.typography.titleMedium) },
@@ -298,14 +298,14 @@ fun OwnerBookingRequestCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
             color = when (request.status) {
-                BookingRequestStatus.PENDING -> StatusWarning
-                BookingRequestStatus.ACCEPTED -> StatusInfo
-                BookingRequestStatus.REJECTED -> StatusError
+                BookingRequestStatus.PENDING -> MaterialTheme.proColors.warning
+                BookingRequestStatus.ACCEPTED -> MaterialTheme.proColors.info
+                BookingRequestStatus.REJECTED -> MaterialTheme.colorScheme.error
                 BookingRequestStatus.CANCELLED -> MaterialTheme.colorScheme.outlineVariant
             }
         )
@@ -460,7 +460,7 @@ fun OwnerBookingRequestCard(
             // Unavailable Notice for Accepted Bookings
             if (request.status == BookingRequestStatus.ACCEPTED) {
                 Surface(
-                    color = StatusInfoContainer,
+                    color = MaterialTheme.proColors.infoContainer,
                     shape = MaterialTheme.shapes.small,
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -471,14 +471,14 @@ fun OwnerBookingRequestCard(
                         Icon(
                             Icons.Default.Lock,
                             contentDescription = null,
-                            tint = StatusInfo,
+                            tint = MaterialTheme.proColors.info,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Locked & marked UNAVAILABLE for public discovery (${request.formula.totalWeeklyHours} hrs/wk deducted).",
                             style = MaterialTheme.typography.labelSmall,
-                            color = StatusInfo,
+                            color = MaterialTheme.proColors.info,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
@@ -487,14 +487,14 @@ fun OwnerBookingRequestCard(
 
             if (request.status == BookingRequestStatus.REJECTED && !request.rejectionReason.isNullOrBlank()) {
                 Surface(
-                    color = StatusErrorContainer,
+                    color = MaterialTheme.colorScheme.errorContainer,
                     shape = MaterialTheme.shapes.small,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = "Decline Reason: ${request.rejectionReason}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = StatusError,
+                        color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
                     )

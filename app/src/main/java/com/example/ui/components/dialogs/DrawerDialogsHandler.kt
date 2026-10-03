@@ -157,7 +157,7 @@ fun DrawerDialogsHandler(
                                                 Text(
                                                     if (purchase.isAutoRenewing) "Auto-renewing" else "Canceled — active until the end of the paid period",
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    color = if (purchase.isAutoRenewing) StatusSuccess else MaterialTheme.colorScheme.error
+                                                    color = if (purchase.isAutoRenewing) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error
                                                 )
                                                 Text("Started ${sdf.format(Date(purchase.purchaseTime))}", style = MaterialTheme.typography.labelSmall)
                                                 purchase.orderId?.let { Text("Order $it", style = MaterialTheme.typography.labelSmall) }
@@ -249,7 +249,7 @@ fun DrawerDialogsHandler(
                                     items(filteredAuditLogs) { log ->
                                         Card(
                                             modifier = Modifier.fillMaxWidth(),
-                                            colors = CardDefaults.cardColors(containerColor = CoolGray)
+                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                                         ) {
                                             Column(modifier = Modifier.padding(Spacing.sm)) {
                                                 Row(
@@ -258,22 +258,22 @@ fun DrawerDialogsHandler(
                                                 ) {
                                                     Text(
                                                         log.actionType,
-                                                        color = FreshGreen,
+                                                        color = MaterialTheme.proColors.success,
                                                         fontWeight = FontWeight.Bold,
                                                         style = MaterialTheme.typography.labelSmall
                                                     )
                                                     Text(
                                                         log.severity,
-                                                        color = if (log.severity == "SECURE") MaterialTheme.colorScheme.error else AmberWarning,
+                                                        color = if (log.severity == "SECURE") MaterialTheme.colorScheme.error else MaterialTheme.proColors.warning,
                                                         fontWeight = FontWeight.Bold,
                                                         style = MaterialTheme.typography.labelSmall
                                                     )
                                                 }
-                                                Text(log.details, color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                                Text(log.details, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall)
                                                 Text(
                                                     "Actor: ${log.actorEmail} • " +
                                                         "${SimpleDateFormat("MMM d, yyyy HH:mm", Locale.US).format(Date(log.timestamp))}",
-                                                    color = Color.White.copy(alpha = 0.5f),
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     style = MaterialTheme.typography.labelSmall
                                                 )
                                             }
@@ -409,7 +409,7 @@ fun DrawerDialogsHandler(
                                                 "$activeCount",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 fontWeight = FontWeight.Bold,
-                                                color = FreshGreen,
+                                                color = MaterialTheme.proColors.success,
                                                 textAlign = TextAlign.Center,
                                                 modifier = Modifier.weight(1f)
                                             )
@@ -417,7 +417,7 @@ fun DrawerDialogsHandler(
                                                 "$pausedCount",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 fontWeight = FontWeight.Bold,
-                                                color = CarnationOrange,
+                                                color = MaterialTheme.colorScheme.secondary,
                                                 textAlign = TextAlign.Center,
                                                 modifier = Modifier.weight(1f)
                                             )
@@ -517,7 +517,7 @@ fun DrawerDialogsHandler(
                                                                 },
                                                                 contentDescription = null,
                                                                 tint = when (alert.category) {
-                                                                    "BOOKING_ACCEPTANCE" -> StatusSuccess
+                                                                    "BOOKING_ACCEPTANCE" -> MaterialTheme.proColors.success
                                                                     "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> MaterialTheme.colorScheme.primary
                                                                     "PACKAGE_EXPIRED" -> MaterialTheme.colorScheme.error
                                                                     "PAYMENT_REMINDER" -> MaterialTheme.colorScheme.tertiary

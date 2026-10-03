@@ -129,7 +129,8 @@ fun SpecialistProfileScreen(
                 Surface(
                     onClick = { onNavigateToTab("owner_subscriptions") },
                     shape = MaterialTheme.shapes.medium,
-                    color = FreshGreen,
+                    color = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary,
                     shadowElevation = 3.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -138,15 +139,15 @@ fun SpecialistProfileScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = PureWhite)
+                        Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary)
                         Text(
                             text = "Become a Pro Host",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = PureWhite,
+                            color = MaterialTheme.colorScheme.onSecondary,
                             modifier = Modifier.weight(1f)
                         )
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -310,7 +311,7 @@ fun SpecialistProfileScreen(
                                     value = "$activeLeasesCount",
                                     subtitle = "Confirmed workspace slots",
                                     icon = Icons.Default.EventAvailable,
-                                    iconTint = FreshGreen,
+                                    iconTint = MaterialTheme.proColors.success,
                                     modifier = Modifier.weight(1f)
                                 )
                                 ProMetricTile(
@@ -318,7 +319,7 @@ fun SpecialistProfileScreen(
                                     value = "$pendingApplicationsCount",
                                     subtitle = "Awaiting host approval",
                                     icon = Icons.Default.PendingActions,
-                                    iconTint = BrightOrange,
+                                    iconTint = MaterialTheme.proColors.warning,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -331,7 +332,7 @@ fun SpecialistProfileScreen(
                                     value = "${practitionerBookingsForStats.size}",
                                     subtitle = "All rental applications",
                                     icon = Icons.AutoMirrored.Filled.ReceiptLong,
-                                    iconTint = VibrantBlue,
+                                    iconTint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.weight(1f)
                                 )
                                 ProMetricTile(
@@ -339,7 +340,7 @@ fun SpecialistProfileScreen(
                                     value = if (user.isVerified) "Verified" else "Unverified",
                                     subtitle = "SMS Verification Status",
                                     icon = Icons.Default.VerifiedUser,
-                                    iconTint = FreshGreen,
+                                    iconTint = MaterialTheme.proColors.success,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -355,7 +356,7 @@ fun SpecialistProfileScreen(
                                     value = "${ownerActiveListings.size}",
                                     subtitle = "Commercial units live",
                                     icon = Icons.Default.HomeWork,
-                                    iconTint = CarnationOrange,
+                                    iconTint = MaterialTheme.colorScheme.secondary,
                                     modifier = Modifier.weight(1f)
                                 )
                                 ProMetricTile(
@@ -363,7 +364,7 @@ fun SpecialistProfileScreen(
                                     value = "${ownerIncomingRequests.size}",
                                     subtitle = "Applications received",
                                     icon = Icons.Default.Inbox,
-                                    iconTint = VibrantBlue,
+                                    iconTint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -376,7 +377,7 @@ fun SpecialistProfileScreen(
                                     value = "$${estimatedYieldUsd.toInt()} USD",
                                     subtitle = "Monthly gross MRR",
                                     icon = Icons.Default.AttachMoney,
-                                    iconTint = FreshGreen,
+                                    iconTint = MaterialTheme.proColors.success,
                                     modifier = Modifier.weight(1f)
                                 )
                                 ProMetricTile(
@@ -384,7 +385,7 @@ fun SpecialistProfileScreen(
                                     value = ownerActivePackagePlan?.let { "$${it.priceUsd.toInt()} USD" } ?: "No Plan",
                                     subtitle = ownerActivePackagePlan?.let { "${it.name} · ${it.validityDays}d" } ?: "No active package",
                                     icon = Icons.Default.Payment,
-                                    iconTint = CarnationOrangeDark,
+                                    iconTint = MaterialTheme.colorScheme.secondary,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -408,7 +409,7 @@ fun SpecialistProfileScreen(
                                     value = "${Governorate.entries.size}",
                                     subtitle = "National coverage",
                                     icon = Icons.Default.Map,
-                                    iconTint = VibrantBlue,
+                                    iconTint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -421,7 +422,7 @@ fun SpecialistProfileScreen(
                                     value = "Live",
                                     subtitle = "Real-time bridge active",
                                     icon = Icons.Default.CloudDone,
-                                    iconTint = FreshGreen,
+                                    iconTint = MaterialTheme.proColors.success,
                                     modifier = Modifier.weight(1f)
                                 )
                                 ProMetricTile(
@@ -429,7 +430,7 @@ fun SpecialistProfileScreen(
                                     value = "${allSpacesList.count { it.status == ListingStatus.ACTIVE }}",
                                     subtitle = "Live listings",
                                     icon = Icons.Default.Storefront,
-                                    iconTint = AmberWarning,
+                                    iconTint = MaterialTheme.proColors.warning,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -479,21 +480,21 @@ fun SpecialistProfileScreen(
                                     val targetSpace = spaces.find { it.id == req.spaceId }
                                     Card(
                                         modifier = Modifier.fillMaxWidth(),
-                                        shape = RoundedCornerShape(14.dp),
+                                        shape = MaterialTheme.shapes.large,
                                         colors = CardDefaults.cardColors(
                                             containerColor = when (req.status) {
-                                                BookingRequestStatus.ACCEPTED -> StatusInfoContainer
-                                                BookingRequestStatus.PENDING -> StatusWarningContainer
-                                                BookingRequestStatus.REJECTED -> StatusErrorContainer
+                                                BookingRequestStatus.ACCEPTED -> MaterialTheme.proColors.infoContainer
+                                                BookingRequestStatus.PENDING -> MaterialTheme.proColors.warningContainer
+                                                BookingRequestStatus.REJECTED -> MaterialTheme.colorScheme.errorContainer
                                                 BookingRequestStatus.CANCELLED -> MaterialTheme.colorScheme.surfaceVariant
                                             }
                                         ),
                                         border = BorderStroke(
                                             1.dp,
                                             when (req.status) {
-                                                BookingRequestStatus.ACCEPTED -> StatusInfo
-                                                BookingRequestStatus.PENDING -> StatusWarning
-                                                BookingRequestStatus.REJECTED -> StatusError
+                                                BookingRequestStatus.ACCEPTED -> MaterialTheme.proColors.info
+                                                BookingRequestStatus.PENDING -> MaterialTheme.proColors.warning
+                                                BookingRequestStatus.REJECTED -> MaterialTheme.colorScheme.error
                                                 BookingRequestStatus.CANCELLED -> MaterialTheme.colorScheme.outlineVariant
                                             }
                                         )
@@ -575,7 +576,7 @@ fun SpecialistProfileScreen(
                                                         },
                                                         modifier = Modifier.weight(1f),
                                                         shape = MaterialTheme.shapes.small,
-                                                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                                                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppDarkGreen),
                                                         contentPadding = PaddingValues(vertical = 6.dp)
                                                     ) {
                                                         Icon(
@@ -802,7 +803,10 @@ fun SpecialistProfileScreen(
                     if (updateState == UpdateState.DOWNLOADED) {
                         Button(
                             onClick = { inAppUpdateManager?.completeUpdate() },
-                            colors = ButtonDefaults.buttonColors(containerColor = FreshGreen),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.proColors.success,
+                                contentColor = MaterialTheme.proColors.onSuccess
+                            ),
                             shape = MaterialTheme.shapes.small,
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                         ) {
@@ -867,7 +871,7 @@ fun SpecialistProfileScreen(
             }
 
             if (showDeleteConfirmation) {
-                AlertDialog(
+                ProHostDialog(
                     onDismissRequest = { if (!isDeletingAccount) showDeleteConfirmation = false },
                     icon = { Icon(Icons.Default.DeleteForever, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                     title = { Text("Delete your account?") },
@@ -934,7 +938,7 @@ fun SpecialistProfileScreen(
             }
 
             pendingCancelRequest?.let { target ->
-                AlertDialog(
+                ProHostDialog(
                     onDismissRequest = { pendingCancelRequest = null },
                     icon = { Icon(Icons.Default.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                     title = { Text("Cancel this request?") },

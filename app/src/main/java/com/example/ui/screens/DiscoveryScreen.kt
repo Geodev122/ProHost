@@ -200,7 +200,7 @@ fun DiscoveryScreenContent(
                         }
                         Surface(
                             color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = RoundedCornerShape(14.dp),
+                            shape = MaterialTheme.shapes.large,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -452,19 +452,9 @@ private fun DiscoveryFilterSheet(
     onToggleSavedOnly: (Boolean) -> Unit,
     onResetFilters: () -> Unit
 ) {
-    ModalBottomSheet(
+    ProHostBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        scrimColor = Color.Black.copy(alpha = 0.35f),
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .padding(vertical = 8.dp)
-                    .width(28.dp)
-                    .height(4.dp)
-                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f), RoundedCornerShape(2.dp))
-            )
-        }
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
         Column(
             modifier = Modifier

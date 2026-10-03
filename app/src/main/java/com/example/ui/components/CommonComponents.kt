@@ -69,13 +69,6 @@ enum class ProBadgeType {
     CUSTOM_ERROR
 }
 
-private data class BadgeConfig(
-    val bg: Color,
-    val text: Color,
-    val icon: ImageVector,
-    val defaultLabel: String
-)
-
 /**
  * Standardized status and category badge with semantic colors and icons.
  */
@@ -136,61 +129,18 @@ fun StatusBadge(
     customIcon: ImageVector? = null,
     shape: CornerBasedShape = MaterialTheme.shapes.small
 ) {
+    val pro = MaterialTheme.proColors
+    val scheme = MaterialTheme.colorScheme
     val (bg, text, defaultIcon, defaultText) = when (status) {
-        StatusBadgeType.AVAILABLE -> Quad(
-            FreshGreen,
-            PureWhite,
-            Icons.Default.CheckCircle,
-            "Available"
-        )
-        StatusBadgeType.OCCUPIED -> Quad(
-            OxfordBlue,
-            PureWhite,
-            Icons.Default.Lock,
-            "Occupied / Booked"
-        )
-        StatusBadgeType.VERIFIED -> Quad(
-            FreshGreen,
-            PureWhite,
-            Icons.Default.Verified,
-            "License / ID Verified"
-        )
-        StatusBadgeType.PENDING -> Quad(
-            BrightOrange,
-            PureWhite,
-            Icons.Default.HourglassTop,
-            "Pending Approval"
-        )
-        StatusBadgeType.MAINTENANCE -> Quad(
-            CoolGray,
-            PureWhite,
-            Icons.Default.Build,
-            "Maintenance Slot"
-        )
-        StatusBadgeType.CANCELLED -> Quad(
-            CrimsonRed,
-            PureWhite,
-            Icons.Default.Cancel,
-            "Cancelled / Unavailable"
-        )
-        StatusBadgeType.ADMIN -> Quad(
-            OxfordBlue,
-            PureWhite,
-            Icons.Default.Shield,
-            "Super Admin"
-        )
-        StatusBadgeType.GOLD -> Quad(
-            BrightOrange,
-            PureWhite,
-            Icons.Default.WorkspacePremium,
-            "Premium Tier"
-        )
-        StatusBadgeType.INFO -> Quad(
-            VibrantBlue,
-            PureWhite,
-            Icons.Default.Info,
-            "Information"
-        )
+        StatusBadgeType.AVAILABLE -> Quad(pro.success, pro.onSuccess, Icons.Default.CheckCircle, "Available")
+        StatusBadgeType.OCCUPIED -> Quad(pro.locked, pro.onLocked, Icons.Default.Lock, "Occupied / Booked")
+        StatusBadgeType.VERIFIED -> Quad(pro.success, pro.onSuccess, Icons.Default.Verified, "License / ID Verified")
+        StatusBadgeType.PENDING -> Quad(pro.warning, pro.onWarning, Icons.Default.HourglassTop, "Pending Approval")
+        StatusBadgeType.MAINTENANCE -> Quad(scheme.onSurfaceVariant, scheme.surface, Icons.Default.Build, "Maintenance Slot")
+        StatusBadgeType.CANCELLED -> Quad(scheme.error, scheme.onError, Icons.Default.Cancel, "Cancelled / Unavailable")
+        StatusBadgeType.ADMIN -> Quad(scheme.primary, scheme.onPrimary, Icons.Default.Shield, "Super Admin")
+        StatusBadgeType.GOLD -> Quad(pro.warning, pro.onWarning, Icons.Default.WorkspacePremium, "Premium Tier")
+        StatusBadgeType.INFO -> Quad(pro.info, pro.onInfo, Icons.Default.Info, "Information")
     }
 
     Surface(
@@ -201,7 +151,7 @@ fun StatusBadge(
         Row(
             modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
             Icon(
                 imageVector = customIcon ?: defaultIcon,
@@ -475,7 +425,7 @@ private fun AvatarCircle(
         }
         if (isVerified) {
             Surface(
-                color = StatusSuccess,
+                color = MaterialTheme.proColors.success,
                 shape = CircleShape,
                 border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
                 modifier = Modifier
@@ -486,7 +436,7 @@ private fun AvatarCircle(
                     Icon(
                         Icons.Default.Check,
                         contentDescription = "Verified",
-                        tint = Color.White,
+                        tint = MaterialTheme.proColors.onSuccess,
                         modifier = Modifier.size(size * 0.25f)
                     )
                 }
@@ -676,34 +626,33 @@ fun CustomButton(
     }
 ) {
     val minHeight = if (compact) 40.dp else 48.dp
-    // PRIMARY/SECONDARY/SUCCESS/DANGER/WHATSAPP intentionally use fixed brand colors —
-    // they're solid, always-colored surfaces (never the plain app background), so a
-    // fixed white/light-gray foreground reads correctly in both themes. OUTLINED and
-    // TONAL/TEXT sit directly on the app's own background/surface, which DOES flip
-    // brightness between themes (e.g. MaterialTheme.colorScheme.primary is dark navy
-    // in light mode but a light blue in dark mode) — those must use theme-aware `on*`
-    // tokens instead of a hardcoded OxfordBlue, or their text becomes near-invisible
-    // (dark navy on a near-black background) in dark mode.
+    // Every variant resolves from the active theme, so a light/dark switch re-colors the
+    // button with its matching on-color (each pair is >= 4.5:1 in both themes):
+    //   PRIMARY   -> secondary (Orange action)      SECONDARY -> primary (Special Blue)
+    //   SUCCESS   -> proColors.success              DANGER    -> error
+    // WHATSAPP is the one partner-brand exception (deep WhatsApp green, white text 5.4:1).
+    val pro = MaterialTheme.proColors
+    val scheme = MaterialTheme.colorScheme
     val containerColor = customContainerColor ?: when (variant) {
-        CustomButtonVariant.PRIMARY -> CarnationOrange
-        CustomButtonVariant.SECONDARY -> CoolGray
+        CustomButtonVariant.PRIMARY -> scheme.secondary
+        CustomButtonVariant.SECONDARY -> scheme.primary
         CustomButtonVariant.OUTLINED -> Color.Transparent
-        CustomButtonVariant.TONAL -> MaterialTheme.colorScheme.surfaceVariant
+        CustomButtonVariant.TONAL -> scheme.surfaceVariant
         CustomButtonVariant.TEXT -> Color.Transparent
-        CustomButtonVariant.SUCCESS -> FreshGreen
-        CustomButtonVariant.DANGER -> CrimsonRed
-        CustomButtonVariant.WHATSAPP -> WhatsAppGreen
+        CustomButtonVariant.SUCCESS -> pro.success
+        CustomButtonVariant.DANGER -> scheme.error
+        CustomButtonVariant.WHATSAPP -> WhatsAppDarkGreen
     }
 
     val contentColor = customContentColor ?: when (variant) {
-        CustomButtonVariant.PRIMARY -> PureWhite
-        CustomButtonVariant.SECONDARY -> LightGray
-        CustomButtonVariant.OUTLINED -> MaterialTheme.colorScheme.primary
-        CustomButtonVariant.TONAL -> MaterialTheme.colorScheme.onSurfaceVariant
-        CustomButtonVariant.TEXT -> MaterialTheme.colorScheme.primary
-        CustomButtonVariant.SUCCESS -> PureWhite
-        CustomButtonVariant.DANGER -> PureWhite
-        CustomButtonVariant.WHATSAPP -> PureWhite
+        CustomButtonVariant.PRIMARY -> scheme.onSecondary
+        CustomButtonVariant.SECONDARY -> scheme.onPrimary
+        CustomButtonVariant.OUTLINED -> scheme.primary
+        CustomButtonVariant.TONAL -> scheme.onSurfaceVariant
+        CustomButtonVariant.TEXT -> scheme.primary
+        CustomButtonVariant.SUCCESS -> pro.onSuccess
+        CustomButtonVariant.DANGER -> scheme.onError
+        CustomButtonVariant.WHATSAPP -> Color.White
     }
 
     when (variant) {
@@ -818,7 +767,7 @@ private fun ButtonInnerContent(
 }
 
 /**
- * Standard ProHost Primary Button (Filled with Carnation Orange #F25F4C, rounded 12dp, min 48dp height).
+ * Standard ProHost Primary Button (theme `secondary` Orange fill + `onSecondary` text, rounded 12dp, min 48dp height).
  */
 @Composable
 fun ProPrimaryButton(
@@ -828,8 +777,8 @@ fun ProPrimaryButton(
     icon: ImageVector? = null,
     enabled: Boolean = true,
     isLoading: Boolean = false,
-    containerColor: Color = CarnationOrange,
-    contentColor: Color = PureWhite,
+    containerColor: Color = MaterialTheme.colorScheme.secondary,
+    contentColor: Color = MaterialTheme.colorScheme.onSecondary,
     shape: CornerBasedShape = MaterialTheme.shapes.medium
 ) {
     CustomButton(
@@ -1113,7 +1062,7 @@ fun WorkspaceCard(
         modifier = modifier,
         onClick = onClick,
         shape = MaterialTheme.shapes.large,
-        contentPadding = PaddingValues(14.dp),
+        contentPadding = PaddingValues(Spacing.lg),
         elevation = 3.dp
     ) {
         // Boxed cover photo with favorite overlay icon & listing type tag
@@ -1134,9 +1083,9 @@ fun WorkspaceCard(
             }
             if (isVerified) {
                 Surface(
-                    color = LebaneseCedarContainer,
+                    color = MaterialTheme.proColors.successContainer,
                     shape = MaterialTheme.shapes.small,
-                    border = BorderStroke(1.dp, LebaneseCedarGreen.copy(alpha = 0.5f)),
+                    border = BorderStroke(1.dp, MaterialTheme.proColors.success.copy(alpha = 0.5f)),
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(8.dp)
@@ -1149,15 +1098,14 @@ fun WorkspaceCard(
                         Icon(
                             imageVector = Icons.Default.Verified,
                             contentDescription = null,
-                            tint = LebaneseCedarGreen,
+                            tint = MaterialTheme.proColors.onSuccessContainer,
                             modifier = Modifier.size(12.dp)
                         )
                         Text(
                             text = "Verified",
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = LebaneseCedarGreen
+                            color = MaterialTheme.proColors.onSuccessContainer
                         )
                     }
                 }
@@ -1176,7 +1124,7 @@ fun WorkspaceCard(
                         Icon(
                             imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = if (isSaved) "Remove from Saved" else "Save Workspace",
-                            tint = if (isSaved) CrimsonRed else MaterialTheme.colorScheme.onSurface,
+                            tint = if (isSaved) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -1278,7 +1226,6 @@ fun WorkspaceCard(
                         Text(
                             text = operatingHours,
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -1303,7 +1250,6 @@ fun WorkspaceCard(
                         Text(
                             text = totalDaysOpen,
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
@@ -1401,8 +1347,8 @@ fun ProCard(
 fun ProInfoBanner(
     text: String,
     icon: ImageVector = Icons.Default.Info,
-    containerColor: Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-    contentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+    containerColor: Color = MaterialTheme.proColors.infoContainer,
+    contentColor: Color = MaterialTheme.proColors.onInfoContainer,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -1413,7 +1359,7 @@ fun ProInfoBanner(
         Row(
             modifier = Modifier.padding(Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             Icon(
                 imageVector = icon,
@@ -1506,7 +1452,7 @@ fun ProSegmentedControl(
                 val isSelected = selectedIndex == index
                 Surface(
                     color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
-                    shape = RoundedCornerShape(9.dp),
+                    shape = MaterialTheme.shapes.small,
                     border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)) else null,
                     modifier = Modifier
                         .weight(1f)
@@ -1573,9 +1519,9 @@ fun ProHostCedarBadge(
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
     Surface(
-        color = LebaneseCedarContainer.copy(alpha = 0.85f),
+        color = MaterialTheme.proColors.successContainer,
         shape = MaterialTheme.shapes.small,
-        border = BorderStroke(1.dp, LebaneseCedarGreen.copy(alpha = 0.35f)),
+        border = BorderStroke(1.dp, MaterialTheme.proColors.success.copy(alpha = 0.35f)),
         modifier = modifier
     ) {
         Row(
@@ -1589,13 +1535,13 @@ fun ProHostCedarBadge(
             Icon(
                 imageVector = Icons.Default.Shield,
                 contentDescription = null,
-                tint = LebaneseCedarGreen,
+                tint = MaterialTheme.proColors.onSuccessContainer,
                 modifier = Modifier.size(if (isCompact) 10.dp else 12.dp)
             )
             Text(
                 text = text,
-                color = LebaneseCedarGreen,
-                fontSize = if (isCompact) 9.sp else 10.sp,
+                color = MaterialTheme.proColors.onSuccessContainer,
+                fontSize = if (isCompact) 10.sp else 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.3.sp
             )
@@ -1619,15 +1565,16 @@ fun ProHostTopAppBar(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        tonalElevation = 2.dp,
+        shadowElevation = 2.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = Spacing.sm, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -1657,7 +1604,7 @@ fun ProHostTopAppBar(
                         Text(
                             text = "ProHost",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
+                            fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
 
@@ -1683,16 +1630,7 @@ fun ProHostTopAppBar(
                 BadgedBox(
                     badge = {
                         if (unreadAlertCount > 0) {
-                            Badge(
-                                containerColor = MaterialTheme.colorScheme.error,
-                                contentColor = MaterialTheme.colorScheme.onError
-                            ) {
-                                Text(
-                                    text = unreadAlertCount.toString(),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp
-                                )
-                            }
+                            ProHostCountBadge(count = unreadAlertCount)
                         }
                     }
                 ) {
@@ -1725,11 +1663,12 @@ fun ShimmerLoadingCard(
         ),
         label = "shimmer_translate"
     )
+    val shimmerBase = MaterialTheme.proColors.shimmerBase
     val shimmerBrush = Brush.horizontalGradient(
         colors = listOf(
-            LightGray,
-            PureWhite.copy(alpha = 0.90f),
-            LightGray
+            shimmerBase,
+            MaterialTheme.proColors.shimmerHighlight,
+            shimmerBase
         ),
         startX = translateAnim - 600f,
         endX = translateAnim + 600f
@@ -1758,15 +1697,16 @@ fun ProHostFullScreenTopAppBar(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        tonalElevation = 2.dp,
+        shadowElevation = 2.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = Spacing.sm, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {

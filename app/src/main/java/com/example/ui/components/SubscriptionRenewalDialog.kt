@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.theme.proColors
 import android.app.Activity
 import android.content.ContextWrapper
 import androidx.compose.foundation.BorderStroke
@@ -151,14 +152,13 @@ fun SubscriptionRenewalDialog(
                                         )
                                         if (isCurrent) {
                                             Surface(
-                                                color = FreshGreen,
+                                                color = MaterialTheme.proColors.success,
                                                 shape = MaterialTheme.shapes.extraSmall
                                             ) {
                                                 Text(
                                                     text = "Active",
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    fontSize = 8.sp,
-                                                    color = Color.White,
+                                                    color = MaterialTheme.proColors.onSuccess,
                                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                                 )
                                             }

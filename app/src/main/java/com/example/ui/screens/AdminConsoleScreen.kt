@@ -1835,7 +1835,7 @@ private fun AdminEditSchemaItemDialog(
     var supportsAttendeeMode by remember { mutableStateOf(item.supportsAttendeeMode) }
     var markerColorInput by remember { mutableStateOf(item.markerColor ?: "") }
 
-    AlertDialog(
+    ProHostDialog(
         onDismissRequest = onDismiss,
         title = { Text("Edit Schema Item", fontWeight = FontWeight.Bold) },
         text = {
@@ -2381,7 +2381,7 @@ private fun AdminDemoControlTab(
     }
 
     if (showPurgeConfirmDialog) {
-        AlertDialog(
+        ProHostDialog(
             onDismissRequest = { showPurgeConfirmDialog = false },
             icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
             title = { Text("Purge All Demo Content?") },
@@ -2536,7 +2536,7 @@ private fun AdminDeleteUserDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    AlertDialog(
+    ProHostDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError) },
         title = { Text("Delete User Record?") },
@@ -2570,7 +2570,7 @@ private fun AdminGrantAdminDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    AlertDialog(
+    ProHostDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
         title = { Text("Grant Admin Role?") },
@@ -2602,7 +2602,7 @@ private fun AdminSuspendUserDialog(
     onConfirm: () -> Unit
 ) {
     val suspending = !user.isSuspended
-    AlertDialog(
+    ProHostDialog(
         onDismissRequest = onDismiss,
         icon = {
             Icon(
@@ -2645,7 +2645,7 @@ private fun AdminRevokeProHostDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    AlertDialog(
+    ProHostDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.RemoveModerator, contentDescription = null, tint = StatusError) },
         title = { Text("Revoke Pro Host Role?") },
@@ -2682,7 +2682,7 @@ private fun AdminDeleteListingDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    AlertDialog(
+    ProHostDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError) },
         title = { Text("Delete Workspace Listing?") },
@@ -2717,7 +2717,7 @@ private fun AdminDeletePackagePlanDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    AlertDialog(
+    ProHostDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError) },
         title = { Text("Remove Package Plan?") },
@@ -2915,7 +2915,7 @@ private fun AdminResetSchemaDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    AlertDialog(
+    ProHostDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.RestartAlt, contentDescription = null, tint = AmberWarning) },
         title = { Text("Reset Architecture Schema?") },
@@ -3092,7 +3092,7 @@ private fun AdminAttendeePackageDialog(
     var inclusionInput by remember { mutableStateOf("") }
     var inclusions by remember { mutableStateOf(existingPackage?.inclusions ?: emptyList()) }
 
-    AlertDialog(
+    ProHostDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (isEditing) "Edit Attendee Package" else "Add Attendee Package", fontWeight = FontWeight.Bold) },
         text = {

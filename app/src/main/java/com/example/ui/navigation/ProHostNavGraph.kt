@@ -11,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.activity.compose.BackHandler
@@ -28,8 +27,6 @@ import com.example.ui.components.dialogs.DrawerDialogsHandler
 import com.example.ui.components.drawer.AdminDrawerContent
 import com.example.ui.components.drawer.SpecialistDrawerContent
 import com.example.ui.screens.*
-import com.example.ui.theme.CarnationOrange
-import com.example.ui.theme.VibrantBlue
 import com.example.ui.viewmodel.DiscoveryViewModel
 import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.InAppUpdateManager
@@ -420,19 +417,10 @@ fun ProHostAppRoot(
         ModalNavigationDrawer(
             drawerState = drawerState,
             gesturesEnabled = false, // Edge-swipe gestures disabled; user opens drawer manually via header 3-dots icon
-            scrimColor = Color.Black.copy(alpha = 0.35f),
+            scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.40f),
             drawerContent = {
-                ModalDrawerSheet(
-                    // Was a hard 310.dp — on narrow phones that alone ate most of the
-                    // screen width and left the identity card's inner rows almost no
-                    // room to breathe. Scales with the screen instead, capped so it
-                    // doesn't get oversized on tablets.
-                    modifier = Modifier
-                        .fillMaxWidth(0.86f)
-                        .widthIn(max = 320.dp),
-                    drawerContainerColor = MaterialTheme.colorScheme.surface,
-                    drawerTonalElevation = 2.dp
-                ) {
+                // Width scales with the screen (86%, capped at 320dp) — see ProHostDrawerSheet.
+                ProHostDrawerSheet {
                     when (currentRole) {
                         UserRole.SPECIALIST, UserRole.PRO_HOST -> {
                             SpecialistDrawerContent(
@@ -535,70 +523,12 @@ fun ProHostAppRoot(
                     // top bar's menu icon (reopen the drawer) is offered either way.
                     if (detailedSpace == null && safeFullScreenDrawerTab == null && roleTabs.isNotEmpty() &&
                         !(isMapViewActive && activeTabId == AppNavTab.SearchMap.id)) {
-                        val roleAccentColor = if (currentRole == UserRole.PRO_HOST) CarnationOrange else VibrantBlue
-                        Column {
-                            // Glowing role-colored strip at the very top of the nav bar
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(2.dp)
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            listOf(
-                                                Color.Transparent,
-                                                roleAccentColor.copy(alpha = 0.6f),
-                                                roleAccentColor,
-                                                roleAccentColor.copy(alpha = 0.6f),
-                                                Color.Transparent
-                                            )
-                                        )
-                                    )
-                            )
-                            // Soft glow bloom below the strip
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp)
-                                    .background(
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                roleAccentColor.copy(alpha = 0.14f),
-                                                Color.Transparent
-                                            )
-                                        )
-                                    )
-                            )
-                            NavigationBar(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                tonalElevation = 0.dp,
-                                // No fixed height: NavigationBar adds the system nav-bar inset
-                                // inside its own bounds, so a fixed height squeezed the items.
-                                modifier = Modifier.testTag("bottom_navigation_bar")
-                            ) {
-                                roleTabs.forEach { tab ->
-                                    val isSelected = activeTabId == tab.id
-                                    NavigationBarItem(
-                                        selected = isSelected,
-                                        onClick = { activeTabId = tab.id },
-                                        icon = {
-                                            Icon(
-                                                imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                                                contentDescription = tab.title
-                                            )
-                                        },
-                                        label = { Text(tab.title, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
-                                        colors = NavigationBarItemDefaults.colors(
-                                            selectedIconColor = roleAccentColor,
-                                            selectedTextColor = roleAccentColor,
-                                            indicatorColor = roleAccentColor.copy(alpha = 0.12f),
-                                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                        ),
-                                        modifier = Modifier.testTag("nav_item_${tab.id}")
-                                    )
-                                }
-                            }
-                        }
+                        ProHostBottomNavBar(
+                            tabs = roleTabs,
+                            activeTabId = activeTabId,
+                            onTabSelected = { activeTabId = it },
+                            highlightWithSecondary = currentRole == UserRole.PRO_HOST
+                        )
                     }
                 }
             ) { innerPadding ->
@@ -796,7 +726,7 @@ fun ProHostAppRoot(
         )
 
         if (showProHostWelcome) {
-            AlertDialog(
+            ProHostDialog(
                 onDismissRequest = { showProHostWelcome = false },
                 icon = { Icon(Icons.Default.Celebration, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                 title = { Text("You're Now a Pro Host!") },

@@ -114,14 +114,14 @@ fun KycScreen(
                 steps.forEachIndexed { index, (label, icon) ->
                     val isCurrent = (index == 0 && step == KycStep.PHONE_ENTRY) ||
                             (index == 1 && step == KycStep.OTP_ENTRY)
-                    val color = if (isCurrent) CarnationOrange else MaterialTheme.colorScheme.outlineVariant
+                    val color = if (isCurrent) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Surface(color = color, shape = CircleShape, modifier = Modifier.size(28.dp)) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     icon,
                                     contentDescription = null,
-                                    tint = androidx.compose.ui.graphics.Color.White,
+                                    tint = if (isCurrent) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(15.dp)
                                 )
                             }

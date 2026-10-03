@@ -231,7 +231,7 @@ fun SpaceDetailsScreenContent(
                         Icon(
                             imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = if (isSaved) "Remove from Saved" else "Save Workspace",
-                            tint = if (isSaved) CrimsonRed else LocalContentColor.current
+                            tint = if (isSaved) MaterialTheme.colorScheme.error else LocalContentColor.current
                         )
                     }
                     Box {
@@ -271,9 +271,9 @@ fun SpaceDetailsScreenContent(
                         (stripSub == null || it.sourceFormulaId == stripSub.id) &&
                             !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings)
                     }
-                    val stripContent = if (hasSlots) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                    val stripContent = if (hasSlots) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                     Surface(
-                        color = if (hasSlots) VibrantBlue else MaterialTheme.colorScheme.surfaceVariant,
+                        color = if (hasSlots) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -337,7 +337,7 @@ fun SpaceDetailsScreenContent(
                                 text = "$${price.toInt()} USD$priceUnit",
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = CarnationOrange
+                                color = MaterialTheme.colorScheme.secondary
                             )
                             Text(
                                 text = selectedFormula?.type?.displayName ?: "Full Month",
@@ -364,7 +364,7 @@ fun SpaceDetailsScreenContent(
                             Button(
                                 onClick = onWhatsAppClick,
                                 shape = MaterialTheme.shapes.medium,
-                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppDarkGreen),
                                 modifier = Modifier.weight(1f),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
                             ) {
@@ -489,8 +489,8 @@ fun SpaceDetailsScreenContent(
                             .background(
                                 Brush.linearGradient(
                                     colors = listOf(
-                                        OxfordBlueDark,
-                                        OxfordBlue
+                                        MaterialTheme.proColors.brandHeaderStart,
+                                        MaterialTheme.proColors.brandHeaderEnd
                                     )
                                 )
                             )
@@ -609,7 +609,7 @@ fun SpaceDetailsScreenContent(
                                     Text(
                                         text = "Awaiting owner acceptance. Space hours remain open to public until confirmed.",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = AmberWarning,
+                                        color = MaterialTheme.proColors.warning,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 } else if (req.status == BookingRequestStatus.ACCEPTED) {
@@ -618,7 +618,7 @@ fun SpaceDetailsScreenContent(
                                             " ${req.formula.startHour}-${req.formula.endHour}) are locked" +
                                             ".",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = StatusInfo,
+                                        color = MaterialTheme.proColors.info,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -807,7 +807,7 @@ fun SpaceDetailsScreenContent(
                                     Icon(
                                         Icons.Default.CheckCircle,
                                         contentDescription = null,
-                                        tint = LebaneseCedarGreen,
+                                        tint = MaterialTheme.proColors.success,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(Spacing.sm))
@@ -1028,31 +1028,18 @@ fun SpaceDetailsScreenContent(
 
         val canSubmit = hasSelection && (!isAttendeeMode || (sheetAttendeeCount > 0 && sheetAttendeePackage != null))
 
-        ModalBottomSheet(
+        ProHostBottomSheet(
             onDismissRequest = {
                 availabilityPanelState = if (selectedSubdivisionId != null) "peek" else "hidden"
                 selectedSlots = emptySet()
                 selectedHoursPerDay = emptyMap()
             },
-            modifier = Modifier.shadow(16.dp, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
+            modifier = Modifier.shadow(16.dp, SheetShape),
             sheetState = availabilitySheetState,
             contentWindowInsets = { WindowInsets(0) },
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            // Blue design (matches the "Press to see option availability" trigger
-            // bar) instead of the neutral grey Material surface, so the trigger and
-            // the sheet it opens read as one consistent design.
-            containerColor = VibrantBlue.copy(alpha = 0.06f).compositeOver(MaterialTheme.colorScheme.surface),
-            tonalElevation = 4.dp,
-            scrimColor = Color.Black.copy(alpha = 0.35f),
-            dragHandle = {
-                Box(
-                    modifier = Modifier
-                        .padding(vertical = 8.dp)
-                        .width(28.dp)
-                        .height(4.dp)
-                        .background(VibrantBlue.copy(alpha = 0.6f), RoundedCornerShape(2.dp))
-                )
-            }
+            // Blue wash (matches the "Press to see option availability" trigger bar)
+            // so the trigger and the sheet it opens read as one consistent design.
+            accentTint = true
         ) {
             val scrollState = rememberScrollState()
             Column(
@@ -1244,40 +1231,40 @@ fun SpaceDetailsScreenContent(
                                         ) {
                                             if (isFull) {
                                                 Surface(
-                                                    color = StatusErrorContainer,
+                                                    color = MaterialTheme.colorScheme.errorContainer,
                                                     shape = RoundedCornerShape(4.dp)
                                                 ) {
                                                     Text("FULL", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold,
-                                                        color = StatusError, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                                        color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                                 }
                                             } else {
                                                 // Green available badge
-                                                Surface(color = FreshGreen.copy(alpha = 0.15f), shape = CircleShape) {
+                                                Surface(color = MaterialTheme.proColors.success.copy(alpha = 0.15f), shape = CircleShape) {
                                                     Row(modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
                                                         horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                        Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(FreshGreen))
+                                                        Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(MaterialTheme.proColors.success))
                                                         Text(
                                                             "$availInDay",
                                                             style = MaterialTheme.typography.labelSmall,
                                                             fontWeight = FontWeight.Bold,
-                                                            color = LebaneseCedarGreen
+                                                            color = MaterialTheme.proColors.success
                                                         )
                                                     }
                                                 }
                                                 // Red rented badge
                                                 if (lockedInDay > 0) {
-                                                    Surface(color = StatusError.copy(alpha = 0.12f), shape = CircleShape) {
+                                                    Surface(color = MaterialTheme.colorScheme.error.copy(alpha = 0.12f), shape = CircleShape) {
                                                         Row(
                                                             modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
                                                             horizontalArrangement = Arrangement.spacedBy(3.dp),
                                                             verticalAlignment = Alignment.CenterVertically
                                                         ) {
-                                                            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(StatusError))
+                                                            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(MaterialTheme.colorScheme.error))
                                                             Text(
                                                                 "$lockedInDay",
                                                                 style = MaterialTheme.typography.labelSmall,
                                                                 fontWeight = FontWeight.Bold,
-                                                                color = StatusError
+                                                                color = MaterialTheme.colorScheme.error
                                                             )
                                                         }
                                                     }
@@ -1312,16 +1299,16 @@ fun SpaceDetailsScreenContent(
                                                         val isSelected = selectedSlots.contains(slot)
                                                         Surface(
                                                             onClick = { selectedSlots = if (isSelected) selectedSlots - slot else selectedSlots + slot },
-                                                            color = if (isSelected) FreshGreen.copy(alpha = 0.18f) else StatusSuccessContainer,
+                                                            color = if (isSelected) MaterialTheme.proColors.success.copy(alpha = 0.18f) else MaterialTheme.proColors.successContainer,
                                                             shape = MaterialTheme.shapes.small,
-                                                            border = if (isSelected) BorderStroke(1.5.dp, FreshGreen) else null
+                                                            border = if (isSelected) BorderStroke(1.5.dp, MaterialTheme.proColors.success) else null
                                                         ) {
                                                             Row(verticalAlignment = Alignment.CenterVertically,
                                                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
                                                                 Icon(
                                                                     imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.EventAvailable,
                                                                     contentDescription = null,
-                                                                    tint = if (isSelected) FreshGreen else StatusSuccess,
+                                                                    tint = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success,
                                                                     modifier = Modifier.size(18.dp)
                                                                 )
                                                                 Spacer(modifier = Modifier.width(8.dp))
@@ -1330,7 +1317,7 @@ fun SpaceDetailsScreenContent(
                                                                         if (isSelected) "Selected — Monthly Lease" else "Available — Monthly Lease",
                                                                         style = MaterialTheme.typography.bodySmall,
                                                                         fontWeight = FontWeight.Bold,
-                                                                        color = if (isSelected) FreshGreen else StatusSuccess
+                                                                        color = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success
                                                                     )
                                                                     Text(
                                                                         "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}/mo",
@@ -1357,9 +1344,9 @@ fun SpaceDetailsScreenContent(
                                                                     selectedHoursPerDay = selectedHoursPerDay + (day to
                                                                         if (isSelected) current - slot.startTime else current + slot.startTime)
                                                                 },
-                                                                color = if (isSelected) FreshGreen.copy(alpha = 0.22f) else StatusSuccessContainer,
+                                                                color = if (isSelected) MaterialTheme.proColors.success.copy(alpha = 0.22f) else MaterialTheme.proColors.successContainer,
                                                                 shape = MaterialTheme.shapes.extraSmall,
-                                                                border = if (isSelected) BorderStroke(1.5.dp, FreshGreen) else null
+                                                                border = if (isSelected) BorderStroke(1.5.dp, MaterialTheme.proColors.success) else null
                                                             ) {
                                                                 Column(
                                                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -1369,13 +1356,13 @@ fun SpaceDetailsScreenContent(
                                                                         slot.startTime,
                                                                         style = MaterialTheme.typography.labelSmall,
                                                                         fontWeight = FontWeight.Bold,
-                                                                        color = if (isSelected) FreshGreen else StatusSuccess
+                                                                        color = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success
                                                                     )
                                                                     Text(
                                                                         "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}",
                                                                         style = MaterialTheme.typography.labelSmall,
                                                                         color = if (isSelected) {
-                                                                            FreshGreen.copy(alpha = 0.8f)
+                                                                            MaterialTheme.proColors.success.copy(alpha = 0.8f)
                                                                         } else {
                                                                             MaterialTheme.colorScheme.onSurfaceVariant
                                                                         }
@@ -1395,10 +1382,10 @@ fun SpaceDetailsScreenContent(
                                                             ).trim().ifBlank { slot.label }
                                                         Surface(
                                                             onClick = { selectedSlots = if (isSelected) selectedSlots - slot else selectedSlots + slot },
-                                                            color = if (isSelected) FreshGreen.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surface,
+                                                            color = if (isSelected) MaterialTheme.proColors.success.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surface,
                                                             shape = MaterialTheme.shapes.small,
                                                             border = BorderStroke(if (isSelected) 1.5.dp else 1.dp,
-                                                                if (isSelected) FreshGreen else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                                                if (isSelected) MaterialTheme.proColors.success else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                                                             modifier = Modifier.fillMaxWidth()
                                                         ) {
                                                             Row(
@@ -1412,7 +1399,7 @@ fun SpaceDetailsScreenContent(
                                                                 ) {
                                                                     Box(
                                                                         modifier = Modifier.size(8.dp).clip(CircleShape)
-                                                                            .background(if (isSelected) FreshGreen else StatusSuccess)
+                                                                            .background(if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success)
                                                                     )
                                                                     Text(
                                                                         displayLabel,
@@ -1434,7 +1421,7 @@ fun SpaceDetailsScreenContent(
                                                                         if (isSelected) "Selected" else "Available",
                                                                         style = MaterialTheme.typography.labelSmall,
                                                                         fontWeight = FontWeight.Bold,
-                                                                        color = if (isSelected) FreshGreen else StatusSuccess
+                                                                        color = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success
                                                                     )
                                                                 }
                                                             }
@@ -1446,10 +1433,10 @@ fun SpaceDetailsScreenContent(
                                                         val isSelected = selectedSlots.contains(slot)
                                                         Surface(
                                                             onClick = { selectedSlots = if (isSelected) selectedSlots - slot else selectedSlots + slot },
-                                                            color = if (isSelected) FreshGreen.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surface,
+                                                            color = if (isSelected) MaterialTheme.proColors.success.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surface,
                                                             shape = MaterialTheme.shapes.small,
                                                             border = BorderStroke(if (isSelected) 1.5.dp else 1.dp,
-                                                                if (isSelected) FreshGreen else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                                                if (isSelected) MaterialTheme.proColors.success else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                                                             modifier = Modifier.fillMaxWidth()
                                                         ) {
                                                             Row(
@@ -1463,7 +1450,7 @@ fun SpaceDetailsScreenContent(
                                                                 ) {
                                                                     Box(
                                                                         modifier = Modifier.size(8.dp).clip(CircleShape)
-                                                                            .background(if (isSelected) FreshGreen else StatusSuccess)
+                                                                            .background(if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success)
                                                                     )
                                                                     Text(slot.day, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                                                                 }
@@ -1481,7 +1468,7 @@ fun SpaceDetailsScreenContent(
                                                                         if (isSelected) "Selected" else "Available",
                                                                         style = MaterialTheme.typography.labelSmall,
                                                                         fontWeight = FontWeight.Bold,
-                                                                        color = if (isSelected) FreshGreen else StatusSuccess
+                                                                        color = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success
                                                                     )
                                                                 }
                                                             }
@@ -1553,7 +1540,7 @@ fun SpaceDetailsScreenContent(
                                     }
                                 },
                                 modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppDarkGreen),
                                 shape = MaterialTheme.shapes.medium
                             ) {
                                 Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
@@ -1588,7 +1575,7 @@ fun SpaceDetailsScreenContent(
                     allSheetSlots.filter { it.day == day && it.startTime in hrs }.sumOf { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0 }
                 }
 
-            AlertDialog(
+            ProHostDialog(
                 onDismissRequest = { if (!isSendingSlotRequest) showSendConfirm = false },
                 icon = { Icon(Icons.Default.EventAvailable, contentDescription = null) },
                 title = { Text("Confirm Your Request") },
@@ -1669,7 +1656,7 @@ fun SpaceDetailsScreenContent(
 
     // Email Inquiry Dialog
     if (showProfilePicRequiredDialog) {
-        AlertDialog(
+        ProHostDialog(
             onDismissRequest = { showProfilePicRequiredDialog = false },
             title = { Text("Profile Photo Required") },
             text = {
@@ -1692,7 +1679,7 @@ fun SpaceDetailsScreenContent(
     }
 
     if (showInquiryDialog) {
-        AlertDialog(
+        ProHostDialog(
             onDismissRequest = { showInquiryDialog = false; inquiryMessage = "" },
             title = { Text("Email the Host") },
             text = {
@@ -1898,7 +1885,7 @@ private fun SubdivisionRentalCard(
                         priceSummary + if (isPerAttendee) " / person" else "",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = CarnationOrange
+                        color = MaterialTheme.colorScheme.secondary
                     )
 
                     // Capacity / custom-hours / per-attendee badges — surfaced here so
@@ -1980,13 +1967,13 @@ private fun SubdivisionRentalCard(
                             val overflow = hashtags.size - visible.size
                             items(visible) { tag ->
                                 Surface(
-                                    color = ProTealContainer,
+                                    color = MaterialTheme.proColors.infoContainer,
                                     shape = MaterialTheme.shapes.extraSmall
                                 ) {
                                     Text(
                                         "#$tag",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = ProOnTealContainer,
+                                        color = MaterialTheme.proColors.onInfoContainer,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
@@ -1994,13 +1981,13 @@ private fun SubdivisionRentalCard(
                             if (overflow > 0) {
                                 item {
                                     Surface(
-                                        color = ProTealContainer.copy(alpha = 0.5f),
+                                        color = MaterialTheme.proColors.infoContainer.copy(alpha = 0.5f),
                                         shape = MaterialTheme.shapes.extraSmall
                                     ) {
                                         Text(
                                             "[$overflow more]",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = ProOnTealContainer,
+                                            color = MaterialTheme.proColors.onInfoContainer,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                         )
                                     }
@@ -2017,7 +2004,7 @@ private fun SubdivisionRentalCard(
                             onClick = onCheckAvailability,
                             modifier = Modifier.fillMaxWidth(),
                             shape = MaterialTheme.shapes.small,
-                            colors = ButtonDefaults.buttonColors(containerColor = VibrantBlue),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             contentPadding = PaddingValues(vertical = 8.dp)
                         ) {
                             Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(16.dp))

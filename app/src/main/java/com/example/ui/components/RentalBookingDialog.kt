@@ -460,23 +460,11 @@ private fun BookingSlotSelectorDialog(
 
     // Same sheet shell as SpaceDetailsScreen's Check Availability sheet, so rebooking
     // and editing look like the booking flow the user already knows.
-    ModalBottomSheet(
+    ProHostBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         contentWindowInsets = { WindowInsets(0) },
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = VibrantBlue.copy(alpha = 0.06f).compositeOver(MaterialTheme.colorScheme.surface),
-        tonalElevation = 4.dp,
-        scrimColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.35f),
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .padding(vertical = 8.dp)
-                    .width(28.dp)
-                    .height(4.dp)
-                    .background(VibrantBlue.copy(alpha = 0.6f), RoundedCornerShape(2.dp))
-            )
-        }
+        accentTint = true
     ) {
             Column(
                 modifier = Modifier
@@ -792,7 +780,7 @@ private fun BookingSlotSelectorDialog(
                     if (selectedStrategyType != null) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
+                            shape = MaterialTheme.shapes.large,
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
                         ) {
@@ -1174,15 +1162,15 @@ private fun BookingSlotSelectorDialog(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(containerColor = StatusSuccessContainer),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, StatusSuccess.copy(alpha = 0.5f))
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.proColors.successContainer),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.proColors.success.copy(alpha = 0.5f))
                     ) {
                         Column(modifier = Modifier.padding(Spacing.md)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     Icons.Default.Info,
                                     contentDescription = null,
-                                    tint = StatusSuccess,
+                                    tint = MaterialTheme.proColors.success,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(Spacing.sm))
@@ -1190,7 +1178,7 @@ private fun BookingSlotSelectorDialog(
                                     text = "Smart Availability & Confirmation Rule",
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = StatusSuccess
+                                    color = MaterialTheme.proColors.success
                                 )
                             }
                             Spacer(modifier = Modifier.height(Spacing.xs))
@@ -1199,7 +1187,7 @@ private fun BookingSlotSelectorDialog(
                                        "• Once accepted by the owner, your chosen schedule ($chosenSlotSummary) is locked exclusively for your use.\n" +
                                        "• Payment is settled directly with the space owner (Cash / Wire Transfer).",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = StatusOnSuccessContainer,
+                                color = MaterialTheme.proColors.onSuccessContainer,
                                 lineHeight = 16.sp
                             )
                         }
@@ -1208,7 +1196,7 @@ private fun BookingSlotSelectorDialog(
                     // Financial Summary Card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = MaterialTheme.shapes.large,
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                     ) {
                         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

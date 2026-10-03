@@ -161,6 +161,26 @@ val SuperAdminBadgeText = CarnationOrangeDark
 val SecurityShieldGreen = FreshGreen
 val GoldTier = BrightOrange
 
+// ==========================================
+// Contrast-audited action / status tokens (WCAG 2.1 ratios, text on fill)
+// Light: white on CarnationOrangeAction 4.58:1, white on VibrantBlue 4.76:1,
+//        white on StatusSuccessStrong 5.05:1, white on StatusWarningStrong 4.61:1
+// Dark:  BlueDarkMode on DarkSurface 6.33:1, OrangeDarkMode on DarkSurface 6.58:1
+// CarnationOrange (#F25F4C) is only 3.22:1 against white, so it is reserved for
+// icons, indicators and large decorative fills (3:1 graphics threshold); filled
+// controls that carry text use CarnationOrangeAction.
+// ==========================================
+val CarnationOrangeAction = Color(0xFFD2432F)
+val BlueDarkMode = Color(0xFF7FA6FF)
+val BlueDarkModeContainer = Color(0xFF1B2D52)
+val OrangeDarkMode = Color(0xFFFF8A75)
+val OrangeDarkModeContainer = Color(0xFF4A1D17)
+val StatusSuccessStrong = Color(0xFF2E7D4F)
+val StatusWarningStrong = Color(0xFFB35F00)
+val StatusSuccessDarkMode = Color(0xFF7DD9A0)
+val StatusWarningDarkMode = Color(0xFFFFB866)
+val StatusInfoDarkMode = BlueDarkMode
+
 // Listing Type Brand Colors (ST-01 to ST-06)
 val MarkerBlueTop = Color(0xFF5B9BFF)
 val MarkerBlueBase = Color(0xFF246BEE) // Private Office (ST-01)
