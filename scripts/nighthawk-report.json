@@ -1,25 +1,16 @@
 {
-  "generatedAt": "2026-10-03T09:39:20.980Z",
+  "generatedAt": "2026-10-03T09:41:04.289Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 51,
+    "total": 50,
     "critical": 0,
-    "high": 1,
+    "high": 0,
     "medium": 2,
     "low": 48,
     "info": 0,
-    "passes": 27
+    "passes": 28
   },
   "findings": [
-    {
-      "severity": "HIGH",
-      "category": "security",
-      "check": "Firestore Rules Coverage",
-      "file": "functions/src/lib/emailRateLimit.ts",
-      "line": 20,
-      "message": "Collection \"email_send_limits\" accessed in Cloud Functions has no rule block in firestore.rules.",
-      "suggestion": "Add an explicit rule for \"email_send_limits\" in firestore.rules."
-    },
     {
       "severity": "MEDIUM",
       "category": "consistency",
@@ -475,6 +466,10 @@
     {
       "check": "CF Name Consistency",
       "message": "All 21 getHttpsCallable() calls match exported functions in index.ts."
+    },
+    {
+      "check": "Firestore Rules Coverage",
+      "message": "All 9 Firestore collections used in Cloud Functions are covered."
     },
     {
       "check": "Empty Catch Block",

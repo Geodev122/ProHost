@@ -32,28 +32,19 @@
 <body>
 <header>
   <h1>🦅 NIGHTHAWK — ProHost Enhanced Debug Report</h1>
-  <p>51 issues found · 27 checks passed</p>
+  <p>50 issues found · 28 checks passed</p>
 </header>
 <div class="stats">
   <div class="stat crit"><div class="num">0</div><div class="lbl">Critical</div></div>
-  <div class="stat high"><div class="num">1</div><div class="lbl">High</div></div>
+  <div class="stat high"><div class="num">0</div><div class="lbl">High</div></div>
   <div class="stat med"><div class="num">2</div><div class="lbl">Medium</div></div>
   <div class="stat low"><div class="num">48</div><div class="lbl">Low</div></div>
-  <div class="stat pass"><div class="num">27</div><div class="lbl">Passing</div></div>
+  <div class="stat pass"><div class="num">28</div><div class="lbl">Passing</div></div>
 </div>
 <h2>Findings</h2>
 <table>
   <thead><tr><th>Severity</th><th>Category</th><th>Check</th><th>Location</th><th>Issue</th><th>Suggestion</th></tr></thead>
   <tbody>
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">security</code></td>
-    <td><strong>Firestore Rules Coverage</strong></td>
-    <td><code>functions/src/lib/emailRateLimit.ts:20</code></td>
-    <td>Collection &quot;email_send_limits&quot; accessed in Cloud Functions has no rule block in firestore.rules.</td>
-    <td class="suggestion">Add an explicit rule for &quot;email_send_limits&quot; in firestore.rules.</td>
-  </tr>
-
   <tr style="background:#FFF3E0">
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">consistency</code></td>
@@ -511,6 +502,12 @@
   <tr>
     <td><span class="badge" style="background:#388E3C">PASS</span></td>
     <td colspan="4">All 21 getHttpsCallable() calls match exported functions in index.ts.</td>
+    <td>—</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge" style="background:#388E3C">PASS</span></td>
+    <td colspan="4">All 9 Firestore collections used in Cloud Functions are covered.</td>
     <td>—</td>
   </tr>
 

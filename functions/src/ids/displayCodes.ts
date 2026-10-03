@@ -22,26 +22,44 @@ async function ensureDocCode(ref: DocumentReference, data: Data, kind: DisplayCo
  * changes nothing is skipped, which is what stops this trigger re-firing forever.
  */
 async function ensureListingCodes(ref: DocumentReference, data: Data): Promise<boolean> {
-  const update: Data = {};
-  if (!(await isCodeOwnedBy(data.displayCode, ref.path))) {
-    update.displayCode = await mintDisplayCode("L", ref.path);
-  }
+  // Mint outside the transaction (minting reserves the code in its own transaction).
+  const listingCode = (await isCodeOwnedBy(data.displayCode, ref.path))
+    ? null
+    : await mintDisplayCode("L", ref.path);
   const subs = Array.isArray(data.subdivisions) ? (data.subdivisions as Data[]) : [];
-  let subsChanged = false;
-  const nextSubs: Data[] = [];
+  const subCodes: Record<string, string> = {};
   for (const sub of subs) {
-    const subPath = `${ref.path}#${String(sub.id ?? "")}`;
-    if (sub.id && !(await isCodeOwnedBy(sub.displayCode, subPath))) {
-      nextSubs.push({ ...sub, displayCode: await mintDisplayCode("D", subPath) });
-      subsChanged = true;
-    } else {
-      nextSubs.push(sub);
+    const id = String(sub.id ?? "");
+    if (id && !(await isCodeOwnedBy(sub.displayCode, `${ref.path}#${id}`))) {
+      subCodes[id] = await mintDisplayCode("D", `${ref.path}#${id}`);
     }
   }
-  if (subsChanged) update.subdivisions = nextSubs;
-  if (Object.keys(update).length === 0) return false;
-  await ref.set(update, { merge: true });
-  return true;
+  if (!listingCode && Object.keys(subCodes).length === 0) return false;
+
+  // The host may have saved a newer version while the codes were being minted, and the
+  // subdivisions array is rewritten whole — so re-read it here and fill in only the
+  // codes that are still missing, by room id, instead of writing back a stale copy.
+  return getFirestore().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return false;
+    const current = snap.data() ?? {};
+    const update: Data = {};
+    if (listingCode && !current.displayCode) update.displayCode = listingCode;
+    const currentSubs = Array.isArray(current.subdivisions) ? (current.subdivisions as Data[]) : [];
+    let subsChanged = false;
+    const nextSubs = currentSubs.map((sub) => {
+      const id = String(sub.id ?? "");
+      if (id && subCodes[id] && !sub.displayCode) {
+        subsChanged = true;
+        return { ...sub, displayCode: subCodes[id] };
+      }
+      return sub;
+    });
+    if (subsChanged) update.subdivisions = nextSubs;
+    if (Object.keys(update).length === 0) return false;
+    tx.set(ref, update, { merge: true });
+    return true;
+  });
 }
 
 export const onUserProfileCreatedAssignCode = onDocumentCreated("user_profiles/{uid}", async (event) => {

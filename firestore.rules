@@ -397,6 +397,15 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Server-only sign-in email state: one-time codes (hashed) and per-address send
+    // counters, written exclusively by the sign-in Cloud Functions via the Admin SDK.
+    match /email_otps/{key} {
+      allow read, write: if false;
+    }
+    match /email_send_limits/{key} {
+      allow read, write: if false;
+    }
+
     // ---------------------------------------------------------------
     // system_metadata — server-only (updatePricing Cloud Function is the
     // only writer; FirestoreService.initializeSchema, which would have
