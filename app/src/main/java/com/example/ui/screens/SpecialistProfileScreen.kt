@@ -10,6 +10,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.example.ui.components.drawer.DrawerIdentityCard
 import androidx.compose.foundation.verticalScroll
@@ -39,7 +41,7 @@ import com.example.util.InAppUpdateManager
 import com.example.util.UpdateState
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun SpecialistProfileScreen(
     viewModel: ProHostViewModel,
@@ -91,6 +93,8 @@ fun SpecialistProfileScreen(
     var pendingCancelRequest by remember { mutableStateOf<RentalBookingRequest?>(null) }
     var isSavingProfile by remember { mutableStateOf(false) }
     var profilePicUploadError by remember { mutableStateOf<String?>(null) }
+    val profileDetailsRequester = remember { BringIntoViewRequester() }
+    val scrollToProfileDetails: () -> Unit = { coroutineScope.launch { profileDetailsRequester.bringIntoView() } }
 
     Box(
         modifier = Modifier
@@ -103,9 +107,9 @@ fun SpecialistProfileScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .widthIn(max = 840.dp)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.lg, vertical = Spacing.xl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xl)
+                .padding(Spacing.lg)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // =========================================================================
             // 0. IDENTITY CARD  (formerly in side drawer — single source of truth)
@@ -120,13 +124,8 @@ fun SpecialistProfileScreen(
                 com.example.ui.components.KycCompletionBanner(
                     user = user,
                     onResendVerificationEmail = { viewModel.resendEmailVerification(context) },
-                    onNavigateToIdUpload = { /* ID upload is in the Security ID section below — scroll to it */ },
-                    onAddProfilePhoto = {
-                        Toast.makeText(context, "Scroll down to the Profile Details section to add your photo.", Toast.LENGTH_LONG).show()
-                    },
-                    onAddAddress = {
-                        Toast.makeText(context, "Scroll down to the Profile Details section to set your Country and City.", Toast.LENGTH_LONG).show()
-                    }
+                    onAddProfilePhoto = scrollToProfileDetails,
+                    onAddAddress = scrollToProfileDetails
                 )
             }
 
@@ -134,26 +133,26 @@ fun SpecialistProfileScreen(
             if (user.role == UserRole.SPECIALIST) {
                 Surface(
                     onClick = { onNavigateToTab("owner_subscriptions") },
-                    shape = MaterialTheme.shapes.large,
-                    color = Color.Transparent,
-                    shadowElevation = 2.dp,
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary,
+                    shadowElevation = 3.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier
-                            .background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(CarnationOrangeDark, CarnationOrange)))
-                            .padding(horizontal = Spacing.lg, vertical = Spacing.lg),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = PureWhite, modifier = Modifier.size(26.dp))
+                        Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary)
                         Text(
                             text = "Become a Pro Host",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = PureWhite,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondary,
                             modifier = Modifier.weight(1f)
                         )
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -208,10 +207,10 @@ fun SpecialistProfileScreen(
                     shape = MaterialTheme.shapes.extraLarge,
                     contentPadding = PaddingValues(Spacing.lg)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Icon(
                                 Icons.Default.WavingHand,
@@ -221,40 +220,39 @@ fun SpecialistProfileScreen(
                             )
                             Text(
                                 text = "Welcome back, ${user.fullName}",
-                                style = MaterialTheme.typography.titleLarge
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
                             )
                         }
 
                         Text(
                             text = updateLine,
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Button(
                                 onClick = { onNavigateToTab("search_map") },
-                                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                                shape = MaterialTheme.shapes.medium,
-                                colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange, contentColor = PureWhite)
+                                modifier = Modifier.weight(1f),
+                                shape = MaterialTheme.shapes.medium
                             ) {
-                                Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(Spacing.sm))
-                                Text("Find Space", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                                Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Find Space", style = MaterialTheme.typography.labelMedium)
                             }
 
                             OutlinedButton(
                                 onClick = { onNavigateToTab("pro_rentals") },
-                                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                                shape = MaterialTheme.shapes.medium,
-                                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                                modifier = Modifier.weight(1f),
+                                shape = MaterialTheme.shapes.medium
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.EventNote, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(Spacing.sm))
-                                Text("View Rentals", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                                Icon(Icons.AutoMirrored.Filled.EventNote, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("View Rentals", style = MaterialTheme.typography.labelMedium)
                             }
                         }
                     }
@@ -318,7 +316,7 @@ fun SpecialistProfileScreen(
                                     value = "$activeLeasesCount",
                                     subtitle = "Confirmed workspace slots",
                                     icon = Icons.Default.EventAvailable,
-                                    iconTint = FreshGreen,
+                                    iconTint = MaterialTheme.proColors.success,
                                     modifier = Modifier.weight(1f)
                                 )
                                 ProMetricTile(
@@ -326,7 +324,7 @@ fun SpecialistProfileScreen(
                                     value = "$pendingApplicationsCount",
                                     subtitle = "Awaiting host approval",
                                     icon = Icons.Default.PendingActions,
-                                    iconTint = BrightOrange,
+                                    iconTint = MaterialTheme.proColors.warning,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -339,7 +337,7 @@ fun SpecialistProfileScreen(
                                     value = "${practitionerBookingsForStats.size}",
                                     subtitle = "All rental applications",
                                     icon = Icons.AutoMirrored.Filled.ReceiptLong,
-                                    iconTint = VibrantBlue,
+                                    iconTint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.weight(1f)
                                 )
                                 ProMetricTile(
@@ -347,7 +345,7 @@ fun SpecialistProfileScreen(
                                     value = if (user.isVerified) "Verified" else "Unverified",
                                     subtitle = "SMS Verification Status",
                                     icon = Icons.Default.VerifiedUser,
-                                    iconTint = FreshGreen,
+                                    iconTint = MaterialTheme.proColors.success,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -363,7 +361,7 @@ fun SpecialistProfileScreen(
                                     value = "${ownerActiveListings.size}",
                                     subtitle = "Commercial units live",
                                     icon = Icons.Default.HomeWork,
-                                    iconTint = CarnationOrange,
+                                    iconTint = MaterialTheme.colorScheme.secondary,
                                     modifier = Modifier.weight(1f)
                                 )
                                 ProMetricTile(
@@ -371,7 +369,7 @@ fun SpecialistProfileScreen(
                                     value = "${ownerIncomingRequests.size}",
                                     subtitle = "Applications received",
                                     icon = Icons.Default.Inbox,
-                                    iconTint = VibrantBlue,
+                                    iconTint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -384,7 +382,7 @@ fun SpecialistProfileScreen(
                                     value = "$${estimatedYieldUsd.toInt()} USD",
                                     subtitle = "Monthly gross MRR",
                                     icon = Icons.Default.AttachMoney,
-                                    iconTint = FreshGreen,
+                                    iconTint = MaterialTheme.proColors.success,
                                     modifier = Modifier.weight(1f)
                                 )
                                 ProMetricTile(
@@ -392,7 +390,7 @@ fun SpecialistProfileScreen(
                                     value = ownerActivePackagePlan?.let { "$${it.priceUsd.toInt()} USD" } ?: "No Plan",
                                     subtitle = ownerActivePackagePlan?.let { "${it.name} · ${it.validityDays}d" } ?: "No active package",
                                     icon = Icons.Default.Payment,
-                                    iconTint = CarnationOrangeDark,
+                                    iconTint = MaterialTheme.colorScheme.secondary,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -416,7 +414,7 @@ fun SpecialistProfileScreen(
                                     value = "${Governorate.entries.size}",
                                     subtitle = "National coverage",
                                     icon = Icons.Default.Map,
-                                    iconTint = VibrantBlue,
+                                    iconTint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -429,7 +427,7 @@ fun SpecialistProfileScreen(
                                     value = "Live",
                                     subtitle = "Real-time bridge active",
                                     icon = Icons.Default.CloudDone,
-                                    iconTint = FreshGreen,
+                                    iconTint = MaterialTheme.proColors.success,
                                     modifier = Modifier.weight(1f)
                                 )
                                 ProMetricTile(
@@ -437,7 +435,7 @@ fun SpecialistProfileScreen(
                                     value = "${allSpacesList.count { it.status == ListingStatus.ACTIVE }}",
                                     subtitle = "Live listings",
                                     icon = Icons.Default.Storefront,
-                                    iconTint = AmberWarning,
+                                    iconTint = MaterialTheme.proColors.warning,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -457,7 +455,7 @@ fun SpecialistProfileScreen(
                 ProSurfaceCard(
                     modifier = Modifier.shadow(2.dp, MaterialTheme.shapes.large)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         // Title/subtitle dropped here on purpose — this same summary
                         // (count + status) already lives on the My Rentals screen, so
                         // this card keeps just the count badge and the list itself.
@@ -482,33 +480,33 @@ fun SpecialistProfileScreen(
                                 modifier = Modifier.padding(vertical = Spacing.sm)
                             )
                         } else {
-                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 practitionerBookings.forEach { req ->
                                     val targetSpace = spaces.find { it.id == req.spaceId }
                                     Card(
                                         modifier = Modifier.fillMaxWidth(),
-                                        shape = MaterialTheme.shapes.medium,
+                                        shape = MaterialTheme.shapes.large,
                                         colors = CardDefaults.cardColors(
                                             containerColor = when (req.status) {
-                                                BookingRequestStatus.ACCEPTED -> StatusInfoContainer
-                                                BookingRequestStatus.PENDING -> StatusWarningContainer
-                                                BookingRequestStatus.REJECTED -> StatusErrorContainer
+                                                BookingRequestStatus.ACCEPTED -> MaterialTheme.proColors.infoContainer
+                                                BookingRequestStatus.PENDING -> MaterialTheme.proColors.warningContainer
+                                                BookingRequestStatus.REJECTED -> MaterialTheme.colorScheme.errorContainer
                                                 BookingRequestStatus.CANCELLED -> MaterialTheme.colorScheme.surfaceVariant
                                             }
                                         ),
                                         border = BorderStroke(
                                             1.dp,
                                             when (req.status) {
-                                                BookingRequestStatus.ACCEPTED -> StatusInfo.copy(alpha = 0.35f)
-                                                BookingRequestStatus.PENDING -> StatusWarning.copy(alpha = 0.35f)
-                                                BookingRequestStatus.REJECTED -> StatusError.copy(alpha = 0.35f)
+                                                BookingRequestStatus.ACCEPTED -> MaterialTheme.proColors.info
+                                                BookingRequestStatus.PENDING -> MaterialTheme.proColors.warning
+                                                BookingRequestStatus.REJECTED -> MaterialTheme.colorScheme.error
                                                 BookingRequestStatus.CANCELLED -> MaterialTheme.colorScheme.outlineVariant
                                             }
                                         )
                                     ) {
                                         Column(
-                                            modifier = Modifier.padding(Spacing.lg),
-                                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                                            modifier = Modifier.padding(14.dp),
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
@@ -583,7 +581,7 @@ fun SpecialistProfileScreen(
                                                         },
                                                         modifier = Modifier.weight(1f),
                                                         shape = MaterialTheme.shapes.small,
-                                                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                                                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppDarkGreen),
                                                         contentPadding = PaddingValues(vertical = 6.dp)
                                                     ) {
                                                         Icon(
@@ -625,7 +623,9 @@ fun SpecialistProfileScreen(
             // =========================================================================
             // 6. EDIT PROFILE & MEMBER DETAILS FORM
             // =========================================================================
-            ProSurfaceCard {
+            ProSurfaceCard(
+                modifier = Modifier.bringIntoViewRequester(profileDetailsRequester)
+            ) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     ProSectionHeader(
                         title = when (user.role) {
@@ -786,13 +786,13 @@ fun SpecialistProfileScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
                             Icons.Default.SystemUpdate,
@@ -817,15 +817,17 @@ fun SpecialistProfileScreen(
                     if (updateState == UpdateState.DOWNLOADED) {
                         Button(
                             onClick = { inAppUpdateManager?.completeUpdate() },
-                            colors = ButtonDefaults.buttonColors(containerColor = FreshGreen),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.proColors.success,
+                                contentColor = MaterialTheme.proColors.onSuccess
+                            ),
                             shape = MaterialTheme.shapes.small,
-                            contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.xs)
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                         ) {
-                            Text("Install", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Text("Install", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     } else {
                         TextButton(
-                            shape = MaterialTheme.shapes.medium,
                             onClick = {
                                 if (inAppUpdateManager != null) {
                                     inAppUpdateManager.checkForAppUpdate(preferImmediate = false)
@@ -834,9 +836,9 @@ fun SpecialistProfileScreen(
                                     Toast.makeText(context, "ProHost v${com.example.BuildConfig.VERSION_NAME} is up to date", Toast.LENGTH_SHORT).show()
                                 }
                             },
-                            contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.xs)
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                         ) {
-                            Text("Check Update", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Text("Check Update", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -859,7 +861,7 @@ fun SpecialistProfileScreen(
                     MaterialTheme.shapes.large
                 )
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     ProSectionHeader(
                         title = "Delete Account",
                         subtitle = if (user.role == UserRole.PRO_HOST)
@@ -869,22 +871,21 @@ fun SpecialistProfileScreen(
                         icon = Icons.Default.DeleteForever
                     )
                     OutlinedButton(
-                        shape = MaterialTheme.shapes.medium,
                         onClick = { showDeleteConfirmation = true },
                         enabled = !isDeletingAccount,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.error),
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text(if (isDeletingAccount) "Deleting..." else "Delete My Account", fontWeight = FontWeight.Bold)
+                        Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(if (isDeletingAccount) "Deleting..." else "Delete My Account")
                     }
                 }
             }
 
             if (showDeleteConfirmation) {
-                AlertDialog(
+                ProHostDialog(
                     onDismissRequest = { if (!isDeletingAccount) showDeleteConfirmation = false },
                     icon = { Icon(Icons.Default.DeleteForever, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                     title = { Text("Delete your account?") },
@@ -906,10 +907,7 @@ fun SpecialistProfileScreen(
                                     style = MaterialTheme.typography.bodySmall
                                 )
                                 if (activity != null) {
-                                    TextButton(
-                                        shape = MaterialTheme.shapes.medium,
-                                        onClick = { viewModel.openManageSubscriptions(activity, user.ownerPackageId) }
-                                    ) {
+                                    TextButton(onClick = { viewModel.openManageSubscriptions(activity, user.ownerPackageId) }) {
                                         Text("Manage subscription in Google Play")
                                     }
                                 }
@@ -918,7 +916,6 @@ fun SpecialistProfileScreen(
                     },
                     confirmButton = {
                         TextButton(
-                            shape = MaterialTheme.shapes.medium,
                             enabled = !isDeletingAccount,
                             onClick = {
                                 isDeletingAccount = true
@@ -947,7 +944,7 @@ fun SpecialistProfileScreen(
                         }
                     },
                     dismissButton = {
-                        TextButton(shape = MaterialTheme.shapes.medium, onClick = { showDeleteConfirmation = false }, enabled = !isDeletingAccount) {
+                        TextButton(onClick = { showDeleteConfirmation = false }, enabled = !isDeletingAccount) {
                             Text("Cancel")
                         }
                     }
@@ -955,13 +952,13 @@ fun SpecialistProfileScreen(
             }
 
             pendingCancelRequest?.let { target ->
-                AlertDialog(
+                ProHostDialog(
                     onDismissRequest = { pendingCancelRequest = null },
                     icon = { Icon(Icons.Default.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                     title = { Text("Cancel this request?") },
                     text = { Text("Your rental request for \"${target.spaceTitle}\" will be withdrawn. The host will no longer be able to accept it.") },
                     confirmButton = {
-                        TextButton(shape = MaterialTheme.shapes.medium, onClick = {
+                        TextButton(onClick = {
                             viewModel.cancelBookingRequest(target.id, context)
                             pendingCancelRequest = null
                         }) {
@@ -969,7 +966,7 @@ fun SpecialistProfileScreen(
                         }
                     },
                     dismissButton = {
-                        TextButton(shape = MaterialTheme.shapes.medium, onClick = { pendingCancelRequest = null }) {
+                        TextButton(onClick = { pendingCancelRequest = null }) {
                             Text("Keep Request")
                         }
                     }

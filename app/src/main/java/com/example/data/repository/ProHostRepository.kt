@@ -1,6 +1,7 @@
 package com.example.data.repository
 
 import android.util.Log
+import com.example.data.auth.toUserMessage
 import com.example.data.auth.FirebaseFunctionsClient
 import com.example.data.auth.RegistrationDetails
 import com.example.data.demo.DemoDataGenerator
@@ -124,6 +125,12 @@ class ProHostRepository {
     private val _hasLoadedSpacesOnce = MutableStateFlow(false)
     val hasLoadedSpacesOnce: StateFlow<Boolean> = _hasLoadedSpacesOnce.asStateFlow()
 
+    // Set when the listings listener fails (rules denial, network, missing index);
+    // cleared by the next successful snapshot. Lets Explore show an error instead
+    // of spinning forever on !hasLoadedSpacesOnce.
+    private val _spacesLoadError = MutableStateFlow<String?>(null)
+    val spacesLoadError: StateFlow<String?> = _spacesLoadError.asStateFlow()
+
     private val _spaceArchitectureSchema = MutableStateFlow<SpaceArchitectureSchema>(createDefaultSchema())
     val spaceArchitectureSchema: StateFlow<SpaceArchitectureSchema> = _spaceArchitectureSchema.asStateFlow()
 
@@ -187,6 +194,7 @@ class ProHostRepository {
                 onWorkspacesUpdated = { updatedSpaces ->
                     _spaces.value = updatedSpaces
                     _hasLoadedSpacesOnce.value = true
+                    _spacesLoadError.value = null
                     _isCloudConnected.value = true
                     _isOfflineMode.value = false
                     _syncStatusMessage.value = "Real-time Cloud Sync Active"
@@ -224,6 +232,11 @@ class ProHostRepository {
                 onPackagePlansUpdated = { updatedCatalog ->
                     _packagePlans.value = updatedCatalog
                     _isCloudConnected.value = true
+                },
+                onWorkspacesError = { error ->
+                    if (_spaces.value.isEmpty()) {
+                        _spacesLoadError.value = error.toUserMessage("We couldn't load workspaces. Please try again.")
+                    }
                 }
             )
 

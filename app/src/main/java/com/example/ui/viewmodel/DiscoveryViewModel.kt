@@ -45,7 +45,8 @@ class DiscoveryViewModel(
         _isMapViewActive,
         repository.currentUser,
         repository.hasLoadedSpacesOnce,
-        debouncedQuery
+        debouncedQuery,
+        repository.spacesLoadError
     ) { values ->
         val spaces = (values[0] as? List<*>)?.filterIsInstance<SpaceListing>() ?: emptyList()
         val filter = values[1] as DiscoveryFilterState
@@ -54,6 +55,7 @@ class DiscoveryViewModel(
         val user = values[4] as AppUser?
         val hasLoadedOnce = values[5] as Boolean
         val query = values[6] as String
+        val loadError = values[7] as String?
         val savedIds = user?.savedSpaceIds ?: emptyList()
 
         // isOwnerPackageLapsed hides a listing from a fresh Discovery browse (the
@@ -110,7 +112,8 @@ class DiscoveryViewModel(
             filterState = filter,
             isFilterSheetVisible = sheetVisible,
             isMapViewActive = mapActive,
-            isLoading = !hasLoadedOnce,
+            isLoading = !hasLoadedOnce && loadError == null,
+            loadError = loadError,
             savedSpaceIds = savedIds
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DiscoveryUiState())
@@ -197,6 +200,10 @@ class DiscoveryViewModel(
                 android.util.Log.e("DiscoveryVM", "Operation failed", e)
             }
         }
+    }
+
+    fun retryLoad() {
+        repository.startRealtimeSync()
     }
 
     fun resetFilters() {

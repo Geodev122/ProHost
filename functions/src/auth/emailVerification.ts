@@ -1,12 +1,11 @@
-import { onRequest, HttpsError } from "firebase-functions/v2/https";
-import { onCall } from "../lib/callable";
+import { onRequest } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { createHmac } from "crypto";
 import * as logger from "firebase-functions/logger";
-import { sendEmail, hostingerSmtpSecret } from "../lib/email";
-import { emailVerificationTemplate, emailVerificationResendTemplate, UserContext } from "../lib/emailTemplates";
+import { sendEmail } from "../lib/email";
+import { emailVerificationTemplate, UserContext } from "../lib/emailTemplates";
 import "../lib/admin";
 
 /**
@@ -16,26 +15,11 @@ import "../lib/admin";
  */
 export const emailVerificationSecret = defineSecret("EMAIL_VERIFICATION_SECRET");
 
-// Cloud Run URL of the verifyEmailLink function (europe-west1).
-// Derived from the project hash visible in deploy output; stable per project.
-const VERIFY_LINK_BASE = "https://verifyemaillink-t4c7d7bhka-ew.a.run.app";
-const TOKEN_TTL_SECONDS = 60 * 60 * 24; // 24 hours
-const MAX_RESENDS_PER_DAY = 3;
-
 // ─── JWT helpers ─────────────────────────────────────────────────────────────
 
 function b64url(input: string | Buffer): string {
   const buf = typeof input === "string" ? Buffer.from(input) : input;
   return buf.toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-}
-
-function signToken(payload: object, secret: string): string {
-  const header = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-  const body = b64url(JSON.stringify(payload));
-  const sig = b64url(
-    createHmac("sha256", secret).update(`${header}.${body}`).digest()
-  );
-  return `${header}.${body}.${sig}`;
 }
 
 interface VerificationPayload { uid: string; email: string; exp: number }
@@ -57,8 +41,8 @@ function verifyToken(token: string, secret: string): VerificationPayload {
 // ─── sendEmailVerificationInternal — called by assignInitialRole on first registration
 //
 // Uses Firebase Admin SDK generateEmailVerificationLink() — Firebase owns the
-// token lifecycle; HMAC-JWT is used only by the legacy resendEmailVerification /
-// verifyEmailLink endpoints below (kept for backward compatibility until deprecated).
+// token lifecycle. HMAC-JWT is only verified by the legacy verifyEmailLink endpoint
+// below, kept so links already sitting in inboxes still resolve.
 
 const VERIFICATION_CONTINUE_URL = "https://prohost-f766f.web.app/emaillink";
 
@@ -85,78 +69,6 @@ export async function sendEmailVerificationInternal(uid: string): Promise<void> 
     logger.warn("send_email_verification_failed", { uid, error: String(e) });
   }
 }
-
-// ─── Legacy helpers (used only by resendEmailVerification + verifyEmailLink below)
-// DEPRECATED: will be removed once all clients use sendVerificationEmailLink.
-
-async function dispatchVerificationEmailLegacy(uid: string, db: FirebaseFirestore.Firestore, isResend: boolean): Promise<void> {
-  const profileSnap = await db.collection("user_profiles").doc(uid).get();
-  const profileData = profileSnap.data();
-  if (!profileData?.email) {
-    throw new HttpsError("failed-precondition", "No email address on this account.");
-  }
-  if (profileData.emailVerified === true) {
-    throw new HttpsError("failed-precondition", "Email is already verified.");
-  }
-
-  const secret = emailVerificationSecret.value();
-  if (!secret) {
-    logger.warn("email_verification_secret_missing");
-    return; // degrade gracefully — don't block registration
-  }
-
-  const exp = Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS;
-  const token = signToken({ uid, email: profileData.email, exp }, secret);
-  const verifyUrl = `${VERIFY_LINK_BASE}?token=${encodeURIComponent(token)}`;
-
-  const userCtx: UserContext = {
-    fullName: profileData.fullName ?? "Member",
-    email: profileData.email,
-    role: (profileData.role ?? "SPECIALIST") as UserContext["role"],
-  };
-  const tpl = isResend
-    ? emailVerificationResendTemplate(userCtx, verifyUrl)
-    : emailVerificationTemplate(userCtx, verifyUrl);
-
-  await sendEmail({ to: profileData.email, ...tpl });
-  logger.info("email_verification_sent_legacy", { uid, isResend });
-}
-
-// ─── resendEmailVerification callable — rate-limited, for the profile screen ─
-
-export const resendEmailVerification = onCall(
-  { secrets: [hostingerSmtpSecret, emailVerificationSecret] },
-  async (request) => {
-    if (!request.auth?.uid) {
-      throw new HttpsError("unauthenticated", "You must be signed in.");
-    }
-    const uid = request.auth.uid;
-    const db = getFirestore();
-    const profileSnap = await db.collection("user_profiles").doc(uid).get();
-    const data = profileSnap.data();
-
-    // Rate limit: max MAX_RESENDS_PER_DAY in any rolling 24-hour window
-    const recentResends = (data?.emailVerificationResendCount as number | undefined) ?? 0;
-    const lastResendAt = (data?.emailVerificationLastResendAt as number | undefined) ?? 0;
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    const effectiveCount = lastResendAt < oneDayAgo ? 0 : recentResends;
-
-    if (effectiveCount >= MAX_RESENDS_PER_DAY) {
-      throw new HttpsError(
-        "resource-exhausted",
-        `You can request at most ${MAX_RESENDS_PER_DAY} verification emails per day. Please check your spam folder.`
-      );
-    }
-
-    await db.collection("user_profiles").doc(uid).update({
-      emailVerificationResendCount: lastResendAt < oneDayAgo ? 1 : recentResends + 1,
-      emailVerificationLastResendAt: Date.now(),
-    });
-
-    await dispatchVerificationEmailLegacy(uid, db, true);
-    return { ok: true };
-  }
-);
 
 // ─── verifyEmailLink HTTP function — handles the link click ──────────────────
 

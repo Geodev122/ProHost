@@ -350,7 +350,7 @@ private fun OwnerDeleteListingDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    AlertDialog(
+    ProHostDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
         title = { Text("Delete Listing?") },
@@ -407,8 +407,8 @@ fun OwnerHubScreenContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .widthIn(max = 840.dp),
-            contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, top = Spacing.lg, bottom = 104.dp),
-            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
         // Top Space Owner Subscription & Entitlement Banner
         item {
@@ -434,15 +434,15 @@ fun OwnerHubScreenContent(
                             .background(
                                 Brush.horizontalGradient(
                                     colors = listOf(
-                                        CoolGrayDark.copy(alpha = 0.92f),
-                                        VibrantBlueDark.copy(alpha = 0.86f)
+                                        MaterialTheme.proColors.brandHeaderStart.copy(alpha = 0.92f),
+                                        MaterialTheme.proColors.brandHeaderEnd.copy(alpha = 0.88f)
                                     )
                                 )
                             )
                     )
                     Column(
-                        modifier = Modifier.padding(Spacing.xl),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -450,23 +450,23 @@ fun OwnerHubScreenContent(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                color = Color(0x33FFFFFF),
-                                shape = CircleShape
+                                color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.2f),
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Default.Verified, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                    Icon(Icons.Default.Verified, contentDescription = null, tint = MaterialTheme.proColors.onBrandHeader, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text("ProHost Portal", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    Text("ProHost Portal", color = MaterialTheme.proColors.onBrandHeader, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                 }
                             }
 
                             if (!isAdminUnlimited) {
                                 Surface(
-                                    color = CarnationOrange,
-                                    shape = CircleShape
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
                                         text = if (currentPackage == null) {
@@ -474,10 +474,10 @@ fun OwnerHubScreenContent(
                                         } else {
                                             "$${String.format(Locale.US, "%.2f", currentPackage.priceUsd)} / mo"
                                         },
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onSecondary,
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.ExtraBold,
-                                        modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)
+                                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                                     )
                                 }
                             }
@@ -486,13 +486,15 @@ fun OwnerHubScreenContent(
                         if (isAdminUnlimited) {
                             Text(
                                 text = "Unlimited Listings — Admin Access",
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = Color.White
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.proColors.onBrandHeader
                             )
                             Text(
                                 text = "No package or subscription applies to your account — every listing, of any type, is always active.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xCCFFFFFF)
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f),
+                                lineHeight = 16.sp
                             )
                         } else {
                             val daysRemaining = ownerPackageExpiryMillis?.let {
@@ -508,42 +510,55 @@ fun OwnerHubScreenContent(
                                 } else {
                                     currentPackage.name
                                 },
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = Color.White
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.proColors.onBrandHeader
                             )
                             Text(
                                 text = if (currentPackage == null) {
-                                    "Choose a package below to start publishing workspace listings."
+                                    "Choose a package to start publishing workspace listings."
                                 } else {
                                     "List your space, set subdivisions, choose renting modal, and keep your business active."
                                 },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xCCFFFFFF)
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f),
+                                lineHeight = 16.sp
                             )
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 val isActiveSubscription = ownerPackageExpiryMillis != null && ownerPackageExpiryMillis > System.currentTimeMillis()
                                 Button(
-                                    onClick = onOpenRenewal,
-                                    modifier = Modifier.weight(1f).height(44.dp),
+                                    onClick = if (currentPackage == null) onOpenPackageSelection else onOpenRenewal,
+                                    modifier = Modifier.weight(1f),
                                     shape = MaterialTheme.shapes.medium,
-                                    colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.secondary,
+                                        contentColor = MaterialTheme.colorScheme.onSecondary
+                                    )
                                 ) {
                                     Icon(
-                                        if (isActiveSubscription) Icons.Default.Settings else Icons.Default.Refresh,
+                                        when {
+                                            currentPackage == null -> Icons.Default.WorkspacePremium
+                                            isActiveSubscription -> Icons.Default.Settings
+                                            else -> Icons.Default.Refresh
+                                        },
                                         contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(18.dp)
+                                        tint = MaterialTheme.colorScheme.onSecondary,
+                                        modifier = Modifier.size(16.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(Spacing.sm))
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        if (isActiveSubscription) "Manage" else "Renew",
-                                        color = Color.White,
-                                        style = MaterialTheme.typography.labelLarge,
+                                        when {
+                                            currentPackage == null -> "Choose Plan"
+                                            isActiveSubscription -> "Manage"
+                                            else -> "Renew"
+                                        },
+                                        color = MaterialTheme.colorScheme.onSecondary,
+                                        style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -551,16 +566,16 @@ fun OwnerHubScreenContent(
                                 val activeCount = ownerSpaces.count { it.status == ListingStatus.ACTIVE }
                                 val limitText = "$activeCount Active"
                                 Surface(
-                                    color = Color.White.copy(alpha = 0.2f),
+                                    color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.2f),
                                     shape = MaterialTheme.shapes.medium,
-                                    modifier = Modifier.weight(1f).height(44.dp)
+                                    modifier = Modifier.weight(1f).height(40.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                                         Text(
                                             text = limitText,
-                                            style = MaterialTheme.typography.labelLarge,
+                                            style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color.White
+                                            color = MaterialTheme.proColors.onBrandHeader
                                         )
                                     }
                                 }
@@ -605,9 +620,9 @@ fun OwnerHubScreenContent(
                 val openH = (totalH - rentedH - blackoutH).coerceAtLeast(0)
 
                 val statusAccent = when (space.status) {
-                    ListingStatus.ACTIVE -> FreshGreen
+                    ListingStatus.ACTIVE -> MaterialTheme.proColors.success
                     ListingStatus.DRAFT -> MaterialTheme.colorScheme.onSurfaceVariant
-                    ListingStatus.PAUSED -> BrightOrange
+                    ListingStatus.PAUSED -> MaterialTheme.proColors.warning
                 }
                 ProSurfaceCard(contentPadding = PaddingValues(0.dp)) {
                     Row(modifier = Modifier.fillMaxWidth()) {
@@ -615,11 +630,11 @@ fun OwnerHubScreenContent(
                             modifier = Modifier
                                 .width(4.dp)
                                 .fillMaxHeight()
-                                .background(statusAccent, RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp))
+                                .background(statusAccent, RoundedCornerShape(topStart = 18.dp, bottomStart = 18.dp))
                         )
                         Column(
-                            modifier = Modifier.weight(1f).padding(Spacing.lg),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                            modifier = Modifier.weight(1f).padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -639,7 +654,8 @@ fun OwnerHubScreenContent(
                         Column {
                             Text(
                                 text = space.title,
-                                style = MaterialTheme.typography.titleLarge,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
@@ -654,12 +670,12 @@ fun OwnerHubScreenContent(
                         // case); Draft and Paused are the two states worth calling out.
                         if (space.status != ListingStatus.ACTIVE) {
                             Surface(
-                                color = if (space.status == ListingStatus.DRAFT) MaterialTheme.colorScheme.surfaceVariant else StatusWarningContainer,
+                                color = if (space.status == ListingStatus.DRAFT) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.proColors.warningContainer,
                                 shape = MaterialTheme.shapes.small,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
@@ -668,7 +684,7 @@ fun OwnerHubScreenContent(
                                         tint = if (space.status == ListingStatus.DRAFT) {
                                             MaterialTheme.colorScheme.onSurfaceVariant
                                         } else {
-                                            StatusOnWarningContainer
+                                            MaterialTheme.proColors.onWarningContainer
                                         },
                                         modifier = Modifier.size(14.dp)
                                     )
@@ -685,7 +701,7 @@ fun OwnerHubScreenContent(
                                             color = if (space.status == ListingStatus.DRAFT) {
                                                 MaterialTheme.colorScheme.onSurfaceVariant
                                             } else {
-                                                StatusOnWarningContainer
+                                                MaterialTheme.proColors.onWarningContainer
                                             }
                                         )
                                         // Set only when the server moved this back to Draft on its
@@ -712,7 +728,7 @@ fun OwnerHubScreenContent(
                         val verificationPending = !space.isVerified && !space.verificationDocUrl.isNullOrBlank()
                         Surface(
                             color = when {
-                                space.isVerified -> StatusSuccessContainer
+                                space.isVerified -> MaterialTheme.proColors.successContainer
                                 verificationPending -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
                                 else -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
                             },
@@ -725,7 +741,7 @@ fun OwnerHubScreenContent(
                                 .let { if (space.isVerified) it else it.clickable { onOpenListingVerification(space) } }
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = Spacing.md, vertical = 10.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -740,7 +756,7 @@ fun OwnerHubScreenContent(
                                             else -> Icons.Default.VerifiedUser
                                         },
                                         contentDescription = null,
-                                        tint = if (space.isVerified) StatusSuccess else MaterialTheme.colorScheme.primary,
+                                        tint = if (space.isVerified) MaterialTheme.proColors.success else MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Text(
@@ -751,7 +767,7 @@ fun OwnerHubScreenContent(
                                         },
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (space.isVerified) StatusOnSuccessContainer else MaterialTheme.colorScheme.onPrimaryContainer
+                                        color = if (space.isVerified) MaterialTheme.proColors.onSuccessContainer else MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                 }
                                 if (!space.isVerified) {
@@ -776,7 +792,7 @@ fun OwnerHubScreenContent(
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onErrorContainer,
-                                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                                 )
                             }
                         }
@@ -791,8 +807,8 @@ fun OwnerHubScreenContent(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = Spacing.md, vertical = 10.dp),
-                                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -827,16 +843,16 @@ fun OwnerHubScreenContent(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                                        Icon(Icons.Default.Block, contentDescription = null, modifier = Modifier.size(12.dp), tint = NeutralGray500)
-                                        Text("Closed: ${blackoutH}h", style = MaterialTheme.typography.labelSmall, color = NeutralGray500)
+                                        Icon(Icons.Default.Block, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("Closed: ${blackoutH}h", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                                        Box(modifier = Modifier.size(8.dp).background(StatusSuccess, CircleShape))
+                                        Box(modifier = Modifier.size(8.dp).background(MaterialTheme.proColors.success, CircleShape))
                                         Text(
                                             "Open: ${openH}h",
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
-                                            color = StatusSuccess
+                                            color = MaterialTheme.proColors.success
                                         )
                                     }
                                 }
@@ -846,7 +862,7 @@ fun OwnerHubScreenContent(
                         // Engagement metrics snapshot
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
@@ -894,7 +910,7 @@ fun OwnerHubScreenContent(
                         if (space.status == ListingStatus.DRAFT) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 CustomButton(
                                     text = "Details",
@@ -924,7 +940,7 @@ fun OwnerHubScreenContent(
                         } else {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 // Manage Button — opens the real performance + availability
                                 // page (ManageListingScreen) for this listing: per-division
@@ -991,29 +1007,29 @@ fun OwnerHubScreenContent(
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = Spacing.xl, end = Spacing.lg),
-            containerColor = CarnationOrange,
-            contentColor = Color.White
+                .padding(bottom = 72.dp, end = 16.dp),
+            containerColor = MaterialTheme.colorScheme.secondary,
+            contentColor = MaterialTheme.colorScheme.onSecondary
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Image(
                     painter = painterResource(id = com.example.R.drawable.prohost_checkmark_logo),
                     contentDescription = "Add Listing",
                     modifier = Modifier.size(26.dp),
-                    colorFilter = ColorFilter.tint(Color.White)
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSecondary)
                 )
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .offset(x = 6.dp, y = (-6).dp)
                         .size(14.dp)
-                        .background(Color.White, CircleShape),
+                        .background(MaterialTheme.colorScheme.onSecondary, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Add,
                         contentDescription = null,
-                        tint = CarnationOrange,
+                        tint = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.size(10.dp)
                     )
                 }

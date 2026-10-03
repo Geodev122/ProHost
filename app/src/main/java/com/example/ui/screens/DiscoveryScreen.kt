@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -43,8 +41,6 @@ import com.example.ui.viewmodel.DiscoveryViewModel
 import com.example.ui.viewmodel.ProHostViewModel
 import com.example.ui.theme.premiumBackgroundBrush
 import com.example.ui.theme.Spacing
-import com.example.ui.theme.CarnationOrange
-import com.example.ui.theme.PureWhite
 
 /**
  * ViewModel-connected wrapper for DiscoveryScreen.
@@ -64,7 +60,6 @@ fun DiscoveryScreen(
         }
     }
 
-    val loadError by viewModel.sessionRestoreError.collectAsState()
     DiscoveryScreenContent(
         spaces = uiState.filteredSpaces,
         filterState = uiState.filterState,
@@ -76,7 +71,8 @@ fun DiscoveryScreen(
         isMapView = uiState.isMapViewActive,
         showFilterSheet = uiState.isFilterSheetVisible,
         isLoading = uiState.isLoading,
-        loadError = if (!uiState.isLoading && uiState.filteredSpaces.isEmpty() && loadError != null) loadError else null,
+        loadError = uiState.loadError,
+        onRetryLoad = { discoveryViewModel.retryLoad() },
         spaceTypeSchema = architectureSchema.spaceTypes,
         onSearchQueryChange = { discoveryViewModel.updateSearchQuery(it) },
         onToggleMapView = { discoveryViewModel.toggleMapView() },
@@ -113,6 +109,7 @@ fun DiscoveryScreenContent(
     showFilterSheet: Boolean,
     isLoading: Boolean = false,
     loadError: String? = null,
+    onRetryLoad: () -> Unit = {},
     spaceTypeSchema: List<SchemaItem> = emptyList(),
     onSearchQueryChange: (String) -> Unit,
     onToggleMapView: () -> Unit,
@@ -175,7 +172,7 @@ fun DiscoveryScreenContent(
                         description = loadError,
                         icon = Icons.Default.WifiOff,
                         actionButtonText = "Retry",
-                        onActionClick = onResetFilters
+                        onActionClick = onRetryLoad
                     )
                 }
             } else if (spaces.isEmpty()) {
@@ -204,8 +201,8 @@ fun DiscoveryScreenContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .widthIn(max = 840.dp),
-                        contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, top = 72.dp, bottom = Spacing.xl),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 72.dp, bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                     item {
                         // One-line hero: a single real-data statement. The country named is
@@ -217,8 +214,7 @@ fun DiscoveryScreenContent(
                         }
                         Surface(
                             color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = MaterialTheme.shapes.medium,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+                            shape = MaterialTheme.shapes.large,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -231,9 +227,9 @@ fun DiscoveryScreenContent(
                                     Icons.Default.Verified,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(modifier = Modifier.width(Spacing.sm))
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "${spaces.count { it.isVerified }} verified workspace${if (spaces.count { it.isVerified } == 1) "" else "s"}" +
                                         (detectedCountryName?.let { " in $it" } ?: ""),
@@ -332,7 +328,7 @@ private fun ExploreTopControls(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = Spacing.md, end = Spacing.md, top = Spacing.md),
+            .padding(start = 8.dp, end = 8.dp, top = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -340,7 +336,7 @@ private fun ExploreTopControls(
             onClick = onToggleMapView,
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
-            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp)
+            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
         ) {
             Icon(
                 imageVector = if (isMapView) Icons.AutoMirrored.Filled.FormatListBulleted else Icons.Default.Map,
@@ -349,20 +345,20 @@ private fun ExploreTopControls(
         }
         AnimatedContent(
             targetState = searchExpanded,
-            modifier = Modifier.weight(1f).padding(horizontal = Spacing.sm),
+            modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
             transitionSpec = { fadeIn() togetherWith fadeOut() },
             label = "ExploreSearchToggle"
         ) { expanded ->
             if (!expanded) {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     BadgedBox(badge = {
-                        if (searchQuery.isNotEmpty()) Badge(containerColor = MaterialTheme.colorScheme.secondary)
+                        if (searchQuery.isNotEmpty()) Badge(containerColor = MaterialTheme.colorScheme.error)
                     }) {
                         SmallFloatingActionButton(
                             onClick = { onSearchExpandedChange(true) },
                             containerColor = MaterialTheme.colorScheme.surface,
                             contentColor = MaterialTheme.colorScheme.primary,
-                            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp)
+                            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
                         ) {
                             Icon(Icons.Default.Search, contentDescription = "Search workspaces")
                         }
@@ -381,17 +377,14 @@ private fun ExploreTopControls(
         }
         BadgedBox(badge = {
             if (activeFilterCount > 0) {
-                Badge(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) { Text("$activeFilterCount", fontWeight = FontWeight.Bold) }
+                Badge(containerColor = MaterialTheme.colorScheme.error) { Text("$activeFilterCount") }
             }
         }) {
             SmallFloatingActionButton(
                 onClick = onOpenFilters,
                 containerColor = MaterialTheme.colorScheme.secondary,
                 contentColor = MaterialTheme.colorScheme.onSecondary,
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp)
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
             ) {
                 Icon(Icons.Default.FilterList, contentDescription = "Filters")
             }
@@ -411,10 +404,9 @@ private fun ExploreSearchField(
     // Opening search should be ready to type, not need a second tap.
     LaunchedEffect(Unit) { runCatching { focusRequester.requestFocus() } }
     Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
-        shadowElevation = 3.dp,
+        shape = RoundedCornerShape(28.dp),
+        tonalElevation = 4.dp,
+        shadowElevation = 4.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -422,13 +414,13 @@ private fun ExploreSearchField(
                 Icons.Default.Search,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = Spacing.lg).size(20.dp)
+                modifier = Modifier.padding(start = 12.dp).size(18.dp)
             )
-            Box(modifier = Modifier.weight(1f).padding(start = Spacing.sm, top = Spacing.md, bottom = Spacing.md)) {
+            Box(modifier = Modifier.weight(1f).padding(start = 8.dp, top = 10.dp, bottom = 10.dp)) {
                 if (query.isEmpty()) {
                     Text(
                         "Name, area, specialty, room type…",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -442,8 +434,7 @@ private fun ExploreSearchField(
                         keyboard?.hide()
                         focusManager.clearFocus()
                     }),
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-                    cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary)
+                    textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface)
                 )
             }
             if (query.isNotEmpty()) {
@@ -475,41 +466,25 @@ private fun DiscoveryFilterSheet(
     onToggleSavedOnly: (Boolean) -> Unit,
     onResetFilters: () -> Unit
 ) {
-    ModalBottomSheet(
+    ProHostBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        scrimColor = Color.Black.copy(alpha = 0.35f),
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .padding(top = Spacing.md, bottom = Spacing.xs)
-                    .width(40.dp)
-                    .height(4.dp)
-                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f), CircleShape)
-            )
-        }
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.xl, vertical = Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
+                .padding(horizontal = 20.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Filter Workspaces", style = MaterialTheme.typography.titleLarge)
-                TextButton(
-                    onClick = onResetFilters,
-                    contentPadding = PaddingValues(horizontal = Spacing.md),
-                    shape = MaterialTheme.shapes.small
-                ) {
-                    Text("Reset", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+                Text("Filter Workspaces", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                TextButton(onClick = onResetFilters, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                    Text("Reset", style = MaterialTheme.typography.labelMedium)
                 }
             }
 
@@ -548,7 +523,7 @@ private fun DiscoveryFilterSheet(
                 val current = (filterState.priceRange ?: priceBounds).let { range ->
                     range.start.coerceIn(priceBounds)..range.endInclusive.coerceIn(priceBounds)
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -576,15 +551,14 @@ private fun DiscoveryFilterSheet(
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilterChip(
                     selected = filterState.onlyVerified,
                     onClick = { onToggleVerifiedOnly(!filterState.onlyVerified) },
                     leadingIcon = if (filterState.onlyVerified) {
                         { Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(16.dp)) }
                     } else null,
-                    label = { Text("Verified only", style = MaterialTheme.typography.labelMedium) },
-                    shape = MaterialTheme.shapes.small
+                    label = { Text("Verified only", style = MaterialTheme.typography.labelSmall) }
                 )
                 FilterChip(
                     selected = filterState.onlySaved,
@@ -592,26 +566,20 @@ private fun DiscoveryFilterSheet(
                     leadingIcon = if (filterState.onlySaved) {
                         { Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp)) }
                     } else null,
-                    label = { Text("Saved only", style = MaterialTheme.typography.labelMedium) },
-                    shape = MaterialTheme.shapes.small
+                    label = { Text("Saved only", style = MaterialTheme.typography.labelSmall) }
                 )
             }
 
             Button(
                 onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
-                colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange, contentColor = PureWhite),
-                contentPadding = PaddingValues(vertical = Spacing.md)
+                contentPadding = PaddingValues(vertical = 10.dp)
             ) {
-                Text(
-                    "Show $resultCount Result${if (resultCount == 1) "" else "s"}",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Show $resultCount Result${if (resultCount == 1) "" else "s"}")
             }
 
-            Spacer(modifier = Modifier.navigationBarsPadding().height(Spacing.md))
+            Spacer(modifier = Modifier.navigationBarsPadding().height(12.dp))
         }
     }
 }

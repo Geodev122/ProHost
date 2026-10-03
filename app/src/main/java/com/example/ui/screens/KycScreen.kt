@@ -101,7 +101,7 @@ fun KycScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(Spacing.xl),
+                .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Step progress
@@ -114,14 +114,14 @@ fun KycScreen(
                 steps.forEachIndexed { index, (label, icon) ->
                     val isCurrent = (index == 0 && step == KycStep.PHONE_ENTRY) ||
                             (index == 1 && step == KycStep.OTP_ENTRY)
-                    val color = if (isCurrent) CarnationOrange else MaterialTheme.colorScheme.outlineVariant
+                    val color = if (isCurrent) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Surface(color = color, shape = CircleShape, modifier = Modifier.size(28.dp)) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     icon,
                                     contentDescription = null,
-                                    tint = androidx.compose.ui.graphics.Color.White,
+                                    tint = if (isCurrent) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(15.dp)
                                 )
                             }
@@ -191,7 +191,7 @@ fun KycScreen(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
-                            Text("Add Your Phone Number", style = MaterialTheme.typography.titleLarge)
+                            Text("Add Your Phone Number", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             Text(
                                 "Required to access booking and listing features",
                                 style = MaterialTheme.typography.bodySmall,
@@ -279,7 +279,7 @@ fun KycScreen(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
-                            Text("Enter Verification Code", style = MaterialTheme.typography.titleLarge)
+                            Text("Enter Verification Code", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             Text(
                                 "Code sent to ${phoneCountry.dialCode} $phoneNumber",
                                 style = MaterialTheme.typography.bodySmall,
@@ -340,7 +340,6 @@ fun KycScreen(
                         )
                     } else {
                         TextButton(
-                            shape = MaterialTheme.shapes.medium,
                             onClick = {
                                 val currentActivity = activity
                                 if (currentActivity == null) return@TextButton
@@ -363,7 +362,6 @@ fun KycScreen(
                     }
 
                     TextButton(
-                        shape = MaterialTheme.shapes.medium,
                         onClick = {
                             step = KycStep.PHONE_ENTRY
                             otpCode = ""

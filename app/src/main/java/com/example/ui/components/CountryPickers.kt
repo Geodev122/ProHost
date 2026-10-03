@@ -47,7 +47,7 @@ fun CountryPickerDialog(
             }
         }
     }
-    AlertDialog(
+    ProHostDialog(
         onDismissRequest = onDismiss,
         title = { Text("Choose your country") },
         text = {
@@ -85,7 +85,7 @@ fun CountryPickerDialog(
             }
         },
         confirmButton = {
-            TextButton(shape = MaterialTheme.shapes.medium, onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text("Close") }
         }
     )
 }
@@ -117,7 +117,7 @@ fun PhoneNumberField(
         prefix = "${country.flagEmoji} ${country.dialCode} ",
         leadingIcon = androidx.compose.material.icons.Icons.Default.Phone,
         trailingIcon = {
-            TextButton(shape = MaterialTheme.shapes.medium, onClick = { showPicker = true }) {
+            TextButton(onClick = { showPicker = true }) {
                 Text("Change", style = MaterialTheme.typography.labelSmall)
             }
         },

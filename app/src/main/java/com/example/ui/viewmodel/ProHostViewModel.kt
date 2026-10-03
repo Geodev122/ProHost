@@ -8,6 +8,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.auth.toUserMessage
 import com.example.data.model.*
 import com.example.data.repository.ProHostRepository
 import com.example.util.guessFileExtension
@@ -234,7 +235,8 @@ class ProHostViewModel(
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    android.util.Log.e("ProHostVM", "Operation failed", e)
+                    android.util.Log.e("ProHostVM", "Product details collection failed", e)
+                    _billingError.value = "Couldn't load Google Play plans. Please close and reopen Subscriptions."
                 }
             }
             // Every billing outcome (no offer, launch failure, cancel, success) reaches
@@ -283,7 +285,19 @@ class ProHostViewModel(
                 try {
                     manager.purchaseEvents.collect { purchase ->
                         val productId = purchase.products.firstOrNull() ?: return@collect
-                        repository.recordActivePurchaseToken(productId, purchase.purchaseToken)
+                        // Per-event handling: one failed write must not stop later purchases being recorded.
+                        val recorded = try {
+                            repository.recordActivePurchaseToken(productId, purchase.purchaseToken)
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            android.util.Log.e("ProHostVM", "recordActivePurchaseToken failed", e)
+                            false
+                        }
+                        if (!recorded) {
+                            _billingError.value = "Your purchase went through, but we couldn't link it to your account yet. " +
+                                "Reopen Subscriptions to retry, or contact support if your plan doesn't activate."
+                        }
                     }
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e
@@ -375,43 +389,14 @@ class ProHostViewModel(
                 val msg = if (result.isSuccess) {
                     "Verification email sent. Check your inbox."
                 } else {
-                    val err = result.exceptionOrNull()?.message ?: "Unknown error"
-                    when {
-                        err.contains("resource-exhausted", ignoreCase = true) ||
-                        err.contains("3 times", ignoreCase = true) -> "You've already requested 3 emails today. Try again tomorrow."
-                        else -> "Could not send email: $err"
-                    }
+                    result.exceptionOrNull()?.toUserMessage("Couldn't send the verification email. Please try again.")
+                        ?: "Couldn't send the verification email. Please try again."
                 }
                 android.widget.Toast.makeText(appContext, msg, android.widget.Toast.LENGTH_LONG).show()
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
-            }
-        }
-    }
-
-    fun sendInquiryEmail(context: android.content.Context, spaceId: String, message: String) {
-        val appContext = context.applicationContext
-        viewModelScope.launch {
-            try {
-                val result = functionsClient.sendInquiryEmail(spaceId, message)
-                val msg = if (result.isSuccess) {
-                    "Inquiry sent to the space owner."
-                } else {
-                    val err = result.exceptionOrNull()?.message ?: "Unknown error"
-                    when {
-                        err.contains("resource-exhausted", ignoreCase = true) ->
-                            "You've reached the daily inquiry limit (3 per day). Try again tomorrow."
-                        err.contains("not-found", ignoreCase = true) -> "Listing not found."
-                        else -> "Could not send inquiry: $err"
-                    }
-                }
-                android.widget.Toast.makeText(appContext, msg, android.widget.Toast.LENGTH_LONG).show()
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, "Couldn't send the verification email. Please try again.")
             }
         }
     }
@@ -1195,7 +1180,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, "Couldn't save that — please try again.")
             }
         }
     }
@@ -1241,7 +1226,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, "Couldn't update this listing — please try again.")
             }
         }
     }
@@ -1268,7 +1253,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, "Couldn't switch that slot off — please try again.")
             }
         }
     }
@@ -1286,7 +1271,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, "Couldn't switch that slot on — please try again.")
             }
         }
     }
@@ -1324,7 +1309,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, "Failed to update schedule — please try again.")
             }
         }
     }
@@ -1372,7 +1357,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, "Failed to add formula — please try again.")
             }
         }
     }
@@ -1390,7 +1375,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, "Failed to delete formula — please try again.")
             }
         }
     }
@@ -1407,7 +1392,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, "Couldn't add this room — please try again.")
             }
         }
     }
@@ -1423,7 +1408,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, "Couldn't remove this room — please try again.")
             }
         }
     }
@@ -1473,5 +1458,10 @@ class ProHostViewModel(
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("ProHost Listing Link", url))
         Toast.makeText(context, "Link copied to clipboard", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun reportFailure(appContext: Context, e: Exception, fallback: String) {
+        android.util.Log.e("ProHostVM", fallback, e)
+        Toast.makeText(appContext, e.toUserMessage(fallback), Toast.LENGTH_LONG).show()
     }
 }

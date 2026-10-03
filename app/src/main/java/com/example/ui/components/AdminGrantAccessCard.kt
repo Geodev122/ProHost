@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.theme.proColors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -193,13 +194,13 @@ fun AdminGrantAccessCard(
                 state.lastGrant?.let { grant ->
                     val planName = packagePlans.packages[grant.packageId]?.name
                         ?: if (grant.packageId == PackagePlan.UNLIMITED_GRANT_PLAN_ID) "Lifetime Pro Host" else grant.packageId
-                    Surface(color = StatusSuccess.copy(alpha = 0.12f), shape = MaterialTheme.shapes.medium) {
+                    Surface(color = MaterialTheme.proColors.success.copy(alpha = 0.12f), shape = MaterialTheme.shapes.medium) {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(12.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.Top
                         ) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = StatusSuccess)
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.proColors.success)
                             Text(
                                 "Granted $planName (${formatExpiry(grant.expiryMillis)}). Role: ${roleLabel(grant.role)}." +
                                     (if (grant.restoredListings > 0) " ${grant.restoredListings} hidden listing(s) restored." else "") +
@@ -222,7 +223,7 @@ fun AdminGrantAccessCard(
     if (showConfirm && target != null) {
         val planName = if (isUnlimited) "Lifetime (never expires)" else "${selectedPlan?.name} for $durationDays days"
         val newRole = if (target.role == "ADMIN") "Admin (unchanged)" else "Pro Host"
-        AlertDialog(
+        ProHostDialog(
             onDismissRequest = { showConfirm = false },
             icon = { Icon(Icons.Default.WorkspacePremium, contentDescription = null) },
             title = { Text("Confirm grant") },
@@ -297,8 +298,8 @@ private fun PlanOption(selected: Boolean, title: String, detail: String, highlig
 @Composable
 private fun ErrorLine(message: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
-        Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError, modifier = Modifier.size(16.dp))
-        Text(message, style = MaterialTheme.typography.bodySmall, color = StatusError)
+        Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+        Text(message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
     }
 }
 

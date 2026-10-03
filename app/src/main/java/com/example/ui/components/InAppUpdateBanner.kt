@@ -17,8 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.FreshGreen
-import com.example.ui.theme.VibrantBlue
+import com.example.ui.theme.proColors
 import com.example.util.UpdateState
 import com.example.ui.theme.Spacing
 
@@ -29,6 +28,10 @@ fun InAppUpdateBanner(
     onCompleteUpdate: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val pro = MaterialTheme.proColors
+    val isReady = updateState == UpdateState.DOWNLOADED
+    val bannerColor = if (isReady) pro.success else MaterialTheme.colorScheme.primary
+    val onBanner = if (isReady) pro.onSuccess else MaterialTheme.colorScheme.onPrimary
     AnimatedVisibility(
         visible = updateState == UpdateState.DOWNLOADED || updateState == UpdateState.DOWNLOADING,
         enter = expandVertically() + fadeIn(),
@@ -38,9 +41,10 @@ fun InAppUpdateBanner(
         Card(
             shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(
-                containerColor = if (updateState == UpdateState.DOWNLOADED) FreshGreen else VibrantBlue
+                containerColor = bannerColor,
+                contentColor = onBanner
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
@@ -49,7 +53,7 @@ fun InAppUpdateBanner(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -58,15 +62,15 @@ fun InAppUpdateBanner(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(36.dp)
                             .clip(MaterialTheme.shapes.small)
-                            .background(Color.White.copy(alpha = 0.2f)),
+                            .background(onBanner.copy(alpha = 0.2f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (updateState == UpdateState.DOWNLOADED) Icons.Default.DownloadDone else Icons.Default.Downloading,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = onBanner,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -76,7 +80,7 @@ fun InAppUpdateBanner(
                             text = if (updateState == UpdateState.DOWNLOADED) "ProHost Update Ready" else "Downloading ProHost Update...",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = onBanner
                         )
                         Text(
                             text = if (updateState == UpdateState.DOWNLOADED) {
@@ -85,7 +89,7 @@ fun InAppUpdateBanner(
                                 "Download in progress: ${(downloadProgress * 100).toInt()}%"
                             },
                             style = MaterialTheme.typography.labelMedium,
-                            color = Color.White.copy(alpha = 0.85f)
+                            color = onBanner.copy(alpha = 0.85f)
                         )
                     }
 
@@ -93,11 +97,11 @@ fun InAppUpdateBanner(
                         Button(
                             onClick = onCompleteUpdate,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.White,
-                                contentColor = FreshGreen
+                                containerColor = onBanner,
+                                contentColor = bannerColor
                             ),
                             shape = MaterialTheme.shapes.small,
-                            contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm)
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
                                 text = "Restart",
@@ -114,9 +118,9 @@ fun InAppUpdateBanner(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp)),
-                        color = Color.White,
-                        trackColor = Color.White.copy(alpha = 0.3f)
+                            .clip(MaterialTheme.shapes.extraSmall),
+                        color = onBanner,
+                        trackColor = onBanner.copy(alpha = 0.3f)
                     )
                 }
             }

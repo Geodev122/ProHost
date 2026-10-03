@@ -2,7 +2,6 @@ package com.example.ui.navigation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Celebration
@@ -12,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.activity.compose.BackHandler
@@ -29,8 +27,6 @@ import com.example.ui.components.dialogs.DrawerDialogsHandler
 import com.example.ui.components.drawer.AdminDrawerContent
 import com.example.ui.components.drawer.SpecialistDrawerContent
 import com.example.ui.screens.*
-import com.example.ui.theme.CarnationOrange
-import com.example.ui.theme.VibrantBlue
 import com.example.ui.viewmodel.DiscoveryViewModel
 import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.InAppUpdateManager
@@ -47,11 +43,13 @@ private val SPECIALIST_BOTTOM_TABS = listOf(
 )
 
 /**
- * The bottom-nav tabs for PRO_HOST.
+ * The bottom-nav tabs for PRO_HOST. A Pro Host is still a Specialist underneath and
+ * can book other hosts' spaces, so their own bookings stay one tap away.
  */
 private val PRO_HOST_BOTTOM_TABS = listOf(
     AppNavTab.ManageListings,
     AppNavTab.OwnerRentingProgress,
+    AppNavTab.ProfessionalRentals,
     AppNavTab.ProfessionalProfile
 )
 
@@ -97,15 +95,13 @@ private val FULLSCREEN_TAB_IDS: Set<String> =
  * validating externally-supplied tab ids (see below).
  */
 private fun allowedTabIdsForRole(role: UserRole): Set<String> {
-    // My Favorites is SPECIALIST-only — neither the Pro Host nor the Admin drawer
-    // exposes an entry point to it (both intentionally hide the "My Favorites"
-    // NavigationDrawerItem, AppDrawerContent.kt), so it must not be a landable
-    // tab id for those roles either, or it becomes reachable only via a raw
-    // deep link with no in-app way back to it.
+    // My Favorites is reachable by SPECIALIST and PRO_HOST (both drawers show it).
+    // The Admin drawer has no entry point, so it must not be a landable tab id for
+    // Admin, or it becomes reachable only via a raw deep link with no way back.
     val shared = SHARED_FULLSCREEN_TABS.map { it.id }.toSet()
     return when (role) {
         UserRole.SPECIALIST -> SPECIALIST_BOTTOM_TABS.map { it.id }.toSet() + AppNavTab.OwnerSubscriptions.id + shared
-        UserRole.PRO_HOST -> PRO_HOST_BOTTOM_TABS.map { it.id }.toSet() + PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() + AppNavTab.SearchMap.id
+        UserRole.PRO_HOST -> PRO_HOST_BOTTOM_TABS.map { it.id }.toSet() + PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() + AppNavTab.SearchMap.id + shared
         UserRole.ADMIN -> ADMIN_FULLSCREEN_TABS.map { it.id }.toSet() +
             (PRO_HOST_FULLSCREEN_TABS.map { it.id }.toSet() - AppNavTab.OwnerSubscriptions.id) + AppNavTab.ManageListings.id + AppNavTab.OwnerRentingProgress.id +
             AppNavTab.SearchMap.id
@@ -421,20 +417,10 @@ fun ProHostAppRoot(
         ModalNavigationDrawer(
             drawerState = drawerState,
             gesturesEnabled = false, // Edge-swipe gestures disabled; user opens drawer manually via header 3-dots icon
-            scrimColor = Color.Black.copy(alpha = 0.35f),
+            scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.40f),
             drawerContent = {
-                ModalDrawerSheet(
-                    // Was a hard 310.dp — on narrow phones that alone ate most of the
-                    // screen width and left the identity card's inner rows almost no
-                    // room to breathe. Scales with the screen instead, capped so it
-                    // doesn't get oversized on tablets.
-                    modifier = Modifier
-                        .fillMaxWidth(0.86f)
-                        .widthIn(max = 320.dp),
-                    drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
-                    drawerContainerColor = MaterialTheme.colorScheme.surface,
-                    drawerTonalElevation = 0.dp
-                ) {
+                // Width scales with the screen (86%, capped at 320dp) — see ProHostDrawerSheet.
+                ProHostDrawerSheet {
                     when (currentRole) {
                         UserRole.SPECIALIST, UserRole.PRO_HOST -> {
                             SpecialistDrawerContent(
@@ -537,64 +523,12 @@ fun ProHostAppRoot(
                     // top bar's menu icon (reopen the drawer) is offered either way.
                     if (detailedSpace == null && safeFullScreenDrawerTab == null && roleTabs.isNotEmpty() &&
                         !(isMapViewActive && activeTabId == AppNavTab.SearchMap.id)) {
-                        val roleAccentColor = if (currentRole == UserRole.PRO_HOST) CarnationOrange else VibrantBlue
-                        Column {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
-                            // Role-colored accent strip: orange for Pro Host, brand blue for Specialist
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(2.dp)
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            listOf(
-                                                Color.Transparent,
-                                                roleAccentColor.copy(alpha = 0.5f),
-                                                roleAccentColor,
-                                                roleAccentColor.copy(alpha = 0.5f),
-                                                Color.Transparent
-                                            )
-                                        )
-                                    )
-                            )
-                            NavigationBar(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                tonalElevation = 0.dp,
-                                // No fixed height: NavigationBar adds the system nav-bar inset
-                                // inside its own bounds, so a fixed height squeezed the items.
-                                modifier = Modifier.testTag("bottom_navigation_bar")
-                            ) {
-                                roleTabs.forEach { tab ->
-                                    val isSelected = activeTabId == tab.id
-                                    NavigationBarItem(
-                                        selected = isSelected,
-                                        onClick = { activeTabId = tab.id },
-                                        icon = {
-                                            Icon(
-                                                imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                                                contentDescription = tab.title
-                                            )
-                                        },
-                                        label = {
-                                            Text(
-                                                tab.title,
-                                                style = MaterialTheme.typography.labelMedium,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                maxLines = 1
-                                            )
-                                        },
-                                        colors = NavigationBarItemDefaults.colors(
-                                            selectedIconColor = roleAccentColor,
-                                            selectedTextColor = roleAccentColor,
-                                            indicatorColor = roleAccentColor.copy(alpha = 0.14f),
-                                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                        ),
-                                        modifier = Modifier.testTag("nav_item_${tab.id}")
-                                    )
-                                }
-                            }
-                        }
+                        ProHostBottomNavBar(
+                            tabs = roleTabs,
+                            activeTabId = activeTabId,
+                            onTabSelected = { activeTabId = it },
+                            highlightWithSecondary = currentRole == UserRole.PRO_HOST
+                        )
                     }
                 }
             ) { innerPadding ->
@@ -797,7 +731,7 @@ fun ProHostAppRoot(
         )
 
         if (showProHostWelcome) {
-            AlertDialog(
+            ProHostDialog(
                 onDismissRequest = { showProHostWelcome = false },
                 icon = { Icon(Icons.Default.Celebration, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                 title = { Text("You're Now a Pro Host!") },
@@ -808,15 +742,10 @@ fun ProHostAppRoot(
                     )
                 },
                 confirmButton = {
-                    Button(
-                        onClick = { showProHostWelcome = false },
-                        shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
-                    ) {
-                        Text("Let's Go", fontWeight = FontWeight.Bold)
+                    Button(onClick = { showProHostWelcome = false }) {
+                        Text("Let's Go")
                     }
-                },
-                shape = MaterialTheme.shapes.extraLarge
+                }
             )
         }
     }
@@ -864,8 +793,8 @@ private fun SuspendedAccountScreen(onSignOut: () -> Unit) {
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(28.dp))
-            Button(onClick = onSignOut, shape = MaterialTheme.shapes.medium) {
-                Text("Sign Out", fontWeight = FontWeight.Bold)
+            Button(onClick = onSignOut) {
+                Text("Sign Out")
             }
         }
     }

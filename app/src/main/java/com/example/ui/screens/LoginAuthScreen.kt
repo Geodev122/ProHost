@@ -124,7 +124,7 @@ fun LoginAuthScreen(
     fun launchGoogleSignIn() {
         coroutineScope.launch {
             try {
-                val webClientId = runCatching { context.getString(R.string.default_web_client_id) }.getOrDefault("mock_web_client_id")
+                val webClientId = context.getString(R.string.default_web_client_id)
                 val googleIdOption = GetGoogleIdOption.Builder()
                     .setFilterByAuthorizedAccounts(false)
                     .setServerClientId(webClientId)
@@ -157,8 +157,13 @@ fun LoginAuthScreen(
                         }
                     }
                 }
+            } catch (e: androidx.credentials.exceptions.GetCredentialCancellationException) {
+                // User dismissed the account picker.
+            } catch (e: androidx.credentials.exceptions.NoCredentialException) {
+                android.widget.Toast.makeText(context, "No Google account found on this device. Add one in Settings, or sign in with email.", android.widget.Toast.LENGTH_LONG).show()
             } catch (e: GetCredentialException) {
-                // User cancelled or no Google accounts on device — do nothing
+                android.util.Log.w("LoginAuthScreen", "Google sign-in unavailable: ${e.type}")
+                android.widget.Toast.makeText(context, "Google sign-in isn't available right now. Please sign in with email.", android.widget.Toast.LENGTH_LONG).show()
             }
         }
     }

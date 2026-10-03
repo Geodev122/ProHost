@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.theme.proColors
 import android.app.Activity
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
@@ -127,7 +128,6 @@ fun KycVerificationDialog(
                                     singleLine = true
                                 )
                                 Button(
-                                    shape = MaterialTheme.shapes.medium,
                                     onClick = {
                                         activity?.let { act ->
                                             authViewModel.linkKycPhone(act, phoneInput, phoneOtpInput,
@@ -145,7 +145,6 @@ fun KycVerificationDialog(
                                 ) { Text("Verify SMS Code") }
                             } else {
                                 Button(
-                                    shape = MaterialTheme.shapes.medium,
                                     onClick = {
                                         activity?.let { act ->
                                             authViewModel.startPhoneVerification(
@@ -182,7 +181,6 @@ fun KycVerificationDialog(
                                 singleLine = true
                             )
                             Button(
-                                shape = MaterialTheme.shapes.medium,
                                 onClick = {
                                     isEmailSent = true
                                     Toast.makeText(context, "Verification email sent to $emailInput", Toast.LENGTH_SHORT).show()
@@ -248,9 +246,9 @@ private fun KycRequirementCard(
     content: @Composable () -> Unit
 ) {
     Surface(
-        color = if (isComplete) FreshGreen.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        color = if (isComplete) MaterialTheme.proColors.success.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         shape = MaterialTheme.shapes.medium,
-        border = androidx.compose.foundation.BorderStroke(1.dp, if (isComplete) FreshGreen else MaterialTheme.colorScheme.outlineVariant),
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (isComplete) MaterialTheme.proColors.success else MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -263,7 +261,7 @@ private fun KycRequirementCard(
                 Icon(
                     imageVector = if (isComplete) Icons.Default.CheckCircle else Icons.Default.Warning,
                     contentDescription = null,
-                    tint = if (isComplete) FreshGreen else MaterialTheme.colorScheme.error
+                    tint = if (isComplete) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error
                 )
             }
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

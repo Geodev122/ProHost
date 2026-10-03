@@ -37,21 +37,17 @@ fun DrawerIdentityCard(
     modifier: Modifier = Modifier
 ) {
     val role = user?.role ?: UserRole.SPECIALIST
-    val primaryAccent = when (role) {
-        UserRole.ADMIN -> AmberWarning
-        UserRole.PRO_HOST -> CarnationOrange
-        UserRole.SPECIALIST -> VibrantBlue
-    }
-    val heroGradient = when (role) {
-        UserRole.ADMIN -> Brush.linearGradient(listOf(OxfordBlueDark, OxfordBlue, CoolGrayDark))
-        UserRole.PRO_HOST -> Brush.linearGradient(listOf(OxfordBlue, CarnationOrangeDark.copy(alpha = 0.85f), OxfordBlueDark))
-        UserRole.SPECIALIST -> Brush.linearGradient(listOf(CoolGrayDark, VibrantBlueDark, VibrantBlue))
-    }
+    val pro = MaterialTheme.proColors
+    // Brand field + role accent all come from the theme, so the card re-tones with
+    // light/dark. Orange (secondary) is the role-agnostic accent; the role itself is
+    // told apart by the pill label/icon.
+    val primaryAccent = MaterialTheme.colorScheme.secondary
+    val heroGradient = Brush.linearGradient(listOf(pro.brandHeaderStart, pro.brandHeaderEnd))
 
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(4.dp, MaterialTheme.shapes.extraLarge),
+            .shadow(6.dp, MaterialTheme.shapes.extraLarge),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
@@ -61,7 +57,7 @@ fun DrawerIdentityCard(
                 .background(heroGradient)
                 .padding(Spacing.xl)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                 // Top row: Active Plan Tag + Close Drawer Arrow
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -74,9 +70,9 @@ fun DrawerIdentityCard(
                     ) {
                         if (role == UserRole.PRO_HOST && user != null) {
                             Surface(
-                                color = CarnationOrange.copy(alpha = 0.35f),
-                                shape = CircleShape,
-                                border = BorderStroke(1.dp, CarnationOrange.copy(alpha = 0.8f))
+                                color = primaryAccent.copy(alpha = 0.35f),
+                                shape = MaterialTheme.shapes.medium,
+                                border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.8f))
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -86,14 +82,14 @@ fun DrawerIdentityCard(
                                     Icon(
                                         imageVector = Icons.Default.WorkspacePremium,
                                         contentDescription = null,
-                                        tint = CarnationOrangeLight,
+                                        tint = pro.headerWarning,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Text(
                                         text = currentPackage?.badgeName?.ifBlank { currentPackage.name } ?: "Active Plan",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White,
+                                        color = pro.onBrandHeader,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -102,11 +98,11 @@ fun DrawerIdentityCard(
                         } else {
                             Surface(
                                 color = when (role) {
-                                    UserRole.ADMIN -> AmberWarning.copy(alpha = 0.25f)
-                                    else -> VibrantBlue.copy(alpha = 0.25f)
+                                    UserRole.ADMIN -> primaryAccent.copy(alpha = 0.25f)
+                                    else -> pro.onBrandHeader.copy(alpha = 0.18f)
                                 },
-                                shape = CircleShape,
-                                border = BorderStroke(1.dp, PureWhite.copy(alpha = 0.35f))
+                                shape = MaterialTheme.shapes.medium,
+                                border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.6f))
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
@@ -120,8 +116,8 @@ fun DrawerIdentityCard(
                                         },
                                         contentDescription = null,
                                         tint = when (role) {
-                                            UserRole.ADMIN -> AmberWarning
-                                            else -> Color.White
+                                            UserRole.ADMIN -> pro.headerWarning
+                                            else -> pro.onBrandHeader
                                         },
                                         modifier = Modifier.size(14.dp)
                                     )
@@ -132,7 +128,7 @@ fun DrawerIdentityCard(
                                         },
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White,
+                                        color = pro.onBrandHeader,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -149,7 +145,7 @@ fun DrawerIdentityCard(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Collapse Side Drawer",
-                                tint = Color.White
+                                tint = pro.onBrandHeader
                             )
                         }
                     }
@@ -177,7 +173,7 @@ fun DrawerIdentityCard(
                                 color = primaryAccent,
                                 shape = CircleShape,
                                 modifier = Modifier.fillMaxSize(),
-                                border = BorderStroke(2.5.dp, Color.White.copy(alpha = 0.9f))
+                                border = BorderStroke(2.5.dp, pro.onBrandHeader.copy(alpha = 0.9f))
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Text(
@@ -187,7 +183,7 @@ fun DrawerIdentityCard(
                                             .mapNotNull { it.firstOrNull()?.uppercase() }
                                             .joinToString("")
                                             .ifEmpty { "PS" },
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onSecondary,
                                         fontWeight = FontWeight.ExtraBold,
                                         style = MaterialTheme.typography.headlineMedium
                                     )
@@ -196,9 +192,9 @@ fun DrawerIdentityCard(
                         }
                         if (user?.isVerified == true) {
                             Surface(
-                                color = FreshGreen,
+                                color = pro.headerSuccess,
                                 shape = CircleShape,
-                                border = BorderStroke(2.dp, OxfordBlueDark),
+                                border = BorderStroke(2.dp, pro.brandHeaderStart),
                                 modifier = Modifier
                                     .size(22.dp)
                                     .align(Alignment.BottomEnd)
@@ -207,7 +203,7 @@ fun DrawerIdentityCard(
                                     Icon(
                                         Icons.Default.Check,
                                         contentDescription = "Verified",
-                                        tint = Color.White,
+                                        tint = pro.brandHeaderStart,
                                         modifier = Modifier.size(13.dp)
                                     )
                                 }
@@ -222,8 +218,9 @@ fun DrawerIdentityCard(
                         ) {
                             Text(
                                 text = user?.fullName ?: "ProHost Member",
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = Color.White,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = pro.onBrandHeader,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -231,7 +228,7 @@ fun DrawerIdentityCard(
                                 Icon(
                                     Icons.Default.Verified,
                                     contentDescription = "Verified Member",
-                                    tint = if (role == UserRole.ADMIN) AmberWarning else FreshGreen,
+                                    tint = if (role == UserRole.ADMIN) pro.headerWarning else pro.headerSuccess,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -240,7 +237,7 @@ fun DrawerIdentityCard(
                         Text(
                             text = user?.specialty?.ifBlank { role.displayName } ?: role.displayName,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.85f),
+                            color = pro.onBrandHeader.copy(alpha = 0.85f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -250,14 +247,14 @@ fun DrawerIdentityCard(
                         Text(
                             text = user?.email ?: "",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.65f),
+                            color = pro.onBrandHeader.copy(alpha = 0.65f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
 
-                HorizontalDivider(color = Color.White.copy(alpha = 0.15f))
+                HorizontalDivider(color = pro.onBrandHeader.copy(alpha = 0.15f))
 
                 // Bottom Meta: Location + Member ID
                 Row(
@@ -270,11 +267,11 @@ fun DrawerIdentityCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
+                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = pro.onBrandHeader.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
                         Text(
                             text = user?.city?.ifBlank { user.governorate.ifBlank { user.country } } ?: "—",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.9f),
+                            color = pro.onBrandHeader.copy(alpha = 0.9f),
                             fontWeight = FontWeight.Medium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -286,11 +283,11 @@ fun DrawerIdentityCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(Icons.Default.Badge, contentDescription = null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
+                        Icon(Icons.Default.Badge, contentDescription = null, tint = pro.onBrandHeader.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
                         Text(
                             text = "ID: ${user?.publicCode ?: "—"}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.9f),
+                            color = pro.onBrandHeader.copy(alpha = 0.9f),
                             fontWeight = FontWeight.Medium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -300,15 +297,15 @@ fun DrawerIdentityCard(
 
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Surface(
-                        color = Color.White.copy(alpha = 0.15f),
-                        shape = CircleShape
+                        color = pro.onBrandHeader.copy(alpha = 0.15f),
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Text(
                             text = if (user?.isVerified == true) "🛡️ Phone Verified" else "Phone Unverified",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                            color = pro.onBrandHeader,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                 }

@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -11,9 +12,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.AppUser
-import com.example.ui.theme.CarnationOrange
-import com.example.ui.theme.FreshGreen
 import com.example.ui.theme.Spacing
+import com.example.ui.theme.proColors
 
 /**
  * Inline KYC progress card for SpecialistProfileScreen.
@@ -24,7 +24,6 @@ import com.example.ui.theme.Spacing
 fun KycCompletionBanner(
     user: AppUser,
     onResendVerificationEmail: () -> Unit,
-    onNavigateToIdUpload: () -> Unit = {},
     onAddProfilePhoto: () -> Unit = {},
     onAddAddress: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -78,18 +77,18 @@ fun KycCompletionBanner(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, CarnationOrange.copy(alpha = 0.25f))
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        tonalElevation = 1.dp
     ) {
         Column(
             modifier = Modifier.padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Icon(Icons.Default.Shield, contentDescription = null, tint = CarnationOrange, modifier = Modifier.size(22.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
                 Text(
                     "Profile Verification",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
@@ -103,9 +102,9 @@ fun KycCompletionBanner(
                 steps.forEachIndexed { index, step ->
                     val isCurrent = !step.done && steps.take(index).all { it.done }
                     val color = when {
-                        step.done -> FreshGreen
-                        isCurrent -> CarnationOrange
-                        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                        step.done -> MaterialTheme.proColors.onSuccessContainer
+                        isCurrent -> MaterialTheme.colorScheme.onSecondaryContainer
+                        else -> MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.55f)
                     }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -145,12 +144,12 @@ fun KycCompletionBanner(
             if (nextAction != null) {
                 OutlinedButton(
                     onClick = nextAction,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
                     shape = MaterialTheme.shapes.medium,
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, CarnationOrange),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = CarnationOrange)
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
                 ) {
-                    Text(nextActionLabel, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    Text(nextActionLabel, style = MaterialTheme.typography.labelMedium)
                 }
             }
         }

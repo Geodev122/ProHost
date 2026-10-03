@@ -36,7 +36,6 @@ export { sendEmailOtp, verifyEmailOtp, clickEmailOtpLink } from "./auth/emailOtp
 export { sendSignInEmailLink, sendVerificationEmailLink } from "./auth/emailLinkAuth";
 export { playBillingRtdn } from "./billing/playBillingRtdn";
 export { verifyAndRestorePurchase } from "./billing/verifyAndRestorePurchase";
-export { sendInquiryEmail } from "./users/sendInquiryEmail";
 export {
   onUserProfileCreatedAssignCode,
   onBookingCreatedAssignCode,

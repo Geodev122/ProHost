@@ -65,7 +65,7 @@ fun OwnerIncomingRequestsView(
     ProSurfaceCard(modifier = modifier) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // Header with badge
             ProSectionHeader(
@@ -86,7 +86,7 @@ fun OwnerIncomingRequestsView(
             // screens, since "Declined (N)" was the one getting squeezed last.
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 items(
                     listOf(
@@ -159,7 +159,7 @@ fun OwnerIncomingRequestsView(
                     modifier = Modifier.padding(vertical = Spacing.md)
                 )
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     filteredRequests.forEach { request ->
                         OwnerBookingRequestCard(
                             request = request,
@@ -187,10 +187,10 @@ fun OwnerIncomingRequestsView(
 
     // Rejection Reason Modal Dialog
     if (rejectingRequestId != null) {
-        AlertDialog(
+        ProHostDialog(
             onDismissRequest = { rejectingRequestId = null },
-            icon = { Icon(Icons.Default.Cancel, contentDescription = null, tint = StatusError) },
-            title = { Text("Decline Booking Request", style = MaterialTheme.typography.titleLarge) },
+            icon = { Icon(Icons.Default.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            title = { Text("Decline Booking Request", style = MaterialTheme.typography.titleMedium) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -223,7 +223,7 @@ fun OwnerIncomingRequestsView(
                 )
             },
             dismissButton = {
-                TextButton(shape = MaterialTheme.shapes.medium, onClick = { rejectingRequestId = null }) {
+                TextButton(onClick = { rejectingRequestId = null }) {
                     Text("Cancel")
                 }
             }
@@ -235,12 +235,12 @@ fun OwnerIncomingRequestsView(
     // the signed lease as the record of that; there's no in-app payment step anymore.
     if (acceptingRequestId != null) {
         val reqId = acceptingRequestId!!
-        AlertDialog(
+        ProHostDialog(
             onDismissRequest = { acceptingRequestId = null },
             icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-            title = { Text("Accept & Upload Agreement", style = MaterialTheme.typography.titleLarge) },
+            title = { Text("Accept & Upload Agreement", style = MaterialTheme.typography.titleMedium) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         text = "Accepting means you and the specialist have reached and signed a leasing agreement outside the app. " +
                             "Upload the signed document to finalize — this saves it as the official record and locks in the sched" +
@@ -260,7 +260,6 @@ fun OwnerIncomingRequestsView(
             },
             confirmButton = {
                 Button(
-                    shape = MaterialTheme.shapes.medium,
                     onClick = {
                         val uri = agreementDocState.uri
                         if (uri != null) {
@@ -276,7 +275,7 @@ fun OwnerIncomingRequestsView(
                 }
             },
             dismissButton = {
-                TextButton(shape = MaterialTheme.shapes.medium, onClick = { acceptingRequestId = null }) {
+                TextButton(onClick = { acceptingRequestId = null }) {
                     Text("Cancel")
                 }
             }
@@ -299,14 +298,14 @@ fun OwnerBookingRequestCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
             color = when (request.status) {
-                BookingRequestStatus.PENDING -> StatusWarning.copy(alpha = 0.45f)
-                BookingRequestStatus.ACCEPTED -> StatusInfo.copy(alpha = 0.45f)
-                BookingRequestStatus.REJECTED -> StatusError.copy(alpha = 0.45f)
+                BookingRequestStatus.PENDING -> MaterialTheme.proColors.warning
+                BookingRequestStatus.ACCEPTED -> MaterialTheme.proColors.info
+                BookingRequestStatus.REJECTED -> MaterialTheme.colorScheme.error
                 BookingRequestStatus.CANCELLED -> MaterialTheme.colorScheme.outlineVariant
             }
         )
@@ -314,8 +313,8 @@ fun OwnerBookingRequestCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // Member profile header & Status Badge
             Row(
@@ -453,7 +452,7 @@ fun OwnerBookingRequestCard(
                         text = "Requirements / Note: \"${request.clinicalNotes}\"",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(Spacing.sm)
+                        modifier = Modifier.padding(6.dp)
                     )
                 }
             }
@@ -461,7 +460,7 @@ fun OwnerBookingRequestCard(
             // Unavailable Notice for Accepted Bookings
             if (request.status == BookingRequestStatus.ACCEPTED) {
                 Surface(
-                    color = StatusInfoContainer,
+                    color = MaterialTheme.proColors.infoContainer,
                     shape = MaterialTheme.shapes.small,
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -472,14 +471,14 @@ fun OwnerBookingRequestCard(
                         Icon(
                             Icons.Default.Lock,
                             contentDescription = null,
-                            tint = StatusInfo,
+                            tint = MaterialTheme.proColors.info,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Locked & marked UNAVAILABLE for public discovery (${request.formula.totalWeeklyHours} hrs/wk deducted).",
                             style = MaterialTheme.typography.labelSmall,
-                            color = StatusInfo,
+                            color = MaterialTheme.proColors.info,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
@@ -488,14 +487,14 @@ fun OwnerBookingRequestCard(
 
             if (request.status == BookingRequestStatus.REJECTED && !request.rejectionReason.isNullOrBlank()) {
                 Surface(
-                    color = StatusErrorContainer,
+                    color = MaterialTheme.colorScheme.errorContainer,
                     shape = MaterialTheme.shapes.small,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = "Decline Reason: ${request.rejectionReason}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = StatusError,
+                        color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
                     )
@@ -506,7 +505,7 @@ fun OwnerBookingRequestCard(
             if (request.status == BookingRequestStatus.PENDING) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     CustomButton(

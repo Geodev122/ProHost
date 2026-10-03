@@ -26,8 +26,7 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
 - Never `as List<T>` (or any raw unchecked cast) on Firestore/Flow collection emissions from
   `combine()`. Use `(value as? List<*>)?.filterIsInstance<T>() ?: emptyList()` instead
   (see `DiscoveryViewModel.kt`).
-- `typealias` must be declared at file top-level, never nested inside a class/ViewModel
-  (see `AuthViewModel.kt` — `PendingPhoneRegistration`).
+- `typealias` must be declared at file top-level, never nested inside a class/ViewModel.
 - Don't declare unused generic type parameters on extension functions — it can break Kotlin's
   inference for the receiver type (`ProHostRepository.tog()` was `fun <T : Any> List<SchemaItem>.tog()`
   with `T` unused; fixed to `fun List<SchemaItem>.tog()`).
@@ -51,6 +50,11 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
   subdivisions array is saved whole. Doc ids stay the internal keys.
 - Price units: `SpaceCalculationUtils.strategyUnitLabel` / `rateUnitLabel` /
   `lowestPriceFor`. Never hard-code "/mo" (WhatsApp texts used to).
+- User-initiated `ProHostViewModel` actions must surface thrown exceptions via
+  `reportFailure(appContext, e, fallback)`, not only `Log.e`. Explore's load error comes from
+  `ProHostRepository.spacesLoadError` (listener failures), never from `sessionRestoreError`.
+- Pro Hosts have the My Rentals bottom tab and My Favorites, since they book spaces too.
+  Demo seeding is debug-build only. `sendInquiryEmail` ("Email the Host") was retired on purpose.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 

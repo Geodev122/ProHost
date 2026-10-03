@@ -380,8 +380,8 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // inquiry_rate_limits — server-only; written exclusively by the
-    // sendInquiryEmail Cloud Function via Admin SDK (bypasses rules).
+    // inquiry_rate_limits — legacy server-only data from the retired
+    // sendInquiryEmail function; deleteOwnAccount still cleans it up.
     // ---------------------------------------------------------------
     match /inquiry_rate_limits/{userId} {
       allow read, write: if false;

@@ -84,7 +84,8 @@ class FirestoreService(
         onBookingsUpdated: (List<RentalBookingRequest>) -> Unit,
         onSchemaUpdated: (SpaceArchitectureSchema) -> Unit = {},
         onAuditLogsUpdated: (List<AuditSecurityLog>) -> Unit = {},
-        onPackagePlansUpdated: (PackagePlanCatalog) -> Unit = {}
+        onPackagePlansUpdated: (PackagePlanCatalog) -> Unit = {},
+        onWorkspacesError: (Exception) -> Unit = {}
     ) {
         val db = firestore ?: return
 
@@ -96,6 +97,7 @@ class FirestoreService(
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
                             Log.w(TAG, "Workspaces sync note: ${error.message}")
+                            onWorkspacesError(error)
                             return@addSnapshotListener
                         }
                         if (snapshot != null) {
@@ -127,6 +129,7 @@ class FirestoreService(
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
                             Log.w(TAG, "Public workspaces sync note: ${error.message}")
+                            onWorkspacesError(error)
                             return@addSnapshotListener
                         }
                         if (snapshot != null) {
@@ -143,6 +146,7 @@ class FirestoreService(
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
                             Log.w(TAG, "Own workspaces sync note: ${error.message}")
+                            onWorkspacesError(error)
                             return@addSnapshotListener
                         }
                         if (snapshot != null) {

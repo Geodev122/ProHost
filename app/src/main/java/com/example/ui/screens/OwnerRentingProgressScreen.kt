@@ -136,7 +136,7 @@ fun OwnerRentingProgressScreenContent(
 
         // 2. Outside payment reminders — only for bookings not yet acknowledged as paid
         activeBookings.filter { !it.paymentAcknowledgedByHost }.forEach { booking ->
-            list.add(Pair(true, "Outside-App Rent due from Dr. ${booking.practitionerName} fo" +
+            list.add(Pair(true, "Outside-App Rent due from ${booking.practitionerName} fo" +
                 "r slot '${booking.selectedDateTimeRange.ifBlank { booking.formula.scheduleDescription }}" +
                 "' (Amount: $${booking.totalAmountUsd.toInt()} USD)."))
         }
@@ -144,7 +144,7 @@ fun OwnerRentingProgressScreenContent(
         // 3. Scheduling checklist reminder
         activeBookings.forEach { booking ->
             val daysOfWeek = booking.selectedDays.ifEmpty { booking.formula.daysOfWeek }
-            list.add(Pair(false, "Practice Schedule: Dr. ${booking.practitionerName} has an upcoming shift on ${daysOfWeek.joinToString()}" +
+            list.add(Pair(false, "Practice Schedule: ${booking.practitionerName} has an upcoming shift on ${daysOfWeek.joinToString()}" +
                 " at '${booking.spaceTitle}'."))
         }
 
@@ -165,7 +165,7 @@ fun OwnerRentingProgressScreenContent(
                 .fillMaxWidth()
                 .widthIn(max = 840.dp),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
                 Surface(
@@ -181,7 +181,7 @@ fun OwnerRentingProgressScreenContent(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
                                 Icons.Default.EventAvailable,
@@ -213,7 +213,7 @@ fun OwnerRentingProgressScreenContent(
             ProSurfaceCard {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     ProSectionHeader(
                         title = "Alerts",
@@ -221,7 +221,7 @@ fun OwnerRentingProgressScreenContent(
                         icon = Icons.Default.NotificationsActive
                     )
 
-                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         reminders.forEach { (isUrgent, reminderText) ->
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -229,13 +229,13 @@ fun OwnerRentingProgressScreenContent(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(Spacing.md),
+                                    modifier = Modifier.padding(10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
                                         imageVector = if (isUrgent) Icons.Default.PriorityHigh else Icons.Default.Info,
                                         contentDescription = null,
-                                        tint = if (isUrgent) StatusWarning else MaterialTheme.colorScheme.primary,
+                                        tint = if (isUrgent) MaterialTheme.proColors.warning else MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
@@ -272,7 +272,7 @@ fun OwnerRentingProgressScreenContent(
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.lg),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = CarnationOrange)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
                 }
             }
         } else if (!hasLoadedBookingsOnce && isOffline) {
@@ -328,8 +328,8 @@ fun OwnerRentingProgressScreenContent(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
-                        modifier = Modifier.padding(Spacing.lg),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -400,10 +400,10 @@ fun OwnerRentingProgressScreenContent(
                             Text(
                                 text = if (booking.paymentAcknowledgedByHost) "✓ You marked this paid" else "Not marked paid yet",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (booking.paymentAcknowledgedByHost) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (booking.paymentAcknowledgedByHost) MaterialTheme.proColors.success else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             if (!booking.paymentAcknowledgedByHost) {
-                                TextButton(shape = MaterialTheme.shapes.medium, onClick = { onMarkPaid(booking) }) {
+                                TextButton(onClick = { onMarkPaid(booking) }) {
                                     Text("Mark as Paid", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                 }
                             }
@@ -416,7 +416,7 @@ fun OwnerRentingProgressScreenContent(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(6.dp)
-                                    .clip(androidx.compose.foundation.shape.CircleShape),
+                                    .clip(RoundedCornerShape(3.dp)),
                                 color = MaterialTheme.colorScheme.primary,
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
@@ -446,7 +446,7 @@ fun OwnerRentingProgressScreenContent(
                         // Action Buttons
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             CustomButton(

@@ -5,7 +5,6 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -31,6 +30,14 @@ import com.example.data.model.AppUser
 import com.example.data.model.publicCode
 import com.example.data.model.UserRole
 import com.example.ui.components.ProHostBrandLogo
+import com.example.ui.components.ProHostDialog
+import com.example.ui.components.ProHostDrawerAvatar
+import com.example.ui.components.ProHostDrawerDivider
+import com.example.ui.components.ProHostDrawerHeader
+import com.example.ui.components.ProHostDrawerHighlight
+import com.example.ui.components.ProHostDrawerItem
+import com.example.ui.components.ProHostDrawerSectionLabel
+import com.example.ui.components.ProHostRolePill
 import com.example.ui.components.ProHostCedarBadge
 import com.example.ui.theme.*
 
@@ -70,51 +77,12 @@ private const val SUPPORT_EMAIL = "admin@pro-host.tech"
 /** Pinned, highlighted entry to Explore at the top of every role's drawer. */
 @Composable
 private fun DrawerExploreHighlight(isActive: Boolean, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = Color.Transparent,
-        border = if (isActive) BorderStroke(2.dp, CarnationOrange) else null,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .background(Brush.horizontalGradient(listOf(VibrantBlueDark, VibrantBlue)))
-                .padding(horizontal = Spacing.lg, vertical = Spacing.lg),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(Color.White.copy(alpha = 0.18f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.TravelExplore, contentDescription = null, tint = Color.White)
-            }
-            Spacer(modifier = Modifier.width(Spacing.md))
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("Explore Workspaces", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Browse and book verified spaces", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
-            }
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White)
-        }
-    }
-}
-
-/** A drawer nav-item icon with a small red dot in the corner when [showDot] is
- * true — the "new pending request" indicator on "Renting Requests", alongside
- * the existing push notification for the same event. */
-@Composable
-private fun DrawerBadgedIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, tint: androidx.compose.ui.graphics.Color, showDot: Boolean) {
-    BadgedBox(
-        badge = {
-            if (showDot) {
-                Badge(containerColor = CrimsonRed)
-            }
-        }
-    ) {
-        Icon(icon, contentDescription = null, tint = tint)
-    }
+    ProHostDrawerHighlight(
+        title = "Explore Workspaces",
+        subtitle = "Browse and book verified spaces",
+        isActive = isActive,
+        onClick = onClick
+    )
 }
 
 @Composable
@@ -138,223 +106,79 @@ fun SpecialistDrawerContent(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        // Modern gradient header
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(listOf(CoolGrayDark, OxfordBlue, VibrantBlueDark)),
-                    RoundedCornerShape(bottomEnd = 24.dp)
-                )
-                .padding(horizontal = Spacing.xl, vertical = Spacing.xl)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    // Avatar circle with initials
-                    val initials = (currentUser?.fullName ?: "")
-                        .split(" ").take(2)
-                        .joinToString("") { it.firstOrNull()?.uppercaseChar()?.toString() ?: "" }
-                        .ifBlank { "P" }
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .clip(CircleShape)
-                            .background(CarnationOrange)
-                            .border(2.dp, PureWhite.copy(alpha = 0.85f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = initials,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = PureWhite
-                        )
-                    }
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = currentUser?.fullName ?: "ProHost User",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = PureWhite,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                color = if (isProHost) CarnationOrange else VibrantBlue,
-                                shape = CircleShape
-                            ) {
-                                Text(
-                                    text = if (isProHost) "PRO HOST" else "SPECIALIST",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.8.sp,
-                                    color = PureWhite,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
-                                )
-                            }
-                        }
-                        val planName = currentUser?.ownerPackageId
-                            ?.let { packagePlans.packages[it]?.name }
-                        Text(
-                            text = if (planName != null) "Plan: $planName" else "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = PureWhite.copy(alpha = 0.85f),
-                            maxLines = 1
-                        )
-                    }
-                }
+        // Brand gradient header (theme-aware via ProHostColors.brandHeader*)
+        val initials = (currentUser?.fullName ?: "")
+            .split(" ").take(2)
+            .joinToString("") { it.firstOrNull()?.uppercaseChar()?.toString() ?: "" }
+            .ifBlank { "P" }
+        val planName = currentUser?.ownerPackageId?.let { packagePlans.packages[it]?.name }
+        ProHostDrawerHeader(
+            title = currentUser?.fullName ?: "ProHost User",
+            subtitle = if (planName != null) "Plan: $planName" else "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
+            onClose = { onDrawerAction("close") },
+            leading = { ProHostDrawerAvatar(initials = initials) },
+            pill = { ProHostRolePill(text = if (isProHost) "PRO HOST" else "SPECIALIST", emphasized = isProHost) }
+        )
 
-                IconButton(
-                    onClick = { onDrawerAction("close") },
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Collapse Drawer",
-                        tint = PureWhite
-                    )
-                }
-            }
-        }
+        Spacer(modifier = Modifier.height(Spacing.lg))
 
-        Spacer(modifier = Modifier.height(Spacing.xl))
-
-        Column(modifier = Modifier.padding(horizontal = Spacing.md)) {
+        Column(modifier = Modifier.padding(horizontal = Spacing.lg)) {
 
         DrawerExploreHighlight(
             isActive = activeProHostTabId == null && activeMainTabId == "search_map",
             onClick = { onTabSelected("search_map") }
         )
-        Spacer(modifier = Modifier.height(Spacing.xl))
+        Spacer(modifier = Modifier.height(Spacing.md))
 
         if (isProHost) {
-            Text(
-                text = "PRO HOST",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = CarnationOrange,
-                letterSpacing = 1.2.sp,
-                modifier = Modifier.padding(start = Spacing.lg, bottom = Spacing.sm)
-            )
+            ProHostDrawerSectionLabel(text = "PRO HOST", color = MaterialTheme.proColors.success)
 
-            NavigationDrawerItem(
-                shape = MaterialTheme.shapes.medium,
-                label = { Text("Renting Requests", fontWeight = FontWeight.SemiBold) },
+            ProHostDrawerItem(
+                label = "Renting Requests",
+                icon = Icons.Default.Inbox,
                 selected = activeProHostTabId == "owner_requests",
                 onClick = { onTabSelected("owner_requests") },
-                icon = {
-                    DrawerBadgedIcon(
-                        icon = Icons.Default.Inbox,
-                        tint = if (activeProHostTabId == "owner_requests") {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        showDot = pendingRequestsCount > 0
-                    )
-                },
-                colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                selectedIconTint = MaterialTheme.proColors.success,
+                badgeDot = pendingRequestsCount > 0,
+                emphasized = true
             )
             Spacer(modifier = Modifier.height(Spacing.xs))
 
-            NavigationDrawerItem(
-
-                shape = MaterialTheme.shapes.medium,
-                label = { Text("Financials", fontWeight = FontWeight.SemiBold) },
+            ProHostDrawerItem(
+                label = "Financials",
+                icon = Icons.Default.Analytics,
                 selected = activeProHostTabId == "stats",
                 onClick = { onTabSelected("stats") },
-                icon = {
-                    Icon(
-                        Icons.Default.Analytics,
-                        contentDescription = null,
-                        tint = if (activeProHostTabId == "stats") {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                    )
-                },
-                colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                selectedIconTint = MaterialTheme.proColors.success,
+                emphasized = true
             )
             Spacer(modifier = Modifier.height(Spacing.xs))
-            NavigationDrawerItem(
-                shape = MaterialTheme.shapes.medium,
-                label = { Text("Subscriptions", fontWeight = FontWeight.SemiBold) },
+            ProHostDrawerItem(
+                label = "Subscriptions",
+                icon = Icons.Default.Layers,
                 selected = activeProHostTabId == "owner_subscriptions",
                 onClick = { onTabSelected("owner_subscriptions") },
-                icon = {
-                    Icon(
-                        Icons.Default.Layers,
-                        contentDescription = null,
-                        tint = if (activeProHostTabId == "owner_subscriptions") {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                    )
-                },
-                colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                selectedIconTint = MaterialTheme.proColors.success,
+                emphasized = true
             )
             Spacer(modifier = Modifier.height(Spacing.xs))
-            NavigationDrawerItem(
-                shape = MaterialTheme.shapes.medium,
-                label = { Text("Billing", fontWeight = FontWeight.SemiBold) },
+            ProHostDrawerItem(
+                label = "Billing",
+                icon = Icons.Default.Payments,
                 selected = false,
                 onClick = { onDrawerAction("owner_billing") },
-                icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                emphasized = true
             )
         }
 
-        HorizontalDivider(
-            modifier = Modifier.padding(vertical = Spacing.lg),
-            thickness = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant
-        )
+        ProHostDrawerDivider()
 
         // "PRACTICE RESOURCES" and "CONFIGURATION & SETTINGS" used to be two
         // separate sections for what's really one kind of destination — things a
         // specialist reaches occasionally, not core daily workflow. Merged into one
         // "MORE" section (also now home to Contact Support, relocated from the
         // Profile screen) so the drawer reads as fewer, clearer groups.
-        Text(
-            text = "MORE",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            letterSpacing = 1.2.sp,
-            modifier = Modifier.padding(start = Spacing.lg, bottom = Spacing.sm)
-        )
+        ProHostDrawerSectionLabel(text = "MORE", color = MaterialTheme.colorScheme.secondary)
 
         // "Pending Requests" and "Payment Due Reminders" used to live here as their
         // own drawer shortcuts, routing to a pre-filtered view of My Bookings. My
@@ -362,29 +186,24 @@ fun SpecialistDrawerContent(
         // that, and it's one tap away from the bottom nav at all times — a drawer
         // shortcut to it added nothing. Removed rather than kept as a redundant
         // second path to the same screen.
-        if (!isProHost) {
-            NavigationDrawerItem(
-                shape = MaterialTheme.shapes.medium,
-                label = { Text("My Favorites", fontWeight = FontWeight.SemiBold) },
-                selected = activeProHostTabId == "my_favorites",
-                onClick = { onTabSelected("my_favorites") },
-                icon = { Icon(Icons.Default.Favorite, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-            )
-        }
+        ProHostDrawerItem(
+            label = "My Favorites",
+            icon = Icons.Default.Favorite,
+            selected = activeProHostTabId == "my_favorites",
+            onClick = { onTabSelected("my_favorites") }
+        )
 
-        NavigationDrawerItem(
-
-            shape = MaterialTheme.shapes.medium,
-            label = { Text("Legal (Privacy, Terms & Policies)", fontWeight = FontWeight.SemiBold) },
+        ProHostDrawerItem(
+            label = "Legal (Privacy, Terms & Policies)",
+            icon = Icons.Default.Gavel,
             selected = false,
-            onClick = { onDrawerAction("legal_documents") },
-            icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+            onClick = { onDrawerAction("legal_documents") }
         )
 
         val context = LocalContext.current
-        NavigationDrawerItem(
-            shape = MaterialTheme.shapes.medium,
-            label = { Text("Contact Support", fontWeight = FontWeight.SemiBold) },
+        ProHostDrawerItem(
+            label = "Contact Support",
+            icon = Icons.AutoMirrored.Filled.Help,
             selected = false,
             onClick = {
                 val subject = Uri.encode("ProHost Support — ${currentRole.name} account")
@@ -400,8 +219,7 @@ fun SpecialistDrawerContent(
                 } catch (e: Exception) {
                     Toast.makeText(context, "No email app found — you can also reach us at $SUPPORT_EMAIL", Toast.LENGTH_LONG).show()
                 }
-            },
-            icon = { Icon(Icons.AutoMirrored.Filled.Help, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
         )
 
         ProHostDrawerFooter()
@@ -429,78 +247,33 @@ fun AdminDrawerContent(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        // Modern gradient header (Admin variant — amber/orange shield accent)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(listOf(CoolGrayDark, OxfordBlue, VibrantBlueDark)),
-                    RoundedCornerShape(bottomEnd = 24.dp)
-                )
-                .padding(horizontal = Spacing.xl, vertical = Spacing.xl)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+        // Brand gradient header (Admin variant)
+        ProHostDrawerHeader(
+            title = currentUser?.fullName ?: "System Admin",
+            subtitle = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
+            onClose = { onDrawerAction("close") },
+            leading = {
                 Box(
                     modifier = Modifier
                         .size(52.dp)
                         .clip(CircleShape)
-                        .background(AmberWarning),
+                        .background(MaterialTheme.colorScheme.secondary),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = PureWhite, modifier = Modifier.size(28.dp))
-                }
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = currentUser?.fullName ?: "System Admin",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = PureWhite,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Surface(
-                        color = AmberWarning.copy(alpha = 0.22f),
-                        shape = CircleShape
-                    ) {
-                        Text(
-                            text = "SYSTEM ADMIN",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = AmberWarning,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                    Text(
-                        text = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = PureWhite.copy(alpha = 0.85f),
-                        maxLines = 1
-                    )
-                }
-
-                IconButton(
-                    onClick = { onDrawerAction("close") },
-                    modifier = Modifier.size(36.dp)
-                ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Collapse Drawer",
-                        tint = PureWhite
+                        Icons.Default.AdminPanelSettings,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondary,
+                        modifier = Modifier.size(28.dp)
                     )
                 }
-            }
-        }
+            },
+            pill = { ProHostRolePill(text = "SYSTEM ADMIN", emphasized = true) }
+        )
 
-        Spacer(modifier = Modifier.height(Spacing.xl))
+        Spacer(modifier = Modifier.height(Spacing.lg))
 
-        Column(modifier = Modifier.padding(horizontal = Spacing.md)) {
+        Column(modifier = Modifier.padding(horizontal = Spacing.lg)) {
 
         DrawerExploreHighlight(
             isActive = activeTabId == "search_map",
@@ -508,145 +281,82 @@ fun AdminDrawerContent(
         )
         Spacer(modifier = Modifier.height(Spacing.md))
 
-        Text(
-            text = "CENTRAL SECURITY CORES",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            letterSpacing = 1.2.sp,
-            modifier = Modifier.padding(start = Spacing.lg, bottom = Spacing.sm)
-        )
+        ProHostDrawerSectionLabel(text = "CENTRAL SECURITY CORES")
 
-        NavigationDrawerItem(
-
-            shape = MaterialTheme.shapes.medium,
-            label = { Text("System Admin Console", fontWeight = FontWeight.SemiBold) },
+        ProHostDrawerItem(
+            label = "System Admin Console",
+            icon = Icons.Default.AdminPanelSettings,
             selected = activeTabId == "admin_console",
             onClick = { onTabSelected("admin_console") },
-            icon = {
-                Icon(
-                    Icons.Default.AdminPanelSettings,
-                    contentDescription = null,
-                    tint = if (activeTabId == "admin_console") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
-            colors = NavigationDrawerItemDefaults.colors(
-                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                selectedTextColor = MaterialTheme.colorScheme.primary,
-                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            selectedIconTint = MaterialTheme.colorScheme.secondary,
+            emphasized = true
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
-        NavigationDrawerItem(
-            shape = MaterialTheme.shapes.medium,
-            label = { Text("Security ID Card", fontWeight = FontWeight.SemiBold) },
+        ProHostDrawerItem(
+            label = "Security ID Card",
+            icon = Icons.Default.Shield,
             selected = activeTabId == "admin_profile",
             onClick = { onTabSelected("admin_profile") },
-            icon = {
-                Icon(
-                    Icons.Default.Shield,
-                    contentDescription = null,
-                    tint = if (activeTabId == "admin_profile") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
-            colors = NavigationDrawerItemDefaults.colors(
-                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                selectedTextColor = MaterialTheme.colorScheme.primary,
-                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            selectedIconTint = MaterialTheme.colorScheme.secondary,
+            emphasized = true
         )
 
-        HorizontalDivider(
-            modifier = Modifier.padding(vertical = Spacing.lg),
-            thickness = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant
-        )
+        ProHostDrawerDivider()
 
         // Admin gets every Pro Host capability unconditionally — unlimited listings,
         // no package to buy (see ProHostRepository's admin bypass) — so these route
         // through the exact same screens a fully-entitled Pro Host uses.
-        Text(
-            text = "PRO HOST ACCESS (UNLIMITED)",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.2.sp,
-            modifier = Modifier.padding(start = Spacing.lg, bottom = Spacing.sm)
-        )
+        ProHostDrawerSectionLabel(text = "PRO HOST ACCESS (UNLIMITED)", color = MaterialTheme.colorScheme.primary)
 
-        NavigationDrawerItem(
-
-            shape = MaterialTheme.shapes.medium,
-            label = { Text("My Listings", fontWeight = FontWeight.SemiBold) },
+        ProHostDrawerItem(
+            label = "My Listings",
+            icon = Icons.Default.HomeWork,
             selected = activeTabId == "manage_listings",
             onClick = { onTabSelected("manage_listings") },
-            icon = {
-                Icon(
-                    Icons.Default.HomeWork,
-                    contentDescription = null,
-                    tint = if (activeTabId == "manage_listings") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            selectedIconTint = MaterialTheme.colorScheme.secondary
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
-        NavigationDrawerItem(
-            shape = MaterialTheme.shapes.medium,
-            label = { Text("Renting Progress", fontWeight = FontWeight.SemiBold) },
+        ProHostDrawerItem(
+            label = "Renting Progress",
+            icon = Icons.Default.Schedule,
             selected = activeTabId == "owner_progress",
             onClick = { onTabSelected("owner_progress") },
-            icon = {
-                Icon(
-                    Icons.Default.Schedule,
-                    contentDescription = null,
-                    tint = if (activeTabId == "owner_progress") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            selectedIconTint = MaterialTheme.colorScheme.secondary
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
-        NavigationDrawerItem(
-            shape = MaterialTheme.shapes.medium,
-            label = { Text("Analytics", fontWeight = FontWeight.SemiBold) },
+        ProHostDrawerItem(
+            label = "Renting Requests",
+            icon = Icons.Default.Inbox,
+            selected = activeTabId == "owner_requests",
+            onClick = { onTabSelected("owner_requests") },
+            selectedIconTint = MaterialTheme.colorScheme.secondary,
+            badgeDot = pendingRequestsCount > 0
+        )
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        ProHostDrawerItem(
+            label = "Analytics",
+            icon = Icons.Default.Analytics,
             selected = activeTabId == "stats",
             onClick = { onTabSelected("stats") },
-            icon = {
-                Icon(
-                    Icons.Default.Analytics,
-                    contentDescription = null,
-                    tint = if (activeTabId == "stats") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            selectedIconTint = MaterialTheme.colorScheme.secondary
         )
 
-        HorizontalDivider(
-            modifier = Modifier.padding(vertical = Spacing.lg),
-            thickness = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant
-        )
+        ProHostDrawerDivider()
 
-        Text(
-            text = "SYSTEM AUDIT & PRICING",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.2.sp,
-            modifier = Modifier.padding(start = Spacing.lg, bottom = Spacing.sm)
-        )
+        ProHostDrawerSectionLabel(text = "SYSTEM AUDIT & PRICING", color = MaterialTheme.colorScheme.primary)
 
-        NavigationDrawerItem(
-
-            shape = MaterialTheme.shapes.medium,
-            label = { Text("System Audit Logs", fontWeight = FontWeight.SemiBold) },
+        ProHostDrawerItem(
+            label = "System Audit Logs",
+            icon = Icons.Default.Terminal,
             selected = false,
-            onClick = { onDrawerAction("admin_audit") },
-            icon = { Icon(Icons.Default.Terminal, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+            onClick = { onDrawerAction("admin_audit") }
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
-        NavigationDrawerItem(
-            shape = MaterialTheme.shapes.medium,
-            label = { Text("Governorate Nodes Status", fontWeight = FontWeight.SemiBold) },
+        ProHostDrawerItem(
+            label = "Governorate Nodes Status",
+            icon = Icons.Default.Dns,
             selected = false,
-            onClick = { onDrawerAction("admin_gov") },
-            icon = { Icon(Icons.Default.Dns, contentDescription = null, tint = VibrantBlue) }
+            onClick = { onDrawerAction("admin_gov") }
         )
 
         // System Debugger stays at the very bottom of the admin side menu, below
@@ -656,12 +366,12 @@ fun AdminDrawerContent(
         // role would leave it reachable by any account ever promoted to ADMIN.
         if (com.example.BuildConfig.DEBUG) {
             Spacer(modifier = Modifier.height(Spacing.xs))
-            NavigationDrawerItem(
-                shape = MaterialTheme.shapes.medium,
-                label = { Text("Cloud & System Debugger", fontWeight = FontWeight.SemiBold) },
+            ProHostDrawerItem(
+                label = "Cloud & System Debugger",
+                icon = Icons.Default.BugReport,
                 selected = false,
                 onClick = { onDrawerAction("system_debugger") },
-                icon = { Icon(Icons.Default.BugReport, contentDescription = null, tint = AmberWarning) }
+                emphasized = true
             )
         }
 
@@ -679,7 +389,7 @@ fun ProHostDrawerFooter() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp, bottom = 12.dp),
+            .padding(top = Spacing.lg, bottom = Spacing.md),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         HorizontalDivider(modifier = Modifier.padding(bottom = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
@@ -696,7 +406,7 @@ fun ProHostDrawerFooter() {
                     text = "ProHost Lebanon",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.primary
                 )
                 ProHostCedarBadge(text = "v${com.example.BuildConfig.VERSION_NAME}", isCompact = true)
             }
@@ -723,8 +433,8 @@ fun DrawerSignOutButton(userEmail: String?, onSignOut: () -> Unit) {
         onClick = { showConfirmDialog = true },
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = CrimsonRed),
-        border = BorderStroke(1.dp, CrimsonRed.copy(alpha = 0.5f)),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
         contentPadding = PaddingValues(vertical = Spacing.md)
     ) {
         Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -733,9 +443,9 @@ fun DrawerSignOutButton(userEmail: String?, onSignOut: () -> Unit) {
     }
 
     if (showConfirmDialog) {
-        AlertDialog(
+        ProHostDialog(
             onDismissRequest = { showConfirmDialog = false },
-            title = { Text("Sign Out of ProHost", fontWeight = FontWeight.SemiBold) },
+            title = { Text("Sign Out of ProHost", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to sign out of your account${userEmail?.let { " ($it)" } ?: ""}?") },
             confirmButton = {
                 Button(
@@ -743,14 +453,16 @@ fun DrawerSignOutButton(userEmail: String?, onSignOut: () -> Unit) {
                         showConfirmDialog = false
                         onSignOut()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = CrimsonRed),
-                    shape = MaterialTheme.shapes.medium
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
                 ) {
                     Text("Sign Out", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(shape = MaterialTheme.shapes.medium, onClick = { showConfirmDialog = false }) {
+                TextButton(onClick = { showConfirmDialog = false }) {
                     Text("Cancel")
                 }
             }

@@ -1011,6 +1011,10 @@ class AdminViewModel(
 
     fun seedDemoContent() {
         viewModelScope.launch {
+            if (!com.example.BuildConfig.DEBUG) {
+                _events.emit(AdminUiEvent.ShowToast("Demo content can only be generated from a debug build."))
+                return@launch
+            }
             try {
                 val success = repository.seedDemoContent()
                 if (success) {

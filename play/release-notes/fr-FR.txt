@@ -1,5 +1,5 @@
-Notes de version ProHost v1.0.26 (Build 26) :
-• Intégration de la gestion du contenu démonstratif avec options de génération et de purge complète dans la console d'administration.
-• Configuration mise à jour de la clé de signature Play Store.
-• Amélioration de la sécurité du mode prévisualisation et de l'authentification.
-• Synchronisation de la base de données en temps réel et suivi optimisé.
+Notes de version ProHost v1.0.28 (Build 28) :
+• Filtres multi-sélection améliorés pour les spécialités et divisions.
+• Mise à jour de la clé de signature Play Store et des règles de sécurité.
+• Suppression de compte simplifiée, effacement des données PII et codes d'affichage.
+• Synchronisation de la base de données en temps réel et suivi du calendrier de paiement.

@@ -42,5 +42,6 @@ data class DiscoveryUiState(
     val isFilterSheetVisible: Boolean = false,
     val isMapViewActive: Boolean = false,
     val isLoading: Boolean = false,
+    val loadError: String? = null,
     val savedSpaceIds: List<String> = emptyList()
 )

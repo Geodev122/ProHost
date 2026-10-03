@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
@@ -15,19 +16,20 @@ import androidx.core.view.WindowCompat
 
 /**
  * Official ProHost Material 3 Light ColorScheme
- * Primary: Vibrant Blue (#246BEE) — focus, selection, active navigation, links
- * Secondary: Carnation Orange (#F25F4C) — key CTAs and highlights
+ * Primary: Special (Vibrant) Blue (#246BEE) - navigation, focus, links, key actions
+ * Secondary: Carnation Orange, action shade (#D2432F) - CTAs, highlights (white text 4.58:1)
  * Tertiary: Fresh Green (#4CAF72)
- * Neutrals: Oxford Blue / Cool Gray text on white and cool off-white surfaces
+ * Surface: Pure White (#FFFFFF) / Light Gray (#E2E4E8)
+ * OnSurface / Text: Cool Gray (#283544)
  */
 private val LightColorScheme = lightColorScheme(
     primary = VibrantBlue,
     onPrimary = PureWhite,
-    primaryContainer = VibrantBlueContainer,
-    onPrimaryContainer = VibrantBlueDark,
-    inversePrimary = DarkPrimary,
+    primaryContainer = StatusInfoContainer,
+    onPrimaryContainer = StatusOnInfoContainer,
+    inversePrimary = BlueDarkMode,
 
-    secondary = CarnationOrange,
+    secondary = CarnationOrangeAction,
     onSecondary = PureWhite,
     secondaryContainer = CarnationOrangeContainer,
     onSecondaryContainer = CarnationOrangeDark,
@@ -44,9 +46,7 @@ private val LightColorScheme = lightColorScheme(
     onSurface = CoolGrayDark,
     surfaceVariant = SurfaceVariantLight,
     onSurfaceVariant = ProHostSecondaryText,
-    // Neutral, not primary: keeps tonal-elevation surfaces (top bar, drawer) clean
-    // instead of washing them blue now that primary is the brand blue.
-    surfaceTint = OxfordBlue,
+    surfaceTint = VibrantBlue,
     inverseSurface = DarkSurface,
     inverseOnSurface = DarkOnSurface,
 
@@ -65,15 +65,15 @@ private val LightColorScheme = lightColorScheme(
  * Official ProHost Material 3 Dark ColorScheme
  */
 private val DarkColorScheme = darkColorScheme(
-    primary = DarkPrimary,
-    onPrimary = CoolGrayDark,
-    primaryContainer = DarkPrimaryContainer,
-    onPrimaryContainer = DarkOnSurface,
-    inversePrimary = OxfordBlue,
+    primary = BlueDarkMode,
+    onPrimary = Color(0xFF0B1B3D),
+    primaryContainer = BlueDarkModeContainer,
+    onPrimaryContainer = Color(0xFFD6E3FF),
+    inversePrimary = VibrantBlue,
 
-    secondary = DarkSecondary,
-    onSecondary = CoolGrayDark,
-    secondaryContainer = DarkSecondaryContainer,
+    secondary = OrangeDarkMode,
+    onSecondary = Color(0xFF3A0D06),
+    secondaryContainer = OrangeDarkModeContainer,
     onSecondaryContainer = CarnationOrangeContainer,
 
     tertiary = FreshGreen,
@@ -88,7 +88,7 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = DarkOnSurface,
     surfaceVariant = DarkSurfaceVariant,
     onSurfaceVariant = DarkOnSurfaceVariant,
-    surfaceTint = DarkOutline,
+    surfaceTint = BlueDarkMode,
     inverseSurface = SurfaceLight,
     inverseOnSurface = CoolGrayDark,
 
@@ -148,11 +148,15 @@ fun ProHostTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        shapes = Shapes,
-        content = content
-    )
+    CompositionLocalProvider(
+        LocalProHostColors provides if (darkTheme) DarkProHostColors else LightProHostColors
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            shapes = Shapes,
+            content = content
+        )
+    }
 }
 

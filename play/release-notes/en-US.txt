@@ -1,5 +1,5 @@
-ProHost v1.0.26 (Build 26) Release Notes:
-• Integrated full Demo Content Management with one-click seeding and complete production purge controls in Admin Console.
-• Upgraded Play App Signing upload key fingerprint configuration.
-• Added preview mode safeguards for authentication workflows.
-• Improved real-time database synchronization, offline caching, and tenancy progress tracking.
+ProHost v1.0.28 (Build 28) Release Notes:
+• Enhanced multi-select specialty and division filters in Discovery.
+• Upgraded Play App Signing upload key and security rules.
+• Streamlined account deletion, PII removal, and display code generation.
+• Improved real-time database synchronization, offline caching, and payment calendar tracking.
