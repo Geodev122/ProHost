@@ -1,4 +1,4 @@
-Notas de versão do ProHost v1.0.27 (Build 27):
+Notas de versão do ProHost v1.0.32 (Build 32):
 • Seletor de código de país do WhatsApp com formatação E.164 e logotipo oficial do Google.
 • Controles de exploração unificados com contagem de anúncios e detecção automática de país.
 • Detalhes dos espaços aprimorados, cartões de solicitação e envio de contrato de aluguel.

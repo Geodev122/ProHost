@@ -1,4 +1,4 @@
-ProHost v1.0.27 (Build 27) Veröffentlichungsnotizen:
+ProHost v1.0.32 (Build 32) Veröffentlichungsnotizen:
 • WhatsApp-Ländervorwahl-Auswahl mit E.164-Formatierung und offizieller Google-Grafik.
 • Vereinheitlichte Erkundungseinstellungen mit Anzeigenzähler und automatischer Ländererkennung.
 • Optimierte Raumdetails, Anfragenseiten und Mietvertrag-Upload.
