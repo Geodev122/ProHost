@@ -118,10 +118,10 @@ fun SpaceDetailsScreen(
                 }
                 append("\n\n$shareUrl")
             }
-            viewModel.shareListing(context, liveSpace.title, shareText)
+            viewModel.shareListing(context, liveSpace.title, shareText, liveSpace)
         },
         onCopyLinkClick = {
-            viewModel.copyListingLink(context, ShareLinks.forListing(liveSpace.id))
+            viewModel.copyListingLink(context, ShareLinks.forListing(liveSpace.id), liveSpace)
         },
         isSaved = currentUser?.savedSpaceIds?.contains(liveSpace.id) == true,
         onToggleSave = { viewModel.toggleSavedSpace(liveSpace.id) },
@@ -208,8 +208,20 @@ fun SpaceDetailsScreenContent(
             SpaceCalculationUtils.representativeFormula(listOf(it), BookingRecurrence.FLAT)
         }
         if (formula != null) onSelectFormula(formula)
+        if (selectedSubdivisionId != sub.id) com.example.analytics.AnalyticsTracker.selectRoom(liveSpace, sub)
         selectedSubdivisionId = sub.id
         if (panelState != null) availabilityPanelState = panelState
+    }
+
+    LaunchedEffect(availabilityPanelState == "full") {
+        if (availabilityPanelState == "full") {
+            val sub = liveSpace.subdivisions.firstOrNull { it.id == selectedSubdivisionId }
+            val open = availableSlots.count {
+                (sub == null || it.sourceFormulaId == sub.id) &&
+                    !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings)
+            }
+            com.example.analytics.AnalyticsTracker.viewAvailability(liveSpace, sub, open)
+        }
     }
 
     val roomsRequester = remember { BringIntoViewRequester() }
@@ -297,7 +309,9 @@ fun SpaceDetailsScreenContent(
                                         )
                                         if (hasSlots) {
                                             Text(
-                                                text = if (openSlotCount > 0) "$openSlotCount slot${if (openSlotCount == 1) "" else "s"} available" else "Fully booked",
+                                                text = if (openSlotCount > 0) {
+                                                    "$openSlotCount slot${if (openSlotCount == 1) "" else "s"} available"
+                                                } else "Fully booked",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f)
                                             )

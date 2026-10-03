@@ -32,6 +32,9 @@ class AuthViewModel(
 
     private val functionsClient = com.example.data.auth.FirebaseFunctionsClient()
 
+    // Which sign-in path is in flight, for analytics login/sign_up "method".
+    private var authMethod = "unknown"
+
     private val _isAuthenticating = MutableStateFlow(false)
     val isAuthenticating: StateFlow<Boolean> = _isAuthenticating.asStateFlow()
 
@@ -123,6 +126,8 @@ class AuthViewModel(
      * code so a new user is never stuck on a raw backend error.
      */
     fun startEmailSignIn(email: String, onDelivered: (EmailDelivery) -> Unit) {
+        authMethod = "email_link"
+        com.example.analytics.AnalyticsTracker.authStart("email")
         viewModelScope.launch {
             _isAuthenticating.value = true
             _authErrorMessage.value = null
@@ -148,8 +153,11 @@ class AuthViewModel(
                 // Layer 3: Email OTP code fallback
                 val code = functionsClient.sendEmailOtp(email)
                 if (code.isSuccess) {
+                    authMethod = "email_code"
+                    com.example.analytics.AnalyticsTracker.authFallback("magic_link", "email_code")
                     onDelivered(EmailDelivery.CODE)
                 } else {
+                    com.example.analytics.AnalyticsTracker.authError("email", "send_failed")
                     val linkError = link.exceptionOrNull()
                     _authErrorMessage.value = (code.exceptionOrNull() ?: linkError)
                         ?.toUserMessage("Couldn't send the sign-in email. Please try again.")
@@ -209,6 +217,7 @@ class AuthViewModel(
     }
 
     fun handleEmailLink(activity: Activity, email: String, link: String, onVerified: (needsRegistration: Boolean) -> Unit) {
+        authMethod = "email_link"
         viewModelScope.launch {
             try {
                 _isAuthenticating.value = true
@@ -217,6 +226,7 @@ class AuthViewModel(
                 when (val result = authService.signInWithEmailLink(email, link)) {
                     is AuthResult.Success -> finishVerification(activity, result.isNewUser, onVerified)
                     is AuthResult.Failure -> {
+                        com.example.analytics.AnalyticsTracker.authError(authMethod, "credential_failed")
                         _authErrorMessage.value = result.message
                         _isAuthenticating.value = false
                     }
@@ -265,8 +275,11 @@ class AuthViewModel(
             try {
                 _isAuthenticating.value = true
                 _authErrorMessage.value = null
+                authMethod = "email_code"
                 val tokenResult = functionsClient.verifyEmailOtp(email, code)
                 if (tokenResult.isFailure) {
+                    val code = tokenResult.exceptionOrNull()?.let { com.example.analytics.AnalyticsTracker.errorCode(it) }
+                    com.example.analytics.AnalyticsTracker.authError("email_code", code)
                     _authErrorMessage.value = tokenResult.exceptionOrNull()
                         ?.toUserMessage("Invalid or expired code. Please try again.")
                         ?: "Invalid or expired code. Please try again."
@@ -277,6 +290,7 @@ class AuthViewModel(
                 when (val result = authService.signInWithCustomToken(tokenResult.getOrThrow())) {
                     is AuthResult.Success -> finishVerification(activity, result.isNewUser, onVerified)
                     is AuthResult.Failure -> {
+                        com.example.analytics.AnalyticsTracker.authError(authMethod, "credential_failed")
                         _authErrorMessage.value = result.message
                         _isAuthenticating.value = false
                     }
@@ -302,6 +316,7 @@ class AuthViewModel(
         customToken: String,
         onVerified: (needsRegistration: Boolean) -> Unit
     ) {
+        authMethod = "email_code"
         viewModelScope.launch {
             try {
                 _isAuthenticating.value = true
@@ -310,6 +325,7 @@ class AuthViewModel(
                 when (val result = authService.signInWithCustomToken(customToken)) {
                     is AuthResult.Success -> finishVerification(activity, result.isNewUser, onVerified)
                     is AuthResult.Failure -> {
+                        com.example.analytics.AnalyticsTracker.authError(authMethod, "credential_failed")
                         _authErrorMessage.value = result.message
                         _isAuthenticating.value = false
                     }
@@ -325,6 +341,8 @@ class AuthViewModel(
     }
 
     fun startGoogleSignIn(activity: Activity, googleIdToken: String, onVerified: (needsRegistration: Boolean) -> Unit) {
+        authMethod = "google"
+        com.example.analytics.AnalyticsTracker.authStart("google")
         viewModelScope.launch {
             try {
                 _isAuthenticating.value = true
@@ -333,6 +351,7 @@ class AuthViewModel(
                 when (val result = authService.signInWithGoogleCredential(googleIdToken)) {
                     is AuthResult.Success -> finishVerification(activity, result.isNewUser, onVerified)
                     is AuthResult.Failure -> {
+                        com.example.analytics.AnalyticsTracker.authError(authMethod, "credential_failed")
                         _authErrorMessage.value = result.message
                         _isAuthenticating.value = false
                     }
@@ -380,11 +399,13 @@ class AuthViewModel(
                 requestRegistration(onVerified)
             } else {
                 registerFcmTokenForCurrentUser(user.id)
+                com.example.analytics.AnalyticsTracker.login(authMethod)
                 _isAuthenticating.value = false
                 _authSuccessMessage.value = "Welcome back, ${user.fullName}!"
                 onVerified(false)
             }
         } catch (e: com.example.data.auth.AccountSuspendedException) {
+            com.example.analytics.AnalyticsTracker.authError(authMethod, "suspended")
             _isAuthenticating.value = false
             authService.signOut()
             _authErrorMessage.value = e.message
@@ -411,6 +432,8 @@ class AuthViewModel(
         onCodeSent: () -> Unit,
         onVerified: (needsRegistration: Boolean) -> Unit
     ) {
+        authMethod = "phone"
+        com.example.analytics.AnalyticsTracker.authStart("phone")
         _isAuthenticating.value = true
         _authErrorMessage.value = null
         val authService = com.example.data.auth.FirebaseAuthService(activity)
@@ -499,6 +522,7 @@ class AuthViewModel(
         onCodeSent: () -> Unit,
         onError: (String) -> Unit
     ) {
+        com.example.analytics.AnalyticsTracker.kycStart("phone")
         _isAuthenticating.value = true
         _authErrorMessage.value = null
         val authService = com.example.data.auth.FirebaseAuthService(activity)
@@ -565,6 +589,7 @@ class AuthViewModel(
                         // KYC gate and the "needs registration" check both keep treating
                         // this account as if phone was never verified.
                         repository.updatePhoneAfterKycLink(e164Phone)
+                        com.example.analytics.AnalyticsTracker.kycComplete()
                         _isAuthenticating.value = false
                         onSuccess()
                     }
@@ -637,6 +662,7 @@ class AuthViewModel(
                 )
                 _isAuthenticating.value = false
                 registerFcmTokenForCurrentUser(user.id)
+                com.example.analytics.AnalyticsTracker.signUp(authMethod, user.role)
                 val missedUploads = buildList {
                     if (registration.profilePictureUri != null && profilePictureUrl == null) add("profile photo")
                 }
@@ -652,6 +678,7 @@ class AuthViewModel(
                 _isAuthenticating.value = false
                 _authErrorMessage.value = e.message
             } catch (e: Exception) {
+                com.example.analytics.AnalyticsTracker.authError("registration", com.example.analytics.AnalyticsTracker.errorCode(e))
                 _isAuthenticating.value = false
                 _authErrorMessage.value = e.toUserMessage("Registration failed. Please try again.")
             }

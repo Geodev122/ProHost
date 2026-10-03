@@ -13,6 +13,7 @@ import {
   revokeSubscription,
 } from "./billingHelpers";
 import { planIdForPlayProduct, getPackagePlan } from "../lib/packagePlans";
+import { sendGa4Event, transactionIdFor } from "../lib/ga4";
 import "../lib/admin";
 
 // Google Play subscription notification types (DeveloperNotification spec)
@@ -256,6 +257,36 @@ export const playBillingRtdn = onMessagePublished(
 
       default:
         logger.info(`playBillingRtdn: unhandled notificationType ${notificationType}`);
+    }
+
+    // 4. GA4 (consent-gated, never throws). PURCHASED/RENEWED are revenue → "purchase",
+    // with the same transaction_id the app derives so GA4 dedupes the client's event.
+    const gaEvents: Record<number, string> = {
+      [SUBSCRIPTION_PURCHASED]: "purchase",
+      [SUBSCRIPTION_RENEWED]: "purchase",
+      [SUBSCRIPTION_RECOVERED]: "subscription_recovered",
+      [SUBSCRIPTION_RESTARTED]: "subscription_restarted",
+      [SUBSCRIPTION_REVOKED]: "subscription_revoked",
+      [SUBSCRIPTION_EXPIRED]: "subscription_expired",
+      [SUBSCRIPTION_ON_HOLD]: "subscription_on_hold",
+      [SUBSCRIPTION_PAUSED]: "subscription_paused",
+      [SUBSCRIPTION_CANCELED]: "subscription_cancelled",
+      [SUBSCRIPTION_IN_GRACE_PERIOD]: "subscription_grace_period",
+    };
+    const gaEvent = gaEvents[notificationType];
+    const pendingPayment = notificationType === SUBSCRIPTION_PURCHASED && purchase.paymentState === 0;
+    if (gaEvent && !pendingPayment) {
+      const micros = Number(purchase.priceAmountMicros ?? 0);
+      const isRevenue = gaEvent === "purchase";
+      await sendGa4Event(uid, gaEvent, {
+        item_id: productId,
+        plan_id: planId,
+        currency: purchase.priceCurrencyCode ?? undefined,
+        value: isRevenue && micros > 0 ? micros / 1_000_000 : undefined,
+        transaction_id: isRevenue ? transactionIdFor(orderId) : undefined,
+        purchase_type: notificationType === SUBSCRIPTION_RENEWED ? "renewal" : isRevenue ? "new" : undefined,
+        items: [{ item_id: productId, item_name: planName, item_category: "subscription" }],
+      });
     }
   }
 );

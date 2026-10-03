@@ -206,6 +206,9 @@ private fun BookingSlotSelectorDialog(
     var selectedSubdivision by remember {
         mutableStateOf(space.subdivisions.firstOrNull())
     }
+    LaunchedEffect(space.id) {
+        com.example.analytics.AnalyticsTracker.beginBookingCheckout(space, selectedSubdivision)
+    }
 
     // The single source of truth for what's actually bookable and at what real price —
     // the exact same expansion the host's Availability Control editor and the
@@ -324,6 +327,12 @@ private fun BookingSlotSelectorDialog(
         RentalStrategyType.SHIFT_BASED -> listOfNotNull(selectedShiftSlot)
         RentalStrategyType.DAY_BASED -> strategySlots.filter { it.day in selectedDayBasedDays }
         null -> emptyList()
+    }
+    LaunchedEffect(selectedStrategyType, selectedSlotsForPricing.size) {
+        if (selectedSlotsForPricing.isNotEmpty()) {
+            kotlinx.coroutines.delay(1_500L)
+            com.example.analytics.AnalyticsTracker.bookingSlotSelect(selectedStrategyType?.name, selectedSlotsForPricing.size)
+        }
     }
 
     // Start Date — declared before the total because the occurrence count for a

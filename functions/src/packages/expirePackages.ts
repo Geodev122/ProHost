@@ -9,6 +9,7 @@ import { sendEmail, hostingerSmtpSecret } from "../lib/email";
 import { subscriptionExpiringTemplate, subscriptionExpiredTemplate, UserContext } from "../lib/emailTemplates";
 import { getPackagePlans } from "../lib/packagePlans";
 import "../lib/admin";
+import { sendGa4Event } from "../lib/ga4";
 
 /**
  * Real, enforced package expiry. ownerPackageExpiryMillis was previously
@@ -121,6 +122,7 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *", secrets: [host
             logger.warn(`expirePackages: revokeRefreshTokens failed for ${uid}: ${(e as Error).message}`);
           }
           demotedCount++;
+          await sendGa4Event(uid, "package_lapsed", { plan_id: (doc.data()?.ownerPackageId as string | undefined) ?? undefined });
 
           const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", uid).get();
           if (!ownedListings.empty) {

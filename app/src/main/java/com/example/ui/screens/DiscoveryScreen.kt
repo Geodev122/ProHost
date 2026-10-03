@@ -89,7 +89,15 @@ fun DiscoveryScreen(
         onToggleSavedOnly = { discoveryViewModel.toggleSavedOnly(it) },
         onToggleSavedSpace = { discoveryViewModel.toggleSavedSpace(it) },
         onResetFilters = { discoveryViewModel.resetFilters() },
-        onSelectSpace = onSelectSpace,
+        onSelectSpace = { space, subId ->
+            com.example.analytics.AnalyticsTracker.selectItem(
+                if (uiState.isMapViewActive) "explore_map" else "explore_list",
+                space,
+                space.subdivisions.firstOrNull { it.id == subId },
+                uiState.filteredSpaces.indexOfFirst { it.id == space.id }.takeIf { it >= 0 }
+            )
+            onSelectSpace(space, subId)
+        },
         onQuickWhatsApp = { space, subdivision ->
             viewModel.launchWhatsAppInquiry(context, space, subdivision = subdivision)
         }

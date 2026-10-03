@@ -60,6 +60,9 @@ class PlayBillingManager(
     private val _productDetailsList = MutableStateFlow<List<ProductDetails>>(emptyList())
     val productDetailsList: StateFlow<List<ProductDetails>> = _productDetailsList.asStateFlow()
 
+    // Product of the most recent purchase sheet, for analytics on cancel.
+    private var lastLaunched: String? = null
+
     private val _activePurchases = MutableStateFlow<List<Purchase>>(emptyList())
     val activePurchases: StateFlow<List<Purchase>> = _activePurchases.asStateFlow()
 
@@ -158,6 +161,7 @@ class PlayBillingManager(
                 _productDetailsList.value = list
                 if (list.isEmpty() && productIds.isNotEmpty()) {
                     Log.w(TAG, "Play returned no products for IDs: ${productIds.joinToString()}")
+                    com.example.analytics.AnalyticsTracker.plansLoadFailed(productIds.size)
                     emitMessage(
                         "No subscription plans were returned by Google Play. " +
                         "Queried: ${productIds.joinToString()}. " +
@@ -206,7 +210,15 @@ class PlayBillingManager(
         }
 
         val result = billingClient.launchBillingFlow(activity, billingFlowParamsBuilder.build())
+        val phase = productDetails.subscriptionOfferDetails
+            ?.firstOrNull { it.offerToken == offerToken }
+            ?.pricingPhases?.pricingPhaseList?.lastOrNull()
+        lastLaunched = productDetails.productId
+        if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+            com.example.analytics.AnalyticsTracker.beginSubscriptionCheckout(productDetails.productId, phase?.priceAmountMicros, phase?.priceCurrencyCode)
+        }
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {
+            com.example.analytics.AnalyticsTracker.purchaseError(result.responseCode)
             Log.e(TAG, "Failed to launch billing flow: ${result.debugMessage}")
             emitMessage(userMessageFor(result.responseCode))
             return false
@@ -237,6 +249,7 @@ class PlayBillingManager(
                 }
             }
             BillingClient.BillingResponseCode.USER_CANCELED -> {
+                com.example.analytics.AnalyticsTracker.purchaseCancelled(lastLaunched)
                 Log.i(TAG, "User canceled Google Play purchase flow")
                 emitMessage("Purchase canceled — you weren't charged.", isError = false)
             }
@@ -245,6 +258,7 @@ class PlayBillingManager(
                 queryActivePurchases()
             }
             else -> {
+                com.example.analytics.AnalyticsTracker.purchaseError(billingResult.responseCode)
                 Log.e(TAG, "Purchases update failed: ${billingResult.debugMessage} (${billingResult.responseCode})")
                 emitMessage(userMessageFor(billingResult.responseCode))
             }
@@ -290,8 +304,19 @@ class PlayBillingManager(
             }
             queryActivePurchases()
         } else if (purchase.purchaseState == Purchase.PurchaseState.PENDING) {
+            com.example.analytics.AnalyticsTracker.purchasePending()
             emitMessage("Your payment is pending — your plan activates once Google Play confirms it.", isError = false)
         }
+    }
+
+    // Same transaction_id the server derives in functions/src/lib/ga4.ts, so GA4 dedupes
+    // the client and RTDN purchase events.
+    private fun logPurchase(purchase: Purchase) {
+        val productId = purchase.products.firstOrNull() ?: return
+        val details = _productDetailsList.value.firstOrNull { it.productId == productId }
+        val phase = details?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.lastOrNull()
+        val txn = com.example.analytics.AnalyticsTracker.transactionId(purchase.orderId ?: purchase.purchaseToken)
+        com.example.analytics.AnalyticsTracker.purchase(txn, productId, phase?.priceAmountMicros, phase?.priceCurrencyCode)
     }
 
     private fun acknowledgePurchase(purchase: Purchase) {
@@ -302,6 +327,7 @@ class PlayBillingManager(
         billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.d(TAG, "Purchase acknowledged successfully: ${purchase.orderId}")
+                logPurchase(purchase)
                 emitMessage("Subscription activated successfully!", isError = false)
                 coroutineScope.launch { _purchaseEvents.emit(purchase) }
             } else {

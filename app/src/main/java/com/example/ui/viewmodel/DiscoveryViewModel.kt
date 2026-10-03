@@ -118,6 +118,35 @@ class DiscoveryViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DiscoveryUiState())
 
+    // ---- Analytics: settled searches and list impressions (not per keystroke) ----
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
+    private fun startAnalytics() {
+        viewModelScope.launch {
+            runCatching {
+                _filterState.map { it.query.trim() }
+                    .distinctUntilChanged()
+                    .debounce(1_500L)
+                    .filter { it.length >= 3 }
+                    .collect { q -> com.example.analytics.AnalyticsTracker.search(q, uiState.value.filteredSpaces.size) }
+            }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+        }
+        viewModelScope.launch {
+            runCatching {
+                uiState.filter { !it.isLoading && it.loadError == null }
+                    .distinctUntilChangedBy { it.isMapViewActive to it.filteredSpaces.map { sp -> sp.id } }
+                    .debounce(2_000L)
+                    .collect { state ->
+                        com.example.analytics.AnalyticsTracker.viewItemList(
+                            if (state.isMapViewActive) "explore_map" else "explore_list",
+                            state.filteredSpaces
+                        )
+                    }
+            }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+        }
+    }
+
+    init { startAnalytics() }
+
     /** One bookable unit: a division, or the whole space when it has no divisions. */
     private data class RentableUnit(
         val subdivisionId: String?,
@@ -168,10 +197,12 @@ class DiscoveryViewModel(
 
     fun setCategoryFilter(categoryIds: Set<String>) {
         _filterState.update { it.copy(selectedCategoryIds = categoryIds) }
+        com.example.analytics.AnalyticsTracker.filterApply("category", categoryIds.sorted().joinToString(",").ifEmpty { "any" })
     }
 
     fun setDivisionTypeFilter(types: Set<Level2Type>) {
         _filterState.update { it.copy(selectedDivisionTypes = types) }
+        com.example.analytics.AnalyticsTracker.filterApply("division_type", types.map { it.name }.sorted().joinToString(",").ifEmpty { "any" })
     }
 
     fun setFormulaFilter(strategies: Set<RentalStrategyType>) {
@@ -180,28 +211,36 @@ class DiscoveryViewModel(
         _filterState.update {
             it.copy(selectedStrategies = strategies, priceRange = if (strategies == it.selectedStrategies) it.priceRange else null)
         }
+        com.example.analytics.AnalyticsTracker.filterApply("strategy", strategies.map { it.name }.sorted().joinToString(",").ifEmpty { "any" })
     }
 
     fun setPriceRange(range: ClosedFloatingPointRange<Float>?) {
         _filterState.update { it.copy(priceRange = range) }
+        com.example.analytics.AnalyticsTracker.filterApply("price", range?.let { "${it.start.toInt()}-${it.endInclusive.toInt()}" } ?: "any")
     }
 
     fun toggleVerifiedOnly(verifiedOnly: Boolean) {
         _filterState.update { it.copy(onlyVerified = verifiedOnly) }
+        com.example.analytics.AnalyticsTracker.filterApply("verified_only", verifiedOnly.toString())
     }
 
     fun toggleSavedOnly(savedOnly: Boolean) {
         _filterState.update { it.copy(onlySaved = savedOnly) }
+        com.example.analytics.AnalyticsTracker.filterApply("saved_only", savedOnly.toString())
     }
 
     fun setCountryFilter(countries: Set<String>) {
         _filterState.update { it.copy(selectedCountries = countries) }
+        com.example.analytics.AnalyticsTracker.filterApply("country", countries.sorted().joinToString(",").ifEmpty { "any" })
     }
 
     fun toggleSavedSpace(spaceId: String) {
+        val wasSaved = repository.currentUser.value?.savedSpaceIds?.contains(spaceId) == true
         viewModelScope.launch {
             try {
                 repository.toggleSavedSpace(spaceId)
+                repository.spaces.value.firstOrNull { it.id == spaceId }
+                    ?.let { com.example.analytics.AnalyticsTracker.wishlist(it, added = !wasSaved) }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -217,6 +256,7 @@ class DiscoveryViewModel(
     fun resetFilters() {
         // Keep what the user typed — Reset is about the filter sheet.
         _filterState.update { DiscoveryFilterState(query = it.query) }
+        com.example.analytics.AnalyticsTracker.filterReset()
     }
 
     fun setFilterSheetVisible(visible: Boolean) {
@@ -225,5 +265,6 @@ class DiscoveryViewModel(
 
     fun toggleMapView() {
         _isMapViewActive.value = !_isMapViewActive.value
+        com.example.analytics.AnalyticsTracker.mapToggle(_isMapViewActive.value)
     }
 }

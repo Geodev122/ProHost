@@ -8,6 +8,7 @@ import {
 } from "./billingHelpers";
 import { planIdForPlayProduct } from "../lib/packagePlans";
 import "../lib/admin";
+import { sendGa4Event } from "../lib/ga4";
 
 /**
  * Called by the Android client when it detects an active Google Play subscription
@@ -68,5 +69,6 @@ export const verifyAndRestorePurchase = onCall<{
   await grantSubscription(uid, await planIdForPlayProduct(cleanProductId), expiryMs, purchase.orderId ?? cleanProductId);
 
   logger.info(`verifyAndRestorePurchase: restored uid=${uid} product=${cleanProductId} expiry=${new Date(expiryMs).toISOString()}`);
+  await sendGa4Event(uid, "subscription_restored", { item_id: cleanProductId });
   return { success: true, expiryMillis: expiryMs };
 });

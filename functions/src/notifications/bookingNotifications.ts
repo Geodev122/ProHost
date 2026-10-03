@@ -17,6 +17,7 @@ import {
   AttendeeTierDoc,
 } from "../lib/attendeePricing";
 import "../lib/admin";
+import { sendGa4Event } from "../lib/ga4";
 
 /**
  * Server check for per-attendee bookings (the client computes the total, so it must
@@ -68,6 +69,9 @@ export const onBookingRequestCreated = onDocumentCreated(
         { status: "REJECTED", rejectionReason: problem, rejectedBySystem: true, reviewedAt: Date.now() },
         { merge: true }
       );
+      if (typeof booking.practitionerId === "string") {
+        await sendGa4Event(booking.practitionerId, "booking_auto_rejected", { reason: "attendee_price_mismatch" });
+      }
       return;
     }
 

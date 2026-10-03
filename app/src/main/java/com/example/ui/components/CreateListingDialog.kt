@@ -156,6 +156,11 @@ fun CreateListingDialog(
     // No-op default so unupdated callers don't crash.
     onAddCustomSchemaItem: (category: String, name: String, scopedToIds: List<String>) -> Unit = { _, _, _ -> }
 ) {
+    LaunchedEffect(Unit) {
+        if (existingDraft == null && onListingUpdated == null) {
+            com.example.analytics.AnalyticsTracker.listingCreateStart()
+        }
+    }
     if (currentUser == null) {
         Dialog(onDismissRequest = onDismiss) {
             Card(shape = MaterialTheme.shapes.large) {

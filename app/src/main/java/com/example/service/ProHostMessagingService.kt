@@ -86,7 +86,8 @@ class ProHostMessagingService : FirebaseMessagingService() {
             body,
             targetTab = targetTab,
             bookingId = bookingId,
-            spaceId = spaceId
+            spaceId = spaceId,
+            notificationType = categoryType
         )
     }
 
@@ -125,7 +126,8 @@ class ProHostMessagingService : FirebaseMessagingService() {
             body: String,
             targetTab: String? = null,
             bookingId: String? = null,
-            spaceId: String? = null
+            spaceId: String? = null,
+            notificationType: String? = null
         ) {
             // Without POST_NOTIFICATIONS (Android 13+) notify() is silently dropped; the
             // alert is still in the in-app alerts list either way.
@@ -145,6 +147,7 @@ class ProHostMessagingService : FirebaseMessagingService() {
                 if (spaceId != null) {
                     putExtra("space_id", spaceId)
                 }
+                putExtra("notification_type", notificationType ?: "GENERAL")
             }
             val pendingIntent = PendingIntent.getActivity(
                 context,

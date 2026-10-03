@@ -112,6 +112,13 @@ fun OwnerSubscriptionsScreen(
     // PackagePlan.displayPrice falls back when Play hasn't loaded yet.
     val playProductMap = remember(playBillingProducts) { playBillingProducts.associateBy { it.productId } }
     val pricesLoading = !billingConnected && playBillingProducts.isEmpty()
+    // One view_plans per visit, once Play has had a moment to answer.
+    val latestPlanCount by rememberUpdatedState(enabledPlans.size)
+    val latestProductCount by rememberUpdatedState(playBillingProducts.size)
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(3_000L)
+        com.example.analytics.AnalyticsTracker.viewPlans(latestPlanCount, latestProductCount)
+    }
 
     val expiryMillis = currentUser?.ownerPackageExpiryMillis
     val now = System.currentTimeMillis()
@@ -486,7 +493,12 @@ fun OwnerSubscriptionsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(18.dp))
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(18.dp)
+                        )
                         Text(
                             "Plans couldn't be loaded from Google Play.",
                             style = MaterialTheme.typography.labelLarge,

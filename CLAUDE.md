@@ -100,11 +100,11 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
 - Keep `ndk { debugSymbolLevel = "FULL" }` in the release build type, and upload the generated
   `native-debug-symbols.zip` to Play Console with every `.aab`.
 - **Always run `node scripts/prohost-debugger.js` (NIGHTHAWK) before tagging a release.** The
-  script currently runs 30 checks — Cloud Function consistency, Firestore rules coverage, forced
+  script currently runs 32 checks — Cloud Function consistency, Firestore rules coverage, forced
   unwraps, coroutine error handling, screen loading/error/empty states, deep links, TypeScript
   safety, payment/billing plumbing, Android Vitals (StrictMode/LeakCanary/instrumentation),
   performance profiling, app size, localization, accessibility, Kotlin type safety, Android
-  Lint, Detekt, manifest security, Gradle config audit, and code style. Reports are written to
+  Lint, Detekt, manifest security, Gradle config audit, code style, and analytics hygiene. Reports are written to
   `scripts/nighthawk-report.{json,html}`.
 - CI (`.github/workflows/*.yml`) installs Gradle itself: keep `gradle-version` equal to
   `gradle/wrapper/gradle-wrapper.properties` (AGP 9.4 needs Gradle 9.6.0). A mismatch broke every
@@ -124,6 +124,23 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
   feature branch, `git fetch origin main` and check `git merge-base --is-ancestor <branch-tip>
   origin/main` to see if your branch is already behind. If so, merge/fast-forward first so you
   aren't duplicating check numbers or fixes already on `main`.
+
+## Analytics (GA4)
+
+- Opt-in only: the manifest keeps `firebase_analytics_collection_enabled=false` and Consent Mode
+  denied; `AnalyticsConsent` (first-launch `AnalyticsConsentDialog`, Profile › Privacy toggle) turns it
+  on. Ads consent is always denied; `AD_ID` is removed from the merged manifest. Don't flip these.
+- Log only through typed functions on `com.example.analytics.AnalyticsTracker` — never
+  `FirebaseAnalytics`/`logEvent` elsewhere (NIGHTHAWK "Analytics Hygiene"). No PII params; listing/room
+  ids are `publicCode`s. GA4 `user_id` is the display code (`U-…`), never the UID. Crashlytics stays
+  without a user id.
+- Log at ViewModel success/failure points, not in UI, except UI-only moments (screen views in
+  `ProHostAppRoot`, availability sheet, booking dialog). `reportFailure` also logs `app_error`.
+- Server events: `functions/src/lib/ga4.ts` `sendGa4Event(uid, …)` — consent-gated on
+  `user_profiles.analyticsConsent`/`gaAppInstanceId`, never throws. Its API secret lives in the
+  server-only doc `app_config/ga4` (not `defineSecret`, so a missing secret can't break deploys).
+  Purchases use `transaction_id = sha256(orderId)[0:24]` on both sides so GA4 dedupes.
+- Event catalogue, console setup (custom definitions, key events, BigQuery): `docs/ANALYTICS.md`.
 
 ## Crashlytics & App Check
 

@@ -128,12 +128,14 @@ class AdminViewModel(
     // --- Navigation & Pricing ---
     fun setSelectedTab(tabIndex: Int) {
         _uiState.update { it.copy(selectedTab = tabIndex) }
+        com.example.analytics.AnalyticsTracker.screen("admin_tab_$tabIndex", "AdminConsole")
     }
 
     fun addPackagePlan(plan: PackagePlan) {
         viewModelScope.launch {
             try {
                 val success = repository.addPackagePlan(plan)
+                com.example.analytics.AnalyticsTracker.adminAction("package_add", success)
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (success) "Package '${plan.name}' added" else "Failed to add package"
@@ -152,6 +154,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.updatePackagePlan(plan)
+                com.example.analytics.AnalyticsTracker.adminAction("package_update", success)
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (success) "Package '${plan.name}' updated" else "Failed to update package"
@@ -195,6 +198,7 @@ class AdminViewModel(
         viewModelScope.launch {
           try {
             val result = functionsClient.grantPackageToUser(targetUid, packageId, durationDays, unlimited)
+            com.example.analytics.AnalyticsTracker.adminAction("grant_access", result.isSuccess)
             result.fold(
                 onSuccess = { grant ->
                     // Re-read from the server so the card shows the persisted role/package.
@@ -300,6 +304,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.togglePackagePlan(planId)
+                com.example.analytics.AnalyticsTracker.adminAction("package_toggle", success)
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (success) {
@@ -338,6 +343,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.deletePackagePlan(planId)
+                com.example.analytics.AnalyticsTracker.adminAction("package_delete", success)
                 _events.emit(AdminUiEvent.ShowToast(if (success) "Package removed" else "Failed to remove package"))
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -364,6 +370,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.updateGovernanceTag(tag)
+                com.example.analytics.AnalyticsTracker.adminAction("governance_tag", success)
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (success) "Admin governance control tag updated" else "Failed to update governance tag"
@@ -402,6 +409,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.updateUser(user)
+                com.example.analytics.AnalyticsTracker.adminAction("user_edit", success)
                 closeEditUserDialog()
                 _events.emit(
                     AdminUiEvent.ShowToast(
@@ -428,6 +436,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.deleteUser(userId)
+                com.example.analytics.AnalyticsTracker.adminAction("user_delete", success)
                 closeDeleteUserDialog()
                 _events.emit(
                     AdminUiEvent.ShowToast(
@@ -459,6 +468,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val result = functionsClient.grantAdminRole(email)
+                com.example.analytics.AnalyticsTracker.adminAction("grant_admin", result.isSuccess)
                 closeGrantAdminDialog()
                 _events.emit(
                     AdminUiEvent.ShowToast(
@@ -491,6 +501,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val result = functionsClient.setAccountSuspended(user.id, newSuspended)
+                com.example.analytics.AnalyticsTracker.adminAction("suspend_toggle", result.isSuccess)
                 closeSuspendUserDialog()
                 _events.emit(
                     AdminUiEvent.ShowToast(
@@ -526,6 +537,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val result = functionsClient.revokeProHostRole(user.id)
+                com.example.analytics.AnalyticsTracker.adminAction("revoke_pro_host", result.isSuccess)
                 closeRevokeProHostDialog()
                 _events.emit(
                     AdminUiEvent.ShowToast(
@@ -574,6 +586,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.updateSpaceListing(listing)
+                com.example.analytics.AnalyticsTracker.adminAction("listing_edit", success)
                 closeEditListingDialog()
                 _events.emit(
                     AdminUiEvent.ShowToast(
@@ -592,6 +605,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.toggleListingVerification(spaceId)
+                com.example.analytics.AnalyticsTracker.adminAction("listing_verify_toggle", success)
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (success) "Verification status toggled for space" else "Failed to toggle verification status"
@@ -618,6 +632,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.toggleListingActive(spaceId)
+                com.example.analytics.AnalyticsTracker.adminAction("listing_active_toggle", success)
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (success) "Listing subscription active status toggled" else "Failed to toggle subscription status"
@@ -643,6 +658,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.deleteSpaceListing(spaceId)
+                com.example.analytics.AnalyticsTracker.adminAction("listing_delete", success)
                 closeDeleteListingDialog()
                 _events.emit(
                     AdminUiEvent.ShowToast(
@@ -670,6 +686,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.toggleSchemaItem(itemId)
+                com.example.analytics.AnalyticsTracker.adminAction("schema_toggle", success)
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (success) "Schema item status updated" else "Failed to update schema item — please try again"
@@ -687,6 +704,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.deleteSchemaItem(itemId)
+                com.example.analytics.AnalyticsTracker.adminAction("schema_delete", success)
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (success) "Schema item deleted from database registry" else "Failed to delete schema item — please try again"
@@ -859,6 +877,7 @@ class AdminViewModel(
                     markerColor = markerColor?.takeIf { it.isNotBlank() }
                 )
                 val success = repository.addSchemaItem(newItem)
+                com.example.analytics.AnalyticsTracker.adminAction("schema_add", success)
                 closeAddSchemaItemDialog()
                 _events.emit(
                     AdminUiEvent.ShowToast(
@@ -879,6 +898,7 @@ class AdminViewModel(
                 com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
                     ?.getIdToken(true)?.await()
                 val success = repository.updateSchemaItem(item)
+                com.example.analytics.AnalyticsTracker.adminAction("schema_edit", success)
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (success) "\"${item.name}\" updated" else "Update failed — please try again"
@@ -908,6 +928,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.updateSchemaItemMaxSubdivisions(itemId, category, maxSubdivisions)
+                com.example.analytics.AnalyticsTracker.adminAction("schema_max_subdivisions", success)
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (success) "Max subdivisions updated" else "Failed to update max subdivisions — please try again"

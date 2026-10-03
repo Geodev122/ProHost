@@ -127,8 +127,34 @@ class MainActivity : ComponentActivity() {
         handleIncomingIntent(intent)
     }
 
+    // Acquisition analytics: notification taps carry target_tab/notification_type extras;
+    // links carry a URI. Only the kind of link and its tab are logged — never tokens or ids.
+    private fun logIncomingIntent(intent: Intent) {
+        val data = intent.data
+        val fromNotification = intent.hasExtra("notification_type") ||
+            (data == null && (intent.hasExtra("target_tab") || intent.hasExtra("booking_id")))
+        when {
+            fromNotification -> com.example.analytics.AnalyticsTracker.notificationOpen(
+                intent.getStringExtra("notification_type"),
+                intent.getStringExtra("target_tab")
+            )
+            data != null -> {
+                val source = when {
+                    data.host == "pro-host.tech" && data.path?.startsWith("/listing/") == true -> "share_link"
+                    data.scheme == "prohost" && (data.host == "verify-email" || data.host == "emailotp") -> "email"
+                    data.path?.contains("emaillink") == true -> "email"
+                    data.scheme == "prohost" -> "prohost_scheme"
+                    else -> "web_link"
+                }
+                val target = if (source == "share_link") "space_details" else data.host
+                com.example.analytics.AnalyticsTracker.deepLinkOpen(source, target)
+            }
+        }
+    }
+
     private fun handleIncomingIntent(intent: Intent?) {
         if (intent == null) return
+        logIncomingIntent(intent)
         val tab = intent.getStringExtra("target_tab")
         val bookingId = intent.getStringExtra("booking_id")
         if (!tab.isNullOrBlank()) {

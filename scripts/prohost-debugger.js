@@ -741,6 +741,54 @@ function checkCodeStyle() {
   if (issues === 0) pass('Code Style Enforcement', 'Standard spacing and style guidelines adhered to.');
 }
 
+// ─── NEW CHECK 32: Analytics Hygiene (GA4 consent + PII) ─────────────────────
+
+function checkAnalyticsHygiene() {
+  const manifest = readSafe(MANIFEST) || '';
+  const analyticsDir = path.join(KT_ROOT, 'analytics') + path.sep;
+  let issues = 0;
+
+  if (!/firebase_analytics_collection_enabled"\s+android:value="false"/.test(manifest)) {
+    issues++;
+    bug('HIGH','analytics','Analytics Collected Before Consent', 'app/src/main/AndroidManifest.xml', null,
+      'firebase_analytics_collection_enabled is not "false" — GA4 would collect before the opt-in prompt.',
+      'Keep collection off in the manifest; AnalyticsConsent enables it after the user taps Allow.');
+  }
+  if (!manifest.includes('google_analytics_adid_collection_enabled')) {
+    issues++;
+    bug('MEDIUM','analytics','Advertising ID Collection Not Disabled', 'app/src/main/AndroidManifest.xml', null,
+      'google_analytics_adid_collection_enabled meta-data missing.',
+      'Add it with value "false" (the app never uses the advertising ID).');
+  }
+
+  for (const f of walkFiles(KT_ROOT, '.kt')) {
+    if (f.startsWith(analyticsDir)) continue;
+    const content = readSafe(f) || '';
+    if (/FirebaseAnalytics\.getInstance|\.logEvent\(/.test(content)) {
+      issues++;
+      bug('MEDIUM','analytics','Analytics Bypasses Tracker', relPath(f), null,
+        'Calls the Firebase Analytics SDK directly instead of AnalyticsTracker (no consent gate / PII sanitising).',
+        'Route the event through a typed AnalyticsTracker function.');
+    }
+    if (/crashlytics\.setUserId|FirebaseCrashlytics\.getInstance\(\)\.setUserId/i.test(content)) {
+      issues++;
+      bug('HIGH','analytics','Crashlytics User ID', relPath(f), null,
+        'Crashlytics must stay anonymous (privacy policy).',
+        'Remove setUserId from Crashlytics; GA4 identity lives only in AnalyticsTracker.');
+    }
+  }
+
+  const tracker = readSafe(path.join(KT_ROOT, 'analytics/AnalyticsTracker.kt')) || '';
+  if (/setUserId\((user\.)?id\)|setUserId\(uid\)/.test(tracker)) {
+    issues++;
+    bug('HIGH','analytics','GA4 User ID Is The Firebase UID', 'app/src/main/java/com/example/analytics/AnalyticsTracker.kt', null,
+      'GA4 user_id must be the display code (U-…), never the Firebase UID.',
+      'Use user.displayCode.');
+  }
+
+  if (issues === 0) pass('Analytics Hygiene', 'GA4 is opt-in, ad IDs off, all events go through AnalyticsTracker, Crashlytics stays anonymous.');
+}
+
 // ─── RUN ALL CHECKS ───────────────────────────────────────────────────────────
 
 process.stdout.write('\n');
@@ -780,6 +828,7 @@ const checks = [
   ['Manifest Security',             checkManifestSecurity],
   ['Gradle Build Config Audit',     checkGradleConfigAudit],
   ['Code Style Enforcement',        checkCodeStyle],
+  ['Analytics Hygiene',             checkAnalyticsHygiene],
 ];
 
 for (const [label, fn] of checks) {

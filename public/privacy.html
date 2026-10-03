@@ -88,8 +88,8 @@
     <h3>2.3 Usage and Device Data</h3>
     <ul>
       <li>Approximate location (device GPS), used only while the app is open to show nearby spaces. Not stored server-side continuously.</li>
-      <li>Crash logs and performance metrics via Google Firebase Crashlytics and Performance — anonymised and aggregated.</li>
-      <li>App usage events (screens opened, search terms) via Firebase Analytics — aggregated and not linked to individual identity without consent.</li>
+      <li>Crash logs via Google Firebase Crashlytics — anonymised and never linked to your account.</li>
+      <li><strong>Usage analytics (only if you choose "Allow")</strong> via Google Analytics for Firebase: screens opened, searches and filters used, listings and rooms viewed, booking and subscription steps, and errors. These events are linked to your pseudonymous ProHost code (U-…), your role, country/governorate, plan status and account-age range — never to your name, email, phone number or the advertising ID. Some subscription and booking events (e.g. renewals, cancellations) are sent from our servers on your behalf, only while your choice is "Allow". Nothing is collected until you choose, and you can change your choice any time in Profile › Privacy. Analytics data is never used for advertising.</li>
     </ul>
     <h3>2.4 Communications</h3>
     <p>ProHost does not host or store chat messages. Direct communication happens on WhatsApp, which is governed by Meta's own privacy policy. We only store the event record (booking request/acceptance) within our platform.</p>
@@ -127,7 +127,7 @@
       <li>Active account data is retained while your account remains open.</li>
       <li>Booking records are retained for five (5) years for legal and dispute-resolution purposes, or longer where a longer statutory limitation period applies in the relevant jurisdiction.</li>
       <li>Upon account deletion, personal data is purged within thirty (30) calendar days except where retention is required by law.</li>
-      <li>Aggregated, non-identifiable analytics data may be retained indefinitely.</li>
+      <li>Pseudonymous analytics events are kept for 14 months in Google Analytics and for up to 26 months in our private BigQuery export; aggregated, non-identifiable reports may be retained indefinitely. Withdrawing consent stops collection and resets the analytics identifier on your device.</li>
     </ul>
 
     <h2>7. Your Privacy Rights</h2>

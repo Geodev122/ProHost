@@ -27,6 +27,7 @@ class NotificationPermissionManager(
     private val permissionLauncher: ActivityResultLauncher<String> =
         activity.registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             Log.d(tag, "POST_NOTIFICATIONS permission result: $granted")
+            com.example.analytics.AnalyticsTracker.notificationPermission(granted)
             onResult()
         }
 

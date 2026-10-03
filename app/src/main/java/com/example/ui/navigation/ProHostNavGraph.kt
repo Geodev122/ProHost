@@ -749,6 +749,30 @@ fun ProHostAppRoot(
             )
         }
     }
+
+    // ---- Analytics: one screen_view hook for the whole hand-rolled navigation ----
+    val analyticsConsent by com.example.analytics.AnalyticsConsent.state.collectAsState()
+    val analyticsScreen = when {
+        showSplash -> "splash"
+        currentUser == null -> "auth"
+        currentUser?.isSuspended == true -> "suspended"
+        showKycGate -> "kyc"
+        managingSpace != null -> "manage_listing"
+        detailedSpace != null -> "space_details"
+        else -> fullScreenDrawerTab ?: activeTabId
+    }
+    LaunchedEffect(analyticsScreen, analyticsConsent) {
+        com.example.analytics.AnalyticsTracker.screen(analyticsScreen)
+    }
+    LaunchedEffect(activeDrawerTabDialog, analyticsConsent) {
+        activeDrawerTabDialog?.let { com.example.analytics.AnalyticsTracker.screen("dialog_$it", "Dialog") }
+    }
+    LaunchedEffect(currentUser, analyticsConsent) {
+        com.example.analytics.AnalyticsTracker.setUser(currentUser)
+    }
+    if (!showSplash && analyticsConsent == com.example.analytics.ConsentState.UNKNOWN) {
+        com.example.ui.components.AnalyticsConsentDialog()
+    }
 }
 
 /**

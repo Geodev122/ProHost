@@ -286,6 +286,7 @@ fun MyBookingsScreen(
                         },
                         onAddPaymentReminders = {
                             com.example.ui.util.PaymentCalendar.addPaymentReminders(context, booking, booking.publicCode)
+                            com.example.analytics.AnalyticsTracker.calendarReminderAdd()
                         },
                         onViewAgreement = {
                             booking.agreementUrl?.let { url ->

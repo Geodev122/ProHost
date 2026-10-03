@@ -17,6 +17,8 @@ class ProHostApplication : Application() {
             }
             initCrashlytics()
             initAppCheck()
+            // Opt-in: AnalyticsConsent keeps collection off until the person accepts.
+            com.example.analytics.AnalyticsTracker.init(this, if (BuildConfig.DEBUG) "debug" else "release")
         } catch (e: Exception) {
             Log.e("ProHostApplication", "Failed to initialize FirebaseApp or App Check: ${e.message}", e)
         }

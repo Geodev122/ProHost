@@ -405,6 +405,11 @@ service cloud.firestore {
     match /email_send_limits/{key} {
       allow read, write: if false;
     }
+    // Server-only config (app_config/ga4 holds the GA4 Measurement Protocol API secret,
+    // read by functions/src/lib/ga4.ts via the Admin SDK). Set in the Firebase console.
+    match /app_config/{key} {
+      allow read, write: if false;
+    }
 
     // ---------------------------------------------------------------
     // system_metadata — server-only (updatePricing Cloud Function is the

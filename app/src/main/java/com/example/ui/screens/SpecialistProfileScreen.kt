@@ -849,6 +849,17 @@ fun SpecialistProfileScreen(
             // and it now sits alongside Legal/Favorites where a specialist already
             // looks for account-level actions.
 
+            ProSurfaceCard {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ProSectionHeader(
+                        title = "Privacy",
+                        subtitle = "Choose what usage data you share",
+                        icon = Icons.Default.Shield
+                    )
+                    com.example.ui.components.AnalyticsConsentToggle()
+                }
+            }
+
             // =========================================================================
             // 9. DANGER ZONE — PERMANENT ACCOUNT DELETION
             // =========================================================================
