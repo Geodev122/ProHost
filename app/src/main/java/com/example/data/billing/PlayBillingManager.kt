@@ -17,7 +17,6 @@ import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
-import com.android.billingclient.api.ProductDetailsResult
 import com.android.billingclient.api.QueryPurchasesParams
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -154,7 +153,7 @@ class PlayBillingManager(
 
         billingClient.queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                val list = (queryProductDetailsResult as? ProductDetailsResult)?.productDetailsList?.filterNotNull().orEmpty()
+                val list = (queryProductDetailsResult as? List<*>)?.filterIsInstance<ProductDetails>() ?: emptyList()
                 Log.d(TAG, "Retrieved ${list.size} subscription products from Google Play")
                 _productDetailsList.value = list
             } else {
@@ -324,7 +323,7 @@ class PlayBillingManager(
                 .build()
             billingClient.queryProductDetailsAsync(params) { billingResult, results ->
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    val found = (results as? ProductDetailsResult)?.productDetailsList?.filterNotNull()?.firstOrNull()
+                    val found = (results as? List<*>)?.filterIsInstance<ProductDetails>()?.firstOrNull()
                     // Merge into the main list so future launch calls don't need a re-query
                     if (found != null) {
                         val merged = _productDetailsList.value.filter { it.productId != productId } + found
