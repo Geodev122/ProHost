@@ -1,9 +1,11 @@
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
-import { onRequest } from "firebase-functions/v2/https";
+import { createHash, randomInt, timingSafeEqual } from "crypto";
+import { onRequest, HttpsError } from "firebase-functions/v2/https";
 import { onCall } from "../lib/callable";
 import { sendEmail, hostingerSmtpSecret } from "../lib/email";
 import { otpSignInTemplate } from "../lib/emailTemplates";
+import { takeEmailSendSlot, isPlausibleEmail } from "../lib/emailRateLimit";
 
 const db = admin.firestore();
 
@@ -14,25 +16,37 @@ function sanitizeEmailKey(email: string): string {
   return email.toLowerCase().replace(/[^a-z0-9@._-]/g, "_").slice(0, 200);
 }
 
+function hashCode(email: string, code: string): string {
+  return createHash("sha256").update(`${email}:${code}`).digest("hex");
+}
+
+function safeEqualHex(a: string, b: string): boolean {
+  const x = Buffer.from(a);
+  const y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
+}
+
 /**
  * Callable: sendEmailOtp({ email })
- * Generates a 6-digit OTP, stores it in Firestore, and sends it via Hostinger SMTP.
- * Rate-limited to 5 sends per email per hour via attempt/expiresAt checks.
+ * Generates a 6-digit OTP, stores only its hash in Firestore, and sends it via Hostinger SMTP.
+ * Rate-limited to 5 sends per email per hour (email_send_limits), and each code allows
+ * 5 wrong guesses, so one address can't be brute-forced or inbox-flooded.
  */
 export const sendEmailOtp = onCall(
   { secrets: [hostingerSmtpSecret] },
   async (request) => {
     const email = (request.data?.email as string | undefined)?.toLowerCase().trim();
-    if (!email || !email.includes("@")) {
-      throw new Error("A valid email address is required.");
+    if (!isPlausibleEmail(email)) {
+      throw new HttpsError("invalid-argument", "A valid email address is required.");
     }
+    await takeEmailSendSlot("otp", email);
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = randomInt(100000, 1000000).toString();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
     const docKey = sanitizeEmailKey(email);
 
     await db.collection("email_otps").doc(docKey).set({
-      code,
+      codeHash: hashCode(email, code),
       expiresAt,
       email,
       attempts: 0,
@@ -63,7 +77,7 @@ export const verifyEmailOtp = onCall(async (request) => {
   const email = (request.data?.email as string | undefined)?.toLowerCase().trim();
   const code = (request.data?.code as string | undefined)?.trim();
   if (!email || !code) {
-    throw new Error("Email and code are required.");
+    throw new HttpsError("invalid-argument", "Email and code are required.");
   }
 
   const customToken = await validateAndConsumeOtp(email, code);
@@ -100,31 +114,38 @@ async function validateAndConsumeOtp(email: string, code: string): Promise<strin
   const docKey = sanitizeEmailKey(email);
   const docRef = db.collection("email_otps").doc(docKey);
 
-  const snap = await docRef.get();
-  if (!snap.exists) {
-    throw new Error("No sign-in code found. Please request a new one.");
-  }
-
-  const data = snap.data() as Record<string, any>;
-  if (Date.now() > data.expiresAt) {
-    await docRef.delete();
-    throw new Error("This code has expired. Please request a new one.");
-  }
-
-  const attempts: number = data.attempts ?? 0;
-  if (attempts >= 5) {
-    await docRef.delete();
-    throw new Error("Too many incorrect attempts. Please request a new code.");
-  }
-
-  // Constant-time comparison
-  const expectedCode: string = data.code;
-  if (code !== expectedCode) {
-    await docRef.update({ attempts: attempts + 1 });
-    throw new Error("Incorrect code. Please try again.");
-  }
-
-  await docRef.delete();
+  // One transaction so two concurrent attempts can't both redeem the same code, and
+  // the attempt counter can't be raced past its limit. It returns an outcome instead
+  // of throwing: a throw would roll back the counter update / expired-doc delete.
+  type Outcome = "ok" | "missing" | "expired" | "locked" | "wrong";
+  const outcome = await db.runTransaction<Outcome>(async (tx) => {
+    const snap = await tx.get(docRef);
+    if (!snap.exists) return "missing";
+    const data = snap.data() as Record<string, any>;
+    if (Date.now() > data.expiresAt) {
+      tx.delete(docRef);
+      return "expired";
+    }
+    const attempts: number = data.attempts ?? 0;
+    if (attempts >= 5) {
+      tx.delete(docRef);
+      return "locked";
+    }
+    // codeHash for new codes; plain `code` only for ones issued before hashing shipped.
+    const matches = typeof data.codeHash === "string"
+      ? safeEqualHex(data.codeHash, hashCode(email, code))
+      : typeof data.code === "string" && safeEqualHex(data.code, code);
+    if (!matches) {
+      tx.update(docRef, { attempts: attempts + 1 });
+      return "wrong";
+    }
+    tx.delete(docRef);
+    return "ok";
+  });
+  if (outcome === "missing") throw new HttpsError("failed-precondition", "No sign-in code found. Please request a new one.");
+  if (outcome === "expired") throw new HttpsError("failed-precondition", "This code has expired. Please request a new one.");
+  if (outcome === "locked") throw new HttpsError("resource-exhausted", "Too many incorrect attempts. Please request a new code.");
+  if (outcome === "wrong") throw new HttpsError("invalid-argument", "Incorrect code. Please try again.");
 
   // Look up or create the Firebase Auth user
   let uid: string;

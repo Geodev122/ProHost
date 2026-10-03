@@ -1,16 +1,25 @@
 {
-  "generatedAt": "2026-10-03T09:24:41.339Z",
+  "generatedAt": "2026-10-03T09:39:20.980Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 50,
+    "total": 51,
     "critical": 0,
-    "high": 0,
+    "high": 1,
     "medium": 2,
     "low": 48,
     "info": 0,
-    "passes": 28
+    "passes": 27
   },
   "findings": [
+    {
+      "severity": "HIGH",
+      "category": "security",
+      "check": "Firestore Rules Coverage",
+      "file": "functions/src/lib/emailRateLimit.ts",
+      "line": 20,
+      "message": "Collection \"email_send_limits\" accessed in Cloud Functions has no rule block in firestore.rules.",
+      "suggestion": "Add an explicit rule for \"email_send_limits\" in firestore.rules."
+    },
     {
       "severity": "MEDIUM",
       "category": "consistency",
@@ -286,7 +295,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 729,
+      "line": 730,
       "message": "Line has 174 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -295,7 +304,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1210,
+      "line": 1211,
       "message": "Line has 161 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -304,7 +313,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1274,
+      "line": 1275,
       "message": "Line has 182 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -313,7 +322,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1292,
+      "line": 1293,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -322,7 +331,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1319,
+      "line": 1320,
       "message": "Line has 186 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -331,7 +340,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1331,
+      "line": 1332,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -340,7 +349,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1334,
+      "line": 1335,
       "message": "Line has 172 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -349,7 +358,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1357,
+      "line": 1358,
       "message": "Line has 175 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -358,7 +367,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1360,
+      "line": 1361,
       "message": "Line has 178 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -367,7 +376,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1374,
+      "line": 1375,
       "message": "Line has 173 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -376,7 +385,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1387,
+      "line": 1388,
       "message": "Line has 172 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -385,7 +394,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1396,
+      "line": 1397,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -394,7 +403,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1408,
+      "line": 1409,
       "message": "Line has 175 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -403,7 +412,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1411,
+      "line": 1412,
       "message": "Line has 178 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -412,7 +421,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1425,
+      "line": 1426,
       "message": "Line has 173 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -421,7 +430,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1434,
+      "line": 1435,
       "message": "Line has 172 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -430,7 +439,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1443,
+      "line": 1444,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -439,7 +448,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1484,
+      "line": 1485,
       "message": "Line has 175 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -466,10 +475,6 @@
     {
       "check": "CF Name Consistency",
       "message": "All 21 getHttpsCallable() calls match exported functions in index.ts."
-    },
-    {
-      "check": "Firestore Rules Coverage",
-      "message": "All 8 Firestore collections used in Cloud Functions are covered."
     },
     {
       "check": "Empty Catch Block",

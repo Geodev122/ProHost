@@ -453,6 +453,24 @@ class ProHostRepository {
 
     // --- Space Listing Management ---
     /**
+     * Every field firestore.rules protects on a listing update (or the server alone
+     * maintains), taken from the stored listing so a client write can never change
+     * them. isOwnerPackageLapsed/isOwnerSuspended matter most: the server flips them
+     * when a plan lapses or an account is suspended, and a wizard-built listing carries
+     * the defaults, so echoing those back used to get the whole save denied.
+     */
+    private fun SpaceListing.keepingServerOwnedFields(current: SpaceListing?): SpaceListing =
+        if (current == null) this else copy(
+            ownerId = current.ownerId,
+            isVerified = current.isVerified,
+            isActiveSubscription = current.isActiveSubscription,
+            subscriptionExpiryMillis = current.subscriptionExpiryMillis,
+            isOwnerSuspended = current.isOwnerSuspended,
+            isOwnerPackageLapsed = current.isOwnerPackageLapsed,
+            ownerProfilePictureUrl = current.ownerProfilePictureUrl
+        )
+
+    /**
      * This only ever mutated the in-memory _spaces list — it never wrote to
      * Firestore at all, so a freshly "published" listing lived purely in RAM and
      * was wiped the moment attachLiveListeners' workspace_listings snapshot next
@@ -470,17 +488,7 @@ class ProHostRepository {
         // across the wizard's steps) would diff against the stored value and get
         // the whole write denied by firestore.rules' protected-fields check.
         val current = _spaces.value.find { it.id == listing.id }
-        val safeListing = if (current != null) {
-            listing.copy(
-                isVerified = current.isVerified,
-                isActiveSubscription = current.isActiveSubscription,
-                subscriptionExpiryMillis = current.subscriptionExpiryMillis,
-                isOwnerSuspended = current.isOwnerSuspended,
-                ownerProfilePictureUrl = current.ownerProfilePictureUrl
-            )
-        } else {
-            listing
-        }
+        val safeListing = listing.keepingServerOwnedFields(current)
         val success = firestoreService.saveWorkspace(safeListing)
         if (success) {
             // Upserts rather than always prepending — see the comment above on why
@@ -527,18 +535,7 @@ class ProHostRepository {
      */
     suspend fun saveListingDraft(listing: SpaceListing): Boolean {
         val current = _spaces.value.find { it.id == listing.id }
-        val draft = if (current != null) {
-            listing.copy(
-                status = ListingStatus.DRAFT,
-                isVerified = current.isVerified,
-                isActiveSubscription = current.isActiveSubscription,
-                subscriptionExpiryMillis = current.subscriptionExpiryMillis,
-                isOwnerSuspended = current.isOwnerSuspended,
-                ownerProfilePictureUrl = current.ownerProfilePictureUrl
-            )
-        } else {
-            listing.copy(status = ListingStatus.DRAFT)
-        }
+        val draft = listing.copy(status = ListingStatus.DRAFT).keepingServerOwnedFields(current)
         val success = firestoreService.saveWorkspace(draft)
         if (success) {
             _spaces.value = if (current != null) {
@@ -568,17 +565,7 @@ class ProHostRepository {
     /** Returns whether the write actually succeeded, so the caller can show a real result. */
     suspend fun updateSpaceListing(updated: SpaceListing): Boolean {
         val current = _spaces.value.find { it.id == updated.id }
-        val safeUpdate = if (current != null) {
-            updated.copy(
-                ownerId = current.ownerId,
-                isVerified = current.isVerified,
-                isActiveSubscription = current.isActiveSubscription,
-                subscriptionExpiryMillis = current.subscriptionExpiryMillis,
-                ownerProfilePictureUrl = current.ownerProfilePictureUrl
-            )
-        } else {
-            updated
-        }
+        val safeUpdate = updated.keepingServerOwnedFields(current)
         val success = firestoreService.saveWorkspace(safeUpdate)
         if (success) {
             _spaces.value = _spaces.value.map { if (it.id == safeUpdate.id) safeUpdate else it }
@@ -1859,17 +1846,7 @@ class ProHostRepository {
      */
     private suspend fun saveUpdatedSpace(updated: SpaceListing): Boolean {
         val current = _spaces.value.find { it.id == updated.id }
-        val safeUpdate = if (current != null) {
-            updated.copy(
-                ownerId = current.ownerId,
-                isVerified = current.isVerified,
-                isActiveSubscription = current.isActiveSubscription,
-                subscriptionExpiryMillis = current.subscriptionExpiryMillis,
-                ownerProfilePictureUrl = current.ownerProfilePictureUrl
-            )
-        } else {
-            updated
-        }
+        val safeUpdate = updated.keepingServerOwnedFields(current)
         val success = firestoreService.saveWorkspace(safeUpdate)
         if (success) {
             _spaces.value = _spaces.value.map { if (it.id == safeUpdate.id) safeUpdate else it }

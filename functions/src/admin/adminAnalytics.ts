@@ -128,11 +128,13 @@ export const getAdminAnalytics = onCall<AnalyticsRequest>(async (request) => {
   let undatedListings = 0;
 
   const listingsSnap = await db.collection("workspace_listings")
-    .select("status", "country", "city", "lat", "lng", "governorate", "spaceType", "spaceCategoryName", "subdivisions", "createdAtMillis")
+    .select("ownerId", "status", "country", "city", "lat", "lng", "governorate", "spaceType", "spaceCategoryName", "subdivisions", "createdAtMillis")
     .get();
   const listingCountry: Record<string, string> = {};
   listingsSnap.forEach((doc) => {
     const d = doc.data();
+    // Ghost docs (no owner) were once created by favorite-count writes on deleted listings.
+    if (!d.ownerId) return;
     listingCountry[doc.id] = resolveLocation(d).country;
     if ((d.status ?? "ACTIVE") !== "ACTIVE") return;
     const { country, city } = resolveLocation(d);

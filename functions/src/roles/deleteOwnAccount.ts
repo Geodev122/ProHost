@@ -97,13 +97,14 @@ export const deleteOwnAccount = onCall(async (request) => {
     const ownedIds = new Set(ownedListings.docs.map((d) => d.id));
     const targets = saved.filter((id) => !ownedIds.has(id));
     if (targets.length === 0) return;
-    const batch = db.batch();
-    targets.forEach((id) => batch.set(
-      db.collection("workspace_listings").doc(id),
-      { favoriteCount: FieldValue.increment(-1) },
-      { merge: true },
+    // update() so a deleted listing is skipped instead of being recreated as a ghost doc.
+    await Promise.all(targets.map((id) =>
+      db.collection("workspace_listings").doc(id)
+        .update({ favoriteCount: FieldValue.increment(-1) })
+        .catch((err: { code?: number | string }) => {
+          if (err?.code !== 5 && err?.code !== "not-found") throw err;
+        })
     ));
-    await batch.commit();
   });
 
   // 4. Remove per-user auth/rate-limit records and the profile picture.

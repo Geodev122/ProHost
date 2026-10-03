@@ -30,26 +30,24 @@ export const onUserFavoritesChanged = onDocumentUpdated(
     if (added.length === 0 && removed.length === 0) return;
 
     const db = getFirestore();
-    const batch = db.batch();
-    for (const spaceId of added) {
-      batch.set(
-        db.collection("workspace_listings").doc(spaceId),
-        { favoriteCount: FieldValue.increment(1) },
-        { merge: true }
-      );
-    }
-    for (const spaceId of removed) {
-      batch.set(
-        db.collection("workspace_listings").doc(spaceId),
-        { favoriteCount: FieldValue.increment(-1) },
-        { merge: true }
-      );
-    }
-
+    // update() (not set+merge): a saved id can point at a listing that was deleted, and
+    // set+merge would recreate it as a ghost document holding only favoriteCount.
+    // A missing listing is simply skipped.
+    const bump = async (spaceId: string, by: number) => {
+      try {
+        await db.collection("workspace_listings").doc(spaceId).update({ favoriteCount: FieldValue.increment(by) });
+      } catch (e) {
+        if ((e as { code?: number | string }).code === 5 || (e as { code?: string }).code === "not-found") return;
+        throw e;
+      }
+    };
     try {
-      await batch.commit();
+      await Promise.all([
+        ...added.map((id) => bump(id, 1)),
+        ...removed.map((id) => bump(id, -1)),
+      ]);
     } catch (e) {
-      logger.error("favorites_sync_batch_failed", {
+      logger.error("favorites_sync_failed", {
         uid: event.params.uid,
         added,
         removed,
@@ -58,15 +56,12 @@ export const onUserFavoritesChanged = onDocumentUpdated(
       return;
     }
 
-    // FieldValue.increment(-1) on a listing that was deleted, or whose count was
-    // already 0 from data predating this trigger, can drive it negative — clamp
-    // it back up rather than leave a nonsensical count displayed to the host.
     for (const spaceId of removed) {
       const ref = db.collection("workspace_listings").doc(spaceId);
       const snap = await ref.get();
       const count = snap.data()?.favoriteCount;
-      if (typeof count === "number" && count < 0) {
-        await ref.set({ favoriteCount: 0 }, { merge: true });
+      if (snap.exists && typeof count === "number" && count < 0) {
+        await ref.update({ favoriteCount: 0 });
       }
     }
   }

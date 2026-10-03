@@ -102,7 +102,9 @@ class FirestoreService(
                         }
                         if (snapshot != null) {
                             val spaces = snapshot.documents.mapNotNull { doc ->
-                                doc.data?.let { data -> SpaceListing.fromFirestoreMap(doc.id, data) }
+                                // Skip ownerless ghost docs (see favoritesSync.ts history).
+                                doc.data?.takeIf { it["ownerId"] != null }
+                                    ?.let { data -> SpaceListing.fromFirestoreMap(doc.id, data) }
                             }
                             onWorkspacesUpdated(spaces)
                         }

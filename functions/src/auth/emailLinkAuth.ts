@@ -5,6 +5,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import { sendEmail, hostingerSmtpSecret } from "../lib/email";
 import { signInLinkTemplate, emailVerificationTemplate, UserContext } from "../lib/emailTemplates";
+import { takeEmailSendSlot, isPlausibleEmail } from "../lib/emailRateLimit";
 import "../lib/admin";
 
 const CONTINUE_URL = "https://prohost-f766f.web.app/emaillink";
@@ -25,9 +26,10 @@ export const sendSignInEmailLink = onCall(
   { secrets: [hostingerSmtpSecret] },
   async (request) => {
     const email = (request.data?.email as string | undefined)?.toLowerCase().trim();
-    if (!email || !email.includes("@")) {
+    if (!isPlausibleEmail(email)) {
       throw new HttpsError("invalid-argument", "A valid email address is required.");
     }
+    await takeEmailSendSlot("signin_link", email);
 
     let link: string;
     try {

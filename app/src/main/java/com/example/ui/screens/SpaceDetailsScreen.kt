@@ -215,11 +215,12 @@ fun SpaceDetailsScreenContent(
     val roomsRequester = remember { BringIntoViewRequester() }
 
     // Arrived here via a division-card tap on Explore: that room's tab is selected,
-    // its card is scrolled into view, and a specialist also gets its availability sheet.
+    // its card is scrolled into view. The availability sheet stays closed; the bottom bar
+    // (showing that room) opens it.
     LaunchedEffect(intendedSubdivisionId, liveSpace.id) {
         val sub = intendedSubdivisionId?.let { id -> liveSpace.subdivisions.firstOrNull { it.id == id } }
         if (sub != null) {
-            selectRoom(sub, if (isSpecialistViewer) "full" else "peek")
+            selectRoom(sub, "peek")
             kotlinx.coroutines.delay(150)
             roomsRequester.bringIntoView()
         }
