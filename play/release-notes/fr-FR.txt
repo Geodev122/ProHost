@@ -1,5 +1,5 @@
-Notes de version ProHost v1.0.28 (Build 28) :
-• Filtres multi-sélection améliorés pour les spécialités et divisions.
-• Mise à jour de la clé de signature Play Store et des règles de sécurité.
-• Suppression de compte simplifiée, effacement des données PII et codes d'affichage.
-• Synchronisation de la base de données en temps réel et suivi du calendrier de paiement.
+Notes de version ProHost v1.0.29 (Build 29) :
+• Entièrement géré par Google Play Billing pour des abonnements sécurisés et fluides.
+• Flux CI/CD optimisés et téléversement automatique des symboles Crashlytics.
+• Sécurité renforcée avec App Check et règles de protection de la base de données.
+• Améliorations globales de la stabilité, de la synchronisation et des performances.
