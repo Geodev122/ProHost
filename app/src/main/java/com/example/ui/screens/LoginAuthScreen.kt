@@ -209,7 +209,9 @@ fun LoginAuthScreen(
         authViewModel.clearAuthMessages()
         // MainActivity already requests all permissions; detect country using available signals
         // (SIM/locale — no duplicate permission request here).
-        phoneCountry = PhoneCountryDetector.detectCountry(context)
+        val detected = PhoneCountryDetector.detectCountry(context)
+        phoneCountry = detected
+        regWhatsAppCountry = detected
     }
 
     // --- OTP entry state (phone SMS) ---
@@ -230,6 +232,7 @@ fun LoginAuthScreen(
     var regFullName by rememberSaveable { mutableStateOf("") }
     var regSpecialty by rememberSaveable { mutableStateOf("") }
     var regPhoneNumber by rememberSaveable { mutableStateOf("") }
+    var regWhatsAppCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
     var regCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
     var regGovernorateArea by rememberSaveable { mutableStateOf("") }
     var regCity by rememberSaveable { mutableStateOf("") }
@@ -435,9 +438,10 @@ fun LoginAuthScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(
-                        imageVector = Icons.Default.AccountCircle,
+                        painter = painterResource(R.drawable.ic_google),
                         contentDescription = "Google",
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(18.dp),
+                        tint = androidx.compose.ui.graphics.Color.Unspecified
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -1069,15 +1073,14 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                InputField(
-                    value = regPhoneNumber,
-                    onValueChange = { regPhoneNumber = it },
+                PhoneNumberField(
+                    country = regWhatsAppCountry,
+                    onCountryChange = { regWhatsAppCountry = it },
+                    number = regPhoneNumber,
+                    onNumberChange = { regPhoneNumber = it },
                     label = "WhatsApp Number (Optional)",
-                    placeholder = "e.g. +961 71 234 567",
-                    leadingIcon = Icons.Default.Phone,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone)
+                    placeholder = "71 234 567",
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -1158,11 +1161,8 @@ fun LoginAuthScreen(
                         val registrationPhoneE164 = when {
                             !resumePhoneE164.isNullOrBlank() -> resumePhoneE164
                             phoneNumber.isNotBlank() -> verifiedPhoneE164
-                            regPhoneNumber.isNotBlank() -> if (regPhoneNumber.trim().startsWith("+")) {
-                                "+" + regPhoneNumber.filter { it.isDigit() }
-                            } else {
-                                com.example.data.model.formatToE164(regCountry, regPhoneNumber)
-                            }
+                            regPhoneNumber.isNotBlank() ->
+                                com.example.data.model.formatToE164(regWhatsAppCountry, regPhoneNumber)
                             else -> ""
                         }
                         authViewModel.completePendingRegistration(
