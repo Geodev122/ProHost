@@ -6,6 +6,7 @@ import {
   acknowledgeIfNeeded,
   grantSubscription,
 } from "./billingHelpers";
+import { planIdForPlayProduct } from "../lib/packagePlans";
 import "../lib/admin";
 
 /**
@@ -64,7 +65,7 @@ export const verifyAndRestorePurchase = onCall<{
   }
 
   await acknowledgeIfNeeded(cleanProductId, cleanToken, purchase.acknowledgementState, "verifyAndRestorePurchase");
-  await grantSubscription(uid, cleanProductId, expiryMs, purchase.orderId ?? cleanProductId);
+  await grantSubscription(uid, await planIdForPlayProduct(cleanProductId), expiryMs, purchase.orderId ?? cleanProductId);
 
   logger.info(`verifyAndRestorePurchase: restored uid=${uid} product=${cleanProductId} expiry=${new Date(expiryMs).toISOString()}`);
   return { success: true, expiryMillis: expiryMs };

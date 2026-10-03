@@ -12,6 +12,7 @@ import {
   grantSubscription,
   revokeSubscription,
 } from "./billingHelpers";
+import { planIdForPlayProduct, getPackagePlan } from "../lib/packagePlans";
 import "../lib/admin";
 
 // Google Play subscription notification types (DeveloperNotification spec)
@@ -107,6 +108,9 @@ export const playBillingRtdn = onMessagePublished(
 
     const orderId = purchase.orderId ?? productId;
     const expiryMs = parseInt(purchase.expiryTimeMillis ?? "0", 10);
+    // Play API calls keep using productId; Firestore entitlements use the catalog plan id.
+    const planId = await planIdForPlayProduct(productId);
+    const planName = (await getPackagePlan(planId))?.name ?? "Pro Host";
 
     if (
       notificationType === SUBSCRIPTION_PURCHASED ||
@@ -119,8 +123,14 @@ export const playBillingRtdn = onMessagePublished(
     // 3. Dispatch by notification type
     switch (notificationType) {
       case SUBSCRIPTION_PURCHASED:
+        // paymentState 0 = still pending (e.g. cash at a store); Play sends RECOVERED/
+        // RENEWED once it settles, so granting now would give access before payment.
+        if (purchase.paymentState === 0) {
+          logger.info(`playBillingRtdn: purchase pending payment for uid=${uid}, not granting yet`);
+          break;
+        }
         if (expiryMs > 0) {
-          await grantSubscription(uid, productId, expiryMs, orderId);
+          await grantSubscription(uid, planId, expiryMs, orderId);
           await sendPushToUser(uid, "Pro Host Subscription Activated", "Welcome! Your Pro Host subscription is now active — start publishing workspace listings.", {
             category: "PACKAGE_ACTIVATED",
             // owner_subscriptions is reachable even while the device still holds the
@@ -138,7 +148,7 @@ export const playBillingRtdn = onMessagePublished(
                 role: "PRO_HOST",
                 activeListingCount: (userData.activeListingCount ?? 0) as number,
               };
-              const tpl = subscriptionActivatedTemplate(ctx, productId);
+              const tpl = subscriptionActivatedTemplate(ctx, planName);
               await sendEmail({ to: userData.email, ...tpl });
             }
           } catch (_) { /* email is best-effort */ }
@@ -149,7 +159,7 @@ export const playBillingRtdn = onMessagePublished(
 
       case SUBSCRIPTION_RENEWED:
         if (expiryMs > 0) {
-          await grantSubscription(uid, productId, expiryMs, orderId);
+          await grantSubscription(uid, planId, expiryMs, orderId);
           await sendPushToUser(uid, "Subscription Renewed", "Your Pro Host subscription has renewed — your access continues uninterrupted.", {
             category: "PACKAGE_RENEWED",
             targetTab: "owner_subscriptions",
@@ -165,7 +175,7 @@ export const playBillingRtdn = onMessagePublished(
                 role: "PRO_HOST",
               };
               const expiryDate = new Date(expiryMs).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-              const tpl = subscriptionRenewedTemplate(ctx, productId, expiryDate);
+              const tpl = subscriptionRenewedTemplate(ctx, planName, expiryDate);
               await sendEmail({ to: userData.email, ...tpl });
             }
           } catch (_) { /* email is best-effort */ }
@@ -177,7 +187,7 @@ export const playBillingRtdn = onMessagePublished(
       case SUBSCRIPTION_RECOVERED:
       case SUBSCRIPTION_RESTARTED:
         if (expiryMs > 0) {
-          await grantSubscription(uid, productId, expiryMs, orderId);
+          await grantSubscription(uid, planId, expiryMs, orderId);
         } else {
           logger.warn(`playBillingRtdn: type=${notificationType} has no expiryTimeMillis, skipping grant`);
         }
@@ -187,13 +197,13 @@ export const playBillingRtdn = onMessagePublished(
         // Promotional deferral — use grantSubscription() so it keeps the later
         // expiry, restores any lapsed listings, and auto-publishes pending drafts.
         if (expiryMs > 0) {
-          await grantSubscription(uid, productId, expiryMs, orderId);
+          await grantSubscription(uid, planId, expiryMs, orderId);
         }
         break;
 
       case SUBSCRIPTION_REVOKED:
         await revokeSubscription(
-          uid, productId, orderId,
+          uid, planId, orderId,
           "Your ProHost subscription was refunded or revoked by Google Play. Your Pro Host access has ended."
         );
         break;
@@ -202,14 +212,14 @@ export const playBillingRtdn = onMessagePublished(
         // expirePackages.ts already handles this on its hourly sweep, but handle
         // it here too for instant effect on the RTDN event.
         await revokeSubscription(
-          uid, productId, orderId,
+          uid, planId, orderId,
           "Your Google Play subscription has expired. Renew in the app to restore Pro Host access."
         );
         break;
 
       case SUBSCRIPTION_ON_HOLD:
         await revokeSubscription(
-          uid, productId, orderId,
+          uid, planId, orderId,
           "Your ProHost subscription is on hold. Update your payment method in Google Play to restore Pro Host access."
         );
         break;
@@ -220,7 +230,7 @@ export const playBillingRtdn = onMessagePublished(
         // them. Use revokeSubscription so listings get isOwnerPackageLapsed=true, but
         // send a softer message.
         await revokeSubscription(
-          uid, productId, orderId,
+          uid, planId, orderId,
           "Your ProHost subscription is paused. Resume it in Google Play to restore your Pro Host access and listings."
         );
         break;

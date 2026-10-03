@@ -19,6 +19,8 @@ export interface PackagePlan {
   sortOrder?: number;
   /** Admin-grant only: never offered for purchase (see UNLIMITED_GRANT_PLAN_ID). */
   isGrantOnly?: boolean;
+  /** Play Console product id when it differs from [id]; blank means "same as id". */
+  googlePlayProductId?: string;
 }
 
 /**
@@ -57,6 +59,17 @@ export async function ensureUnlimitedGrantPlan(): Promise<void> {
 export async function getPackagePlans(): Promise<Record<string, PackagePlan>> {
   const snap = await getFirestore().doc("package_plans/main").get();
   return (snap.data()?.packages as Record<string, PackagePlan> | undefined) ?? {};
+}
+
+/**
+ * Resolves a Google Play product id to the catalog plan id stored in ownerPackageId.
+ * Clients look plans up by id, so a product whose id differs from its plan's must
+ * be mapped back, or the purchase grants a plan no screen can find.
+ */
+export async function planIdForPlayProduct(productId: string): Promise<string> {
+  const plans = await getPackagePlans();
+  const match = Object.values(plans).find((p) => p.googlePlayProductId === productId);
+  return match?.id ?? productId;
 }
 
 export async function getPackagePlan(id: string): Promise<PackagePlan | undefined> {

@@ -298,6 +298,8 @@ class PlayBillingManager(
                 coroutineScope.launch { _purchaseEvents.emit(purchase) }
             } else {
                 Log.e(TAG, "Failed to acknowledge purchase: ${billingResult.debugMessage}")
+                // The server also acknowledges on the RTDN, so this is recoverable.
+                emitMessage("Your payment went through, but confirming it with Google Play failed. Reopen Subscriptions in a moment to finish activation.")
             }
         }
     }

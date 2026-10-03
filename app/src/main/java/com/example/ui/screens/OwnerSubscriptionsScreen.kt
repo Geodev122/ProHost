@@ -431,7 +431,7 @@ fun OwnerSubscriptionsScreen(
                 }
 
                 TextButton(
-                    onClick = { viewModel.refreshPlayPurchases(context) },
+                    onClick = { viewModel.refreshPlayPurchases(context, userInitiated = true) },
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 ) {
                     Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f))

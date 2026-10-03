@@ -511,12 +511,14 @@ class ProHostViewModel(
         manager?.queryProductDetailsForId(productId, onResult) ?: onResult(null)
     }
 
-    fun refreshPlayPurchases(context: Context) {
+    /** [userInitiated] (the Restore button) reports every outcome; the silent on-open check only reports a restore. */
+    fun refreshPlayPurchases(context: Context, userInitiated: Boolean = false) {
         val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager } ?: return
         // If the user already has a Firestore entitlement, just refresh the local
         // purchases cache — no server call needed.
         if (currentUser.value?.ownerPackageId != null) {
             manager.queryActivePurchases()
+            if (userInitiated) _billingSuccess.value = "Your plan is already active on this account."
             return
         }
         // No entitlement yet — query Play and, if an active purchase is found,
@@ -528,12 +530,26 @@ class ProHostViewModel(
                 val purchases = manager.activePurchases.drop(1).first()
                 val activePurchase = purchases.firstOrNull {
                     it.purchaseState == com.android.billingclient.api.Purchase.PurchaseState.PURCHASED
-                } ?: return@runCatching
-                val productId = activePurchase.products.firstOrNull() ?: return@runCatching
+                }
+                val productId = activePurchase?.products?.firstOrNull()
+                if (activePurchase == null || productId == null) {
+                    if (userInitiated) _billingError.value = "No active Google Play subscription was found for this Google account."
+                    return@runCatching
+                }
                 repository.verifyAndRestorePlayPurchase(activePurchase.purchaseToken, productId)
-                    .onSuccess { android.util.Log.i("ProHostViewModel", "verifyAndRestorePurchase: restored product=$productId") }
-                    .onFailure { android.util.Log.w("ProHostViewModel", "verifyAndRestorePurchase failed: ${it.message}") }
-            }.onFailure { e -> android.util.Log.e("ProHostViewModel", "restorePlayPurchases error: ${e.message}") }
+                    .onSuccess {
+                        _billingError.value = null
+                        _billingSuccess.value = "Purchase restored — your Pro Host plan is active."
+                        refreshCurrentUserRoleAfterEntitlement()
+                    }
+                    .onFailure {
+                        android.util.Log.w("ProHostViewModel", "verifyAndRestorePurchase failed: ${it.message}")
+                        _billingError.value = it.toUserMessage("Couldn't restore your purchase. Please try again.")
+                    }
+            }.onFailure { e ->
+                android.util.Log.e("ProHostViewModel", "restorePlayPurchases error: ${e.message}")
+                if (userInitiated) _billingError.value = "Couldn't check Google Play for purchases. Please try again."
+            }
         }
     }
 

@@ -272,6 +272,7 @@ fun MyBookingsScreen(
                         onSelectSpace = {
                             if (space != null) onSelectSpace(space)
                         },
+                        canCreateBookings = currentUser?.role != UserRole.PRO_HOST,
                         onRebook = {
                             rebookTargetSpaceId = (space ?: allSpaces.firstOrNull())?.id
                             rebookSourceBooking = booking
@@ -443,6 +444,9 @@ fun BookingReservationCard(
     onCancelRequest: () -> Unit,
     onCancelAcceptedBooking: () -> Unit = {},
     onMarkPaid: () -> Unit = {},
+    // Pro Hosts are landlord-only (firestore.rules booking create), so they can view
+    // bookings made before upgrading but not re-book or edit them.
+    canCreateBookings: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val statusAccent = when (booking.status) {
@@ -662,7 +666,7 @@ fun BookingReservationCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Re-book / Extend Button (Prominent)
-                Button(
+                if (canCreateBookings) Button(
                     onClick = onRebook,
                     shape = MaterialTheme.shapes.medium,
                     modifier = Modifier
@@ -728,7 +732,7 @@ fun BookingReservationCard(
                                 // Edit Booking — submits a change for host approval;
                                 // replaces this booking if/when accepted, distinct from
                                 // Re-book/Extend (which creates an independent new lease).
-                                DropdownMenuItem(
+                                if (canCreateBookings) DropdownMenuItem(
                                     text = { Text("Edit Booking") },
                                     leadingIcon = { Icon(Icons.Default.EditCalendar, contentDescription = null) },
                                     modifier = Modifier.testTag("edit_booking_button_${booking.id}"),

@@ -7,6 +7,7 @@ import { sendPushToUser } from "../lib/push";
 import { setClaimsThenFirestore } from "../lib/roles";
 import { sendEmail, hostingerSmtpSecret } from "../lib/email";
 import { subscriptionExpiringTemplate, subscriptionExpiredTemplate, UserContext } from "../lib/emailTemplates";
+import { getPackagePlans } from "../lib/packagePlans";
 import "../lib/admin";
 
 /**
@@ -32,6 +33,7 @@ import "../lib/admin";
 export const expirePackages = onSchedule({ schedule: "0 * * * *", secrets: [hostingerSmtpSecret] }, async () => {
   const db = getFirestore();
   const now = Date.now();
+  const plans = await getPackagePlans();
 
   // 1. Proactive warning for packages expiring in <= 3 days (notified once)
   const warningWindowEnd = now + 3 * 24 * 60 * 60 * 1000;
@@ -69,7 +71,7 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *", secrets: [host
             activeListingCount: (data.activeListingCount ?? 0) as number,
           };
           const expiryDate = new Date(expiry).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-          const tpl = subscriptionExpiringTemplate(ctx, (data.ownerPackageId as string) ?? "Pro Host", daysLeft, expiryDate);
+          const tpl = subscriptionExpiringTemplate(ctx, plans[data.ownerPackageId as string]?.name ?? "Pro Host", daysLeft, expiryDate);
           await sendEmail({ to: data.email as string, ...tpl });
         }
       } catch (_) { /* email is best-effort */ }

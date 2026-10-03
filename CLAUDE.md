@@ -53,7 +53,9 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
 - User-initiated `ProHostViewModel` actions must surface thrown exceptions via
   `reportFailure(appContext, e, fallback)`, not only `Log.e`. Explore's load error comes from
   `ProHostRepository.spacesLoadError` (listener failures), never from `sessionRestoreError`.
-- Pro Hosts have the My Rentals bottom tab and My Favorites, since they book spaces too.
+- Pro Hosts are landlord-only: firestore.rules blocks them from creating bookings. They keep
+  the My Rentals tab (read-only, for bookings made before upgrading; Re-book/Edit hidden)
+  and My Favorites.
   Demo seeding is debug-build only. `sendInquiryEmail` ("Email the Host") was retired on purpose.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
@@ -89,6 +91,8 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
   checks it whenever the functions SDK manifest has an `extensions` key, which it always does.
   Until that IAM role is granted, nothing in `functions/`, `firestore.rules` or `storage.rules`
   reaches production (this is why `sendSignInEmailLink`/`deleteOwnAccount` returned NOT_FOUND).
+- RTDN/restore map a Play product id to its catalog plan via `planIdForPlayProduct`
+  (`googlePlayProductId`), and RTDN never grants while `paymentState` is 0 (pending).
 - NIGHTHAWK's "Orphaned Module: billingHelpers" and "compileSdk below 34" MEDIUMs are false
   positives (billingHelpers is imported by other modules; compileSdk is 37).
 - `main` history shows NIGHTHAWK checks are sometimes extended directly on `main` (not always

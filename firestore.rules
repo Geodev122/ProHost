@@ -113,7 +113,10 @@ service cloud.firestore {
         // — never legitimately true at creation, set only by setListingVerification).
         (isAdmin() || request.resource.data.get('isVerified', false) == false) &&
         // favoriteCount only ever grows via the onUserFavoritesChanged trigger.
-        (isAdmin() || request.resource.data.get('favoriteCount', 0) == 0);
+        (isAdmin() || request.resource.data.get('favoriteCount', 0) == 0) &&
+        // displayCode is minted server-side only when absent; a client-chosen one
+        // could impersonate another listing's public code.
+        !('displayCode' in request.resource.data);
 
       // isVerified / isActiveSubscription / subscriptionExpiryMillis are
       // money- and verification-status fields — only setListingVerification /
