@@ -7,7 +7,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.rememberScrollState
@@ -157,7 +161,7 @@ fun OwnerSubscriptionsScreen(
                     Text(
                         "You have a saved Draft waiting on a purchase. Buy the package it needs below and it will publish automatically.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = OxfordBlue
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -169,7 +173,7 @@ fun OwnerSubscriptionsScreen(
                 shape = MaterialTheme.shapes.medium,
                 color = FreshGreen.copy(alpha = 0.12f)
             ) {
-                Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -257,24 +261,29 @@ fun OwnerSubscriptionsScreen(
         // "Subscription & Packages Hub" title/subtitle banner with no real data in
         // it, sitting above a separate status card repeating the same information.
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    androidx.compose.ui.graphics.Brush.linearGradient(listOf(CoolGrayDark, VibrantBlueDark, VibrantBlue)),
+                    MaterialTheme.shapes.large
+                ),
             shape = MaterialTheme.shapes.large,
-            color = OxfordBlue,
+            color = Color.Transparent,
             shadowElevation = 4.dp
         ) {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(modifier = Modifier.padding(Spacing.xl), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(color = CarnationOrange, shape = MaterialTheme.shapes.small) {
+                    Surface(color = CarnationOrange, shape = CircleShape) {
                         Text(
                             text = currentPlan?.badgeName?.ifBlank { currentPlan.name } ?: "No Package",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = PureWhite,
-                            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)
                         )
                     }
                     if (currentPlan != null) {
@@ -284,8 +293,7 @@ fun OwnerSubscriptionsScreen(
 
                 Text(
                     currentPlan?.name ?: "No Active Package",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Black,
+                    style = MaterialTheme.typography.headlineSmall,
                     color = PureWhite
                 )
                 Text(
@@ -430,6 +438,7 @@ fun OwnerSubscriptionsScreen(
                 }
 
                 TextButton(
+                    shape = MaterialTheme.shapes.medium,
                     onClick = { viewModel.refreshPlayPurchases(context) },
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 ) {
@@ -575,6 +584,7 @@ fun OwnerSubscriptionsScreen(
             },
             confirmButton = {
                 TextButton(
+                    shape = MaterialTheme.shapes.medium,
                     onClick = {
                         val code = redeemCodeInput.trim()
                         showRedeemDialog = false
@@ -586,7 +596,7 @@ fun OwnerSubscriptionsScreen(
                 ) { Text(if (redeemCodeInput.isBlank()) "Open Play Store" else "Redeem") }
             },
             dismissButton = {
-                TextButton(onClick = { showRedeemDialog = false; redeemCodeInput = "" }) {
+                TextButton(shape = MaterialTheme.shapes.medium, onClick = { showRedeemDialog = false; redeemCodeInput = "" }) {
                     Text("Cancel")
                 }
             }
@@ -611,24 +621,24 @@ fun CompactPlanCard(
             onClick = onSelect,
             enabled = !isCurrent,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(
                 containerColor = when {
-                    isCurrent -> OxfordBlue
-                    isFeatured -> OxfordBlue.copy(alpha = 0.06f)
+                    isCurrent -> VibrantBlueDark
+                    isFeatured -> CarnationOrange.copy(alpha = 0.06f).compositeOver(MaterialTheme.colorScheme.surface)
                     else -> MaterialTheme.colorScheme.surface
                 }
             ),
             border = when {
                 isCurrent -> null
                 isFeatured -> BorderStroke(2.dp, CarnationOrange)
-                else -> BorderStroke(1.dp, LightGray.copy(alpha = 0.4f))
+                else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             },
-            elevation = CardDefaults.cardElevation(if (isFeatured || isCurrent) 6.dp else 2.dp)
+            elevation = CardDefaults.cardElevation(if (isFeatured || isCurrent) 4.dp else 1.dp)
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier.padding(Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 // Plan name + featured badge
                 Row(
@@ -662,7 +672,7 @@ fun CompactPlanCard(
                     modifier = Modifier.offset(y = (-6).dp)
                 )
 
-                HorizontalDivider(color = if (isCurrent) PureWhite.copy(alpha = 0.2f) else LightGray.copy(alpha = 0.5f))
+                HorizontalDivider(color = if (isCurrent) PureWhite.copy(alpha = 0.2f) else MaterialTheme.colorScheme.outlineVariant)
 
                 // Listings row
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -696,19 +706,19 @@ fun CompactPlanCard(
                     onClick = onSelect,
                     enabled = !isCurrent,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = MaterialTheme.shapes.medium,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isFeatured && !isCurrent) CarnationOrange else OxfordBlue,
+                        containerColor = if (isFeatured && !isCurrent) CarnationOrange else VibrantBlue,
                         disabledContainerColor = FreshGreen.copy(alpha = 0.18f)
                     ),
-                    contentPadding = PaddingValues(vertical = 10.dp)
+                    contentPadding = PaddingValues(vertical = Spacing.md)
                 ) {
                     Icon(
                         if (isCurrent) Icons.Default.Verified else Icons.Default.ShoppingCart,
                         contentDescription = null,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
                         text = if (isCurrent) "Active" else "Select",
                         style = MaterialTheme.typography.labelMedium,
@@ -726,15 +736,15 @@ fun CompactPlanCard(
                     .align(Alignment.TopEnd)
                     .offset(x = 8.dp, y = (-8).dp),
                 color = CarnationOrange,
-                shape = RoundedCornerShape(6.dp),
-                shadowElevation = 4.dp
+                shape = CircleShape,
+                shadowElevation = 2.dp
             ) {
                 Text(
                     text = "★ POPULAR",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Black,
                     color = PureWhite,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = Spacing.xs)
                 )
             }
         }

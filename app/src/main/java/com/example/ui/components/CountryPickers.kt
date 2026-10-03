@@ -85,7 +85,7 @@ fun CountryPickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(shape = MaterialTheme.shapes.medium, onClick = onDismiss) { Text("Close") }
         }
     )
 }
@@ -117,7 +117,7 @@ fun PhoneNumberField(
         prefix = "${country.flagEmoji} ${country.dialCode} ",
         leadingIcon = androidx.compose.material.icons.Icons.Default.Phone,
         trailingIcon = {
-            TextButton(onClick = { showPicker = true }) {
+            TextButton(shape = MaterialTheme.shapes.medium, onClick = { showPicker = true }) {
                 Text("Change", style = MaterialTheme.typography.labelSmall)
             }
         },

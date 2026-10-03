@@ -125,8 +125,8 @@ enum class StatusBadgeType {
 }
 
 /**
- * Standard StatusBadge Component
- * Features consistent pill shape (8.dp radius), compact padding, high-contrast semantic typography, and icons.
+ * Standard StatusBadge Component — tonal pill (soft semantic container, strong
+ * semantic foreground) so badges read as status, not as competing CTAs.
  */
 @Composable
 fun StatusBadge(
@@ -134,60 +134,60 @@ fun StatusBadge(
     label: String? = null,
     modifier: Modifier = Modifier,
     customIcon: ImageVector? = null,
-    shape: CornerBasedShape = MaterialTheme.shapes.small
+    shape: CornerBasedShape = CircleShape
 ) {
     val (bg, text, defaultIcon, defaultText) = when (status) {
         StatusBadgeType.AVAILABLE -> Quad(
-            FreshGreen,
-            PureWhite,
+            StatusSuccessContainer,
+            StatusOnSuccessContainer,
             Icons.Default.CheckCircle,
             "Available"
         )
         StatusBadgeType.OCCUPIED -> Quad(
-            OxfordBlue,
-            PureWhite,
+            StatusInfoContainer,
+            StatusOnInfoContainer,
             Icons.Default.Lock,
             "Occupied / Booked"
         )
         StatusBadgeType.VERIFIED -> Quad(
-            FreshGreen,
-            PureWhite,
+            StatusSuccessContainer,
+            StatusOnSuccessContainer,
             Icons.Default.Verified,
             "License / ID Verified"
         )
         StatusBadgeType.PENDING -> Quad(
-            BrightOrange,
-            PureWhite,
+            StatusWarningContainer,
+            StatusOnWarningContainer,
             Icons.Default.HourglassTop,
             "Pending Approval"
         )
         StatusBadgeType.MAINTENANCE -> Quad(
+            CoolGrayContainer,
             CoolGray,
-            PureWhite,
             Icons.Default.Build,
             "Maintenance Slot"
         )
         StatusBadgeType.CANCELLED -> Quad(
-            CrimsonRed,
-            PureWhite,
+            StatusErrorContainer,
+            StatusOnErrorContainer,
             Icons.Default.Cancel,
             "Cancelled / Unavailable"
         )
         StatusBadgeType.ADMIN -> Quad(
-            OxfordBlue,
-            PureWhite,
+            OxfordBlueContainer,
+            OxfordBlueDark,
             Icons.Default.Shield,
             "Super Admin"
         )
         StatusBadgeType.GOLD -> Quad(
-            BrightOrange,
-            PureWhite,
+            CarnationOrangeContainer,
+            CarnationOrangeDark,
             Icons.Default.WorkspacePremium,
             "Premium Tier"
         )
         StatusBadgeType.INFO -> Quad(
-            VibrantBlue,
-            PureWhite,
+            StatusInfoContainer,
+            StatusOnInfoContainer,
             Icons.Default.Info,
             "Information"
         )
@@ -199,15 +199,15 @@ fun StatusBadge(
         modifier = modifier
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
             Icon(
                 imageVector = customIcon ?: defaultIcon,
                 contentDescription = null,
                 tint = text,
-                modifier = Modifier.size(13.dp)
+                modifier = Modifier.size(14.dp)
             )
             Text(
                 text = label ?: defaultText,
@@ -246,29 +246,29 @@ fun ProSectionHeader(
         ) {
             Box(
                 modifier = Modifier
-                    .width(3.dp)
-                    .height(20.dp)
-                    .background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(2.dp))
+                    .width(4.dp)
+                    .height(22.dp)
+                    .background(MaterialTheme.colorScheme.secondary, CircleShape)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(Spacing.md))
             if (icon != null) {
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer,
                     shape = MaterialTheme.shapes.small,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(36.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = icon,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(Spacing.md))
             }
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
@@ -316,14 +316,14 @@ fun ProMetricTile(
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = containerColor),
         border = BorderStroke(1.dp, borderColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(3.dp)
-                    .background(iconTint)
+                    .height(4.dp)
+                    .background(Brush.horizontalGradient(listOf(iconTint, iconTint.copy(alpha = 0.35f))))
             )
         Column(
             modifier = Modifier.padding(Spacing.lg),
@@ -341,8 +341,8 @@ fun ProMetricTile(
                 )
                 Surface(
                     color = iconTint.copy(alpha = 0.12f),
-                    shape = CircleShape,
-                    modifier = Modifier.size(32.dp)
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.size(36.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
@@ -590,40 +590,41 @@ fun ProEmptyState(
         verticalArrangement = Arrangement.Center
     ) {
         Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
+            color = MaterialTheme.colorScheme.primaryContainer,
             shape = CircleShape,
-            modifier = Modifier.size(64.dp)
+            modifier = Modifier.size(72.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(32.dp)
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(34.dp)
                 )
             }
         }
-        Spacer(modifier = Modifier.height(Spacing.lg))
+        Spacer(modifier = Modifier.height(Spacing.xl))
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(Spacing.sm))
         Text(
             text = description,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
         if (actionButtonText != null && onActionClick != null) {
-            Spacer(modifier = Modifier.height(Spacing.lg))
+            Spacer(modifier = Modifier.height(Spacing.xl))
             Button(
                 onClick = onActionClick,
-                shape = MaterialTheme.shapes.medium
+                shape = MaterialTheme.shapes.medium,
+                contentPadding = PaddingValues(horizontal = Spacing.xl, vertical = Spacing.md)
             ) {
-                Text(actionButtonText, style = MaterialTheme.typography.labelMedium)
+                Text(actionButtonText, style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -670,12 +671,13 @@ fun CustomButton(
     customContentColor: Color? = null,
     shape: CornerBasedShape = MaterialTheme.shapes.medium,
     contentPadding: PaddingValues = if (compact) {
-        PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+        PaddingValues(horizontal = Spacing.md, vertical = Spacing.sm)
     } else {
-        PaddingValues(horizontal = 20.dp, vertical = 12.dp)
+        PaddingValues(horizontal = Spacing.xl, vertical = Spacing.md)
     }
 ) {
     val minHeight = if (compact) 40.dp else 48.dp
+    // Brand mapping: PRIMARY = Carnation Orange (key action), SECONDARY = Vibrant Blue.
     // PRIMARY/SECONDARY/SUCCESS/DANGER/WHATSAPP intentionally use fixed brand colors —
     // they're solid, always-colored surfaces (never the plain app background), so a
     // fixed white/light-gray foreground reads correctly in both themes. OUTLINED and
@@ -686,7 +688,7 @@ fun CustomButton(
     // (dark navy on a near-black background) in dark mode.
     val containerColor = customContainerColor ?: when (variant) {
         CustomButtonVariant.PRIMARY -> CarnationOrange
-        CustomButtonVariant.SECONDARY -> CoolGray
+        CustomButtonVariant.SECONDARY -> VibrantBlue
         CustomButtonVariant.OUTLINED -> Color.Transparent
         CustomButtonVariant.TONAL -> MaterialTheme.colorScheme.surfaceVariant
         CustomButtonVariant.TEXT -> Color.Transparent
@@ -697,7 +699,7 @@ fun CustomButton(
 
     val contentColor = customContentColor ?: when (variant) {
         CustomButtonVariant.PRIMARY -> PureWhite
-        CustomButtonVariant.SECONDARY -> LightGray
+        CustomButtonVariant.SECONDARY -> PureWhite
         CustomButtonVariant.OUTLINED -> MaterialTheme.colorScheme.primary
         CustomButtonVariant.TONAL -> MaterialTheme.colorScheme.onSurfaceVariant
         CustomButtonVariant.TEXT -> MaterialTheme.colorScheme.primary
@@ -714,7 +716,7 @@ fun CustomButton(
                 enabled = enabled && !isLoading,
                 shape = shape,
                 border = BorderStroke(
-                    1.dp,
+                    1.5.dp,
                     if (enabled) (customContainerColor ?: MaterialTheme.colorScheme.primary) else MaterialTheme.colorScheme.outlineVariant
                 ),
                 colors = ButtonDefaults.outlinedButtonColors(
@@ -754,8 +756,8 @@ fun CustomButton(
                     disabledContentColor = contentColor.copy(alpha = 0.7f)
                 ),
                 elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = if (variant == CustomButtonVariant.PRIMARY) 2.dp else 0.dp,
-                    pressedElevation = 4.dp
+                    defaultElevation = 0.dp,
+                    pressedElevation = 2.dp
                 ),
                 contentPadding = contentPadding
             ) {
@@ -953,7 +955,7 @@ fun InputField(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                 errorBorderColor = MaterialTheme.colorScheme.error,
                 focusedTextColor = MaterialTheme.colorScheme.onSurface,
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
@@ -1113,15 +1115,15 @@ fun WorkspaceCard(
         modifier = modifier,
         onClick = onClick,
         shape = MaterialTheme.shapes.large,
-        contentPadding = PaddingValues(14.dp),
-        elevation = 3.dp
+        contentPadding = PaddingValues(Spacing.md),
+        elevation = 1.dp
     ) {
         // Boxed cover photo with favorite overlay icon & listing type tag
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(100.dp)
-                .clip(MaterialTheme.shapes.medium)
+                .height(120.dp)
+                .clip(MaterialTheme.shapes.small)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             if (imageUrl != null) {
@@ -1155,7 +1157,6 @@ fun WorkspaceCard(
                         Text(
                             text = "Verified",
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = LebaneseCedarGreen
                         )
@@ -1194,12 +1195,12 @@ fun WorkspaceCard(
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = 3.dp)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(Spacing.md))
 
         // Title & Price row
         Row(
@@ -1231,7 +1232,7 @@ fun WorkspaceCard(
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(Spacing.xs))
 
         // Location
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1256,7 +1257,7 @@ fun WorkspaceCard(
         // Operating hours & Days open badge
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (operatingHours != null) {
@@ -1265,20 +1266,19 @@ fun WorkspaceCard(
                     shape = MaterialTheme.shapes.extraSmall
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = 3.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                     ) {
                         Icon(
                             imageVector = Icons.Default.AccessTime,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(10.dp)
+                            modifier = Modifier.size(12.dp)
                         )
                         Text(
                             text = operatingHours,
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -1290,20 +1290,19 @@ fun WorkspaceCard(
                     shape = MaterialTheme.shapes.extraSmall
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = 3.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                     ) {
                         Icon(
                             imageVector = Icons.Default.CalendarMonth,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.size(10.dp)
+                            modifier = Modifier.size(12.dp)
                         )
                         Text(
                             text = totalDaysOpen,
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
@@ -1313,20 +1312,21 @@ fun WorkspaceCard(
 
         // Configured Formula Types chips
         if (formulaTypes.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(Spacing.sm))
             Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 formulaTypes.take(3).forEach { formula ->
                     Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
                         shape = MaterialTheme.shapes.extraSmall
                     ) {
                         Text(
                             text = formula,
                             style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = 3.dp),
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -1336,9 +1336,9 @@ fun WorkspaceCard(
 
         // Footer: Check Space + WhatsApp buttons
         if (onDetailsClick != null || onWhatsAppClick != null) {
-            Spacer(modifier = Modifier.height(10.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+            Spacer(modifier = Modifier.height(Spacing.md))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1411,9 +1411,9 @@ fun ProInfoBanner(
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(Spacing.md),
+            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             Icon(
                 imageVector = icon,
@@ -1465,7 +1465,7 @@ fun ProChip(
                 )
             }
         } else null,
-        shape = MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.small,
         colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = MaterialTheme.colorScheme.primary,
             selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
@@ -1506,14 +1506,14 @@ fun ProSegmentedControl(
                 val isSelected = selectedIndex == index
                 Surface(
                     color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
-                    shape = RoundedCornerShape(9.dp),
+                    shape = RoundedCornerShape(10.dp),
                     border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)) else null,
                     modifier = Modifier
                         .weight(1f)
                         .clickable { onIndexSelected(index) }
                 ) {
                     Box(
-                        modifier = Modifier.padding(vertical = Spacing.sm),
+                        modifier = Modifier.padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -1619,15 +1619,14 @@ fun ProHostTopAppBar(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         modifier = modifier.fillMaxWidth()
     ) {
+        Column {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = Spacing.xs, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -1642,7 +1641,7 @@ fun ProHostTopAppBar(
                     modifier = Modifier.testTag("hamburger_menu_button")
                 ) {
                     Icon(
-                        imageVector = Icons.Default.MoreVert,
+                        imageVector = Icons.Default.Menu,
                         contentDescription = "Open Side Navigation Drawer",
                         tint = MaterialTheme.colorScheme.onSurface
                     )
@@ -1652,12 +1651,12 @@ fun ProHostTopAppBar(
                     ProHostBrandLogo(size = 34.dp)
 
                     Column(
-                        verticalArrangement = Arrangement.Center
+                        verticalArrangement = Arrangement.spacedBy(1.dp)
                     ) {
                         Text(
                             text = "ProHost",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
 
@@ -1667,8 +1666,7 @@ fun ProHostTopAppBar(
                                 UserRole.PRO_HOST -> "Host & Owner Hub"
                                 UserRole.SPECIALIST -> "Practitioner Circle"
                             },
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -1684,8 +1682,8 @@ fun ProHostTopAppBar(
                     badge = {
                         if (unreadAlertCount > 0) {
                             Badge(
-                                containerColor = MaterialTheme.colorScheme.error,
-                                contentColor = MaterialTheme.colorScheme.onError
+                                containerColor = MaterialTheme.colorScheme.secondary,
+                                contentColor = MaterialTheme.colorScheme.onSecondary
                             ) {
                                 Text(
                                     text = unreadAlertCount.toString(),
@@ -1699,10 +1697,12 @@ fun ProHostTopAppBar(
                     Icon(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = "Real-time Push Alerts",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
         }
     }
 }
@@ -1727,9 +1727,9 @@ fun ShimmerLoadingCard(
     )
     val shimmerBrush = Brush.horizontalGradient(
         colors = listOf(
-            LightGray,
-            PureWhite.copy(alpha = 0.90f),
-            LightGray
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
+            MaterialTheme.colorScheme.surfaceVariant
         ),
         startX = translateAnim - 600f,
         endX = translateAnim + 600f
@@ -1758,15 +1758,14 @@ fun ProHostFullScreenTopAppBar(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         modifier = modifier.fillMaxWidth()
     ) {
+        Column {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = Spacing.xs, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -1782,10 +1781,13 @@ fun ProHostFullScreenTopAppBar(
             }
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.onSurface
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
         }
     }
 }

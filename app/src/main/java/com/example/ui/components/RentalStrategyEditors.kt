@@ -168,7 +168,7 @@ fun MonthlyStrategyEditor(
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             Text("Excluded ranges (${config.excludedRanges.size})", style = MaterialTheme.typography.bodySmall)
-            TextButton(onClick = {
+            TextButton(shape = MaterialTheme.shapes.medium, onClick = {
                 onConfigChange(
                     config.copy(
                         excludedRanges = config.excludedRanges + MonthYearRange(
@@ -225,7 +225,7 @@ fun HourlyStrategyEditor(
                         modifier = Modifier.width(110.dp),
                         singleLine = true
                     )
-                    TextButton(onClick = {
+                    TextButton(shape = MaterialTheme.shapes.medium, onClick = {
                         val price = bulkPriceByDay[day]?.toDoubleOrNull() ?: return@TextButton
                         onConfigChange(config.copy(cellPrices = config.cellPrices + hours.associate { "$day|$it" to price }))
                     }) { Text("Fill all hours") }

@@ -71,7 +71,8 @@ fun SubscriptionRenewalDialog(
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp,
+            tonalElevation = 0.dp,
+            shadowElevation = 8.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -157,9 +158,9 @@ fun SubscriptionRenewalDialog(
                                                 Text(
                                                     text = "Active",
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    fontSize = 8.sp,
+                                                    fontWeight = FontWeight.Bold,
                                                     color = Color.White,
-                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                                 )
                                             }
                                         }

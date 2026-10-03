@@ -215,8 +215,7 @@ fun SpaceDetailsScreenContent(
                 title = {
                     Text(
                         space.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
@@ -274,7 +273,7 @@ fun SpaceDetailsScreenContent(
                     val stripContent = if (hasSlots) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                     Surface(
                         color = if (hasSlots) VibrantBlue else MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable(enabled = hasSlots) { availabilityPanelState = "full" }
@@ -282,11 +281,11 @@ fun SpaceDetailsScreenContent(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                                .padding(horizontal = Spacing.xl, vertical = Spacing.md),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.EventAvailable, contentDescription = null, tint = stripContent, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Icon(Icons.Default.EventAvailable, contentDescription = null, tint = stripContent, modifier = Modifier.size(22.dp))
+                            Spacer(modifier = Modifier.width(Spacing.md))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = stripSub?.name ?: "Check availability",
@@ -315,9 +314,8 @@ fun SpaceDetailsScreenContent(
                 // Price + action strip
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 10.dp,
                     shadowElevation = 8.dp,
-                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
@@ -325,8 +323,8 @@ fun SpaceDetailsScreenContent(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                            .padding(horizontal = Spacing.xl, vertical = Spacing.lg),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
@@ -357,7 +355,8 @@ fun SpaceDetailsScreenContent(
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.md)
                                 )
                             }
                         } else {
@@ -365,15 +364,15 @@ fun SpaceDetailsScreenContent(
                                 onClick = onWhatsAppClick,
                                 shape = MaterialTheme.shapes.medium,
                                 colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                                modifier = Modifier.weight(1f),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
+                                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                                contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.md)
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text(
                                     "WhatsApp",
                                     color = Color.White,
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -1041,16 +1040,16 @@ fun SpaceDetailsScreenContent(
             // Blue design (matches the "Press to see option availability" trigger
             // bar) instead of the neutral grey Material surface, so the trigger and
             // the sheet it opens read as one consistent design.
-            containerColor = VibrantBlue.copy(alpha = 0.06f).compositeOver(MaterialTheme.colorScheme.surface),
-            tonalElevation = 4.dp,
+            containerColor = VibrantBlue.copy(alpha = 0.05f).compositeOver(MaterialTheme.colorScheme.surface),
+            tonalElevation = 0.dp,
             scrimColor = Color.Black.copy(alpha = 0.35f),
             dragHandle = {
                 Box(
                     modifier = Modifier
-                        .padding(vertical = 8.dp)
-                        .width(28.dp)
+                        .padding(top = Spacing.md, bottom = Spacing.xs)
+                        .width(40.dp)
                         .height(4.dp)
-                        .background(VibrantBlue.copy(alpha = 0.6f), RoundedCornerShape(2.dp))
+                        .background(VibrantBlue.copy(alpha = 0.45f), CircleShape)
                 )
             }
         ) {
@@ -1509,11 +1508,12 @@ fun SpaceDetailsScreenContent(
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 onClick = { showSendConfirm = true },
-                                modifier = Modifier.weight(1f),
-                                shape = MaterialTheme.shapes.medium
+                                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                                shape = MaterialTheme.shapes.medium,
+                                colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange, contentColor = PureWhite)
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text("Request $slotLabel", fontWeight = FontWeight.Bold)
                             }
                             // WhatsApp: compose structured message listing all selected slots
@@ -1590,10 +1590,10 @@ fun SpaceDetailsScreenContent(
 
             AlertDialog(
                 onDismissRequest = { if (!isSendingSlotRequest) showSendConfirm = false },
-                icon = { Icon(Icons.Default.EventAvailable, contentDescription = null) },
+                icon = { Icon(Icons.Default.EventAvailable, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                 title = { Text("Confirm Your Request") },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                         // Space / location / room summary
                         listOf(
                             "Space" to liveSpace.title,
@@ -1605,7 +1605,7 @@ fun SpaceDetailsScreenContent(
                                 Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                             }
                         }
-                        HorizontalDivider()
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         // Slot summary
                         val allSelectedSlotLabels = buildList {
                             selectedSlots.forEach { add(it.label) }
@@ -1636,12 +1636,13 @@ fun SpaceDetailsScreenContent(
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Estimated Total", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text("$${String.format("%.2f", totalCostForDialog)} USD",
-                                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = CarnationOrange)
                         }
                     }
                 },
                 confirmButton = {
                     Button(
+                        shape = MaterialTheme.shapes.medium,
                         onClick = {
                             sendMultiSlotRequest(
                                 slotsToSend = selectedSlots.toList(),
@@ -1651,17 +1652,18 @@ fun SpaceDetailsScreenContent(
                                 attendeePackage = if (isAttendeeModeDialog) pkgForDialog else null
                             )
                         },
-                        enabled = !isSendingSlotRequest
+                        enabled = !isSendingSlotRequest,
+                        colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange, contentColor = PureWhite)
                     ) {
                         if (isSendingSlotRequest) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = PureWhite)
                         } else {
-                            Text("Send")
+                            Text("Send", fontWeight = FontWeight.Bold)
                         }
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showSendConfirm = false }, enabled = !isSendingSlotRequest) { Text("Cancel") }
+                    TextButton(shape = MaterialTheme.shapes.medium, onClick = { showSendConfirm = false }, enabled = !isSendingSlotRequest) { Text("Cancel") }
                 }
             )
         }
@@ -1679,12 +1681,12 @@ fun SpaceDetailsScreenContent(
                 )
             },
             confirmButton = {
-                Button(onClick = { showProfilePicRequiredDialog = false; onBack() }) {
+                Button(shape = MaterialTheme.shapes.medium, onClick = { showProfilePicRequiredDialog = false; onBack() }) {
                     Text("Go to Profile")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showProfilePicRequiredDialog = false }) {
+                TextButton(shape = MaterialTheme.shapes.medium, onClick = { showProfilePicRequiredDialog = false }) {
                     Text("Cancel")
                 }
             }
@@ -1715,6 +1717,7 @@ fun SpaceDetailsScreenContent(
             },
             confirmButton = {
                 Button(
+                    shape = MaterialTheme.shapes.medium,
                     onClick = {
                         viewModel.sendInquiryEmail(context, liveSpace.id, inquiryMessage)
                         showInquiryDialog = false
@@ -1726,7 +1729,7 @@ fun SpaceDetailsScreenContent(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showInquiryDialog = false; inquiryMessage = "" }) {
+                TextButton(shape = MaterialTheme.shapes.medium, onClick = { showInquiryDialog = false; inquiryMessage = "" }) {
                     Text("Cancel")
                 }
             }

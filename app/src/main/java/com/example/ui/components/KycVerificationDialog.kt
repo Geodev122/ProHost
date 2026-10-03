@@ -127,6 +127,7 @@ fun KycVerificationDialog(
                                     singleLine = true
                                 )
                                 Button(
+                                    shape = MaterialTheme.shapes.medium,
                                     onClick = {
                                         activity?.let { act ->
                                             authViewModel.linkKycPhone(act, phoneInput, phoneOtpInput,
@@ -144,6 +145,7 @@ fun KycVerificationDialog(
                                 ) { Text("Verify SMS Code") }
                             } else {
                                 Button(
+                                    shape = MaterialTheme.shapes.medium,
                                     onClick = {
                                         activity?.let { act ->
                                             authViewModel.startPhoneVerification(
@@ -180,6 +182,7 @@ fun KycVerificationDialog(
                                 singleLine = true
                             )
                             Button(
+                                shape = MaterialTheme.shapes.medium,
                                 onClick = {
                                     isEmailSent = true
                                     Toast.makeText(context, "Verification email sent to $emailInput", Toast.LENGTH_SHORT).show()

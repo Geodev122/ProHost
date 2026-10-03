@@ -40,18 +40,18 @@ fun DrawerIdentityCard(
     val primaryAccent = when (role) {
         UserRole.ADMIN -> AmberWarning
         UserRole.PRO_HOST -> CarnationOrange
-        UserRole.SPECIALIST -> OxfordBlue
+        UserRole.SPECIALIST -> VibrantBlue
     }
     val heroGradient = when (role) {
         UserRole.ADMIN -> Brush.linearGradient(listOf(OxfordBlueDark, OxfordBlue, CoolGrayDark))
         UserRole.PRO_HOST -> Brush.linearGradient(listOf(OxfordBlue, CarnationOrangeDark.copy(alpha = 0.85f), OxfordBlueDark))
-        UserRole.SPECIALIST -> Brush.linearGradient(listOf(OxfordBlueDark, OxfordBlue, VibrantBlue.copy(alpha = 0.7f)))
+        UserRole.SPECIALIST -> Brush.linearGradient(listOf(CoolGrayDark, VibrantBlueDark, VibrantBlue))
     }
 
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(6.dp, MaterialTheme.shapes.extraLarge),
+            .shadow(4.dp, MaterialTheme.shapes.extraLarge),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
@@ -59,7 +59,7 @@ fun DrawerIdentityCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(heroGradient)
-                .padding(20.dp)
+                .padding(Spacing.xl)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 // Top row: Active Plan Tag + Close Drawer Arrow
@@ -75,7 +75,7 @@ fun DrawerIdentityCard(
                         if (role == UserRole.PRO_HOST && user != null) {
                             Surface(
                                 color = CarnationOrange.copy(alpha = 0.35f),
-                                shape = MaterialTheme.shapes.medium,
+                                shape = CircleShape,
                                 border = BorderStroke(1.dp, CarnationOrange.copy(alpha = 0.8f))
                             ) {
                                 Row(
@@ -105,8 +105,8 @@ fun DrawerIdentityCard(
                                     UserRole.ADMIN -> AmberWarning.copy(alpha = 0.25f)
                                     else -> VibrantBlue.copy(alpha = 0.25f)
                                 },
-                                shape = MaterialTheme.shapes.medium,
-                                border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.6f))
+                                shape = CircleShape,
+                                border = BorderStroke(1.dp, PureWhite.copy(alpha = 0.35f))
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
@@ -222,8 +222,7 @@ fun DrawerIdentityCard(
                         ) {
                             Text(
                                 text = user?.fullName ?: "ProHost Member",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.headlineSmall,
                                 color = Color.White,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -302,14 +301,14 @@ fun DrawerIdentityCard(
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Surface(
                         color = Color.White.copy(alpha = 0.15f),
-                        shape = MaterialTheme.shapes.small
+                        shape = CircleShape
                     ) {
                         Text(
                             text = if (user?.isVerified == true) "🛡️ Phone Verified" else "Phone Unverified",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
                         )
                     }
                 }

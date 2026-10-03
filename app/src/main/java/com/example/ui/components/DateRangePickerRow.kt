@@ -77,12 +77,12 @@ fun DateRangePickerRow(
         DatePickerDialog(
             onDismissRequest = { showFromPicker = false },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(shape = MaterialTheme.shapes.medium, onClick = {
                     onFromChange(pickerState.selectedDateMillis)
                     showFromPicker = false
                 }) { Text("OK") }
             },
-            dismissButton = { TextButton(onClick = { showFromPicker = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(shape = MaterialTheme.shapes.medium, onClick = { showFromPicker = false }) { Text("Cancel") } }
         ) {
             DatePicker(state = pickerState)
         }
@@ -93,13 +93,13 @@ fun DateRangePickerRow(
         DatePickerDialog(
             onDismissRequest = { showToPicker = false },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(shape = MaterialTheme.shapes.medium, onClick = {
                     // Inclusive end-of-day so "To: today" also includes today's entries.
                     onToChange(pickerState.selectedDateMillis?.plus(24L * 60 * 60 * 1000 - 1))
                     showToPicker = false
                 }) { Text("OK") }
             },
-            dismissButton = { TextButton(onClick = { showToPicker = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(shape = MaterialTheme.shapes.medium, onClick = { showToPicker = false }) { Text("Cancel") } }
         ) {
             DatePicker(state = pickerState)
         }

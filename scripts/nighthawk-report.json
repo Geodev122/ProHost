@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-10-02T23:19:43.906Z",
+  "generatedAt": "2026-10-03T00:18:01.841Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 8,
+    "total": 9,
     "critical": 0,
     "high": 0,
     "medium": 2,
-    "low": 6,
+    "low": 7,
     "info": 0,
-    "passes": 28
+    "passes": 27
   },
   "findings": [
     {
@@ -31,6 +31,15 @@
     },
     {
       "severity": "LOW",
+      "category": "ux",
+      "check": "Screen Error State",
+      "file": "app/src/main/java/com/example/ui/screens/DiscoveryScreen.kt",
+      "line": null,
+      "message": "Screen has no visible error feedback.",
+      "suggestion": "Add errorMessage to state and display in Snackbar/Text."
+    },
+    {
+      "severity": "LOW",
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/data/model/DataModels.kt",
@@ -43,7 +52,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/navigation/ProHostNavGraph.kt",
-      "line": 109,
+      "line": 110,
       "message": "Line has 162 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -79,7 +88,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt",
-      "line": 750,
+      "line": 752,
       "message": "Line has 161 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     }
@@ -104,10 +113,6 @@
     {
       "check": "Screen Loading State",
       "message": "16/16 screens have a loading indicator."
-    },
-    {
-      "check": "Screen Error State",
-      "message": "All screens surface error feedback."
     },
     {
       "check": "Screen Empty State",

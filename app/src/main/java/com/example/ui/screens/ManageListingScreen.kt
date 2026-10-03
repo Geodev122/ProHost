@@ -88,8 +88,8 @@ fun ManageListingScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Manage", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text(liveSpace.title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Manage", style = MaterialTheme.typography.titleLarge)
+                        Text(liveSpace.title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                     }
                 },
                 navigationIcon = {
@@ -245,11 +245,11 @@ private fun DivisionPerformanceCard(
                     shape = MaterialTheme.shapes.small,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Column(modifier = Modifier.padding(Spacing.sm)) {
+                    Column(modifier = Modifier.padding(Spacing.md)) {
                         Text("Occupancy", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
                             "$occupancyPct%",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = when {
                                 allSlots.isEmpty() -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -271,11 +271,11 @@ private fun DivisionPerformanceCard(
                     shape = MaterialTheme.shapes.small,
                     modifier = Modifier.weight(1.3f)
                 ) {
-                    Column(modifier = Modifier.padding(Spacing.sm)) {
+                    Column(modifier = Modifier.padding(Spacing.md)) {
                         Text("Yield This Month", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
                             "$${"%,.0f".format(thisMonthYield)}",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold
                         )
                         val delta = thisMonthYield - lastMonthYield
@@ -388,9 +388,9 @@ private fun MonthlyAvailabilityTable(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
-            .padding(Spacing.sm),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+            .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.medium)
+            .padding(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         monthRows.forEach { cell ->
             Row(
@@ -457,8 +457,8 @@ private fun WeeklyAvailabilityTable(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
-            .padding(Spacing.sm),
+            .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.medium)
+            .padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         rowsByDay.forEach { (day, slots) ->
@@ -474,7 +474,7 @@ private fun WeeklyAvailabilityTable(
                     modifier = Modifier
                         .weight(1f)
                         .horizontalScroll(rowScrollState),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     slots.sortedBy { it.startTime }.forEach { slot ->
                         AvailabilitySlotCell(slot = slot, spaceId = spaceId, acceptedBookings = acceptedBookings)
@@ -507,7 +507,7 @@ private fun AvailabilitySlotCell(
         modifier = Modifier.width(84.dp)
     ) {
         Column(
-            modifier = Modifier.padding(6.dp),
+            modifier = Modifier.padding(Spacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(timingLabel, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, maxLines = 1)

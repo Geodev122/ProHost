@@ -139,7 +139,7 @@ fun OwnerAnalyticsScreen(
         // Header
         item {
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                     ProSectionHeader(
                         title = "Analytics & Revenue",
                         subtitle = "Live Telemetry",
@@ -149,7 +149,7 @@ fun OwnerAnalyticsScreen(
                     // 4 Quick Metric Cards
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
                         ProMetricTile(
                             title = "Listings",
@@ -170,7 +170,7 @@ fun OwnerAnalyticsScreen(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
                         ProMetricTile(
                             title = "Est. MRR",
@@ -259,7 +259,7 @@ fun OwnerAnalyticsScreen(
                     // Bookings + Pending side by side
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
                         ProMetricTile(
                             title = "Bookings",

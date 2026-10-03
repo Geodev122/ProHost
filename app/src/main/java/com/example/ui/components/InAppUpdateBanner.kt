@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.FreshGreen
-import com.example.ui.theme.OxfordBlue
+import com.example.ui.theme.VibrantBlue
 import com.example.util.UpdateState
 import com.example.ui.theme.Spacing
 
@@ -38,9 +38,9 @@ fun InAppUpdateBanner(
         Card(
             shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(
-                containerColor = if (updateState == UpdateState.DOWNLOADED) FreshGreen else OxfordBlue
+                containerColor = if (updateState == UpdateState.DOWNLOADED) FreshGreen else VibrantBlue
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
@@ -48,8 +48,8 @@ fun InAppUpdateBanner(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -58,7 +58,7 @@ fun InAppUpdateBanner(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(40.dp)
                             .clip(MaterialTheme.shapes.small)
                             .background(Color.White.copy(alpha = 0.2f)),
                         contentAlignment = Alignment.Center
@@ -97,7 +97,7 @@ fun InAppUpdateBanner(
                                 contentColor = FreshGreen
                             ),
                             shape = MaterialTheme.shapes.small,
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm)
                         ) {
                             Text(
                                 text = "Restart",

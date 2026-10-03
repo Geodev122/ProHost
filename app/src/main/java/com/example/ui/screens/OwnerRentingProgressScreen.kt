@@ -165,7 +165,7 @@ fun OwnerRentingProgressScreenContent(
                 .fillMaxWidth()
                 .widthIn(max = 840.dp),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             item {
                 Surface(
@@ -181,7 +181,7 @@ fun OwnerRentingProgressScreenContent(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             Icon(
                                 Icons.Default.EventAvailable,
@@ -213,7 +213,7 @@ fun OwnerRentingProgressScreenContent(
             ProSurfaceCard {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
                     ProSectionHeader(
                         title = "Alerts",
@@ -221,7 +221,7 @@ fun OwnerRentingProgressScreenContent(
                         icon = Icons.Default.NotificationsActive
                     )
 
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         reminders.forEach { (isUrgent, reminderText) ->
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -229,7 +229,7 @@ fun OwnerRentingProgressScreenContent(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(10.dp),
+                                    modifier = Modifier.padding(Spacing.md),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
@@ -324,12 +324,12 @@ fun OwnerRentingProgressScreenContent(
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = MaterialTheme.shapes.large,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        modifier = Modifier.padding(Spacing.lg),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -403,7 +403,7 @@ fun OwnerRentingProgressScreenContent(
                                 color = if (booking.paymentAcknowledgedByHost) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             if (!booking.paymentAcknowledgedByHost) {
-                                TextButton(onClick = { onMarkPaid(booking) }) {
+                                TextButton(shape = MaterialTheme.shapes.medium, onClick = { onMarkPaid(booking) }) {
                                     Text("Mark as Paid", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                 }
                             }
@@ -416,7 +416,7 @@ fun OwnerRentingProgressScreenContent(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(6.dp)
-                                    .clip(RoundedCornerShape(3.dp)),
+                                    .clip(androidx.compose.foundation.shape.CircleShape),
                                 color = MaterialTheme.colorScheme.primary,
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
@@ -446,7 +446,7 @@ fun OwnerRentingProgressScreenContent(
                         // Action Buttons
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             CustomButton(

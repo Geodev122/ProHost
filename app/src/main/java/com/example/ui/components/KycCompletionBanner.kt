@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.example.data.model.AppUser
 import com.example.ui.theme.CarnationOrange
 import com.example.ui.theme.FreshGreen
+import com.example.ui.theme.Spacing
 
 /**
  * Inline KYC progress card for SpecialistProfileScreen.
@@ -64,17 +65,17 @@ fun KycCompletionBanner(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-        tonalElevation = 1.dp
+        border = androidx.compose.foundation.BorderStroke(1.dp, CarnationOrange.copy(alpha = 0.25f))
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.Shield, contentDescription = null, tint = CarnationOrange, modifier = Modifier.size(20.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Icon(Icons.Default.Shield, contentDescription = null, tint = CarnationOrange, modifier = Modifier.size(22.dp))
                 Text(
                     "Profile Verification",
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
@@ -130,10 +131,12 @@ fun KycCompletionBanner(
             if (nextAction != null) {
                 OutlinedButton(
                     onClick = nextAction,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, CarnationOrange),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = CarnationOrange)
                 ) {
-                    Text("Resend Verification Email", style = MaterialTheme.typography.labelMedium)
+                    Text("Resend Verification Email", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 }
             }
         }

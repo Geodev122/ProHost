@@ -101,7 +101,7 @@ fun KycScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+                .padding(Spacing.xl),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Step progress
@@ -191,7 +191,7 @@ fun KycScreen(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
-                            Text("Add Your Phone Number", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text("Add Your Phone Number", style = MaterialTheme.typography.titleLarge)
                             Text(
                                 "Required to access booking and listing features",
                                 style = MaterialTheme.typography.bodySmall,
@@ -279,7 +279,7 @@ fun KycScreen(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
-                            Text("Enter Verification Code", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text("Enter Verification Code", style = MaterialTheme.typography.titleLarge)
                             Text(
                                 "Code sent to ${phoneCountry.dialCode} $phoneNumber",
                                 style = MaterialTheme.typography.bodySmall,
@@ -340,6 +340,7 @@ fun KycScreen(
                         )
                     } else {
                         TextButton(
+                            shape = MaterialTheme.shapes.medium,
                             onClick = {
                                 val currentActivity = activity
                                 if (currentActivity == null) return@TextButton
@@ -362,6 +363,7 @@ fun KycScreen(
                     }
 
                     TextButton(
+                        shape = MaterialTheme.shapes.medium,
                         onClick = {
                             step = KycStep.PHONE_ENTRY
                             otpCode = ""

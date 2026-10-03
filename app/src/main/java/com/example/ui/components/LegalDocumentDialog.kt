@@ -84,7 +84,7 @@ fun LegalDocumentDialog(
     ) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             Column(modifier = Modifier.fillMaxSize()) {
-                Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
+                Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -96,6 +96,7 @@ fun LegalDocumentDialog(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (!isAdminManaged) {
                                 TextButton(
+                                    shape = MaterialTheme.shapes.medium,
                                     enabled = !isGeneratingPdf,
                                     onClick = {
                                         val adminPdfUrl = rerentalPdfVersion?.url
@@ -226,7 +227,7 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                 }
-                TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
+                TextButton(shape = MaterialTheme.shapes.medium, onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
                     Text("Close")
                 }
             }

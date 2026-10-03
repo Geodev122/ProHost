@@ -65,7 +65,7 @@ fun OwnerIncomingRequestsView(
     ProSurfaceCard(modifier = modifier) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             // Header with badge
             ProSectionHeader(
@@ -86,7 +86,7 @@ fun OwnerIncomingRequestsView(
             // screens, since "Declined (N)" was the one getting squeezed last.
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 items(
                     listOf(
@@ -159,7 +159,7 @@ fun OwnerIncomingRequestsView(
                     modifier = Modifier.padding(vertical = Spacing.md)
                 )
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     filteredRequests.forEach { request ->
                         OwnerBookingRequestCard(
                             request = request,
@@ -190,7 +190,7 @@ fun OwnerIncomingRequestsView(
         AlertDialog(
             onDismissRequest = { rejectingRequestId = null },
             icon = { Icon(Icons.Default.Cancel, contentDescription = null, tint = StatusError) },
-            title = { Text("Decline Booking Request", style = MaterialTheme.typography.titleMedium) },
+            title = { Text("Decline Booking Request", style = MaterialTheme.typography.titleLarge) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -223,7 +223,7 @@ fun OwnerIncomingRequestsView(
                 )
             },
             dismissButton = {
-                TextButton(onClick = { rejectingRequestId = null }) {
+                TextButton(shape = MaterialTheme.shapes.medium, onClick = { rejectingRequestId = null }) {
                     Text("Cancel")
                 }
             }
@@ -238,9 +238,9 @@ fun OwnerIncomingRequestsView(
         AlertDialog(
             onDismissRequest = { acceptingRequestId = null },
             icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-            title = { Text("Accept & Upload Agreement", style = MaterialTheme.typography.titleMedium) },
+            title = { Text("Accept & Upload Agreement", style = MaterialTheme.typography.titleLarge) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     Text(
                         text = "Accepting means you and the specialist have reached and signed a leasing agreement outside the app. " +
                             "Upload the signed document to finalize — this saves it as the official record and locks in the sched" +
@@ -260,6 +260,7 @@ fun OwnerIncomingRequestsView(
             },
             confirmButton = {
                 Button(
+                    shape = MaterialTheme.shapes.medium,
                     onClick = {
                         val uri = agreementDocState.uri
                         if (uri != null) {
@@ -275,7 +276,7 @@ fun OwnerIncomingRequestsView(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { acceptingRequestId = null }) {
+                TextButton(shape = MaterialTheme.shapes.medium, onClick = { acceptingRequestId = null }) {
                     Text("Cancel")
                 }
             }
@@ -298,14 +299,14 @@ fun OwnerBookingRequestCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
             color = when (request.status) {
-                BookingRequestStatus.PENDING -> StatusWarning
-                BookingRequestStatus.ACCEPTED -> StatusInfo
-                BookingRequestStatus.REJECTED -> StatusError
+                BookingRequestStatus.PENDING -> StatusWarning.copy(alpha = 0.45f)
+                BookingRequestStatus.ACCEPTED -> StatusInfo.copy(alpha = 0.45f)
+                BookingRequestStatus.REJECTED -> StatusError.copy(alpha = 0.45f)
                 BookingRequestStatus.CANCELLED -> MaterialTheme.colorScheme.outlineVariant
             }
         )
@@ -313,8 +314,8 @@ fun OwnerBookingRequestCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             // Member profile header & Status Badge
             Row(
@@ -452,7 +453,7 @@ fun OwnerBookingRequestCard(
                         text = "Requirements / Note: \"${request.clinicalNotes}\"",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(6.dp)
+                        modifier = Modifier.padding(Spacing.sm)
                     )
                 }
             }
@@ -505,7 +506,7 @@ fun OwnerBookingRequestCard(
             if (request.status == BookingRequestStatus.PENDING) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     CustomButton(

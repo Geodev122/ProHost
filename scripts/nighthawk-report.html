@@ -32,14 +32,14 @@
 <body>
 <header>
   <h1>🦅 NIGHTHAWK — ProHost Enhanced Debug Report</h1>
-  <p>8 issues found · 28 checks passed</p>
+  <p>9 issues found · 27 checks passed</p>
 </header>
 <div class="stats">
   <div class="stat crit"><div class="num">0</div><div class="lbl">Critical</div></div>
   <div class="stat high"><div class="num">0</div><div class="lbl">High</div></div>
   <div class="stat med"><div class="num">2</div><div class="lbl">Medium</div></div>
-  <div class="stat low"><div class="num">6</div><div class="lbl">Low</div></div>
-  <div class="stat pass"><div class="num">28</div><div class="lbl">Passing</div></div>
+  <div class="stat low"><div class="num">7</div><div class="lbl">Low</div></div>
+  <div class="stat pass"><div class="num">27</div><div class="lbl">Passing</div></div>
 </div>
 <h2>Findings</h2>
 <table>
@@ -65,6 +65,15 @@
 
   <tr style="background:#E3F2FD">
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
+    <td><code class="tag">ux</code></td>
+    <td><strong>Screen Error State</strong></td>
+    <td><code>app/src/main/java/com/example/ui/screens/DiscoveryScreen.kt</code></td>
+    <td>Screen has no visible error feedback.</td>
+    <td class="suggestion">Add errorMessage to state and display in Snackbar/Text.</td>
+  </tr>
+
+  <tr style="background:#E3F2FD">
+    <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
     <td><code>app/src/main/java/com/example/data/model/DataModels.kt:1461</code></td>
@@ -76,7 +85,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/navigation/ProHostNavGraph.kt:109</code></td>
+    <td><code>app/src/main/java/com/example/ui/navigation/ProHostNavGraph.kt:110</code></td>
     <td>Line has 162 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -112,7 +121,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt:750</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt:752</code></td>
     <td>Line has 161 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr></tbody>
@@ -148,12 +157,6 @@
   <tr>
     <td><span class="badge" style="background:#388E3C">PASS</span></td>
     <td colspan="4">16/16 screens have a loading indicator.</td>
-    <td>—</td>
-  </tr>
-
-  <tr>
-    <td><span class="badge" style="background:#388E3C">PASS</span></td>
-    <td colspan="4">All screens surface error feedback.</td>
     <td>—</td>
   </tr>
 

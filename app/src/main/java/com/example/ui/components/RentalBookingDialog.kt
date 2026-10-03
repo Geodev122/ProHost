@@ -465,16 +465,16 @@ private fun BookingSlotSelectorDialog(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         contentWindowInsets = { WindowInsets(0) },
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = VibrantBlue.copy(alpha = 0.06f).compositeOver(MaterialTheme.colorScheme.surface),
-        tonalElevation = 4.dp,
+        containerColor = VibrantBlue.copy(alpha = 0.05f).compositeOver(MaterialTheme.colorScheme.surface),
+        tonalElevation = 0.dp,
         scrimColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.35f),
         dragHandle = {
             Box(
                 modifier = Modifier
-                    .padding(vertical = 8.dp)
-                    .width(28.dp)
+                    .padding(top = Spacing.md, bottom = Spacing.xs)
+                    .width(40.dp)
                     .height(4.dp)
-                    .background(VibrantBlue.copy(alpha = 0.6f), RoundedCornerShape(2.dp))
+                    .background(VibrantBlue.copy(alpha = 0.45f), androidx.compose.foundation.shape.CircleShape)
             )
         }
     ) {
@@ -483,8 +483,8 @@ private fun BookingSlotSelectorDialog(
                     .fillMaxWidth()
                     .fillMaxHeight(0.92f)
                     .navigationBarsPadding()
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 20.dp)
+                    .padding(horizontal = Spacing.xl)
+                    .padding(bottom = Spacing.xl)
             ) {
                 // Header
                 Row(
@@ -518,13 +518,13 @@ private fun BookingSlotSelectorDialog(
                     }
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.sm), color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.md), color = MaterialTheme.colorScheme.outlineVariant)
 
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xl)
                 ) {
                     // 1. Choose Subdivision (if any)
                     if (hasSubdivisions) {
@@ -1048,6 +1048,7 @@ private fun BookingSlotSelectorDialog(
                                                     }
                                                 }
                                                 OutlinedButton(
+                                                    shape = MaterialTheme.shapes.medium,
                                                     onClick = { showDayBasedDatePicker = true },
                                                     modifier = Modifier.fillMaxWidth()
                                                 ) {
@@ -1208,10 +1209,11 @@ private fun BookingSlotSelectorDialog(
                     // Financial Summary Card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                        shape = MaterialTheme.shapes.medium,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                     ) {
-                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1243,9 +1245,9 @@ private fun BookingSlotSelectorDialog(
 
                                 Text(
                                     text = "$${(if (isAttendeeMode) attendeeTotalUsd else totalCalculatedUsd).toInt()} USD",
-                                    fontSize = 20.sp,
+                                    style = MaterialTheme.typography.headlineSmall,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = CarnationOrange
                                 )
                             }
 
@@ -1287,12 +1289,12 @@ private fun BookingSlotSelectorDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(Spacing.md))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 // Bottom Action Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     // Shift-Based and Day-Based have no abstract "start date" preset
                     // anymore — the earliest real calendar date picked is the most
@@ -1320,13 +1322,14 @@ private fun BookingSlotSelectorDialog(
                     }
 
                     // In-App Only Request Button
-                    ProOutlinedButton(
+                    CustomButton(
                         text = primaryButtonText,
+                        variant = CustomButtonVariant.PRIMARY,
                         onClick = {
                             val formula = buildFormulaForSubmission()
                             if (formula == null) {
                                 Toast.makeText(context, "Please select an available slot first.", Toast.LENGTH_SHORT).show()
-                                return@ProOutlinedButton
+                                return@CustomButton
                             }
                             viewModel.submitBookingRequest(
                                 space = space,
@@ -1446,6 +1449,7 @@ private fun BookingSlotSelectorDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(
+                    shape = MaterialTheme.shapes.medium,
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
                             val iso = isoDateString(millis)
@@ -1456,7 +1460,7 @@ private fun BookingSlotSelectorDialog(
                 ) { Text("Add") }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                TextButton(shape = MaterialTheme.shapes.medium, onClick = { showDatePicker = false }) { Text("Cancel") }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -1489,6 +1493,7 @@ private fun BookingSlotSelectorDialog(
             onDismissRequest = { showDayBasedDatePicker = false },
             confirmButton = {
                 TextButton(
+                    shape = MaterialTheme.shapes.medium,
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
                             val iso = isoDateString(millis)
@@ -1499,7 +1504,7 @@ private fun BookingSlotSelectorDialog(
                 ) { Text("Add") }
             },
             dismissButton = {
-                TextButton(onClick = { showDayBasedDatePicker = false }) { Text("Cancel") }
+                TextButton(shape = MaterialTheme.shapes.medium, onClick = { showDayBasedDatePicker = false }) { Text("Cancel") }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -1521,6 +1526,7 @@ private fun BookingSlotSelectorDialog(
             onDismissRequest = { showDayBasedUntilPicker = false },
             confirmButton = {
                 TextButton(
+                    shape = MaterialTheme.shapes.medium,
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis -> dayBasedUntilDate = isoDateString(millis) }
                         showDayBasedUntilPicker = false
@@ -1528,7 +1534,7 @@ private fun BookingSlotSelectorDialog(
                 ) { Text("Set") }
             },
             dismissButton = {
-                TextButton(onClick = { showDayBasedUntilPicker = false }) { Text("Cancel") }
+                TextButton(shape = MaterialTheme.shapes.medium, onClick = { showDayBasedUntilPicker = false }) { Text("Cancel") }
             }
         ) {
             DatePicker(state = datePickerState)

@@ -15,17 +15,16 @@ import androidx.core.view.WindowCompat
 
 /**
  * Official ProHost Material 3 Light ColorScheme
- * Primary: Oxford Blue (#384152)
- * Secondary: Carnation Orange (#F25F4C)
+ * Primary: Vibrant Blue (#246BEE) — focus, selection, active navigation, links
+ * Secondary: Carnation Orange (#F25F4C) — key CTAs and highlights
  * Tertiary: Fresh Green (#4CAF72)
- * Surface: Pure White (#FFFFFF) / Light Gray (#E2E4E8)
- * OnSurface / Text: Cool Gray (#283544)
+ * Neutrals: Oxford Blue / Cool Gray text on white and cool off-white surfaces
  */
 private val LightColorScheme = lightColorScheme(
-    primary = OxfordBlue,
+    primary = VibrantBlue,
     onPrimary = PureWhite,
-    primaryContainer = OxfordBlueContainer,
-    onPrimaryContainer = OxfordBlueDark,
+    primaryContainer = VibrantBlueContainer,
+    onPrimaryContainer = VibrantBlueDark,
     inversePrimary = DarkPrimary,
 
     secondary = CarnationOrange,
@@ -45,6 +44,8 @@ private val LightColorScheme = lightColorScheme(
     onSurface = CoolGrayDark,
     surfaceVariant = SurfaceVariantLight,
     onSurfaceVariant = ProHostSecondaryText,
+    // Neutral, not primary: keeps tonal-elevation surfaces (top bar, drawer) clean
+    // instead of washing them blue now that primary is the brand blue.
     surfaceTint = OxfordBlue,
     inverseSurface = DarkSurface,
     inverseOnSurface = DarkOnSurface,
@@ -87,7 +88,7 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = DarkOnSurface,
     surfaceVariant = DarkSurfaceVariant,
     onSurfaceVariant = DarkOnSurfaceVariant,
-    surfaceTint = DarkPrimary,
+    surfaceTint = DarkOutline,
     inverseSurface = SurfaceLight,
     inverseOnSurface = CoolGrayDark,
 

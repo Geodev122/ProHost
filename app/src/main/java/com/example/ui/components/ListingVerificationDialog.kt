@@ -74,7 +74,7 @@ fun ListingVerificationDialog(
             modifier = Modifier
                 .fillMaxWidth(0.94f)
                 .fillMaxHeight(0.85f),
-            shape = RoundedCornerShape(20.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface
         ) {
             Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
@@ -143,7 +143,11 @@ fun ListingVerificationDialog(
                                         "name/ID and sign it. 2. Scan or photograph the signed document and upload it below.",
                                         style = MaterialTheme.typography.bodySmall
                                     )
-                                    OutlinedButton(onClick = { showTemplateDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                                    OutlinedButton(
+                                        shape = MaterialTheme.shapes.medium,
+                                        onClick = { showTemplateDialog = true },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
                                         Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(Spacing.xs))
                                         Text("Download Authorization Template")

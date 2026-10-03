@@ -165,7 +165,7 @@ fun SpaceAvailabilityCalendarView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(10.dp)
-                        .clip(RoundedCornerShape(5.dp))
+                        .clip(RoundedCornerShape(6.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     val rentedFraction = if (totalWeeklyOperatingHours > 0) {
@@ -281,7 +281,7 @@ fun SpaceAvailabilityCalendarView(
                                 ) {
                                     Text(
                                         text = "UNAVAILABLE",
-                                        fontSize = 9.sp,
+                                        fontSize = 10.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = StatusOnInfoContainer,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)

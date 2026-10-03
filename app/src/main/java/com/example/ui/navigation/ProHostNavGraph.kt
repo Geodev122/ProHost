@@ -2,6 +2,7 @@ package com.example.ui.navigation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Celebration
@@ -430,8 +431,9 @@ fun ProHostAppRoot(
                     modifier = Modifier
                         .fillMaxWidth(0.86f)
                         .widthIn(max = 320.dp),
+                    drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
                     drawerContainerColor = MaterialTheme.colorScheme.surface,
-                    drawerTonalElevation = 2.dp
+                    drawerTonalElevation = 0.dp
                 ) {
                     when (currentRole) {
                         UserRole.SPECIALIST, UserRole.PRO_HOST -> {
@@ -537,7 +539,8 @@ fun ProHostAppRoot(
                         !(isMapViewActive && activeTabId == AppNavTab.SearchMap.id)) {
                         val roleAccentColor = if (currentRole == UserRole.PRO_HOST) CarnationOrange else VibrantBlue
                         Column {
-                            // Glowing role-colored strip at the very top of the nav bar
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
+                            // Role-colored accent strip: orange for Pro Host, brand blue for Specialist
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -546,23 +549,9 @@ fun ProHostAppRoot(
                                         Brush.horizontalGradient(
                                             listOf(
                                                 Color.Transparent,
-                                                roleAccentColor.copy(alpha = 0.6f),
+                                                roleAccentColor.copy(alpha = 0.5f),
                                                 roleAccentColor,
-                                                roleAccentColor.copy(alpha = 0.6f),
-                                                Color.Transparent
-                                            )
-                                        )
-                                    )
-                            )
-                            // Soft glow bloom below the strip
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp)
-                                    .background(
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                roleAccentColor.copy(alpha = 0.14f),
+                                                roleAccentColor.copy(alpha = 0.5f),
                                                 Color.Transparent
                                             )
                                         )
@@ -586,11 +575,18 @@ fun ProHostAppRoot(
                                                 contentDescription = tab.title
                                             )
                                         },
-                                        label = { Text(tab.title, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                                        label = {
+                                            Text(
+                                                tab.title,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                maxLines = 1
+                                            )
+                                        },
                                         colors = NavigationBarItemDefaults.colors(
                                             selectedIconColor = roleAccentColor,
                                             selectedTextColor = roleAccentColor,
-                                            indicatorColor = roleAccentColor.copy(alpha = 0.12f),
+                                            indicatorColor = roleAccentColor.copy(alpha = 0.14f),
                                             unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                             unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                                         ),
@@ -807,10 +803,15 @@ fun ProHostAppRoot(
                     )
                 },
                 confirmButton = {
-                    Button(onClick = { showProHostWelcome = false }) {
-                        Text("Let's Go")
+                    Button(
+                        onClick = { showProHostWelcome = false },
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(containerColor = CarnationOrange)
+                    ) {
+                        Text("Let's Go", fontWeight = FontWeight.Bold)
                     }
-                }
+                },
+                shape = MaterialTheme.shapes.extraLarge
             )
         }
     }
@@ -858,8 +859,8 @@ private fun SuspendedAccountScreen(onSignOut: () -> Unit) {
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(28.dp))
-            Button(onClick = onSignOut) {
-                Text("Sign Out")
+            Button(onClick = onSignOut, shape = MaterialTheme.shapes.medium) {
+                Text("Sign Out", fontWeight = FontWeight.Bold)
             }
         }
     }

@@ -76,14 +76,15 @@ fun DrawerDialogsHandler(
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp,
+            tonalElevation = 0.dp,
+            shadowElevation = 8.dp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = Spacing.md)
         ) {
             Column(
                 modifier = Modifier
-                    .padding(20.dp)
+                    .padding(Spacing.xl)
                     .fillMaxWidth()
             ) {
                 // Header
@@ -107,16 +108,19 @@ fun DrawerDialogsHandler(
                     }
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.md))
+                HorizontalDivider(
+                    modifier = Modifier.padding(top = Spacing.sm, bottom = Spacing.lg),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
 
                 // Scrollable Content Pane
                 Box(
@@ -140,7 +144,7 @@ fun DrawerDialogsHandler(
                             val sdf = remember { SimpleDateFormat("MMM d, yyyy", Locale.US) }
                             androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refreshPlayPurchases(context) }
 
-                            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                                 if (purchases.isEmpty()) {
                                     Text(
                                         "No active Google Play subscription on this Google account.",
@@ -151,9 +155,14 @@ fun DrawerDialogsHandler(
                                     purchases.forEach { purchase ->
                                         val productId = purchase.products.firstOrNull().orEmpty()
                                         val name = playProducts.firstOrNull { it.productId == productId }?.name ?: productId
-                                        Card(modifier = Modifier.fillMaxWidth()) {
-                                            Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                                Text(name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                        Card(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = MaterialTheme.shapes.medium,
+                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)),
+                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+                                        ) {
+                                            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                                Text(name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
                                                 Text(
                                                     if (purchase.isAutoRenewing) "Auto-renewing" else "Canceled — active until the end of the paid period",
                                                     style = MaterialTheme.typography.labelSmall,
@@ -168,11 +177,14 @@ fun DrawerDialogsHandler(
                                 if (activity != null) {
                                     OutlinedButton(
                                         onClick = { viewModel.openManageSubscriptions(activity, purchases.firstOrNull()?.products?.firstOrNull()) },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) { Text("Manage subscription in Google Play") }
+                                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                        shape = MaterialTheme.shapes.medium,
+                                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                                    ) { Text("Manage subscription in Google Play", fontWeight = FontWeight.SemiBold) }
                                     TextButton(
                                         onClick = { viewModel.openPlayOrderHistory(activity) },
-                                        modifier = Modifier.fillMaxWidth()
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = MaterialTheme.shapes.medium
                                     ) { Text("Payment history in Google Play") }
                                 }
                             }
@@ -287,12 +299,14 @@ fun DrawerDialogsHandler(
                                 DatePickerDialog(
                                     onDismissRequest = { showAuditFromPicker = false },
                                     confirmButton = {
-                                        TextButton(onClick = {
+                                        TextButton(shape = MaterialTheme.shapes.medium, onClick = {
                                             auditFromMillis = pickerState.selectedDateMillis
                                             showAuditFromPicker = false
                                         }) { Text("OK") }
                                     },
-                                    dismissButton = { TextButton(onClick = { showAuditFromPicker = false }) { Text("Cancel") } }
+                                    dismissButton = {
+                                        TextButton(shape = MaterialTheme.shapes.medium, onClick = { showAuditFromPicker = false }) { Text("Cancel") }
+                                    }
                                 ) {
                                     DatePicker(state = pickerState)
                                 }
@@ -303,13 +317,15 @@ fun DrawerDialogsHandler(
                                 DatePickerDialog(
                                     onDismissRequest = { showAuditToPicker = false },
                                     confirmButton = {
-                                        TextButton(onClick = {
+                                        TextButton(shape = MaterialTheme.shapes.medium, onClick = {
                                             // Inclusive end-of-day so "To: today" also includes today's entries.
                                             auditToMillis = pickerState.selectedDateMillis?.plus(24L * 60 * 60 * 1000 - 1)
                                             showAuditToPicker = false
                                         }) { Text("OK") }
                                     },
-                                    dismissButton = { TextButton(onClick = { showAuditToPicker = false }) { Text("Cancel") } }
+                                    dismissButton = {
+                                        TextButton(shape = MaterialTheme.shapes.medium, onClick = { showAuditToPicker = false }) { Text("Cancel") }
+                                    }
                                 ) {
                                     DatePicker(state = pickerState)
                                 }
@@ -454,44 +470,53 @@ fun DrawerDialogsHandler(
                                             .padding(Spacing.xl),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.NotificationsNone,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.outlineVariant,
-                                            modifier = Modifier.size(48.dp)
-                                        )
-                                        Spacer(modifier = Modifier.height(Spacing.sm))
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.primaryContainer,
+                                            shape = CircleShape,
+                                            modifier = Modifier.size(64.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    imageVector = Icons.Default.NotificationsNone,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(32.dp)
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(Spacing.lg))
                                         Text(
                                             text = "No notifications yet.",
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.outline,
-                                            style = MaterialTheme.typography.bodyMedium
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            style = MaterialTheme.typography.titleMedium
                                         )
+                                        Spacer(modifier = Modifier.height(Spacing.xs))
                                         Text(
                                             text = "Real-time updates received via push messaging will appear here.",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.outline,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             textAlign = TextAlign.Center,
                                             modifier = Modifier.padding(horizontal = Spacing.lg)
                                         )
                                     }
                                 } else {
                                     LazyColumn(
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp)
+                                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                        modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)
                                     ) {
                                         items(fcmAlerts) { alert ->
                                             Card(
                                                 modifier = Modifier.fillMaxWidth(),
+                                                shape = MaterialTheme.shapes.medium,
                                                 colors = CardDefaults.cardColors(
                                                     containerColor = if (alert.isRead) {
-                                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                                                     } else {
-                                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+                                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
                                                     }
                                                 ),
                                                 border = if (!alert.isRead) {
-                                                    BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                                                    BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
                                                 } else null
                                             ) {
                                                 Column(modifier = Modifier.padding(Spacing.md)) {
@@ -518,12 +543,13 @@ fun DrawerDialogsHandler(
                                                                 contentDescription = null,
                                                                 tint = when (alert.category) {
                                                                     "BOOKING_ACCEPTANCE" -> StatusSuccess
+                                                                    "BOOKING_REQUEST" -> MaterialTheme.colorScheme.secondary
                                                                     "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> MaterialTheme.colorScheme.primary
                                                                     "PACKAGE_EXPIRED" -> MaterialTheme.colorScheme.error
                                                                     "PAYMENT_REMINDER" -> MaterialTheme.colorScheme.tertiary
                                                                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                                                                 },
-                                                                modifier = Modifier.size(16.dp)
+                                                                modifier = Modifier.size(18.dp)
                                                             )
                                                             Text(
                                                                 text = alert.title,
@@ -540,12 +566,13 @@ fun DrawerDialogsHandler(
                                                         if (!alert.isRead) {
                                                             TextButton(
                                                                 onClick = { viewModel.markAlertAsRead(alert.id) },
-                                                                contentPadding = PaddingValues(0.dp),
-                                                                modifier = Modifier.height(24.dp)
+                                                                contentPadding = PaddingValues(horizontal = Spacing.sm),
+                                                                shape = MaterialTheme.shapes.small,
+                                                                modifier = Modifier.height(32.dp)
                                                             ) {
                                                                 Text(
                                                                     "Mark Read",
-                                                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                                                    style = MaterialTheme.typography.labelMedium,
                                                                     fontWeight = FontWeight.Bold
                                                                 )
                                                             }
@@ -605,16 +632,25 @@ fun DrawerDialogsHandler(
                                                                             }
                                                                         onNavigateToTab(resolvedTab)
                                                                     },
-                                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                                                    modifier = Modifier.height(28.dp)
+                                                                    contentPadding = PaddingValues(horizontal = Spacing.md, vertical = 2.dp),
+                                                                    shape = MaterialTheme.shapes.small,
+                                                                    colors = ButtonDefaults.filledTonalButtonColors(
+                                                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                                                    ),
+                                                                    modifier = Modifier.height(32.dp)
                                                                 ) {
                                                                     Icon(
                                                                         Icons.AutoMirrored.Filled.ArrowForward,
                                                                         contentDescription = null,
-                                                                        modifier = Modifier.size(12.dp)
+                                                                        modifier = Modifier.size(14.dp)
                                                                     )
                                                                     Spacer(modifier = Modifier.width(Spacing.xs))
-                                                                    Text("Open Screen", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                                    Text(
+                                                                        "Open Screen",
+                                                                        style = MaterialTheme.typography.labelMedium,
+                                                                        fontWeight = FontWeight.Bold
+                                                                    )
                                                                 }
                                                             }
                                                             // A "WhatsApp" quick-reply button used to live here, but FCMAlert

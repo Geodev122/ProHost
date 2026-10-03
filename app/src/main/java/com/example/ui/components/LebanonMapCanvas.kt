@@ -645,7 +645,7 @@ fun LebanonMapCanvas(
                                             Text(
                                                 text = typeBadge,
                                                 style = MaterialTheme.typography.labelSmall,
-                                                fontSize = 8.sp,
+                                                fontSize = 9.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onPrimary,
                                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
@@ -698,7 +698,7 @@ fun LebanonMapCanvas(
                                         Text(
                                             text = "Select choices, and Request",
                                             style = MaterialTheme.typography.labelSmall,
-                                            fontSize = 8.sp,
+                                            fontSize = 9.sp,
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                     }

@@ -862,6 +862,7 @@ fun SubdivisionEditorSection(
                             singleLine = true
                         )
                         OutlinedButton(
+                            shape = MaterialTheme.shapes.medium,
                             onClick = {
                                 subOverrideBlackouts = subOverrideBlackouts + BlackoutSlot(
                                     dayOfWeek = blackoutDay,

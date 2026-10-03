@@ -37,6 +37,10 @@ val CarnationOrangeLight = Color(0xFFFF8575)
 val CarnationOrangeDark = Color(0xFFD44432)
 val CarnationOrangeContainer = Color(0xFFFFECE9)
 
+val VibrantBlueLight = Color(0xFF5B8FF5)
+val VibrantBlueDark = Color(0xFF123B82)
+val VibrantBlueContainer = Color(0xFFE8F0FD)
+
 val CoolGrayLight = Color(0xFF435266)
 val CoolGrayDark = Color(0xFF1B242F)
 val CoolGrayContainer = Color(0xFFE6EAEF)

@@ -626,7 +626,7 @@ fun CreateListingDialog(
                                         singleLine = true,
                                         shape = MaterialTheme.shapes.medium
                                     )
-                                    TextButton(onClick = {
+                                    TextButton(shape = MaterialTheme.shapes.medium, onClick = {
                                         val tag = hashtagInput.trim().trimStart('#')
                                         if (tag.isNotBlank()) {
                                             selectedSpecialties = selectedSpecialties + tag

@@ -5,6 +5,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -78,8 +79,8 @@ private fun DrawerExploreHighlight(isActive: Boolean, onClick: () -> Unit) {
     ) {
         Row(
             modifier = Modifier
-                .background(Brush.horizontalGradient(listOf(OxfordBlue, VibrantBlue)))
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .background(Brush.horizontalGradient(listOf(VibrantBlueDark, VibrantBlue)))
+                .padding(horizontal = Spacing.lg, vertical = Spacing.lg),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -90,9 +91,9 @@ private fun DrawerExploreHighlight(isActive: Boolean, onClick: () -> Unit) {
             ) {
                 Icon(Icons.Default.TravelExplore, contentDescription = null, tint = Color.White)
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Explore Workspaces", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+            Spacer(modifier = Modifier.width(Spacing.md))
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("Explore Workspaces", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text("Browse and book verified spaces", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
             }
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White)
@@ -142,10 +143,10 @@ fun SpecialistDrawerContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    Brush.verticalGradient(listOf(OxfordBlue, OxfordBlue.copy(blue = 0.55f))),
-                    RoundedCornerShape(bottomStart = 0.dp, bottomEnd = 0.dp)
+                    Brush.linearGradient(listOf(CoolGrayDark, OxfordBlue, VibrantBlueDark)),
+                    RoundedCornerShape(bottomEnd = 24.dp)
                 )
-                .padding(horizontal = 20.dp, vertical = 22.dp)
+                .padding(horizontal = Spacing.xl, vertical = Spacing.xl)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -166,13 +167,14 @@ fun SpecialistDrawerContent(
                         modifier = Modifier
                             .size(52.dp)
                             .clip(CircleShape)
-                            .background(CarnationOrange),
+                            .background(CarnationOrange)
+                            .border(2.dp, PureWhite.copy(alpha = 0.85f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = initials,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
                             color = PureWhite
                         )
                     }
@@ -182,8 +184,7 @@ fun SpecialistDrawerContent(
                     ) {
                         Text(
                             text = currentUser?.fullName ?: "ProHost User",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge,
                             color = PureWhite,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -193,15 +194,16 @@ fun SpecialistDrawerContent(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                color = if (isProHost) FreshGreen.copy(alpha = 0.22f) else CarnationOrange.copy(alpha = 0.22f),
-                                shape = RoundedCornerShape(4.dp)
+                                color = if (isProHost) CarnationOrange else VibrantBlue,
+                                shape = CircleShape
                             ) {
                                 Text(
                                     text = if (isProHost) "PRO HOST" else "SPECIALIST",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isProHost) FreshGreen else CarnationOrange,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    letterSpacing = 0.8.sp,
+                                    color = PureWhite,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
                                 )
                             }
                         }
@@ -227,69 +229,81 @@ fun SpecialistDrawerContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Spacing.xl))
 
-        Column(modifier = Modifier.padding(horizontal = Spacing.lg)) {
+        Column(modifier = Modifier.padding(horizontal = Spacing.md)) {
 
         DrawerExploreHighlight(
             isActive = activeProHostTabId == null && activeMainTabId == "search_map",
             onClick = { onTabSelected("search_map") }
         )
-        Spacer(modifier = Modifier.height(Spacing.md))
+        Spacer(modifier = Modifier.height(Spacing.xl))
 
         if (isProHost) {
             Text(
                 text = "PRO HOST",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = FreshGreen,
+                color = CarnationOrange,
                 letterSpacing = 1.2.sp,
-                modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+                modifier = Modifier.padding(start = Spacing.lg, bottom = Spacing.sm)
             )
 
             NavigationDrawerItem(
-                label = { Text("Financials", fontWeight = FontWeight.Bold) },
+
+                shape = MaterialTheme.shapes.medium,
+                label = { Text("Financials", fontWeight = FontWeight.SemiBold) },
                 selected = activeProHostTabId == "stats",
                 onClick = { onTabSelected("stats") },
                 icon = {
                     Icon(
                         Icons.Default.Analytics,
                         contentDescription = null,
-                        tint = if (activeProHostTabId == "stats") FreshGreen else MaterialTheme.colorScheme.primary
+                        tint = if (activeProHostTabId == "stats") {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
                     )
                 },
                 colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     selectedTextColor = MaterialTheme.colorScheme.primary,
                     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
             Spacer(modifier = Modifier.height(Spacing.xs))
             NavigationDrawerItem(
-                label = { Text("Subscriptions", fontWeight = FontWeight.Bold) },
+                shape = MaterialTheme.shapes.medium,
+                label = { Text("Subscriptions", fontWeight = FontWeight.SemiBold) },
                 selected = activeProHostTabId == "owner_subscriptions",
                 onClick = { onTabSelected("owner_subscriptions") },
                 icon = {
                     Icon(
                         Icons.Default.Layers,
                         contentDescription = null,
-                        tint = if (activeProHostTabId == "owner_subscriptions") FreshGreen else MaterialTheme.colorScheme.primary
+                        tint = if (activeProHostTabId == "owner_subscriptions") {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
                     )
                 },
                 colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     selectedTextColor = MaterialTheme.colorScheme.primary,
                     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
             Spacer(modifier = Modifier.height(Spacing.xs))
             NavigationDrawerItem(
-                label = { Text("Billing", fontWeight = FontWeight.Bold) },
+                shape = MaterialTheme.shapes.medium,
+                label = { Text("Billing", fontWeight = FontWeight.SemiBold) },
                 selected = false,
                 onClick = { onDrawerAction("owner_billing") },
-                icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                icon = { Icon(Icons.Default.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                 colors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     selectedTextColor = MaterialTheme.colorScheme.primary,
                     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -298,8 +312,8 @@ fun SpecialistDrawerContent(
 
         HorizontalDivider(
             modifier = Modifier.padding(vertical = Spacing.lg),
-            thickness = 0.5.dp,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant
         )
 
         // "PRACTICE RESOURCES" and "CONFIGURATION & SETTINGS" used to be two
@@ -311,9 +325,9 @@ fun SpecialistDrawerContent(
             text = "MORE",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
-            color = CarnationOrange,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             letterSpacing = 1.2.sp,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+            modifier = Modifier.padding(start = Spacing.lg, bottom = Spacing.sm)
         )
 
         // "Pending Requests" and "Payment Due Reminders" used to live here as their
@@ -324,22 +338,26 @@ fun SpecialistDrawerContent(
         // second path to the same screen.
         if (!isProHost) {
             NavigationDrawerItem(
+                shape = MaterialTheme.shapes.medium,
                 label = { Text("My Favorites", fontWeight = FontWeight.SemiBold) },
                 selected = activeProHostTabId == "my_favorites",
                 onClick = { onTabSelected("my_favorites") },
-                icon = { Icon(Icons.Default.Favorite, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                icon = { Icon(Icons.Default.Favorite, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
             )
         }
 
         NavigationDrawerItem(
+
+            shape = MaterialTheme.shapes.medium,
             label = { Text("Legal (Privacy, Terms & Policies)", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { onDrawerAction("legal_documents") },
-            icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+            icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
         )
 
         val context = LocalContext.current
         NavigationDrawerItem(
+            shape = MaterialTheme.shapes.medium,
             label = { Text("Contact Support", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = {
@@ -357,7 +375,7 @@ fun SpecialistDrawerContent(
                     Toast.makeText(context, "No email app found — you can also reach us at $SUPPORT_EMAIL", Toast.LENGTH_LONG).show()
                 }
             },
-            icon = { Icon(Icons.AutoMirrored.Filled.Help, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+            icon = { Icon(Icons.AutoMirrored.Filled.Help, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
         )
 
         ProHostDrawerFooter()
@@ -389,8 +407,11 @@ fun AdminDrawerContent(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(OxfordBlue, OxfordBlue.copy(blue = 0.55f))))
-                .padding(horizontal = 20.dp, vertical = 22.dp)
+                .background(
+                    Brush.linearGradient(listOf(CoolGrayDark, OxfordBlue, VibrantBlueDark)),
+                    RoundedCornerShape(bottomEnd = 24.dp)
+                )
+                .padding(horizontal = Spacing.xl, vertical = Spacing.xl)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -420,7 +441,7 @@ fun AdminDrawerContent(
                     )
                     Surface(
                         color = AmberWarning.copy(alpha = 0.22f),
-                        shape = RoundedCornerShape(4.dp)
+                        shape = CircleShape
                     ) {
                         Text(
                             text = "SYSTEM ADMIN",
@@ -451,9 +472,9 @@ fun AdminDrawerContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Spacing.xl))
 
-        Column(modifier = Modifier.padding(horizontal = Spacing.lg)) {
+        Column(modifier = Modifier.padding(horizontal = Spacing.md)) {
 
         DrawerExploreHighlight(
             isActive = activeTabId == "search_map",
@@ -467,40 +488,43 @@ fun AdminDrawerContent(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             letterSpacing = 1.2.sp,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+            modifier = Modifier.padding(start = Spacing.lg, bottom = Spacing.sm)
         )
 
         NavigationDrawerItem(
-            label = { Text("System Admin Console", fontWeight = FontWeight.Bold) },
+
+            shape = MaterialTheme.shapes.medium,
+            label = { Text("System Admin Console", fontWeight = FontWeight.SemiBold) },
             selected = activeTabId == "admin_console",
             onClick = { onTabSelected("admin_console") },
             icon = {
                 Icon(
                     Icons.Default.AdminPanelSettings,
                     contentDescription = null,
-                    tint = if (activeTabId == "admin_console") CarnationOrange else MaterialTheme.colorScheme.primary
+                    tint = if (activeTabId == "admin_console") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             colors = NavigationDrawerItemDefaults.colors(
-                selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                 selectedTextColor = MaterialTheme.colorScheme.primary,
                 unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
-            label = { Text("Security ID Card", fontWeight = FontWeight.Bold) },
+            shape = MaterialTheme.shapes.medium,
+            label = { Text("Security ID Card", fontWeight = FontWeight.SemiBold) },
             selected = activeTabId == "admin_profile",
             onClick = { onTabSelected("admin_profile") },
             icon = {
                 Icon(
                     Icons.Default.Shield,
                     contentDescription = null,
-                    tint = if (activeTabId == "admin_profile") CarnationOrange else MaterialTheme.colorScheme.primary
+                    tint = if (activeTabId == "admin_profile") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             colors = NavigationDrawerItemDefaults.colors(
-                selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                 selectedTextColor = MaterialTheme.colorScheme.primary,
                 unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -508,8 +532,8 @@ fun AdminDrawerContent(
 
         HorizontalDivider(
             modifier = Modifier.padding(vertical = Spacing.lg),
-            thickness = 0.5.dp,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant
         )
 
         // Admin gets every Pro Host capability unconditionally — unlimited listings,
@@ -521,10 +545,12 @@ fun AdminDrawerContent(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
             letterSpacing = 1.2.sp,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+            modifier = Modifier.padding(start = Spacing.lg, bottom = Spacing.sm)
         )
 
         NavigationDrawerItem(
+
+            shape = MaterialTheme.shapes.medium,
             label = { Text("My Listings", fontWeight = FontWeight.SemiBold) },
             selected = activeTabId == "manage_listings",
             onClick = { onTabSelected("manage_listings") },
@@ -532,12 +558,13 @@ fun AdminDrawerContent(
                 Icon(
                     Icons.Default.HomeWork,
                     contentDescription = null,
-                    tint = if (activeTabId == "manage_listings") CarnationOrange else MaterialTheme.colorScheme.primary
+                    tint = if (activeTabId == "manage_listings") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
+            shape = MaterialTheme.shapes.medium,
             label = { Text("Renting Progress", fontWeight = FontWeight.SemiBold) },
             selected = activeTabId == "owner_progress",
             onClick = { onTabSelected("owner_progress") },
@@ -545,12 +572,13 @@ fun AdminDrawerContent(
                 Icon(
                     Icons.Default.Schedule,
                     contentDescription = null,
-                    tint = if (activeTabId == "owner_progress") CarnationOrange else MaterialTheme.colorScheme.primary
+                    tint = if (activeTabId == "owner_progress") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
+            shape = MaterialTheme.shapes.medium,
             label = { Text("Analytics", fontWeight = FontWeight.SemiBold) },
             selected = activeTabId == "stats",
             onClick = { onTabSelected("stats") },
@@ -558,15 +586,15 @@ fun AdminDrawerContent(
                 Icon(
                     Icons.Default.Analytics,
                     contentDescription = null,
-                    tint = if (activeTabId == "stats") CarnationOrange else MaterialTheme.colorScheme.primary
+                    tint = if (activeTabId == "stats") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         )
 
         HorizontalDivider(
             modifier = Modifier.padding(vertical = Spacing.lg),
-            thickness = 0.5.dp,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant
         )
 
         Text(
@@ -575,17 +603,20 @@ fun AdminDrawerContent(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
             letterSpacing = 1.2.sp,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+            modifier = Modifier.padding(start = Spacing.lg, bottom = Spacing.sm)
         )
 
         NavigationDrawerItem(
+
+            shape = MaterialTheme.shapes.medium,
             label = { Text("System Audit Logs", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { onDrawerAction("admin_audit") },
-            icon = { Icon(Icons.Default.Terminal, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+            icon = { Icon(Icons.Default.Terminal, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         NavigationDrawerItem(
+            shape = MaterialTheme.shapes.medium,
             label = { Text("Governorate Nodes Status", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { onDrawerAction("admin_gov") },
@@ -600,7 +631,8 @@ fun AdminDrawerContent(
         if (com.example.BuildConfig.DEBUG) {
             Spacer(modifier = Modifier.height(Spacing.xs))
             NavigationDrawerItem(
-                label = { Text("Cloud & System Debugger", fontWeight = FontWeight.Bold) },
+                shape = MaterialTheme.shapes.medium,
+                label = { Text("Cloud & System Debugger", fontWeight = FontWeight.SemiBold) },
                 selected = false,
                 onClick = { onDrawerAction("system_debugger") },
                 icon = { Icon(Icons.Default.BugReport, contentDescription = null, tint = AmberWarning) }
@@ -638,7 +670,7 @@ fun ProHostDrawerFooter() {
                     text = "ProHost Lebanon",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 ProHostCedarBadge(text = "v2.5", isCompact = true)
             }
@@ -659,7 +691,7 @@ fun ProHostDrawerFooter() {
 fun DrawerSignOutButton(userEmail: String?, onSignOut: () -> Unit) {
     var showConfirmDialog by remember { mutableStateOf(false) }
 
-    HorizontalDivider(modifier = Modifier.padding(top = 4.dp, bottom = 16.dp), color = LightGray)
+    HorizontalDivider(modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.lg), color = MaterialTheme.colorScheme.outlineVariant)
 
     OutlinedButton(
         onClick = { showConfirmDialog = true },
@@ -667,7 +699,7 @@ fun DrawerSignOutButton(userEmail: String?, onSignOut: () -> Unit) {
         shape = MaterialTheme.shapes.medium,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = CrimsonRed),
         border = BorderStroke(1.dp, CrimsonRed.copy(alpha = 0.5f)),
-        contentPadding = PaddingValues(vertical = 12.dp)
+        contentPadding = PaddingValues(vertical = Spacing.md)
     ) {
         Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
         Spacer(modifier = Modifier.width(Spacing.sm))
@@ -677,7 +709,7 @@ fun DrawerSignOutButton(userEmail: String?, onSignOut: () -> Unit) {
     if (showConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showConfirmDialog = false },
-            title = { Text("Sign Out of ProHost", fontWeight = FontWeight.Bold) },
+            title = { Text("Sign Out of ProHost", fontWeight = FontWeight.SemiBold) },
             text = { Text("Are you sure you want to sign out of your account${userEmail?.let { " ($it)" } ?: ""}?") },
             confirmButton = {
                 Button(
@@ -685,13 +717,14 @@ fun DrawerSignOutButton(userEmail: String?, onSignOut: () -> Unit) {
                         showConfirmDialog = false
                         onSignOut()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = CrimsonRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = CrimsonRed),
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     Text("Sign Out", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showConfirmDialog = false }) {
+                TextButton(shape = MaterialTheme.shapes.medium, onClick = { showConfirmDialog = false }) {
                     Text("Cancel")
                 }
             }
