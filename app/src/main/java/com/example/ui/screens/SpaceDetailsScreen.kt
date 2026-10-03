@@ -9,6 +9,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -131,7 +134,7 @@ fun SpaceDetailsScreen(
 /**
  * Dumb Presentation Screen for Space Details.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun SpaceDetailsScreenContent(
     space: SpaceListing,
@@ -187,22 +190,46 @@ fun SpaceDetailsScreenContent(
             .sortedBy { (type, _) -> type.ordinal }
     }
 
-    // Arrived here via a division-card tap on Explore — pre-select that division
-    // and open its availability sheet immediately (skip the "peek" intermediate
-    // step), instead of landing on the generic whole-space view.
+    // The single way to choose a room. The folder tabs (page and availability sheet),
+    // the Explore deep link and the card buttons all come through here, so the page,
+    // the bottom strip and the availability sheet always agree on which room is active.
+    // Switching rooms drops any slots picked for the previous one.
+    fun selectRoom(sub: Subdivision, panelState: String? = null) {
+        if (selectedSubdivisionId != sub.id) {
+            selectedSlots = emptySet()
+            selectedHoursPerDay = emptyMap()
+        }
+        // Show the room's lowest per-slot price on the bottom strip, not the sum of every
+        // open slot — representativeFormula sums whatever it's given, so pass one slot.
+        val cheapestSlot = availableSlots
+            .filter { it.sourceFormulaId == sub.id }
+            .minByOrNull { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: Double.MAX_VALUE }
+        val formula = cheapestSlot?.let {
+            SpaceCalculationUtils.representativeFormula(listOf(it), BookingRecurrence.FLAT)
+        }
+        if (formula != null) onSelectFormula(formula)
+        selectedSubdivisionId = sub.id
+        if (panelState != null) availabilityPanelState = panelState
+    }
+
+    val roomsRequester = remember { BringIntoViewRequester() }
+
+    // Arrived here via a division-card tap on Explore: that room's tab is selected,
+    // its card is scrolled into view, and a specialist also gets its availability sheet.
     LaunchedEffect(intendedSubdivisionId, liveSpace.id) {
         val sub = intendedSubdivisionId?.let { id -> liveSpace.subdivisions.firstOrNull { it.id == id } }
         if (sub != null) {
-            val subSlots = availableSlots.filter { it.sourceFormulaId == sub.id }
-            val cheapestSlot = subSlots.minByOrNull {
-                it.pricesByRecurrence[BookingRecurrence.FLAT] ?: Double.MAX_VALUE
-            }
-            val formula = cheapestSlot?.let {
-                SpaceCalculationUtils.representativeFormula(listOf(it), BookingRecurrence.FLAT)
-            }
-            if (formula != null) onSelectFormula(formula)
-            selectedSubdivisionId = sub.id
-            availabilityPanelState = if (isSpecialistViewer) "full" else "peek"
+            selectRoom(sub, if (isSpecialistViewer) "full" else "peek")
+            kotlinx.coroutines.delay(150)
+            roomsRequester.bringIntoView()
+        }
+    }
+    // A space with rooms always has one active, so the sheet is never a mixed view of
+    // every room (per-attendee rooms need their own attendee count and tiers).
+    val roomIds = liveSpace.subdivisions.map { it.id }
+    LaunchedEffect(roomIds) {
+        if (roomIds.isNotEmpty() && selectedSubdivisionId !in roomIds) {
+            selectRoom(liveSpace.subdivisions.first())
         }
     }
 
@@ -694,12 +721,12 @@ fun SpaceDetailsScreenContent(
                 // Rental Options — one card per configured subdivision (or a single
                 // "Whole Space" card when no subdivisions are set up). Tapping an
                 // available card pre-selects that subdivision and opens the availability sheet.
-                ProSurfaceCard {
+                ProSurfaceCard(modifier = Modifier.bringIntoViewRequester(roomsRequester)) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         ProSectionHeader(
                             title = "Rental Options",
                             subtitle = if (liveSpace.subdivisions.isNotEmpty())
-                                "${liveSpace.subdivisions.size} space${if (liveSpace.subdivisions.size == 1) "" else "s"} available — tap to see availability"
+                                "${liveSpace.subdivisions.size} space${if (liveSpace.subdivisions.size == 1) "" else "s"} — pick a tab to see that space and its availability"
                             else
                                 "Tap the card to check live availability",
                             icon = Icons.Default.Tune
@@ -747,7 +774,14 @@ fun SpaceDetailsScreenContent(
                                 }
                             )
                         } else {
-                            liveSpace.subdivisions.forEach { sub ->
+                            val rooms = liveSpace.subdivisions
+                            val sub = rooms.firstOrNull { it.id == selectedSubdivisionId } ?: rooms.first()
+                            RoomFolderTabs(
+                                rooms = rooms,
+                                selectedId = sub.id,
+                                onSelect = { selectRoom(it) }
+                            )
+                            RoomFolderPanel(firstTabSelected = sub.id == rooms.first().id) {
                                 val subSlots = availableSlots.filter { it.sourceFormulaId == sub.id }
                                 val isOccupied = subSlots.isNotEmpty() &&
                                     subSlots.all { SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
@@ -768,24 +802,6 @@ fun SpaceDetailsScreenContent(
                                         "from $$minPrice/day"
                                     }
                                 }
-                                // Shared by the whole-card tap (peek) and the explicit "Check
-                                // Availability" button (jumps straight to the full slide-up
-                                // sheet) — selects this division and its cheapest slot's price.
-                                fun selectSubdivision(targetPanelState: String) {
-                                    // Show the division's lowest per-slot price on the bottom
-                                    // strip, not the sum of every open slot for the week —
-                                    // representativeFormula sums whatever slot list it's given,
-                                    // so pass just the cheapest slot, not all of subSlots.
-                                    val cheapestSlot = subSlots.minByOrNull {
-                                        it.pricesByRecurrence[BookingRecurrence.FLAT] ?: Double.MAX_VALUE
-                                    }
-                                    val formula = cheapestSlot?.let {
-                                        SpaceCalculationUtils.representativeFormula(listOf(it), BookingRecurrence.FLAT)
-                                    }
-                                    if (formula != null) onSelectFormula(formula)
-                                    selectedSubdivisionId = sub.id
-                                    availabilityPanelState = targetPanelState
-                                }
                                 SubdivisionRentalCard(
                                     info = SubdivisionRentalCardInfo(
                                         name = sub.name,
@@ -801,8 +817,8 @@ fun SpaceDetailsScreenContent(
                                         hasCustomHours = sub.scheduleOverride != null,
                                         isPerAttendee = com.example.ui.util.AttendeePricing.isPerAttendee(sub)
                                     ),
-                                    onClick = { selectSubdivision("peek") },
-                                    onCheckAvailability = { selectSubdivision("full") }
+                                    onClick = { selectRoom(sub, "peek") },
+                                    onCheckAvailability = { selectRoom(sub, "full") }
                                 )
                             }
                         }
@@ -1084,6 +1100,16 @@ fun SpaceDetailsScreenContent(
                     subtitle = if (isAttendeeMode) "Enter attendee count, then tap days to select slots." else "Tap a day to expand and select open slots.",
                     icon = Icons.Default.EventAvailable
                 )
+
+                // Same folder tabs as the page: switching here switches the room the
+                // sheet shows (and drops slots picked for the previous room).
+                if (liveSpace.subdivisions.size > 1 && selectedSubdivisionId != null) {
+                    RoomFolderTabs(
+                        rooms = liveSpace.subdivisions,
+                        selectedId = selectedSubdivisionId.orEmpty(),
+                        onSelect = { selectRoom(it) }
+                    )
+                }
 
                 // ── Attendee mode block ──────────────────────────────────────
                 if (isAttendeeMode) {
@@ -1941,5 +1967,82 @@ private fun SubdivisionRentalCard(
                 }
             }
         }
+    }
+}
+
+/** Fill shared by the selected folder tab and the panel under it, so they read as one piece. */
+@Composable
+private fun folderColor(): Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+
+/**
+ * Folder-style tabs, one per room: the room's name with its type underneath. The selected
+ * tab joins the [RoomFolderPanel] below it; the others sit behind it.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RoomFolderTabs(
+    rooms: List<Subdivision>,
+    selectedId: String,
+    onSelect: (Subdivision) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        rooms.forEach { room ->
+            val selected = room.id == selectedId
+            Surface(
+                onClick = { onSelect(room) },
+                shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
+                color = if (selected) folderColor() else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.widthIn(min = 96.dp, max = 180.dp)
+            ) {
+                Column {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    )
+                    Column(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(1.dp)
+                    ) {
+                        Text(
+                            room.name,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                            color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                        Text(
+                            room.type.displayName,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RoomFolderPanel(firstTabSelected: Boolean, content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        color = folderColor(),
+        shape = RoundedCornerShape(
+            topStart = if (firstTabSelected) 0.dp else 12.dp,
+            topEnd = 12.dp,
+            bottomStart = 12.dp,
+            bottomEnd = 12.dp
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(8.dp), content = content)
     }
 }

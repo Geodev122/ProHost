@@ -65,6 +65,10 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
   `functions/src/lib/attendeePricing.ts`, unit-tested). `onBookingRequestCreated` re-prices
   attendee bookings and auto-rejects mismatches (`rejectedBySystem`). Booking docs store the
   total as `totalAmountUsd` (functions once read `totalAmount`/`totalUsd` → $0 emails).
+- Space details lists rooms as folder tabs (name + type) over the selected room's card. Every
+  room choice — tab (page or availability sheet), Explore deep link, card buttons — goes through
+  `selectRoom()` in `SpaceDetailsScreenContent`, so page, bottom strip and sheet share one active
+  room and the sheet is never a mixed view of all rooms. A space with rooms always has one selected.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 
