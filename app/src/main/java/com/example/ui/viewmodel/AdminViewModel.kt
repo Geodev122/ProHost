@@ -875,6 +875,8 @@ class AdminViewModel(
     fun updateSchemaItem(item: SchemaItem) {
         viewModelScope.launch {
             try {
+                com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+                    ?.getIdToken(true)?.await()
                 val success = repository.updateSchemaItem(item)
                 _events.emit(
                     AdminUiEvent.ShowToast(
@@ -884,7 +886,14 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                val msg = when {
+                    e.message?.contains("PERMISSION_DENIED", ignoreCase = true) == true ->
+                        "Permission denied. Please sign out and sign back in to refresh your admin session."
+                    e.message?.contains("UNAVAILABLE", ignoreCase = true) == true ->
+                        "No network connection — please try again."
+                    else -> e.localizedMessage ?: "Operation failed"
+                }
+                _events.emit(AdminUiEvent.ShowToast(msg))
             }
         }
     }

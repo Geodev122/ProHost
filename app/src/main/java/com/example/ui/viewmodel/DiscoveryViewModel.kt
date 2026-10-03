@@ -78,7 +78,8 @@ class DiscoveryViewModel(
                 filter.selectedCategoryIds.any { space.matchesCategory(it) }
             val matchesVerified = !filter.onlyVerified || space.isVerified
             val matchesSaved = !filter.onlySaved || savedIds.contains(space.id)
-            if (!(matchesQuery && matchesType && matchesVerified && matchesSaved)) return@filter false
+            val matchesCountry = filter.selectedCountries.isEmpty() || space.country in filter.selectedCountries
+            if (!(matchesQuery && matchesType && matchesVerified && matchesSaved && matchesCountry)) return@filter false
 
             val matchingUnits = rentableUnits(space).filter { unit ->
                 (filter.selectedDivisionTypes.isEmpty() || unit.divisionType in filter.selectedDivisionTypes) &&
@@ -105,9 +106,8 @@ class DiscoveryViewModel(
         DiscoveryUiState(
             filteredSpaces = filtered,
             matchingSubdivisionIds = matchingSubdivisionIds,
-            availableDivisionTypes = liveSpaces.flatMap { sp -> sp.subdivisions.map { it.type } }
-                .distinct().sortedBy { it.ordinal }
-                .ifEmpty { Level2Type.entries.toList() },
+            availableDivisionTypes = Level2Type.entries.toList(),
+            availableCountries = liveSpaces.mapNotNull { it.country.ifBlank { null } }.distinct().sorted(),
             priceBounds = priceBounds,
             filterState = filter,
             isFilterSheetVisible = sheetVisible,
@@ -192,6 +192,10 @@ class DiscoveryViewModel(
 
     fun toggleSavedOnly(savedOnly: Boolean) {
         _filterState.update { it.copy(onlySaved = savedOnly) }
+    }
+
+    fun setCountryFilter(countries: Set<String>) {
+        _filterState.update { it.copy(selectedCountries = countries) }
     }
 
     fun toggleSavedSpace(spaceId: String) {

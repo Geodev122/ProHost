@@ -156,6 +156,15 @@ class PlayBillingManager(
                 val list = (queryProductDetailsResult as? List<*>)?.filterIsInstance<ProductDetails>() ?: emptyList()
                 Log.d(TAG, "Retrieved ${list.size} subscription products from Google Play")
                 _productDetailsList.value = list
+                if (list.isEmpty() && productIds.isNotEmpty()) {
+                    Log.w(TAG, "Play returned no products for IDs: ${productIds.joinToString()}")
+                    emitMessage(
+                        "No subscription plans were returned by Google Play. " +
+                        "Queried: ${productIds.joinToString()}. " +
+                        "Verify these product IDs exist and are active in Play Console, " +
+                        "and that you're using a Play Store–installed build."
+                    )
+                }
             } else {
                 Log.e(TAG, "Error querying product details: ${billingResult.debugMessage}")
             }

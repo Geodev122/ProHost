@@ -192,7 +192,7 @@ fun SubscriptionRenewalDialog(
                 Button(
                     onClick = {
                         if (activity != null && targetPlan != null) {
-                            viewModel.launchGooglePaySubscription(activity, targetPlan.id)
+                            viewModel.launchGooglePaySubscription(activity, targetPlan.googlePlayProductId.ifBlank { targetPlan.id })
                             onDismiss()
                         }
                     },

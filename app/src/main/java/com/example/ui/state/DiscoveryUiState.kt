@@ -14,7 +14,8 @@ data class DiscoveryFilterState(
     val selectedStrategies: Set<RentalStrategyType> = emptySet(),
     val priceRange: ClosedFloatingPointRange<Float>? = null,
     val onlyVerified: Boolean = false,
-    val onlySaved: Boolean = false
+    val onlySaved: Boolean = false,
+    val selectedCountries: Set<String> = emptySet()
 ) {
     val activeFilterCount: Int
         get() = listOf(
@@ -23,7 +24,8 @@ data class DiscoveryFilterState(
             selectedStrategies.isNotEmpty(),
             priceRange != null,
             onlyVerified,
-            onlySaved
+            onlySaved,
+            selectedCountries.isNotEmpty()
         ).count { it }
 }
 
@@ -36,6 +38,8 @@ data class DiscoveryUiState(
     // from the map shows all its divisions (no division-level filter is active).
     val matchingSubdivisionIds: Map<String, Set<String>> = emptyMap(),
     val availableDivisionTypes: List<Level2Type> = emptyList(),
+    // Distinct country names present across all live listings, for the country filter.
+    val availableCountries: List<String> = emptyList(),
     // Min..max price across live listings for the single selected formula, else null.
     val priceBounds: ClosedFloatingPointRange<Float>? = null,
     val filterState: DiscoveryFilterState = DiscoveryFilterState(),

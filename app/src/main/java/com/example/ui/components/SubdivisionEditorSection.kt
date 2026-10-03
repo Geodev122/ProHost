@@ -650,41 +650,47 @@ fun SubdivisionEditorSection(
                     availabilityOnly = isPerAttendee
                 )
 
-                // Step 2: optionally price that configuration per attendee instead.
-                // Not offered for Monthly, which is a whole-month lease.
+                // Step 2: pricing mode — standard (fixed per slot) or per attendee.
+                // Per-attendee is not offered for Monthly, which is a whole-month lease.
                 if (subPricing.strategyType != RentalStrategyType.MONTHLY) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Price per attendee", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                        Text("Pricing mode", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                        @OptIn(ExperimentalMaterial3Api::class)
+                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                            SegmentedButton(
+                                selected = !isPerAttendee,
+                                onClick = {
+                                    if (isPerAttendee) {
+                                        subPricingMode = SubdivisionPricingMode.STRATEGY_BASED
+                                        subPricing = com.example.ui.util.AttendeePricing.clearAvailabilityMarkers(subPricing)
+                                    }
+                                },
+                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                                label = { Text("Per booking") }
+                            )
+                            SegmentedButton(
+                                selected = isPerAttendee,
+                                onClick = {
+                                    if (!isPerAttendee) {
+                                        subPricingMode = SubdivisionPricingMode.PER_ATTENDEE
+                                        subPricing = com.example.ui.util.AttendeePricing.toAvailabilityMarkers(subPricing)
+                                    }
+                                },
+                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                                label = { Text("Per attendee") }
+                            )
+                        }
+                        if (!isPerAttendee && !subPricing.hasRealPrice()) {
                             Text(
-                                "One per-person price for the whole booking, set by group size.",
+                                "Enter a price for each offered slot.",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Switch(
-                            checked = isPerAttendee,
-                            onCheckedChange = { on ->
-                                subPricingMode = if (on) SubdivisionPricingMode.PER_ATTENDEE else SubdivisionPricingMode.STRATEGY_BASED
-                                subPricing = if (on) {
-                                    com.example.ui.util.AttendeePricing.toAvailabilityMarkers(subPricing)
-                                } else {
-                                    com.example.ui.util.AttendeePricing.clearAvailabilityMarkers(subPricing)
-                                }
-                            }
-                        )
-                    }
-                    if (!isPerAttendee && subPricingMode == SubdivisionPricingMode.STRATEGY_BASED && !subPricing.hasRealPrice()) {
-                        Text(
-                            "Enter a price for each offered slot.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
                 }
 
@@ -724,7 +730,13 @@ fun SubdivisionEditorSection(
                         templates = attendeeTemplates,
                         onTiersChange = { subAttendeeTiers = it }
                     )
-                    if (!subPricing.hasRealPrice()) {
+                    if (subAttendeeTiers.isEmpty()) {
+                        Text(
+                            "Add at least one pricing tier to continue.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    } else if (!subPricing.hasRealPrice()) {
                         Text(
                             "Offer at least one hour, shift or day above.",
                             style = MaterialTheme.typography.labelSmall,

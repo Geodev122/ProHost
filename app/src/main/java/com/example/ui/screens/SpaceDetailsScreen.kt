@@ -241,134 +241,147 @@ fun SpaceDetailsScreenContent(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         // No TopAppBar — back/save/share are overlaid on the fullscreen hero instead.
         bottomBar = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // One availability trigger, same design whether or not a division is
-                // selected — it used to switch between two differently styled bars.
-                if (isSpecialistViewer && !showAvailabilityPanel) {
-                    val stripSub = liveSpace.subdivisions.firstOrNull { it.id == selectedSubdivisionId }
-                    val hasSlots = availableSlots.isNotEmpty()
-                    val openSlotCount = availableSlots.count {
-                        (stripSub == null || it.sourceFormulaId == stripSub.id) &&
-                            !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings)
-                    }
-                    val stripContent = if (hasSlots) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                    Surface(
-                        color = if (hasSlots) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+            if (!showAvailabilityPanel) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 8.dp,
+                    shadowElevation = 12.dp,
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable(enabled = hasSlots) { availabilityPanelState = "full" }
+                            .navigationBarsPadding()
                     ) {
+                        // Availability trigger row — tonal (not primary-blue) so the price
+                        // CTA below remains the visual anchor.
+                        if (isSpecialistViewer) {
+                            val stripSub = liveSpace.subdivisions.firstOrNull { it.id == selectedSubdivisionId }
+                            val hasSlots = availableSlots.isNotEmpty()
+                            val openSlotCount = availableSlots.count {
+                                (stripSub == null || it.sourceFormulaId == stripSub.id) &&
+                                    !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings)
+                            }
+                            Surface(
+                                color = if (hasSlots)
+                                    MaterialTheme.colorScheme.secondaryContainer
+                                else
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(enabled = hasSlots) { availabilityPanelState = "full" }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.EventAvailable,
+                                        contentDescription = null,
+                                        tint = if (hasSlots) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = stripSub?.name ?: "Check availability",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = if (hasSlots) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        )
+                                        if (hasSlots) {
+                                            Text(
+                                                text = if (openSlotCount > 0) "$openSlotCount slot${if (openSlotCount == 1) "" else "s"} available" else "Fully booked",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f)
+                                            )
+                                        }
+                                    }
+                                    if (hasSlots) {
+                                        Icon(
+                                            Icons.Default.KeyboardArrowUp,
+                                            contentDescription = "Open availability",
+                                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        // Price + primary action row.
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.EventAvailable, contentDescription = null, tint = stripContent, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
+                                val (fallbackPrice, fallbackUnit) = remember(liveSpace) { SpaceCalculationUtils.lowestPriceSummary(liveSpace) }
+                                // A per-attendee room's slot prices are availability markers;
+                                // its real price is per person for the whole booking.
+                                val stripAttendeeSub = liveSpace.subdivisions
+                                    .find { it.id == selectedSubdivisionId }
+                                    ?.takeIf { com.example.ui.util.AttendeePricing.isPerAttendee(it) }
+                                val stripPerPerson = stripAttendeeSub?.let {
+                                    com.example.ui.util.AttendeePricing.lowestPricePerPerson(it, architectureSchema.attendeePackages)
+                                }
+                                val price = stripPerPerson ?: selectedFormula?.rateUsd ?: fallbackPrice
+                                val priceUnit = if (stripAttendeeSub != null) {
+                                    SpaceCalculationUtils.PER_PERSON_UNIT
+                                } else {
+                                    selectedFormula?.let { SpaceCalculationUtils.rateUnitLabel(it.type) } ?: fallbackUnit
+                                }
                                 Text(
-                                    text = stripSub?.name ?: "Check availability",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = stripContent,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    text = (if (stripAttendeeSub != null) "from " else "") + "$${price.toInt()} USD$priceUnit",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.secondary
                                 )
                                 Text(
-                                    text = when {
-                                        !hasSlots -> "No bookable slots configured yet"
-                                        openSlotCount > 0 -> "$openSlotCount slot(s) available · Tap to choose"
-                                        else -> "Fully booked · Tap to see the schedule"
-                                    },
+                                    text = selectedFormula?.type?.displayName ?: "Full Month",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = stripContent.copy(alpha = 0.8f)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            if (hasSlots) {
-                                Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Open availability", tint = stripContent)
-                            }
-                        }
-                    }
-                }
-                // Price + action strip — hidden when the availability sheet is open so it
-                // doesn't push up into the sheet's content area.
-                if (!showAvailabilityPanel) Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 10.dp,
-                    shadowElevation = 8.dp,
-                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            val (fallbackPrice, fallbackUnit) = remember(liveSpace) { SpaceCalculationUtils.lowestPriceSummary(liveSpace) }
-                            // A per-attendee room's slot prices are availability markers;
-                            // its real price is per person for the whole booking.
-                            val stripAttendeeSub = liveSpace.subdivisions
-                                .find { it.id == selectedSubdivisionId }
-                                ?.takeIf { com.example.ui.util.AttendeePricing.isPerAttendee(it) }
-                            val stripPerPerson = stripAttendeeSub?.let {
-                                com.example.ui.util.AttendeePricing.lowestPricePerPerson(it, architectureSchema.attendeePackages)
-                            }
-                            val price = stripPerPerson ?: selectedFormula?.rateUsd ?: fallbackPrice
-                            val priceUnit = if (stripAttendeeSub != null) {
-                                SpaceCalculationUtils.PER_PERSON_UNIT
-                            } else {
-                                selectedFormula?.let { SpaceCalculationUtils.rateUnitLabel(it.type) } ?: fallbackUnit
-                            }
-                            Text(
-                                text = (if (stripAttendeeSub != null) "from " else "") + "$${price.toInt()} USD$priceUnit",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                            Text(
-                                text = selectedFormula?.type?.displayName ?: "Full Month",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
 
-                        if (currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                shape = MaterialTheme.shapes.medium,
-                                modifier = Modifier.weight(1.5f)
-                            ) {
-                                Text(
-                                    text = "Preview Mode",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
-                                )
-                            }
-                        } else {
-                            Button(
-                                onClick = onWhatsAppClick,
-                                shape = MaterialTheme.shapes.medium,
-                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppDarkGreen),
-                                modifier = Modifier.weight(1f),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    "WhatsApp",
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
+                            if (currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    shape = MaterialTheme.shapes.medium,
+                                    modifier = Modifier.weight(1.5f)
+                                ) {
+                                    Text(
+                                        text = "Preview Mode",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
+                                    )
+                                }
+                            } else {
+                                Button(
+                                    onClick = onWhatsAppClick,
+                                    shape = MaterialTheme.shapes.medium,
+                                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppDarkGreen),
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        "WhatsApp",
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }

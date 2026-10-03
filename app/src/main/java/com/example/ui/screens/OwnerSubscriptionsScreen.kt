@@ -5,8 +5,6 @@ import android.media.AudioAttributes
 import android.media.MediaPlayer
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -383,17 +381,12 @@ fun OwnerSubscriptionsScreen(
 
                 val activity = androidx.activity.compose.LocalActivity.current
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     if (currentPlan != null && !currentPlan.isGrantOnly && !isSubscriptionExpired && activity != null) {
-                        OutlinedButton(
+                        TextButton(
                             onClick = { viewModel.openManageSubscriptions(activity, currentPlan.id) },
-                            modifier = Modifier.weight(1f),
-                            shape = MaterialTheme.shapes.medium,
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader),
-                            border = BorderStroke(1.dp, MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.5f))
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader)
                         ) {
                             Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
@@ -402,12 +395,10 @@ fun OwnerSubscriptionsScreen(
                     }
 
                     if (activity != null) {
-                        OutlinedButton(
+                        TextButton(
                             onClick = { showRedeemDialog = true },
-                            modifier = Modifier.weight(1f),
-                            shape = MaterialTheme.shapes.medium,
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader),
-                            border = BorderStroke(1.dp, MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.5f))
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader)
                         ) {
                             Icon(Icons.Default.CardGiftcard, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
@@ -416,12 +407,10 @@ fun OwnerSubscriptionsScreen(
                     }
 
                     if (activity != null) {
-                        OutlinedButton(
+                        TextButton(
                             onClick = { viewModel.openPlayOrderHistory(activity) },
-                            modifier = Modifier.weight(1f),
-                            shape = MaterialTheme.shapes.medium,
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader),
-                            border = BorderStroke(1.dp, MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.5f))
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader)
                         ) {
                             Icon(Icons.Default.Receipt, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
@@ -487,6 +476,42 @@ fun OwnerSubscriptionsScreen(
             }
         }
 
+        // Show a warning when billing is connected but returned zero products — lets the
+        // host distinguish "not yet loaded" from "connected but misconfigured in Play Console".
+        if (billingConnected && !pricesLoading && playBillingProducts.isEmpty() && enabledPlans.isNotEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(18.dp))
+                        Text(
+                            "Plans couldn't be loaded from Google Play.",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                    Text(
+                        "Make sure you're using the Play Store version of the app, then tap Retry.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                    )
+                    OutlinedButton(
+                        onClick = { viewModel.retryBillingQuery(context) },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.5f))
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Retry", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        }
+
         if (enabledPlans.isEmpty()) {
             Text(
                 "No packages available right now — check back soon.",
@@ -495,19 +520,16 @@ fun OwnerSubscriptionsScreen(
                 modifier = Modifier.padding(start = 4.dp)
             )
         } else {
-            // Featured plans first, then admin priority (PackagePlanCatalog.purchasablePlans).
-            val sortedPlans = enabledPlans
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(horizontal = 4.dp)
-            ) {
-                items(sortedPlans) { plan ->
+            // Vertical list — all plans visible without horizontal scroll.
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                enabledPlans.forEach { plan ->
                     val playProductId = plan.googlePlayProductId.ifBlank { plan.id }
                     val isCurrent = currentPlan?.id == plan.id && !isSubscriptionExpired
                     CompactPlanCard(
                         plan = plan,
                         isCurrent = isCurrent,
                         playProduct = playProductMap[playProductId],
+                        modifier = Modifier.fillMaxWidth(),
                         onSelect = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             // Same KYC gate as the primary CTA above — this per-plan
@@ -601,6 +623,7 @@ fun CompactPlanCard(
     plan: PackagePlan,
     isCurrent: Boolean,
     playProduct: com.android.billingclient.api.ProductDetails? = null,
+    modifier: Modifier = Modifier,
     onSelect: () -> Unit
 ) {
     val isFeatured = plan.isFeatured
@@ -609,7 +632,7 @@ fun CompactPlanCard(
     val periodLabel = PlayOfferText.billingPeriodLabel(playProduct)
     val priceText = PackagePlan.displayPrice(plan, PlayOfferText.recurringPrice(playProduct))
 
-    Box(modifier = Modifier.width(200.dp)) {
+    Box(modifier = modifier) {
         Card(
             onClick = onSelect,
             enabled = !isCurrent,

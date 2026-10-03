@@ -67,6 +67,7 @@ fun DiscoveryScreen(
         filterState = uiState.filterState,
         categoryOptions = categoryOptions,
         divisionTypeOptions = uiState.availableDivisionTypes,
+        availableCountries = uiState.availableCountries,
         priceBounds = uiState.priceBounds,
         matchingSubdivisionIds = uiState.matchingSubdivisionIds,
         savedSpaceIds = uiState.savedSpaceIds,
@@ -81,6 +82,7 @@ fun DiscoveryScreen(
         onSetFilterSheetVisible = { discoveryViewModel.setFilterSheetVisible(it) },
         onSelectCategories = { discoveryViewModel.setCategoryFilter(it) },
         onSelectDivisionTypes = { discoveryViewModel.setDivisionTypeFilter(it) },
+        onSelectCountries = { discoveryViewModel.setCountryFilter(it) },
         onSelectStrategies = { discoveryViewModel.setFormulaFilter(it) },
         onPriceRangeChange = { discoveryViewModel.setPriceRange(it) },
         onToggleVerifiedOnly = { discoveryViewModel.toggleVerifiedOnly(it) },
@@ -104,6 +106,7 @@ fun DiscoveryScreenContent(
     filterState: DiscoveryFilterState,
     categoryOptions: List<SchemaItem> = SpaceType.values().map { SchemaItem(id = it.name, name = it.displayName, category = "SPACE_TYPE") },
     divisionTypeOptions: List<Level2Type> = Level2Type.entries.toList(),
+    availableCountries: List<String> = emptyList(),
     priceBounds: ClosedFloatingPointRange<Float>? = null,
     matchingSubdivisionIds: Map<String, Set<String>> = emptyMap(),
     savedSpaceIds: List<String>,
@@ -118,6 +121,7 @@ fun DiscoveryScreenContent(
     onSetFilterSheetVisible: (Boolean) -> Unit,
     onSelectCategories: (Set<String>) -> Unit,
     onSelectDivisionTypes: (Set<Level2Type>) -> Unit,
+    onSelectCountries: (Set<String>) -> Unit = {},
     onSelectStrategies: (Set<RentalStrategyType>) -> Unit,
     onPriceRangeChange: (ClosedFloatingPointRange<Float>?) -> Unit,
     onToggleVerifiedOnly: (Boolean) -> Unit,
@@ -212,36 +216,6 @@ fun DiscoveryScreenContent(
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 72.dp, bottom = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                    item {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = MaterialTheme.shapes.large,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.Verified,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "${spaces.count { it.isVerified }} verified workspace${if (spaces.count { it.isVerified } == 1) "" else "s"}" +
-                                        (detectedCountryName?.let { " in $it" } ?: ""),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
-                    }
-
                     // Flatten: one card per (matching) subdivision, or one card for a
                     // whole-space listing.
                     val listCards = spaces.flatMap { space ->
@@ -302,10 +276,12 @@ fun DiscoveryScreenContent(
             resultCount = spaces.size,
             categoryOptions = categoryOptions,
             divisionTypeOptions = divisionTypeOptions,
+            availableCountries = availableCountries,
             priceBounds = priceBounds,
             onDismiss = { onSetFilterSheetVisible(false) },
             onSelectCategories = onSelectCategories,
             onSelectDivisionTypes = onSelectDivisionTypes,
+            onSelectCountries = onSelectCountries,
             onSelectStrategies = onSelectStrategies,
             onPriceRangeChange = onPriceRangeChange,
             onToggleVerifiedOnly = onToggleVerifiedOnly,
@@ -531,10 +507,12 @@ private fun DiscoveryFilterSheet(
     resultCount: Int,
     categoryOptions: List<SchemaItem>,
     divisionTypeOptions: List<Level2Type>,
+    availableCountries: List<String> = emptyList(),
     priceBounds: ClosedFloatingPointRange<Float>?,
     onDismiss: () -> Unit,
     onSelectCategories: (Set<String>) -> Unit,
     onSelectDivisionTypes: (Set<Level2Type>) -> Unit,
+    onSelectCountries: (Set<String>) -> Unit = {},
     onSelectStrategies: (Set<RentalStrategyType>) -> Unit,
     onPriceRangeChange: (ClosedFloatingPointRange<Float>?) -> Unit,
     onToggleVerifiedOnly: (Boolean) -> Unit,
@@ -580,6 +558,17 @@ private fun DiscoveryFilterSheet(
                 onSelectionChange = onSelectDivisionTypes,
                 modifier = Modifier.fillMaxWidth()
             )
+
+            if (availableCountries.size > 1) {
+                MultiSelectDropdownField(
+                    label = "Country",
+                    options = availableCountries,
+                    selected = filterState.selectedCountries,
+                    optionLabel = { it },
+                    onSelectionChange = onSelectCountries,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             MultiSelectDropdownField(
                 label = "Pricing formula",

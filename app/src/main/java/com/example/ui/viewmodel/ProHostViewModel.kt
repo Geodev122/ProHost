@@ -559,6 +559,11 @@ class ProHostViewModel(
             ?: openUriOrToast(activity, com.example.data.billing.PlayBillingManager.ORDER_HISTORY_URL)
     }
 
+    fun retryBillingQuery(context: android.content.Context) {
+        val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager } ?: return
+        manager.querySubscriptionProducts()
+    }
+
 
     // Set by OwnerHubScreen right before redirecting to Subscriptions after a
     // NoActivePackage Publish rejection — the id of

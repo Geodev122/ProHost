@@ -711,17 +711,12 @@ class FirestoreService(
     // ==========================================
 
     suspend fun saveSchema(schema: SpaceArchitectureSchema): Boolean {
-        return try {
-            val db = firestore ?: return false
-            db.collection(FirestoreSchema.Collections.SCHEMA_ARCHITECTURE)
-                .document("main")
-                .set(schema.toFirestoreMap(), SetOptions.merge())
-                .await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error saving schema architecture: ${e.message}", e)
-            false
-        }
+        val db = firestore ?: return false
+        db.collection(FirestoreSchema.Collections.SCHEMA_ARCHITECTURE)
+            .document("main")
+            .set(schema.toFirestoreMap(), SetOptions.merge())
+            .await()
+        return true
     }
 
     // ==========================================
