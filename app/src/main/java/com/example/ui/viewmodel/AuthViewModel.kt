@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.auth.AuthResult
+import com.example.data.auth.FirebaseAuthService
 import com.example.data.auth.isCallableUnavailable
 import com.example.data.auth.toUserMessage
 import com.example.data.model.isProfileComplete
@@ -128,20 +129,28 @@ class AuthViewModel(
             _pendingEmail.value = email
             savePendingEmailLink(email)
             try {
+                // Layer 1: Try Cloud Function (Hostinger SMTP with custom template)
                 val link = functionsClient.sendSignInEmailLink(email)
                 if (link.isSuccess) {
                     onDelivered(EmailDelivery.LINK)
                     return@launch
                 }
-                val linkError = link.exceptionOrNull()
-                if (linkError is com.google.firebase.functions.FirebaseFunctionsException && !linkError.isCallableUnavailable()) {
-                    _authErrorMessage.value = linkError.toUserMessage("Couldn't send the sign-in email. Please try again.")
+
+                // Layer 2: Native Firebase Auth sendSignInLinkToEmail (Google official mailer — 100% deliverability)
+                val continueUrl = "https://prohost-f766f.web.app/emaillink"
+                val nativeSent = FirebaseAuthService(firebaseAppContext())
+                    .sendSignInLinkToEmail(email, continueUrl)
+                if (nativeSent) {
+                    onDelivered(EmailDelivery.LINK)
                     return@launch
                 }
+
+                // Layer 3: Email OTP code fallback
                 val code = functionsClient.sendEmailOtp(email)
                 if (code.isSuccess) {
                     onDelivered(EmailDelivery.CODE)
                 } else {
+                    val linkError = link.exceptionOrNull()
                     _authErrorMessage.value = (code.exceptionOrNull() ?: linkError)
                         ?.toUserMessage("Couldn't send the sign-in email. Please try again.")
                         ?: "Couldn't send the sign-in email. Please try again."
@@ -162,9 +171,18 @@ class AuthViewModel(
             try {
                 _isAuthenticating.value = true
                 val result = functionsClient.sendSignInEmailLink(email)
+                if (result.isSuccess) {
+                    _isAuthenticating.value = false
+                    onSent(true)
+                    return@launch
+                }
+                // Fallback to native Firebase Auth sendSignInLinkToEmail
+                val continueUrl = "https://prohost-f766f.web.app/emaillink"
+                val nativeSent = FirebaseAuthService(firebaseAppContext())
+                    .sendSignInLinkToEmail(email, continueUrl)
                 _isAuthenticating.value = false
-                onSent(result.isSuccess)
-                if (result.isFailure) {
+                onSent(nativeSent)
+                if (!nativeSent) {
                     _authErrorMessage.value = result.exceptionOrNull()
                         ?.toUserMessage("Failed to send sign-in link. Try \"Use a code instead\".")
                         ?: "Failed to send sign-in link."

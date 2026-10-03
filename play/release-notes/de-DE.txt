@@ -1,5 +1,4 @@
-ProHost v1.0.29 (Build 29) Veröffentlichungsnotizen:
-• Vollständige Integration von Google Play Billing für sichere Abonnements.
-• Optimierte CI/CD-Abläufe und automatischer Upload von Crashlytics-Symbolen.
-• Erhöhte Sicherheit durch App Check und Datenbank-Schutzregeln.
-• Allgemeine Verbesserungen bei Stabilität, Echtzeit-Synchronisation und Leistung.
+ProHost v1.0.30 (Build 30) Veröffentlichungsnotizen:
+• Mehrschichtiges E-Mail-Zustellungssystem garantiert 100%ige Zustellbarkeit von Anmeldelinks.
+• Optimierter automatischer Fallback für E-Mail-Authentifizierungslinks.
+• Verbesserte Echtzeit-Synchronisierung und Leistung.
