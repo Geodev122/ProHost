@@ -432,23 +432,10 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
-                OutlinedButton(
+                GoogleSignInButton(
                     onClick = { launchGoogleSignIn() },
-                    enabled = !isAuthenticating,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_google),
-                        contentDescription = "Google",
-                        modifier = Modifier.size(18.dp),
-                        tint = androidx.compose.ui.graphics.Color.Unspecified
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Continue with Google",
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                    enabled = !isAuthenticating
+                )
 
             }
 

@@ -742,7 +742,7 @@ fun CompactPlanCard(
                     contentPadding = PaddingValues(vertical = 10.dp)
                 ) {
                     Icon(
-                        if (isCurrent) Icons.Default.Verified else Icons.Default.PlayArrow,
+                        if (isCurrent) Icons.Default.Verified else Icons.Default.ShoppingCart,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp)
                     )
