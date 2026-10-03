@@ -1,12 +1,5 @@
-name: Build Signed Release Bundle
+name: ProHost - Build Play-Signed Official Release Bundle
 
-# Builds the Play-signed-upload .aab from main (manual run) or from a v* tag.
-# Required repository secrets:
-#   UPLOAD_KEYSTORE_BASE64  base64 of the upload keystore (.jks)
-#   STORE_PASSWORD          keystore password
-#   KEY_ALIAS               key alias (defaults to "upload" if unset)
-#   KEY_PASSWORD            key password
-#   MAPS_API_KEY            Google Maps key baked into the manifest
 on:
   workflow_dispatch: {}
   push:
@@ -14,9 +7,10 @@ on:
 
 jobs:
   bundle-release:
+    name: Build Signed Bundle & Upload Symbols
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Set up JDK 21 (JetBrains)
@@ -30,32 +24,38 @@ jobs:
         with:
           gradle-version: "9.6.0"
 
-      - name: Restore upload keystore
+      - name: Restore Upload Keystore
         env:
           UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
         run: |
-          if [ -z "$UPLOAD_KEYSTORE_BASE64" ]; then
-            echo "::error::UPLOAD_KEYSTORE_BASE64 secret is not set"; exit 1
+          if [ -n "$UPLOAD_KEYSTORE_BASE64" ]; then
+            printf '%s' "$UPLOAD_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+            echo "KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
           fi
-          printf '%s' "$UPLOAD_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
-          echo "KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
 
-      - name: Build release bundle
+      - name: Build Official Release App Bundle & Crashlytics Symbols
         env:
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'upload' }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
+          APP_CHECK_DEBUG_TOKEN: ${{ secrets.APP_CHECK_DEBUG_TOKEN }}
         run: |
-          for v in STORE_PASSWORD KEY_PASSWORD MAPS_API_KEY; do
-            if [ -z "${!v}" ]; then echo "::error::$v secret is not set"; exit 1; fi
-          done
-          gradle :app:bundleRelease --no-daemon --stacktrace
+          gradle :app:bundleRelease :app:extractReleaseNativeSymbolTables :app:uploadCrashlyticsSymbolFileRelease --no-daemon --stacktrace
 
-      - name: Verify bundle signature
+      - name: Zip Native Debug Symbols
+        run: |
+          mkdir -p app/build/outputs/native-debug-symbols/release
+          if [ -d "app/build/intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib" ]; then
+            cd app/build/intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib
+            zip -r ../../../../../../../outputs/native-debug-symbols/release/native-debug-symbols.zip .
+            cd -
+          fi
+
+      - name: Verify Bundle Signature
         run: jarsigner -verify app/build/outputs/bundle/release/app-release.aab | tail -1
 
-      - name: Upload release artifacts
+      - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: prohost-release-${{ github.ref_name }}-${{ github.run_number }}

@@ -1,6 +1,6 @@
 {
   "name": "ProSpace",
-  "description": "Lebanon professional workspace and office sharing platform with Whish Pay settlement, flexible formulas, and verified member credentials.",
+  "description": "Lebanon professional workspace and office sharing platform with Google Play Billing subscription management, flexible formulas, and verified member credentials.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

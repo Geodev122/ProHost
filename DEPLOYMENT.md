@@ -35,7 +35,7 @@ from whatever an Admin last published in the app's Admin Console.
 ## 3. Deploy the backend (Cloud Functions)
 
 Edits under `functions/src/**` — everything the Android app calls
-(`assignInitialRole`, `initiateWhishPayment`, `deleteOwnAccount`, etc.) plus
+(`assignInitialRole`, `playBillingRtdn`, `deleteOwnAccount`, etc.) plus
 `legalDocumentPage` and `listingShareLanding`, which back the website.
 
 ```bash
@@ -98,13 +98,11 @@ firebase deploy --only firestore:rules,storage
 - Two domains serve the same Hosting site: `pro-host.tech` (the real,
   registered domain — use this one in links/App Links/QR codes) and
   `prohost-f766f.web.app` (Firebase's default domain — works identically,
-  kept as a fallback). `hopebearer-award.com` is a **separate**, dedicated
-  domain reserved only for Whish's payment-gateway channel config — never
-  point anything else at it.
+  kept as a fallback).
 - No `GOOGLE_APPLICATION_CREDENTIALS` env var is needed for a normal deploy
   from your own machine — `firebase login` handles auth. That variable is
   only relevant for service-account/CI-style deploys (see
-  `.github/workflows/android-firebase-distribution.yml` for the app's own
+  `.github/workflows/build-and-deploy.yml` for the app's own
   CI example).
 
 ## 7. IAM Policy Bindings & Service Account Permissions

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="com.github.username.plugin.settings.FirebridgeSettingsState">
+    <option name="connections">
+      <list>
+        <FirebaseConnectionSettings>
+          <option name="id" value="5546f601-d540-4cb4-af6e-b97293f88ed2" />
+          <option name="name" value="prohost-f766f" />
+          <option name="oauthProjectId" value="prohost-f766f" />
+          <option name="useGoogleOAuth" value="true" />
+        </FirebaseConnectionSettings>
+      </list>
+    </option>
+  </component>
+</project>

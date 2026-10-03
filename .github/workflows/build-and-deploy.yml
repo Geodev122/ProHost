@@ -1,4 +1,4 @@
-name: Build and Distribute Android App
+name: ProHost CI/CD - Build & Deploy Backend
 
 on:
   push:
@@ -8,31 +8,25 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  build-and-distribute:
+  build-and-test:
+    name: Build & Test Android App
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      # gradle/gradle-daemon-jvm.properties pins the Gradle daemon to a JetBrains
-      # JDK 21; any other JDK fails before the build starts.
       - name: Set up JDK 21 (JetBrains)
         uses: actions/setup-java@v4
         with:
           distribution: jetbrains
           java-version: "21"
 
-      # No Gradle wrapper jar is committed, so install Gradle directly. Keep this
-      # equal to gradle-wrapper.properties — AGP 9.4 refuses to run below 9.6.0.
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "9.6.0"
 
-      # app/build.gradle.kts points the debug signing config at ${rootDir}/debug.keystore,
-      # which is gitignored (never committed) — generate the standard Android debug
-      # keystore here so a fresh checkout can still build a debug APK.
-      - name: Generate debug keystore
+      - name: Generate Debug Keystore
         run: |
           if [ ! -f debug.keystore ]; then
             keytool -genkey -v -keystore debug.keystore -storepass android \
@@ -40,76 +34,66 @@ jobs:
               -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
 
-      # compileReleaseKotlin catches release-only compile errors (the shipped
-      # variant) without needing the upload keystore.
-      - name: Build debug APK and compile release
+      - name: Run Unit Tests & Build Debug APK
         env:
           APP_CHECK_DEBUG_TOKEN: ${{ secrets.APP_CHECK_DEBUG_TOKEN }}
-        run: gradle :app:assembleDebug :app:compileReleaseKotlin --no-daemon --stacktrace
+        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:compileReleaseKotlin --no-daemon --stacktrace
 
-      - name: Upload build artifact
+      - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: prohost-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
 
-      # Upload Firebase Crashlytics mapping symbols for release deobfuscation
-      - name: Upload Firebase Crashlytics Symbols
-        if: github.event_name != 'pull_request'
-        run: gradle :app:uploadCrashlyticsSymbolFileRelease --no-daemon --stacktrace
-
   functions-build:
+    name: Compile Cloud Functions
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Node 20
+      - name: Set up Node 22
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: functions/package-lock.json
 
-      - name: Install and build Cloud Functions
+      - name: Install & Build TypeScript Functions
         working-directory: functions
         run: |
           npm ci
           npm run build
 
-  # Deploys functions, Firestore rules/indexes, Storage rules and Hosting on every push
-  # to main (and on manual runs). --force lets the deploy delete functions that were
-  # removed from the source instead of stopping at the confirmation prompt.
-  # The FIREBASE_SERVICE_ACCOUNT service account needs deploy roles: Firebase Admin,
-  # Cloud Functions Admin, Service Account User, Secret Manager Secret Accessor.
   deploy-firebase:
+    name: Deploy Live Firebase Backend
     if: github.event_name != 'pull_request'
-    needs: functions-build
+    needs: [build-and-test, functions-build]
     runs-on: ubuntu-latest
     concurrency: firebase-deploy
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Node 20
+      - name: Set up Node 22
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: functions/package-lock.json
 
-      - name: Install function dependencies
+      - name: Install Function Dependencies
         working-directory: functions
         run: npm ci
 
-      - name: Write service account credentials
+      - name: Write Service Account Credentials
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
 
-      - name: Deploy to Firebase
+      - name: Deploy Firebase Backend Resources
         run: >
           npx --yes firebase-tools@14 deploy
           --project prohost-f766f
