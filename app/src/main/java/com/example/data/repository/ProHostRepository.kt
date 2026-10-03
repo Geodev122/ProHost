@@ -799,6 +799,42 @@ class ProHostRepository {
         return success
     }
 
+    /**
+     * Appends built-in default schema items that the live schema lacks (matched by id and
+     * by name), leaving every existing item untouched. Defaults added after the live
+     * schema_architecture/main doc was created never reach it otherwise, because that doc
+     * replaces the built-in defaults wholesale. Returns the number added, or null on a
+     * failed write.
+     */
+    suspend fun addMissingDefaultSchemaItems(): Int? {
+        val current = _spaceArchitectureSchema.value
+        val defaults = createDefaultSchema()
+        fun merge(existing: List<SchemaItem>, builtIn: List<SchemaItem>): List<SchemaItem> {
+            val ids = existing.map { it.id }.toSet()
+            val names = existing.map { it.name.trim().lowercase() }.toSet()
+            return existing + builtIn.filter { it.id !in ids && it.name.trim().lowercase() !in names }
+        }
+        val updated = current.copy(
+            spaceTypes = merge(current.spaceTypes, defaults.spaceTypes),
+            divisionTypes = merge(current.divisionTypes, defaults.divisionTypes),
+            facilities = merge(current.facilities, defaults.facilities),
+            amenities = merge(current.amenities, defaults.amenities),
+            rentalStrategies = merge(current.rentalStrategies, defaults.rentalStrategies)
+        )
+        fun count(s: SpaceArchitectureSchema) =
+            s.spaceTypes.size + s.divisionTypes.size + s.facilities.size + s.amenities.size + s.rentalStrategies.size
+        val added = count(updated) - count(current)
+        if (added == 0) return 0
+        if (!firestoreService.saveSchema(updated)) return null
+        _spaceArchitectureSchema.value = updated
+        addAuditLog(
+            actionType = "SCHEMA_DEFAULTS_MERGED",
+            details = "Admin added $added missing built-in schema item(s); existing items unchanged",
+            severity = "SECURE"
+        )
+        return added
+    }
+
     suspend fun resetSchemaToDefaults(): Boolean {
         val defaults = createDefaultSchema()
         val success = firestoreService.saveSchema(defaults)

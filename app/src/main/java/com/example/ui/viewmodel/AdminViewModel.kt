@@ -991,6 +991,27 @@ class AdminViewModel(
         confirmResetSchemaToDefaults()
     }
 
+    fun addMissingDefaultSchemaItems() {
+        viewModelScope.launch {
+            try {
+                val added = repository.addMissingDefaultSchemaItems()
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        when (added) {
+                            null -> "Failed to update the schema — please try again"
+                            0 -> "Nothing missing — every built-in entry is already in the schema"
+                            else -> "Added $added missing built-in entr${if (added == 1) "y" else "ies"}. Existing entries were not changed."
+                        }
+                    )
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+            }
+        }
+    }
+
     fun confirmResetSchemaToDefaults() {
         viewModelScope.launch {
             try {

@@ -1298,6 +1298,15 @@ private fun AdminSchemaArchitectureTab(
                             )
                         }
                     }
+                    // Additive only: unlike Reset, keeps every existing entry and its edits.
+                    CustomButton(
+                        text = "Add Missing Built-in Entries",
+                        onClick = { adminViewModel.addMissingDefaultSchemaItems() },
+                        variant = CustomButtonVariant.OUTLINED,
+                        icon = Icons.Default.AutoFixHigh,
+                        compact = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         val tiles = listOf(
                             Triple("Space Types", schema.spaceTypes, Icons.Default.Apartment),
