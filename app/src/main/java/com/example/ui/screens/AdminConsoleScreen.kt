@@ -691,6 +691,8 @@ private fun AdminUsersDirectoryTab(
     uiState: com.example.ui.state.AdminUiState,
     adminViewModel: AdminViewModel
 ) {
+    val exportCsvFile = rememberFileExportLauncher(mimeType = "text/csv")
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -702,6 +704,26 @@ private fun AdminUsersDirectoryTab(
                 packagePlans = uiState.packagePlans
             )
         }
+
+        // Live metrics row
+        item {
+            val users = uiState.allUsers
+            val now = System.currentTimeMillis()
+            val thirtyDaysAgo = now - 30L * 24 * 60 * 60 * 1000
+            val newThisMonth = users.count { (it.createdAtMillis ?: 0L) >= thirtyDaysAgo }
+            val proHosts = users.count { it.role == com.example.data.model.UserRole.PRO_HOST }
+            val specialists = users.count { it.role == com.example.data.model.UserRole.SPECIALIST }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AdminMetricTile("Total Users", "${users.size}", modifier = Modifier.weight(1f))
+                AdminMetricTile("Pro Hosts", "$proHosts", modifier = Modifier.weight(1f))
+                AdminMetricTile("Specialists", "$specialists", modifier = Modifier.weight(1f))
+                AdminMetricTile("New (30d)", "+$newThisMonth", modifier = Modifier.weight(1f))
+            }
+        }
+
         item {
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -711,27 +733,21 @@ private fun AdminUsersDirectoryTab(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         ProSectionHeader(
-                            title = "Users Governance Directory",
-                            subtitle = "Manage user records",
+                            title = "Contact Directory",
+                            subtitle = "Export includes spent, listings, tenants",
                             icon = Icons.Default.People
                         )
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            CustomButton(
-                                text = "CSV",
-                                onClick = { adminViewModel.exportUsersDirectory("CSV") },
-                                variant = CustomButtonVariant.PRIMARY,
-                                icon = Icons.Default.Download,
-                                compact = true
-                            )
-                            CustomButton(
-                                text = "JSON",
-                                onClick = { adminViewModel.exportUsersDirectory("JSON") },
-                                variant = CustomButtonVariant.SECONDARY,
-                                icon = Icons.Default.Code,
-                                compact = true
-                            )
-                        }
+                        CustomButton(
+                            text = "Export Sheet",
+                            onClick = {
+                                val csv = adminViewModel.getUsersContactSheetCsv()
+                                exportCsvFile("prohost_users_${java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(java.util.Date())}.csv", csv)
+                            },
+                            variant = CustomButtonVariant.PRIMARY,
+                            icon = Icons.Default.Download,
+                            compact = true
+                        )
                     }
 
                     // Search Field
@@ -3169,4 +3185,26 @@ private fun AdminAttendeePackageDialog(
             CustomButton(text = "Cancel", onClick = onDismiss, variant = CustomButtonVariant.OUTLINED)
         }
     )
+}
+
+@Composable
+private fun AdminMetricTile(label: String, value: String, modifier: Modifier = Modifier) {
+    ProSurfaceCard(modifier = modifier) {
+        Column(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }

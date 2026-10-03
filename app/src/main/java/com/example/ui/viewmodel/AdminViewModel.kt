@@ -1094,6 +1094,9 @@ class AdminViewModel(
         openExportDialog("ProHost Registered Users Directory (${format})", content, format)
     }
 
+    /** Returns the enriched CSV (with spending, listings, tenants) ready to share as a file. */
+    fun getUsersContactSheetCsv(): String = repository.exportUsersToCsv()
+
     fun exportListingsCatalog(format: String = "CSV") {
         val content = if (format == "JSON") repository.exportListingsToJson() else repository.exportListingsToCsv()
         openExportDialog("ProHost Workspace Listings Catalog (${format})", content, format)

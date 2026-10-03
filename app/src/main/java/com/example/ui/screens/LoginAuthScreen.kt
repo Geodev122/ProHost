@@ -40,6 +40,7 @@ import com.example.ui.theme.*
 import com.example.ui.viewmodel.AuthViewModel
 import com.example.util.PhoneCountryDetector
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 
@@ -120,19 +121,17 @@ fun LoginAuthScreen(
     var prefillGoogleName by rememberSaveable { mutableStateOf("") }
     var prefillGooglePictureUri by rememberSaveable { mutableStateOf<Uri?>(null) }
 
-    // Launches Google One Tap credential picker
+    // Launches Google sign-in. Tries One Tap (GetGoogleIdOption) first; if that
+    // produces NoCredentialException (can happen on fresh devices or after the user
+    // previously dismissed One Tap too many times), falls back to the standard
+    // Sign In With Google bottom-sheet (GetSignInWithGoogleOption), which is always
+    // available when Play Services is present.
     fun launchGoogleSignIn() {
         coroutineScope.launch {
-            try {
-                val webClientId = context.getString(R.string.default_web_client_id)
-                val googleIdOption = GetGoogleIdOption.Builder()
-                    .setFilterByAuthorizedAccounts(false)
-                    .setServerClientId(webClientId)
-                    .build()
-                val request = GetCredentialRequest.Builder()
-                    .addCredentialOption(googleIdOption)
-                    .build()
-                val result = credentialManager?.getCredential(context, request) ?: return@launch
+            val cm = credentialManager ?: return@launch
+            val webClientId = context.getString(R.string.default_web_client_id)
+
+            fun handleCredentialResult(result: androidx.credentials.GetCredentialResponse) {
                 val credential = result.credential
                 if (credential is CustomCredential &&
                     credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
@@ -141,29 +140,62 @@ fun LoginAuthScreen(
                     val googleName = googleIdTokenCredential.displayName
                         ?: "${googleIdTokenCredential.givenName.orEmpty()} ${googleIdTokenCredential.familyName.orEmpty()}".trim()
                     val googlePictureUri = googleIdTokenCredential.profilePictureUri
-                    val currentActivity = activity
-                    if (currentActivity != null) {
-                        authViewModel.startGoogleSignIn(
-                            activity = currentActivity,
-                            googleIdToken = googleIdTokenCredential.idToken
-                        ) { needsRegistration ->
-                            if (needsRegistration) {
-                                prefillGoogleName = googleName
-                                prefillGooglePictureUri = googlePictureUri
-                                step = AuthStep.REGISTRATION_FORM
-                            } else {
-                                onLoginSuccess()
-                            }
+                    val currentActivity = activity ?: return
+                    authViewModel.startGoogleSignIn(
+                        activity = currentActivity,
+                        googleIdToken = googleIdTokenCredential.idToken
+                    ) { needsRegistration ->
+                        if (needsRegistration) {
+                            prefillGoogleName = googleName
+                            prefillGooglePictureUri = googlePictureUri
+                            step = AuthStep.REGISTRATION_FORM
+                        } else {
+                            onLoginSuccess()
                         }
                     }
                 }
+            }
+
+            try {
+                val oneTapOption = GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(false)
+                    .setServerClientId(webClientId)
+                    .build()
+                val result = cm.getCredential(
+                    context,
+                    GetCredentialRequest.Builder().addCredentialOption(oneTapOption).build()
+                )
+                handleCredentialResult(result)
             } catch (e: androidx.credentials.exceptions.GetCredentialCancellationException) {
-                // User dismissed the account picker.
+                // User dismissed the account picker — no action needed.
             } catch (e: androidx.credentials.exceptions.NoCredentialException) {
-                android.widget.Toast.makeText(context, "No Google account found on this device. Add one in Settings, or sign in with email.", android.widget.Toast.LENGTH_LONG).show()
+                // One Tap could not find a matching credential (no accounts, or the flow
+                // was suppressed). Fall back to the standard Sign In With Google sheet,
+                // which works whenever Google Play Services is present.
+                try {
+                    val signInOption = GetSignInWithGoogleOption.Builder(webClientId).build()
+                    val result = cm.getCredential(
+                        context,
+                        GetCredentialRequest.Builder().addCredentialOption(signInOption).build()
+                    )
+                    handleCredentialResult(result)
+                } catch (e2: androidx.credentials.exceptions.GetCredentialCancellationException) {
+                    // Dismissed
+                } catch (e2: GetCredentialException) {
+                    android.util.Log.w("LoginAuthScreen", "Google sign-in unavailable: ${e2.type}")
+                    android.widget.Toast.makeText(
+                        context,
+                        "Google sign-in isn't available on this device. Please sign in with email.",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
             } catch (e: GetCredentialException) {
-                android.util.Log.w("LoginAuthScreen", "Google sign-in unavailable: ${e.type}")
-                android.widget.Toast.makeText(context, "Google sign-in isn't available right now. Please sign in with email.", android.widget.Toast.LENGTH_LONG).show()
+                android.util.Log.w("LoginAuthScreen", "Google sign-in error: ${e.type}")
+                android.widget.Toast.makeText(
+                    context,
+                    "Google sign-in isn't available right now. Please sign in with email.",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
             }
         }
     }

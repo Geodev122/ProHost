@@ -2371,18 +2371,40 @@ class ProHostRepository {
     fun exportUsersToCsv(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         val sb = StringBuilder()
+
+        val bookings = _bookingRequests.value
+        // Total spent per user (as practitioner/tenant) on accepted bookings
+        val spentByUser = bookings
+            .filter { it.status == BookingRequestStatus.ACCEPTED }
+            .groupBy { it.practitionerId }
+            .mapValues { (_, bks) -> bks.sumOf { it.totalAmountUsd } }
+        // Distinct tenant count per host (distinct practitionerIds on accepted bookings)
+        val tenantsByOwner = bookings
+            .filter { it.status == BookingRequestStatus.ACCEPTED }
+            .groupBy { it.ownerId }
+            .mapValues { (_, bks) -> bks.map { it.practitionerId }.distinct().size }
+
         sb.appendLine("=== PROHOST USERS DIRECTORY EXPORT (CSV) ===")
         sb.appendLine("Export Date,${sdf.format(Date())}")
         sb.appendLine("Total Users,${_users.value.size}")
         sb.appendLine()
-        sb.appendLine("User ID,Full Name,Email,Role,Specialty,Phone,Country,Governorate,City,Is Verified,Account Created,La" +
-            "st Sign-In,Profile Picture URL")
+        sb.appendLine(
+            "User ID,Display Code,Full Name,Email,Role,Specialty,Phone,Country,Governorate,City," +
+                "Phone Verified,Account Created,Last Sign-In," +
+                "Active Listings,Package Plan,Package Expiry," +
+                "Total Spent USD,Tenant Count,Suspended"
+        )
         _users.value.forEach { u ->
+            val q = { s: String -> "\"${s.replace("\"", "\"\"")}\"" }
+            val totalSpent = spentByUser[u.id] ?: 0.0
+            val tenantCount = tenantsByOwner[u.id] ?: 0
             sb.appendLine(
-                "\"${u.id}\",\"${u.fullName.replace("\"", "\"\"")}\",\"${u.email}\",\"${u.role.name}\"," +
-                    "\"${u.specialty.replace("\"", "\"\"")}\",\"${u.phone}\",\"${u.country}\",\"${u.governorate}\",\"${u.city}\"," +
-                    "${u.isVerified},\"${formatAuditTimestamp(sdf, u.createdAtMillis)}\",\"${formatAuditTimestamp(sdf, u.lastSignInAtMillis)}\"," +
-                    "\"${u.profilePictureUrl ?: ""}\""
+                "${q(u.id)},${q(u.publicCode)},${q(u.fullName)},${q(u.email)},${q(u.role.name)}," +
+                    "${q(u.specialty)},${q(u.phone)},${q(u.country)},${q(u.governorate)},${q(u.city)}," +
+                    "${u.isVerified},${q(formatAuditTimestamp(sdf, u.createdAtMillis))},${q(formatAuditTimestamp(sdf, u.lastSignInAtMillis))}," +
+                    "${u.activeListingCount},${q(u.ownerPackageId ?: "")}," +
+                    "${q(u.ownerPackageExpiryMillis?.let { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(it)) } ?: "")}," +
+                    "${"%.2f".format(totalSpent)},$tenantCount,${u.isSuspended}"
             )
         }
         return sb.toString()
