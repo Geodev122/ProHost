@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-03T09:03:10.169Z",
+  "generatedAt": "2026-10-03T09:13:21.314Z",
   "trigger": "NIGHTHAWK",
   "summary": {
     "total": 49,
@@ -151,7 +151,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerAnalyticsScreen.kt",
-      "line": 309,
+      "line": 336,
       "message": "Line has 222 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },

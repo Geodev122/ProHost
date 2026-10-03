@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.BookingRequestStatus
 import com.example.data.model.ListingStatus
+import com.example.data.model.RentalFormulaType
 import com.example.data.model.SpaceListing
 import com.example.ui.components.*
 import com.example.ui.theme.*
@@ -109,6 +110,32 @@ fun OwnerAnalyticsScreen(
             .toList()
             .sortedByDescending { it.second }
             .take(5)
+    }
+
+    // Booking mix by renting strategy — same grouping as the admin analytics
+    // (per-attendee bookings are their own slice), scoped to this host's listings.
+    data class MixRow(val label: String, val requests: Int, val accepted: Int, val acceptedValueUsd: Double)
+    val ownerBookings = remember(bookingRequests, ownerSpaceIds) {
+        bookingRequests.filter { it.spaceId in ownerSpaceIds }
+    }
+    val bookingMix = remember(ownerBookings) {
+        ownerBookings
+            .groupBy { b ->
+                if (b.attendeeCount > 0) "Per attendee" else when (b.formula.type) {
+                    RentalFormulaType.HOURLY -> "Per-Hour"
+                    RentalFormulaType.SHIFT -> "Shift-Based"
+                    RentalFormulaType.DAY_PER_WEEK -> "Day-Based"
+                    RentalFormulaType.FULL_MONTH -> "Monthly"
+                }
+            }
+            .map { (label, list) ->
+                val accepted = list.filter { it.status == BookingRequestStatus.ACCEPTED }
+                MixRow(label, list.size, accepted.size, accepted.sumOf { it.totalAmountUsd })
+            }
+            .sortedByDescending { it.requests }
+    }
+    val acceptedAttendeeBookings = remember(ownerBookings) {
+        ownerBookings.filter { it.attendeeCount > 0 && it.status == BookingRequestStatus.ACCEPTED }
     }
 
     if (isLoading) {
@@ -313,6 +340,57 @@ fun OwnerAnalyticsScreen(
                                 name = specialty,
                                 percentage = if (maxCount > 0) (count * 100 / maxCount) else 0,
                                 color = demandColors[index % demandColors.size]
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            ProSurfaceCard {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ProSectionHeader(
+                        title = "Booking Mix",
+                        subtitle = "${ownerBookings.size} request${if (ownerBookings.size == 1) "" else "s"} by renting strategy",
+                        icon = Icons.Default.Analytics
+                    )
+                    if (bookingMix.isEmpty()) {
+                        Text(
+                            text = "No booking requests yet — the mix of hourly, shift, day, monthly and per-attendee bookings will appear here.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        val mixColors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.secondary,
+                            MaterialTheme.proColors.success,
+                            MaterialTheme.proColors.warning,
+                            MaterialTheme.colorScheme.primary
+                        )
+                        val maxRequests = bookingMix.first().requests
+                        bookingMix.forEachIndexed { index, row ->
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                DisciplineDemandBar(
+                                    name = "${row.label} · ${row.requests}",
+                                    percentage = if (maxRequests > 0) row.requests * 100 / maxRequests else 0,
+                                    color = mixColors[index % mixColors.size]
+                                )
+                                Text(
+                                    "${row.accepted} accepted · $${String.format(java.util.Locale.US, "%,.0f", row.acceptedValueUsd)} accepted value",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        if (acceptedAttendeeBookings.isNotEmpty()) {
+                            val people = acceptedAttendeeBookings.sumOf { it.attendeeCount }
+                            Text(
+                                "Per-attendee: ${acceptedAttendeeBookings.size} accepted · $people attendees · " +
+                                    "average group ${String.format(java.util.Locale.US, "%.1f", people.toDouble() / acceptedAttendeeBookings.size)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
