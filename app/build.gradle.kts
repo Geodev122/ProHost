@@ -1,4 +1,5 @@
 import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
+import java.time.Duration
 import java.util.Properties
 import java.io.FileInputStream
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
@@ -230,5 +231,5 @@ dependencies {
 // A unit test that blocks (e.g. awaiting a real network call) fails fast instead of
 // hanging the CI job until GitHub's 6-hour limit.
 tasks.withType<Test>().configureEach {
-  timeout.set(java.time.Duration.ofMinutes(15))
+  timeout.set(Duration.ofMinutes(15))
 }
