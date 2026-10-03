@@ -790,62 +790,67 @@ class ProHostViewModel(
         subdivision: Subdivision? = null
     ) {
         val user = currentUser.value
-        val professionalName = user?.fullName ?: "Specialist Member"
-        val specialty = user?.specialty?.ifBlank { "Independent Specialist" } ?: "Independent Specialist"
+        val professionalName = user?.fullName?.takeIf { it.isNotBlank() } ?: "a ProHost specialist"
+        val specialty = user?.specialty?.takeIf { it.isNotBlank() } ?: "Independent Specialist"
         val cleanPhone = formatWhatsAppNumber(space.ownerPhone)
         if (cleanPhone.isBlank()) {
             Toast.makeText(context, "This host hasn't added a WhatsApp number yet.", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // The price line always carries the unit of the formula it came from.
         val attendeeLine = request?.let { com.example.ui.util.AttendeePricing.bookingSummary(it) }
-        val formulaText = when {
-            attendeeLine != null -> "Per-attendee booking — $attendeeLine (one price for the whole booking)"
+        val priceLabel = when {
+            attendeeLine != null -> "Per attendee · $attendeeLine"
             subdivision != null -> {
                 val price = com.example.ui.util.SpaceCalculationUtils.findLowestPriceForSubdivision(subdivision)
-                val priceText = if (price.amount > 0.0) " · from $${price.amount.toInt()}${price.unitLabel}" else ""
-                "${subdivision.name} — ${subdivision.pricing.strategyType.displayName}$priceText"
+                if (price.amount > 0.0) "From \$${price.amount.toInt()}${price.unitLabel}" else subdivision.pricing.strategyType.displayName
             }
             selectedFormula != null -> {
                 val unit = com.example.ui.util.SpaceCalculationUtils.rateUnitLabel(selectedFormula.type)
-                "${selectedFormula.type.displayName} (${selectedFormula.scheduleDescription}) @ $${selectedFormula.rateUsd.toInt()}$unit"
+                "\$${selectedFormula.rateUsd.toInt()}$unit"
             }
             else -> {
                 val price = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
-                "Starting from $${price.amount.toInt()}${price.unitLabel}"
+                "From \$${price.amount.toInt()}${price.unitLabel}"
             }
         }
+        val roomLabel = subdivision?.name ?: selectedFormula?.scheduleDescription?.takeIf { it.isNotBlank() }
 
-        val requestSnippet = if (request != null) {
-            val daysStr = if (request.selectedDays.isNotEmpty()) request.selectedDays.joinToString() else request.formula.daysOfWeek.joinToString()
-            val timesStr = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank()) {
-                "${request.selectedStartHour} - ${request.selectedEndHour}"
-            } else {
-                "${request.formula.startHour} - ${request.formula.endHour}"
-            }
-            val shiftStr = if (request.selectedShift.isNotBlank()) " (${request.selectedShift})" else ""
-
-            "\n\n[In-App Booking Request Details]\n" +
-            (if (request.displayCode.isNotBlank()) "• Request: ${request.displayCode}\n" else "") +
-            (if (attendeeLine != null) "• Attendees: $attendeeLine\n" else
-                "• Formula: ${request.formula.type.displayName} - ${request.formula.scheduleDescription}\n") +
-            "• Chosen Availability: $daysStr @ $timesStr$shiftStr\n" +
-            "• Start Date: ${request.startDate}" +
-                (if (request.formula.type == RentalFormulaType.FULL_MONTH) {
-                    " (${request.durationMonths} month${if (request.durationMonths > 1) "s" else ""})"
-                } else "") + "\n" +
-            "• Total Agreement Value: $${request.totalAmountUsd.toInt()} USD\n" +
-            "• Specialist Notes: ${request.clinicalNotes}\n" +
-            "• In-App Status: PENDING HOST APPROVAL"
+        val bookingDetails = if (request != null) {
+            val daysStr = request.selectedDays.takeIf { it.isNotEmpty() }?.joinToString() ?: request.formula.daysOfWeek.joinToString()
+            val timesStr = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank())
+                "${request.selectedStartHour}–${request.selectedEndHour}"
+            else "${request.formula.startHour}–${request.formula.endHour}"
+            val shiftStr = request.selectedShift.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""
+            val durationStr = if (request.formula.type == RentalFormulaType.FULL_MONTH)
+                " · ${request.durationMonths} month${if (request.durationMonths > 1) "s" else ""}" else ""
+            buildString {
+                appendLine()
+                appendLine()
+                appendLine("*Booking details:*")
+                if (request.displayCode.isNotBlank()) appendLine("• Request: ${request.displayCode}")
+                appendLine("• Schedule: $daysStr @ $timesStr$shiftStr")
+                appendLine("• Start: ${request.startDate}$durationStr")
+                if (attendeeLine != null) appendLine("• Attendees: $attendeeLine")
+                appendLine("• Total: \$${request.totalAmountUsd.toInt()} USD")
+                if (request.clinicalNotes.isNotBlank()) appendLine("• Notes: ${request.clinicalNotes}")
+            }.trimEnd()
         } else ""
 
-        val rawMessage = "Hello ${space.ownerName},\n\n" +
-                "I am ${professionalName} (${specialty}).\n\n" +
-                "I am contacting you regarding your space \"${space.title}\" located in ${space.district}, ${space.governorate.displayName} on ProHost.\n" +
-                "Selected Formula: ${formulaText}$requestSnippet\n\n" +
-                "I would like to finalize payment and walk-through details.\n" +
-                "Listing Ref: ProHost ${space.publicCode}"
+        val rawMessage = buildString {
+            appendLine("Hi ${space.ownerName} 👋")
+            appendLine()
+            appendLine("I'm *$professionalName* ($specialty) and I found your space on ProHost.")
+            appendLine()
+            appendLine("*Space:* ${space.title}")
+            appendLine("*Location:* ${space.district}, ${space.governorate.displayName}")
+            if (roomLabel != null) appendLine("*Room / Area:* $roomLabel")
+            appendLine("*Price:* $priceLabel")
+            append(bookingDetails)
+            appendLine()
+            appendLine()
+            append("I'd love to discuss availability and next steps. Listing ref: ProHost ${space.publicCode}")
+        }
 
         try {
             val encoded = URLEncoder.encode(rawMessage, "UTF-8")
@@ -1049,7 +1054,7 @@ class ProHostViewModel(
      * functions/src/notifications/bookingNotifications.ts), not a local alert on
      * this device, so nothing needs to be posted here.
      */
-    fun acceptBookingRequest(context: Context, requestId: String, agreementUri: Uri) {
+    fun acceptBookingRequest(context: Context, requestId: String, agreementUri: Uri? = null) {
         val appContext = context.applicationContext
         viewModelScope.launch {
             try {
@@ -1066,16 +1071,20 @@ class ProHostViewModel(
                     ).show()
                     return@launch
                 }
-                val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
-                val ext = guessFileExtension(context, agreementUri, "pdf")
-                val agreementUrl = storageService.uploadBookingAgreement(requestId, agreementUri, ext)
-                if (agreementUrl == null) {
-                    Toast.makeText(appContext, "Could not upload the agreement. Please try again.", Toast.LENGTH_LONG).show()
-                    return@launch
-                }
+                val agreementUrl = if (agreementUri != null) {
+                    val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
+                    val ext = guessFileExtension(context, agreementUri, "pdf")
+                    storageService.uploadBookingAgreement(requestId, agreementUri, ext).also {
+                        if (it == null) {
+                            Toast.makeText(appContext, "Could not upload space rules. Please try again.", Toast.LENGTH_LONG).show()
+                            return@launch
+                        }
+                    }
+                } else null
                 val success = repository.acceptBookingRequest(requestId, agreementUrl)
                 if (success) {
-                    Toast.makeText(appContext, "Booking request $requestCode accepted! Agreement saved.", Toast.LENGTH_LONG).show()
+                    val msg = if (agreementUrl != null) "Booking accepted! Space rules shared." else "Booking accepted."
+                    Toast.makeText(appContext, "$requestCode — $msg", Toast.LENGTH_LONG).show()
                 } else {
                     Toast.makeText(appContext, "Could not finalize acceptance. Please try again.", Toast.LENGTH_LONG).show()
                 }

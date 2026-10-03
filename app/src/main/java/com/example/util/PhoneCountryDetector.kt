@@ -75,10 +75,14 @@ object PhoneCountryDetector {
 
     /** Detects the caller's current country. Never throws — always resolves to a real [Country]. */
     suspend fun detectCountry(context: Context): Country {
-        val isoCode = simCountryIso(context)
-            ?: lastKnownLocationCountryIso(context)
-            ?: networkCountryIso(context)
+        // Device locale reflects the user's configured region (Lebanon ↔ LB) and is
+        // preferred over SIM ISO, which reflects the physical SIM card's home network
+        // (a Lebanese user with a Syrian roaming SIM would otherwise see Syria).
+        // GPS geocoding stays highest priority when location permission is granted.
+        val isoCode = lastKnownLocationCountryIso(context)
             ?: Locale.getDefault().country.takeIf { it.length == 2 }
+            ?: simCountryIso(context)
+            ?: networkCountryIso(context)
             ?: "LB"
         return findCountryByIsoCode(isoCode)
     }

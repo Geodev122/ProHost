@@ -1,9 +1,12 @@
 package com.example.data.auth
 
+import android.util.Log
 import com.example.data.model.AppUser
 import com.example.data.model.UserRole
 import com.example.data.repository.ProHostRepository
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.tasks.await
 
 /**
  * Thrown when assignInitialRole.ts rejects a sign-in because the account is
@@ -42,11 +45,23 @@ suspend fun completeVerifiedLogin(
     integrityToken: String? = null
 ): AppUser {
     val role = resolveVerifiedRole(functionsClient, firebaseUser, integrityToken)
-    return repository.login(
+    val user = repository.login(
         uid = firebaseUser.uid,
         email = firebaseUser.email ?: "",
         verifiedRole = role
     )
+    refreshFcmToken(repository, firebaseUser.uid)
+    return user
+}
+
+/** Fetches the current FCM token and saves it to the user's profile. Silently no-ops on failure. */
+private suspend fun refreshFcmToken(repository: ProHostRepository, uid: String) {
+    try {
+        val token = FirebaseMessaging.getInstance().token.await()
+        repository.registerFcmToken(uid, token)
+    } catch (e: Exception) {
+        Log.w("AuthFlow", "FCM token refresh failed: ${e.message}")
+    }
 }
 
 /**
@@ -84,11 +99,13 @@ suspend fun completeVerifiedRegistration(
     // assignInitialRole just ran and set the claim — read it rather than calling it a second time.
     val role = FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true)
         ?.let { runCatching { UserRole.valueOf(it) }.getOrNull() } ?: UserRole.SPECIALIST
-    return repository.registerMember(
+    val user = repository.registerMember(
         uid = firebaseUser.uid,
         verifiedRole = role,
         details = details
     )
+    refreshFcmToken(repository, firebaseUser.uid)
+    return user
 }
 
 /**

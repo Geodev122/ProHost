@@ -57,7 +57,7 @@ export async function sendEmailVerificationInternal(uid: string): Promise<void> 
       url: VERIFICATION_CONTINUE_URL,
     });
     const userCtx: UserContext = {
-      fullName: profileData.fullName ?? "Member",
+      fullName: (profileData.fullName as string | undefined)?.trim() || "there",
       email: profileData.email,
       role: (profileData.role ?? "SPECIALIST") as UserContext["role"],
     };

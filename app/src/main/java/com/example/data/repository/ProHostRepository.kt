@@ -1636,7 +1636,7 @@ class ProHostRepository {
      * Never double-books: refuses (returns false) when [findAcceptConflict] finds an
      * ACCEPTED booking already holding the same room/space, day and hours.
      */
-    suspend fun acceptBookingRequest(requestId: String, agreementUrl: String): Boolean {
+    suspend fun acceptBookingRequest(requestId: String, agreementUrl: String? = null): Boolean {
         val request = _bookingRequests.value.find { it.id == requestId } ?: return false
         // Never double-book: two ACCEPTED bookings can't overlap on the same room/space,
         // day and hours (SpaceCalculationUtils.findAcceptConflict — the same rule the
@@ -1644,16 +1644,17 @@ class ProHostRepository {
         if (findAcceptConflict(requestId) != null) return false
         val now = System.currentTimeMillis()
 
+        val extraFields = if (agreementUrl != null) mapOf("agreementUrl" to agreementUrl) else emptyMap()
         val success = firestoreService.updateBookingStatus(
             requestId,
             BookingRequestStatus.ACCEPTED,
-            extraFields = mapOf("agreementUrl" to agreementUrl)
+            extraFields = extraFields
         )
         if (!success) return false
 
         _bookingRequests.value = _bookingRequests.value.map {
             if (it.id == requestId) {
-                it.copy(status = BookingRequestStatus.ACCEPTED, reviewedAt = now, agreementUrl = agreementUrl)
+                it.copy(status = BookingRequestStatus.ACCEPTED, reviewedAt = now, agreementUrl = agreementUrl ?: it.agreementUrl)
             } else it
         }
 

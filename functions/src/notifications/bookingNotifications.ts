@@ -164,7 +164,7 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
           ? `Your request for "${after.spaceTitle ?? "the workspace"}" couldn't be sent: ${after.rejectionReason ?? "please try again."}`
           : `${after.ownerName ?? "The host"} declined your request for "${after.spaceTitle ?? "the workspace"}"${after.rejectionReason ? `: ${after.rejectionReason}` : "."}`,
         {
-          category: "BOOKING_ACCEPTANCE",
+          category: "BOOKING_UPDATE",
           targetTab: "pro_rentals",
           bookingId: event.params.bookingId,
         }

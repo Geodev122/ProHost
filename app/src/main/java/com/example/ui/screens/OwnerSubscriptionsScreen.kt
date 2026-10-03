@@ -603,11 +603,13 @@ fun CompactPlanCard(
     playProduct: com.android.billingclient.api.ProductDetails? = null,
     onSelect: () -> Unit
 ) {
-    val cardWidth = 200.dp
     val isFeatured = plan.isFeatured
+    val trialLabel = PlayOfferText.trialLabel(playProduct)
+    val introLabel = PlayOfferText.introLabel(playProduct)
+    val periodLabel = PlayOfferText.billingPeriodLabel(playProduct)
+    val priceText = PackagePlan.displayPrice(plan, PlayOfferText.recurringPrice(playProduct))
 
-    Box(modifier = Modifier.width(cardWidth)) {
-        // The whole card is the tap target, not just the small button inside it.
+    Box(modifier = Modifier.width(200.dp)) {
         Card(
             onClick = onSelect,
             enabled = !isCurrent,
@@ -616,7 +618,7 @@ fun CompactPlanCard(
             colors = CardDefaults.cardColors(
                 containerColor = when {
                     isCurrent -> MaterialTheme.proColors.brandHeaderStart
-                    isFeatured -> MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
+                    isFeatured -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
                     else -> MaterialTheme.colorScheme.surface
                 }
             ),
@@ -625,13 +627,28 @@ fun CompactPlanCard(
                 isFeatured -> BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
                 else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             },
-            elevation = CardDefaults.cardElevation(if (isFeatured || isCurrent) 6.dp else 2.dp)
+            elevation = CardDefaults.cardElevation(if (isFeatured || isCurrent) 8.dp else 2.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Plan name + featured badge
+            Column(modifier = Modifier.padding(16.dp)) {
+                // Trial / offer badge row — shown at top when available
+                val offerBadge = trialLabel ?: introLabel
+                if (offerBadge != null && !isCurrent) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.padding(bottom = 10.dp)
+                    ) {
+                        Text(
+                            text = offerBadge.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+
+                // Plan name + active check
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -639,58 +656,77 @@ fun CompactPlanCard(
                 ) {
                     Text(
                         text = plan.badgeName.ifBlank { plan.name },
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (isCurrent) MaterialTheme.proColors.onBrandHeader else MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f)
                     )
                     if (isCurrent) {
-                        Icon(Icons.Default.Verified, contentDescription = null, tint = MaterialTheme.proColors.success, modifier = Modifier.size(18.dp))
+                        Icon(
+                            Icons.Default.Verified,
+                            contentDescription = "Active",
+                            tint = MaterialTheme.proColors.success,
+                            modifier = Modifier.size(18.dp).padding(start = 4.dp)
+                        )
                     }
                 }
 
-                // Price — large and bold
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Price — large
                 Text(
-                    text = PackagePlan.displayPrice(plan, PlayOfferText.recurringPrice(playProduct)),
+                    text = priceText,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Black,
                     color = if (isCurrent) MaterialTheme.proColors.onBrandHeader else MaterialTheme.colorScheme.secondary
                 )
-                Text(
-                    text = PlayOfferText.caption(playProduct).orEmpty(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isCurrent) MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.offset(y = (-6).dp)
-                )
-
-                HorizontalDivider(color = if (isCurrent) MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.2f) else MaterialTheme.colorScheme.outlineVariant)
-
-                // Listings row
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = if (isCurrent) MaterialTheme.proColors.headerSuccess else MaterialTheme.proColors.success,
-                        modifier = Modifier.size(14.dp)
-                    )
+                // Billing period sub-label
+                if (periodLabel != null) {
                     Text(
-                        text = "Unlimited listings",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isCurrent) MaterialTheme.proColors.onBrandHeader else MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold
+                        text = periodLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isCurrent) MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.offset(y = (-4).dp)
                     )
                 }
 
+                Spacer(modifier = Modifier.height(10.dp))
+                HorizontalDivider(color = if (isCurrent) MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.2f) else MaterialTheme.colorScheme.outlineVariant)
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Feature rows — all benefits are unlimited; the value is in the plan period
+                @Composable
+                fun FeatureRow(text: String) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(
+                            Icons.Default.CheckCircle, contentDescription = null,
+                            tint = if (isCurrent) MaterialTheme.proColors.headerSuccess else MaterialTheme.proColors.success,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = text,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isCurrent) MaterialTheme.proColors.onBrandHeader else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+
+                FeatureRow("Unlimited listings")
+                Spacer(modifier = Modifier.height(4.dp))
+                FeatureRow("Unlimited bookings")
+
                 if (plan.description.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = plan.description,
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (isCurrent) MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (isCurrent) MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2
                     )
                 }
 
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // CTA button
                 Button(
@@ -706,16 +742,26 @@ fun CompactPlanCard(
                     contentPadding = PaddingValues(vertical = 10.dp)
                 ) {
                     Icon(
-                        if (isCurrent) Icons.Default.Verified else Icons.Default.ShoppingCart,
+                        if (isCurrent) Icons.Default.Verified else Icons.Default.PlayArrow,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = if (isCurrent) "Active" else "Select",
+                        text = if (isCurrent) "Active Plan" else "Subscribe",
                         style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isCurrent) MaterialTheme.proColors.headerSuccess else if (isFeatured) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onPrimary
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // "Secured by Google Play" label
+                if (!isCurrent) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "via Google Play",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isFeatured) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
                 }
             }
@@ -726,9 +772,9 @@ fun CompactPlanCard(
             Surface(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .offset(x = 8.dp, y = (-8).dp),
+                    .offset(x = 8.dp, y = (-10).dp),
                 color = MaterialTheme.colorScheme.secondary,
-                shape = RoundedCornerShape(6.dp),
+                shape = RoundedCornerShape(8.dp),
                 shadowElevation = 4.dp
             ) {
                 Text(
@@ -736,7 +782,7 @@ fun CompactPlanCard(
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onSecondary,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
         }

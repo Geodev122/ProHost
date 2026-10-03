@@ -1446,7 +1446,7 @@ data class AppUser(
                 id = docId,
                 displayCode = data["displayCode"] as? String ?: "",
                 email = data["email"] as? String ?: "",
-                fullName = data["fullName"] as? String ?: "Member",
+                fullName = data["fullName"] as? String ?: "",
                 role = role,
                 specialty = data["specialty"] as? String ?: "",
                 phone = data["phone"] as? String ?: "",

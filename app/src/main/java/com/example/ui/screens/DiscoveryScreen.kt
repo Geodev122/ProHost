@@ -22,6 +22,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -128,6 +130,10 @@ fun DiscoveryScreenContent(
     val context = LocalContext.current
     var searchExpanded by rememberSaveable { mutableStateOf(filterState.query.isNotEmpty()) }
     val searchQuery = filterState.query
+    var detectedCountryName by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        detectedCountryName = com.example.util.PhoneCountryDetector.detectCountry(context).name
+    }
 
     Box(modifier = Modifier
         .fillMaxSize()
@@ -155,6 +161,8 @@ fun DiscoveryScreenContent(
                         onToggleMapView = onToggleMapView,
                         onSearchQueryChange = onSearchQueryChange,
                         onOpenFilters = { onSetFilterSheetVisible(true) },
+                        listingCount = spaces.size,
+                        countryName = detectedCountryName,
                         modifier = Modifier.align(Alignment.TopStart)
                     )
                 }
@@ -205,13 +213,6 @@ fun DiscoveryScreenContent(
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                     item {
-                        // One-line hero: a single real-data statement. The country named is
-                        // whatever this device detects (see PhoneCountryDetector), never a
-                        // hardcoded country — ProHost isn't single-country.
-                        var detectedCountryName by remember { mutableStateOf<String?>(null) }
-                        LaunchedEffect(Unit) {
-                            detectedCountryName = com.example.util.PhoneCountryDetector.detectCountry(context).name
-                        }
                         Surface(
                             color = MaterialTheme.colorScheme.primaryContainer,
                             shape = MaterialTheme.shapes.large,
@@ -288,6 +289,8 @@ fun DiscoveryScreenContent(
                 onToggleMapView = onToggleMapView,
                 onSearchQueryChange = onSearchQueryChange,
                 onOpenFilters = { onSetFilterSheetVisible(true) },
+                listingCount = spaces.size,
+                countryName = detectedCountryName,
                 modifier = Modifier.align(Alignment.TopStart)
             )
         }
@@ -312,7 +315,7 @@ fun DiscoveryScreenContent(
     }
 }
 
-/** Map/list toggle, expandable search field and filter button — shared by both views. */
+/** Unified explore strip: listing count chip + map/list toggle + search + filters. */
 @Composable
 private fun ExploreTopControls(
     isMapView: Boolean,
@@ -323,70 +326,142 @@ private fun ExploreTopControls(
     onToggleMapView: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onOpenFilters: () -> Unit,
+    listingCount: Int = 0,
+    countryName: String? = null,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 8.dp, end = 8.dp, top = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(start = 10.dp, end = 10.dp, top = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        SmallFloatingActionButton(
-            onClick = onToggleMapView,
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
-        ) {
-            Icon(
-                imageVector = if (isMapView) Icons.AutoMirrored.Filled.FormatListBulleted else Icons.Default.Map,
-                contentDescription = if (isMapView) "Switch to List View" else "Switch to Map View"
-            )
+        // Listing count tag
+        if (!searchExpanded) {
+            val countLabel = buildString {
+                append("$listingCount workspace${if (listingCount == 1) "" else "s"}")
+                countryName?.let { append(" · $it") }
+            }
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.92f),
+                shadowElevation = 2.dp,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        Icons.Default.LocationOn,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = countLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
         }
-        AnimatedContent(
-            targetState = searchExpanded,
-            modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
-            label = "ExploreSearchToggle"
-        ) { expanded ->
-            if (!expanded) {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    BadgedBox(badge = {
-                        if (searchQuery.isNotEmpty()) Badge(containerColor = MaterialTheme.colorScheme.error)
-                    }) {
-                        SmallFloatingActionButton(
-                            onClick = { onSearchExpandedChange(true) },
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            contentColor = MaterialTheme.colorScheme.primary,
-                            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
-                        ) {
-                            Icon(Icons.Default.Search, contentDescription = "Search workspaces")
+
+        // Controls strip
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+            shadowElevation = 6.dp,
+            tonalElevation = 2.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Map / list toggle
+                IconButton(
+                    onClick = onToggleMapView,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(
+                        imageVector = if (isMapView) Icons.AutoMirrored.Filled.FormatListBulleted else Icons.Default.Map,
+                        contentDescription = if (isMapView) "Switch to List View" else "Switch to Map View",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Search (expandable) — takes all remaining space
+                AnimatedContent(
+                    targetState = searchExpanded,
+                    modifier = Modifier.weight(1f),
+                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                    label = "ExploreSearchToggle"
+                ) { expanded ->
+                    if (!expanded) {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            BadgedBox(badge = {
+                                if (searchQuery.isNotEmpty()) Badge(containerColor = MaterialTheme.colorScheme.error)
+                            }) {
+                                IconButton(
+                                    onClick = { onSearchExpandedChange(true) },
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Search,
+                                        contentDescription = "Search workspaces",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
                         }
+                    } else {
+                        ExploreSearchField(
+                            query = searchQuery,
+                            onQueryChange = onSearchQueryChange,
+                            onClose = {
+                                onSearchQueryChange("")
+                                onSearchExpandedChange(false)
+                            }
+                        )
                     }
                 }
-            } else {
-                ExploreSearchField(
-                    query = searchQuery,
-                    onQueryChange = onSearchQueryChange,
-                    onClose = {
-                        onSearchQueryChange("")
-                        onSearchExpandedChange(false)
+
+                // Filters button with badge
+                BadgedBox(badge = {
+                    if (activeFilterCount > 0) {
+                        Badge(containerColor = MaterialTheme.colorScheme.error) { Text("$activeFilterCount") }
                     }
-                )
-            }
-        }
-        BadgedBox(badge = {
-            if (activeFilterCount > 0) {
-                Badge(containerColor = MaterialTheme.colorScheme.error) { Text("$activeFilterCount") }
-            }
-        }) {
-            SmallFloatingActionButton(
-                onClick = onOpenFilters,
-                containerColor = MaterialTheme.colorScheme.secondary,
-                contentColor = MaterialTheme.colorScheme.onSecondary,
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
-            ) {
-                Icon(Icons.Default.FilterList, contentDescription = "Filters")
+                }) {
+                    IconButton(
+                        onClick = onOpenFilters,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (activeFilterCount > 0) MaterialTheme.colorScheme.secondary
+                                else MaterialTheme.colorScheme.surfaceVariant
+                            )
+                    ) {
+                        Icon(
+                            Icons.Default.FilterList,
+                            contentDescription = "Filters",
+                            tint = if (activeFilterCount > 0) MaterialTheme.colorScheme.onSecondary
+                                   else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             }
         }
     }

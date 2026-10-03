@@ -33,6 +33,30 @@ object PlayOfferText {
     fun recurringPrice(details: ProductDetails?): String? =
         details?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.lastOrNull()?.formattedPrice
 
+    /** "per month", "per year", etc. for the recurring phase — null when no product. */
+    fun billingPeriodLabel(details: ProductDetails?): String? {
+        val phase = details?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.lastOrNull()
+            ?: return null
+        return "per ${per(phase.billingPeriod)}"
+    }
+
+    /** Short free-trial label, e.g. "7-day free trial". Null when no trial phase. */
+    fun trialLabel(details: ProductDetails?): String? {
+        val phases = details?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList
+            ?: return null
+        val trial = phases.firstOrNull { it.priceAmountMicros == 0L } ?: return null
+        return "Free for ${duration(trial.billingPeriod, trial.billingCycleCount.coerceAtLeast(1))}"
+    }
+
+    /** Short intro-offer label, e.g. "50% off for 3 months". Null when no discounted intro phase. */
+    fun introLabel(details: ProductDetails?): String? {
+        val phases = details?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList
+            ?: return null
+        val intro = phases.dropLast(1).firstOrNull { it.priceAmountMicros > 0L } ?: return null
+        val span = duration(intro.billingPeriod, intro.billingCycleCount.coerceAtLeast(1))
+        return "${intro.formattedPrice} for $span"
+    }
+
     private fun parse(iso: String): Pair<Int, String>? {
         val match = Regex("P(\\d+)([DWMY])").matchEntire(iso) ?: return null
         val n = match.groupValues[1].toIntOrNull() ?: return null
