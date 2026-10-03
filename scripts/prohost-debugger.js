@@ -717,6 +717,18 @@ function checkGradleConfigAudit() {
     issues++;
   }
 
+  // 3. The Crashlytics SDK needs the Crashlytics Gradle plugin: without it no build ID is
+  //    generated and the SDK throws at startup (v1.0.33 crashed on launch this way).
+  const rootBuild = readSafe(path.join(ROOT, 'build.gradle.kts')) || '';
+  if (/implementation\(libs\.firebase\.crashlytics\)/.test(buildContent) &&
+      (!/alias\(libs\.plugins\.firebase\.crashlytics\)\s*\n/.test(buildContent) ||
+       !rootBuild.includes('alias(libs.plugins.firebase.crashlytics) apply false'))) {
+    bug('CRITICAL','gradle','Crashlytics Plugin Missing', 'app/build.gradle.kts', null,
+      'firebase-crashlytics is a dependency but the Crashlytics Gradle plugin is not applied — the app crashes on launch ("Crashlytics build ID is missing").',
+      'Apply alias(libs.plugins.firebase.crashlytics) in app/build.gradle.kts (and "apply false" in the root build.gradle.kts).');
+    issues++;
+  }
+
   if (issues === 0) pass('Gradle Build Config Audit', 'SDK targets compliant, release signing configured, R8 and shrinking enabled.');
 }
 

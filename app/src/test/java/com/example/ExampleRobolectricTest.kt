@@ -2,7 +2,6 @@ package com.example
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import com.example.data.repository.ProHostRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
@@ -24,7 +23,7 @@ class ExampleRobolectricTest {
 
   @Test
   fun `test financial calculations`() {
-    val repo = ProHostRepository()
+    val repo = hermeticRepository()
     assertEquals(1.80, repo.pricingState.value.monthlySubscriptionFeeUsd, 0.01)
   }
 }

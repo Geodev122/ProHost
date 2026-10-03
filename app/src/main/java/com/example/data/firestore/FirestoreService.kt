@@ -26,10 +26,16 @@ class FirestoreService(
     } catch (e: Exception) {
         Log.w("FirestoreService", "FirebaseFirestore instance unavailable: ${e.message}")
         null
-    }
+    },
+    // Tests only: no Firestore at all, and writes report success so repository flows run
+    // against in-memory state instead of production (see localOnly()).
+    val localOnly: Boolean = false
 ) {
     companion object {
         private const val TAG = "FirestoreService"
+
+        /** Hermetic instance for unit tests: never touches Firebase; writes succeed locally. */
+        fun localOnly(): FirestoreService = FirestoreService(firestore = null, localOnly = true)
 
         @Volatile
         private var INSTANCE: FirestoreService? = null
@@ -349,7 +355,7 @@ class FirestoreService(
      */
     suspend fun deleteWorkspace(spaceId: String): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS).document(spaceId).delete().await()
             true
         } catch (e: Exception) {
@@ -360,7 +366,7 @@ class FirestoreService(
 
     suspend fun saveWorkspace(space: SpaceListing): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
                 .document(space.id)
                 .set(space.toFirestoreMap(), SetOptions.merge())
@@ -380,7 +386,7 @@ class FirestoreService(
      */
     suspend fun updateWorkspaceListingFields(spaceId: String, fields: Map<String, Any?>): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
                 .document(spaceId)
                 .set(fields + ("updatedAt" to System.currentTimeMillis()), SetOptions.merge())
@@ -403,7 +409,7 @@ class FirestoreService(
      */
     suspend fun incrementSpaceCounter(spaceId: String, field: String): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
                 .document(spaceId)
                 .update(field, FieldValue.increment(1))
@@ -423,7 +429,7 @@ class FirestoreService(
      * returns whether it succeeded rather than throwing.
      */
     suspend fun recordHashtagUsage(tags: List<String>, governorate: String): Boolean {
-        val db = firestore ?: return false
+        val db = firestore ?: return localOnly
         return try {
             tags.map { it.trim().lowercase() }.filter { it.isNotBlank() }.forEach { tag ->
                 db.collection(FirestoreSchema.Collections.HASHTAG_USAGE)
@@ -537,7 +543,7 @@ class FirestoreService(
      */
     suspend fun saveUserProfile(user: AppUser): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.USER_PROFILES)
                 .document(user.id)
                 .set(user.toFirestoreMap(), SetOptions.merge())
@@ -551,7 +557,7 @@ class FirestoreService(
 
     suspend fun updateUserProfileFields(uid: String, fields: Map<String, Any?>): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.USER_PROFILES)
                 .document(uid)
                 .set(fields + ("updatedAt" to System.currentTimeMillis()), SetOptions.merge())
@@ -572,7 +578,7 @@ class FirestoreService(
      */
     suspend fun saveFcmToken(uid: String, token: String): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.USER_PROFILES)
                 .document(uid)
                 .set(mapOf("fcmToken" to token, "updatedAt" to System.currentTimeMillis()), SetOptions.merge())
@@ -586,7 +592,7 @@ class FirestoreService(
 
     suspend fun deleteUserProfile(userId: String): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.USER_PROFILES).document(userId).delete().await()
             true
         } catch (e: Exception) {
@@ -635,7 +641,7 @@ class FirestoreService(
 
     suspend fun saveBookingRequest(booking: BookingRequest): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
                 .document(booking.id)
                 .set(booking.toFirestoreMap(), SetOptions.merge())
@@ -649,7 +655,7 @@ class FirestoreService(
 
     suspend fun deleteBookingRequest(bookingId: String): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS).document(bookingId).delete().await()
             true
         } catch (e: Exception) {
@@ -665,7 +671,7 @@ class FirestoreService(
         extraFields: Map<String, Any?> = emptyMap()
     ): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             val updates = mutableMapOf<String, Any?>(
                 "status" to status.name,
                 "reviewedAt" to System.currentTimeMillis()
@@ -694,7 +700,7 @@ class FirestoreService(
      */
     suspend fun updateBookingFields(requestId: String, fields: Map<String, Any?>): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
                 .document(requestId)
                 .set(fields, SetOptions.merge())
@@ -711,7 +717,7 @@ class FirestoreService(
     // ==========================================
 
     suspend fun saveSchema(schema: SpaceArchitectureSchema): Boolean {
-        val db = firestore ?: return false
+        val db = firestore ?: return localOnly
         db.collection(FirestoreSchema.Collections.SCHEMA_ARCHITECTURE)
             .document("main")
             .set(schema.toFirestoreMap(), SetOptions.merge())
@@ -725,7 +731,7 @@ class FirestoreService(
 
     suspend fun savePackagePlans(catalog: PackagePlanCatalog): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
                 .document(PackagePlanCatalog.DOCUMENT_ID)
                 .set(catalog.toFirestoreMap(), SetOptions.merge())
@@ -749,7 +755,7 @@ class FirestoreService(
      */
     suspend fun deletePackagePlan(planId: String): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
                 .document(PackagePlanCatalog.DOCUMENT_ID)
                 .update("packages.$planId", com.google.firebase.firestore.FieldValue.delete())
@@ -788,7 +794,7 @@ class FirestoreService(
      */
     suspend fun publishLegalDocumentVersion(docId: String, version: LegalDocumentVersion): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(LegalDocumentVersion.COLLECTION_PATH).document(docId)
                 .set(version.toFirestoreMap(), SetOptions.merge())
                 .await()
@@ -809,7 +815,7 @@ class FirestoreService(
 
     suspend fun recordAuditLog(log: AuditSecurityLog): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.AUDIT_SECURITY_LOGS)
                 .document(log.id)
                 .set(log.toFirestoreMap(), SetOptions.merge())

@@ -22,7 +22,10 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 
-class ProHostRepository {
+class ProHostRepository(
+    private val firestoreService: FirestoreService = FirestoreService.getInstance(),
+    private val functionsClient: FirebaseFunctionsClient = FirebaseFunctionsClient()
+) {
 
     companion object {
         private const val TAG = "ProHostRepository"
@@ -57,8 +60,8 @@ class ProHostRepository {
     }
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val firestoreService = FirestoreService.getInstance()
-    private val functionsClient = FirebaseFunctionsClient()
+    /** True for the hermetic test repository (no Firestore; see FirestoreService.localOnly). */
+    val isLocalOnly: Boolean get() = firestoreService.localOnly
 
 
     private val _isCloudConnected = MutableStateFlow(false)

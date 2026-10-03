@@ -11,6 +11,7 @@ jobs:
   build-and-test:
     name: Build & Test Android App
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

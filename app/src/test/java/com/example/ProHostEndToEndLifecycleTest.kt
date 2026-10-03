@@ -27,7 +27,7 @@ class ProHostEndToEndLifecycleTest {
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
-        repository = ProHostRepository()
+        repository = hermeticRepository()
         repository.replaceSpacesForTest(demoSpaces())
         viewModel = ProHostViewModel(repository)
     }
@@ -171,7 +171,7 @@ class ProHostEndToEndLifecycleTest {
 
     @Test
     fun `fresh repository starts signed out, not pre-authenticated as Super Admin`() {
-        val freshRepository = ProHostRepository()
+        val freshRepository = hermeticRepository()
         assertNull(
             "A new repository instance must start signed out — it must NOT default to a pre-authenticated Admin session",
             freshRepository.currentUser.value

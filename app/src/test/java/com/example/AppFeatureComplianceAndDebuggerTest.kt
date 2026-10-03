@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.auth.FirebaseAuthService
 import com.example.data.firestore.FirestoreSchema
-import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
 import com.example.data.repository.ProHostRepository
 import com.example.util.AppSystemDebugger
@@ -31,14 +30,12 @@ class AppFeatureComplianceAndDebuggerTest {
 
     private lateinit var context: Context
     private lateinit var repository: ProHostRepository
-    private lateinit var firestoreService: FirestoreService
 
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
-        repository = ProHostRepository()
+        repository = hermeticRepository()
         repository.replaceSpacesForTest(demoSpaces())
-        firestoreService = FirestoreService.getInstance()
     }
 
     @Test
@@ -58,8 +55,23 @@ class AppFeatureComplianceAndDebuggerTest {
         }
         println("=================================================")
 
-        assertTrue("Overall compliance must be at least 90%", auditReport.overallCompliancePercentage >= 90f)
+        // Offline/hermetic run: environment checks (signed-in user, live Firestore, audit
+        // log contents) can only be WARNING here; everything checkable offline must pass.
         assertEquals("There should be 0 failed critical features", 0, auditReport.failedCount)
+        val offlineCheckable = listOf(
+            "Firestore Schema Version",
+            "Lebanese Governorates & Regional Filters",
+            "Multi-Tier Rental Pricing Formula Engine",
+            "Subdivisions & Chair/Room Allocation",
+            "Weekly Operating Schedule Matrix",
+            "Booking Pipeline Structural Check",
+            "Master Data CSV Export Hub"
+        )
+        offlineCheckable.forEach { name ->
+            val item = auditReport.items.firstOrNull { it.featureName == name }
+            assertNotNull("Audit must include \"$name\"", item)
+            assertEquals("\"$name\" must pass offline", AppSystemDebugger.DiagnosticStatus.PASSED, item?.status)
+        }
     }
 
     @Test

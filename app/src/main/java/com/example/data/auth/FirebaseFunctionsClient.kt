@@ -11,7 +11,7 @@ import kotlinx.coroutines.tasks.await
  * token claims — is the ONLY way this app ever learns or changes a user's
  * role. Nothing here accepts a role as a trusted client-side value.
  */
-class FirebaseFunctionsClient {
+open class FirebaseFunctionsClient {
 
     private val tag = "FirebaseFunctionsClient"
 
@@ -278,7 +278,7 @@ class FirebaseFunctionsClient {
      * denies every direct client write. actorEmail is never accepted from the
      * client; the server always uses the caller's own verified token email.
      */
-    suspend fun recordAuditLog(actionType: String, details: String, severity: String = "INFO"): Result<Unit> {
+    open suspend fun recordAuditLog(actionType: String, details: String, severity: String = "INFO"): Result<Unit> {
         return try {
             functions.getHttpsCallable("recordClientAuditLog")
                 .call(mapOf("actionType" to actionType, "details" to details, "severity" to severity))
@@ -354,7 +354,7 @@ class FirebaseFunctionsClient {
     }
 
     /** Admin-only: override a listing's verified badge (functions/src/admin/listings.ts). */
-    suspend fun setListingVerification(spaceId: String, verified: Boolean): Result<Unit> {
+    open suspend fun setListingVerification(spaceId: String, verified: Boolean): Result<Unit> {
         return try {
             functions.getHttpsCallable("setListingVerification")
                 .call(mapOf("spaceId" to spaceId, "verified" to verified))

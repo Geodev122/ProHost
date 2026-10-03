@@ -97,6 +97,14 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
 
 - Release build type requires `isMinifyEnabled = true` and `isShrinkResources = true`
   (`app/build.gradle.kts`) — already set, do not disable.
+- Never remove the **Crashlytics Gradle plugin** (`alias(libs.plugins.firebase.crashlytics)` in both
+  build files, plus the release `CrashlyticsExtension` block) while `firebase-crashlytics` is a
+  dependency: without it there is no Crashlytics build ID and the SDK throws during Firebase startup —
+  v1.0.33 crashed on launch for every user. NIGHTHAWK's Gradle audit flags it as CRITICAL.
+- Unit tests must stay hermetic: build repositories with `hermeticRepository()`
+  (`app/src/test/.../TestFixtures.kt` → `FirestoreService.localOnly()` + `FakeFunctionsClient`), never
+  `ProHostRepository()`, which talks to production Firestore and hung CI for 6 h per run. Gradle caps
+  each test task at 15 min and the CI Android job at 45 min.
 - Keep `ndk { debugSymbolLevel = "FULL" }` in the release build type, and upload the generated
   `native-debug-symbols.zip` to Play Console with every `.aab`.
 - **Always run `node scripts/prohost-debugger.js` (NIGHTHAWK) before tagging a release.** The

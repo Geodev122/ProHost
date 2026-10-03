@@ -138,7 +138,8 @@ object AppSystemDebugger {
             val currentSpaces = repository.spaces.value
             val currentBookings = repository.bookingRequests.value
             val cloudConnected = repository.isCloudConnected.value
-            val offlineMode = repository.isOfflineMode.value
+            // The hermetic test repository has no Firestore by design — not a failure.
+            val offlineMode = repository.isOfflineMode.value || repository.isLocalOnly
             results.add(
                 DiagnosticItem(
                     category = "Firebase",

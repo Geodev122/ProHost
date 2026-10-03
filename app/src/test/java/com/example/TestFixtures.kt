@@ -1,6 +1,18 @@
 package com.example
 
+import com.example.data.auth.FirebaseFunctionsClient
+import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
+import com.example.data.repository.ProHostRepository
+
+/** Callables the repository tests reach, answered locally instead of by Cloud Functions. */
+class FakeFunctionsClient : FirebaseFunctionsClient() {
+    override suspend fun setListingVerification(spaceId: String, verified: Boolean): Result<Unit> = Result.success(Unit)
+    override suspend fun recordAuditLog(actionType: String, details: String, severity: String): Result<Unit> = Result.success(Unit)
+}
+
+/** Repository that never touches Firebase: in-memory state only, writes succeed locally. */
+fun hermeticRepository(): ProHostRepository = ProHostRepository(FirestoreService.localOnly(), FakeFunctionsClient())
 
 /** Demo listing used by repository tests (production no longer seeds any). */
 fun demoSpaces(): List<SpaceListing> = listOf(
