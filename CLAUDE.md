@@ -106,6 +106,9 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
   performance profiling, app size, localization, accessibility, Kotlin type safety, Android
   Lint, Detekt, manifest security, Gradle config audit, code style, and analytics hygiene. Reports are written to
   `scripts/nighthawk-report.{json,html}`.
+- Keep `android.newDsl=false` (with `DEPRECATED_DSL` suppressed) in `gradle.properties` while the build
+  applies `org.jetbrains.kotlin.android` (`android.builtInKotlin=false`): `newDsl=true` makes that plugin
+  fail with `ApplicationExtensionImpl cannot be cast to BaseExtension` (broke main run 11, 2026-10-03).
 - CI (`.github/workflows/*.yml`) installs Gradle itself: keep `gradle-version` equal to
   `gradle/wrapper/gradle-wrapper.properties` (AGP 9.4 needs Gradle 9.6.0). A mismatch broke every
   CI build from 2026-10-01; earlier pushes also failed. Functions run on Node 22.
