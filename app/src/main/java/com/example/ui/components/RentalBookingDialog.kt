@@ -110,10 +110,11 @@ fun RebookDialog(
     viewModel: ProHostViewModel,
     onDismiss: () -> Unit,
     onRequestSubmitted: () -> Unit,
-    attendeePackages: List<AttendeePackage> = emptyList()
+    attendeePackages: List<AttendeePackage> = emptyList(),
+    initialAttendeeCount: Int = 0
 ) {
     BookingSlotSelectorDialog(
-        target = BookingDialogTarget(space = space, initialFormula = initialFormula, replacesBookingId = null),
+        target = BookingDialogTarget(space = space, initialFormula = initialFormula, replacesBookingId = null, initialAttendeeCount = initialAttendeeCount),
         viewModel = viewModel,
         copy = BookingDialogCopy(
             headerTitle = "Re-book This Space",
@@ -142,10 +143,11 @@ fun EditBookingDialog(
     viewModel: ProHostViewModel,
     onDismiss: () -> Unit,
     onRequestSubmitted: () -> Unit,
-    attendeePackages: List<AttendeePackage> = emptyList()
+    attendeePackages: List<AttendeePackage> = emptyList(),
+    initialAttendeeCount: Int = 0
 ) {
     BookingSlotSelectorDialog(
-        target = BookingDialogTarget(space = space, initialFormula = initialFormula, replacesBookingId = replacesBookingId),
+        target = BookingDialogTarget(space = space, initialFormula = initialFormula, replacesBookingId = replacesBookingId, initialAttendeeCount = initialAttendeeCount),
         viewModel = viewModel,
         copy = BookingDialogCopy(
             headerTitle = "Propose a Booking Change",
@@ -169,7 +171,8 @@ fun EditBookingDialog(
 data class BookingDialogTarget(
     val space: SpaceListing,
     val initialFormula: RentalFormula?,
-    val replacesBookingId: String?
+    val replacesBookingId: String?,
+    val initialAttendeeCount: Int = 0
 )
 
 data class BookingDialogCopy(
@@ -407,17 +410,23 @@ private fun BookingSlotSelectorDialog(
 
     var clinicalNotes by remember { mutableStateOf("") }
 
-    // Attendee-mode state — only active when selectedSubdivision?.pricingMode == PER_ATTENDEE
-    val isAttendeeMode = selectedSubdivision?.pricingMode == SubdivisionPricingMode.PER_ATTENDEE
-    val enabledAttendeePackages = remember(attendeePackages) { attendeePackages.filter { it.isEnabled } }
-    var attendeeCount by remember(isAttendeeMode) { mutableStateOf(1) }
-    var selectedAttendeePackage by remember(isAttendeeMode, enabledAttendeePackages) {
-        mutableStateOf(enabledAttendeePackages.firstOrNull())
+    // Per-attendee rooms: one per-person price for the whole booking, from the tier
+    // the attendee count falls in (AttendeePricing). The slots below only pick WHEN.
+    val attendeeSub = selectedSubdivision?.takeIf { com.example.ui.util.AttendeePricing.isPerAttendee(it) }
+    val isAttendeeMode = attendeeSub != null
+    val attendeeTiers = remember(attendeeSub, attendeePackages) {
+        attendeeSub?.let { com.example.ui.util.AttendeePricing.tiersFor(it, attendeePackages) } ?: emptyList()
     }
-    val attendeeTotalUsd = remember(isAttendeeMode, attendeeCount, selectedAttendeePackage) {
-        if (isAttendeeMode) attendeeCount * (selectedAttendeePackage?.pricePerAttendeeUsd ?: 0.0)
-        else 0.0
+    val attendeeMin = attendeeSub?.let { com.example.ui.util.AttendeePricing.minAttendees(it, attendeeTiers) } ?: 1
+    val attendeeMax = attendeeSub?.let { com.example.ui.util.AttendeePricing.maxAttendees(it, attendeeTiers) }
+    var attendeeCount by remember(attendeeSub?.id) {
+        mutableStateOf(target.initialAttendeeCount.coerceAtLeast(attendeeMin).let { c -> attendeeMax?.let { c.coerceAtMost(it) } ?: c })
     }
+    val attendeeQuote = remember(attendeeSub, attendeeCount, attendeeTiers) {
+        attendeeSub?.let { com.example.ui.util.AttendeePricing.quote(it, attendeeCount, attendeePackages) }
+    }
+    val selectedAttendeePackage = attendeeQuote?.tier
+    val attendeeTotalUsd = attendeeQuote?.totalUsd ?: 0.0
 
     val chosenSlotSummary = remember(
         selectedStrategyType,
@@ -585,144 +594,14 @@ private fun BookingSlotSelectorDialog(
                                 color = MaterialTheme.colorScheme.primary
                             )
 
-                            // Attendee count stepper
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    "Attendees",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    FilledIconButton(
-                                        onClick = { if (attendeeCount > 1) attendeeCount-- },
-                                        enabled = attendeeCount > 1,
-                                        modifier = Modifier.size(36.dp),
-                                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-                                    ) {
-                                        Icon(Icons.Default.Remove, contentDescription = "Decrease", modifier = Modifier.size(18.dp))
-                                    }
-                                    Text(
-                                        text = attendeeCount.toString(),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.defaultMinSize(minWidth = 36.dp),
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                    )
-                                    FilledIconButton(
-                                        onClick = {
-                                            val cap = selectedSubdivision?.capacity
-                                            if (cap == null || attendeeCount < cap) attendeeCount++
-                                        },
-                                        enabled = selectedSubdivision?.capacity?.let { attendeeCount < it } ?: true,
-                                        modifier = Modifier.size(36.dp),
-                                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-                                    ) {
-                                        Icon(Icons.Default.Add, contentDescription = "Increase", modifier = Modifier.size(18.dp))
-                                    }
-                                }
-                            }
-                            selectedSubdivision?.capacity?.let { cap ->
-                                Text(
-                                    "Max capacity: $cap attendees",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            // Package selector
-                            Text(
-                                "Select Package",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            AttendeeCountAndTiers(
+                                count = attendeeCount,
+                                min = attendeeMin,
+                                max = attendeeMax,
+                                tiers = attendeeTiers,
+                                quote = attendeeQuote,
+                                onCountChange = { attendeeCount = it }
                             )
-                            if (enabledAttendeePackages.isEmpty()) {
-                                Text(
-                                    "No attendee packages configured yet.",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            } else {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    enabledAttendeePackages.forEach { pkg ->
-                                        val isSelected = selectedAttendeePackage?.id == pkg.id
-                                        Card(
-                                            modifier = Modifier.fillMaxWidth().clickable { selectedAttendeePackage = pkg },
-                                            shape = MaterialTheme.shapes.medium,
-                                            colors = CardDefaults.cardColors(
-                                                containerColor = if (isSelected) {
-                                                    MaterialTheme.colorScheme.primaryContainer
-                                                } else {
-                                                    MaterialTheme.colorScheme.surfaceVariant
-                                                }
-                                            ),
-                                            border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
-                                        ) {
-                                            Row(modifier = Modifier.padding(Spacing.md).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                                RadioButton(
-                                                    selected = isSelected,
-                                                    onClick = { selectedAttendeePackage = pkg },
-                                                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
-                                                )
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Text(pkg.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                                    if (pkg.description.isNotBlank()) {
-                                                        Text(
-                                                            pkg.description,
-                                                            style = MaterialTheme.typography.labelSmall,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
-                                                    }
-                                                    if (pkg.inclusions.isNotEmpty()) {
-                                                        Text(
-                                                            "Includes: ${pkg.inclusions.joinToString()}",
-                                                            style = MaterialTheme.typography.labelSmall,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
-                                                    }
-                                                }
-                                                Text(
-                                                    "\$${pkg.pricePerAttendeeUsd.toInt()}/pp",
-                                                    style = MaterialTheme.typography.labelLarge,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Attendee price total
-                            if (selectedAttendeePackage != null) {
-                                Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.medium) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp).fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            "$attendeeCount attendees × \$${selectedAttendeePackage!!.pricePerAttendeeUsd.toInt()} " +
-                                            "${selectedAttendeePackage!!.name}",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        Text(
-                                            "\$${String.format("%.2f", attendeeTotalUsd)}",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = MaterialTheme.colorScheme.secondary
-                                        )
-                                    }
-                                }
-                            }
 
                             // Time slot picker still needed for availability
                             Text(
@@ -850,7 +729,7 @@ private fun BookingSlotSelectorDialog(
                                                     onClick = {
                                                         selectedHourlyCells = if (isSelected) selectedHourlyCells - cell else selectedHourlyCells + cell
                                                     },
-                                                    label = { Text("${cell.startTime} · $${price.toInt()}", style = MaterialTheme.typography.labelSmall) }
+                                                    label = { Text(if (isAttendeeMode) cell.startTime else "${cell.startTime} · $${price.toInt()}", style = MaterialTheme.typography.labelSmall) }
                                                 )
                                             }
                                         }
@@ -918,7 +797,7 @@ private fun BookingSlotSelectorDialog(
                                             // (SelectableDates below) to the chosen weekdays and to
                                             // dates not already locked by another accepted booking.
                                             Text(
-                                                "Pick specific dates ($${shiftPrice.toInt()} each):",
+                                                if (isAttendeeMode) "Pick specific dates:" else "Pick specific dates ($${shiftPrice.toInt()} each):",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.SemiBold
                                             )
@@ -970,7 +849,7 @@ private fun BookingSlotSelectorDialog(
                                                             selectedDayBasedDays + slot.day
                                                         }
                                                     },
-                                                    label = { Text("${slot.day} · $${price.toInt()}", style = MaterialTheme.typography.labelMedium) }
+                                                    label = { Text(if (isAttendeeMode) slot.day else "${slot.day} · $${price.toInt()}", style = MaterialTheme.typography.labelMedium) }
                                                 )
                                             }
                                         }
@@ -1211,10 +1090,9 @@ private fun BookingSlotSelectorDialog(
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                     )
-                                    if (isAttendeeMode && selectedAttendeePackage != null) {
+                                    if (attendeeQuote != null) {
                                         Text(
-                                            text = "$attendeeCount attendees × \$${selectedAttendeePackage!!.pricePerAttendeeUsd.toInt()} " +
-                                                selectedAttendeePackage!!.name,
+                                            text = com.example.ui.util.AttendeePricing.describe(attendeeQuote),
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.Medium,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -1230,7 +1108,8 @@ private fun BookingSlotSelectorDialog(
                                 }
 
                                 Text(
-                                    text = "$${(if (isAttendeeMode) attendeeTotalUsd else totalCalculatedUsd).toInt()} USD",
+                                    text = if (isAttendeeMode) "$${com.example.ui.util.AttendeePricing.formatUsd(attendeeTotalUsd)} USD"
+                                        else "$${totalCalculatedUsd.toInt()} USD",
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.primary
@@ -1294,7 +1173,7 @@ private fun BookingSlotSelectorDialog(
                     val canSubmit = selectedStrategyType != null && selectedSlotsForPricing.isNotEmpty() &&
                         (selectedStrategyType != RentalStrategyType.SHIFT_BASED || selectedCalendarDates.isNotEmpty()) &&
                         (selectedStrategyType != RentalStrategyType.DAY_BASED || dayBasedCalendarDates.isNotEmpty()) &&
-                        (!isAttendeeMode || (attendeeCount > 0 && selectedAttendeePackage != null))
+                        (!isAttendeeMode || attendeeQuote != null)
 
                     fun buildFormulaForSubmission(): RentalFormula? {
                         // Same synthesis SpaceDetailsScreen's renting-option preview and
@@ -1523,6 +1402,131 @@ private fun BookingSlotSelectorDialog(
             }
         ) {
             DatePicker(state = datePickerState)
+        }
+    }
+}
+
+/**
+ * Attendee count stepper (bounded by the room's min/max) plus the room's tiers, with
+ * the tier this count falls in highlighted and the whole-booking total.
+ * Shared by the booking dialog and the Check Availability sheet.
+ */
+@Composable
+fun AttendeeCountAndTiers(
+    count: Int,
+    min: Int,
+    max: Int?,
+    tiers: List<AttendeePackage>,
+    quote: com.example.ui.util.AttendeePricing.Quote?,
+    onCountChange: (Int) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Attendees", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (max != null) "$min–$max people" else "At least $min",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            FilledIconButton(
+                onClick = { onCountChange(count - 1) },
+                enabled = count > min,
+                modifier = Modifier.size(36.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+            ) { Icon(Icons.Default.Remove, contentDescription = "Fewer attendees", modifier = Modifier.size(18.dp)) }
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.defaultMinSize(minWidth = 36.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            FilledIconButton(
+                onClick = { onCountChange(count + 1) },
+                enabled = max == null || count < max,
+                modifier = Modifier.size(36.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+            ) { Icon(Icons.Default.Add, contentDescription = "More attendees", modifier = Modifier.size(18.dp)) }
+        }
+
+        if (tiers.isEmpty()) {
+            Text(
+                "This room has no attendee pricing yet — contact the host.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        } else {
+            tiers.forEach { tier ->
+                val active = quote?.tier?.id == tier.id
+                val range = tier.maxAttendees?.let { "${tier.minAttendees}–$it" } ?: "${tier.minAttendees}+"
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = if (active) androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(tier.name.ifBlank { "$range people" }, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                            Text("$range people", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (tier.inclusions.isNotEmpty()) {
+                                Text(
+                                    "Includes: ${tier.inclusions.joinToString()}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Text(
+                            "$${com.example.ui.util.AttendeePricing.formatUsd(tier.pricePerAttendeeUsd)}/person",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+            if (quote == null) {
+                Text(
+                    "No tier covers $count attendees — adjust the number.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+
+        if (quote != null) {
+            Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.medium) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        com.example.ui.util.AttendeePricing.describe(quote),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "$${com.example.ui.util.AttendeePricing.formatUsd(quote.totalUsd)}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
+            Text(
+                "One price for the whole booking — not multiplied by hours, shifts or days.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

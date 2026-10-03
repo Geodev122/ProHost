@@ -57,6 +57,14 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
   the My Rentals tab (read-only, for bookings made before upgrading; Re-book/Edit hidden)
   and My Favorites.
   Demo seeding is debug-build only. `sendInquiryEmail` ("Email the Host") was retired on purpose.
+- Per-attendee pricing: a room configures WHEN it's offered (Hourly/Shift/Day, never Monthly),
+  then `Subdivision.attendeeTiers` price it: total = attendees × the matching tier's per-person
+  price, once for the whole booking. Offered slots carry `AttendeePricing.AVAILABILITY_MARKER_PRICE`
+  (1.0) so slot/availability/conflict code is untouched — never display or charge slot prices
+  for these rooms; go through `ui/util/AttendeePricing.kt` (mirrored in
+  `functions/src/lib/attendeePricing.ts`, unit-tested). `onBookingRequestCreated` re-prices
+  attendee bookings and auto-rejects mismatches (`rejectedBySystem`). Booking docs store the
+  total as `totalAmountUsd` (functions once read `totalAmount`/`totalUsd` → $0 emails).
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 

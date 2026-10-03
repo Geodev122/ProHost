@@ -383,7 +383,9 @@ fun OwnerRentingProgressScreenContent(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Rate: $${booking.formula.rateUsd.toInt()} USD / month • Agreement: $${booking.totalAmountUsd.toInt()} USD",
+                                    text = (com.example.ui.util.AttendeePricing.bookingSummary(booking)
+                                        ?: "Rate: $${booking.formula.rateUsd.toInt()} USD${com.example.ui.util.SpaceCalculationUtils.rateUnitLabel(booking.formula.type)}") +
+                                        " • Agreement: $${booking.totalAmountUsd.toInt()} USD",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

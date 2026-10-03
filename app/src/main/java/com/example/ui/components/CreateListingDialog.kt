@@ -147,9 +147,9 @@ fun CreateListingDialog(
     // Admin-managed amenity catalog (enabled SchemaItems, category "AMENITY") —
     // passed into SubdivisionEditorSection, which filters by division type scope.
     availableAmenities: List<SchemaItem> = emptyList(),
-    // Admin-managed division type catalog (enabled SchemaItems, category "DIVISION_TYPE") —
-    // passed into SubdivisionEditorSection to check supportsAttendeeMode per type.
-    availableDivisionTypeSchema: List<SchemaItem> = emptyList(),
+    // Admin attendee packages, offered to hosts as starting templates for a
+    // per-attendee room's own tiers.
+    attendeeTemplates: List<AttendeePackage> = emptyList(),
     // Write-back: called when the host types a new custom facility or equipment item
     // so it gets persisted to the global schema catalog as a CUSTOM NODE.
     // Receives the category (FACILITY or AMENITY), name, and optional scopedToIds.
@@ -973,7 +973,7 @@ fun CreateListingDialog(
                                         onAddCustomAmenity = { name, divisionTypeId ->
                                             onAddCustomSchemaItem("AMENITY", name, listOf(divisionTypeId))
                                         },
-                                        availableDivisionTypeSchema = availableDivisionTypeSchema
+                                        attendeeTemplates = attendeeTemplates
                                     )
                                 } else {
                                     Surface(
@@ -1299,7 +1299,10 @@ fun CreateListingDialog(
                             }
                         } else {
                             val hasRealPricing = if (hasSubdivisions) {
-                                subdivisionsList.isNotEmpty() && subdivisionsList.any { it.pricing.hasRealPrice() }
+                                subdivisionsList.isNotEmpty() && subdivisionsList.any {
+                                    if (com.example.ui.util.AttendeePricing.isPerAttendee(it)) com.example.ui.util.AttendeePricing.isConfigured(it)
+                                    else it.pricing.hasRealPrice()
+                                }
                             } else {
                                 wholeSpacePricing.hasRealPrice()
                             }

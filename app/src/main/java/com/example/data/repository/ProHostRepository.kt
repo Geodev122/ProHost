@@ -819,10 +819,14 @@ class ProHostRepository {
             divisionTypes = merge(current.divisionTypes, defaults.divisionTypes),
             facilities = merge(current.facilities, defaults.facilities),
             amenities = merge(current.amenities, defaults.amenities),
-            rentalStrategies = merge(current.rentalStrategies, defaults.rentalStrategies)
+            rentalStrategies = merge(current.rentalStrategies, defaults.rentalStrategies),
+            attendeePackages = current.attendeePackages + defaults.attendeePackages.filter { d ->
+                current.attendeePackages.none { it.id == d.id || it.name.trim().equals(d.name.trim(), ignoreCase = true) }
+            }
         )
         fun count(s: SpaceArchitectureSchema) =
-            s.spaceTypes.size + s.divisionTypes.size + s.facilities.size + s.amenities.size + s.rentalStrategies.size
+            s.spaceTypes.size + s.divisionTypes.size + s.facilities.size + s.amenities.size + s.rentalStrategies.size +
+                s.attendeePackages.size
         val added = count(updated) - count(current)
         if (added == 0) return 0
         if (!firestoreService.saveSchema(updated)) return null

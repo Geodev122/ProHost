@@ -339,7 +339,8 @@ fun MyBookingsScreen(
                     rebookTargetSpaceId = null
                     rebookSourceBooking = null
                 },
-                attendeePackages = architectureSchema.attendeePackages.filter { it.isEnabled }
+                attendeePackages = architectureSchema.attendeePackages.filter { it.isEnabled },
+                initialAttendeeCount = sourceBooking?.attendeeCount ?: 0
             )
         }
     }
@@ -384,7 +385,8 @@ fun MyBookingsScreen(
                     editTargetSpaceId = null
                     editSourceBooking = null
                 },
-                attendeePackages = architectureSchema.attendeePackages.filter { it.isEnabled }
+                attendeePackages = architectureSchema.attendeePackages.filter { it.isEnabled },
+                initialAttendeeCount = sourceBooking.attendeeCount
             )
         }
     }
@@ -610,6 +612,9 @@ fun BookingReservationCard(
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary
                     )
+                    com.example.ui.util.AttendeePricing.bookingSummary(booking)?.let { line ->
+                        Text(line, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
 
                 if (booking.status == BookingRequestStatus.ACCEPTED && booking.agreementUrl != null) {

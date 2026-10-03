@@ -29,12 +29,25 @@ fun RentalPricingConfigEditor(
     openingHour: String,
     closingHour: String,
     onConfigChange: (RentalPricingConfig) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // Per-attendee rooms: configure only WHEN the room is offered; price comes from
+    // attendee tiers (see AttendeePricing), so price inputs are hidden, Monthly isn't
+    // offered, and offered slots carry the availability marker price.
+    availabilityOnly: Boolean = false
 ) {
+    val strategyChoices = if (availabilityOnly) {
+        RentalStrategyType.values().filter { it != RentalStrategyType.MONTHLY }
+    } else {
+        RentalStrategyType.values().toList()
+    }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Renting Strategy", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+        Text(
+            if (availabilityOnly) "Offered Times (Hourly, Shifts or Days)" else "Renting Strategy",
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelMedium
+        )
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            items(RentalStrategyType.values()) { type ->
+            items(strategyChoices) { type ->
                 FilterChip(
                     selected = config.strategyType == type,
                     onClick = {
@@ -65,19 +78,22 @@ fun RentalPricingConfigEditor(
                 operatingDays = operatingDays,
                 openingHour = openingHour,
                 closingHour = closingHour,
-                onConfigChange = { onConfigChange(config.copy(hourly = it)) }
+                onConfigChange = { onConfigChange(config.copy(hourly = it)) },
+                availabilityOnly = availabilityOnly
             )
             RentalStrategyType.SHIFT_BASED -> ShiftStrategyEditor(
                 config = config.shiftBased ?: ShiftBasedConfig(),
                 operatingDays = operatingDays,
-                onConfigChange = { onConfigChange(config.copy(shiftBased = it)) }
+                onConfigChange = { onConfigChange(config.copy(shiftBased = it)) },
+                availabilityOnly = availabilityOnly
             )
             RentalStrategyType.DAY_BASED -> DayBasedStrategyEditor(
                 config = config.dayBased ?: DayBasedConfig(),
                 operatingDays = operatingDays,
                 openingHour = openingHour,
                 closingHour = closingHour,
-                onConfigChange = { onConfigChange(config.copy(dayBased = it)) }
+                onConfigChange = { onConfigChange(config.copy(dayBased = it)) },
+                availabilityOnly = availabilityOnly
             )
         }
     }
@@ -201,8 +217,10 @@ fun HourlyStrategyEditor(
     openingHour: String,
     closingHour: String,
     onConfigChange: (HourlyConfig) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    availabilityOnly: Boolean = false
 ) {
+    val marker = com.example.ui.util.AttendeePricing.AVAILABILITY_MARKER_PRICE
     val openH = parseHourInt(openingHour)
     val closeH = parseHourInt(closingHour).let { if (it <= openH) openH + 1 else it }
     val hours = (openH until closeH).toList()
@@ -210,7 +228,8 @@ fun HourlyStrategyEditor(
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            "Tap an hour to toggle it on/off for that day at the day's current price. Leaving an hour untouched keeps it out of renting.",
+            if (availabilityOnly) "Tap an hour to offer it on that day. Untouched hours stay out of renting."
+            else "Tap an hour to toggle it on/off for that day at the day's current price. Leaving an hour untouched keeps it out of renting.",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -218,7 +237,7 @@ fun HourlyStrategyEditor(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(day, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(40.dp))
-                    OutlinedTextField(
+                    if (!availabilityOnly) OutlinedTextField(
                         value = bulkPriceByDay[day] ?: "",
                         onValueChange = { bulkPriceByDay = bulkPriceByDay + (day to it) },
                         label = { Text("USD/hr") },
@@ -226,7 +245,7 @@ fun HourlyStrategyEditor(
                         singleLine = true
                     )
                     TextButton(shape = MaterialTheme.shapes.medium, onClick = {
-                        val price = bulkPriceByDay[day]?.toDoubleOrNull() ?: return@TextButton
+                        val price = if (availabilityOnly) marker else bulkPriceByDay[day]?.toDoubleOrNull() ?: return@TextButton
                         onConfigChange(config.copy(cellPrices = config.cellPrices + hours.associate { "$day|$it" to price }))
                     }) { Text("Fill all hours") }
                 }
@@ -237,7 +256,8 @@ fun HourlyStrategyEditor(
                         FilterChip(
                             selected = isOn,
                             onClick = {
-                                val price = bulkPriceByDay[day]?.toDoubleOrNull() ?: config.cellPrices[key] ?: 0.0
+                                val price = if (availabilityOnly) marker
+                                    else bulkPriceByDay[day]?.toDoubleOrNull() ?: config.cellPrices[key] ?: 0.0
                                 onConfigChange(
                                     config.copy(
                                         cellPrices = if (isOn) config.cellPrices - key else config.cellPrices + (key to price)
@@ -258,7 +278,8 @@ fun ShiftStrategyEditor(
     config: ShiftBasedConfig,
     operatingDays: List<String>,
     onConfigChange: (ShiftBasedConfig) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    availabilityOnly: Boolean = false
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("1. Shift Configuration", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
@@ -315,7 +336,7 @@ fun ShiftStrategyEditor(
                     // Single flat price per shift (item 7b) — the specialist
                     // configures occurrences (which dates, how many) at booking
                     // time instead of picking one of 3 pre-set commitment tiers.
-                    OutlinedTextField(
+                    if (!availabilityOnly) OutlinedTextField(
                         value = if (shift.price == 0.0) "" else shift.price.toInt().toString(),
                         onValueChange = { v ->
                             onConfigChange(
@@ -371,7 +392,8 @@ fun DayBasedStrategyEditor(
     openingHour: String,
     closingHour: String,
     onConfigChange: (DayBasedConfig) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    availabilityOnly: Boolean = false
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
@@ -397,6 +419,27 @@ fun DayBasedStrategyEditor(
             }
         }
 
+        if (availabilityOnly) {
+            Text(
+                "Switch on each day this room is offered.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            operatingDays.forEach { day ->
+                val offered = (config.distribution[day]?.price ?: 0.0) > 0.0
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Text(day, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                    Switch(
+                        checked = offered,
+                        onCheckedChange = { on ->
+                            val price = if (on) com.example.ui.util.AttendeePricing.AVAILABILITY_MARKER_PRICE else 0.0
+                            onConfigChange(config.copy(distribution = config.distribution + (day to DayPricing(price = price))))
+                        }
+                    )
+                }
+            }
+            return@Column
+        }
         Text(
             "Per day: a single price. Leave blank to mark a day Not Available. The " +
                 "specialist picks real occurrences (one-time or weekly-recurring until " +

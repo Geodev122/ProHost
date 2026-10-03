@@ -208,6 +208,13 @@ export interface BookingContext {
   ownerName: string;
   dateRange: string;        // e.g. "Sep 22 – Sep 24, 2026"
   totalUsd: number;
+  /** "20 attendees × $8/person (Standard)" for per-attendee bookings. */
+  attendeeSummary?: string | null;
+  rejectionReason?: string | null;
+}
+
+function attendeeLine(booking: BookingContext): string {
+  return booking.attendeeSummary ? `<p><strong>Attendees:</strong> ${booking.attendeeSummary}</p>` : "";
 }
 
 export function newBookingRequestTemplate(owner: UserContext, booking: BookingContext) {
@@ -218,6 +225,7 @@ export function newBookingRequestTemplate(owner: UserContext, booking: BookingCo
     <div class="card">
       <p><strong>Listing:</strong> ${booking.listingTitle}</p>
       <p><strong>Dates:</strong> ${booking.dateRange}</p>
+      ${attendeeLine(booking)}
       <p><strong>Quoted amount:</strong> $${booking.totalUsd.toFixed(2)}</p>
       <p><strong>From:</strong> ${booking.specialistName}</p>
     </div>
@@ -236,6 +244,7 @@ export function bookingAcceptedTemplate(specialist: UserContext, booking: Bookin
     <div class="card">
       <p><strong>Listing:</strong> ${booking.listingTitle}</p>
       <p><strong>Dates:</strong> ${booking.dateRange}</p>
+      ${attendeeLine(booking)}
       <p><strong>Total:</strong> $${booking.totalUsd.toFixed(2)}</p>
     </div>
     <p>Payment is settled directly with the space owner on arrival.</p>
@@ -251,6 +260,7 @@ export function bookingRejectedTemplate(specialist: UserContext, booking: Bookin
   const html = layout(subject, `
     <h2>Hi ${specialist.fullName},</h2>
     <p>Unfortunately your booking request for <strong>${booking.listingTitle}</strong> (${booking.dateRange}) wasn't accepted this time.</p>
+    ${booking.rejectionReason ? `<p><strong>Reason:</strong> ${booking.rejectionReason}</p>` : ""}
     <p>Don't worry — there are many other great workspaces on ProHost.</p>
     <div class="cta">
       <a class="btn" href="prohost://discovery">Browse More Spaces</a>

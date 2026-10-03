@@ -34,6 +34,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -132,6 +133,7 @@ fun AdminAnalyticsScreen(adminViewModel: AdminViewModel = viewModel()) {
                         onBackfill = adminViewModel::backfillProHostUpgradeDates
                     )
                 }
+                item { BookingMixCard(data = data) }
                 item {
                     ListingsCard(
                         data = data,
@@ -405,6 +407,49 @@ private fun ListingsCard(data: AdminAnalytics, country: String?, hasRange: Boole
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BookingMixCard(data: AdminAnalytics) {
+    val totalRequests = data.bookingMix.sumOf { it.requests }
+    ProSurfaceCard {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            ProSectionHeader(
+                title = "Booking Mix",
+                subtitle = "$totalRequests booking request${if (totalRequests == 1) "" else "s"} by renting strategy",
+                icon = Icons.Default.Insights
+            )
+            if (data.bookingMix.isEmpty()) {
+                Text(
+                    "No booking requests in this period.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                val max = data.bookingMix.maxOf { it.requests }
+                data.bookingMix.forEach { row ->
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        BarRow(label = row.label, count = row.requests, max = max)
+                        Text(
+                            "${row.accepted} accepted · $${"%,.0f".format(java.util.Locale.US, row.acceptedRevenueUsd)} accepted value",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            val a = data.attendeeStats
+            if (a.requests > 0) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                SectionTitle("Per-attendee bookings", Icons.Default.Category)
+                Text(
+                    "${a.requests} requested · ${a.accepted} accepted · ${a.acceptedAttendees} attendees accepted · " +
+                        "average group ${"%.1f".format(java.util.Locale.US, a.avgGroupSize)}",
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
     }

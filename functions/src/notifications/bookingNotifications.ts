@@ -9,7 +9,44 @@ import {
   UserContext,
   BookingContext,
 } from "../lib/emailTemplates";
+import {
+  isPerAttendee,
+  quote,
+  describeBooking,
+  AttendeeSubdivisionDoc,
+  AttendeeTierDoc,
+} from "../lib/attendeePricing";
 import "../lib/admin";
+
+/**
+ * Server check for per-attendee bookings (the client computes the total, so it must
+ * not be trusted): the count must fit the room's limits and tiers, and the stored
+ * per-person price and total must match the room's current pricing. Returns a
+ * user-facing reason when the request must be rejected, else null.
+ */
+async function attendeeBookingProblem(booking: FirebaseFirestore.DocumentData): Promise<string | null> {
+  const db = getFirestore();
+  const count = Number(booking.attendeeCount ?? 0);
+  if (!booking.subdivisionId) {
+    return count > 0 ? "This space isn't priced per attendee." : null;
+  }
+  const listingSnap = await db.collection("workspace_listings").doc(String(booking.spaceId)).get();
+  const subs = (listingSnap.data()?.subdivisions ?? []) as AttendeeSubdivisionDoc[];
+  const sub = subs.find((s) => s.id === booking.subdivisionId);
+  if (!isPerAttendee(sub)) {
+    return count > 0 ? "This room isn't priced per attendee." : null;
+  }
+  const schemaSnap = await db.doc("schema_architecture/main").get();
+  const fallback = (schemaSnap.data()?.attendeePackages ?? []) as AttendeeTierDoc[];
+  const q = sub ? quote(sub, count, fallback) : null;
+  if (!q) return "The number of attendees is outside this room's limits.";
+  const total = Number(booking.totalAmountUsd ?? 0);
+  const perPerson = Number(booking.attendeePackagePriceUsd ?? 0);
+  if (Math.abs(total - q.totalUsd) > 0.01 || Math.abs(perPerson - (q.tier.pricePerAttendeeUsd ?? 0)) > 0.01) {
+    return "The price no longer matches this room's attendee pricing. Please send a new request.";
+  }
+  return null;
+}
 
 /**
  * Real cross-device push the moment a Specialist fires a booking request — the
@@ -24,10 +61,21 @@ export const onBookingRequestCreated = onDocumentCreated(
     const booking = event.data?.data();
     if (!booking) return;
 
+    const problem = await attendeeBookingProblem(booking).catch(() => null);
+    if (problem) {
+      // Never reaches the host; the status change notifies the specialist with the reason.
+      await event.data?.ref.set(
+        { status: "REJECTED", rejectionReason: problem, rejectedBySystem: true, reviewedAt: Date.now() },
+        { merge: true }
+      );
+      return;
+    }
+
+    const attendeeSummary = describeBooking(booking);
     await sendPushToUser(
       booking.ownerId,
       "New Booking Request",
-      `${booking.practitionerName ?? "A specialist"} requested "${booking.spaceTitle ?? "your workspace"}" — ${booking.selectedDateTimeRange ?? ""}`.trim(),
+      `${booking.practitionerName ?? "A specialist"} requested "${booking.spaceTitle ?? "your workspace"}" — ${booking.selectedDateTimeRange ?? ""}${attendeeSummary ? ` · ${attendeeSummary}` : ""}`.trim(),
       {
         category: "BOOKING_REQUEST",
         targetTab: "owner_requests",
@@ -51,7 +99,8 @@ export const onBookingRequestCreated = onDocumentCreated(
           specialistName: booking.practitionerName ?? "A specialist",
           ownerName: booking.ownerName ?? ownerData.fullName ?? "Host",
           dateRange: booking.selectedDateTimeRange ?? "",
-          totalUsd: (booking.totalAmount ?? booking.totalUsd ?? 0) as number,
+          totalUsd: Number(booking.totalAmountUsd ?? 0),
+          attendeeSummary,
         };
         const tpl = newBookingRequestTemplate(ownerCtx, bookingCtx);
         await sendEmail({ to: ownerData.email, ...tpl });
@@ -99,7 +148,9 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
             specialistName: practData.fullName ?? after.practitionerName ?? "Specialist",
             ownerName: after.ownerName ?? "Host",
             dateRange: after.selectedDateTimeRange ?? "",
-            totalUsd: (after.totalAmount ?? after.totalUsd ?? 0) as number,
+            totalUsd: Number(after.totalAmountUsd ?? 0),
+            attendeeSummary: describeBooking(after),
+            rejectionReason: after.rejectionReason ?? null,
           };
           const tpl = bookingAcceptedTemplate(specialistCtx, bookingCtx);
           await sendEmail({ to: practData.email, ...tpl });
@@ -108,8 +159,10 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
     } else if (after.status === "REJECTED") {
       await sendPushToUser(
         after.practitionerId,
-        "Booking Request Declined",
-        `${after.ownerName ?? "The host"} declined your request for "${after.spaceTitle ?? "the workspace"}"${after.rejectionReason ? `: ${after.rejectionReason}` : "."}`,
+        after.rejectedBySystem ? "Booking Request Not Sent" : "Booking Request Declined",
+        after.rejectedBySystem
+          ? `Your request for "${after.spaceTitle ?? "the workspace"}" couldn't be sent: ${after.rejectionReason ?? "please try again."}`
+          : `${after.ownerName ?? "The host"} declined your request for "${after.spaceTitle ?? "the workspace"}"${after.rejectionReason ? `: ${after.rejectionReason}` : "."}`,
         {
           category: "BOOKING_ACCEPTANCE",
           targetTab: "pro_rentals",
@@ -132,7 +185,9 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
             specialistName: practData.fullName ?? after.practitionerName ?? "Specialist",
             ownerName: after.ownerName ?? "Host",
             dateRange: after.selectedDateTimeRange ?? "",
-            totalUsd: (after.totalAmount ?? after.totalUsd ?? 0) as number,
+            totalUsd: Number(after.totalAmountUsd ?? 0),
+            attendeeSummary: describeBooking(after),
+            rejectionReason: after.rejectionReason ?? null,
           };
           const tpl = bookingRejectedTemplate(specialistCtx, bookingCtx);
           await sendEmail({ to: practData.email, ...tpl });

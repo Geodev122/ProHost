@@ -316,6 +316,13 @@ service cloud.firestore {
         request.resource.data.totalAmountUsd is number &&
         request.resource.data.totalAmountUsd >= 0 &&
         request.resource.data.totalAmountUsd <= 500000 &&
+        // Per-attendee bookings are re-priced server-side (bookingNotifications.ts);
+        // this only bounds the raw value. rejectedBySystem is server-only.
+        (!('attendeeCount' in request.resource.data) ||
+          (request.resource.data.attendeeCount is int &&
+           request.resource.data.attendeeCount >= 0 &&
+           request.resource.data.attendeeCount <= 100000)) &&
+        !('rejectedBySystem' in request.resource.data) &&
         // A host cannot book their own listing — the practitioner must be
         // someone other than the listing's owner.
         request.resource.data.practitionerId !=

@@ -129,7 +129,11 @@ class DiscoveryViewModel(
     private fun rentableUnits(space: SpaceListing): List<RentableUnit> =
         if (space.subdivisions.isNotEmpty()) {
             space.subdivisions.map { sub ->
-                RentableUnit(sub.id, sub.type, sub.pricing.strategyType, SpaceCalculationUtils.lowestPriceFor(sub.pricing)?.amount)
+                // A per-attendee room's price is per person, not in the strategy's unit,
+                // so it never takes part in the per-strategy price-range filter.
+                val unitPrice = if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) null
+                    else SpaceCalculationUtils.lowestPriceFor(sub.pricing)?.amount
+                RentableUnit(sub.id, sub.type, sub.pricing.strategyType, unitPrice)
             }
         } else {
             listOf(

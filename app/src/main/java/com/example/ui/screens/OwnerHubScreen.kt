@@ -234,7 +234,7 @@ fun OwnerHubScreen(
             availableFacilities = availableFacilities,
             spaceCategories = architectureSchema.spaceTypes,
             availableAmenities = architectureSchema.amenities.filter { it.isEnabled },
-            availableDivisionTypeSchema = architectureSchema.divisionTypes.filter { it.isEnabled },
+            attendeeTemplates = architectureSchema.attendeePackages.filter { it.isEnabled },
             onAddCustomSchemaItem = { category, name, scopedToIds -> viewModel.addUserSuggestedSchemaItem(category, name, scopedToIds) },
             onDismiss = { showCreateListingDialog = false; draftToEdit = null },
             onSaveDraft = { updatedDraft ->
@@ -306,7 +306,7 @@ fun OwnerHubScreen(
             availableFacilities = availableFacilities,
             spaceCategories = architectureSchema.spaceTypes,
             availableAmenities = architectureSchema.amenities.filter { it.isEnabled },
-            availableDivisionTypeSchema = architectureSchema.divisionTypes.filter { it.isEnabled },
+            attendeeTemplates = architectureSchema.attendeePackages.filter { it.isEnabled },
             onAddCustomSchemaItem = { category, name, scopedToIds -> viewModel.addUserSuggestedSchemaItem(category, name, scopedToIds) },
             onDismiss = { editingSpace = null },
             onListingCreated = {},

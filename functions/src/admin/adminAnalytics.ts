@@ -33,6 +33,15 @@ const DIVISION_TYPE_NAMES: Record<string, string> = {
 };
 
 const UNKNOWN = "Unknown";
+// Booking formula.type (legacy RentalFormulaType) → strategy label; attendee bookings
+// are their own slice since one per-person price covers the whole booking.
+const BOOKING_MIX_LABELS: Record<string, string> = {
+  HOURLY: "Per-Hour",
+  SHIFT: "Shift-Based",
+  DAY_PER_WEEK: "Day-Based",
+  FULL_MONTH: "Monthly",
+  PER_ATTENDEE: "Per attendee",
+};
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function requireAdmin(auth: { token: Record<string, unknown> } | undefined): void {
@@ -121,8 +130,10 @@ export const getAdminAnalytics = onCall<AnalyticsRequest>(async (request) => {
   const listingsSnap = await db.collection("workspace_listings")
     .select("status", "country", "city", "lat", "lng", "governorate", "spaceType", "spaceCategoryName", "subdivisions", "createdAtMillis")
     .get();
+  const listingCountry: Record<string, string> = {};
   listingsSnap.forEach((doc) => {
     const d = doc.data();
+    listingCountry[doc.id] = resolveLocation(d).country;
     if ((d.status ?? "ACTIVE") !== "ACTIVE") return;
     const { country, city } = resolveLocation(d);
     allCountries.add(country);
@@ -153,7 +164,49 @@ export const getAdminAnalytics = onCall<AnalyticsRequest>(async (request) => {
     }
   });
 
+  // --- Booking mix by renting strategy (requests created in range) ---
+  const mix: Record<string, { requests: number; accepted: number; acceptedRevenueUsd: number }> = {};
+  let attendeeRequests = 0;
+  let attendeeAccepted = 0;
+  let attendeeAcceptedPeople = 0;
+  const bookingsSnap = await db.collection("booking_requests")
+    .select("formula", "status", "totalAmountUsd", "attendeeCount", "createdAt", "spaceId", "isDemo")
+    .get();
+  bookingsSnap.forEach((doc) => {
+    const b = doc.data();
+    if (b.isDemo === true) return;
+    const created = b.createdAt;
+    if (typeof created === "number" ? !inRange(created) : (from != null || to != null)) return;
+    if (countryFilter && listingCountry[String(b.spaceId)] !== countryFilter) return;
+    const attendees = Number(b.attendeeCount ?? 0);
+    const key = attendees > 0 ? "PER_ATTENDEE" : String((b.formula as { type?: unknown } | undefined)?.type ?? UNKNOWN);
+    const row = (mix[key] ??= { requests: 0, accepted: 0, acceptedRevenueUsd: 0 });
+    row.requests++;
+    const accepted = b.status === "ACCEPTED";
+    if (accepted) {
+      row.accepted++;
+      row.acceptedRevenueUsd += Number(b.totalAmountUsd ?? 0);
+    }
+    if (attendees > 0) {
+      attendeeRequests++;
+      if (accepted) {
+        attendeeAccepted++;
+        attendeeAcceptedPeople += attendees;
+      }
+    }
+  });
+  const bookingMix = Object.entries(mix)
+    .map(([key, r]) => ({ key, label: BOOKING_MIX_LABELS[key] ?? key, ...r, acceptedRevenueUsd: Math.round(r.acceptedRevenueUsd * 100) / 100 }))
+    .sort((a, b) => b.requests - a.requests);
+
   return {
+    bookingMix,
+    attendeeStats: {
+      requests: attendeeRequests,
+      accepted: attendeeAccepted,
+      acceptedAttendees: attendeeAcceptedPeople,
+      avgGroupSize: attendeeAccepted > 0 ? Math.round((attendeeAcceptedPeople / attendeeAccepted) * 10) / 10 : 0,
+    },
     upgrades: Object.entries(upgradesByDay)
       .map(([day, count]) => ({ dayMillis: Number(day), count }))
       .sort((a, b) => a.dayMillis - b.dayMillis),

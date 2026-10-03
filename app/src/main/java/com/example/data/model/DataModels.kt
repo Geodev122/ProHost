@@ -414,6 +414,9 @@ data class Subdivision(
     val pricingMode: SubdivisionPricingMode = SubdivisionPricingMode.STRATEGY_BASED,
     val capacity: Int? = null,
     val minAttendees: Int? = null,
+    // PER_ATTENDEE only: host-defined tiers (attendee range → price per person for the
+    // whole booking). See AttendeePricing for how a booking picks its tier.
+    val attendeeTiers: List<AttendeePackage> = emptyList(),
     // Server-assigned public code ("D-XXXXXX", functions/src/ids/displayCodes.ts); echoed on save because the subdivisions array is rewritten whole.
     val displayCode: String = ""
 )
@@ -1016,7 +1019,8 @@ data class SpaceListing(
                     "scheduleOverride" to sub.scheduleOverride?.toFirestoreMap(),
                     "pricingMode" to sub.pricingMode.name,
                     "capacity" to sub.capacity,
-                    "minAttendees" to sub.minAttendees
+                    "minAttendees" to sub.minAttendees,
+                    "attendeeTiers" to sub.attendeeTiers.map { it.toFirestoreMap() }
                 )
             },
             "rules" to mapOf(
@@ -1148,7 +1152,11 @@ data class SpaceListing(
                         scheduleOverride = SpaceOperatingSchedule.fromFirestoreMap(sMap["scheduleOverride"] as? Map<*, *>),
                         pricingMode = pricingMode,
                         capacity = (sMap["capacity"] as? Number)?.toInt(),
-                        minAttendees = (sMap["minAttendees"] as? Number)?.toInt()
+                        minAttendees = (sMap["minAttendees"] as? Number)?.toInt(),
+                        attendeeTiers = (sMap["attendeeTiers"] as? List<*>)
+                            ?.mapNotNull { t -> (t as? Map<*, *>)?.entries?.associate { it.key.toString() to it.value } }
+                            ?.map { AttendeePackage.fromFirestoreMap(it) }
+                            ?: emptyList()
                     )
                 }
             }?.let { rawSubs ->

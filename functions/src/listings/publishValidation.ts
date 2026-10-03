@@ -1,5 +1,6 @@
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { recordAuditLog } from "../lib/auditLog";
+import { isPerAttendee, tiersFor, AttendeeTierDoc } from "../lib/attendeePricing";
 
 /** Minimal shape of the parts of a workspace_listings document this validates —
  * mirrors SpaceListing.toFirestoreMap()'s key names (DataModels.kt), not the
@@ -32,6 +33,8 @@ interface RentalPricingConfigDoc {
 interface SubdivisionDoc {
   pricing?: RentalPricingConfigDoc;
   rentalStrategies?: unknown[];
+  pricingMode?: string;
+  attendeeTiers?: AttendeeTierDoc[];
 }
 
 export interface WorkspaceListingDoc {
@@ -107,6 +110,11 @@ function spaceHasRealPrice(listing: WorkspaceListingDoc): boolean {
 }
 
 function subdivisionHasRealPrice(sub: SubdivisionDoc): boolean {
+  // Per-attendee: slots carry availability markers (still > 0) and the price is the
+  // room's own attendee tiers — both must exist.
+  if (isPerAttendee(sub)) {
+    return structuredConfigHasRealPrice(sub.pricing) && tiersFor(sub).length > 0;
+  }
   if (sub.pricing !== undefined) return structuredConfigHasRealPrice(sub.pricing);
   return Array.isArray(sub.rentalStrategies) && sub.rentalStrategies.length > 0;
 }

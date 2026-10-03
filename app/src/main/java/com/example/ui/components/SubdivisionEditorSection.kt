@@ -63,8 +63,8 @@ fun SubdivisionEditorSection(
     // Write-back: called when the host types a custom amenity; auto-tags to current
     // division type. No-op default so unupdated callers don't crash.
     onAddCustomAmenity: ((name: String, divisionTypeId: String) -> Unit)? = null,
-    // Division type schema items used to check supportsAttendeeMode flag.
-    availableDivisionTypeSchema: List<SchemaItem> = emptyList()
+    // Admin attendee packages — host can copy them as a starting point for tiers.
+    attendeeTemplates: List<AttendeePackage> = emptyList()
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -89,6 +89,7 @@ fun SubdivisionEditorSection(
     var subCapacityInput by remember { mutableStateOf("") }
     var subMinAttendees by remember { mutableStateOf<Int?>(null) }
     var subMinAttendeesInput by remember { mutableStateOf("") }
+    var subAttendeeTiers by remember { mutableStateOf(listOf<AttendeePackage>()) }
 
     // Per-division operating-schedule override — off by default, meaning this room
     // just follows the whole space's own SpaceOperatingSchedule (the common case).
@@ -120,10 +121,6 @@ fun SubdivisionEditorSection(
     var editingSubdivisionIndex by remember { mutableStateOf<Int?>(null) }
     var justSaved by remember { mutableStateOf(false) }
 
-    val isSubFormValid = subName.isNotBlank() && when (subPricingMode) {
-        SubdivisionPricingMode.PER_ATTENDEE -> (subCapacity ?: 0) > 0
-        SubdivisionPricingMode.STRATEGY_BASED -> subPricing.hasRealPrice()
-    }
 
     LaunchedEffect(editingSubdivisionIndex) {
         if (editingSubdivisionIndex != null) justSaved = false
@@ -143,6 +140,7 @@ fun SubdivisionEditorSection(
         subCapacityInput = ""
         subMinAttendees = null
         subMinAttendeesInput = ""
+        subAttendeeTiers = emptyList()
         subScheduleOverrideEnabled = false
         subOverrideOpeningHour = openingHour
         subOverrideClosingHour = closingHour
@@ -167,6 +165,7 @@ fun SubdivisionEditorSection(
         pricingMode = subPricingMode,
         capacity = subCapacity,
         minAttendees = subMinAttendees,
+        attendeeTiers = if (subPricingMode == SubdivisionPricingMode.PER_ATTENDEE) subAttendeeTiers else emptyList(),
         scheduleOverride = if (subScheduleOverrideEnabled) {
             SpaceOperatingSchedule(
                 openingHour = subOverrideOpeningHour,
@@ -230,15 +229,13 @@ fun SubdivisionEditorSection(
             )
         }
     }
-    val showAttendeeToggle = remember(subType, availableDivisionTypeSchema) {
-        availableDivisionTypeSchema.any { it.name.equals(subType.displayName, ignoreCase = true) && it.supportsAttendeeMode }
-    }
-
-    // Reset pricing mode to STRATEGY_BASED when switching away from an attendee-capable type
-    LaunchedEffect(showAttendeeToggle) {
-        if (!showAttendeeToggle && subPricingMode == SubdivisionPricingMode.PER_ATTENDEE) {
-            subPricingMode = SubdivisionPricingMode.STRATEGY_BASED
-        }
+    val isPerAttendee = subPricingMode == SubdivisionPricingMode.PER_ATTENDEE
+    val isSubFormValid = subName.isNotBlank() && if (isPerAttendee) {
+        com.example.ui.util.AttendeePricing.isConfigured(buildCurrentSubdivision()) &&
+            subAttendeeTiers.all { t -> t.maxAttendees.let { it == null || it >= t.minAttendees } } &&
+            (subCapacity ?: Int.MAX_VALUE) >= (subMinAttendees ?: 1)
+    } else {
+        subPricing.hasRealPrice()
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -326,6 +323,7 @@ fun SubdivisionEditorSection(
                                             subCapacityInput = sub.capacity?.toString() ?: ""
                                             subMinAttendees = sub.minAttendees
                                             subMinAttendeesInput = sub.minAttendees?.toString() ?: ""
+                                            subAttendeeTiers = sub.attendeeTiers
                                             val override = sub.scheduleOverride
                                             subScheduleOverrideEnabled = override != null
                                             subOverrideOpeningHour = override?.openingHour ?: openingHour
@@ -368,7 +366,9 @@ fun SubdivisionEditorSection(
                                 }
                                 Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.extraSmall) {
                                     Text(
-                                        sub.pricing.strategyType.displayName,
+                                        if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
+                                            "${sub.pricing.strategyType.displayName} · per attendee"
+                                        } else sub.pricing.strategyType.displayName,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -640,81 +640,98 @@ fun SubdivisionEditorSection(
                     Text("Pricing Strategy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
 
-                // Attendee-mode toggle — only shown for conference-capable division types
-                if (showAttendeeToggle) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            "Pricing Mode",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            FilterChip(
-                                selected = subPricingMode == SubdivisionPricingMode.STRATEGY_BASED,
-                                onClick = { subPricingMode = SubdivisionPricingMode.STRATEGY_BASED },
-                                label = { Text("Strategy-Based", style = MaterialTheme.typography.labelSmall) },
-                                modifier = Modifier.weight(1f)
-                            )
-                            FilterChip(
-                                selected = subPricingMode == SubdivisionPricingMode.PER_ATTENDEE,
-                                onClick = { subPricingMode = SubdivisionPricingMode.PER_ATTENDEE },
-                                label = { Text("Per-Attendee", style = MaterialTheme.typography.labelSmall) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-
-                if (subPricingMode == SubdivisionPricingMode.PER_ATTENDEE) {
-                    OutlinedTextField(
-                        value = subMinAttendeesInput,
-                        onValueChange = { raw ->
-                            val digits = raw.filter { it.isDigit() }
-                            subMinAttendeesInput = digits
-                            subMinAttendees = digits.toIntOrNull()?.takeIf { it > 0 }
-                        },
-                        label = { Text("Min Attendees") },
-                        placeholder = { Text("e.g. 1") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
-                    )
-                    OutlinedTextField(
-                        value = subCapacityInput,
-                        onValueChange = { raw ->
-                            val digits = raw.filter { it.isDigit() }
-                            subCapacityInput = digits
-                            subCapacity = digits.toIntOrNull()?.takeIf { it > 0 }
-                        },
-                        label = { Text("Max Attendees") },
-                        placeholder = { Text("e.g. 100") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
-                    )
-                    Text(
-                        "Pricing Strategy (per attendee)",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                // Pricing keys off this room's own hours when schedule override is on,
-                // otherwise inherits the parent space's operating schedule.
+                // Step 1: when the room is offered (and, unless per-attendee, at what price).
                 RentalPricingConfigEditor(
                     config = subPricing,
                     operatingDays = if (subScheduleOverrideEnabled) subOverrideDays.toList() else operatingDays,
                     openingHour = if (subScheduleOverrideEnabled) subOverrideOpeningHour else openingHour,
                     closingHour = if (subScheduleOverrideEnabled) subOverrideClosingHour else closingHour,
-                    onConfigChange = { subPricing = it }
+                    onConfigChange = { subPricing = it },
+                    availabilityOnly = isPerAttendee
                 )
+
+                // Step 2: optionally price that configuration per attendee instead.
+                // Not offered for Monthly, which is a whole-month lease.
+                if (subPricing.strategyType != RentalStrategyType.MONTHLY) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Price per attendee", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "One per-person price for the whole booking, set by group size.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = isPerAttendee,
+                            onCheckedChange = { on ->
+                                subPricingMode = if (on) SubdivisionPricingMode.PER_ATTENDEE else SubdivisionPricingMode.STRATEGY_BASED
+                                subPricing = if (on) {
+                                    com.example.ui.util.AttendeePricing.toAvailabilityMarkers(subPricing)
+                                } else {
+                                    com.example.ui.util.AttendeePricing.clearAvailabilityMarkers(subPricing)
+                                }
+                            }
+                        )
+                    }
+                    if (!isPerAttendee && subPricingMode == SubdivisionPricingMode.STRATEGY_BASED && !subPricing.hasRealPrice()) {
+                        Text(
+                            "Enter a price for each offered slot.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                if (isPerAttendee) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = subMinAttendeesInput,
+                            onValueChange = { raw ->
+                                val digits = raw.filter { it.isDigit() }
+                                subMinAttendeesInput = digits
+                                subMinAttendees = digits.toIntOrNull()?.takeIf { it > 0 }
+                            },
+                            label = { Text("Min attendees") },
+                            placeholder = { Text("1") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium
+                        )
+                        OutlinedTextField(
+                            value = subCapacityInput,
+                            onValueChange = { raw ->
+                                val digits = raw.filter { it.isDigit() }
+                                subCapacityInput = digits
+                                subCapacity = digits.toIntOrNull()?.takeIf { it > 0 }
+                            },
+                            label = { Text("Max attendees") },
+                            placeholder = { Text("No limit") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium
+                        )
+                    }
+                    AttendeeTierEditor(
+                        tiers = subAttendeeTiers,
+                        templates = attendeeTemplates,
+                        onTiersChange = { subAttendeeTiers = it }
+                    )
+                    if (!subPricing.hasRealPrice()) {
+                        Text(
+                            "Offer at least one hour, shift or day above.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
             }
         }
 
@@ -1098,6 +1115,118 @@ private fun SearchablePickerDialog(
                         Text("Done (${selected.size} selected)")
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Host-defined attendee tiers for a per-attendee room: each tier is an attendee range
+ * and a price per person for the whole booking. The booking's attendee count picks
+ * the tier (AttendeePricing.tierFor).
+ */
+@Composable
+private fun AttendeeTierEditor(
+    tiers: List<AttendeePackage>,
+    templates: List<AttendeePackage>,
+    onTiersChange: (List<AttendeePackage>) -> Unit
+) {
+    fun update(index: Int, transform: (AttendeePackage) -> AttendeePackage) =
+        onTiersChange(tiers.mapIndexed { i, t -> if (i == index) transform(t) else t })
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Attendee tiers", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        Text(
+            "e.g. 1–20 people at $8 per person, 21–60 at $6. Leave the last tier's max empty for no upper limit.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        tiers.forEachIndexed { index, tier ->
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(
+                            value = tier.name,
+                            onValueChange = { v -> update(index) { it.copy(name = v) } },
+                            label = { Text("Tier name") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium
+                        )
+                        IconButton(onClick = { onTiersChange(tiers.filterIndexed { i, _ -> i != index }) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Remove tier", tint = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = tier.minAttendees.toString(),
+                            onValueChange = { v -> update(index) { it.copy(minAttendees = v.filter(Char::isDigit).toIntOrNull()?.coerceAtLeast(1) ?: 1) } },
+                            label = { Text("From") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium
+                        )
+                        OutlinedTextField(
+                            value = tier.maxAttendees?.toString() ?: "",
+                            onValueChange = { v -> update(index) { it.copy(maxAttendees = v.filter(Char::isDigit).toIntOrNull()) } },
+                            label = { Text("To") },
+                            placeholder = { Text("∞") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium
+                        )
+                        OutlinedTextField(
+                            value = if (tier.pricePerAttendeeUsd == 0.0) "" else tier.pricePerAttendeeUsd.toString().removeSuffix(".0"),
+                            onValueChange = { v -> update(index) { it.copy(pricePerAttendeeUsd = v.toDoubleOrNull() ?: 0.0) } },
+                            label = { Text("$ / person") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1.2f),
+                            shape = MaterialTheme.shapes.medium
+                        )
+                    }
+                    val max = tier.maxAttendees
+                    if (max != null && max < tier.minAttendees) {
+                        Text("“To” must be at least “From”.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(
+                onClick = {
+                    val nextMin = (tiers.mapNotNull { it.maxAttendees }.maxOrNull() ?: 0) + 1
+                    onTiersChange(
+                        tiers + AttendeePackage(
+                            id = "TIER-" + UUID.randomUUID().toString().take(6).uppercase(),
+                            name = "Tier ${tiers.size + 1}",
+                            pricePerAttendeeUsd = 0.0,
+                            minAttendees = nextMin,
+                            isSystemDefault = false
+                        )
+                    )
+                },
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.weight(1f)
+            ) { Text("Add tier") }
+            if (tiers.isEmpty() && templates.isNotEmpty()) {
+                OutlinedButton(
+                    onClick = {
+                        onTiersChange(
+                            templates.sortedBy { it.minAttendees }.map {
+                                it.copy(id = "TIER-" + UUID.randomUUID().toString().take(6).uppercase(), isSystemDefault = false)
+                            }
+                        )
+                    },
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.weight(1f)
+                ) { Text("Use templates") }
             }
         }
     }

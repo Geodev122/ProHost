@@ -362,19 +362,20 @@ fun OwnerBookingRequestCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val attendeeLine = com.example.ui.util.AttendeePricing.bookingSummary(request)
                     Text(
-                        text = "Formula: ${request.formula.type.displayName}",
+                        text = attendeeLine?.let { "Per attendee: $it" } ?: "Formula: ${request.formula.type.displayName}",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f)
                     )
-                    val requestUnitLabel = when (request.formula.type) {
-                        RentalFormulaType.HOURLY -> "/hr"
-                        RentalFormulaType.SHIFT -> "/shift"
-                        RentalFormulaType.DAY_PER_WEEK -> "/day"
-                        RentalFormulaType.FULL_MONTH -> "/mo"
+                    if (attendeeLine == null) {
+                        ProCurrencyTag(
+                            rateUsd = request.formula.rateUsd,
+                            unitLabel = com.example.ui.util.SpaceCalculationUtils.rateUnitLabel(request.formula.type)
+                        )
                     }
-                    ProCurrencyTag(rateUsd = request.formula.rateUsd, unitLabel = requestUnitLabel)
                 }
 
                 // Selected Date & Time Range Display

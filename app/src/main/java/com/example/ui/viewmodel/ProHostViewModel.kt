@@ -799,7 +799,9 @@ class ProHostViewModel(
         }
 
         // The price line always carries the unit of the formula it came from.
+        val attendeeLine = request?.let { com.example.ui.util.AttendeePricing.bookingSummary(it) }
         val formulaText = when {
+            attendeeLine != null -> "Per-attendee booking — $attendeeLine (one price for the whole booking)"
             subdivision != null -> {
                 val price = com.example.ui.util.SpaceCalculationUtils.findLowestPriceForSubdivision(subdivision)
                 val priceText = if (price.amount > 0.0) " · from $${price.amount.toInt()}${price.unitLabel}" else ""
@@ -826,7 +828,8 @@ class ProHostViewModel(
 
             "\n\n[In-App Booking Request Details]\n" +
             (if (request.displayCode.isNotBlank()) "• Request: ${request.displayCode}\n" else "") +
-            "• Formula: ${request.formula.type.displayName} - ${request.formula.scheduleDescription}\n" +
+            (if (attendeeLine != null) "• Attendees: $attendeeLine\n" else
+                "• Formula: ${request.formula.type.displayName} - ${request.formula.scheduleDescription}\n") +
             "• Chosen Availability: $daysStr @ $timesStr$shiftStr\n" +
             "• Start Date: ${request.startDate}" +
                 (if (request.formula.type == RentalFormulaType.FULL_MONTH) {

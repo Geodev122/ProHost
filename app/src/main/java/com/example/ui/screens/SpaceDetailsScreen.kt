@@ -332,10 +332,22 @@ fun SpaceDetailsScreenContent(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             val (fallbackPrice, fallbackUnit) = remember(liveSpace) { SpaceCalculationUtils.lowestPriceSummary(liveSpace) }
-                            val price = selectedFormula?.rateUsd ?: fallbackPrice
-                            val priceUnit = selectedFormula?.let { SpaceCalculationUtils.rateUnitLabel(it.type) } ?: fallbackUnit
+                            // A per-attendee room's slot prices are availability markers;
+                            // its real price is per person for the whole booking.
+                            val stripAttendeeSub = liveSpace.subdivisions
+                                .find { it.id == selectedSubdivisionId }
+                                ?.takeIf { com.example.ui.util.AttendeePricing.isPerAttendee(it) }
+                            val stripPerPerson = stripAttendeeSub?.let {
+                                com.example.ui.util.AttendeePricing.lowestPricePerPerson(it, architectureSchema.attendeePackages)
+                            }
+                            val price = stripPerPerson ?: selectedFormula?.rateUsd ?: fallbackPrice
+                            val priceUnit = if (stripAttendeeSub != null) {
+                                SpaceCalculationUtils.PER_PERSON_UNIT
+                            } else {
+                                selectedFormula?.let { SpaceCalculationUtils.rateUnitLabel(it.type) } ?: fallbackUnit
+                            }
                             Text(
-                                text = "$${price.toInt()} USD$priceUnit",
+                                text = (if (stripAttendeeSub != null) "from " else "") + "$${price.toInt()} USD$priceUnit",
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.secondary
@@ -739,7 +751,12 @@ fun SpaceDetailsScreenContent(
                                 val subSlots = availableSlots.filter { it.sourceFormulaId == sub.id }
                                 val isOccupied = subSlots.isNotEmpty() &&
                                     subSlots.all { SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
-                                val priceSummary = when (sub.pricing.strategyType) {
+                                val perAttendeeFrom = if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
+                                    com.example.ui.util.AttendeePricing.lowestPricePerPerson(sub, architectureSchema.attendeePackages)
+                                } else null
+                                val priceSummary = if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
+                                    "from $${perAttendeeFrom?.toInt() ?: 0}/person"
+                                } else when (sub.pricing.strategyType) {
                                     RentalStrategyType.MONTHLY -> "$${sub.pricing.monthly?.rateUsd?.toInt() ?: 0}/mo"
                                     RentalStrategyType.HOURLY -> "from $${sub.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0}/hr"
                                     RentalStrategyType.SHIFT_BASED -> {
@@ -776,11 +793,13 @@ fun SpaceDetailsScreenContent(
                                         imageUrls = sub.imageUrls,
                                         amenities = sub.amenities,
                                         hashtags = sub.hashtags,
-                                        priceSummary = "${sub.pricing.strategyType.displayName} · $priceSummary",
+                                        priceSummary = if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
+                                            "Per attendee · ${sub.pricing.strategyType.displayName} slots · $priceSummary"
+                                        } else "${sub.pricing.strategyType.displayName} · $priceSummary",
                                         isOccupied = isOccupied,
                                         capacity = sub.capacity,
                                         hasCustomHours = sub.scheduleOverride != null,
-                                        isPerAttendee = sub.pricingMode == SubdivisionPricingMode.PER_ATTENDEE
+                                        isPerAttendee = com.example.ui.util.AttendeePricing.isPerAttendee(sub)
                                     ),
                                     onClick = { selectSubdivision("peek") },
                                     onCheckAvailability = { selectSubdivision("full") }
@@ -900,13 +919,13 @@ fun SpaceDetailsScreenContent(
 
     // Sends one booking request covering all currently-selected slots (multi-select).
     // HOURLY multi-hour selections are treated as separate slot lines in the notes.
-    // Attendee-mode data (count + package) are forwarded when the subdivision is PER_ATTENDEE.
+    // Per-attendee rooms: the total is the attendee quote (one per-person price for the
+    // whole booking), never the slots' availability-marker prices.
     fun sendMultiSlotRequest(
         slotsToSend: List<RentableSlot>,
         hourlySelections: Map<String, Set<String>>,
         allAvailableSlots: List<RentableSlot>,
-        attendeeCount: Int = 0,
-        attendeePackage: AttendeePackage? = null
+        attendeeQuote: com.example.ui.util.AttendeePricing.Quote? = null
     ) {
         val user = currentUser
         if (user == null) return
@@ -921,6 +940,11 @@ fun SpaceDetailsScreenContent(
         val allSlots = (slotsToSend + hourlySlotList).distinctBy { it.label + it.day + it.startTime }
         val primarySlot = allSlots.firstOrNull() ?: return
         val strategyType = primarySlot.strategyType ?: return
+        val targetSub = liveSpace.subdivisions.find { it.id == primarySlot.sourceFormulaId }
+        if (com.example.ui.util.AttendeePricing.isPerAttendee(targetSub) && attendeeQuote == null) {
+            coroutineScope.launch { snackbarHostState.showSnackbar("Choose a valid number of attendees first.") }
+            return
+        }
         isSendingSlotRequest = true
         coroutineScope.launch {
             val formula = SpaceCalculationUtils.representativeFormula(allSlots, BookingRecurrence.FLAT)
@@ -930,9 +954,9 @@ fun SpaceDetailsScreenContent(
             }
             val isoDate = SpaceCalculationUtils.nextDateForWeekday(primarySlot.day)
             val subdivision = liveSpace.subdivisions.find { it.id == primarySlot.sourceFormulaId }
-            val isAttendeeMode = subdivision?.pricingMode == SubdivisionPricingMode.PER_ATTENDEE
-            val price = if (isAttendeeMode && attendeePackage != null) {
-                attendeeCount * attendeePackage.pricePerAttendeeUsd
+            val isAttendeeMode = com.example.ui.util.AttendeePricing.isPerAttendee(subdivision) && attendeeQuote != null
+            val price = if (isAttendeeMode && attendeeQuote != null) {
+                attendeeQuote.totalUsd
             } else {
                 allSlots.sumOf { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: formula.rateUsd }
             }
@@ -941,8 +965,8 @@ fun SpaceDetailsScreenContent(
             val notes = buildString {
                 append("Requested via live slot selection")
                 if (allSlots.size > 1) append(" — $slotSummary")
-                if (isAttendeeMode && attendeePackage != null) {
-                    append(" | Attendees: $attendeeCount × ${attendeePackage.name} @ \$${attendeePackage.pricePerAttendeeUsd}/pp")
+                if (isAttendeeMode && attendeeQuote != null) {
+                    append(" | ${com.example.ui.util.AttendeePricing.describe(attendeeQuote)}")
                 }
             }
             val (request, synced) = viewModel.repository.createBookingRequest(
@@ -964,10 +988,10 @@ fun SpaceDetailsScreenContent(
                 calculatedTotalUsd = price,
                 subdivisionId = subdivision?.id,
                 subdivisionName = subdivision?.name,
-                attendeeCount = if (isAttendeeMode) attendeeCount else 0,
-                selectedAttendeePackageId = if (isAttendeeMode) attendeePackage?.id else null,
-                attendeePackageName = if (isAttendeeMode) attendeePackage?.name else null,
-                attendeePackagePriceUsd = if (isAttendeeMode) (attendeePackage?.pricePerAttendeeUsd ?: 0.0) else 0.0
+                attendeeCount = if (isAttendeeMode) attendeeQuote?.attendees ?: 0 else 0,
+                selectedAttendeePackageId = if (isAttendeeMode) attendeeQuote?.tier?.id else null,
+                attendeePackageName = if (isAttendeeMode) attendeeQuote?.tier?.name else null,
+                attendeePackagePriceUsd = if (isAttendeeMode) attendeeQuote?.tier?.pricePerAttendeeUsd ?: 0.0 else 0.0
             )
             isSendingSlotRequest = false
             showSendConfirm = false
@@ -1008,14 +1032,21 @@ fun SpaceDetailsScreenContent(
         val selectedSubdivision = remember(selectedSubdivisionId, liveSpace) {
             if (selectedSubdivisionId != null) liveSpace.subdivisions.find { it.id == selectedSubdivisionId } else null
         }
-        val isAttendeeMode = selectedSubdivision?.pricingMode == SubdivisionPricingMode.PER_ATTENDEE
-        val enabledPackages = remember(architectureSchema) { architectureSchema.attendeePackages.filter { it.isEnabled } }
+        val attendeeSub = selectedSubdivision?.takeIf { com.example.ui.util.AttendeePricing.isPerAttendee(it) }
+        val isAttendeeMode = attendeeSub != null
+        val attendeeTiers = remember(attendeeSub, architectureSchema) {
+            attendeeSub?.let { com.example.ui.util.AttendeePricing.tiersFor(it, architectureSchema.attendeePackages) } ?: emptyList()
+        }
+        val attendeeMin = attendeeSub?.let { com.example.ui.util.AttendeePricing.minAttendees(it, attendeeTiers) } ?: 1
+        val attendeeMax = attendeeSub?.let { com.example.ui.util.AttendeePricing.maxAttendees(it, attendeeTiers) }
 
         // Per-strategy, per-day expand state
         var expandedDaysByStrategy by remember(sheetSlotGroups) { mutableStateOf(mapOf<RentalStrategyType, Set<String>>()) }
         // Attendee mode fields (scoped to sheet lifetime)
-        var sheetAttendeeCount by remember { mutableStateOf(1) }
-        var sheetAttendeePackage by remember(enabledPackages) { mutableStateOf(enabledPackages.firstOrNull()) }
+        var sheetAttendeeCount by remember(attendeeSub?.id) { mutableStateOf(attendeeMin) }
+        val sheetAttendeeQuote = remember(attendeeSub, sheetAttendeeCount, architectureSchema) {
+            attendeeSub?.let { com.example.ui.util.AttendeePricing.quote(it, sheetAttendeeCount, architectureSchema.attendeePackages) }
+        }
 
         val dayOrder = listOf("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday","Mon","Tue","Wed","Thu","Fri","Sat","Sun")
 
@@ -1023,11 +1054,7 @@ fun SpaceDetailsScreenContent(
         val totalSelectedSlots = selectedSlots.size + selectedHoursPerDay.values.sumOf { it.size }
         val hasSelection = totalSelectedSlots > 0
 
-        // Attendee total cost
-        val attendeeTotalUsd = if (isAttendeeMode)
-            sheetAttendeePackage?.let { sheetAttendeeCount * it.pricePerAttendeeUsd } ?: 0.0 else 0.0
-
-        val canSubmit = hasSelection && (!isAttendeeMode || (sheetAttendeeCount > 0 && sheetAttendeePackage != null))
+        val canSubmit = hasSelection && (!isAttendeeMode || sheetAttendeeQuote != null)
 
         ProHostBottomSheet(
             onDismissRequest = {
@@ -1074,96 +1101,14 @@ fun SpaceDetailsScreenContent(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
-                            // Attendee count stepper
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("Number of Attendees", style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer)
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    FilledIconButton(
-                                        onClick = { if (sheetAttendeeCount > 1) sheetAttendeeCount-- },
-                                        modifier = Modifier.size(32.dp)
-                                    ) { Icon(Icons.Default.Remove, contentDescription = "Decrease", modifier = Modifier.size(16.dp)) }
-                                    Text(
-                                        sheetAttendeeCount.toString(),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.widthIn(min = 32.dp),
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                    )
-                                    FilledIconButton(
-                                        onClick = {
-                                            val cap = selectedSubdivision?.capacity ?: 999
-                                            if (sheetAttendeeCount < cap) sheetAttendeeCount++
-                                        },
-                                        modifier = Modifier.size(32.dp)
-                                    ) { Icon(Icons.Default.Add, contentDescription = "Increase", modifier = Modifier.size(16.dp)) }
-                                }
-                            }
-                            // Package selector
-                            if (enabledPackages.isNotEmpty()) {
-                                Text("Select Package", style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer)
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    items(enabledPackages) { pkg ->
-                                        val isSelected = sheetAttendeePackage?.id == pkg.id
-                                        Surface(
-                                            onClick = { sheetAttendeePackage = pkg },
-                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                                            shape = MaterialTheme.shapes.medium,
-                                            border = BorderStroke(
-                                                1.5.dp,
-                                                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                                            )
-                                        ) {
-                                            Column(
-                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp).widthIn(max = 140.dp),
-                                                verticalArrangement = Arrangement.spacedBy(2.dp)
-                                            ) {
-                                                Text(
-                                                    pkg.name,
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                                                )
-                                                Text(
-                                                    "$${pkg.pricePerAttendeeUsd.toInt()}/pp",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = if (isSelected) {
-                                                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
-                                                    } else {
-                                                        MaterialTheme.colorScheme.primary
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            // Total amount
-                            sheetAttendeePackage?.let { pkg ->
-                                Surface(color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.small) {
-                                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                        Text("Estimated Total", style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Text(
-                                            "$${String.format("%.2f", attendeeTotalUsd)} USD",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                                Text(
-                                    "$sheetAttendeeCount attendees × $${pkg.pricePerAttendeeUsd.toInt()} ${pkg.name}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                                )
-                            }
+                            com.example.ui.components.AttendeeCountAndTiers(
+                                count = sheetAttendeeCount,
+                                min = attendeeMin,
+                                max = attendeeMax,
+                                tiers = attendeeTiers,
+                                quote = sheetAttendeeQuote,
+                                onCountChange = { sheetAttendeeCount = it }
+                            )
                         }
                     }
                 }
@@ -1360,7 +1305,7 @@ fun SpaceDetailsScreenContent(
                                                                         color = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success
                                                                     )
                                                                     Text(
-                                                                        "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}",
+                                                                        if (isAttendeeMode) "Open" else "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}",
                                                                         style = MaterialTheme.typography.labelSmall,
                                                                         color = if (isSelected) {
                                                                             MaterialTheme.proColors.success.copy(alpha = 0.8f)
@@ -1413,7 +1358,7 @@ fun SpaceDetailsScreenContent(
                                                                     verticalAlignment = Alignment.CenterVertically
                                                                 ) {
                                                                     Text(
-                                                                        "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}",
+                                                                        if (isAttendeeMode) "Open" else "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}",
                                                                         style = MaterialTheme.typography.labelSmall,
                                                                         color = MaterialTheme.colorScheme.primary,
                                                                         fontWeight = FontWeight.SemiBold
@@ -1460,7 +1405,7 @@ fun SpaceDetailsScreenContent(
                                                                     verticalAlignment = Alignment.CenterVertically
                                                                 ) {
                                                                     Text(
-                                                                        "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}",
+                                                                        if (isAttendeeMode) "Open" else "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}",
                                                                         style = MaterialTheme.typography.labelSmall,
                                                                         color = MaterialTheme.colorScheme.primary,
                                                                         fontWeight = FontWeight.SemiBold
@@ -1510,7 +1455,7 @@ fun SpaceDetailsScreenContent(
                                     val slotLines = buildString {
                                         selectedSlots.forEachIndexed { i, s ->
                                             val unit = s.strategyType?.let { SpaceCalculationUtils.strategyUnitLabel(it) } ?: ""
-                                            val priceSuffix = s.pricesByRecurrence[BookingRecurrence.FLAT]?.let { " — \$${it.toInt()}$unit" } ?: ""
+                                            val priceSuffix = if (isAttendeeMode) "" else s.pricesByRecurrence[BookingRecurrence.FLAT]?.let { " — \$${it.toInt()}$unit" } ?: ""
                                             appendLine("  ${i + 1}. ${s.label}$priceSuffix")
                                         }
                                         selectedHoursPerDay.entries.forEachIndexed { di, (day, hrs) ->
@@ -1519,11 +1464,10 @@ fun SpaceDetailsScreenContent(
                                             }
                                         }
                                     }.trimEnd()
-                                    val attendeeBlock = if (isAttendeeMode)
-                                        sheetAttendeePackage?.let { ap -> "\n\n👥 Attendees: $sheetAttendeeCount\n📦 Package: ${ap.name}" +
-                                            " (\$${ap.pricePerAttendeeUsd.toInt()}/pp)\n💰 Estimated Tota" +
-                                            "l: \$${String.format("%.2f", attendeeTotalUsd)} USD" } ?: ""
-                                    else ""
+                                    val attendeeBlock = sheetAttendeeQuote?.let { q ->
+                                        "\n\n👥 ${com.example.ui.util.AttendeePricing.describe(q)}" +
+                                            "\n💰 Total for the booking: \$${com.example.ui.util.AttendeePricing.formatUsd(q.totalUsd)} USD"
+                                    } ?: ""
                                     val message = "Hello! I'm interested in booking *${liveSpace.title}*.\n\n📍" +
                                         " ${liveSpace.district}, ${liveSpace.governorate.displayName}" +
                                         "\n\n🗓 Selected Slots ($totalSelectedSlots):\n$slotLines${attendeeBlock}" +
@@ -1551,8 +1495,6 @@ fun SpaceDetailsScreenContent(
                         }
                     }
 
-                    // Persist attendee state for the confirm popup
-                    LaunchedEffect(sheetAttendeeCount, sheetAttendeePackage) { /* captured by confirm popup via closure */ }
                 }
             }
         }
@@ -1562,14 +1504,10 @@ fun SpaceDetailsScreenContent(
             val selectedSubdivisionForDialog = if (selectedSubdivisionId != null)
                 liveSpace.subdivisions.find { it.id == selectedSubdivisionId } else null
             val allSheetSlots = sheetSlotGroups.flatMap { (_, s) -> s }
-            val isAttendeeModeDialog = selectedSubdivisionForDialog?.pricingMode == SubdivisionPricingMode.PER_ATTENDEE
-            val enabledPkgs = architectureSchema.attendeePackages.filter { it.isEnabled }
-            val pkgForDialog = enabledPkgs.firstOrNull {
-                it.id == (enabledPkgs.firstOrNull { p -> p.id == sheetAttendeePackage?.id }?.id)
-            } ?: sheetAttendeePackage
+            val dialogQuote = if (com.example.ui.util.AttendeePricing.isPerAttendee(selectedSubdivisionForDialog)) sheetAttendeeQuote else null
 
-            val totalCostForDialog = if (isAttendeeModeDialog && pkgForDialog != null)
-                sheetAttendeeCount * pkgForDialog.pricePerAttendeeUsd
+            val totalCostForDialog = if (dialogQuote != null)
+                dialogQuote.totalUsd
             else
                 selectedSlots.sumOf { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0 } +
                 selectedHoursPerDay.entries.sumOf { (day, hrs) ->
@@ -1609,15 +1547,20 @@ fun SpaceDetailsScreenContent(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         // Attendee block
-                        if (isAttendeeModeDialog && pkgForDialog != null) {
+                        if (dialogQuote != null) {
                             HorizontalDivider()
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("Attendees", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("$sheetAttendeeCount pax", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                Text("${dialogQuote.attendees} people", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Package", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(pkgForDialog.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                Text("Price", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    "$${com.example.ui.util.AttendeePricing.formatUsd(dialogQuote.tier.pricePerAttendeeUsd)}/person" +
+                                        dialogQuote.tier.name.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty(),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
                         }
                         HorizontalDivider()
@@ -1635,8 +1578,7 @@ fun SpaceDetailsScreenContent(
                                 slotsToSend = selectedSlots.toList(),
                                 hourlySelections = selectedHoursPerDay,
                                 allAvailableSlots = sheetSlotGroups.flatMap { (_, s) -> s },
-                                attendeeCount = if (isAttendeeModeDialog) sheetAttendeeCount else 0,
-                                attendeePackage = if (isAttendeeModeDialog) pkgForDialog else null
+                                attendeeQuote = dialogQuote
                             )
                         },
                         enabled = !isSendingSlotRequest

@@ -1373,18 +1373,6 @@ private fun AdminSchemaArchitectureTab(
                 onToggle = { item -> adminViewModel.toggleSchemaItemEnabled(item.id, item.category, item.isEnabled) },
                 onDelete = { item -> adminViewModel.deleteSchemaItem(item.id, item.category) },
                 onEdit = { item -> editingItem = item },
-                extraContent = { item ->
-                    if (item.supportsAttendeeMode) {
-                        Surface(color = MaterialTheme.colorScheme.tertiaryContainer, shape = MaterialTheme.shapes.extraSmall) {
-                            Text(
-                                "per-attendee",
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
-                        }
-                    }
-                }
             )
         }
 
@@ -1523,8 +1511,8 @@ private fun AdminSchemaArchitectureTab(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         ProSectionHeader(
-                            title = "Attendee Packages",
-                            subtitle = "Per-person pricing for conference & event subdivisions",
+                            title = "Attendee Tier Templates",
+                            subtitle = "Starting tiers hosts can copy into a per-attendee room, then edit",
                             icon = Icons.Default.ConfirmationNumber
                         )
                         CustomButton(
@@ -1841,7 +1829,6 @@ private fun AdminEditSchemaItemDialog(
     var amenityGroup by remember { mutableStateOf(item.amenityGroup) }
     var maxSubs by remember { mutableStateOf(item.maxSubdivisions?.toString() ?: "") }
     var selectedScopedIds by remember { mutableStateOf(item.scopedToIds.toSet()) }
-    var supportsAttendeeMode by remember { mutableStateOf(item.supportsAttendeeMode) }
     var markerColorInput by remember { mutableStateOf(item.markerColor ?: "") }
 
     ProHostDialog(
@@ -1895,19 +1882,6 @@ private fun AdminEditSchemaItemDialog(
                         singleLine = true
                     )
                 }
-                if (item.category == SchemaCategory.DIVISION_TYPE) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Column {
-                            Text("Supports Per-Attendee Pricing", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
-                            Text(
-                                "Show attendee mode toggle for this division type",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(checked = supportsAttendeeMode, onCheckedChange = { supportsAttendeeMode = it })
-                    }
-                }
                 if (item.category == SchemaCategory.AMENITY) {
                     OutlinedTextField(
                         value = amenityGroup,
@@ -1940,7 +1914,6 @@ private fun AdminEditSchemaItemDialog(
                         amenityGroup = amenityGroup.trim(),
                         maxSubdivisions = if (item.category == SchemaCategory.SPACE_TYPE) maxSubs.trim().toIntOrNull() else item.maxSubdivisions,
                         scopedToIds = if (item.category == SchemaCategory.AMENITY) selectedScopedIds.toList() else item.scopedToIds,
-                        supportsAttendeeMode = if (item.category == SchemaCategory.DIVISION_TYPE) supportsAttendeeMode else item.supportsAttendeeMode,
                         markerColor = if (item.category == SchemaCategory.SPACE_TYPE) markerColorInput.takeIf { it.isNotBlank() } else item.markerColor
                     ))
                 },

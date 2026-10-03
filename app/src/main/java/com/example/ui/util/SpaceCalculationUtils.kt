@@ -326,6 +326,10 @@ object SpaceCalculationUtils {
         }
 
         space.subdivisions.forEach { sub ->
+            if (AttendeePricing.isPerAttendee(sub)) {
+                AttendeePricing.lowestPricePerPerson(sub)?.let { candidates.add(PriceDisplay(it, PER_PERSON_UNIT)) }
+                return@forEach
+            }
             val pricing = sub.pricing
             when (pricing.strategyType) {
                 RentalStrategyType.MONTHLY -> {
@@ -350,8 +354,15 @@ object SpaceCalculationUtils {
         return candidates.minByOrNull { it.amount } ?: PriceDisplay(space.baseMonthlyRateUsd.coerceAtLeast(0.0), "/mo")
     }
 
+    /** Unit for per-attendee rooms: one per-person price covers the whole booking. */
+    const val PER_PERSON_UNIT = "/person"
+
     fun findLowestPriceForSubdivision(sub: com.example.data.model.Subdivision): PriceDisplay =
-        lowestPriceFor(sub.pricing) ?: PriceDisplay(0.0, strategyUnitLabel(sub.pricing.strategyType))
+        if (AttendeePricing.isPerAttendee(sub)) {
+            PriceDisplay(AttendeePricing.lowestPricePerPerson(sub) ?: 0.0, PER_PERSON_UNIT)
+        } else {
+            lowestPriceFor(sub.pricing) ?: PriceDisplay(0.0, strategyUnitLabel(sub.pricing.strategyType))
+        }
 
     /** Lowest configured price of one pricing config, in that config's own unit; null if unpriced. */
     fun lowestPriceFor(pricing: com.example.data.model.RentalPricingConfig): PriceDisplay? {
@@ -405,7 +416,13 @@ object SpaceCalculationUtils {
      * data rather than a static baseMonthlyRateUsd/mo regardless of strategy.
      */
     fun lowestPriceSummary(space: com.example.data.model.SpaceListing): Pair<Double, String> {
-        val slots = buildAllSlotsForSpace(space)
+        // Per-attendee rooms' slot prices are availability markers, not prices.
+        val perAttendeeIds = space.subdivisions.filter { AttendeePricing.isPerAttendee(it) }.map { it.id }.toSet()
+        if (perAttendeeIds.isNotEmpty() && perAttendeeIds.size == space.subdivisions.size) {
+            val p = findLowestConfiguredPrice(space)
+            return p.amount to p.unitLabel
+        }
+        val slots = buildAllSlotsForSpace(space).filterNot { it.sourceFormulaId in perAttendeeIds }
         val cheapest = slots
             .mapNotNull { slot ->
                 val price = slot.pricesByRecurrence[BookingRecurrence.FLAT] ?: return@mapNotNull null

@@ -204,7 +204,25 @@ class FirebaseFunctionsClient {
                             name to ((dv as? Number)?.toInt() ?: 0)
                         }?.toMap() ?: emptyMap())
                     }?.toMap() ?: emptyMap(),
-                    countries = (data["countries"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                    countries = (data["countries"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                    bookingMix = (data["bookingMix"] as? List<*>)?.mapNotNull { item ->
+                        val m = item as? Map<*, *> ?: return@mapNotNull null
+                        BookingMixRow(
+                            key = m["key"] as? String ?: return@mapNotNull null,
+                            label = m["label"] as? String ?: "",
+                            requests = (m["requests"] as? Number)?.toInt() ?: 0,
+                            accepted = (m["accepted"] as? Number)?.toInt() ?: 0,
+                            acceptedRevenueUsd = (m["acceptedRevenueUsd"] as? Number)?.toDouble() ?: 0.0
+                        )
+                    } ?: emptyList(),
+                    attendeeStats = (data["attendeeStats"] as? Map<*, *>)?.let { m ->
+                        AttendeeBookingStats(
+                            requests = (m["requests"] as? Number)?.toInt() ?: 0,
+                            accepted = (m["accepted"] as? Number)?.toInt() ?: 0,
+                            acceptedAttendees = (m["acceptedAttendees"] as? Number)?.toInt() ?: 0,
+                            avgGroupSize = (m["avgGroupSize"] as? Number)?.toDouble() ?: 0.0
+                        )
+                    } ?: AttendeeBookingStats()
                 )
             )
         } catch (e: Exception) {
@@ -509,5 +527,23 @@ data class AdminAnalytics(
     val byCity: Map<String, Int>,
     val bySpaceType: Map<String, Int>,
     val divisionsBySpaceType: Map<String, Map<String, Int>>,
-    val countries: List<String>
+    val countries: List<String>,
+    /** Booking requests in range by renting strategy; "PER_ATTENDEE" is its own row. */
+    val bookingMix: List<BookingMixRow> = emptyList(),
+    val attendeeStats: AttendeeBookingStats = AttendeeBookingStats()
+)
+
+data class BookingMixRow(
+    val key: String,
+    val label: String,
+    val requests: Int,
+    val accepted: Int,
+    val acceptedRevenueUsd: Double
+)
+
+data class AttendeeBookingStats(
+    val requests: Int = 0,
+    val accepted: Int = 0,
+    val acceptedAttendees: Int = 0,
+    val avgGroupSize: Double = 0.0
 )
