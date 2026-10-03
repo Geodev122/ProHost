@@ -86,4 +86,35 @@ object PhoneCountryDetector {
             ?: "LB"
         return findCountryByIsoCode(isoCode)
     }
+
+    /**
+     * Reverses lat/lng map center coordinates into a human-readable country name.
+     * Uses Geocoder first, then falls back to MENA geographical bounding box rules.
+     */
+    suspend fun detectCountryAtCoordinates(context: Context, lat: Double, lng: Double): String? = withContext(Dispatchers.IO) {
+        try {
+            @Suppress("DEPRECATION")
+            val addresses = Geocoder(context, Locale.getDefault()).getFromLocation(lat, lng, 1)
+            val name = addresses?.firstOrNull()?.countryName
+            if (!name.isNullOrBlank()) return@withContext name
+        } catch (e: Exception) {
+            // Geocoder offline or network error — fall through to bounding box
+        }
+
+        when {
+            lat in 33.0..34.7 && lng in 35.0..36.6 -> "Lebanon"
+            lat in 32.3..37.3 && lng in 35.6..42.4 -> "Syria"
+            lat in 29.2..33.4 && lng in 34.9..39.3 -> "Jordan"
+            lat in 22.5..26.1 && lng in 51.5..56.4 -> "United Arab Emirates"
+            lat in 16.0..32.2 && lng in 34.5..55.7 -> "Saudi Arabia"
+            lat in 24.5..26.2 && lng in 50.7..51.7 -> "Qatar"
+            lat in 28.5..30.1 && lng in 46.5..48.5 -> "Kuwait"
+            lat in 34.5..35.7 && lng in 32.2..34.6 -> "Cyprus"
+            lat in 22.0..31.7 && lng in 24.7..36.9 -> "Egypt"
+            lat in 35.8..42.1 && lng in 25.6..44.8 -> "Turkey"
+            lat in 29.1..37.4 && lng in 38.8..48.6 -> "Iraq"
+            lat in 16.6..26.4 && lng in 52.0..59.8 -> "Oman"
+            else -> null
+        }
+    }
 }

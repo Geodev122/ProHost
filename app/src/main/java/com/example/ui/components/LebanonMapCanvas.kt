@@ -63,6 +63,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.graphicsLayer
+import com.example.util.PhoneCountryDetector
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -240,6 +241,7 @@ fun LebanonMapCanvas(
     // listing page instead of just updating the local marker preview (see
     // onSpaceSelected's doc note above the LazyRow card below).
     onDivisionSelected: (SpaceListing, String) -> Unit = { _, _ -> },
+    onCenterCountryDetected: (String) -> Unit = {},
     topControls: (@Composable BoxScope.() -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -324,9 +326,17 @@ fun LebanonMapCanvas(
     // Keying this on cameraPositionState.position re-ran filtering, sorting and the
     // carousel list on every animation frame while panning.
     var visibleBounds by remember { mutableStateOf<LatLngBounds?>(null) }
+    var detectedCenterCountry by remember { mutableStateOf<String?>(null) }
+
     LaunchedEffect(cameraPositionState.isMoving) {
         if (!cameraPositionState.isMoving) {
+            val center = cameraPositionState.position.target
             cameraPositionState.projection?.visibleRegion?.latLngBounds?.let { visibleBounds = it }
+            val country = PhoneCountryDetector.detectCountryAtCoordinates(context, center.latitude, center.longitude)
+            if (!country.isNullOrBlank() && country != detectedCenterCountry) {
+                detectedCenterCountry = country
+                onCenterCountryDetected(country)
+            }
         }
     }
     val visibleSpaces = remember(spaces, visibleBounds) {
@@ -476,6 +486,37 @@ fun LebanonMapCanvas(
                             }
                         )
                     }
+                }
+            }
+        }
+
+        // FLOATING CENTER COUNTRY BADGE (Top Center)
+        if (!detectedCenterCountry.isNullOrBlank()) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                shadowElevation = 6.dp,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Public,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Map Center: $detectedCenterCountry",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
         }

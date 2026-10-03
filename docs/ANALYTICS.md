@@ -84,31 +84,56 @@ GA4 `items[]` for a listing: `item_id`=`L-…`, `item_name`=title, `item_categor
 
 ## Owner setup (Firebase / GA4 console)
 
-1. **Link GA4.** Firebase console › Project settings › Integrations › Google Analytics › Link (or confirm the
-   existing property). Re-download `google-services.json` only if Firebase asks.
-2. **Measurement Protocol secret (server events).** GA4 Admin › Data streams › the Android stream
-   (`app.geonajjar.prohost`) › Measurement Protocol API secrets › Create. Then in Firestore create the
-   document `app_config/ga4` with field `apiSecret` (string). Optional: `firebaseAppId` (defaults to
-   `1:646730915838:android:345a7e12d5994456c8eaaf`) and `debug: true` to send to the validation endpoint
-   and log responses. Rules deny all client access to `app_config`. Until this doc exists, server events
-   are skipped (no deploy dependency).
-3. **Custom definitions** (GA4 Admin › Custom definitions):
-   - User-scoped: every user property above.
-   - Event-scoped dimensions: `screen_name`, `method`, `role`, `filter_type`, `filter_value`, `strategy`,
-     `subdivision_type`, `pricing_mode`, `channel`, `reason`, `source`, `notification_type`, `item_list_name`,
-     `purchase_type`, `plan_id`, `action`, `area`, `code`.
-   - Event-scoped metrics: `result_count`, `attendee_count`, `slot_count`, `open_slot_count`, `subdivision_count`.
-4. **Key events:** `sign_up`, `kyc_complete`, `generate_lead`, `booking_request`, `booking_accepted`,
-   `listing_publish`, `purchase`.
-5. **BigQuery export:** Firebase console › Project settings › Integrations › BigQuery › Link. Enable
-   Google Analytics (daily; streaming optional) and Crashlytics. Pick the project's region. In BigQuery
-   set the `analytics_<propertyId>` dataset's default table expiration to 26 months (privacy policy).
-6. **Data settings:** GA4 Admin › Data retention › 14 months. Google signals **off**. Under Data
-   filters, keep "Internal/Developer traffic" active and build reports with `build_type = release` and
-   `is_demo = false`.
-7. **Play Console › Data safety:** declare *App activity* (app interactions, in-app search history),
-   *App info and performance* (crash logs, diagnostics) and *Device or other IDs* (Firebase app instance
-   ID) as collected, **optional** (user can opt out), purpose *Analytics*, not shared, encrypted in transit.
+Follow these step-by-step instructions in the Firebase, GA4, and Google Cloud consoles:
+
+### Step 1: Link Analytics Property in Firebase
+1. Open [Firebase Console](https://console.firebase.google.com/project/prohost-f766f/overview) → **Project Settings** → **Integrations**.
+2. Under **Google Analytics**, click **Link** (or confirm the property is linked). Re-download `google-services.json` if prompted.
+
+### Step 2: Create Measurement Protocol API Secret & Firestore Doc
+1. Open [Google Analytics Admin](https://analytics.google.com/) → **Data Streams** → Select the Android stream (`app.geonajjar.prohost`).
+2. Click **Measurement Protocol API secrets** → Click **Create** → Name it `ProHostServerEvents` → Copy the generated **Secret value**.
+3. In [Firebase Console → Firestore Database](https://console.firebase.google.com/project/prohost-f766f/firestore), create document at path `app_config/ga4`:
+   - Field: `apiSecret` (string) = `<your_copied_secret_value>`
+   - *(Optional)*: Field: `firebaseAppId` (string) = `1:646730915838:android:345a7e12d5994456c8eaaf`
+   - *(Optional)*: Field: `debug` (boolean) = `true` (enables GA4 validation logging)
+   > **Note:** Firestore security rules deny all client access to `app_config`. Until this document exists in Firestore, server events are safely skipped without breaking any Cloud Function or app feature.
+
+### Step 3: Register Custom Dimensions & Metrics
+In [GA4 Admin](https://analytics.google.com/) → **Custom Definitions**:
+- **User-Scoped Custom Dimensions**:
+  `user_role`, `user_country`, `user_governorate`, `specialty`, `kyc_complete`, `is_verified`, `plan_id`, `plan_status`, `listing_count_bucket`, `account_age_bucket`, `signup_method`, `build_type`, `is_demo`.
+- **Event-Scoped Custom Dimensions**:
+  `screen_name`, `method`, `role`, `filter_type`, `filter_value`, `strategy`, `subdivision_type`, `pricing_mode`, `channel`, `reason`, `source`, `notification_type`, `item_list_name`, `purchase_type`, `plan_id`, `action`, `area`, `code`.
+- **Event-Scoped Custom Metrics**:
+  `result_count`, `attendee_count`, `slot_count`, `open_slot_count`, `subdivision_count`.
+
+### Step 4: Mark Key Events (Conversions)
+In [GA4 Admin](https://analytics.google.com/) → **Key Events** (Conversions), toggle these 7 events as Key Events:
+1. `sign_up` ⚑
+2. `kyc_complete` ⚑
+3. `generate_lead` ⚑
+4. `booking_request` ⚑
+5. `booking_accepted` ⚑
+6. `listing_publish` ⚑
+7. `purchase` ⚑
+
+### Step 5: Link BigQuery Export
+1. In [Firebase Console](https://console.firebase.google.com/project/prohost-f766f/overview) → **Project Settings** → **Integrations** → **BigQuery** → Click **Link**.
+2. Enable **Google Analytics** export (Daily required; streaming optional) and **Crashlytics** export.
+3. Select region (`europe-west1`).
+4. In [BigQuery Console](https://console.cloud.google.com/bigquery), set dataset `analytics_<propertyId>` default table expiration to **26 months** (per Privacy Policy).
+
+### Step 6: Configure Data Retention & Disable Google Signals
+1. In [GA4 Admin](https://analytics.google.com/) → **Data Settings** → **Data Retention**: Set Event Data Retention to **14 months**.
+2. In [GA4 Admin](https://analytics.google.com/) → **Data Settings** → **Data Collection**: Turn **Google signals OFF** (privacy compliance; no ad identifiers collected).
+3. Under **Data Filters**: Keep "Internal / Developer traffic" active.
+
+### Step 7: Declare in Play Console Data Safety
+In [Google Play Console](https://play.google.com/console) → **App Content** → **Data Safety**:
+- **App activity**: App interactions, in-app search history (Collected, Optional / Opt-in, Analytics purpose, Encrypted in transit, Not shared).
+- **App info and performance**: Crash logs, diagnostics (Collected, Analytics purpose, Encrypted in transit).
+- **Device or other IDs**: Firebase App Instance ID (Collected, Optional, Analytics purpose, Encrypted in transit).
 
 ## Suggested explorations
 
