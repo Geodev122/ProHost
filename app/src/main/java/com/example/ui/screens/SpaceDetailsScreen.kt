@@ -239,56 +239,7 @@ fun SpaceDetailsScreenContent(
         // MyFavoritesScreen's identical fix for why this is needed.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        space.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onToggleSave) {
-                        Icon(
-                            imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = if (isSaved) "Remove from Saved" else "Save Workspace",
-                            tint = if (isSaved) MaterialTheme.colorScheme.error else LocalContentColor.current
-                        )
-                    }
-                    Box {
-                        IconButton(onClick = { showShareMenu = true }) {
-                            Icon(Icons.Default.Share, contentDescription = "Share")
-                        }
-                        DropdownMenu(expanded = showShareMenu, onDismissRequest = { showShareMenu = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Share Listing") },
-                                leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
-                                onClick = {
-                                    showShareMenu = false
-                                    onShareClick()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Copy Link") },
-                                leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
-                                onClick = {
-                                    showShareMenu = false
-                                    onCopyLinkClick()
-                                }
-                            )
-                        }
-                    }
-                }
-            )
-        },
+        // No TopAppBar — back/save/share are overlaid on the fullscreen hero instead.
         bottomBar = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 // One availability trigger, same design whether or not a division is
@@ -341,8 +292,9 @@ fun SpaceDetailsScreenContent(
                         }
                     }
                 }
-                // Price + action strip
-                Surface(
+                // Price + action strip — hidden when the availability sheet is open so it
+                // doesn't push up into the sheet's content area.
+                if (!showAvailabilityPanel) Surface(
                     color = MaterialTheme.colorScheme.surface,
                     tonalElevation = 10.dp,
                     shadowElevation = 8.dp,
@@ -430,17 +382,13 @@ fun SpaceDetailsScreenContent(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Hero Visual Card — swipeable through every photo, not just the first
-            // (this used to hard-drop imageUrls[1..], the only place the rest of a
-            // listing's photos were ever shown). Bottom-rounded so it tucks into the
-            // content sheet below, and a bottom-anchored gradient scrim (rather than a
-            // flat overlay across the whole photo) keeps the top of the image vivid
-            // while still guaranteeing the title/location text stays legible.
+            // Fullscreen hero — fills width, extends to status bar. Back/save/share
+            // buttons float over the top-start and top-end corners with a subtle scrim.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                    .height(280.dp)
+                    .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
             ) {
                 if (liveSpace.imageUrls.isNotEmpty()) {
                     val pagerState = rememberPagerState(pageCount = { liveSpace.imageUrls.size })
@@ -536,6 +484,79 @@ fun SpaceDetailsScreenContent(
                                 )
                             )
                     )
+                }
+                // Overlay nav strip — back (start) and save/share (end), always on top.
+                // statusBarsPadding ensures buttons sit below system status bar while the
+                // hero image bleeds behind it (full bleed behind the status bar).
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.40f))
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBackIos,
+                            contentDescription = "Back",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    IconButton(
+                        onClick = onToggleSave,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.40f))
+                    ) {
+                        Icon(
+                            if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                            contentDescription = if (isSaved) "Unsave" else "Save",
+                            tint = if (isSaved) MaterialTheme.colorScheme.primary else Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Box {
+                        IconButton(
+                            onClick = { showShareMenu = true },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.40f))
+                        ) {
+                            Icon(
+                                Icons.Default.Share,
+                                contentDescription = "Share",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showShareMenu,
+                            onDismissRequest = { showShareMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Share Listing") },
+                                onClick = { showShareMenu = false; onShareClick() },
+                                leadingIcon = { Icon(Icons.Default.Share, null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Copy Link") },
+                                onClick = { showShareMenu = false; onCopyLinkClick() },
+                                leadingIcon = { Icon(Icons.Default.ContentCopy, null) }
+                            )
+                        }
+                    }
                 }
                 Column(
                     modifier = Modifier

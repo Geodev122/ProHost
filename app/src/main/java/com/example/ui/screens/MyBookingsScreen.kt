@@ -617,15 +617,26 @@ fun BookingReservationCard(
                     }
                 }
 
-                if (booking.status == BookingRequestStatus.ACCEPTED && booking.agreementUrl != null) {
-                    Surface(color = MaterialTheme.proColors.successContainer, shape = MaterialTheme.shapes.small) {
-                        Text(
-                            "Agreement On File",
-                            color = MaterialTheme.proColors.onSuccessContainer,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                if (booking.status == BookingRequestStatus.ACCEPTED) {
+                    if (booking.agreementUrl != null) {
+                        Surface(color = MaterialTheme.proColors.successContainer, shape = MaterialTheme.shapes.small) {
+                            Text(
+                                "Space Rules On File",
+                                color = MaterialTheme.proColors.onSuccessContainer,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    } else {
+                        Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small) {
+                            Text(
+                                "No space rules or access guidance provided",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 10.sp,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -729,7 +740,7 @@ fun BookingReservationCard(
                                 )
                                 if (booking.agreementUrl != null) {
                                     DropdownMenuItem(
-                                        text = { Text("View signed agreement") },
+                                        text = { Text("View Space Rules & Access") },
                                         leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
                                         onClick = { showMoreMenu = false; onViewAgreement() }
                                     )

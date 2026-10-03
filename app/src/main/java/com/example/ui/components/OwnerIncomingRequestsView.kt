@@ -43,11 +43,12 @@ fun OwnerIncomingRequestsView(
     val context = LocalContext.current
     val hasLoadedBookingsOnce by viewModel.hasLoadedBookingsOnce.collectAsState()
     val isOffline by viewModel.isOfflineMode.collectAsState()
-    var selectedFilter by remember { mutableStateOf("ALL") } // ALL, PENDING, ACCEPTED, REJECTED
+    var selectedFilter by remember { mutableStateOf("PENDING") } // PENDING, ACCEPTED, REJECTED
     var rejectingRequestId by remember { mutableStateOf<String?>(null) }
     var rejectionReasonInput by remember { mutableStateOf("") }
     var acceptingRequestId by remember { mutableStateOf<String?>(null) }
     var agreementDocState by remember { mutableStateOf(DocumentPickerState()) }
+    var detailRequest by remember { mutableStateOf<BookingRequest?>(null) }
 
     val pendingCount = requests.count { it.status == BookingRequestStatus.PENDING }
     val acceptedCount = requests.count { it.status == BookingRequestStatus.ACCEPTED }
@@ -55,10 +56,9 @@ fun OwnerIncomingRequestsView(
 
     val filteredRequests = remember(requests, selectedFilter) {
         when (selectedFilter) {
-            "PENDING" -> requests.filter { it.status == BookingRequestStatus.PENDING }
             "ACCEPTED" -> requests.filter { it.status == BookingRequestStatus.ACCEPTED }
             "REJECTED" -> requests.filter { it.status == BookingRequestStatus.REJECTED }
-            else -> requests
+            else -> requests.filter { it.status == BookingRequestStatus.PENDING }
         }
     }
 
@@ -90,7 +90,6 @@ fun OwnerIncomingRequestsView(
             ) {
                 items(
                     listOf(
-                        "ALL" to "All (${requests.size})",
                         "PENDING" to "Pending ($pendingCount)",
                         "ACCEPTED" to "Accepted ($acceptedCount)",
                         "REJECTED" to "Declined ($rejectedCount)"
@@ -163,23 +162,29 @@ fun OwnerIncomingRequestsView(
                     filteredRequests.forEach { request ->
                         OwnerBookingRequestCard(
                             request = request,
-                            spaces = spaces,
-                            onAccept = {
-                                acceptingRequestId = request.id
-                                agreementDocState = DocumentPickerState()
-                            },
-                            onReject = {
-                                rejectingRequestId = request.id
-                                rejectionReasonInput = ""
-                            },
-                            onWhatsAppProfessional = {
-                                viewModel.launchWhatsAppToPractitioner(context, request)
-                            },
-                            onSendPaymentReminder = {
-                                viewModel.sendPaymentReminder(request.id, request.practitionerName, context)
-                            }
+                            onClick = { detailRequest = request }
                         )
                     }
+                }
+                // Detail sheet
+                detailRequest?.let { req ->
+                    OwnerRequestDetailSheet(
+                        request = req,
+                        onDismiss = { detailRequest = null },
+                        onAccept = {
+                            detailRequest = null
+                            acceptingRequestId = req.id
+                            agreementDocState = DocumentPickerState()
+                        },
+                        onReject = {
+                            detailRequest = null
+                            rejectingRequestId = req.id
+                            rejectionReasonInput = ""
+                        },
+                        onWhatsApp = {
+                            viewModel.launchWhatsAppToPractitioner(context, req)
+                        }
+                    )
                 }
             }
         }
@@ -230,48 +235,39 @@ fun OwnerIncomingRequestsView(
         )
     }
 
-    // Accept & Upload Agreement Dialog — accepting a request now means the host has
-    // reached a real agreement with the specialist outside the app and is uploading
-    // the signed lease as the record of that; there's no in-app payment step anymore.
+    // Accept Booking Dialog — upload of space rules/access info is optional
     if (acceptingRequestId != null) {
         val reqId = acceptingRequestId!!
         ProHostDialog(
             onDismissRequest = { acceptingRequestId = null },
-            icon = { Icon(Icons.Default.Gavel, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-            title = { Text("Accept & Upload Agreement", style = MaterialTheme.typography.titleMedium) },
+            icon = { Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("Accept Booking", style = MaterialTheme.typography.titleMedium) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Accepting means you and the specialist have reached and signed a leasing agreement outside the app. " +
-                            "Upload the signed document to finalize — this saves it as the official record and locks in the sched" +
-                            "ule.",
+                        text = "Optionally share your space rules, entry instructions, or any special access info with your tenant. " +
+                            "You can skip this — the specialist will be informed if nothing is provided.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     DocumentPickerField(
-                        label = "Signed Leasing Agreement",
-                        helperText = "PDF, JPG, or PNG — kept on file, the specialist can open it from My Bookings",
+                        label = "Space Rules & Access Guidance (Optional)",
+                        helperText = "PDF, JPG, or PNG — the specialist can view this from My Bookings",
                         state = agreementDocState,
                         onStateChanged = { agreementDocState = it },
                         modifier = Modifier.fillMaxWidth(),
-                        required = true
+                        required = false
                     )
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        val uri = agreementDocState.uri
-                        if (uri != null) {
-                            viewModel.acceptBookingRequest(context, reqId, uri)
-                            acceptingRequestId = null
-                        } else {
-                            Toast.makeText(context, "Please upload the signed agreement first.", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    enabled = agreementDocState.isSelected
+                        viewModel.acceptBookingRequest(context, reqId, agreementDocState.uri)
+                        acceptingRequestId = null
+                    }
                 ) {
-                    Text("Finalize")
+                    Text(if (agreementDocState.isSelected) "Accept & Share Rules" else "Accept")
                 }
             },
             dismissButton = {
@@ -286,50 +282,105 @@ fun OwnerIncomingRequestsView(
 @Composable
 fun OwnerBookingRequestCard(
     request: BookingRequest,
-    spaces: List<SpaceListing>,
-    onAccept: () -> Unit,
-    onReject: () -> Unit,
-    onWhatsAppProfessional: () -> Unit,
-    onSendPaymentReminder: () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val sdf = remember { SimpleDateFormat("MMM d, yyyy • HH:mm", Locale.US) }
-    val formattedTime = remember(request.createdAt) { sdf.format(Date(request.createdAt)) }
-
+    val borderColor = when (request.status) {
+        BookingRequestStatus.PENDING -> MaterialTheme.proColors.warning
+        BookingRequestStatus.ACCEPTED -> MaterialTheme.proColors.info
+        BookingRequestStatus.REJECTED -> MaterialTheme.colorScheme.error
+        BookingRequestStatus.CANCELLED -> MaterialTheme.colorScheme.outlineVariant
+    }
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = when (request.status) {
-                BookingRequestStatus.PENDING -> MaterialTheme.proColors.warning
-                BookingRequestStatus.ACCEPTED -> MaterialTheme.proColors.info
-                BookingRequestStatus.REJECTED -> MaterialTheme.colorScheme.error
-                BookingRequestStatus.CANCELLED -> MaterialTheme.colorScheme.outlineVariant
-            }
-        )
+        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor)
     ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    text = request.spaceTitle,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                Text(
+                    text = request.practitionerName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                val attendeeLine = com.example.ui.util.AttendeePricing.bookingSummary(request)
+                Text(
+                    text = if (attendeeLine != null) "$attendeeLine total" else "\$${request.totalAmountUsd.toInt()} USD",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                when (request.status) {
+                    BookingRequestStatus.ACCEPTED -> ProStatusBadge(ProBadgeType.ACCEPTED_LOCKED)
+                    BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = "Pending")
+                    BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = "Declined")
+                    BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = "Cancelled")
+                }
+                Icon(
+                    Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun OwnerRequestDetailSheet(
+    request: BookingRequest,
+    onDismiss: () -> Unit,
+    onAccept: () -> Unit,
+    onReject: () -> Unit,
+    onWhatsApp: () -> Unit
+) {
+    val sdf = remember { SimpleDateFormat("MMM d, yyyy · HH:mm", Locale.US) }
+    val formattedTime = remember(request.createdAt) { sdf.format(Date(request.createdAt)) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val attendeeLine = com.example.ui.util.AttendeePricing.bookingSummary(request)
+    val chosenDays = request.selectedDays.takeIf { it.isNotEmpty() } ?: request.formula.daysOfWeek
+    val chosenHours = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank())
+        "${request.selectedStartHour}–${request.selectedEndHour}" else "${request.formula.startHour}–${request.formula.endHour}"
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Member profile header & Status Badge
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ProMemberAvatar(
-                    name = request.practitionerName,
-                    specialty = request.practitionerSpecialty,
-                    isVerified = true,
-                    size = 36.dp,
-                    modifier = Modifier.weight(1f)
+                Text(
+                    text = "Booking Request",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
                 )
-
                 when (request.status) {
                     BookingRequestStatus.ACCEPTED -> ProStatusBadge(ProBadgeType.ACCEPTED_LOCKED)
                     BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = "Pending Approval")
@@ -338,176 +389,53 @@ fun OwnerBookingRequestCard(
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ProMemberAvatar(
+                name = request.practitionerName,
+                specialty = request.practitionerSpecialty,
+                isVerified = true,
+                size = 44.dp
+            )
 
-            // Space & Formula Info
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Apartment,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(
-                        text = request.spaceTitle,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+            HorizontalDivider()
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val attendeeLine = com.example.ui.util.AttendeePricing.bookingSummary(request)
-                    Text(
-                        text = attendeeLine?.let { "Per attendee: $it" } ?: "Formula: ${request.formula.type.displayName}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(1f)
-                    )
-                    if (attendeeLine == null) {
-                        ProCurrencyTag(
-                            rateUsd = request.formula.rateUsd,
-                            unitLabel = com.example.ui.util.SpaceCalculationUtils.rateUnitLabel(request.formula.type)
-                        )
-                    }
-                }
-
-                // Selected Date & Time Range Display
-                Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                    shape = MaterialTheme.shapes.small,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(Spacing.sm),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        val chosenDaysStr = if (request.selectedDays.isNotEmpty()) {
-                            request.selectedDays.joinToString(", ")
-                        } else {
-                            request.formula.daysOfWeek.joinToString(", ")
-                        }
-                        val chosenHoursStr = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank()) {
-                            "${request.selectedStartHour} - ${request.selectedEndHour}"
-                        } else {
-                            "${request.formula.startHour} - ${request.formula.endHour}"
-                        }
-                        val shiftDetail = if (request.selectedShift.isNotBlank()) " • ${request.selectedShift}" else ""
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.AccessTime,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text(
-                                text = "Requested Slot: $chosenDaysStr ($chosenHoursStr)$shiftDetail",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        Text(
-                            text = "Starting Date: ${request.startDate} (${request.durationMonths} month term) • Formula: ${request.formula.type.displayName}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            // Details
+            @Composable
+            fun DetailRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp).padding(top = 2.dp))
+                    Column {
+                        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
 
-            // Agreement Total & Note
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Total Agreement: $${request.totalAmountUsd.toInt()} USD",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Submitted: $formattedTime",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            if (request.clinicalNotes.isNotBlank()) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    shape = MaterialTheme.shapes.small,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Requirements / Note: \"${request.clinicalNotes}\"",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(6.dp)
-                    )
-                }
-            }
-
-            // Unavailable Notice for Accepted Bookings
-            if (request.status == BookingRequestStatus.ACCEPTED) {
-                Surface(
-                    color = MaterialTheme.proColors.infoContainer,
-                    shape = MaterialTheme.shapes.small,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.Lock,
-                            contentDescription = null,
-                            tint = MaterialTheme.proColors.info,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Locked & marked UNAVAILABLE for public discovery (${request.formula.totalWeeklyHours} hrs/wk deducted).",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.proColors.info,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-            }
+            DetailRow(Icons.Default.Apartment, "Space", request.spaceTitle)
+            request.subdivisionName?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.Default.MeetingRoom, "Room / Area", it) }
+            DetailRow(Icons.Default.AccessTime, "Schedule", "${chosenDays.joinToString(", ")} · $chosenHours${if (request.selectedShift.isNotBlank()) " · ${request.selectedShift}" else ""}")
+            DetailRow(Icons.Default.CalendarToday, "Start Date", "${request.startDate}${if (request.durationMonths > 0) " · ${request.durationMonths} month term" else ""}")
+            DetailRow(Icons.Default.AttachMoney, "Total", "\$${request.totalAmountUsd.toInt()} USD${if (attendeeLine != null) " · $attendeeLine" else ""}")
+            DetailRow(Icons.Default.Schedule, "Submitted", formattedTime)
+            if (request.clinicalNotes.isNotBlank()) DetailRow(Icons.Default.Notes, "Notes", request.clinicalNotes)
 
             if (request.status == BookingRequestStatus.REJECTED && !request.rejectionReason.isNullOrBlank()) {
-                Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    shape = MaterialTheme.shapes.small,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.small) {
                     Text(
-                        text = "Decline Reason: ${request.rejectionReason}",
+                        text = "Declined: ${request.rejectionReason}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                        modifier = Modifier.padding(8.dp)
                     )
                 }
             }
 
-            // Action Buttons Bar
+            HorizontalDivider()
+
+            // Action buttons
             if (request.status == BookingRequestStatus.PENDING) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     CustomButton(
                         text = "Accept",
@@ -517,7 +445,6 @@ fun OwnerBookingRequestCard(
                         compact = true,
                         modifier = Modifier.weight(1f)
                     )
-
                     CustomButton(
                         text = "Reject",
                         onClick = onReject,
@@ -526,10 +453,9 @@ fun OwnerBookingRequestCard(
                         compact = true,
                         modifier = Modifier.weight(1f)
                     )
-
                     CustomButton(
                         text = "WhatsApp",
-                        onClick = onWhatsAppProfessional,
+                        onClick = onWhatsApp,
                         variant = CustomButtonVariant.WHATSAPP,
                         icon = Icons.AutoMirrored.Filled.Chat,
                         compact = true,
@@ -537,41 +463,13 @@ fun OwnerBookingRequestCard(
                     )
                 }
             } else {
-                // If already accepted, rejected, or cancelled, show action row
-                if (request.status == BookingRequestStatus.ACCEPTED) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // WhatsApp
-                        CustomButton(
-                            text = "WhatsApp",
-                            onClick = onWhatsAppProfessional,
-                            variant = CustomButtonVariant.WHATSAPP,
-                            icon = Icons.AutoMirrored.Filled.Chat,
-                            compact = true,
-                            modifier = Modifier.weight(1.2f)
-                        )
-
-                        CustomButton(
-                            text = "Remind Payment",
-                            onClick = onSendPaymentReminder,
-                            variant = CustomButtonVariant.SECONDARY,
-                            icon = Icons.Default.NotificationsActive,
-                            compact = true,
-                            modifier = Modifier.weight(1.5f)
-                        )
-                    }
-                } else {
-                    CustomButton(
-                        text = "Message Specialist on WhatsApp",
-                        onClick = onWhatsAppProfessional,
-                        variant = CustomButtonVariant.WHATSAPP,
-                        icon = Icons.AutoMirrored.Filled.Chat,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                CustomButton(
+                    text = "Message on WhatsApp",
+                    onClick = onWhatsApp,
+                    variant = CustomButtonVariant.WHATSAPP,
+                    icon = Icons.AutoMirrored.Filled.Chat,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
