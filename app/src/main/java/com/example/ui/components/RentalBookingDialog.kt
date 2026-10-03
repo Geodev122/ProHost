@@ -926,6 +926,7 @@ private fun BookingSlotSelectorDialog(
                                         }
                                     }
 
+                                    else -> {}
                                 }
                             }
                         }

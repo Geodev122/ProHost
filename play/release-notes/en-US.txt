@@ -1,5 +1,5 @@
-ProHost v1.0.32 (Build 32) Release Notes:
-• Added international WhatsApp country-code picker with E.164 formatting & official Google logo assets.
-• Unified Explore search controls with real-time listing count indicators & automatic country detection.
-• Upgraded Space Details modal dialogs, request cards, and host acceptance lease upload flows.
-• Auto-registered FCM device tokens on every sign-in with fixed push notification category handling.
+ProHost v1.0.33 (Build 33) Release Notes:
+• Redesigned Explore search controls strip with real-time country filter and listing count indicators.
+• Upgraded Google Sign-In button with official Google brand guidelines & One Tap fallback.
+• Enhanced Space Details availability strip, subdivision editor, and subscription plan management.
+• Improved real-time database synchronization, FCM push notifications, and performance.

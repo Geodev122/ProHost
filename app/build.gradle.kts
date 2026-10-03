@@ -1,4 +1,3 @@
-import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import java.util.Properties
 import java.io.FileInputStream
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
@@ -11,7 +10,6 @@ plugins {
   alias(libs.plugins.google.devtools.ksp)
   alias(libs.plugins.roborazzi)
   alias(libs.plugins.google.services)
-  alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
@@ -22,8 +20,8 @@ android {
     applicationId = "app.geonajjar.prohost"
     minSdk = 24
     targetSdk = 37
-    versionCode = 32
-    versionName = "1.0.32"
+    versionCode = 33
+    versionName = "1.0.33"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     
@@ -97,10 +95,6 @@ android {
       // Release builds attest with Play Integrity only; never a debug token.
       buildConfigField("String", "APP_CHECK_DEBUG_TOKEN", "\"\"")
 
-      // Upload Proguard/R8 mapping file to Firebase Crashlytics (enabled during CI/CD)
-      configure<CrashlyticsExtension> {
-          mappingFileUploadEnabled = System.getenv("CI") == "true" || System.getenv("GITHUB_ACTIONS") == "true"
-      }
     }
     debug {
       signingConfig = signingConfigs.findByName("debugConfig") ?: signingConfigs.getByName("debug")

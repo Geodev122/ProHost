@@ -1,5 +1,5 @@
-Notes de version ProHost v1.0.32 (Build 32) :
-• Ajout du sélecteur d'indicatif pays WhatsApp avec formatage E.164 et logo Google officiel.
-• Commandes d'exploration unifiées avec indicateur de nombre d'espaces et détection automatique du pays.
-• Amélioration des détails des espaces, cartes de demande et téléversement de bail.
-• Enregistrement automatique du jeton FCM à chaque connexion.
+Notes de version ProHost v1.0.33 (Build 33) :
+• Bandeau de recherche Explorer repensé avec filtre pays en temps réel et compteur d'annonces.
+• Bouton de connexion Google mis à jour selon les directives officielles de la marque.
+• Amélioration de la disponibilité des espaces, de l'éditeur de subdivisions et de la gestion des abonnements.
+• Optimisation de la synchronisation en temps réel et des notifications push FCM.
