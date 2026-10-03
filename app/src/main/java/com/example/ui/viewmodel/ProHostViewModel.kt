@@ -97,6 +97,7 @@ class ProHostViewModel(
                         _pendingRegistrationPhone.value = firebaseUser.phoneNumber.orEmpty()
                     } else {
                         runCatching {
+                            @Suppress("DEPRECATION")
                             val token = com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
                             repository.registerFcmToken(user.id, token)
                         }

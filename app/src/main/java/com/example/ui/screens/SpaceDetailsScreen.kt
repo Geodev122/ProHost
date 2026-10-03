@@ -993,7 +993,7 @@ fun SpaceDetailsScreenContent(
             val isoDate = SpaceCalculationUtils.nextDateForWeekday(primarySlot.day)
             val subdivision = liveSpace.subdivisions.find { it.id == primarySlot.sourceFormulaId }
             val isAttendeeMode = com.example.ui.util.AttendeePricing.isPerAttendee(subdivision) && attendeeQuote != null
-            val price = if (isAttendeeMode && attendeeQuote != null) {
+            val price = if (isAttendeeMode) {
                 attendeeQuote.totalUsd
             } else {
                 allSlots.sumOf { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: formula.rateUsd }
@@ -1003,8 +1003,8 @@ fun SpaceDetailsScreenContent(
             val notes = buildString {
                 append("Requested via live slot selection")
                 if (allSlots.size > 1) append(" — $slotSummary")
-                if (isAttendeeMode && attendeeQuote != null) {
-                    append(" | ${com.example.ui.util.AttendeePricing.describe(attendeeQuote)}")
+                if (isAttendeeMode) {
+                    append(" | ${com.example.ui.util.AttendeePricing.describe(attendeeQuote!!)}")
                 }
             }
             val (request, synced) = viewModel.repository.createBookingRequest(

@@ -416,7 +416,7 @@ fun OwnerRequestDetailSheet(
             DetailRow(Icons.Default.CalendarToday, "Start Date", "${request.startDate}${if (request.durationMonths > 0) " · ${request.durationMonths} month term" else ""}")
             DetailRow(Icons.Default.AttachMoney, "Total", "\$${request.totalAmountUsd.toInt()} USD${if (attendeeLine != null) " · $attendeeLine" else ""}")
             DetailRow(Icons.Default.Schedule, "Submitted", formattedTime)
-            if (request.clinicalNotes.isNotBlank()) DetailRow(Icons.Default.Notes, "Notes", request.clinicalNotes)
+            if (request.clinicalNotes.isNotBlank()) DetailRow(Icons.AutoMirrored.Filled.Notes, "Notes", request.clinicalNotes)
 
             if (request.status == BookingRequestStatus.REJECTED && !request.rejectionReason.isNullOrBlank()) {
                 Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.small) {

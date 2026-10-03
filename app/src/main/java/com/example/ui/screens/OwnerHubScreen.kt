@@ -276,13 +276,6 @@ fun OwnerHubScreen(
                                 android.widget.Toast.LENGTH_LONG
                             ).show()
                         }
-                        else -> {
-                            android.widget.Toast.makeText(
-                                context,
-                                "Couldn't publish this listing — check your connection and try again.",
-                                android.widget.Toast.LENGTH_LONG
-                            ).show()
-                        }
                     }
                 }
             }
