@@ -57,6 +57,7 @@ suspend fun completeVerifiedLogin(
 /** Fetches the current FCM token and saves it to the user's profile. Silently no-ops on failure. */
 private suspend fun refreshFcmToken(repository: ProHostRepository, uid: String) {
     try {
+        @Suppress("DEPRECATION")
         val token = FirebaseMessaging.getInstance().token.await()
         repository.registerFcmToken(uid, token)
     } catch (e: Exception) {

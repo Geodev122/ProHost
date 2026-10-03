@@ -92,8 +92,7 @@ private fun legacyMarkerPalette(spaceType: SpaceType): MarkerPalette = when (spa
     SpaceType.PRIVATE_OFFICE -> SCHEMA_MARKER_PALETTES[0]
     SpaceType.CENTER -> SCHEMA_MARKER_PALETTES[1]
     SpaceType.POLYCLINIC -> SCHEMA_MARKER_PALETTES[2]
-    SpaceType.COWORKING_SPACE -> SCHEMA_MARKER_PALETTES[3]
-    else -> SCHEMA_MARKER_PALETTES[4]
+    SpaceType.COWORKING_SPACE -> SCHEMA_MARKER_PALETTES[4]
 }
 
 private fun getMarkerPaletteFallback(space: SpaceListing): MarkerPalette {

@@ -2132,6 +2132,7 @@ class ProHostRepository {
                 // Only clear the stored token when it is THIS device's — otherwise signing
                 // out here would silence push on the user's other, still-signed-in phone.
                 val deviceToken = runCatching {
+                    @Suppress("DEPRECATION")
                     com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
                 }.getOrNull()
                 val storedToken = firestoreService.getUserProfile(loggedOutUser.id)?.get("fcmToken") as? String

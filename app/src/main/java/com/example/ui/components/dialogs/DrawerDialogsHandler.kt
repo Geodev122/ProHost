@@ -508,11 +508,11 @@ fun DrawerDialogsHandler(
                                                                 imageVector = when (alert.category) {
                                                                     "BOOKING_ACCEPTANCE" -> Icons.Default.CheckCircle
                                                                     "BOOKING_REQUEST" -> Icons.Default.Inbox
-                                                                    "BOOKING_UPDATE" -> Icons.Default.EventNote
+                                                                    "BOOKING_UPDATE" -> Icons.AutoMirrored.Filled.EventNote
                                                                     "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> Icons.Default.Verified
                                                                     "PACKAGE_EXPIRED" -> Icons.Default.EventBusy
                                                                     "PAYMENT_REMINDER" -> Icons.Default.CreditCard
-                                                                    "LISTING_VERIFICATION", "LISTING_VERIFICATION_REQUEST" -> Icons.Default.FactCheck
+                                                                    "LISTING_VERIFICATION", "LISTING_VERIFICATION_REQUEST" -> Icons.AutoMirrored.Filled.FactCheck
                                                                     else -> Icons.Default.Notifications
                                                                 },
                                                                 contentDescription = null,
