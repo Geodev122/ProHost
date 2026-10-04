@@ -105,6 +105,7 @@ fun DiscoveryScreen(
             discoveryViewModel.setMapCenterCountry(country)
         },
         hasMore = uiState.hasMore,
+        isSearchingMore = uiState.isSearchingMore,
         onLoadMore = { discoveryViewModel.loadMore() },
         initialListIndex = discoveryViewModel.listScrollIndex,
         initialListOffset = discoveryViewModel.listScrollOffset,
@@ -150,6 +151,7 @@ fun DiscoveryScreenContent(
     onMapCenterCountryDetected: (String) -> Unit = {},
     // Paging: more active listings may exist beyond the loaded page.
     hasMore: Boolean = false,
+    isSearchingMore: Boolean = false,
     onLoadMore: () -> Unit = {},
     // Where Explore was before a listing was opened (restored on return).
     initialListIndex: Int = 0,
@@ -213,6 +215,11 @@ fun DiscoveryScreenContent(
                         actionButtonText = "Retry",
                         onActionClick = onRetryLoad
                     )
+                }
+            } else if (spaces.isEmpty() && isSearchingMore) {
+                // The whole catalog hasn't been searched yet — not a "no results" state.
+                Box(modifier = Modifier.fillMaxWidth().padding(top = 66.dp)) {
+                    SearchingMoreRow()
                 }
             } else if (spaces.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize().padding(top = 66.dp)) {
@@ -282,9 +289,12 @@ fun DiscoveryScreenContent(
                             )
                         }
                     }
+                    if (isSearchingMore) {
+                        item(key = "searching_more") { SearchingMoreRow() }
+                    }
                     // Paging footer: composing it (scrolled near the end) loads the next
                     // page automatically; the button covers a failed or slow load.
-                    if (hasMore) {
+                    if (hasMore && !isSearchingMore) {
                         item(key = "load_more_footer") {
                             LaunchedEffect(listCards.size) { onLoadMore() }
                             Box(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
@@ -330,6 +340,24 @@ fun DiscoveryScreenContent(
             onPriceRangeChange = onPriceRangeChange,
             onToggleVerifiedOnly = onToggleVerifiedOnly,
             onResetFilters = onResetFilters
+        )
+    }
+}
+
+/** Shown while Explore loads further pages for an active search (see DiscoveryViewModel). */
+@Composable
+private fun SearchingMoreRow() {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            "Searching more listings…",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

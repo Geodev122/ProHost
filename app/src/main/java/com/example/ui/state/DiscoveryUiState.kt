@@ -66,5 +66,10 @@ data class DiscoveryUiState(
     // Explore loads active listings a page at a time; true when another page may exist.
     val hasMore: Boolean = false,
     // Live listings loaded so far (search and filters run over these).
-    val loadedListingCount: Int = 0
+    val loadedListingCount: Int = 0,
+    // A search/filter is active with too few matches and more pages are being loaded
+    // (DiscoveryViewModel auto-load): "no results" is not final yet.
+    val isSearchingMore: Boolean = false,
+    // All listing docs loaded so far (the auto-load cap and its progress key).
+    val loadedRawCount: Int = 0
 )

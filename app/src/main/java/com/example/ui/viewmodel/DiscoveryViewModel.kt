@@ -14,6 +14,16 @@ import kotlinx.coroutines.launch
 
 private const val SEARCH_DEBOUNCE_MS = 300L
 
+// While a search or filter is active, Explore keeps loading listing pages until this many
+// match (or the catalog ends), so a match beyond the first page is never missed.
+internal const val AUTO_LOAD_TARGET_MATCHES = 20
+// Upper bound on listings auto-loaded for one search, to keep a phone's memory in check.
+internal const val AUTO_LOAD_MAX_LISTINGS = 1000
+
+/** True when Explore should load another page for the active search (see auto-load). */
+internal fun shouldSearchMore(searchActive: Boolean, hasMore: Boolean, matches: Int, loaded: Int): Boolean =
+    searchActive && hasMore && matches < AUTO_LOAD_TARGET_MATCHES && loaded < AUTO_LOAD_MAX_LISTINGS
+
 /**
  * ViewModel managing space catalog discovery, multi-criteria filtering and debounced search.
  */
@@ -106,6 +116,9 @@ class DiscoveryViewModel(
             }
         }
 
+        val searchActive = tokens.isNotEmpty() || filter.activeFilterCount > 0
+        val searchingMore = shouldSearchMore(searchActive, hasMore, filtered.size, spaces.size)
+
         DiscoveryUiState(
             filteredSpaces = filtered,
             matchingSubdivisionIds = matchingSubdivisionIds,
@@ -119,7 +132,9 @@ class DiscoveryViewModel(
             loadError = loadError,
             savedSpaceIds = savedIds,
             hasMore = hasMore,
-            loadedListingCount = liveSpaces.size
+            loadedListingCount = liveSpaces.size,
+            isSearchingMore = searchingMore,
+            loadedRawCount = spaces.size
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DiscoveryUiState())
 
@@ -150,7 +165,23 @@ class DiscoveryViewModel(
         }
     }
 
-    init { startAnalytics() }
+    // Search reaches the whole catalog: while the active search has too few matches and
+    // more pages exist, request the next page. Keyed on the loaded count, so a new request
+    // goes out only after the previous page has arrived.
+    private fun startAutoLoad() {
+        viewModelScope.launch {
+            runCatching {
+                uiState.filter { it.isSearchingMore && it.loadError == null }
+                    .distinctUntilChangedBy { it.loadedRawCount }
+                    .collect { repository.loadMoreSpaces() }
+            }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+        }
+    }
+
+    init {
+        startAnalytics()
+        startAutoLoad()
+    }
 
     /** One bookable unit: a division, or the whole space when it has no divisions. */
     private data class RentableUnit(

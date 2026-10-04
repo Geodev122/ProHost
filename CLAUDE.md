@@ -109,7 +109,9 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
 - Paged live lists: Explore's public listings load `FirestoreService.PUBLIC_LISTINGS_PAGE` (100) at a time
   and admin lists `ADMIN_PAGE` (300); "load more" grows the same snapshot listener's limit
   (`setPublicListingsLimit` / `setAdminPageLimit`, document-id order, no index needed). Never re-add a fixed
-  `.limit(200)` cap or unbounded admin collection listeners.
+  `.limit(200)` cap or unbounded admin collection listeners. While a search/filter is active and fewer than
+  20 listings match, `DiscoveryViewModel` auto-loads further pages (`shouldSearchMore`, cap 1,000) and shows
+  "Searching more listings…"; "No workspaces found" appears only once the catalog is exhausted.
 - Verification rules: `AppUser.hasVerifiedPhone` gates only the Pro Host workspaces; `AppUser.canTransact()`
   (photo + verified phone) is checked in place when a specialist sends a booking request. My Rentals,
   browsing and Saved are never gated. `isKycComplete` is profile completeness (banner, Premium checkout).
