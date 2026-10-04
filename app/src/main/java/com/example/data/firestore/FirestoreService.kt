@@ -524,22 +524,6 @@ class FirestoreService(
         }
     }
 
-        val registration: ListenerRegistration = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    Log.w(TAG, "Error observing workspaces: ${error.message}")
-                    close(error)
-                    return@addSnapshotListener
-                }
-                if (snapshot != null) {
-                    val list = snapshot.documents.mapNotNull { it.data }
-                    trySend(list)
-                }
-            }
-
-        awaitClose { registration.remove() }
-    }
-
     // ==========================================
     // USER PROFILES (schema.gql AppUser)
     // ==========================================
