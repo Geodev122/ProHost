@@ -203,9 +203,7 @@ fun DiscoveryScreenContent(
         } else {
             // List View
             if (isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
+                ShimmerLoadingList(modifier = Modifier.padding(top = 66.dp), itemHeight = 220.dp)
             } else if (loadError != null) {
                 Box(modifier = Modifier.fillMaxSize().padding(top = 66.dp)) {
                     ProEmptyState(

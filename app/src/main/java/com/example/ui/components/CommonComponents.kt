@@ -1480,6 +1480,21 @@ fun ShimmerLoadingCard(
     )
 }
 
+/** A first-load skeleton: [count] card-shaped shimmers stacked like the list they stand in for. */
+@Composable
+fun ShimmerLoadingList(
+    modifier: Modifier = Modifier,
+    count: Int = 4,
+    itemHeight: Dp = 120.dp
+) {
+    Column(
+        modifier = modifier.fillMaxWidth().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        repeat(count) { ShimmerLoadingCard(height = itemHeight) }
+    }
+}
+
 /**
  * Top bar for a Pro Host drawer destination opened full-screen (no bottom nav —
  * these screens live outside the unified Specialist/Pro Host bottom nav). Just

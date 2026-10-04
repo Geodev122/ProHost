@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.ui.components.ShimmerLoadingList
 import com.example.data.model.SpaceListing
 import com.example.ui.components.ProEmptyState
 import com.example.ui.theme.Spacing
@@ -90,9 +91,7 @@ fun MyFavoritesScreen(
         }
     ) { innerPadding ->
         if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            ShimmerLoadingList(modifier = Modifier.padding(innerPadding), itemHeight = 200.dp)
         } else if (errorMessage != null) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text(

@@ -206,9 +206,7 @@ fun MyBookingsScreen(
             // The first Firestore snapshot hasn't arrived yet — without this, an
             // account with real bookings briefly showed "No bookings" before the
             // real list streamed in, indistinguishable from actually having none.
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = roleAccent)
-            }
+            ShimmerLoadingList(itemHeight = 140.dp)
         } else if (!hasLoadedBookingsOnce && isOffline) {
             Box(
                 modifier = Modifier.fillMaxSize().padding(32.dp),

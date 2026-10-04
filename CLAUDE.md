@@ -121,6 +121,9 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   no "Saved only" filter and no drawer Billing dialog — Premium covers it). Tapping a room in Explore opens
   its availability sheet; after a request the snackbar's "View request" opens My Rentals highlighting it.
   `DiscoveryViewModel` keeps Explore's list position and map camera across a visit to a listing.
+- Admin Console tabs live in `ui/screens/admin/` (one file per tab, package `com.example.ui.screens`);
+  room cards / folder tabs of the details page in `ui/screens/RoomCards.kt`. NIGHTHAWK's screen checks count
+  only files declaring a public `fun XxxScreen(`. First-load lists show `ShimmerLoadingList`, not a spinner.
 - No secrets in code or scripts (GA4 secret comes from the caller or `GA4_API_SECRET`), and push tokens are
   never logged — NIGHTHAWK "Secrets & Token Hygiene".
 - Explore filters: country matching uses `effectiveCountry` (blank = Lebanon, legacy listings) and the

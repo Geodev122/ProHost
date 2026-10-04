@@ -106,6 +106,12 @@ function esc(s) {
     .replace(/"/g, '&quot;');
 }
 
+// A screen is a file under ui/screens that declares a public `fun XxxScreen(` composable; files
+// that only hold parts of a screen (admin tabs, room cards) are not screens of their own.
+function screenFiles() {
+  return walkFiles(KT_SCREENS, '.kt').filter(f => /^fun \w+Screen\(/m.test(readSafe(f) || ''));
+}
+
 // ─── CHECK 1: Cloud Function name consistency ─────────────────────────────────
 
 function checkCloudFunctionNames() {
@@ -225,7 +231,7 @@ function checkForcedUnwrap() {
 // ─── CHECK 5: Screens missing loading state ───────────────────────────────────
 
 function checkScreenLoading() {
-  const files = walkFiles(KT_SCREENS, '.kt');
+  const files = screenFiles();
   let missing = 0;
   for (const f of files) {
     const c = readSafe(f) || '';
@@ -242,7 +248,7 @@ function checkScreenLoading() {
 // ─── CHECK 6: Screens missing error state ─────────────────────────────────────
 
 function checkScreenError() {
-  const files = walkFiles(KT_SCREENS, '.kt');
+  const files = screenFiles();
   let missing = 0;
   for (const f of files) {
     const c = readSafe(f) || '';
@@ -259,7 +265,7 @@ function checkScreenError() {
 // ─── CHECK 7: List screens missing empty state ────────────────────────────────
 
 function checkScreenEmptyState() {
-  const files = walkFiles(KT_SCREENS, '.kt');
+  const files = screenFiles();
   let missing = 0;
   for (const f of files) {
     const c = readSafe(f) || '';
@@ -428,8 +434,7 @@ function checkNavGraph() {
   const navFile = path.join(KT_UI, 'navigation/ProHostNavGraph.kt');
   const navContent = readSafe(navFile);
   if (!navContent) return;
-  const screenFiles = walkFiles(KT_SCREENS, '.kt');
-  const missing = screenFiles.filter(f => {
+  const missing = screenFiles().filter(f => {
     const name = path.basename(f, '.kt');
     return !navContent.includes(name) && !navContent.includes(name.replace('Screen', ''));
   });

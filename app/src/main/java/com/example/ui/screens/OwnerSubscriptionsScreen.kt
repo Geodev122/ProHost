@@ -30,6 +30,7 @@ import com.example.ui.components.CustomButton
 import com.example.ui.components.CustomButtonVariant
 import com.example.ui.components.ProHostDialog
 import com.example.ui.components.ProHostAlertBanner
+import com.example.ui.components.ShimmerLoadingCard
 import com.example.ui.components.ProHostAlertSeverity
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
@@ -499,7 +500,12 @@ fun OwnerSubscriptionsScreen(
             }
         }
 
-        if (enabledPlans.isEmpty()) {
+        if (enabledPlans.isEmpty() && pricesLoading) {
+            // Plan-card skeletons while Google Play answers the product query.
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                repeat(2) { ShimmerLoadingCard(height = 96.dp) }
+            }
+        } else if (enabledPlans.isEmpty()) {
             Text(
                 if (pricesLoading) "Loading ProHost Premium from Google Play…" else "ProHost Premium plans will appear here once Google Play responds.",
                 style = MaterialTheme.typography.bodySmall,

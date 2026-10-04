@@ -1,16 +1,34 @@
 {
-  "generatedAt": "2026-10-04T19:16:22.111Z",
+  "generatedAt": "2026-10-04T19:21:14.101Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 63,
+    "total": 65,
     "critical": 0,
     "high": 0,
-    "medium": 9,
+    "medium": 11,
     "low": 54,
     "info": 0,
-    "passes": 30
+    "passes": 29
   },
   "findings": [
+    {
+      "severity": "MEDIUM",
+      "category": "ux",
+      "check": "Screen Loading State",
+      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
+      "line": null,
+      "message": "Screen has no loading indicator.",
+      "suggestion": "Add an isLoading state and CircularProgressIndicator overlay."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "ux",
+      "check": "Screen Empty State",
+      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
+      "line": null,
+      "message": "Screen has list (LazyColumn/LazyRow) but no empty-state branch.",
+      "suggestion": "Show empty state placeholder when list is empty."
+    },
     {
       "severity": "MEDIUM",
       "category": "consistency",
@@ -195,35 +213,8 @@
       "severity": "LOW",
       "category": "detekt",
       "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 2163,
-      "message": "Line has 210 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 2186,
-      "message": "Line has 177 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 2256,
-      "message": "Line has 219 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 860,
+      "line": 858,
       "message": "Line has 165 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -232,7 +223,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 882,
+      "line": 880,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -331,7 +322,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 294,
+      "line": 295,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -340,7 +331,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 323,
+      "line": 324,
       "message": "Line has 166 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -349,7 +340,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 334,
+      "line": 335,
       "message": "Line has 163 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -358,7 +349,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 345,
+      "line": 346,
       "message": "Line has 163 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -367,7 +358,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 400,
+      "line": 401,
       "message": "Line has 169 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -376,7 +367,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 873,
+      "line": 879,
       "message": "Line has 161 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -385,7 +376,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 885,
+      "line": 891,
       "message": "Line has 177 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -577,6 +568,33 @@
       "line": 754,
       "message": "Line has 161 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/admin/AdminDemoTab.kt",
+      "line": 97,
+      "message": "Line has 210 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/admin/AdminDemoTab.kt",
+      "line": 120,
+      "message": "Line has 177 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/admin/AdminDemoTab.kt",
+      "line": 190,
+      "message": "Line has 219 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
     }
   ],
   "passes": [
@@ -598,15 +616,11 @@
     },
     {
       "check": "Screen Loading State",
-      "message": "16/16 screens have a loading indicator."
+      "message": "15/16 screens have a loading indicator."
     },
     {
       "check": "Screen Error State",
       "message": "All screens surface error feedback."
-    },
-    {
-      "check": "Screen Empty State",
-      "message": "All list screens handle the empty case."
     },
     {
       "check": "Coroutine Error Handling",
