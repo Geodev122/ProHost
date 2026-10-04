@@ -558,6 +558,8 @@ class ProHostViewModel(
         manager?.queryProductDetailsForId(productId, onResult) ?: onResult(null)
     }
 
+    private var restoreCheckJob: kotlinx.coroutines.Job? = null
+
     /** [userInitiated] (the Restore button) reports every outcome; the silent on-open check only reports a restore. */
     fun refreshPlayPurchases(context: Context, userInitiated: Boolean = false) {
         val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager } ?: return
@@ -572,12 +574,18 @@ class ProHostViewModel(
             return
         }
         // No entitlement yet — query Play and, if an active purchase is found,
-        // verify it server-side to restore the entitlement (handles dropped RTDNs).
-        viewModelScope.launch {
+        // verify it server-side to restore the entitlement (handles dropped RTDNs and
+        // promo codes redeemed in the Play Store). One silent check at a time: the app
+        // root and the Subscriptions screen both trigger it on resume.
+        if (!userInitiated && restoreCheckJob?.isActive == true) return
+        restoreCheckJob = viewModelScope.launch {
             runCatching {
-                manager.queryActivePurchases()
-                // Wait for the state flow to reflect the fresh query result.
-                val purchases = manager.activePurchases.drop(1).first()
+                // A fresh query result, not the next StateFlow emission: an unchanged
+                // purchase list never re-emits, which left Restore waiting forever.
+                val purchases = manager.fetchActivePurchases() ?: run {
+                    if (userInitiated) _billingError.value = "Couldn't reach Google Play. Please try again."
+                    return@runCatching
+                }
                 val activePurchase = purchases.firstOrNull {
                     it.purchaseState == com.android.billingclient.api.Purchase.PurchaseState.PURCHASED
                 }
@@ -599,7 +607,10 @@ class ProHostViewModel(
                     .onFailure {
                         android.util.Log.w("ProHostViewModel", "verifyAndRestorePurchase failed: ${it.message}")
                         com.example.analytics.AnalyticsTracker.restorePurchases("failed")
-                        _billingError.value = it.toUserMessage("Couldn't restore your purchase. Please try again.")
+                        // The silent on-open check stays quiet; the Restore button reports why.
+                        if (userInitiated) {
+                            _billingError.value = it.toUserMessage("Couldn't restore your purchase. Please try again.")
+                        }
                     }
             }.onFailure { e ->
                 android.util.Log.e("ProHostViewModel", "restorePlayPurchases error: ${e.message}")

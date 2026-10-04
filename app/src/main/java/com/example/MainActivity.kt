@@ -142,6 +142,7 @@ class MainActivity : ComponentActivity() {
                 val source = when {
                     data.host == "pro-host.tech" && data.path?.startsWith("/listing/") == true -> "share_link"
                     data.scheme == "prohost" && (data.host == "verify-email" || data.host == "emailotp") -> "email"
+                    data.scheme == "prohost" && data.host == "redeem" -> "promo_link"
                     data.path?.contains("emaillink") == true -> "email"
                     data.scheme == "prohost" -> "prohost_scheme"
                     else -> "web_link"
@@ -194,6 +195,13 @@ class MainActivity : ComponentActivity() {
             if (!token.isNullOrBlank()) {
                 emailOtpToken = token
             }
+        }
+
+        // Promo-code links: prohost://redeem?code=XXXX — open Subscriptions with the Redeem
+        // dialog pre-filled (the code is only ever handed to Google Play's redeem page).
+        if (data != null && data.scheme == "prohost" && data.host == "redeem") {
+            com.example.data.billing.PendingPromoCode.offer(data.getQueryParameter("code"))
+            targetTab = "owner_subscriptions"
         }
 
         // Tab deep links: prohost://<tabId> — sent by notification action buttons and

@@ -126,10 +126,19 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
   checks it whenever the functions SDK manifest has an `extensions` key, which it always does.
   Until that IAM role is granted, nothing in `functions/`, `firestore.rules` or `storage.rules`
   reaches production (this is why `sendSignInEmailLink`/`deleteOwnAccount` returned NOT_FOUND).
+- Product queries use billing-ktx `queryProductDetails()` / `queryPurchasesAsync()` (typed). Never cast
+  the raw `queryProductDetailsAsync` callback argument (`as? List<*>` / `as? ProductDetailsResult` both
+  silently gave an empty plan list). One offer for display and checkout: `PlayOfferText.preferredOffer()`.
+- Purchases started outside the app (promo codes redeemed in the Play Store) have no
+  `obfuscatedExternalAccountId`: RTDN acknowledges + parks them, `verifyAndRestorePurchase` claims the
+  token for the first account that restores it (`billing/purchaseLinks.ts`, `play_purchase_links`), and
+  renewals resolve through that link. The app root auto-restores on resume for members without a plan.
+  Promo links: `pro-host.tech/redeem?code=` (public/redeem.html), in-app `prohost://redeem?code=`.
+  Monetization checks + campaign playbook: `docs/MONETIZATION.md`.
 - RTDN/restore map a Play product id to its catalog plan via `planIdForPlayProduct`
   (`googlePlayProductId`), and RTDN never grants while `paymentState` is 0 (pending).
-- NIGHTHAWK's "Orphaned Module: billingHelpers" and "compileSdk below 34" MEDIUMs are false
-  positives (billingHelpers is imported by other modules; compileSdk is 37).
+- NIGHTHAWK's "Orphaned Module: billingHelpers / purchaseLinks" and "compileSdk below 34" MEDIUMs are
+  false positives (both are imported by other modules; compileSdk is 37).
 - `main` history shows NIGHTHAWK checks are sometimes extended directly on `main` (not always
   routed through a feature-branch PR) — before adding new checks or fixing findings on a
   feature branch, `git fetch origin main` and check `git merge-base --is-ancestor <branch-tip>

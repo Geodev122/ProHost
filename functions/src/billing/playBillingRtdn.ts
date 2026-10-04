@@ -14,6 +14,7 @@ import {
 } from "./billingHelpers";
 import { planIdForPlayProduct, getPackagePlan } from "../lib/packagePlans";
 import { sendGa4Event, transactionIdFor } from "../lib/ga4";
+import { resolvePurchaseUid } from "./purchaseLinks";
 import "../lib/admin";
 
 // Google Play subscription notification types (DeveloperNotification spec)
@@ -81,9 +82,26 @@ export const playBillingRtdn = onMessagePublished(
       return;
     }
 
-    const uid = purchase.obfuscatedExternalAccountId;
+    // Purchases made in the app's sheet carry the uid; ones started in the Play Store
+    // (promo-code redemption, resubscribe) don't, and resolve via play_purchase_links.
+    const uid = await resolvePurchaseUid(
+      purchase.obfuscatedExternalAccountId, purchaseToken, purchase.linkedPurchaseToken
+    );
     if (!uid) {
-      const unresolvedDoc = {
+      // Acknowledge now: Play cancels and refunds anything unacknowledged for 3 days,
+      // and nobody may open the app that soon. The owner claims it on their next app
+      // open (verifyAndRestorePurchase); retrying this message would never succeed.
+      if (
+        notificationType === SUBSCRIPTION_PURCHASED ||
+        notificationType === SUBSCRIPTION_RESTARTED ||
+        notificationType === SUBSCRIPTION_RECOVERED
+      ) {
+        await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledgementState, "playBillingRtdn");
+      }
+      logger.warn(
+        `playBillingRtdn: purchase not linked to an account yet product=${productId} type=${notificationType} — waiting for in-app restore`
+      );
+      await getFirestore().collection("play_billing_unresolved").add({
         purchaseToken,
         productId,
         orderId: purchase.orderId,
@@ -91,19 +109,7 @@ export const playBillingRtdn = onMessagePublished(
         packageName: notification.packageName,
         timestamp: Date.now(),
         resolved: false,
-      };
-      if (notificationType === SUBSCRIPTION_PURCHASED || notificationType === SUBSCRIPTION_RECOVERED) {
-        // These can be retried — throw so Pub/Sub redelivers rather than permanently ACKing.
-        throw new Error(
-          `playBillingRtdn: no obfuscatedExternalAccountId for product=${productId} type=${notificationType} — Pub/Sub will redeliver`
-        );
-      }
-      // For revocation/expiry/hold/pause/cancel types: a retry won't help because
-      // a purchase without a UID can't be mapped to a user. Write for manual resolution.
-      logger.error(
-        `playBillingRtdn: no obfuscatedExternalAccountId for product=${productId} type=${notificationType} — writing to play_billing_unresolved`
-      );
-      await getFirestore().collection("play_billing_unresolved").add(unresolvedDoc);
+      });
       return;
     }
 

@@ -4,13 +4,28 @@ import com.android.billingclient.api.ProductDetails
 
 /**
  * Human-readable price terms for the offer PlayBillingManager.launchSubscriptionPurchase
- * uses (the product's first offer), e.g. "Free for 7 days, then $4.99 / month".
+ * uses ([preferredOffer]), e.g. "Free for 7 days, then $4.99 / month".
  * Play policy requires price, billing period and trial terms to be shown before purchase.
  */
 object PlayOfferText {
 
+    /**
+     * The one offer both the price text and the purchase sheet use. Play only returns
+     * developer offers the user is eligible for, in no guaranteed order: prefer one with a
+     * free trial, then one with an intro price, else the plain base plan.
+     */
+    fun preferredOffer(details: ProductDetails?): ProductDetails.SubscriptionOfferDetails? {
+        val offers = details?.subscriptionOfferDetails.orEmpty()
+        if (offers.isEmpty()) return null
+        fun phases(o: ProductDetails.SubscriptionOfferDetails) = o.pricingPhases.pricingPhaseList
+        return offers.firstOrNull { o -> o.offerId != null && phases(o).dropLast(1).any { it.priceAmountMicros == 0L } }
+            ?: offers.firstOrNull { o -> o.offerId != null && phases(o).size > 1 }
+            ?: offers.firstOrNull { it.offerId == null }
+            ?: offers.first()
+    }
+
     fun describe(details: ProductDetails?): String? {
-        val phases = details?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList
+        val phases = preferredOffer(details)?.pricingPhases?.pricingPhaseList
         if (phases.isNullOrEmpty()) return null
         val recurring = phases.last()
         val base = "${recurring.formattedPrice} / ${per(recurring.billingPeriod)}"
@@ -24,25 +39,25 @@ object PlayOfferText {
 
     /** Line under a large price: "per month", or the full terms when there's an intro offer. */
     fun caption(details: ProductDetails?): String? {
-        val phases = details?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList
+        val phases = preferredOffer(details)?.pricingPhases?.pricingPhaseList
         if (phases.isNullOrEmpty()) return null
         return if (phases.size > 1) describe(details) else "per ${per(phases.last().billingPeriod)}"
     }
 
     /** Recurring price only, e.g. "$4.99". */
     fun recurringPrice(details: ProductDetails?): String? =
-        details?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.lastOrNull()?.formattedPrice
+        preferredOffer(details)?.pricingPhases?.pricingPhaseList?.lastOrNull()?.formattedPrice
 
     /** "per month", "per year", etc. for the recurring phase — null when no product. */
     fun billingPeriodLabel(details: ProductDetails?): String? {
-        val phase = details?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.lastOrNull()
+        val phase = preferredOffer(details)?.pricingPhases?.pricingPhaseList?.lastOrNull()
             ?: return null
         return "per ${per(phase.billingPeriod)}"
     }
 
     /** Short free-trial label, e.g. "7-day free trial". Null when no trial phase. */
     fun trialLabel(details: ProductDetails?): String? {
-        val phases = details?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList
+        val phases = preferredOffer(details)?.pricingPhases?.pricingPhaseList
             ?: return null
         val trial = phases.firstOrNull { it.priceAmountMicros == 0L } ?: return null
         return "Free for ${duration(trial.billingPeriod, trial.billingCycleCount.coerceAtLeast(1))}"
@@ -50,7 +65,7 @@ object PlayOfferText {
 
     /** Short intro-offer label, e.g. "50% off for 3 months". Null when no discounted intro phase. */
     fun introLabel(details: ProductDetails?): String? {
-        val phases = details?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList
+        val phases = preferredOffer(details)?.pricingPhases?.pricingPhaseList
             ?: return null
         val intro = phases.dropLast(1).firstOrNull { it.priceAmountMicros > 0L } ?: return null
         val span = duration(intro.billingPeriod, intro.billingCycleCount.coerceAtLeast(1))

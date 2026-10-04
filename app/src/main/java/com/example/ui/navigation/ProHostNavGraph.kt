@@ -750,6 +750,22 @@ fun ProHostAppRoot(
         }
     }
 
+    // A promo code redeemed in the Play Store (or a resubscribe from Play) arrives with
+    // no link to a ProHost account. Whenever a signed-in member without a plan returns to
+    // the app, look for such a purchase and link it (verifyAndRestorePurchase) — so the
+    // plan activates without them finding Subscriptions › Restore Purchases.
+    val autoLinkUser = currentUser?.takeIf { it.role == UserRole.SPECIALIST && it.ownerPackageId == null }
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner, autoLinkUser?.id) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME && autoLinkUser != null) {
+                viewModel.refreshPlayPurchases(appContext)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     // ---- Analytics: one screen_view hook for the whole hand-rolled navigation ----
     val analyticsConsent by com.example.analytics.AnalyticsConsent.state.collectAsState()
     val analyticsScreen = when {

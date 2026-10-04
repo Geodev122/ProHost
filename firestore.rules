@@ -478,6 +478,11 @@ service cloud.firestore {
     match /play_billing_unresolved/{docId} {
       allow read, write: if false;
     }
+    // Play purchase token → account links for purchases made outside the app's sheet
+    // (promo codes redeemed in the Play Store). Server-only: billing/purchaseLinks.ts.
+    match /play_purchase_links/{key} {
+      allow read, write: if false;
+    }
 
     // Default deny for anything not explicitly matched above.
     match /{document=**} {

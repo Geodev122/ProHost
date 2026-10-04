@@ -40,10 +40,11 @@ fun SplashScreen(
         ) { value, _ ->
             contentAlpha = value
         }
-        // Minimum time this screen stays up, so it never flashes by faster than a human
-        // can register it even when auth/profile state resolves instantly — not a proxy
-        // for real loading progress, which is why the spinner below is indeterminate.
-        delay(900)
+        // Minimum time this screen stays up (after the 400 ms fade), so it never flashes by
+        // when auth/profile state resolves instantly — not a proxy for real loading
+        // progress, which is why the spinner below is indeterminate. Kept short: it is paid
+        // on every cold start, and session restore keeps the splash up on its own if slower.
+        delay(300)
         onSplashCompleted()
     }
 

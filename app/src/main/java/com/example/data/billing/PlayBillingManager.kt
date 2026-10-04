@@ -18,6 +18,8 @@ import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
+import com.android.billingclient.api.queryProductDetails
+import com.android.billingclient.api.queryPurchasesAsync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -154,9 +156,13 @@ class PlayBillingManager(
             .setProductList(productList)
             .build()
 
-        billingClient.queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult ->
+        // billing-ktx's typed result: the raw callback's second argument changed type across
+        // Billing 7→8→9 and every untyped cast of it silently produced an empty plan list.
+        coroutineScope.launch {
+            val result = billingClient.queryProductDetails(params)
+            val billingResult = result.billingResult
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                val list = (queryProductDetailsResult as? List<*>)?.filterIsInstance<ProductDetails>() ?: emptyList()
+                val list = result.productDetailsList.orEmpty()
                 Log.d(TAG, "Retrieved ${list.size} subscription products from Google Play")
                 _productDetailsList.value = list
                 if (list.isEmpty() && productIds.isNotEmpty()) {
@@ -185,7 +191,7 @@ class PlayBillingManager(
         oldPurchaseToken: String? = null
     ): Boolean {
         val offerToken = selectedOfferToken
-            ?: productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken
+            ?: PlayOfferText.preferredOffer(productDetails)?.offerToken
             ?: run {
                 emitMessage("\"${productDetails.title}\" has no active offer in Google Play yet. Please try again later.")
                 return false
@@ -287,6 +293,34 @@ class PlayBillingManager(
         }
     }
 
+    /**
+     * Fresh active-subscription list straight from Play (connecting first if needed), or
+     * null when Play can't be reached. Also refreshes [activePurchases] and acknowledges
+     * anything still unacknowledged (e.g. a promo code redeemed in the Play Store).
+     */
+    suspend fun fetchActivePurchases(): List<Purchase>? {
+        if (!billingClient.isReady) {
+            // startConnection only calls back on success; a failed setup must not hang us.
+            kotlinx.coroutines.withTimeoutOrNull(10_000L) {
+                kotlinx.coroutines.suspendCancellableCoroutine<Unit> { cont ->
+                    startConnection { if (cont.isActive) cont.resumeWith(Result.success(Unit)) }
+                }
+            }
+            if (!billingClient.isReady) return null
+        }
+        val params = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build()
+        val result = billingClient.queryPurchasesAsync(params)
+        if (result.billingResult.responseCode != BillingClient.BillingResponseCode.OK) {
+            Log.e(TAG, "fetchActivePurchases failed: ${result.billingResult.debugMessage}")
+            return null
+        }
+        val purchases = result.purchasesList
+        _activePurchases.value = purchases
+        purchases.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED && !it.isAcknowledged }
+            .forEach { acknowledgePurchase(it) }
+        return purchases
+    }
+
     private fun handlePurchase(purchase: Purchase) {
         if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
             val isValid = PlayBillingSecurity.verifyPurchase(purchase.originalJson, purchase.signature)
@@ -356,9 +390,11 @@ class PlayBillingManager(
                     )
                 )
                 .build()
-            billingClient.queryProductDetailsAsync(params) { billingResult, results ->
+            coroutineScope.launch {
+                val result = billingClient.queryProductDetails(params)
+                val billingResult = result.billingResult
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    val found = (results as? List<*>)?.filterIsInstance<ProductDetails>()?.firstOrNull()
+                    val found = result.productDetailsList.orEmpty().firstOrNull { it.productId == productId }
                     // Merge into the main list so future launch calls don't need a re-query
                     if (found != null) {
                         val merged = _productDetailsList.value.filter { it.productId != productId } + found

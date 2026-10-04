@@ -9,6 +9,7 @@ import {
 import { planIdForPlayProduct } from "../lib/packagePlans";
 import "../lib/admin";
 import { sendGa4Event } from "../lib/ga4";
+import { claimPurchaseToken } from "./purchaseLinks";
 
 /**
  * Called by the Android client when it detects an active Google Play subscription
@@ -46,11 +47,22 @@ export const verifyAndRestorePurchase = onCall<{
     throw new HttpsError("unavailable", "Could not reach Google Play. Try again in a moment.");
   }
 
-  // Verify the purchase belongs to the calling user (set as obfuscatedExternalAccountId
-  // at launchSubscriptionPurchase time in ProHostViewModel.launchGooglePaySubscription).
-  if (purchase.obfuscatedExternalAccountId !== uid) {
-    logger.warn(`verifyAndRestorePurchase: uid mismatch uid=${uid} obfuscated=${purchase.obfuscatedExternalAccountId} product=${cleanProductId}`);
-    throw new HttpsError("permission-denied", "This purchase does not belong to your account.");
+  // Ownership: a purchase made in the app's sheet carries the buyer's uid as
+  // obfuscatedExternalAccountId. One started in the Play Store (promo-code redemption,
+  // resubscribe) carries none — the first account whose device holds the token claims it,
+  // and a token another account already claimed is never re-assigned.
+  if (purchase.obfuscatedExternalAccountId) {
+    if (purchase.obfuscatedExternalAccountId !== uid) {
+      logger.warn(`verifyAndRestorePurchase: uid mismatch uid=${uid} obfuscated=${purchase.obfuscatedExternalAccountId} product=${cleanProductId}`);
+      throw new HttpsError("permission-denied", "This purchase belongs to a different ProHost account.");
+    }
+  } else {
+    const claim = await claimPurchaseToken(uid, cleanToken, cleanProductId, purchase.linkedPurchaseToken);
+    if (claim === "owned_by_other") {
+      logger.warn(`verifyAndRestorePurchase: token already linked to another account uid=${uid} product=${cleanProductId}`);
+      throw new HttpsError("permission-denied", "This purchase is already linked to a different ProHost account.");
+    }
+    logger.info(`verifyAndRestorePurchase: linked unattributed purchase (${claim}) uid=${uid} product=${cleanProductId}`);
   }
 
   const expiryMs = parseInt(purchase.expiryTimeMillis ?? "0", 10);

@@ -54,6 +54,14 @@ fun OwnerSubscriptionsScreen(
     var pendingProductId by remember { mutableStateOf<String?>(null) }
     var showRedeemDialog by remember { mutableStateOf(false) }
     var redeemCodeInput by remember { mutableStateOf("") }
+    // A code that arrived by promo link opens the Redeem dialog pre-filled.
+    val linkedPromoCode by com.example.data.billing.PendingPromoCode.code.collectAsState()
+    LaunchedEffect(linkedPromoCode) {
+        com.example.data.billing.PendingPromoCode.consume()?.let { code ->
+            redeemCodeInput = code
+            showRedeemDialog = true
+        }
+    }
     val currentUser by viewModel.currentUser.collectAsState()
     val packagePlans by viewModel.packagePlans.collectAsState()
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
@@ -596,12 +604,14 @@ fun OwnerSubscriptionsScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "Enter your promo or gift code and we'll open Google Play with it pre-filled.",
+                        "Enter your promo or gift code and we'll open Google Play with it pre-filled. " +
+                            "Redeem it with the same Google account as this phone — when you come back, " +
+                            "your Pro Host plan activates on this ProHost account automatically.",
                         style = MaterialTheme.typography.bodySmall
                     )
                     OutlinedTextField(
                         value = redeemCodeInput,
-                        onValueChange = { redeemCodeInput = it.uppercase().trim() },
+                        onValueChange = { redeemCodeInput = com.example.data.billing.PendingPromoCode.sanitize(it).orEmpty() },
                         label = { Text("Promo code") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()

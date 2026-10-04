@@ -35,6 +35,10 @@
         "destination": "/delete-account.html"
       },
       {
+        "source": "/redeem",
+        "destination": "/redeem.html"
+      },
+      {
         "source": "/listing/**",
         "function": {
           "functionId": "listingShareLanding",

@@ -186,6 +186,15 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="prohost" android:host="discovery" />
             </intent-filter>
+
+            <!-- Promo-code links (prohost://redeem?code=XXXX): opens Subscriptions with the
+                 Redeem dialog pre-filled. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="prohost" android:host="redeem" />
+            </intent-filter>
         </activity>
 
         <service

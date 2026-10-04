@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redeem your ProHost code</title>
+  <meta name="description" content="Redeem your ProHost early-subscriber code on Google Play and start your Pro Host plan.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/png" href="/logo.png">
+  <style>
+    :root {
+      --primary: #F25F4C;
+      --oxford-blue: #0F172A;
+      --vibrant-blue: #2563EB;
+      --bg-light: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text-dark: #1E293B;
+      --text-muted: #64748B;
+      --border-color: #E2E8F0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background: var(--bg-light); color: var(--text-dark); line-height: 1.6; padding: 24px 16px; }
+    main { max-width: 520px; margin: 0 auto; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 28px 22px; }
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+    .brand img { width: 32px; height: 36px; object-fit: contain; }
+    .brand span { font-weight: 800; color: var(--oxford-blue); font-size: 1.2rem; }
+    h1 { font-size: 1.5rem; color: var(--oxford-blue); line-height: 1.25; text-wrap: balance; margin-bottom: 8px; }
+    p { color: var(--text-muted); }
+    .code { margin: 20px 0 8px; display: flex; gap: 8px; align-items: stretch; }
+    .code output { flex: 1; min-width: 0; font: 700 1.35rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.08em; text-align: center; padding: 14px 10px; border: 2px dashed var(--primary); border-radius: 10px; color: var(--oxford-blue); overflow-wrap: anywhere; user-select: all; }
+    .code button { border: 1px solid var(--border-color); background: var(--bg-light); border-radius: 10px; padding: 0 14px; font-weight: 600; cursor: pointer; }
+    .hint { font-size: 0.85rem; min-height: 1.2em; }
+    ol { margin: 18px 0 22px 20px; color: var(--text-dark); }
+    ol li { margin: 8px 0; }
+    .btn { display: block; text-align: center; text-decoration: none; font-weight: 700; padding: 14px; border-radius: 10px; margin-top: 10px; }
+    .btn-primary { background: var(--primary); color: #FFFFFF; }
+    .btn-secondary { background: var(--bg-light); color: var(--oxford-blue); border: 1px solid var(--border-color); }
+    .missing { display: none; }
+    .fine { font-size: 0.8rem; margin-top: 18px; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="brand"><img src="/logo.png" alt=""><span>ProHost</span></div>
+    <h1>Your early-subscriber code</h1>
+    <p>Thanks for joining ProHost early. Redeem this code on Google Play to start your Pro Host plan.</p>
+
+    <div id="has-code">
+      <div class="code">
+        <output id="code" aria-label="Promo code"></output>
+        <button type="button" id="copy">Copy</button>
+      </div>
+      <p class="hint" id="hint" aria-live="polite"></p>
+    </div>
+    <p class="missing" id="no-code">This link has no code. You can still enter your code on Google Play's redeem page.</p>
+
+    <ol>
+      <li>Tap <strong>Redeem on Google Play</strong> and confirm with the Google account on your Android phone.</li>
+      <li>Install or open <strong>ProHost</strong> and sign in.</li>
+      <li>Your Pro Host plan activates automatically — no extra steps.</li>
+    </ol>
+
+    <a class="btn btn-primary" id="redeem" href="https://play.google.com/redeem">Redeem on Google Play</a>
+    <a class="btn btn-secondary" href="https://play.google.com/store/apps/details?id=app.geonajjar.prohost">Get ProHost on Google Play</a>
+
+    <p class="fine">Codes are single-use and tied to the Google account that redeems them. Questions: admin@pro-host.tech. See our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>
+  </main>
+  <script>
+    (function () {
+      var raw = new URLSearchParams(location.search).get("code") || "";
+      var code = raw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 32);
+      var redeem = document.getElementById("redeem");
+      if (!code) {
+        document.getElementById("has-code").style.display = "none";
+        document.getElementById("no-code").style.display = "block";
+        return;
+      }
+      document.getElementById("code").textContent = code;
+      redeem.href = "https://play.google.com/redeem?code=" + encodeURIComponent(code);
+      document.getElementById("copy").addEventListener("click", function () {
+        var hint = document.getElementById("hint");
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).then(
+            function () { hint.textContent = "Copied."; },
+            function () { hint.textContent = "Press and hold the code to copy it."; }
+          );
+        } else {
+          hint.textContent = "Press and hold the code to copy it.";
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
