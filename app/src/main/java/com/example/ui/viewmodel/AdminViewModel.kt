@@ -602,10 +602,6 @@ class AdminViewModel(
         _uiState.update { it.copy(selectedSchemaCategoryFilter = category) }
     }
 
-    fun setSchemaCategoryFilter(category: String) {
-        setSelectedSchemaCategoryFilter(category)
-    }
-
     fun toggleSchemaItemEnabled(itemId: String, category: String = "", currentEnabled: Boolean = false) {
         viewModelScope.launch {
             try {
@@ -1044,22 +1040,12 @@ class AdminViewModel(
         _uiState.update { it.copy(isExportDialogOpen = false, exportDataContent = "") }
     }
 
-    fun exportUsersDirectory(format: String = "CSV") {
-        val content = if (format == "JSON") repository.exportUsersToJson() else repository.exportUsersToCsv()
-        openExportDialog("ProHost Registered Users Directory (${format})", content, format)
-    }
-
     /** Returns the enriched CSV (with spending, listings, tenants) ready to share as a file. */
     fun getUsersContactSheetCsv(): String = repository.exportUsersToCsv()
 
     fun exportListingsCatalog(format: String = "CSV") {
         val content = if (format == "JSON") repository.exportListingsToJson() else repository.exportListingsToCsv()
         openExportDialog("ProHost Workspace Listings Catalog (${format})", content, format)
-    }
-
-    fun exportOwnerRegistrations() {
-        val content = repository.exportOwnerRegistrationsToCsv()
-        openExportDialog("Workspace Hosts & Property Ownership Audit (CSV)", content, "CSV")
     }
 
     /** Used by the Admin Console's own Security & Audit tab export button. The same

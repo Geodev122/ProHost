@@ -110,9 +110,6 @@ val COUNTRIES: List<Country> = listOf(
 fun findCountryByIsoCode(isoCode: String): Country =
     COUNTRIES.find { it.isoCode.equals(isoCode, ignoreCase = true) } ?: COUNTRIES.first()
 
-fun findCountryByDialCode(dialCode: String): Country =
-    COUNTRIES.find { it.dialCode == dialCode } ?: COUNTRIES.first()
-
 /** [AppUser.country] stores the plain country name (e.g. "Lebanon"), not an ISO code. */
 fun findCountryByName(name: String): Country =
     COUNTRIES.find { it.name.equals(name, ignoreCase = true) } ?: COUNTRIES.first()

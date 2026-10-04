@@ -524,14 +524,6 @@ class FirestoreService(
         }
     }
 
-    fun observeWorkspaces(): Flow<List<Map<String, Any>>> = callbackFlow {
-        val db = firestore
-        if (db == null) {
-            trySend(emptyList())
-            close()
-            return@callbackFlow
-        }
-
         val registration: ListenerRegistration = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {

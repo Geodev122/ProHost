@@ -1816,55 +1816,6 @@ class ProHostRepository(
         return saveUpdatedSpace(updated)
     }
 
-    suspend fun updateSpaceSchedule(spaceId: String, schedule: SpaceOperatingSchedule): Boolean {
-        val space = _spaces.value.find { it.id == spaceId } ?: return false
-        val updated = space.copy(schedule = schedule)
-        val success = saveUpdatedSpace(updated)
-        if (success) {
-            addAuditLog(
-                actionType = "OPERATING_SCHEDULE_UPDATED",
-                details = "Operating hours updated for space $spaceId: ${schedule.openingHour}" +
-                    " - ${schedule.closingHour} (${schedule.operatingDays.joinToString()}" +
-                    ")",
-                severity = "INFO"
-            )
-        }
-        return success
-    }
-
-    suspend fun addRentalFormula(spaceId: String, formula: RentalFormula): Boolean {
-        val space = _spaces.value.find { it.id == spaceId } ?: return false
-        val newFormulas = space.rentalFormulas + formula
-        // pricing must be kept in sync with rentalFormulas at every write site, not
-        // only derived once on a fresh Firestore read — once this document has ever
-        // been saved with a "pricing" key at all, fromFirestoreMap's legacy fallback
-        // never runs again for it, so a write that touches rentalFormulas without
-        // also updating pricing would silently leave pricing stale forever.
-        val updated = space.copy(
-            rentalFormulas = newFormulas,
-            pricing = if (space.subdivisions.isEmpty()) RentalPricingConfig.fromLegacyFormula(newFormulas.firstOrNull()) else space.pricing
-        )
-        val success = saveUpdatedSpace(updated)
-        if (success) {
-            addAuditLog(
-                actionType = "RENTAL_FORMULA_ADDED",
-                details = "Added formula '${formula.type.displayName}' ($${formula.rateUsd}) to space $spaceId",
-                severity = "INFO"
-            )
-        }
-        return success
-    }
-
-    suspend fun deleteRentalFormula(spaceId: String, formulaId: String): Boolean {
-        val space = _spaces.value.find { it.id == spaceId } ?: return false
-        val newFormulas = space.rentalFormulas.filter { it.id != formulaId }
-        val updated = space.copy(
-            rentalFormulas = newFormulas,
-            pricing = if (space.subdivisions.isEmpty()) RentalPricingConfig.fromLegacyFormula(newFormulas.firstOrNull()) else space.pricing
-        )
-        return saveUpdatedSpace(updated)
-    }
-
     /**
      * Rooms/desks were previously only editable at listing-creation time
      * (CreateListingDialog's Step 2) — a host who published first and only later
@@ -2350,37 +2301,6 @@ class ProHostRepository(
                     "${"%.2f".format(totalSpent)},$tenantCount,${u.isSuspended}"
             )
         }
-        return sb.toString()
-    }
-
-    fun exportUsersToJson(): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
-        val sb = StringBuilder()
-        sb.appendLine("{")
-        sb.appendLine("  \"exportType\": \"USER_DIRECTORY\",")
-        sb.appendLine("  \"exportedAt\": \"${sdf.format(Date())}\",")
-        sb.appendLine("  \"totalUsers\": ${_users.value.size},")
-        sb.appendLine("  \"users\": [")
-        _users.value.forEachIndexed { idx, u ->
-            val comma = if (idx < _users.value.size - 1) "," else ""
-            sb.appendLine("    {")
-            sb.appendLine("      \"id\": \"${u.id}\",")
-            sb.appendLine("      \"fullName\": \"${u.fullName.replace("\"", "\\\"")}\",")
-            sb.appendLine("      \"email\": \"${u.email}\",")
-            sb.appendLine("      \"role\": \"${u.role.name}\",")
-            sb.appendLine("      \"specialty\": \"${u.specialty.replace("\"", "\\\"")}\",")
-            sb.appendLine("      \"phone\": \"${u.phone}\",")
-            sb.appendLine("      \"country\": \"${u.country}\",")
-            sb.appendLine("      \"governorate\": \"${u.governorate}\",")
-            sb.appendLine("      \"city\": \"${u.city}\",")
-            sb.appendLine("      \"isVerified\": ${u.isVerified},")
-            sb.appendLine("      \"createdAtMillis\": ${u.createdAtMillis ?: "null"},")
-            sb.appendLine("      \"lastSignInAtMillis\": ${u.lastSignInAtMillis ?: "null"},")
-            sb.appendLine("      \"profilePictureUrl\": ${u.profilePictureUrl?.let { "\"$it\"" } ?: "null"}")
-            sb.appendLine("    }$comma")
-        }
-        sb.appendLine("  ]")
-        sb.appendLine("}")
         return sb.toString()
     }
 

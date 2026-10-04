@@ -594,17 +594,6 @@ class ProHostViewModel(
         }
     }
 
-    /**
-     * Fetches a single Play subscription product by its Play Console product ID. Used by the
-     * Admin Console "Refresh from Play" button to auto-populate plan name and price from the
-     * live Play Store catalog. Initialises the billing client if not already connected.
-     * Callback is invoked on the main thread.
-     */
-    fun fetchPlayProductDetails(context: Context, productId: String, onResult: (com.android.billingclient.api.ProductDetails?) -> Unit) {
-        val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager }
-        manager?.queryProductDetailsForId(productId, onResult) ?: onResult(null)
-    }
-
     private var restoreCheckJob: kotlinx.coroutines.Job? = null
     // Purchase tokens already sent for server activation this session.
     private val processedPurchaseTokens = java.util.Collections.synchronizedSet(mutableSetOf<String>())
@@ -696,10 +685,6 @@ class ProHostViewModel(
 
     fun setPendingAutoPublishDraft(draftId: String?) {
         _pendingAutoPublishDraftId.value = draftId
-    }
-
-    private fun clearPendingAutoPublishDraft() {
-        _pendingAutoPublishDraftId.value = null
     }
 
     /**
@@ -803,13 +788,6 @@ class ProHostViewModel(
         return if (saved) ListingCreateResult.Success else ListingCreateResult.Failed
     }
 
-    /** True when the signed-in host can't publish (no active subscription). Admins never need one. */
-    fun needsActivePackage(): Boolean {
-        val user = currentUser.value ?: return false
-        if (user.role == UserRole.ADMIN) return false
-        return !hasActivePackage(user)
-    }
-
     private fun hasActivePackage(user: AppUser?): Boolean {
         if (user?.ownerPackageId == null) return false
         val expiry = user.ownerPackageExpiryMillis
@@ -892,10 +870,6 @@ class ProHostViewModel(
             repository.logout(clearRemotePushToken = false)
         }
         return result
-    }
-
-    fun logSecurityAction(actionType: String, details: String, severity: String = "INFO") {
-        repository.addAuditLog(actionType, details, severity)
     }
 
     /**
@@ -1500,45 +1474,6 @@ class ProHostViewModel(
         }
     }
 
-    fun updateSpaceOperatingSchedule(
-        spaceId: String,
-        openingHour: String,
-        closingHour: String,
-        operatingDays: List<String>,
-        isSundayOperating: Boolean,
-        context: Context
-    ) {
-        // Used to return silently here, so a missing space produced no feedback at
-        // all — indistinguishable from the button doing nothing.
-        val currentSpace = spaces.value.find { it.id == spaceId }
-        if (currentSpace == null) {
-            Toast.makeText(context, "Couldn't load this listing — reopen it and try again", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val updatedSchedule = currentSpace.schedule.copy(
-            openingHour = openingHour,
-            closingHour = closingHour,
-            operatingDays = operatingDays,
-            isSundayOperating = isSundayOperating
-        )
-        val appContext = context.applicationContext
-        viewModelScope.launch {
-            try {
-                val success = repository.updateSpaceSchedule(spaceId, updatedSchedule)
-                if (success) com.example.analytics.AnalyticsTracker.scheduleUpdate()
-                Toast.makeText(
-                    appContext,
-                    if (success) "Operating schedule updated!" else "Failed to update schedule — please try again",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                reportFailure(appContext, e, "Failed to update schedule — please try again.")
-            }
-        }
-    }
-
     data class CustomFormulaSpec(
         val type: RentalFormulaType,
         val rateUsd: Double,
@@ -1551,59 +1486,6 @@ class ProHostViewModel(
         val minHours: Int = 2,
         val shiftName: String = "Shift"
     )
-
-    fun addCustomFormula(
-        spaceId: String,
-        spec: CustomFormulaSpec,
-        context: Context
-    ) {
-        val formula = RentalFormula(
-            id = "FRM-" + (1000..9999).random(),
-            type = spec.type,
-            rateUsd = spec.rateUsd,
-            scheduleDescription = spec.description,
-            daysOfWeek = spec.daysOfWeek,
-            startHour = spec.startHour,
-            endHour = spec.endHour,
-            totalWeeklyHours = spec.weeklyHours,
-            daysCountRequired = spec.daysCountRequired,
-            minHours = spec.minHours,
-            shiftName = spec.shiftName
-        )
-        val appContext = context.applicationContext
-        viewModelScope.launch {
-            try {
-                val success = repository.addRentalFormula(spaceId, formula)
-                Toast.makeText(
-                    appContext,
-                    if (success) "New formula '${spec.type.displayName}' added!" else "Failed to add formula — please try again",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                reportFailure(appContext, e, "Failed to add formula — please try again.")
-            }
-        }
-    }
-
-    fun deleteFormula(spaceId: String, formulaId: String, context: Context) {
-        val appContext = context.applicationContext
-        viewModelScope.launch {
-            try {
-                val success = repository.deleteRentalFormula(spaceId, formulaId)
-                Toast.makeText(
-                    appContext,
-                    if (success) "Rental formula deleted" else "Failed to delete formula — please try again",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                reportFailure(appContext, e, "Failed to delete formula — please try again.")
-            }
-        }
-    }
 
     /** Adds one room/desk to an already-published listing — see SubdivisionEditorSection. */
     fun addSubdivision(spaceId: String, subdivision: Subdivision, context: Context) {
@@ -1639,18 +1521,6 @@ class ProHostViewModel(
             }
         }
     }
-
-    // Availability Analytics per Space
-    fun getAcceptedBookingsForSpace(spaceId: String): List<RentalBookingRequest> {
-        return bookingRequests.value.filter { it.spaceId == spaceId && it.status == BookingRequestStatus.ACCEPTED }
-    }
-
-    fun getPendingBookingsForSpace(spaceId: String): List<RentalBookingRequest> {
-        return bookingRequests.value.filter { it.spaceId == spaceId && it.status == BookingRequestStatus.PENDING }
-    }
-
-    // --- Data Export Hub ---
-    fun getJsonExport(): String = repository.exportToJson()
 
     fun shareExportData(context: Context, format: String, content: String) {
         val intent = Intent(Intent.ACTION_SEND).apply {

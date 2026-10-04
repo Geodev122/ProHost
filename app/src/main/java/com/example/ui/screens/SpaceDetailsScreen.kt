@@ -654,31 +654,12 @@ fun SpaceDetailsScreenContent(
             // still gets full access, just told honestly why it won't show up if
             // they go looking for it again.
             if (liveSpace.isOwnerPackageLapsed) {
-                Surface(
-                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        Icon(
-                            Icons.Default.Info,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            "This host is on verification process — their listing is temporarily hidden from new searches, but your existing " +
-                            "access here is unaffected.",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                    }
-                }
+                ProHostAlertBanner(
+                    message = "This host is on verification process — their listing is temporarily hidden from new searches, but your existing " +
+                        "access here is unaffected.",
+                    severity = ProHostAlertSeverity.INFO,
+                    modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)
+                )
             }
 
             Column(

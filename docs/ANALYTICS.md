@@ -63,7 +63,7 @@ How analytics is wired, what is tracked, and the console steps that only the pro
 | | `listing_publish` ⚑ | `item_category`, `country`, `subdivision_count`, `has_attendee_pricing`, `items` |
 | | `listing_publish_blocked` | `reason`=no_active_package |
 | | `listing_update`, `listing_delete`, `listing_status_change` (`from`,`to`), `listing_verification_request` | |
-| | `subdivision_add` (`subdivision_type`,`strategy`,`pricing_mode`), `subdivision_remove`, `schedule_update`, `blackout_add` | |
+| | `subdivision_add` (`subdivision_type`,`strategy`,`pricing_mode`), `subdivision_remove`, `blackout_add` | |
 | ProHost Premium | `premium_page_viewed` | `source`, `plans_loaded` |
 | | `premium_plan_viewed` | `plan` (monthly / yearly) |
 | | `premium_plans_load_failed` | `reason` |

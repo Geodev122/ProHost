@@ -1299,7 +1299,7 @@ enum class SubscriptionBillingInterval(val displayName: String, val monthsDurati
  * (see [SpaceListing.ownershipProofUrl]), not on the user profile.
  * [createdAtMillis]/[lastSignInAtMillis] are written only by assignInitialRole.ts —
  * the account-creation and last-sign-in audit trail Admin's Users Directory export
- * relies on (see ProHostRepository.exportUsersToCsv/exportUsersToJson).
+ * relies on (see ProHostRepository.exportUsersToCsv).
  */
 /**
  * The single rule for "has this account finished registration" — used by the cold-start
@@ -1438,24 +1438,6 @@ data class AppUser(
         )
     }
 
-    // Safe client-side profile update map — only fields the user is allowed to edit.
-    // Excludes every field guarded by firestore.rules' protectedKeys list so this map
-    // never triggers a rule rejection, even after a Cloud Function has updated
-    // ownerPackageId, role, isVerified, or any other server-owned field.
-    fun toEditableFieldsMap(): Map<String, Any?> {
-        return mapOf(
-            "fullName" to fullName,
-            "specialty" to specialty,
-            "phone" to phone,
-            "profilePictureUrl" to profilePictureUrl,
-            "country" to country,
-            "governorate" to governorate,
-            "city" to city,
-            "savedSpaceIds" to savedSpaceIds,
-            "updatedAt" to System.currentTimeMillis()
-        )
-    }
-
     companion object {
         const val COLLECTION_PATH = "user_profiles"
 
@@ -1565,14 +1547,12 @@ data class LegalDocumentVersion(
 }
 
 data class AdminPricingState(
-    val monthlySubscriptionFeeUsd: Double = 1.80,
     val baselineFeeUsd: Double = 1.80,
     val presetOptions: List<Double> = listOf(1.00, 1.50, 1.80, 2.50, 3.00, 5.00, 10.00),
     val governanceTag: String = "HOST-PACKAGING-TIERS-V2-ACTIVE"
 ) {
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
-            "monthlySubscriptionFeeUsd" to monthlySubscriptionFeeUsd,
             "baselineFeeUsd" to baselineFeeUsd,
             "presetOptions" to presetOptions,
             "governanceTag" to governanceTag,
@@ -1587,7 +1567,6 @@ data class AdminPricingState(
         fun fromFirestoreMap(data: Map<String, Any?>): AdminPricingState {
             val defaults = AdminPricingState()
             return AdminPricingState(
-                monthlySubscriptionFeeUsd = (data["monthlySubscriptionFeeUsd"] as? Number)?.toDouble() ?: defaults.monthlySubscriptionFeeUsd,
                 baselineFeeUsd = (data["baselineFeeUsd"] as? Number)?.toDouble() ?: defaults.baselineFeeUsd,
                 presetOptions = (data["presetOptions"] as? List<*>)?.mapNotNull { (it as? Number)?.toDouble() } ?: defaults.presetOptions,
                 governanceTag = data["governanceTag"] as? String ?: defaults.governanceTag

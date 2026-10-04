@@ -21,7 +21,6 @@ object Event {
     const val FILTER_APPLY = "filter_apply"
     const val FILTER_RESET = "filter_reset"
     const val MAP_TOGGLE = "map_toggle"
-    const val MAP_REGION_VIEW = "map_region_view"
     const val VIEW_ITEM_LIST = "view_item_list"
     const val SELECT_ITEM = "select_item"
     const val VIEW_ITEM = "view_item"
@@ -54,7 +53,6 @@ object Event {
     const val LISTING_VERIFICATION_REQUEST = "listing_verification_request"
     const val SUBDIVISION_ADD = "subdivision_add"
     const val SUBDIVISION_REMOVE = "subdivision_remove"
-    const val SCHEDULE_UPDATE = "schedule_update"
     const val BLACKOUT_ADD = "blackout_add"
 
     // ProHost Premium (Google Play is the billing authority). premium_purchase_success,

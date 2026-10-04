@@ -110,18 +110,6 @@ suspend fun completeVerifiedRegistration(
 }
 
 /**
- * Completes sign-in for an existing user who authenticated via Google Sign-In.
- * Functionally identical to [completeVerifiedLogin] — reuses the same role-resolution
- * and repository.login() path. The distinction exists for call-site clarity.
- */
-suspend fun completeGoogleSignIn(
-    repository: ProHostRepository,
-    functionsClient: FirebaseFunctionsClient,
-    firebaseUser: FirebaseUser,
-    integrityToken: String? = null
-): AppUser = completeVerifiedLogin(repository, functionsClient, firebaseUser, integrityToken)
-
-/**
  * Registers a brand-new user who signed up via Google Sign-In.
  * The Google account provides email, display name, and photo — the caller
  * should pre-fill the registration form with these values and pass them here

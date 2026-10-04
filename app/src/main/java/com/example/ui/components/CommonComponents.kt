@@ -506,21 +506,6 @@ fun ProMemberAvatar(
 }
 
 /**
- * Backward compatibility alias for ProMemberAvatar
- */
-@Composable
-fun ProDoctorAvatar(
-    name: String,
-    specialty: String? = null,
-    isVerified: Boolean = true,
-    size: Dp = 40.dp,
-    imageUrl: String? = null,
-    modifier: Modifier = Modifier
-) {
-    ProMemberAvatar(name, specialty, isVerified, size, imageUrl, modifier)
-}
-
-/**
  * Standardized Empty State layout for missing search results, lists, or logs.
  */
 @Composable
@@ -944,46 +929,6 @@ fun InputField(
     }
 }
 
-/**
- * Standard ProHost Outlined Text Field with refined borders, rounded corners, and helper text (alias for InputField).
- */
-@Composable
-fun ProOutlinedTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier,
-    placeholder: String? = null,
-    leadingIcon: ImageVector? = null,
-    trailingIcon: (@Composable () -> Unit)? = null,
-    isError: Boolean = false,
-    errorMessage: String? = null,
-    helperText: String? = null,
-    singleLine: Boolean = true,
-    maxLines: Int = 1,
-    readOnly: Boolean = false,
-    enabled: Boolean = true,
-    shape: CornerBasedShape = MaterialTheme.shapes.medium
-) {
-    InputField(
-        value = value,
-        onValueChange = onValueChange,
-        label = label,
-        modifier = modifier,
-        placeholder = placeholder,
-        leadingIcon = leadingIcon,
-        trailingIcon = trailingIcon,
-        isError = isError,
-        errorMessage = errorMessage,
-        helperText = helperText,
-        singleLine = singleLine,
-        maxLines = maxLines,
-        readOnly = readOnly,
-        enabled = enabled,
-        shape = shape
-    )
-}
-
 // =========================================================================
 // REUSABLE PROHOST CARDS & CONTAINERS (WITH MODERN SHADOWS)
 // =========================================================================
@@ -1340,156 +1285,9 @@ fun ProCard(
 }
 
 
-/**
- * Standard ProHost Information Alert / Banner.
- */
-@Composable
-fun ProInfoBanner(
-    text: String,
-    icon: ImageVector = Icons.Default.Info,
-    containerColor: Color = MaterialTheme.proColors.infoContainer,
-    contentColor: Color = MaterialTheme.proColors.onInfoContainer,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        color = containerColor,
-        shape = MaterialTheme.shapes.medium,
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(20.dp)
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodySmall,
-                color = contentColor,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
 // =========================================================================
 // REUSABLE CHIPS & SEGMENTED CONTROLS
 // =========================================================================
-
-/**
- * Standard ProHost Filter Chip.
- */
-@Composable
-fun ProChip(
-    text: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    icon: ImageVector? = null
-) {
-    FilterChip(
-        selected = isSelected,
-        onClick = onClick,
-        label = {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-            )
-        },
-        leadingIcon = if (icon != null) {
-            {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp)
-                )
-            }
-        } else null,
-        shape = MaterialTheme.shapes.medium,
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MaterialTheme.colorScheme.primary,
-            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-            selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-        ),
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = true,
-            selected = isSelected,
-            borderColor = MaterialTheme.colorScheme.outlineVariant,
-            selectedBorderColor = MaterialTheme.colorScheme.primary
-        ),
-        modifier = modifier
-    )
-}
-
-/**
- * Standard Segmented Control Switcher (e.g. for switching active filters, roles, views).
- */
-@Composable
-fun ProSegmentedControl(
-    items: List<String>,
-    selectedIndex: Int,
-    onIndexSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = MaterialTheme.shapes.medium,
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(Spacing.xs),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            items.forEachIndexed { index, title ->
-                val isSelected = selectedIndex == index
-                Surface(
-                    color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
-                    shape = MaterialTheme.shapes.small,
-                    border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)) else null,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { onIndexSelected(index) }
-                ) {
-                    Box(
-                        modifier = Modifier.padding(vertical = Spacing.sm),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * Standard Crisp Divider.
- */
-@Composable
-fun ProDivider(
-    modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-    thickness: Dp = 1.dp
-) {
-    HorizontalDivider(
-        modifier = modifier,
-        thickness = thickness,
-        color = color
-    )
-}
 
 /**
  * Standardized ProHost Brand Logo Composable

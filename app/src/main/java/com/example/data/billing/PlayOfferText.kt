@@ -59,12 +59,6 @@ object PlayOfferText {
     fun recurringPrice(details: ProductDetails?, basePlanId: String? = null): String? =
         phases(details, basePlanId)?.lastOrNull()?.formattedPrice
 
-    /** "per month", "per year", etc. for the recurring phase — null when no product. */
-    fun billingPeriodLabel(details: ProductDetails?, basePlanId: String? = null): String? {
-        val phase = phases(details, basePlanId)?.lastOrNull() ?: return null
-        return "per ${per(phase.billingPeriod)}"
-    }
-
     /** Short free-trial label, e.g. "Free for 7 days". Null when no trial phase. */
     fun trialLabel(details: ProductDetails?, basePlanId: String? = null): String? {
         val list = phases(details, basePlanId) ?: return null

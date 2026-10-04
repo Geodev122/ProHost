@@ -24,7 +24,7 @@ class ExampleRobolectricTest {
   @Test
   fun `test financial calculations`() {
     val repo = hermeticRepository()
-    assertEquals(1.80, repo.pricingState.value.monthlySubscriptionFeeUsd, 0.01)
+    assertEquals(1.80, repo.pricingState.value.baselineFeeUsd, 0.01)
   }
 }
 

@@ -202,7 +202,6 @@ object AnalyticsTracker {
 
     fun filterReset() = log(Event.FILTER_RESET)
     fun mapToggle(isMap: Boolean) = log(Event.MAP_TOGGLE, mapOf(Param.VIEW to if (isMap) "map" else "list"))
-    fun mapRegionView(country: String) = log(Event.MAP_REGION_VIEW, mapOf(Param.COUNTRY to country))
 
     fun viewItemList(listName: String, spaces: List<SpaceListing>) {
         if (!enabled) return
@@ -372,7 +371,6 @@ object AnalyticsTracker {
         Param.PRICING_MODE to if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) "per_attendee" else "per_booking"
     ))
     fun subdivisionRemove() = log(Event.SUBDIVISION_REMOVE)
-    fun scheduleUpdate() = log(Event.SCHEDULE_UPDATE)
     fun blackoutAdd() = log(Event.BLACKOUT_ADD)
 
     // ---- subscriptions / Play Billing -------------------------------------------------

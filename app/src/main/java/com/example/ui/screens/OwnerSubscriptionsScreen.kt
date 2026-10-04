@@ -29,6 +29,8 @@ import com.example.data.billing.PlayOfferText
 import com.example.ui.components.CustomButton
 import com.example.ui.components.CustomButtonVariant
 import com.example.ui.components.ProHostDialog
+import com.example.ui.components.ProHostAlertBanner
+import com.example.ui.components.ProHostAlertSeverity
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
 import java.text.SimpleDateFormat
@@ -177,63 +179,20 @@ fun OwnerSubscriptionsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (pendingAutoPublishDraftId != null) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.secondaryContainer
-            ) {
-                Row(
-                    modifier = Modifier.padding(Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
-                    Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text(
-                        "You have a saved Draft waiting on a subscription. Subscribe below and it will publish automatically.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
-            }
+            ProHostAlertBanner(
+                message = "You have a saved Draft waiting on a subscription. Subscribe below and it will publish automatically.",
+                severity = ProHostAlertSeverity.INFO
+            )
         }
 
         if (billingActivationPending) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.proColors.success.copy(alpha = 0.12f)
-            ) {
-                Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = MaterialTheme.proColors.success, strokeWidth = 2.dp)
-                            Spacer(modifier = Modifier.width(Spacing.sm))
-                            Text(
-                                "Activating your subscription — this usually takes a few seconds.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        IconButton(onClick = { viewModel.dismissBillingActivationPending() }, modifier = Modifier.size(28.dp)) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Dismiss",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-                    Text(
-                        "Taking too long? Contact support via WhatsApp.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            ProHostAlertBanner(
+                title = "Activating your subscription",
+                message = "This usually takes a few seconds. Taking too long? Contact support via WhatsApp.",
+                severity = ProHostAlertSeverity.SUCCESS,
+                icon = Icons.Default.HourglassTop,
+                action = { BannerDismiss { viewModel.dismissBillingActivationPending() } }
+            )
         }
 
         // Play's lifecycle states (grace period, account hold, paused, canceled, pending),
@@ -246,54 +205,19 @@ fun OwnerSubscriptionsScreen(
         )
 
         billingSuccess?.let { msg ->
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.proColors.success.copy(alpha = 0.12f)
-            ) {
-                Row(
-                    modifier = Modifier.padding(Spacing.md),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.proColors.success, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text(msg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
-                    }
-                    IconButton(onClick = { viewModel.clearBillingMessages() }, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-                    }
-                }
-            }
+            ProHostAlertBanner(
+                message = msg,
+                severity = ProHostAlertSeverity.SUCCESS,
+                action = { BannerDismiss { viewModel.clearBillingMessages() } }
+            )
         }
 
         billingError?.let { err ->
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.errorContainer
-            ) {
-                Row(
-                    modifier = Modifier.padding(Spacing.md),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Default.Error, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text(err, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
-                    }
-                    IconButton(onClick = { viewModel.clearBillingMessages() }, modifier = Modifier.size(28.dp)) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "Dismiss",
-                            tint = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
+            ProHostAlertBanner(
+                message = err,
+                severity = ProHostAlertSeverity.ERROR,
+                action = { BannerDismiss { viewModel.clearBillingMessages() } }
+            )
         }
 
         // Hero: the currently-active package, replacing what used to be a plain
@@ -1015,5 +939,13 @@ private fun SubscriptionTermsFooter(
                 Text("Terms & Privacy", style = MaterialTheme.typography.labelMedium)
             }
         }
+    }
+}
+
+/** Close button for a dismissible [ProHostAlertBanner]; inherits the banner's content color. */
+@Composable
+private fun BannerDismiss(onClick: () -> Unit) {
+    IconButton(onClick = onClick, modifier = Modifier.size(28.dp)) {
+        Icon(Icons.Default.Close, contentDescription = "Dismiss", modifier = Modifier.size(16.dp))
     }
 }
