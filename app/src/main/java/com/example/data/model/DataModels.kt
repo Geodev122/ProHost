@@ -1333,17 +1333,21 @@ data class AppUser(
     val city: String = "",
     val isVerified: Boolean = false,
     val subscriptionExpiryMillis: Long? = null,
-    // Server-only, written exclusively by grantEntitlement() (functions/src/lib/
-    // entitlements.ts) — the id of the admin-defined PackagePlan (package_plans/main)
-    // this account currently holds, or null if no active package. Replaces the old
-    // closed OwnerPackageTier enum; a package's real price/listing-limit/validity are
-    // resolved live from package_plans/main by this id, not stored redundantly here.
+    // Server-only (functions/src/billing/entitlementManager.ts): the Google Play base plan
+    // this account's Pro Host access comes from ("pro-montly" / "pro-yearly", see
+    // data/billing/PlayCatalog.kt), "admin_forced" for an admin Force Upgrade, or null.
+    // Google Play is the only billing authority; there is no plan catalog.
     val ownerPackageId: String? = null,
     // Server-only. Real, enforced expiry (functions/src/packages/expirePackages.ts,
     // an hourly scheduled function, clears ownerPackageId/this field once it lapses;
     // firestore.rules' withinListingLimit() also treats an expired-but-not-yet-swept
     // package as "no package" directly, closing the gap between lapse and the next sweep).
     val ownerPackageExpiryMillis: Long? = null,
+    // Server-only billing mirror of Google Play's lifecycle: "google_play" / "admin_forced",
+    // and ACTIVE, GRACE_PERIOD, ON_HOLD, PAUSED, CANCELED, EXPIRED, REVOKED, REFUNDED, PENDING.
+    // Read-only here; never included in toFirestoreMap.
+    val entitlementSource: String? = null,
+    val billingStatus: String? = null,
     // Server-only, written exclusively by assignInitialRole.ts — createdAtMillis is set
     // once, the first time this uid ever gets a role claim; lastSignInAtMillis is
     // refreshed on every subsequent call (every sign-in). Never included in
@@ -1408,7 +1412,7 @@ data class AppUser(
             "isVerified" to isVerified,
             "subscriptionExpiryMillis" to subscriptionExpiryMillis,
             // ownerPackageId and ownerPackageExpiryMillis are written only by Cloud Functions
-            // (playBillingRtdn, grantPackageToUser, expirePackages) — never by client writes.
+            // (billing/entitlementManager via Google Play or forceProHostUpgrade, expirePackages) — never by client writes.
             // Including them here would overwrite entitlement state on any admin-context full
             // document write, so they are intentionally excluded.
             "savedSpaceIds" to savedSpaceIds,
@@ -1458,6 +1462,8 @@ data class AppUser(
                 subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong(),
                 ownerPackageId = data["ownerPackageId"] as? String,
                 ownerPackageExpiryMillis = (data["ownerPackageExpiryMillis"] as? Number)?.toLong(),
+                entitlementSource = data["entitlementSource"] as? String,
+                billingStatus = data["billingStatus"] as? String,
                 createdAtMillis = (data["createdAtMillis"] as? Number)?.toLong(),
                 lastSignInAtMillis = (data["lastSignInAtMillis"] as? Number)?.toLong(),
                 tosAcceptedAtMillis = (data["tosAcceptedAtMillis"] as? Number)?.toLong(),
@@ -1470,165 +1476,6 @@ data class AppUser(
             )
         }
     }
-}
-
-/**
- * A Pro Host subscription plan, linked to a Google Play product. Every plan allows
- * unlimited listings; access lasts until the renewal date Google Play reports
- * (ownerPackageExpiryMillis). Admins set only display order ([sortOrder]) and
- * [isFeatured]; [priceUsd]/[validityDays] are fallbacks shown until Play's live
- * product details load.
- */
-data class PackagePlan(
-    val id: String,
-    val name: String,
-    val description: String = "",
-    val badgeName: String = "",
-    val priceUsd: Double = 0.0,
-    val validityDays: Int = 30,
-    val isEnabled: Boolean = true,
-    val sortOrder: Int = 0,
-    /** Admin-set: featured plans receive a "Most Popular" highlight on the Subscriptions screen. */
-    val isFeatured: Boolean = false,
-    /** Google Play subscription ID; empty means the catalog id is the Play ID. */
-    val googlePlayProductId: String = "",
-    /** Admin-grant only (e.g. [UNLIMITED_GRANT_PLAN_ID]); never offered for purchase. */
-    val isGrantOnly: Boolean = false
-) {
-    fun toFirestoreMap(): Map<String, Any?> = mapOf(
-        "id" to id,
-        "name" to name,
-        "description" to description,
-        "badgeName" to badgeName,
-        "priceUsd" to priceUsd,
-        "validityDays" to validityDays,
-        "isEnabled" to isEnabled,
-        "sortOrder" to sortOrder,
-        "isFeatured" to isFeatured,
-        "googlePlayProductId" to googlePlayProductId,
-        "isGrantOnly" to isGrantOnly
-    )
-
-    companion object {
-        /** Mirrors UNLIMITED_GRANT_PLAN_ID in functions/src/lib/packagePlans.ts. */
-        const val UNLIMITED_GRANT_PLAN_ID = "admin_unlimited_grant"
-
-        /** Mirrors LIFETIME_EXPIRY_MILLIS (2100-01-01 UTC) in functions/src/lib/packagePlans.ts. */
-        const val LIFETIME_EXPIRY_MILLIS = 4_102_444_800_000L
-
-        fun isLifetimeExpiry(expiryMillis: Long?): Boolean =
-            expiryMillis != null && expiryMillis >= LIFETIME_EXPIRY_MILLIS
-
-        /** Google Play's live price when loaded; the stored fallback only if one was ever set. */
-        fun displayPrice(plan: PackagePlan, playFormattedPrice: String?): String =
-            playFormattedPrice
-                ?: if (plan.priceUsd > 0.0) "$" + String.format(java.util.Locale.US, "%.2f", plan.priceUsd)
-                else "See price in Google Play"
-
-        fun fromFirestoreMap(id: String, data: Map<String, Any?>): PackagePlan = PackagePlan(
-            id = id,
-            name = data["name"] as? String ?: "Package",
-            description = data["description"] as? String ?: "",
-            badgeName = data["badgeName"] as? String ?: "",
-            priceUsd = (data["priceUsd"] as? Number)?.toDouble() ?: 0.0,
-            validityDays = (data["validityDays"] as? Number)?.toInt() ?: 30,
-            isEnabled = data["isEnabled"] as? Boolean ?: true,
-            sortOrder = (data["sortOrder"] as? Number)?.toInt() ?: 0,
-            isFeatured = data["isFeatured"] as? Boolean ?: false,
-            googlePlayProductId = data["googlePlayProductId"] as? String ?: "",
-            isGrantOnly = data["isGrantOnly"] as? Boolean ?: false
-        )
-    }
-}
-
-/**
- * Wraps the admin-managed package catalog, stored keyed by id (a map, not a
- * list) inside package_plans/main — the map shape lets firestore.rules resolve
- * a specific package via a plain .get(id, null) chain, the same well-supported
- * idiom used throughout this app's rules, rather than a list-filter/scan.
- */
-data class PackagePlanCatalog(val packages: Map<String, PackagePlan> = emptyMap()) {
-    /** Plans offered for purchase, in display order: featured first, then admin priority (sortOrder). */
-    fun purchasablePlans(): List<PackagePlan> =
-        packages.values.filter { it.isEnabled && !it.isGrantOnly }
-            .sortedWith(compareBy({ !it.isFeatured }, { it.sortOrder }))
-
-    fun toFirestoreMap(): Map<String, Any?> = mapOf(
-        "packages" to packages.mapValues { it.value.toFirestoreMap() }
-    )
-
-    companion object {
-        const val COLLECTION_PATH = "package_plans"
-        const val DOCUMENT_ID = "main"
-
-        val DEFAULT_CATALOG = PackagePlanCatalog(
-            mapOf(
-                "package_growth_mrr" to PackagePlan(
-                    id = "package_growth_mrr",
-                    name = "Growth Plan",
-                    description = "Unlimited workspace listings",
-                    badgeName = "Growth",
-                    priceUsd = 4.99,
-                    validityDays = 30,
-                    isEnabled = true,
-                    sortOrder = 0
-                ),
-                "package_pro_mrr" to PackagePlan(
-                    id = "package_pro_mrr",
-                    name = "Pro Plan",
-                    description = "Unlimited workspace listings",
-                    badgeName = "Pro",
-                    priceUsd = 16.99,
-                    validityDays = 30,
-                    isEnabled = true,
-                    sortOrder = 1
-                ),
-                "package_enterprise_mrr" to PackagePlan(
-                    id = "package_enterprise_mrr",
-                    name = "Enterprise",
-                    description = "Unlimited workspace listings",
-                    badgeName = "Enterprise",
-                    priceUsd = 38.99,
-                    validityDays = 30,
-                    isEnabled = true,
-                    sortOrder = 2
-                )
-            )
-        )
-
-        @Suppress("UNCHECKED_CAST")
-        fun fromFirestoreMap(data: Map<String, Any?>): PackagePlanCatalog {
-            val raw = data["packages"] as? Map<String, Any?> ?: emptyMap()
-            val packages = raw.mapNotNull { (id, value) ->
-                (value as? Map<String, Any?>)?.let { id to PackagePlan.fromFirestoreMap(id, it) }
-            }.toMap()
-            return if (packages.isEmpty()) DEFAULT_CATALOG else PackagePlanCatalog(packages)
-        }
-    }
-}
-
-/**
- * Resolves an active package for [AppUser], falling back gracefully to a synthetic active
- * plan if the user's stored ownerPackageId was removed or modified by an admin update,
- * provided their package expiry timestamp is still in the future.
- */
-fun AppUser.resolveActivePackage(catalog: PackagePlanCatalog): PackagePlan? {
-    val pkgId = ownerPackageId ?: return null
-    val plan = catalog.packages[pkgId]
-    if (plan != null) return plan
-    val expiry = ownerPackageExpiryMillis
-    if (expiry != null && expiry > System.currentTimeMillis()) {
-        return PackagePlan(
-            id = pkgId,
-            name = "Pro Host Plan",
-            description = "Active subscription membership",
-            badgeName = "Pro",
-            priceUsd = 0.0,
-            validityDays = 30,
-            isEnabled = true
-        )
-    }
-    return null
 }
 
 /**

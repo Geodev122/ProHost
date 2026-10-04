@@ -66,6 +66,9 @@ export type PlaySubscriptionState =
 
 export interface PlaySubscription {
   productId: string;
+  /** Base plan of the latest line item (e.g. "pro-yearly"); null from the legacy v1 API. */
+  basePlanId: string | null;
+  autoRenewing: boolean;
   expiryMillis: number;
   state: PlaySubscriptionState;
   /** Payment not settled yet: never grant or acknowledge. */
@@ -102,6 +105,8 @@ export function fromV2(data: androidpublisher_v3.Schema$SubscriptionPurchaseV2, 
     : null;
   return {
     productId: latest?.productId ?? productIdHint ?? "",
+    basePlanId: latest?.offerDetails?.basePlanId ?? null,
+    autoRenewing: latest?.autoRenewingPlan?.autoRenewEnabled ?? false,
     expiryMillis: Date.parse(latest?.expiryTime ?? "") || 0,
     state,
     isPending: state === "PENDING",
@@ -121,6 +126,8 @@ export function fromV1(data: androidpublisher_v3.Schema$SubscriptionPurchase, pr
   const isPending = data.paymentState === 0;
   return {
     productId,
+    basePlanId: null,
+    autoRenewing: data.autoRenewing ?? false,
     expiryMillis,
     state: isPending ? "PENDING" : expiryMillis > Date.now() ? "ACTIVE" : "EXPIRED",
     isPending,

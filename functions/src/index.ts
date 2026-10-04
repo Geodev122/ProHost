@@ -11,7 +11,7 @@ export { bootstrapSuperAdmin } from "./roles/bootstrapSuperAdmin";
 export { deleteOwnAccount } from "./roles/deleteOwnAccount";
 
 export { updatePricing } from "./admin/pricing";
-export { grantPackageToUser } from "./admin/grantPackage";
+export { forceProHostUpgrade } from "./admin/forceProHostUpgrade";
 export { lookupUserForGrant } from "./admin/lookupUserForGrant";
 export { getAdminAnalytics, backfillProHostUpgradeDates } from "./admin/adminAnalytics";
 export { setListingVerification, setListingSubscriptionActive, requestListingVerification } from "./admin/listings";
@@ -38,6 +38,7 @@ export { sendSignInEmailLink, sendVerificationEmailLink } from "./auth/emailLink
 export { playBillingRtdn } from "./billing/playBillingRtdn";
 export { verifyAndRestorePurchase } from "./billing/verifyAndRestorePurchase";
 export { retryPendingPlayActivations } from "./billing/retryPendingPlayActivations";
+export { billingSyncJob, runBillingSync } from "./billing/billingSyncJob";
 export {
   onUserProfileCreatedAssignCode,
   onBookingCreatedAssignCode,

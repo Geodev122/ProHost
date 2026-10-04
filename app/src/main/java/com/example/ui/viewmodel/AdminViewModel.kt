@@ -112,60 +112,12 @@ class AdminViewModel(
                 _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
             }
         }
-        viewModelScope.launch {
-            try {
-                repository.packagePlans.collect { plans ->
-                    _uiState.update { it.copy(packagePlans = plans) }
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
-            }
-        }
     }
 
     // --- Navigation & Pricing ---
     fun setSelectedTab(tabIndex: Int) {
         _uiState.update { it.copy(selectedTab = tabIndex) }
         com.example.analytics.AnalyticsTracker.screen("admin_tab_$tabIndex", "AdminConsole")
-    }
-
-    fun addPackagePlan(plan: PackagePlan) {
-        viewModelScope.launch {
-            try {
-                val success = repository.addPackagePlan(plan)
-                com.example.analytics.AnalyticsTracker.adminAction("package_add", success)
-                _events.emit(
-                    AdminUiEvent.ShowToast(
-                        if (success) "Package '${plan.name}' added" else "Failed to add package"
-                    )
-                )
-                if (success) closeAddPackagePlanDialog()
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
-            }
-        }
-    }
-
-    fun updatePackagePlan(plan: PackagePlan) {
-        viewModelScope.launch {
-            try {
-                val success = repository.updatePackagePlan(plan)
-                com.example.analytics.AnalyticsTracker.adminAction("package_update", success)
-                _events.emit(
-                    AdminUiEvent.ShowToast(
-                        if (success) "Package '${plan.name}' updated" else "Failed to update package"
-                    )
-                )
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
-            }
-        }
     }
 
     private val _grantAccess = MutableStateFlow(GrantAccessUiState())
@@ -190,31 +142,65 @@ class AdminViewModel(
         }
     }
 
-    /** [targetUid] must be the UID shown to the admin by [lookupUserForGrant]. */
-    fun grantAccess(targetUid: String, packageId: String?, durationDays: Int?, unlimited: Boolean) {
+    /**
+     * Admin → Packages → Force Upgrade → ProHost (the only admin billing action).
+     * [targetUid] must be the UID shown to the admin by [lookupUserForGrant].
+     */
+    fun forceUpgrade(targetUid: String) {
         val target = _grantAccess.value.target ?: return
         if (target.uid != targetUid || _grantAccess.value.isGranting) return
         _grantAccess.update { it.copy(isGranting = true, error = null, lastGrant = null) }
         viewModelScope.launch {
           try {
-            val result = functionsClient.grantPackageToUser(targetUid, packageId, durationDays, unlimited)
-            com.example.analytics.AnalyticsTracker.adminAction("grant_access", result.isSuccess)
+            val result = functionsClient.forceProHostUpgrade(targetUid)
+            com.example.analytics.AnalyticsTracker.adminAction("force_upgrade", result.isSuccess)
             result.fold(
-                onSuccess = { grant ->
-                    // Re-read from the server so the card shows the persisted role/package.
+                onSuccess = {
+                    // Re-read from the server so the card shows the persisted role.
                     val refreshed = functionsClient.lookupUserForGrant(target.email).getOrNull() ?: target
+                    val grant = com.example.data.auth.GrantResult(
+                        role = "PRO_HOST",
+                        packageId = com.example.data.billing.PlayCatalog.ADMIN_FORCED_PLAN_ID,
+                        expiryMillis = com.example.data.billing.PlayCatalog.LIFETIME_EXPIRY_MILLIS,
+                        restoredListings = 0
+                    )
                     _grantAccess.value = GrantAccessUiState(target = refreshed, lastGrant = grant)
-                    _events.emit(AdminUiEvent.ShowToast("Access granted to ${refreshed.fullName.ifBlank { refreshed.email }}"))
+                    _events.emit(AdminUiEvent.ShowToast("${refreshed.fullName.ifBlank { refreshed.email }} is now a Pro Host"))
                 },
                 onFailure = { e ->
-                    _grantAccess.update { it.copy(isGranting = false, error = e.message ?: "Grant failed") }
+                    _grantAccess.update { it.copy(isGranting = false, error = com.example.util.friendlyErrorMessage(e, "Upgrade failed")) }
                 }
             )
           } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
           } catch (e: Exception) {
-            _grantAccess.update { it.copy(isGranting = false, error = e.message ?: "Grant failed") }
+            _grantAccess.update { it.copy(isGranting = false, error = e.message ?: "Upgrade failed") }
           }
+        }
+    }
+
+    /** Re-reads every Google Play subscription now (normally daily) and runs the one-time migration. */
+    fun runBillingSync() {
+        viewModelScope.launch {
+            try {
+                val result = functionsClient.runBillingSync()
+                com.example.analytics.AnalyticsTracker.adminAction("billing_sync", result.isSuccess)
+                _events.emit(
+                    AdminUiEvent.ShowToast(
+                        result.fold(
+                            onSuccess = { r ->
+                                "Billing sync: ${r["checked"]} checked, ${r["changed"]} changed, ${r["failed"]} failed" +
+                                    (if (r["stoppedOnConfigError"] == true) " — Play API access denied" else "")
+                            },
+                            onFailure = { com.example.util.friendlyErrorMessage(it, "Billing sync failed") }
+                        )
+                    )
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _events.emit(AdminUiEvent.ShowToast(e.message ?: "Billing sync failed"))
+            }
         }
     }
 
@@ -299,72 +285,6 @@ class AdminViewModel(
     fun resetGrantAccess() {
         _grantAccess.value = GrantAccessUiState()
     }
-
-    fun togglePackagePlan(planId: String) {
-        viewModelScope.launch {
-            try {
-                val success = repository.togglePackagePlan(planId)
-                com.example.analytics.AnalyticsTracker.adminAction("package_toggle", success)
-                _events.emit(
-                    AdminUiEvent.ShowToast(
-                        if (success) {
-                            val isNowEnabled = _uiState.value.packagePlans.packages[planId]?.isEnabled == true
-                            "Package ${if (isNowEnabled) "enabled" else "disabled"}"
-                        } else "Failed to toggle package"
-                    )
-                )
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
-            }
-        }
-    }
-
-    fun deletePackagePlan(planId: String) {
-        val now = System.currentTimeMillis()
-        val activeSubscriberCount = _uiState.value.allUsers.count { u ->
-            u.ownerPackageId == planId &&
-            u.ownerPackageExpiryMillis != null &&
-            u.ownerPackageExpiryMillis > now
-        }
-        _uiState.update {
-            it.copy(
-                pendingDeletePlanId = planId,
-                pendingDeletePlanSubscriberCount = activeSubscriberCount,
-                isDeletePackagePlanDialogOpen = true
-            )
-        }
-    }
-
-    fun confirmDeletePackagePlan() {
-        val planId = _uiState.value.pendingDeletePlanId ?: return
-        _uiState.update { it.copy(isDeletePackagePlanDialogOpen = false, pendingDeletePlanId = null, pendingDeletePlanSubscriberCount = 0) }
-        viewModelScope.launch {
-            try {
-                val success = repository.deletePackagePlan(planId)
-                com.example.analytics.AnalyticsTracker.adminAction("package_delete", success)
-                _events.emit(AdminUiEvent.ShowToast(if (success) "Package removed" else "Failed to remove package"))
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
-            }
-        }
-    }
-
-    fun cancelDeletePackagePlan() {
-        _uiState.update { it.copy(isDeletePackagePlanDialogOpen = false, pendingDeletePlanId = null, pendingDeletePlanSubscriberCount = 0) }
-    }
-
-    fun openAddPackagePlanDialog() {
-        _uiState.update { it.copy(isAddPackagePlanDialogOpen = true) }
-    }
-
-    fun closeAddPackagePlanDialog() {
-        _uiState.update { it.copy(isAddPackagePlanDialogOpen = false) }
-    }
-
 
     fun updateGovernanceTag(tag: String) {
         viewModelScope.launch {
@@ -923,7 +843,7 @@ class AdminViewModel(
      * cap (task #106's pattern) — used to only ever be settable once, at creation, via
      * AddSchemaItemDialog; the Schema tab needs to edit it in place for every SPACE_TYPE
      * category, old and new alike. Per-category PAYG pricing used to live alongside this
-     * same field — removed with PAYG; package pricing now lives on PackagePlan instead. */
+     * same field — removed with PAYG; prices now come only from Google Play. */
     fun updateSchemaItemMaxSubdivisions(itemId: String, category: String, maxSubdivisions: Int?) {
         viewModelScope.launch {
             try {

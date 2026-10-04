@@ -377,27 +377,28 @@ object AnalyticsTracker {
 
     // ---- subscriptions / Play Billing -------------------------------------------------
 
-    fun viewPlans(planCount: Int, productsLoaded: Int) =
-        log(Event.VIEW_PLANS, mapOf(Param.PLAN_COUNT to planCount, Param.PRODUCTS_LOADED to productsLoaded))
-    fun plansLoadFailed(queriedIds: Int) = log(Event.PLANS_LOAD_FAILED, mapOf(Param.QUERIED_IDS_COUNT to queriedIds))
+    // ---- ProHost Premium ----------------------------------------------------------------
+    // [plan] is "monthly" / "yearly" (PlayCatalog.planInterval). Success, restore, renewal and
+    // expiry are logged by the server, which is the only place that knows they happened.
 
-    fun beginSubscriptionCheckout(productId: String, priceMicros: Long?, currency: String?) {
-        log(Event.BEGIN_CHECKOUT, mapOf(
-            Param.CONTENT_TYPE to "subscription",
-            Param.CURRENCY to currency,
-            Param.VALUE to priceMicros?.let { it / 1_000_000.0 },
-            Param.ITEMS to listOf(mapOf(Param.ITEM_ID to productId, Param.ITEM_NAME to productId, Param.ITEM_CATEGORY to "subscription"))
-        ))
-    }
+    fun premiumPageViewed(source: String, plansLoaded: Int) =
+        log(Event.PREMIUM_PAGE_VIEWED, mapOf(Param.SOURCE to source, Param.PLANS_LOADED to plansLoaded))
+    fun premiumPlanViewed(plan: String) = log(Event.PREMIUM_PLAN_VIEWED, mapOf(Param.PLAN to plan))
+    fun premiumPlansLoadFailed(reason: String) = log(Event.PREMIUM_PLANS_LOAD_FAILED, mapOf(Param.REASON to reason))
 
-    fun purchase(transactionId: String, productId: String, priceMicros: Long?, currency: String?) {
-        log(Event.PURCHASE, mapOf(
-            Param.TRANSACTION_ID to transactionId,
+    fun premiumCheckoutStarted(plan: String?, priceMicros: Long?, currency: String?) =
+        log(Event.PREMIUM_CHECKOUT_STARTED, mapOf(
+            Param.PLAN to plan,
+            Param.PRODUCT_ID to com.example.data.billing.PlayCatalog.PRODUCT_ID,
             Param.CURRENCY to currency,
-            Param.VALUE to priceMicros?.let { it / 1_000_000.0 },
-            Param.ITEMS to listOf(mapOf(Param.ITEM_ID to productId, Param.ITEM_NAME to productId, Param.ITEM_CATEGORY to "subscription"))
+            Param.VALUE to priceMicros?.let { it / 1_000_000.0 }
         ))
-    }
+
+    /** [reason]: "user_cancelled", "billing_error", "server_activation", … */
+    fun premiumPurchaseFailed(plan: String?, reason: String, responseCode: Int? = null) =
+        log(Event.PREMIUM_PURCHASE_FAILED, mapOf(Param.PLAN to plan, Param.REASON to reason, Param.RESPONSE_CODE to responseCode))
+    fun premiumPurchasePending(plan: String?) = log(Event.PREMIUM_PURCHASE_PENDING, mapOf(Param.PLAN to plan))
+    fun premiumRestoreResult(result: String) = log(Event.PREMIUM_RESTORE_RESULT, mapOf(Param.RESULT to result))
 
     /** SHA-256 of the Play order id, first 24 hex chars — mirrored by functions/src/lib/ga4.ts. */
     fun transactionId(orderId: String): String =
@@ -406,10 +407,6 @@ object AnalyticsTracker {
             .joinToString("") { "%02x".format(it) }
             .take(24)
 
-    fun purchaseCancelled(productId: String?) = log(Event.PURCHASE_CANCELLED, mapOf(Param.ITEM_ID to productId))
-    fun purchaseError(responseCode: Int) = log(Event.PURCHASE_ERROR, mapOf(Param.RESPONSE_CODE to responseCode))
-    fun purchasePending() = log(Event.PURCHASE_PENDING)
-    fun restorePurchases(result: String) = log(Event.RESTORE_PURCHASES, mapOf(Param.RESULT to result))
     fun redeemCodeOpen() = log(Event.REDEEM_CODE_OPEN)
     fun manageSubscriptionOpen() = log(Event.MANAGE_SUBSCRIPTION_OPEN)
     fun orderHistoryOpen() = log(Event.ORDER_HISTORY_OPEN)

@@ -52,7 +52,6 @@ fun OwnerHubScreen(
     val context = LocalContext.current
     val isLoading by viewModel.isRestoringSession.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
-    val packagePlans by viewModel.packagePlans.collectAsState()
     val spaces by viewModel.spaces.collectAsState()
     val allBookingRequests by viewModel.bookingRequests.collectAsState()
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
@@ -140,7 +139,7 @@ fun OwnerHubScreen(
     OwnerHubScreenContent(
         ownerSpaces = ownerSpaces,
         allBookingRequests = allBookingRequests,
-        currentPackage = currentUser?.ownerPackageId?.let { packagePlans.packages[it] },
+        currentPlanId = currentUser?.ownerPackageId,
         ownerPackageExpiryMillis = currentUser?.ownerPackageExpiryMillis,
         // Admin's listing/booking capability is unconditional — never a purchased
         // package (see ProHostNavGraph excluding OwnerSubscriptions from Admin's
@@ -155,8 +154,8 @@ fun OwnerHubScreen(
                 // Include the specific product ID so Play Store deep-links directly
                 // to this subscription rather than the generic subscriptions list.
                 val productId = currentUser?.ownerPackageId
-                    ?.let { packagePlans.packages[it]?.googlePlayProductId }
-                    ?.ifBlank { null }
+                    ?.takeIf { it in com.example.data.billing.PlayCatalog.BASE_PLANS }
+                    ?.let { com.example.data.billing.PlayCatalog.PRODUCT_ID }
                 val uri = if (productId != null)
                     "market://subscriptions?sku=$productId&package=app.geonajjar.prohost"
                 else
@@ -374,7 +373,8 @@ private fun OwnerDeleteListingDialog(
 fun OwnerHubScreenContent(
     ownerSpaces: List<SpaceListing>,
     allBookingRequests: List<BookingRequest>,
-    currentPackage: PackagePlan?,
+    /** ownerPackageId: a Google Play base plan or an admin forced upgrade; null = none. */
+    currentPlanId: String?,
     ownerPackageExpiryMillis: Long?,
     onSelectSpace: (SpaceListing) -> Unit,
     onManageSpace: (SpaceListing) -> Unit = onSelectSpace,
@@ -462,10 +462,10 @@ fun OwnerHubScreenContent(
                                     shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
-                                        text = if (currentPackage == null) {
+                                        text = if (currentPlanId == null) {
                                             "No Active Package"
                                         } else {
-                                            "$${String.format(Locale.US, "%.2f", currentPackage.priceUsd)} / mo"
+                                            com.example.data.billing.PlayCatalog.planBadge(currentPlanId)
                                         },
                                         color = MaterialTheme.colorScheme.onSecondary,
                                         style = MaterialTheme.typography.labelMedium,
@@ -494,21 +494,21 @@ fun OwnerHubScreenContent(
                                 ((it - System.currentTimeMillis()) / (24L * 60 * 60 * 1000)).coerceAtLeast(0)
                             }
                             Text(
-                                text = if (currentPackage == null) {
+                                text = if (currentPlanId == null) {
                                     "No Active Package"
-                                } else if (PackagePlan.isLifetimeExpiry(ownerPackageExpiryMillis)) {
-                                    "${currentPackage.name} — never expires"
+                                } else if (com.example.data.billing.PlayCatalog.isLifetimeExpiry(ownerPackageExpiryMillis)) {
+                                    "${com.example.data.billing.PlayCatalog.planLabel(currentPlanId)} — never expires"
                                 } else if (daysRemaining != null) {
-                                    "${currentPackage.name} — renews in $daysRemaining days"
+                                    "${com.example.data.billing.PlayCatalog.planLabel(currentPlanId)} — renews in $daysRemaining days"
                                 } else {
-                                    currentPackage.name
+                                    com.example.data.billing.PlayCatalog.planLabel(currentPlanId)
                                 },
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.proColors.onBrandHeader
                             )
                             Text(
-                                text = if (currentPackage == null) {
+                                text = if (currentPlanId == null) {
                                     "Choose a package to start publishing workspace listings."
                                 } else {
                                     "List your space, set subdivisions, choose renting modal, and keep your business active."
@@ -525,7 +525,7 @@ fun OwnerHubScreenContent(
                             ) {
                                 val isActiveSubscription = ownerPackageExpiryMillis != null && ownerPackageExpiryMillis > System.currentTimeMillis()
                                 Button(
-                                    onClick = if (currentPackage == null) onOpenPackageSelection else onOpenRenewal,
+                                    onClick = if (currentPlanId == null) onOpenPackageSelection else onOpenRenewal,
                                     modifier = Modifier.weight(1f),
                                     shape = MaterialTheme.shapes.medium,
                                     colors = ButtonDefaults.buttonColors(
@@ -535,7 +535,7 @@ fun OwnerHubScreenContent(
                                 ) {
                                     Icon(
                                         when {
-                                            currentPackage == null -> Icons.Default.WorkspacePremium
+                                            currentPlanId == null -> Icons.Default.WorkspacePremium
                                             isActiveSubscription -> Icons.Default.Settings
                                             else -> Icons.Default.Refresh
                                         },
@@ -546,7 +546,7 @@ fun OwnerHubScreenContent(
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         when {
-                                            currentPackage == null -> "Choose Plan"
+                                            currentPlanId == null -> "Choose Plan"
                                             isActiveSubscription -> "Manage"
                                             else -> "Renew"
                                         },

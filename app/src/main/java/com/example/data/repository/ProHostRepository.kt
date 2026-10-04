@@ -137,21 +137,6 @@ class ProHostRepository(
     private val _spaceArchitectureSchema = MutableStateFlow<SpaceArchitectureSchema>(createDefaultSchema())
     val spaceArchitectureSchema: StateFlow<SpaceArchitectureSchema> = _spaceArchitectureSchema.asStateFlow()
 
-    // Admin-managed, purchasable Pro Host packages — replaces the old closed
-    // OwnerPackageTier enum + PAYG credit system entirely. Starts EMPTY (not
-    // seeded with fake local data): an earlier version of this seeded two
-    // legacy-priced packages directly into this StateFlow so an existing Pro
-    // Host's stored ownerPackageId would resolve before any admin ever opened
-    // the Packages Configuration card — but that made those two fabricated
-    // packages appear as real, purchasable admin-published products on a
-    // fresh deploy (before package_plans/main even exists), AND got them
-    // silently persisted to Firestore the moment an admin added their first
-    // real package (addPackagePlan merges into whatever this StateFlow held).
-    // No seed/migration tool fabricates a package on an admin's behalf.
-    // This StateFlow only ever reflects
-    // the real, live package_plans/main document.
-    private val _packagePlans = MutableStateFlow(PackagePlanCatalog.DEFAULT_CATALOG)
-    val packagePlans: StateFlow<PackagePlanCatalog> = _packagePlans.asStateFlow()
 
     init {
         // Watches _currentUser and (re)attaches the live listeners whenever the
@@ -231,10 +216,6 @@ class ProHostRepository(
                 },
                 onAuditLogsUpdated = { updatedLogs ->
                     _auditLogs.value = updatedLogs
-                },
-                onPackagePlansUpdated = { updatedCatalog ->
-                    _packagePlans.value = updatedCatalog
-                    _isCloudConnected.value = true
                 },
                 onWorkspacesError = { error ->
                     if (_spaces.value.isEmpty()) {
@@ -318,13 +299,6 @@ class ProHostRepository(
         return functionsClient.updatePricing(fields).isSuccess
     }
 
-    // --- Admin-Managed Package Plans ---
-    // Mirrors the Dynamic Space Architecture Schema Management block below (add/
-    // toggle/delete via a direct, admin-role-gated Firestore write — no dedicated
-    // Cloud Function needed for basic CRUD, matching SchemaItem's own pattern).
-    // Prices and billing periods come from Google Play; entitlement and expiry are
-    // server-side (playBillingRtdn.ts / expirePackages.ts).
-
     /** Current published version of legal document [docId] ("privacy_policy" /
      * "terms_of_use" / "revocation_policy"), or null if never uploaded. Thin
      * delegate — the Admin Console upload card reads this to show "currently v3"
@@ -346,68 +320,6 @@ class ProHostRepository(
                 details = "Admin published $docId v${version.version}" +
                     (version.fileName?.let { " (\"$it\")" } ?: ""),
                 severity = "SECURE"
-            )
-        }
-        return success
-    }
-
-    suspend fun addPackagePlan(plan: PackagePlan): Boolean {
-        val updated = _packagePlans.value.copy(packages = _packagePlans.value.packages + (plan.id to plan))
-        val success = firestoreService.savePackagePlans(updated)
-        if (success) {
-            _packagePlans.value = updated
-            addAuditLog(
-                actionType = "PACKAGE_PLAN_ADDED",
-                details = "Admin added package '${plan.name}' — $${String.format(Locale.US, "%.2f", plan.priceUsd)}, " +
-                    "${plan.validityDays} days validity",
-                severity = "SECURE"
-            )
-        }
-        return success
-    }
-
-    suspend fun updatePackagePlan(plan: PackagePlan): Boolean {
-        if (_packagePlans.value.packages[plan.id] == null) return false
-        val updated = _packagePlans.value.copy(packages = _packagePlans.value.packages + (plan.id to plan))
-        val success = firestoreService.savePackagePlans(updated)
-        if (success) {
-            _packagePlans.value = updated
-            addAuditLog(
-                actionType = "PACKAGE_PLAN_UPDATED",
-                details = "Admin updated package '${plan.name}' (#${plan.id}) — $${String.format(Locale.US, "%.2f", plan.priceUsd)}, " +
-                    "${plan.validityDays} days validity",
-                severity = "SECURE"
-            )
-        }
-        return success
-    }
-
-    suspend fun togglePackagePlan(planId: String): Boolean {
-        val current = _packagePlans.value.packages[planId] ?: return false
-        val updated = _packagePlans.value.copy(
-            packages = _packagePlans.value.packages + (planId to current.copy(isEnabled = !current.isEnabled))
-        )
-        val success = firestoreService.savePackagePlans(updated)
-        if (success) {
-            _packagePlans.value = updated
-            addAuditLog(
-                actionType = "PACKAGE_PLAN_TOGGLED",
-                details = "Admin toggled package '${current.name}' (#$planId) active status",
-                severity = "INFO"
-            )
-        }
-        return success
-    }
-
-    suspend fun deletePackagePlan(planId: String): Boolean {
-        val existing = _packagePlans.value.packages[planId] ?: return false
-        val success = firestoreService.deletePackagePlan(planId)
-        if (success) {
-            _packagePlans.value = _packagePlans.value.copy(packages = _packagePlans.value.packages - planId)
-            addAuditLog(
-                actionType = "PACKAGE_PLAN_DELETED",
-                details = "Admin removed package '${existing.name}' (#$planId)",
-                severity = "WARN"
             )
         }
         return success
@@ -723,9 +635,7 @@ class ProHostRepository(
     /** Edits maxSubdivisions on an EXISTING SchemaItem — previously only settable
      * once, at creation, via addSchemaItem. Only meaningful for category == "SPACE_TYPE"
      * (a no-op for any other category, same as the field's own doc comment on
-     * SchemaItem). PAYG per-category pricing used to live alongside this same field
-     * (SchemaItem.priceUsd) — removed with PAYG; package pricing now lives on
-     * PackagePlan instead (see addPackagePlan/updatePackagePlan above). */
+     * SchemaItem). Prices are never stored in the app: Google Play is the only billing authority. */
     suspend fun updateSchemaItemMaxSubdivisions(itemId: String, category: String, maxSubdivisions: Int?): Boolean {
         val current = _spaceArchitectureSchema.value
         fun updateList(items: List<SchemaItem>) =
@@ -2261,14 +2171,6 @@ class ProHostRepository(
      * (billing/playBillingRtdn.ts grantSubscription) using Play's canonical expiryTimeMillis —
      * never set from the client to avoid clock skew and protected-field rule rejections.
      */
-    suspend fun recordActivePurchaseToken(packageId: String, purchaseToken: String): Boolean {
-        val current = _currentUser.value ?: return false
-        return firestoreService.updateUserProfileFields(
-            current.id,
-            mapOf("activePurchaseToken" to purchaseToken)
-        )
-    }
-
     /**
      * Toggles [spaceId] in the current user's personal saved/favorites list. Not a
      * protected field — any signed-in user may freely write their own savedSpaceIds,
@@ -2537,6 +2439,6 @@ class ProHostRepository(
      *
      * Returns the verified expiry timestamp in milliseconds on success.
      */
-    suspend fun verifyAndRestorePlayPurchase(purchaseToken: String, productId: String): Result<Long> =
-        functionsClient.verifyAndRestorePurchase(purchaseToken, productId)
+    suspend fun verifyAndRestorePlayPurchase(purchaseToken: String, productId: String, fromCheckout: Boolean = false): Result<Long> =
+        functionsClient.verifyAndRestorePurchase(purchaseToken, productId, fromCheckout)
 }

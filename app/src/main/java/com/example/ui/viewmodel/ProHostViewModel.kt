@@ -123,8 +123,6 @@ class ProHostViewModel(
     }
 
     val pricingState: StateFlow<AdminPricingState> = repository.pricingState
-    // Admin-managed, purchasable Pro Host packages — see PackagePlan/PackagePlanCatalog.
-    val packagePlans: StateFlow<PackagePlanCatalog> = repository.packagePlans
     val spaces: StateFlow<List<SpaceListing>> = repository.spaces
     val isCloudConnected: StateFlow<Boolean> = repository.isCloudConnected
     // Admin-managed facility/category catalog — previously read only by AdminConsoleScreen
@@ -202,7 +200,8 @@ class ProHostViewModel(
 
     // Holds a deferred launch when billing was not yet connected at the time the user tapped
     // "Subscribe via Google Play". Cleared and retried once products arrive from Play.
-    private var _pendingRetryProductId: String? = null
+    // The base plan ("pro-montly"/"pro-yearly") the user tapped before products loaded.
+    private var _pendingRetryBasePlanId: String? = null
     private var _pendingRetryActivity: java.lang.ref.WeakReference<android.app.Activity>? = null
 
     fun initPlayBilling(context: Context) {
@@ -225,12 +224,13 @@ class ProHostViewModel(
                     manager.productDetailsList.collect { products ->
                         playBillingProducts.value = products
                         // Retry a deferred billing launch once the target product is available
-                        val retryId = _pendingRetryProductId
+                        val retryPlan = _pendingRetryBasePlanId
                         val retryActivity = _pendingRetryActivity?.get()
-                        if (retryId != null && retryActivity != null && products.any { it.productId == retryId }) {
-                            _pendingRetryProductId = null
+                        if (retryPlan != null && retryActivity != null &&
+                            products.any { it.productId == com.example.data.billing.PlayCatalog.PRODUCT_ID }) {
+                            _pendingRetryBasePlanId = null
                             _pendingRetryActivity = null
-                            launchGooglePaySubscription(retryActivity, retryId)
+                            launchGooglePaySubscription(retryActivity, retryPlan)
                         }
                     }
                 } catch (e: kotlinx.coroutines.CancellationException) {
@@ -272,18 +272,6 @@ class ProHostViewModel(
                     android.util.Log.e("ProHostVM", "Operation failed", e)
                 }
             }
-            // Load Google Play product details for whatever plans the admin catalog lists.
-            viewModelScope.launch {
-                try {
-                    packagePlans.collect { catalog ->
-                        manager.setCatalogProductIds(catalog.purchasablePlans().map { it.googlePlayProductId.ifBlank { it.id } })
-                    }
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    android.util.Log.e("ProHostVM", "Operation failed", e)
-                }
-            }
             viewModelScope.launch {
                 try {
                     // Play's "verify on your backend, grant, then acknowledge": the server
@@ -296,15 +284,13 @@ class ProHostViewModel(
                         // Play confirmed payment: only now is there something to activate.
                         if (event.fromCheckout) showBillingActivationPending()
                         val result = try {
-                            repository.verifyAndRestorePlayPurchase(purchase.purchaseToken, productId)
+                            repository.verifyAndRestorePlayPurchase(purchase.purchaseToken, productId, fromCheckout = event.fromCheckout)
                         } catch (e: kotlinx.coroutines.CancellationException) {
                             throw e
                         } catch (e: Exception) {
                             Result.failure(e)
                         }
                         result.onSuccess {
-                            runCatching { repository.recordActivePurchaseToken(productId, purchase.purchaseToken) }
-                            if (event.fromCheckout) manager.logPurchase(purchase)
                             onPlanActivated("Your Pro Host plan is active.")
                         }.onFailure { e ->
                             dismissBillingActivationPending()
@@ -314,6 +300,9 @@ class ProHostViewModel(
                             // Let a later resume retry it; RTDN also processes it server-side.
                             processedPurchaseTokens.remove(purchase.purchaseToken)
                             android.util.Log.w("ProHostVM", "Server activation failed: ${e.message}")
+                            if (event.fromCheckout) {
+                                com.example.analytics.AnalyticsTracker.premiumPurchaseFailed(null, "server_activation")
+                            }
                             if (event.fromCheckout) {
                                 _billingError.value = e.toUserMessage(
                                     "Your payment went through, but we couldn't activate your plan yet. " +
@@ -495,17 +484,23 @@ class ProHostViewModel(
         }
     }
 
+    /**
+     * Opens Google Play's purchase sheet for ProHost Premium's [basePlanId]
+     * ([PlayCatalog.BASE_PLAN_MONTHLY] / [PlayCatalog.BASE_PLAN_YEARLY]). The app never
+     * grants anything itself: the result goes to the server (purchaseEvents →
+     * verifyAndRestorePurchase), which verifies with Google and assigns the role.
+     */
     fun launchGooglePaySubscription(
         activity: android.app.Activity,
-        productId: String
+        basePlanId: String
     ) {
         val uid = currentUser.value?.id ?: run {
             _billingError.value = "Your session expired — please sign in again to subscribe."
             return
         }
         clearBillingMessages()
-        // Persist the pending draft ID before the billing sheet opens so the RTDN
-        // Cloud Function can auto-publish it when the subscription is confirmed.
+        // Persist the pending draft ID before the billing sheet opens so the server can
+        // auto-publish it when the subscription is confirmed.
         val draftId = _pendingAutoPublishDraftId.value
         if (draftId != null) {
             viewModelScope.launch {
@@ -513,7 +508,7 @@ class ProHostViewModel(
                     com.google.firebase.firestore.FirebaseFirestore.getInstance()
                         .collection("user_profiles").document(uid)
                         .update("pendingPlayPublishDraftId", draftId).await()
-                } catch (_: Exception) { /* non-fatal; RTDN will skip auto-publish */ }
+                } catch (_: Exception) { /* non-fatal; the server will skip auto-publish */ }
             }
         }
 
@@ -521,30 +516,32 @@ class ProHostViewModel(
             initPlayBilling(activity)
             playBillingManager
         }
+        val productId = com.example.data.billing.PlayCatalog.PRODUCT_ID
         val product = manager?.productDetailsList?.value?.find { it.productId == productId }
         if (product != null) {
-            // For upgrades/downgrades: pass the current active subscription's purchase token so
-            // Play can perform a proper subscription replacement (prorated billing, immediate effect).
-            val currentPlanId = currentUser.value?.ownerPackageId
-            val oldPurchaseToken = if (!currentPlanId.isNullOrBlank() && currentPlanId != productId) {
-                manager.activePurchases.value.firstOrNull { it.products.any { id -> id == currentPlanId } }?.purchaseToken
+            // Monthly ↔ yearly is a replacement of the same subscription: pass the current
+            // purchase token so Play switches plans instead of selling a second subscription.
+            val currentPlan = currentUser.value?.ownerPackageId
+            val oldPurchaseToken = if (currentPlan != null && currentPlan != basePlanId &&
+                currentPlan in com.example.data.billing.PlayCatalog.BASE_PLANS) {
+                manager.activePurchases.value.firstOrNull { productId in it.products }?.purchaseToken
             } else null
 
             _billingPriorExpiryMillis.value = currentUser.value?.ownerPackageExpiryMillis
             // The "Activating" banner waits for Play's PURCHASED result (purchaseEvents).
-            manager.launchSubscriptionPurchase(activity, product, userId = uid, oldPurchaseToken = oldPurchaseToken)
+            manager.launchSubscriptionPurchase(activity, product, userId = uid, basePlanId = basePlanId, oldPurchaseToken = oldPurchaseToken)
         } else {
             // Store the intent and retry automatically once products load from Play
-            _pendingRetryProductId = productId
+            _pendingRetryBasePlanId = basePlanId
             _pendingRetryActivity = java.lang.ref.WeakReference(activity)
             Toast.makeText(activity, "Connecting to Google Play Store…", Toast.LENGTH_SHORT).show()
             // Merges into productDetailsList, whose collector above retries this launch.
             manager?.queryProductDetailsForId(productId) { found ->
                 if (found == null) {
-                    _pendingRetryProductId = null
+                    _pendingRetryBasePlanId = null
                     _pendingRetryActivity = null
                     // Billing callbacks may arrive off the main thread: use state, not a Toast.
-                    _billingError.value = "This plan isn't available in Google Play right now (product \"$productId\")."
+                    _billingError.value = "ProHost Premium isn't available in Google Play right now. Please try again later."
                 }
             }
         }
@@ -607,7 +604,7 @@ class ProHostViewModel(
         if (currentUser.value?.ownerPackageId != null) {
             manager.queryActivePurchases()
             if (userInitiated) {
-                com.example.analytics.AnalyticsTracker.restorePurchases("already_active")
+                com.example.analytics.AnalyticsTracker.premiumRestoreResult("already_active")
                 _billingSuccess.value = "Your plan is already active on this account."
             }
             return
@@ -631,7 +628,7 @@ class ProHostViewModel(
                 val productId = activePurchase?.products?.firstOrNull()
                 if (activePurchase == null || productId == null) {
                     if (userInitiated) {
-                        com.example.analytics.AnalyticsTracker.restorePurchases("none_found")
+                        com.example.analytics.AnalyticsTracker.premiumRestoreResult("none_found")
                         _billingError.value = "No active Google Play subscription was found for this Google account."
                     }
                     return@runCatching
@@ -641,14 +638,14 @@ class ProHostViewModel(
                 if (!processedPurchaseTokens.add(activePurchase.purchaseToken) && !userInitiated) return@runCatching
                 repository.verifyAndRestorePlayPurchase(activePurchase.purchaseToken, productId)
                     .onSuccess {
-                        com.example.analytics.AnalyticsTracker.restorePurchases("restored")
+                        com.example.analytics.AnalyticsTracker.premiumRestoreResult("restored")
                         onPlanActivated("Purchase restored — your Pro Host plan is active.")
                     }
                     .onFailure {
                         processedPurchaseTokens.remove(activePurchase.purchaseToken)
                         awaitingServerActivation = true
                         android.util.Log.w("ProHostViewModel", "verifyAndRestorePurchase failed: ${it.message}")
-                        com.example.analytics.AnalyticsTracker.restorePurchases("failed")
+                        com.example.analytics.AnalyticsTracker.premiumRestoreResult("failed")
                         // The silent on-open check stays quiet; the Restore button reports why.
                         if (userInitiated) {
                             _billingError.value = it.toUserMessage("Couldn't restore your purchase. Please try again.")

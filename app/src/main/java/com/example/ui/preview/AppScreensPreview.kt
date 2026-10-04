@@ -225,14 +225,7 @@ val mockBooking2 = BookingRequest(
     paymentAcknowledgedByHost = false
 )
 
-val mockPackagePriority = PackagePlan(
-    id = "pkg_priority",
-    name = "Priority Host Plan",
-    description = "Up to 5 Verified Listings with Priority Search Ranking",
-    badgeName = "Most Popular",
-    priceUsd = 29.99,
-    isFeatured = true
-)
+val mockPlanId = com.example.data.billing.PlayCatalog.BASE_PLAN_YEARLY
 
 // ============================================================================
 // 11 PREVIEW COMPOSABLES FOR ALL REQUESTED SCREENS
@@ -366,7 +359,7 @@ fun Preview06_OwnerHubScreen() {
         OwnerHubScreenContent(
             ownerSpaces = listOf(mockSpace1, mockSpace2, mockSpaceDraft),
             allBookingRequests = listOf(mockBooking1, mockBooking2),
-            currentPackage = mockPackagePriority,
+            currentPlanId = mockPlanId,
             ownerPackageExpiryMillis = System.currentTimeMillis() + 15 * 86400000L,
             onSelectSpace = {},
             onManageSpace = {},
@@ -399,7 +392,7 @@ fun Preview08_ActiveTenanciesScreen() {
         OwnerRentingProgressScreenContent(
             ownerSpaces = listOf(mockSpace1, mockSpace2),
             activeBookings = listOf(mockBooking1),
-            currentPackage = mockPackagePriority,
+            currentPlanId = mockPlanId,
             ownerPackageExpiryMillis = System.currentTimeMillis() + 5 * 86400000L,
             onWhatsAppPractitioner = {},
             onSendPaymentReminder = {}

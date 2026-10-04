@@ -10,16 +10,16 @@
  */
 import { getFirestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
-import { acknowledgeIfNeeded, grantSubscription, queryPlaySubscription } from "./billingHelpers";
+import { acknowledgeIfNeeded, queryPlaySubscription } from "./billingHelpers";
 import { claimPurchaseToken, linkKey } from "./purchaseLinks";
 import { PlayApiError, PlaySubscription, classifyPlayError } from "./playSubscription";
-import { planIdForPlayProduct } from "../lib/packagePlans";
+import { syncSubscription } from "./subscriptionService";
 import "../lib/admin";
 
 export const PENDING_COLLECTION = "play_billing_pending";
 
 export type ActivationOutcome =
-  | { status: "granted"; planId: string; productId: string; expiryMillis: number; acknowledged: boolean; purchase: PlaySubscription }
+  | { status: "granted"; planId: string; productId: string; basePlanId: string | null; expiryMillis: number; acknowledged: boolean; purchase: PlaySubscription }
   | { status: "pending_payment" }
   | { status: "inactive"; state: string }
   | { status: "expired" }
@@ -61,18 +61,27 @@ export async function activatePlayPurchase(
   }
 
   // Never grant or acknowledge before the money has settled.
-  if (purchase.isPending) return { status: "pending_payment" };
-  if (purchase.state === "ON_HOLD" || purchase.state === "PAUSED" || purchase.state === "PENDING_PURCHASE_CANCELED") {
-    return { status: "inactive", state: purchase.state };
+  if (purchase.isPending) {
+    await syncSubscription(uid, purchaseToken, purchase, { source: logTag });
+    return { status: "pending_payment" };
   }
-  // CANCELED keeps access until expiry, so expiry (not state) decides.
-  if (purchase.expiryMillis <= Date.now()) return { status: "expired" };
 
-  // Play's order: verify (above) → grant → acknowledge.
-  const planId = await planIdForPlayProduct(productId);
-  await grantSubscription(uid, planId, purchase.expiryMillis, purchase.orderId ?? productId);
+  // Play's order: verify (above) → grant (SubscriptionService → EntitlementManager) → acknowledge.
+  const result = await syncSubscription(uid, purchaseToken, purchase, { source: logTag });
+  if (!result.hasAccess) {
+    if (result.status === "ON_HOLD" || result.status === "PAUSED") return { status: "inactive", state: result.status };
+    return { status: "expired" };
+  }
   const acknowledged = await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledged, logTag);
-  return { status: "granted", planId, productId, expiryMillis: purchase.expiryMillis, acknowledged, purchase };
+  return {
+    status: "granted",
+    planId: purchase.basePlanId || productId,
+    productId,
+    basePlanId: purchase.basePlanId,
+    expiryMillis: purchase.expiryMillis,
+    acknowledged,
+    purchase,
+  };
 }
 
 /** Parks a purchase for the retry job (idempotent per token). */

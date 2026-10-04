@@ -124,7 +124,6 @@ fun ProHostAppRoot(
 ) {
     val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
     val currentUser by viewModel.currentUser.collectAsState()
-    val drawerPackagePlans by viewModel.packagePlans.collectAsState()
     val deepLinkSpaces by viewModel.spaces.collectAsState()
     // Drives the red dot on the drawer's "Renting Requests" item (PRO_HOST/ADMIN)
     // so a new booking request is visible at a glance, alongside the existing
@@ -425,7 +424,6 @@ fun ProHostAppRoot(
                         UserRole.SPECIALIST, UserRole.PRO_HOST -> {
                             SpecialistDrawerContent(
                                 currentUser = currentUser,
-                                packagePlans = drawerPackagePlans,
                                 currentRole = currentRole,
                                 pendingRequestsCount = pendingIncomingRequestsCount,
                                 activeProHostTabId = fullScreenDrawerTab,

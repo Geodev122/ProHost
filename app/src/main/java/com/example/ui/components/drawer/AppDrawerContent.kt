@@ -88,7 +88,6 @@ private fun DrawerExploreHighlight(isActive: Boolean, onClick: () -> Unit) {
 @Composable
 fun SpecialistDrawerContent(
     currentUser: AppUser?,
-    packagePlans: com.example.data.model.PackagePlanCatalog = com.example.data.model.PackagePlanCatalog(),
     currentRole: UserRole,
     // Count of PENDING booking requests against this host's own listings — drives
     // the red dot on "Renting Requests" below, alongside the existing push
@@ -111,7 +110,7 @@ fun SpecialistDrawerContent(
             .split(" ").take(2)
             .joinToString("") { it.firstOrNull()?.uppercaseChar()?.toString() ?: "" }
             .ifBlank { "P" }
-        val planName = currentUser?.ownerPackageId?.let { packagePlans.packages[it]?.name }
+        val planName = currentUser?.ownerPackageId?.let { com.example.data.billing.PlayCatalog.planLabel(it) }
         ProHostDrawerHeader(
             title = currentUser?.fullName ?: "ProHost User",
             subtitle = if (planName != null) "Plan: $planName" else "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
@@ -154,7 +153,7 @@ fun SpecialistDrawerContent(
             )
             Spacer(modifier = Modifier.height(Spacing.xs))
             ProHostDrawerItem(
-                label = "Subscriptions",
+                label = "ProHost Premium",
                 icon = Icons.Default.Layers,
                 selected = activeProHostTabId == "owner_subscriptions",
                 onClick = { onTabSelected("owner_subscriptions") },

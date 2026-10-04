@@ -135,35 +135,27 @@ open class FirebaseFunctionsClient {
     }
 
     /**
-     * functions/src/admin/grantPackage.ts — grants a package plus the PRO_HOST role to the
-     * UID verified via [lookupUserForGrant]. [unlimited] ignores [packageId]/[durationDays]
-     * and grants unlimited listings that never expire.
+     * functions/src/admin/forceProHostUpgrade.ts — Admin "Force Upgrade → ProHost" for the
+     * UID verified via [lookupUserForGrant]. Permanent until revoked (revokeProHostRole).
      */
-    suspend fun grantPackageToUser(
-        targetUid: String,
-        packageId: String?,
-        durationDays: Int?,
-        unlimited: Boolean
-    ): Result<GrantResult> {
+    suspend fun forceProHostUpgrade(targetUid: String): Result<Unit> {
         return try {
-            val payload = mutableMapOf<String, Any>("targetUid" to targetUid, "unlimited" to unlimited)
-            if (!unlimited) {
-                packageId?.let { payload["packageId"] = it }
-                durationDays?.let { payload["durationDays"] = it }
-            }
-            val result = functions.getHttpsCallable("grantPackageToUser").call(payload).await()
-            @Suppress("UNCHECKED_CAST")
-            val data = result.data as? Map<String, Any?> ?: emptyMap()
-            Result.success(
-                GrantResult(
-                    role = data["role"] as? String ?: "PRO_HOST",
-                    packageId = data["packageId"] as? String ?: packageId.orEmpty(),
-                    expiryMillis = (data["expiryMillis"] as? Number)?.toLong(),
-                    restoredListings = (data["restoredListings"] as? Number)?.toInt() ?: 0
-                )
-            )
+            functions.getHttpsCallable("forceProHostUpgrade").call(mapOf("targetUid" to targetUid)).await()
+            Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(tag, "grantPackageToUser failed: ${e.message}", e)
+            Log.e(tag, "forceProHostUpgrade failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /** functions/src/billing/billingSyncJob.ts — Admin: re-sync Google Play subscriptions now. */
+    suspend fun runBillingSync(): Result<Map<String, Any?>> {
+        return try {
+            val result = functions.getHttpsCallable("runBillingSync").call(emptyMap<String, Any>()).await()
+            @Suppress("UNCHECKED_CAST")
+            Result.success(result.data as? Map<String, Any?> ?: emptyMap())
+        } catch (e: Exception) {
+            Log.e(tag, "runBillingSync failed: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -320,10 +312,11 @@ open class FirebaseFunctionsClient {
      *
      * Returns the verified expiry timestamp (ms) on success.
      */
-    suspend fun verifyAndRestorePurchase(purchaseToken: String, productId: String): Result<Long> {
+    suspend fun verifyAndRestorePurchase(purchaseToken: String, productId: String, fromCheckout: Boolean = false): Result<Long> {
         return try {
+            // The server reads the base plan from Google; the app never states what it bought.
             val result = functions.getHttpsCallable("verifyAndRestorePurchase")
-                .call(mapOf("purchaseToken" to purchaseToken, "productId" to productId))
+                .call(mapOf("purchaseToken" to purchaseToken, "productId" to productId, "fromCheckout" to fromCheckout))
                 .await()
             @Suppress("UNCHECKED_CAST")
             val data = result.data as? Map<String, Any?>

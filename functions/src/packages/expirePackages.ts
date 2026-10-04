@@ -7,7 +7,9 @@ import { sendPushToUser } from "../lib/push";
 import { setClaimsThenFirestore } from "../lib/roles";
 import { sendEmail, hostingerSmtpSecret } from "../lib/email";
 import { subscriptionExpiringTemplate, subscriptionExpiredTemplate, UserContext } from "../lib/emailTemplates";
-import { getPackagePlans } from "../lib/packagePlans";
+import { planLabel } from "../billing/playCatalog";
+import { queryPlaySubscription } from "../billing/billingHelpers";
+import { syncSubscription } from "../billing/subscriptionService";
 import "../lib/admin";
 import { sendGa4Event } from "../lib/ga4";
 
@@ -34,7 +36,6 @@ import { sendGa4Event } from "../lib/ga4";
 export const expirePackages = onSchedule({ schedule: "0 * * * *", secrets: [hostingerSmtpSecret] }, async () => {
   const db = getFirestore();
   const now = Date.now();
-  const plans = await getPackagePlans();
 
   // 1. Proactive warning for packages expiring in <= 3 days (notified once)
   const warningWindowEnd = now + 3 * 24 * 60 * 60 * 1000;
@@ -72,7 +73,7 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *", secrets: [host
             activeListingCount: (data.activeListingCount ?? 0) as number,
           };
           const expiryDate = new Date(expiry).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-          const tpl = subscriptionExpiringTemplate(ctx, plans[data.ownerPackageId as string]?.name ?? "Pro Host", daysLeft, expiryDate);
+          const tpl = subscriptionExpiringTemplate(ctx, planLabel(data.ownerPackageId as string | undefined), daysLeft, expiryDate);
           await sendEmail({ to: data.email as string, ...tpl });
         }
       } catch (_) { /* email is best-effort */ }
@@ -100,6 +101,20 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *", secrets: [host
     for (const doc of expiredSnap.docs) {
       const uid = doc.id;
       try {
+        // Google Play is the authority: before demoting a Play subscriber, re-read the
+        // subscription — a renewal whose notification was missed extends it here, and an
+        // ended one is removed through the same EntitlementManager path as RTDN.
+        const token = doc.data()?.lastPurchaseToken as string | undefined;
+        if (doc.data()?.entitlementSource === "google_play" && token) {
+          try {
+            const sub = await queryPlaySubscription(token);
+            await syncSubscription(uid, token, sub, { source: "expire_sweep" });
+            const after = (await doc.ref.get()).data()?.ownerPackageExpiryMillis as number | null | undefined;
+            if (typeof after !== "number" || after > now) { clearedCount++; continue; }
+          } catch (e) {
+            logger.warn(`expirePackages: Play re-check failed for ${uid}: ${(e as Error).message}`);
+          }
+        }
         const authUser = await auth.getUser(uid);
         const isProHost = authUser.customClaims?.role === "PRO_HOST";
 
@@ -111,7 +126,7 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *", secrets: [host
             { ...authUser.customClaims, role: "SPECIALIST" },
             async () => {
               await doc.ref.set(
-                { role: "SPECIALIST", ownerPackageId: null, ownerPackageExpiryMillis: null, updatedAt: now },
+                { role: "SPECIALIST", ownerPackageId: null, ownerPackageExpiryMillis: null, billingStatus: "EXPIRED", updatedAt: now },
                 { merge: true }
               );
             }
@@ -122,7 +137,7 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *", secrets: [host
             logger.warn(`expirePackages: revokeRefreshTokens failed for ${uid}: ${(e as Error).message}`);
           }
           demotedCount++;
-          await sendGa4Event(uid, "package_lapsed", { plan_id: (doc.data()?.ownerPackageId as string | undefined) ?? undefined });
+          await sendGa4Event(uid, "subscription_expired", { plan_id: (doc.data()?.ownerPackageId as string | undefined) ?? undefined });
 
           const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", uid).get();
           if (!ownedListings.empty) {

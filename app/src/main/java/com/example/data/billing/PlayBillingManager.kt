@@ -50,18 +50,14 @@ class PlayBillingManager(
         const val ORDER_HISTORY_URL = "https://play.google.com/store/account/orderhistory"
     }
 
-    // Play subscription IDs to load, set from the admin-managed plan catalog.
-    @Volatile
-    private var catalogProductIds: List<String> = emptyList()
-
     private val _isConnected = MutableStateFlow(false)
     val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
 
     private val _productDetailsList = MutableStateFlow<List<ProductDetails>>(emptyList())
     val productDetailsList: StateFlow<List<ProductDetails>> = _productDetailsList.asStateFlow()
 
-    // Product of the most recent purchase sheet, for analytics on cancel.
-    private var lastLaunched: String? = null
+    // Base plan of the checkout in progress ("monthly"/"yearly"), for analytics only.
+    private var lastLaunchedPlan: String? = null
 
     private val _activePurchases = MutableStateFlow<List<Purchase>>(emptyList())
     val activePurchases: StateFlow<List<Purchase>> = _activePurchases.asStateFlow()
@@ -132,15 +128,8 @@ class PlayBillingManager(
         })
     }
 
-    /** Updates the Play subscription IDs to load (from the plan catalog) and queries them. */
-    fun setCatalogProductIds(productIds: List<String>) {
-        val ids = productIds.filter { it.isNotBlank() }.distinct()
-        if (ids == catalogProductIds) return
-        catalogProductIds = ids
-        querySubscriptionProducts()
-    }
-
-    fun querySubscriptionProducts(productIds: List<String> = catalogProductIds) {
+    /** Google Play is the only catalog: one subscription, [PlayCatalog.PRODUCT_ID], and its base plans. */
+    fun querySubscriptionProducts(productIds: List<String> = listOf(PlayCatalog.PRODUCT_ID)) {
         if (!billingClient.isReady || productIds.isEmpty()) return
 
         val productList = productIds.map { id ->
@@ -166,7 +155,7 @@ class PlayBillingManager(
                     val reasons = unfetched.joinToString { "${it.productId} (status ${it.statusCode})" }
                     Log.w(TAG, "Play couldn't fetch: $reasons")
                     if (list.isEmpty()) {
-                        com.example.analytics.AnalyticsTracker.plansLoadFailed(unfetched.size)
+                        com.example.analytics.AnalyticsTracker.premiumPlansLoadFailed(reasons.take(90))
                         emitMessage(
                             "No subscription plans were returned by Google Play: $reasons. " +
                                 "Check these product IDs are active in Play Console and that this is a " +
@@ -186,13 +175,14 @@ class PlayBillingManager(
         activity: Activity,
         productDetails: ProductDetails,
         userId: String,
-        selectedOfferToken: String? = null,
+        basePlanId: String,
         oldPurchaseToken: String? = null
     ): Boolean {
-        val offerToken = selectedOfferToken
-            ?: PlayOfferText.preferredOffer(productDetails)?.offerToken
+        val plan = PlayCatalog.planInterval(basePlanId) ?: basePlanId
+        // The offer for the chosen base plan (monthly or yearly), never just the first one.
+        val offerToken = PlayOfferText.preferredOffer(productDetails, basePlanId)?.offerToken
             ?: run {
-                emitMessage("\"${productDetails.title}\" has no active offer in Google Play yet. Please try again later.")
+                emitMessage("This plan has no active offer in Google Play yet. Please try again later.")
                 return false
             }
 
@@ -201,7 +191,7 @@ class PlayBillingManager(
             else BillingClient.FeatureType.SUBSCRIPTIONS_UPDATE
         val support = billingClient.isFeatureSupported(feature)
         if (support.responseCode != BillingClient.BillingResponseCode.OK) {
-            com.example.analytics.AnalyticsTracker.purchaseError(support.responseCode)
+            com.example.analytics.AnalyticsTracker.premiumPurchaseFailed(plan, "feature_not_supported", support.responseCode)
             emitMessage(userMessageFor(BillingClient.BillingResponseCode.FEATURE_NOT_SUPPORTED))
             return false
         }
@@ -228,12 +218,12 @@ class PlayBillingManager(
         val phase = productDetails.subscriptionOfferDetails
             ?.firstOrNull { it.offerToken == offerToken }
             ?.pricingPhases?.pricingPhaseList?.lastOrNull()
-        lastLaunched = productDetails.productId
+        lastLaunchedPlan = plan
         if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-            com.example.analytics.AnalyticsTracker.beginSubscriptionCheckout(productDetails.productId, phase?.priceAmountMicros, phase?.priceCurrencyCode)
+            com.example.analytics.AnalyticsTracker.premiumCheckoutStarted(plan, phase?.priceAmountMicros, phase?.priceCurrencyCode)
         }
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {
-            com.example.analytics.AnalyticsTracker.purchaseError(result.responseCode)
+            com.example.analytics.AnalyticsTracker.premiumPurchaseFailed(plan, "launch_failed", result.responseCode)
             Log.e(TAG, "Failed to launch billing flow: ${result.debugMessage}")
             emitMessage(userMessageFor(result.responseCode))
             return false
@@ -260,7 +250,7 @@ class PlayBillingManager(
                 purchases.orEmpty().forEach { handlePurchase(it, fromCheckout = true) }
             }
             BillingClient.BillingResponseCode.USER_CANCELED -> {
-                com.example.analytics.AnalyticsTracker.purchaseCancelled(lastLaunched)
+                com.example.analytics.AnalyticsTracker.premiumPurchaseFailed(lastLaunchedPlan, "user_cancelled")
                 Log.i(TAG, "User canceled Google Play purchase flow")
                 emitMessage("Purchase canceled — you weren't charged.", isError = false)
             }
@@ -269,7 +259,7 @@ class PlayBillingManager(
                 queryActivePurchases()
             }
             else -> {
-                com.example.analytics.AnalyticsTracker.purchaseError(billingResult.responseCode)
+                com.example.analytics.AnalyticsTracker.premiumPurchaseFailed(lastLaunchedPlan, "billing_error", billingResult.responseCode)
                 Log.e(TAG, "Purchases update failed: ${billingResult.debugMessage} (${billingResult.responseCode})")
                 emitMessage(userMessageFor(billingResult.responseCode))
             }
@@ -347,21 +337,11 @@ class PlayBillingManager(
                 }
             }
             Purchase.PurchaseState.PENDING -> if (fromCheckout) {
-                com.example.analytics.AnalyticsTracker.purchasePending()
+                com.example.analytics.AnalyticsTracker.premiumPurchasePending(lastLaunchedPlan)
                 emitMessage("Your payment is pending — your plan activates once Google Play confirms it.", isError = false)
             }
             else -> Unit
         }
-    }
-
-    // Same transaction_id the server derives in functions/src/lib/ga4.ts, so GA4 dedupes
-    // the client and RTDN purchase events. Called once the server has activated the plan.
-    fun logPurchase(purchase: Purchase) {
-        val productId = purchase.products.firstOrNull() ?: return
-        val details = _productDetailsList.value.firstOrNull { it.productId == productId }
-        val phase = PlayOfferText.preferredOffer(details)?.pricingPhases?.pricingPhaseList?.lastOrNull()
-        val txn = com.example.analytics.AnalyticsTracker.transactionId(purchase.orderId ?: purchase.purchaseToken)
-        com.example.analytics.AnalyticsTracker.purchase(txn, productId, phase?.priceAmountMicros, phase?.priceCurrencyCode)
     }
 
     /**

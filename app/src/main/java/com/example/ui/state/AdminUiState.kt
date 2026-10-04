@@ -64,16 +64,6 @@ data class AdminUiState(
     val addSchemaItemPresetCategory: String? = null,
     val isResetSchemaDialogOpen: Boolean = false,
 
-    // Admin-managed, purchasable Pro Host packages — replaces the old fixed
-    // Package 2/3 fee+limit inputs entirely (see PackagePlan/PackagePlanCatalog).
-    val packagePlans: PackagePlanCatalog = PackagePlanCatalog(),
-    val isAddPackagePlanDialogOpen: Boolean = false,
-
-    // Delete-package confirmation dialog — subscriber-aware (BUG-C3)
-    val isDeletePackagePlanDialogOpen: Boolean = false,
-    val pendingDeletePlanId: String? = null,
-    val pendingDeletePlanSubscriberCount: Int = 0,
-
     // Currently-published version of each of the 3 admin-manageable legal documents
     // (LegalDocumentVersion.ADMIN_MANAGED_DOC_IDS), keyed by doc id — null means
     // nothing has ever been uploaded for that doc yet. Loaded once on ViewModel init

@@ -70,6 +70,11 @@ export const revokeProHostRole = onCall<RevokeProHostRoleData>(async (request) =
             role: "SPECIALIST",
             ownerPackageId: null,
             ownerPackageExpiryMillis: null,
+            // Also ends a forced upgrade (the undo for Force Upgrade → ProHost).
+            entitlementSource: null,
+            billingStatus: null,
+            subscriptionPlatform: null,
+            subscriptionExpiry: null,
             updatedAt: Date.now(),
           },
           { merge: true }

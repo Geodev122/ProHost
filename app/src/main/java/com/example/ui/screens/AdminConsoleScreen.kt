@@ -435,45 +435,49 @@ fun AdminConsoleScreen(
         )
     }
 
-
-    // Delete Package Plan Confirmation Dialog
-    if (uiState.isDeletePackagePlanDialogOpen) {
-        uiState.pendingDeletePlanId?.let { planId ->
-            AdminDeletePackagePlanDialog(
-                planId = planId,
-                subscriberCount = uiState.pendingDeletePlanSubscriberCount,
-                onDismiss = { adminViewModel.cancelDeletePackagePlan() },
-                onConfirm = { adminViewModel.confirmDeletePackagePlan() }
-            )
-        }
-    }
-
 }
 
 // =========================================================================
-// TAB 0: PACKAGES CONFIGURATION & SYSTEM EXPORTS
+// TAB 0: PACKAGES — Force Upgrade only. Google Play is the only billing authority:
+// no plans, prices, durations or renewals are managed here.
 // =========================================================================
 @Composable
 private fun AdminPackagesTab(
     uiState: com.example.ui.state.AdminUiState,
-    adminViewModel: AdminViewModel,
-    viewModel: ProHostViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    adminViewModel: AdminViewModel
 ) {
-    val context = LocalContext.current
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Owner Packages & Governance Hub Card
+        item {
+            AdminGrantAccessCard(adminViewModel = adminViewModel)
+        }
+
         item {
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     ProSectionHeader(
-                        title = "Packages Configuration",
-                        subtitle = "Packages & Control Tag",
-                        icon = Icons.Default.AdminPanelSettings
+                        title = "Google Play Billing",
+                        subtitle = "Read-only — managed in Play Console",
+                        icon = Icons.Default.Info
                     )
+                    Text(
+                        "Subscription ${com.example.data.billing.PlayCatalog.PRODUCT_ID} with base plans " +
+                            "${com.example.data.billing.PlayCatalog.BASE_PLAN_MONTHLY} (monthly) and " +
+                            "${com.example.data.billing.PlayCatalog.BASE_PLAN_YEARLY} (yearly). Prices, offers, " +
+                            "renewals and refunds come only from Google Play; roles follow automatically.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    TextButton(onClick = { adminViewModel.runBillingSync() }) {
+                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Sync with Google Play now", style = MaterialTheme.typography.labelLarge)
+                    }
+
+                    HorizontalDivider()
 
                     var tagInput by remember(uiState.pricingState.governanceTag) { mutableStateOf(uiState.pricingState.governanceTag) }
                     OutlinedTextField(
@@ -487,147 +491,6 @@ private fun AdminPackagesTab(
                             }
                         }
                     )
-
-                    HorizontalDivider()
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Subscription Plans", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        CustomButton(
-                            text = "Add Plan",
-                            onClick = { adminViewModel.openAddPackagePlanDialog() },
-                            variant = CustomButtonVariant.SECONDARY,
-                            icon = Icons.Default.Add,
-                            compact = true
-                        )
-                    }
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(Icons.Default.Info, contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(14.dp))
-                            Text(
-                                "Price and billing period come from Google Play Console, and every plan allows unlimited listings. " +
-                                    "Here you only set display priority (lower shows first) and which plan is featured.",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    // Grant-only plans are system-managed by grantPackageToUser.
-                    val adminPlans = uiState.packagePlans.packages.values.filterNot { it.isGrantOnly }
-                        .sortedWith(compareBy({ !it.isFeatured }, { it.sortOrder }))
-                    if (adminPlans.isEmpty()) {
-                        Text(
-                            "No plans yet — tap Add Plan and enter a Google Play subscription ID.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    adminPlans.forEach { plan ->
-                        var priorityInput by remember(plan.id, plan.sortOrder) { mutableStateOf(plan.sortOrder.toString()) }
-                        var featuredInput by remember(plan.id, plan.isFeatured) { mutableStateOf(plan.isFeatured) }
-                        var isFetchingPlay by remember(plan.id) { mutableStateOf(false) }
-                        var playLiveInfo by remember(plan.id) { mutableStateOf<String?>(null) }
-                        val productId = plan.googlePlayProductId.ifBlank { plan.id }
-                        val priority = priorityInput.toIntOrNull()
-                        val isDirty = (priority != null && priority != plan.sortOrder) || featuredInput != plan.isFeatured
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), MaterialTheme.shapes.medium)
-                                .padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(plan.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                                    Text("Play ID: $productId", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                Switch(checked = plan.isEnabled, onCheckedChange = { adminViewModel.togglePackagePlan(plan.id) })
-                                IconButton(onClick = { adminViewModel.deletePackagePlan(plan.id) }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Remove plan", tint = StatusError)
-                                }
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                OutlinedTextField(
-                                    value = priorityInput,
-                                    onValueChange = { v -> if (v.length <= 3 && v.all { it.isDigit() }) priorityInput = v },
-                                    label = { Text("Priority") },
-                                    isError = priority == null,
-                                    singleLine = true,
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Featured", style = MaterialTheme.typography.labelMedium)
-                                    Spacer(Modifier.width(4.dp))
-                                    Switch(checked = featuredInput, onCheckedChange = { featuredInput = it })
-                                }
-                            }
-                            playLiveInfo?.let { liveInfo ->
-                                Text(liveInfo, style = MaterialTheme.typography.labelSmall, color = FreshGreen)
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                TextButton(
-                                    onClick = {
-                                        isFetchingPlay = true
-                                        playLiveInfo = null
-                                        viewModel.fetchPlayProductDetails(context, productId) { details ->
-                                            isFetchingPlay = false
-                                            playLiveInfo = if (details != null) {
-                                                val price = details.subscriptionOfferDetails?.firstOrNull()
-                                                    ?.pricingPhases?.pricingPhaseList?.firstOrNull()
-                                                val period = price?.billingPeriod?.let { " / $it" }.orEmpty()
-                                                "Google Play: ${details.name} · ${price?.formattedPrice ?: "—"}$period"
-                                            } else {
-                                                "Not found in Google Play — check the subscription ID in Play Console."
-                                            }
-                                        }
-                                    },
-                                    enabled = !isFetchingPlay
-                                ) {
-                                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
-                                    Spacer(Modifier.width(4.dp))
-                                    Text("Check Google Play", style = MaterialTheme.typography.labelSmall)
-                                }
-                                Spacer(Modifier.weight(1f))
-                                CustomButton(
-                                    text = "Save",
-                                    onClick = {
-                                        if (priority != null) {
-                                            adminViewModel.updatePackagePlan(plan.copy(sortOrder = priority, isFeatured = featuredInput))
-                                        }
-                                    },
-                                    enabled = isDirty && priority != null,
-                                    variant = CustomButtonVariant.PRIMARY,
-                                    compact = true
-                                )
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -673,14 +536,6 @@ private fun AdminPackagesTab(
         }
     }
 
-    // Add Package Plan Dialog — lives here since the "Add Package" button is in this tab
-    if (uiState.isAddPackagePlanDialogOpen) {
-        AdminAddPackagePlanDialog(
-            existingIds = uiState.packagePlans.packages.keys,
-            onDismiss = { adminViewModel.closeAddPackagePlanDialog() },
-            onAdd = { plan -> adminViewModel.addPackagePlan(plan) }
-        )
-    }
 }
 
 // =========================================================================
@@ -698,13 +553,6 @@ private fun AdminUsersDirectoryTab(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item {
-            AdminGrantAccessCard(
-                adminViewModel = adminViewModel,
-                packagePlans = uiState.packagePlans
-            )
-        }
-
         // Live metrics row
         item {
             val users = uiState.allUsers
@@ -1655,7 +1503,7 @@ private fun AdminSchemaArchitectureTab(
                         text = "• Collection: 'workspace_listings' (Documents: SpaceListing)\n" +
                                 "• Collection: 'user_profiles' (Documents: AppUser)\n" +
                                 "• Collection: 'booking_requests' (Documents: RentalBookingRequest)\n" +
-                                "• Collection: 'package_plans' (Documents: PackagePlanCatalog)\n" +
+                                "• Collection: 'subscriptions' (Google Play subscription records, server-only)\n" +
                                 "• Collection: 'audit_security_logs' (Documents: AuditSecurityLog)\n" +
                                 "• Collection: 'system_metadata' (Documents: AdminPricingState)\n" +
                                 "• Collection: 'hashtag_usage' (Documents: HashtagUsageEntry)\n" +
@@ -2708,60 +2556,6 @@ private fun AdminDeleteListingDialog(
     )
 }
 
-/**
- * 8. Delete Package Plan Confirmation Dialog (BUG-C3)
- */
-@Composable
-private fun AdminDeletePackagePlanDialog(
-    planId: String,
-    subscriberCount: Int,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
-    ProHostDialog(
-        onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError) },
-        title = { Text("Remove Package Plan?") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Are you sure you want to remove package '$planId'? This cannot be undone.")
-                if (subscriberCount > 0) {
-                    Surface(
-                        color = StatusError.copy(alpha = 0.1f),
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(Icons.Default.Group, contentDescription = null, tint = StatusError, modifier = Modifier.size(16.dp))
-                            Text(
-                                "$subscriberCount active subscriber${if (subscriberCount == 1) "" else "s"} will lose access on their next renewal check.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = StatusError
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            CustomButton(
-                text = "Remove Package",
-                onClick = onConfirm,
-                variant = CustomButtonVariant.DANGER
-            )
-        },
-        dismissButton = {
-            CustomButton(
-                text = "Cancel",
-                onClick = onDismiss,
-                variant = CustomButtonVariant.OUTLINED
-            )
-        }
-    )
-}
 
 /**
  * 6. Add Schema Node Dialog
@@ -2941,135 +2735,6 @@ private fun AdminResetSchemaDialog(
     )
 }
 
-/**
- * Adds a Google Play subscription to the in-app catalog. The plan id IS the Play
- * subscription ID: playBillingRtdn.ts stores that ID as ownerPackageId, and the app
- * resolves the host's current plan via packages[ownerPackageId].
- */
-@Composable
-private fun AdminAddPackagePlanDialog(
-    existingIds: Set<String>,
-    onDismiss: () -> Unit,
-    onAdd: (PackagePlan) -> Unit
-) {
-    var productId by remember { mutableStateOf("") }
-    var name by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var priorityInput by remember { mutableStateOf("0") }
-    var featured by remember { mutableStateOf(false) }
-
-    val cleanId = productId.trim()
-    val idValid = cleanId.matches(Regex("[a-z0-9][a-z0-9._]{0,39}"))
-    val idCollision = cleanId in existingIds
-    val priority = priorityInput.toIntOrNull()
-    val canAdd = idValid && !idCollision && name.isNotBlank() && priority != null
-
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.sm)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Spacing.lg)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Add Plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = "Close") }
-                }
-
-                OutlinedTextField(
-                    value = productId,
-                    onValueChange = { productId = it.lowercase() },
-                    label = { Text("Google Play subscription ID") },
-                    placeholder = { Text("e.g. prohost_monthly") },
-                    supportingText = {
-                        Text(
-                            when {
-                                cleanId.isEmpty() -> "Must exactly match the subscription ID in Play Console."
-                                !idValid -> "Lowercase letters, digits, dots and underscores only."
-                                idCollision -> "This plan is already in the catalog."
-                                else -> "Price and billing period are read from Google Play."
-                            }
-                        )
-                    },
-                    isError = cleanId.isNotEmpty() && (!idValid || idCollision),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Display name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Short description (optional)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = priorityInput,
-                        onValueChange = { v -> if (v.length <= 3 && v.all { it.isDigit() }) priorityInput = v },
-                        label = { Text("Priority") },
-                        supportingText = { Text("Lower shows first") },
-                        isError = priority == null,
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text("Featured", style = MaterialTheme.typography.labelMedium)
-                    Switch(checked = featured, onCheckedChange = { featured = it })
-                }
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CustomButton(
-                        text = "Cancel",
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        variant = CustomButtonVariant.OUTLINED
-                    )
-                    CustomButton(
-                        text = "Add Plan",
-                        onClick = {
-                            onAdd(
-                                PackagePlan(
-                                    id = cleanId,
-                                    name = name.trim(),
-                                    description = description.trim(),
-                                    isEnabled = true,
-                                    sortOrder = priority ?: 0,
-                                    isFeatured = featured,
-                                    googlePlayProductId = cleanId
-                                )
-                            )
-                        },
-                        enabled = canAdd,
-                        modifier = Modifier.weight(1f),
-                        variant = CustomButtonVariant.SECONDARY
-                    )
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

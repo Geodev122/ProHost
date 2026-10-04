@@ -4,6 +4,8 @@ import { logger } from "firebase-functions/v2";
 import "../lib/admin";
 import { sendGa4Event } from "../lib/ga4";
 import { activatePlayPurchase, parkPendingActivation, resolvePendingActivation } from "./activatePurchase";
+import { logPurchaseOnce } from "./subscriptionService";
+import { planInterval } from "./playCatalog";
 
 /** Shown whenever a paid purchase could not be confirmed yet: it is parked and retried. */
 const PAYMENT_SAFE_MESSAGE =
@@ -23,6 +25,10 @@ const PAYMENT_SAFE_MESSAGE =
 export const verifyAndRestorePurchase = onCall<{
   purchaseToken: string;
   productId: string;
+  /** Informational only: the base plan is always read from Google's response. */
+  basePlanId?: string;
+  /** True for the purchase the app's checkout just returned (vs. restore / app resume). */
+  fromCheckout?: boolean;
 }>(async (request) => {
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
@@ -51,8 +57,15 @@ export const verifyAndRestorePurchase = onCall<{
         `verifyAndRestorePurchase: restored uid=${uid} product=${outcome.productId} ` +
           `expiry=${new Date(outcome.expiryMillis).toISOString()} acknowledged=${outcome.acknowledged}`
       );
-      await sendGa4Event(uid, "subscription_restored", { item_id: outcome.productId });
-      return { success: true, expiryMillis: outcome.expiryMillis, planId: outcome.planId };
+      if (request.data?.fromCheckout === true) {
+        await logPurchaseOnce(uid, cleanToken, outcome.purchase);
+      } else {
+        await sendGa4Event(uid, "subscription_restored", {
+          plan: planInterval(outcome.basePlanId) ?? undefined,
+          product_id: outcome.productId,
+        });
+      }
+      return { success: true, expiryMillis: outcome.expiryMillis, planId: outcome.planId, basePlanId: outcome.basePlanId };
     }
     case "play_error":
       if (outcome.error.kind === "invalid") {

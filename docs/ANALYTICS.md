@@ -64,13 +64,13 @@ How analytics is wired, what is tracked, and the console steps that only the pro
 | | `listing_publish_blocked` | `reason`=no_active_package |
 | | `listing_update`, `listing_delete`, `listing_status_change` (`from`,`to`), `listing_verification_request` | |
 | | `subdivision_add` (`subdivision_type`,`strategy`,`pricing_mode`), `subdivision_remove`, `schedule_update`, `blackout_add` | |
-| Subscriptions | `view_plans` | `plan_count`, `products_loaded` |
-| | `plans_load_failed` | `queried_ids_count` |
-| | ★`begin_checkout` | `content_type`=subscription, `items`, `value`, `currency` |
-| | ★`purchase` ⚑ | `transaction_id` (sha256(orderId)[0:24]), `value`, `currency`, `items` — client + server, deduped |
-| | `purchase_cancelled`, `purchase_error` (`response_code`), `purchase_pending` | |
-| | `restore_purchases` (`result`), `redeem_code_open`, `manage_subscription_open`, `order_history_open` | |
-| Server only | `purchase` (renewal: `purchase_type`=renewal), `subscription_recovered/restarted/revoked/expired/on_hold/paused/cancelled/grace_period`, `subscription_restored`, `package_lapsed`, `booking_auto_rejected` | `item_id`, `plan_id`, `source`=server |
+| ProHost Premium | `premium_page_viewed` | `source`, `plans_loaded` |
+| | `premium_plan_viewed` | `plan` (monthly / yearly) |
+| | `premium_plans_load_failed` | `reason` |
+| | `premium_checkout_started` | `plan`, `product_id`, `value`, `currency` |
+| | `premium_purchase_failed` | `plan`, `reason` (user_cancelled, billing_error, launch_failed, feature_not_supported, server_activation), `response_code` |
+| | `premium_purchase_pending`, `premium_restore_result` (`result`), `redeem_code_open`, `manage_subscription_open`, `order_history_open` | |
+| Server only | ⚑`premium_purchase_success` (once per subscription: `plan`, `product_id`, `base_plan_id`, `value`, `currency`, `transaction_id`), `subscription_renewed` (`value`, `currency`), `subscription_restored`, `subscription_expired`, `subscription_recovered/restarted/revoked/on_hold/paused/cancelled/grace_period`, `booking_auto_rejected` | `plan`, `product_id`, `source`=server |
 | Admin | `admin_action` | `action`, `result` |
 | Errors | `app_error` | `area`, `code` (every `reportFailure`) |
 
@@ -116,7 +116,7 @@ In [GA4 Admin](https://analytics.google.com/) → **Key Events** (Conversions), 
 4. `booking_request` ⚑
 5. `booking_accepted` ⚑
 6. `listing_publish` ⚑
-7. `purchase` ⚑
+7. `premium_purchase_success` ⚑
 
 ### Step 5: Link BigQuery Export
 1. In [Firebase Console](https://console.firebase.google.com/project/prohost-f766f/overview) → **Project Settings** → **Integrations** → **BigQuery** → Click **Link**.
@@ -140,8 +140,12 @@ In [Google Play Console](https://play.google.com/console) → **App Content** �
 - **Specialist funnel:** `view_item_list` → `select_item` → `view_item` → `view_availability` →
   `begin_checkout` → `booking_request` → `booking_accepted`.
 - **Lead funnel:** `view_item` → `generate_lead` (WhatsApp).
-- **Host funnel:** `listing_create_start` → `listing_publish_blocked` → `view_plans` → `begin_checkout`
-  (subscription) → `purchase` → `listing_publish`.
+- **Host funnel:** `listing_create_start` → `listing_publish_blocked` → `premium_page_viewed` →
+  `premium_checkout_started` → `premium_purchase_success` → `listing_publish`.
+- **Subscription revenue:** billing events use the `premium_*` / `subscription_*` names (owner's choice), so
+  GA4's built-in Monetization reports (which read only `purchase`) stay empty. Build a free-form exploration
+  summing `value` of `premium_purchase_success` + `subscription_renewed`, split by `plan`. Play Console's
+  financial reports remain the source of truth for money.
 - **Supply mix:** `listing_publish` by `item_category`, `country`, `has_attendee_pricing`.
 - **Demand mix:** `view_item` / `generate_lead` by `item_category`, `item_category2`, `item_category4`.
 - **Retention:** cohort exploration split by `user_role`, `signup_method`.

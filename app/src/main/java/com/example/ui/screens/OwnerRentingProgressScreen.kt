@@ -33,7 +33,6 @@ fun OwnerRentingProgressScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val spaces by viewModel.spaces.collectAsState()
     val allBookingRequests by viewModel.bookingRequests.collectAsState()
-    val packagePlans by viewModel.packagePlans.collectAsState()
     val hasLoadedBookingsOnce by viewModel.hasLoadedBookingsOnce.collectAsState()
     val isOffline by viewModel.isOfflineMode.collectAsState()
 
@@ -75,7 +74,7 @@ fun OwnerRentingProgressScreen(
     OwnerRentingProgressScreenContent(
         ownerSpaces = ownerSpaces,
         activeBookings = activeBookings,
-        currentPackage = currentUser?.ownerPackageId?.let { packagePlans.packages[it] },
+        currentPlanId = currentUser?.ownerPackageId,
         ownerPackageExpiryMillis = currentUser?.ownerPackageExpiryMillis,
         hasLoadedBookingsOnce = hasLoadedBookingsOnce,
         isOffline = isOffline,
@@ -102,7 +101,7 @@ fun OwnerRentingProgressScreen(
 fun OwnerRentingProgressScreenContent(
     ownerSpaces: List<SpaceListing>,
     activeBookings: List<BookingRequest>,
-    currentPackage: PackagePlan?,
+    currentPlanId: String?,
     ownerPackageExpiryMillis: Long?,
     hasLoadedBookingsOnce: Boolean = true,
     isOffline: Boolean = false,
@@ -115,10 +114,10 @@ fun OwnerRentingProgressScreenContent(
 ) {
     // Generate Dynamic Reminders & Alerts
     // Each reminder is (isUrgent, text) — isUrgent drives icon and tint selection.
-    val reminders = remember(ownerSpaces, activeBookings, currentPackage, ownerPackageExpiryMillis) {
+    val reminders = remember(ownerSpaces, activeBookings, currentPlanId, ownerPackageExpiryMillis) {
         val list = mutableListOf<Pair<Boolean, String>>()
 
-        // 1. Package renewal reminder — host-level (currentPackage/ownerPackageExpiryMillis),
+        // 1. Package renewal reminder — host-level (currentPlanId/ownerPackageExpiryMillis),
         // not per-listing. The old per-listing SpaceListing.subscriptionExpiryMillis this
         // used to read is a dead field (set once at creation, never updated by any real
         // renewal since packages replaced the flat per-listing subscription fee).
@@ -126,11 +125,13 @@ fun OwnerRentingProgressScreenContent(
             ((it - System.currentTimeMillis() + 86399999L) / (24 * 60 * 60 * 1000)).coerceAtLeast(1)
         }
         val daysLabel = if (daysLeft == 1L) "< 1 day" else "$daysLeft days"
-        if (currentPackage != null && daysLeft != null) {
+        val planName = com.example.data.billing.PlayCatalog.planLabel(currentPlanId)
+        if (currentPlanId != null && daysLeft != null &&
+            !com.example.data.billing.PlayCatalog.isLifetimeExpiry(ownerPackageExpiryMillis)) {
             if (daysLeft <= 7) {
-                list.add(Pair(true, "'${currentPackage.name}' renews in $daysLabel. Renew from My Listings to keep publishing new workspaces."))
+                list.add(Pair(true, "'$planName' renews in $daysLabel. Google Play renews it automatically; check your payment method in Google Play if needed."))
             } else {
-                list.add(Pair(false, "'${currentPackage.name}' is active. Renews in $daysLabel."))
+                list.add(Pair(false, "'$planName' is active. Renews in $daysLabel."))
             }
         }
 

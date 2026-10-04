@@ -25,7 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.AppUser
-import com.example.data.model.PackagePlan
+import com.example.data.billing.PlayCatalog
+import com.example.data.billing.PlayOfferText
 import com.example.ui.theme.FreshGreen
 import com.example.ui.theme.Spacing
 import com.example.ui.viewmodel.ProHostViewModel
@@ -51,21 +52,20 @@ fun SubscriptionRenewalDialog(
         null
     }
 
-    val packagePlans by viewModel.packagePlans.collectAsState()
+    // Google Play is the only catalog: ProHost Premium's base plans, priced by Play.
     val playBillingProducts by viewModel.playBillingProducts.collectAsState()
-    val playProductMap = remember(playBillingProducts) { playBillingProducts.associateBy { it.productId } }
-    fun productOf(plan: PackagePlan) = playProductMap[plan.googlePlayProductId.ifBlank { plan.id }]
-    fun priceOf(plan: PackagePlan): String =
-        PackagePlan.displayPrice(plan, com.example.data.billing.PlayOfferText.recurringPrice(productOf(plan)))
-    fun termsOf(plan: PackagePlan): String =
-        com.example.data.billing.PlayOfferText.describe(productOf(plan)) ?: priceOf(plan)
-
-    val enabledPlans = remember(packagePlans) {
-        packagePlans.purchasablePlans()
+    val product = remember(playBillingProducts) {
+        playBillingProducts.firstOrNull { it.productId == PlayCatalog.PRODUCT_ID }
     }
-    val currentPlan = currentUser.ownerPackageId?.let { packagePlans.packages[it] }
+    fun priceOf(basePlanId: String): String =
+        PlayOfferText.recurringPrice(product, basePlanId) ?: "Price shown in Google Play"
+    fun termsOf(basePlanId: String): String =
+        PlayOfferText.describe(product, basePlanId) ?: priceOf(basePlanId)
+
+    val enabledPlans = remember(product) { PlayOfferText.basePlans(product) }
+    val currentPlan = currentUser.ownerPackageId?.takeIf { it in enabledPlans }
     var selectedPlan by remember(currentPlan, enabledPlans) {
-        mutableStateOf(currentPlan ?: enabledPlans.firstOrNull())
+        mutableStateOf(currentPlan ?: enabledPlans.lastOrNull())
     }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -107,7 +107,7 @@ fun SubscriptionRenewalDialog(
 
                 if (enabledPlans.isEmpty()) {
                     Text(
-                        "No packages are available right now — please check back later.",
+                        "Couldn't load ProHost Premium from Google Play. Check your connection and try again.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -116,9 +116,9 @@ fun SubscriptionRenewalDialog(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        items(enabledPlans, key = { it.id }) { plan ->
-                            val isSelected = selectedPlan?.id == plan.id
-                            val isCurrent = currentPlan?.id == plan.id
+                        items(enabledPlans, key = { it }) { plan ->
+                            val isSelected = selectedPlan == plan
+                            val isCurrent = currentPlan == plan
 
                             Card(
                                 onClick = { selectedPlan = plan },
@@ -144,7 +144,7 @@ fun SubscriptionRenewalDialog(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = plan.name,
+                                            text = PlayCatalog.planLabel(plan),
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Bold,
                                             maxLines = 1,
@@ -192,7 +192,7 @@ fun SubscriptionRenewalDialog(
                 Button(
                     onClick = {
                         if (activity != null && targetPlan != null) {
-                            viewModel.launchGooglePaySubscription(activity, targetPlan.googlePlayProductId.ifBlank { targetPlan.id })
+                            viewModel.launchGooglePaySubscription(activity, targetPlan)
                             onDismiss()
                         }
                     },

@@ -2,6 +2,28 @@
 
 Last reviewed: 2026-10-04 (Play Billing Library 9.1.0).
 
+## 0. Architecture (refactor of 2026-10-04): Google Play is the only authority
+
+```
+Play subscription package_pro_mrr ── base plans pro-montly / pro-yearly
+  → Billing SDK (prices, offers, Save %) → purchase token
+  → verifyAndRestorePurchase / RTDN / billingSyncJob (daily) → Play Developer API (subscriptionsv2)
+  → SubscriptionService (subscriptions/{sha256(token)}) → EntitlementManager → role specialist ↔ prohost
+```
+
+- **No admin catalog, no stored prices.** Change prices, trials and offers only in Play Console. The
+  `package_plans` document is retired.
+- **Admin → Packages → Force Upgrade → ProHost** is the only admin billing action. It is permanent, and
+  Users → Revoke Pro Host undoes it.
+- **Status to role:**
+  - ACTIVE, GRACE_PERIOD, and CANCELED until its expiry: prohost.
+  - ON_HOLD, PAUSED, EXPIRED, REVOKED, REFUNDED: specialist.
+- **After deploying the refactor:** run Admin → Packages → "Sync with Google Play now" once. It migrates
+  existing Pro Hosts: users with a verifiable Play purchase are synced from Google, everyone else becomes a
+  forced upgrade, so nobody loses access. Check the `BILLING_SYNC` audit-log entry for the counts.
+- **Firestore check:** `subscriptions` holds one document per purchase. `user_profiles.billingStatus`
+  mirrors Google's lifecycle.
+
 ## 1. Billing implementation review
 
 ### Fixed in this pass

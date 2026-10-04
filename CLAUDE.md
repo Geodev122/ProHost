@@ -2,31 +2,46 @@
 
 ## Google Play Billing
 
-App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`). Google Play
-requires v8.0.0+ for any app selling in-app products/subscriptions.
+**Google Play is the only billing authority.** One subscription, `package_pro_mrr`, with base plans
+`pro-montly` (spelled exactly so in Play Console) and `pro-yearly` — constants in
+`data/billing/PlayCatalog.kt` (app) and `functions/src/billing/playCatalog.ts` (server). There is no plan
+catalog, no stored price and no admin package management: `package_plans` is retired (read-only for old
+app versions), `grantPackageToUser` is gone. Never reintroduce local plans, prices or durations.
 
-- Subscriptions only (`ProductType.SUBS`). Product queries use the documented Billing 8+ callback
-  `queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult -> }` and read
-  `queryProductDetailsResult.productDetailsList` / `.unfetchedProductList` (reasons surface in the
-  "no plans" message). Never cast the callback argument (`as? List<*>` / `as? ProductDetailsResult` both
-  silently produced an empty plan list). Re-query on every Subscriptions visit — don't rely on stale
-  `ProductDetails`. One offer for display and checkout: `PlayOfferText.preferredOffer()`.
-- Purchase processing follows Play's verify → grant → acknowledge: the device never acknowledges or
-  grants. `handlePurchase` sends PURCHASED (non-suspended) purchases from checkout, and unacknowledged
-  ones from `queryPurchasesAsync` (with `includeSuspendedSubscriptions`), through `purchaseEvents` to
-  `verifyAndRestorePurchase`, which verifies with the Play Developer API, grants, then acknowledges. RTDN
-  does the same server-side and never acknowledges while `paymentState` is 0 (pending). The local RSA
-  signature check is advisory only. Purchases are re-queried whenever the app returns to the foreground.
-- `PlayBillingManager.kt` is the single source of truth for billing state
-  (`_productDetailsList: MutableStateFlow<List<ProductDetails>>`). Don't reintroduce raw
-  `List<Any>` intermediates.
-- Verify `queryProductDetailsAsync` / `queryPurchasesAsync` signatures against the installed
-  Billing Client version before any future dependency bump — check NIGHTHAWK's "Billing
-  Acknowledgement" check after upgrading.
-- Every billing outcome goes through `PlayBillingManager.billingMessages` (typed `BillingMessage`,
-  buffered) and `ProHostViewModel` routes it into `billingError`/`billingSuccess`. Never emit a
-  billing result only to Logcat — an uncollected message is what made "tap a plan, nothing
-  happens" (Oct 2026). `launchSubscriptionPurchase` returns whether Play's sheet opened.
+App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; Play requires v8+).
+
+- Prices, periods, trials and "Save XX%" come only from the Billing SDK (`PlayOfferText`, per base plan:
+  `preferredOffer(details, basePlanId)`). Checkout always passes the chosen base plan's offer token —
+  picking one offer per product made the yearly plan unbuyable. Monthly ↔ yearly passes the old token
+  (`SubscriptionUpdateParams`). The screen is "ProHost Premium" (`OwnerSubscriptionsScreen.kt`).
+- Product queries use the Billing 8+ callback `queryProductDetailsAsync(params) { billingResult,
+  queryProductDetailsResult -> }` (`productDetailsList` / `unfetchedProductList`). Never cast the callback
+  argument. Re-query on every Premium visit.
+- The client never grants or acknowledges and never sets a role. `handlePurchase` sends PURCHASED
+  (non-suspended) purchases through `purchaseEvents` to `verifyAndRestorePurchase` (with `fromCheckout`);
+  the local RSA check is advisory. Purchases are re-queried on every foreground.
+- Server: `SubscriptionService` (`billing/subscriptionService.ts`) records every verified purchase in
+  `subscriptions/{sha256(token)}` (server-only) and applies its status through the `EntitlementManager`
+  (`billing/entitlementManager.ts`: `grantProHost` / `removeProHost` / `isPremium` /
+  `getSubscriptionStatus`). ACTIVE, GRACE_PERIOD and CANCELED-until-expiry ⇒ PRO_HOST; ON_HOLD, PAUSED,
+  EXPIRED, REVOKED, REFUNDED ⇒ SPECIALIST; PENDING never grants. Profile mirror (server-only, rules-protected):
+  `ownerPackageId` (base plan id or `admin_forced`), `ownerPackageExpiryMillis`, `entitlementSource`,
+  `billingStatus`, `subscriptionExpiry`, `subscriptionPlatform`, `subscriptionId`, `lastPurchaseToken`.
+  `removeProHost` ignores forced upgrades and notifications for a replaced subscription (`subscriptionId`).
+- RTDN (`playBillingRtdn.ts`, `retry: true`) and the daily `billingSyncJob` (also admin `runBillingSync`)
+  both go through `syncSubscription`; `expirePackages` re-reads Play before demoting a Play subscriber. The
+  sync job also migrates pre-refactor entitlements once (Play purchase ⇒ synced, otherwise ⇒ admin_forced).
+- Admin → Packages has one billing action: **Force Upgrade → ProHost** (`forceProHostUpgrade`, permanent,
+  `entitlementSource: admin_forced`). Undo = Users tab → Revoke Pro Host (`revokeProHostRole`).
+- Every billing outcome goes through `PlayBillingManager.billingMessages` (typed, buffered) and
+  `ProHostViewModel` routes it into `billingError`/`billingSuccess`. Never emit a billing result only to
+  Logcat. `launchSubscriptionPurchase` returns whether Play's sheet opened.
+- Analytics: `premium_page_viewed`, `premium_plan_viewed`, `premium_checkout_started`,
+  `premium_purchase_failed`, `premium_purchase_pending`, `premium_restore_result` (app);
+  `premium_purchase_success` (server, once per subscription via `logPurchaseOnce`), `subscription_renewed`,
+  `subscription_restored`, `subscription_expired`, … (server). There is no GA4 `purchase` event any more.
+- Verify `queryProductDetailsAsync` / `queryPurchasesAsync` signatures before any Billing bump — check
+  NIGHTHAWK's "Billing Acknowledgement" check after upgrading.
 - Debug/App Distribution APKs are not Play-installed: billing returns DEVELOPER_ERROR there.
   Test purchases with an internal-testing track install.
 
@@ -159,9 +174,7 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
 - The "Activating your subscription" banner shows only after Play returns PURCHASED and clears on any
   billing message (cancel, pending, error) or server answer. `toUserMessage` passes a function's own
   UNAVAILABLE message through; only transport failures get the generic connection text.
-- RTDN/restore map a Play product id to its catalog plan via `planIdForPlayProduct`
-  (`googlePlayProductId`), and RTDN never grants while `paymentState` is 0 (pending).
-- NIGHTHAWK's "Orphaned Module: billingHelpers / purchaseLinks" and "compileSdk below 34" MEDIUMs are
+- NIGHTHAWK's "Orphaned Module: billingHelpers / purchaseLinks / playCatalog" and "compileSdk below 34" MEDIUMs are
   false positives (both are imported by other modules; compileSdk is 37).
 - `main` history shows NIGHTHAWK checks are sometimes extended directly on `main` (not always
   routed through a feature-branch PR) — before adding new checks or fixing findings on a

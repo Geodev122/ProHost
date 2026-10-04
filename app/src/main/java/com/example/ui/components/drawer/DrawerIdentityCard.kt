@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.data.model.AppUser
 import com.example.data.model.publicCode
-import com.example.data.model.PackagePlan
+import com.example.data.billing.PlayCatalog
 import com.example.data.model.UserRole
 import com.example.ui.theme.*
 
@@ -32,7 +32,8 @@ import com.example.ui.theme.*
 @Composable
 fun DrawerIdentityCard(
     user: AppUser?,
-    currentPackage: PackagePlan? = null,
+    /** The user's ownerPackageId (base plan or forced upgrade); null = no Pro Host access. */
+    currentPlanId: String? = null,
     onCloseDrawer: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -86,7 +87,7 @@ fun DrawerIdentityCard(
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Text(
-                                        text = currentPackage?.badgeName?.ifBlank { currentPackage.name } ?: "Active Plan",
+                                        text = PlayCatalog.planBadge(currentPlanId),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = pro.onBrandHeader,

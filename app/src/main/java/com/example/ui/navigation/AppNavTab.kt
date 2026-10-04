@@ -30,7 +30,7 @@ sealed class AppNavTab(
     object OwnerRentalRequests : AppNavTab("owner_requests", "Renting Requests", Icons.Filled.Inbox, Icons.Outlined.Inbox)
     object OwnerRentingProgress : AppNavTab("owner_progress", "Renting Progress", Icons.Filled.Schedule, Icons.Outlined.Schedule)
     object Stats : AppNavTab("stats", "Financials", Icons.Filled.Analytics, Icons.Outlined.Analytics)
-    object OwnerSubscriptions : AppNavTab("owner_subscriptions", "Subscriptions", Icons.Filled.Layers, Icons.Outlined.Layers)
+    object OwnerSubscriptions : AppNavTab("owner_subscriptions", "ProHost Premium", Icons.Filled.Layers, Icons.Outlined.Layers)
 
     // Shared between SPECIALIST and PRO_HOST — a Pro Host is still fundamentally a
     // Specialist underneath and browses/saves spaces the same way. Drawer-only

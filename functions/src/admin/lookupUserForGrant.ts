@@ -10,7 +10,7 @@ interface LookupUserForGrantData {
 
 /**
  * Admin-only: resolves an email to the Auth account + profile so the admin can
- * confirm identity (name, UID, current role/package) before grantPackageToUser.
+ * confirm identity (name, UID, current role/package) before forceProHostUpgrade.
  */
 export const lookupUserForGrant = onCall<LookupUserForGrantData>(async (request) => {
   const auth = request.auth;

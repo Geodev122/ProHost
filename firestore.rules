@@ -206,6 +206,10 @@ service cloud.firestore {
         // actually happened through assignInitialRole.ts, none of which the
         // update rule below would ever let a client set afterward.
         request.resource.data.get('ownerPackageExpiryMillis', null) == null &&
+        request.resource.data.get('entitlementSource', null) == null &&
+        request.resource.data.get('billingStatus', null) == null &&
+        request.resource.data.get('subscriptionId', null) == null &&
+        request.resource.data.get('lastPurchaseToken', null) == null &&
         request.resource.data.get('proHostUpgradedAtMillis', null) == null &&
         request.resource.data.get('isSuspended', false) == false &&
         request.resource.data.get('createdAtMillis', null) == null &&
@@ -221,9 +225,11 @@ service cloud.firestore {
       // setAccountSuspended (isSuspended) can, all Admin SDK. There is no
       // admin-reviewed accreditation system anymore, so no separate
       // verificationStatus/verificationTier/trustScore fields to protect.
-      // ownerPackageId/ownerPackageExpiryMillis are entitlement fields set
-      // exclusively by Admin SDK code — playBillingRtdn.ts, grantPackageToUser
-      // (admin grants), expirePackages.ts (the hourly expiry sweep), and
+      // ownerPackageId/ownerPackageExpiryMillis and the billing mirror
+      // (entitlementSource, billingStatus, subscriptionExpiry, subscriptionPlatform,
+      // subscriptionId, lastPurchaseToken) are set exclusively by Admin SDK code —
+      // billing/entitlementManager.ts (Google Play via subscriptionService, and admin
+      // forceProHostUpgrade), expirePackages.ts, billingSyncJob.ts and
       // revokeProHostRole — a client
       // write could otherwise self-grant a package for free or dodge real expiry.
       // activeListingCount is maintained only by listingCountTracker.ts's
@@ -236,7 +242,9 @@ service cloud.firestore {
           ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
            "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount", "proHostUpgradedAtMillis",
            "tosAcceptedAtMillis", "consentVersion",
-           "emailVerified", "emailVerifiedAt", "displayCode"]
+           "emailVerified", "emailVerifiedAt", "displayCode",
+           "entitlementSource", "billingStatus", "subscriptionExpiry", "subscriptionPlatform",
+           "subscriptionId", "lastPurchaseToken"]
         );
 
       allow delete: if isAdmin();
@@ -412,8 +420,7 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------
-    // system_metadata — server-only (updatePricing Cloud Function is the
-    // only writer; FirestoreService.initializeSchema, which would have
+    // system_metadata — server-only (no client writer; FirestoreService.initializeSchema, which would have
     // written schema_info directly, has no call sites anywhere in the app).
     // ---------------------------------------------------------------
     match /system_metadata/{docId} {
@@ -435,19 +442,20 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------
-    // package_plans — admin-managed, purchasable Pro Host packages (replaces
-    // the old closed OwnerPackageTier enum + PAYG credit system entirely).
-    // Same direct-admin-write pattern as schema_architecture above rather than
-    // system_metadata's Cloud-Function-only pattern: the trust boundary that
-    // actually matters — never trusting a BUYER's claimed price — is enforced
-    // where money changes hands (Google Play verifies every purchase,
-    // server-side, at charge time), not at admin-configuration time. Public
-    // read is required: every client needs the live catalog to render
-    // purchase/renewal screens and resolve a host's own package.
+    // package_plans — RETIRED. Google Play is the only billing authority
+    // (package_pro_mrr, base plans pro-montly / pro-yearly; see
+    // functions/src/billing/playCatalog.ts). Kept readable only so app versions
+    // released before the refactor don't break; nothing may write it.
     // ---------------------------------------------------------------
     match /package_plans/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if false;
+    }
+
+    // Google Play subscription records (billing/subscriptionService.ts): server-only,
+    // they hold purchase tokens.
+    match /subscriptions/{subscriptionId} {
+      allow read, write: if false;
     }
 
     // ---------------------------------------------------------------

@@ -51,7 +51,6 @@ fun SpecialistProfileScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val currentUser by viewModel.currentUser.collectAsState()
-    val packagePlans by viewModel.packagePlans.collectAsState()
 
     // No fabricated Super Admin fallback here anymore — a null currentUser means the
     // session genuinely isn't signed in (this screen used to bake in a real hardcoded
@@ -116,7 +115,7 @@ fun SpecialistProfileScreen(
             // =========================================================================
             DrawerIdentityCard(
                 user = user,
-                currentPackage = user.ownerPackageId?.let { packagePlans.packages[it] }
+                currentPlanId = user.ownerPackageId
             )
 
             // KYC completion banner — shown for all non-ADMIN roles at levels 0–2
@@ -271,12 +270,9 @@ fun SpecialistProfileScreen(
             val pendingApplicationsCount = practitionerBookingsForStats.count { it.status == BookingRequestStatus.PENDING }
             val ownerActiveListings = if (ownerSpaces.isNotEmpty()) ownerSpaces else if (user.role == UserRole.ADMIN) allSpacesList else emptyList()
             val estimatedYieldUsd = ownerActiveListings.sumOf { it.baseMonthlyRateUsd }
-            // Real per-user package lookup (SubscriptionRenewalDialog.kt's established pattern) —
-            // this used to read the global, admin-wide pricingState.monthlySubscriptionFeeUsd, which
-            // showed a live legacy fee (e.g. "$2.50") even for a user with no active plan at all.
-            val ownerPackagePlan = user.ownerPackageId?.let { packagePlans.packages[it] }
+            // The user's own entitlement: plan name only — prices live in Google Play, never here.
             val ownerPackageExpired = user.ownerPackageExpiryMillis?.let { it <= System.currentTimeMillis() } ?: false
-            val ownerActivePackagePlan = if (ownerPackageExpired) null else ownerPackagePlan
+            val ownerActivePlanId = if (ownerPackageExpired) null else user.ownerPackageId
 
             // Specialist's own performance stats used to be shown twice — once here
             // and once, in full, on the My Rentals screen. This card is now
@@ -386,9 +382,9 @@ fun SpecialistProfileScreen(
                                     modifier = Modifier.weight(1f)
                                 )
                                 ProMetricTile(
-                                    title = "Active Package",
-                                    value = ownerActivePackagePlan?.let { "$${it.priceUsd.toInt()} USD" } ?: "No Plan",
-                                    subtitle = ownerActivePackagePlan?.let { "${it.name} · ${it.validityDays}d" } ?: "No active package",
+                                    title = "ProHost Premium",
+                                    value = ownerActivePlanId?.let { com.example.data.billing.PlayCatalog.planBadge(it) } ?: "No Plan",
+                                    subtitle = ownerActivePlanId?.let { com.example.data.billing.PlayCatalog.planLabel(it) } ?: "No active subscription",
                                     icon = Icons.Default.Payment,
                                     iconTint = MaterialTheme.colorScheme.secondary,
                                     modifier = Modifier.weight(1f)

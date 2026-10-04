@@ -90,7 +90,6 @@ class FirestoreService(
         onBookingsUpdated: (List<RentalBookingRequest>) -> Unit,
         onSchemaUpdated: (SpaceArchitectureSchema) -> Unit = {},
         onAuditLogsUpdated: (List<AuditSecurityLog>) -> Unit = {},
-        onPackagePlansUpdated: (PackagePlanCatalog) -> Unit = {},
         onWorkspacesError: (Exception) -> Unit = {}
     ) {
         val db = firestore ?: return
@@ -279,34 +278,6 @@ class FirestoreService(
                     }
                 }
             activeListeners.add(schemaListener)
-
-            // Admin-managed, purchasable Pro Host packages (package_plans/main). Public
-            // read (firestore.rules) — every client, not just admins, needs the live
-            // catalog to render purchase/renewal screens and resolve a host's own
-            // package name/limit. Unlike the schema listener above, a missing document
-            // here is reported as a real EMPTY catalog (not silently skipped) — an
-            // empty/"no packages yet" state must be distinguishable from "still waiting
-            // on Firestore," since the caller must never treat a placeholder as a real,
-            // purchasable package (see ProHostRepository's own doc comment on this).
-            val packagePlansListener = db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
-                .document(PackagePlanCatalog.DOCUMENT_ID)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.w(TAG, "Package plans sync note: ${error.message}")
-                        return@addSnapshotListener
-                    }
-                    val data = snapshot?.data
-                    if (data == null || data.isEmpty()) {
-                        db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
-                            .document(PackagePlanCatalog.DOCUMENT_ID)
-                            .set(PackagePlanCatalog.DEFAULT_CATALOG.toFirestoreMap(), SetOptions.merge())
-                            .addOnFailureListener { e -> Log.e(TAG, "Failed to seed package plans catalog: ${e.message}") }
-                        onPackagePlansUpdated(PackagePlanCatalog.DEFAULT_CATALOG)
-                    } else {
-                        onPackagePlansUpdated(PackagePlanCatalog.fromFirestoreMap(data))
-                    }
-                }
-            activeListeners.add(packagePlansListener)
 
             // Admin-only read (firestore.rules) — only ever attached for an admin caller
             // now, rather than unconditionally attempting it and eating a guaranteed
@@ -534,7 +505,7 @@ class FirestoreService(
      * Admin-on-behalf-of-another-user): role/isVerified/createdAtMillis/
      * lastSignInAtMillis/isSuspended/ownerPackageTier/ownerPackageExpiryMillis are
      * exclusively server-maintained (assignInitialRole/grantAdminRole/
-     * setAccountSuspended/playBillingRtdn/grantPackageToUser — see firestore.rules' user_profiles
+     * setAccountSuspended/entitlementManager/forceProHostUpgrade — see firestore.rules' user_profiles
      * update rule) and must never appear in [fields]. Echoing a full AppUser's
      * toFirestoreMap() back unfiltered risks writing a locally-cached, possibly-stale
      * value for one of those fields that no longer matches the real server-stored one —
@@ -723,48 +694,6 @@ class FirestoreService(
             .set(schema.toFirestoreMap(), SetOptions.merge())
             .await()
         return true
-    }
-
-    // ==========================================
-    // ADMIN-MANAGED PACKAGE PLANS
-    // ==========================================
-
-    suspend fun savePackagePlans(catalog: PackagePlanCatalog): Boolean {
-        return try {
-            val db = firestore ?: return localOnly
-            db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
-                .document(PackagePlanCatalog.DOCUMENT_ID)
-                .set(catalog.toFirestoreMap(), SetOptions.merge())
-                .await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error saving package plans: ${e.message}", e)
-            false
-        }
-    }
-
-    /**
-     * A merge-write of the full `packages` map (savePackagePlans above) can only
-     * ADD/overwrite keys — Firestore's merge deep-merges nested map fields, so a
-     * key simply absent from the write payload is never removed server-side. Real
-     * deletion needs an explicit FieldValue.delete() at the specific nested path.
-     * Requires the doc to already exist (update(), not set-with-merge) — true for
-     * any package that ever went through addPackagePlan/updatePackagePlan/
-     * togglePackagePlan; a still-only-local seeded default has nothing to delete
-     * server-side yet, and this simply fails harmlessly in that edge case.
-     */
-    suspend fun deletePackagePlan(planId: String): Boolean {
-        return try {
-            val db = firestore ?: return localOnly
-            db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
-                .document(PackagePlanCatalog.DOCUMENT_ID)
-                .update("packages.$planId", com.google.firebase.firestore.FieldValue.delete())
-                .await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error deleting package plan: ${e.message}", e)
-            false
-        }
     }
 
     /** One-shot read of the currently-published version of legal document [docId], or

@@ -24,6 +24,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.data.model.*
+import com.example.data.billing.PlayCatalog
 import com.example.data.billing.PlayOfferText
 import com.example.ui.components.CustomButton
 import com.example.ui.components.CustomButtonVariant
@@ -51,7 +52,7 @@ fun OwnerSubscriptionsScreen(
     }
     val haptic = LocalHapticFeedback.current
     var showKycDialog by remember { mutableStateOf(false) }
-    var pendingProductId by remember { mutableStateOf<String?>(null) }
+    var pendingBasePlanId by remember { mutableStateOf<String?>(null) }
     var showRedeemDialog by remember { mutableStateOf(false) }
     var redeemCodeInput by remember { mutableStateOf("") }
     // A code that arrived by promo link opens the Redeem dialog pre-filled.
@@ -63,7 +64,6 @@ fun OwnerSubscriptionsScreen(
         }
     }
     val currentUser by viewModel.currentUser.collectAsState()
-    val packagePlans by viewModel.packagePlans.collectAsState()
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
     val pendingAutoPublishDraftId by viewModel.pendingAutoPublishDraftId.collectAsState()
     val billingActivationPending by viewModel.billingActivationPending.collectAsState()
@@ -73,7 +73,7 @@ fun OwnerSubscriptionsScreen(
     LaunchedEffect(kycPromptAfterActivation) {
         if (kycPromptAfterActivation) {
             viewModel.consumeKycPromptAfterActivation()
-            pendingProductId = null
+            pendingBasePlanId = null
             showKycDialog = true
         }
     }
@@ -125,19 +125,27 @@ fun OwnerSubscriptionsScreen(
         }
     }
 
-    val enabledPlans = remember(packagePlans) { packagePlans.purchasablePlans() }
-    val currentPlan = currentUser?.ownerPackageId?.let { packagePlans.packages[it] }
+    // Google Play is the only catalog: ProHost Premium (package_pro_mrr) and the base plans
+    // Play returns for it (monthly / yearly). Nothing here comes from Firestore or an admin.
+    val premiumProduct = remember(playBillingProducts) {
+        playBillingProducts.firstOrNull { it.productId == PlayCatalog.PRODUCT_ID }
+    }
+    val enabledPlans = remember(premiumProduct) { PlayOfferText.basePlans(premiumProduct) }
+    val yearlySavings = remember(premiumProduct) { PlayOfferText.yearlySavingsPercent(premiumProduct) }
+    val currentPlanId = currentUser?.ownerPackageId
+    val isForcedUpgrade = PlayCatalog.isForcedUpgrade(currentPlanId)
 
-    // Map Play product ID → live formatted price string (e.g. "$4.99") from the Play Store catalog.
-    // PackagePlan.displayPrice falls back when Play hasn't loaded yet.
-    val playProductMap = remember(playBillingProducts) { playBillingProducts.associateBy { it.productId } }
-    val pricesLoading = !billingConnected && playBillingProducts.isEmpty()
-    // One view_plans per visit, once Play has had a moment to answer.
+    val pricesLoading = !billingConnected && premiumProduct == null
+    // One premium_page_viewed per visit, once Play has had a moment to answer.
     val latestPlanCount by rememberUpdatedState(enabledPlans.size)
-    val latestProductCount by rememberUpdatedState(playBillingProducts.size)
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(3_000L)
-        com.example.analytics.AnalyticsTracker.viewPlans(latestPlanCount, latestProductCount)
+        com.example.analytics.AnalyticsTracker.premiumPageViewed("subscriptions", latestPlanCount)
+    }
+    LaunchedEffect(enabledPlans) {
+        enabledPlans.forEach { bp ->
+            com.example.analytics.AnalyticsTracker.premiumPlanViewed(PlayCatalog.planInterval(bp) ?: bp)
+        }
     }
 
     val expiryMillis = currentUser?.ownerPackageExpiryMillis
@@ -147,17 +155,16 @@ fun OwnerSubscriptionsScreen(
     } else {
         null
     }
-    val isSubscriptionExpired = currentPlan != null && remainingDays == null
-    val isLifetimeGrant = PackagePlan.isLifetimeExpiry(expiryMillis)
+    val isSubscriptionExpired = currentPlanId != null && remainingDays == null
+    val isLifetimeGrant = PlayCatalog.isLifetimeExpiry(expiryMillis)
     val expiryDateString = remember(expiryMillis, isLifetimeGrant) {
         if (expiryMillis != null && !isLifetimeGrant) {
             SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date(expiryMillis))
         } else null
     }
     // Find the Play purchase for the current plan so we can read isAutoRenewing.
-    val currentPlayPurchase = remember(playActivePurchases, currentPlan) {
-        val pid = currentPlan?.googlePlayProductId?.ifBlank { currentPlan.id } ?: return@remember null
-        playActivePurchases.firstOrNull { p -> p.products.contains(pid) }
+    val currentPlayPurchase = remember(playActivePurchases) {
+        playActivePurchases.firstOrNull { p -> p.products.contains(PlayCatalog.PRODUCT_ID) }
     }
     val isAutoRenewing = currentPlayPurchase?.isAutoRenewing ?: true
 
@@ -181,7 +188,7 @@ fun OwnerSubscriptionsScreen(
                     Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
                     Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
-                        "You have a saved Draft waiting on a purchase. Buy the package it needs below and it will publish automatically.",
+                        "You have a saved Draft waiting on a subscription. Subscribe below and it will publish automatically.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
@@ -296,33 +303,34 @@ fun OwnerSubscriptionsScreen(
                 ) {
                     Surface(color = MaterialTheme.colorScheme.secondary, shape = MaterialTheme.shapes.small) {
                         Text(
-                            text = currentPlan?.badgeName?.ifBlank { currentPlan.name } ?: "No Package",
+                            text = if (currentPlanId != null) PlayCatalog.planBadge(currentPlanId) else "ProHost Premium",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSecondary,
                             modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                         )
                     }
-                    if (currentPlan != null) {
+                    if (currentPlanId != null) {
                         Icon(Icons.Default.Verified, contentDescription = null, tint = MaterialTheme.proColors.headerSuccess, modifier = Modifier.size(24.dp))
                     }
                 }
 
                 Text(
-                    currentPlan?.name ?: "No Active Package",
+                    if (currentPlanId != null) PlayCatalog.planLabel(currentPlanId) else "Become a Pro Host",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.proColors.onBrandHeader
                 )
                 Text(
-                    currentPlan?.description?.ifBlank { null } ?: "Choose a package below to start publishing workspace listings.",
+                    if (currentPlanId != null) "Unlimited workspace listings and booking requests."
+                    else "Subscribe to ProHost Premium to publish unlimited workspace listings.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f)
                 )
 
                 HorizontalDivider(color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.3f))
 
-                if (currentPlan != null) {
+                if (currentPlanId != null) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
                             Text(
@@ -369,7 +377,7 @@ fun OwnerSubscriptionsScreen(
                                 color = MaterialTheme.proColors.headerError
                             )
                         }
-                        currentPlan.isGrantOnly || isLifetimeGrant -> Row(
+                        isForcedUpgrade || isLifetimeGrant -> Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
@@ -409,9 +417,9 @@ fun OwnerSubscriptionsScreen(
                 val activity = androidx.activity.compose.LocalActivity.current
 
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    if (currentPlan != null && !currentPlan.isGrantOnly && !isSubscriptionExpired && activity != null) {
+                    if ((currentPlayPurchase != null || currentPlanId in PlayCatalog.BASE_PLANS) && activity != null) {
                         TextButton(
-                            onClick = { viewModel.openManageSubscriptions(activity, currentPlan.id) },
+                            onClick = { viewModel.openManageSubscriptions(activity, PlayCatalog.PRODUCT_ID) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader)
                         ) {
@@ -459,18 +467,17 @@ fun OwnerSubscriptionsScreen(
                 // terms); this shortcut is only for renewing the plan that expired, with its
                 // terms right under the button (Play policy: terms next to every purchase button).
                 if (isSubscriptionExpired && enabledPlans.isNotEmpty()) {
-                    val upsellPlan = enabledPlans.firstOrNull { it.id == currentPlan?.id } ?: enabledPlans.firstOrNull()
+                    val upsellPlan = currentPlanId?.takeIf { it in enabledPlans } ?: enabledPlans.lastOrNull()
                     CustomButton(
                         text = "Renew Subscription",
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             upsellPlan?.let { plan ->
-                                val productId = plan.googlePlayProductId.ifBlank { plan.id }
                                 if (currentUser?.isKycComplete == false) {
-                                    pendingProductId = productId
+                                    pendingBasePlanId = plan
                                     showKycDialog = true
                                 } else if (activity != null) {
-                                    viewModel.launchGooglePaySubscription(activity, productId)
+                                    viewModel.launchGooglePaySubscription(activity, plan)
                                 } else {
                                     Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
                                 }
@@ -481,7 +488,7 @@ fun OwnerSubscriptionsScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     upsellPlan?.let { plan ->
-                        PlayOfferText.describe(playProductMap[plan.googlePlayProductId.ifBlank { plan.id }])?.let { terms ->
+                        PlayOfferText.describe(premiumProduct, plan)?.let { terms ->
                             Text(
                                 text = "$terms · renews automatically until you cancel",
                                 style = MaterialTheme.typography.labelSmall,
@@ -514,7 +521,7 @@ fun OwnerSubscriptionsScreen(
 
         // Show a warning when billing is connected but returned zero products — lets the
         // host distinguish "not yet loaded" from "connected but misconfigured in Play Console".
-        if (billingConnected && !pricesLoading && playBillingProducts.isEmpty() && enabledPlans.isNotEmpty()) {
+        if (billingConnected && !pricesLoading && premiumProduct == null) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
@@ -555,7 +562,7 @@ fun OwnerSubscriptionsScreen(
 
         if (enabledPlans.isEmpty()) {
             Text(
-                "No packages available right now — check back soon.",
+                if (pricesLoading) "Loading ProHost Premium from Google Play…" else "ProHost Premium plans will appear here once Google Play responds.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 4.dp)
@@ -564,12 +571,12 @@ fun OwnerSubscriptionsScreen(
             // Vertical list — all plans visible without horizontal scroll.
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 enabledPlans.forEach { plan ->
-                    val playProductId = plan.googlePlayProductId.ifBlank { plan.id }
-                    val isCurrent = currentPlan?.id == plan.id && !isSubscriptionExpired
+                    val isCurrent = currentPlanId == plan && !isSubscriptionExpired
                     CompactPlanCard(
-                        plan = plan,
+                        basePlanId = plan,
                         isCurrent = isCurrent,
-                        playProduct = playProductMap[playProductId],
+                        playProduct = premiumProduct,
+                        savingsPercent = if (plan == PlayCatalog.BASE_PLAN_YEARLY) yearlySavings else null,
                         modifier = Modifier.fillMaxWidth(),
                         onSelect = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -577,10 +584,10 @@ fun OwnerSubscriptionsScreen(
                             // "Select" button used to skip it entirely and let an
                             // un-verified user reach Google Pay billing directly.
                             if (currentUser?.isKycComplete == false) {
-                                pendingProductId = playProductId
+                                pendingBasePlanId = plan
                                 showKycDialog = true
                             } else if (activity != null) {
-                                viewModel.launchGooglePaySubscription(activity, playProductId)
+                                viewModel.launchGooglePaySubscription(activity, plan)
                             } else {
                                 Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
                             }
@@ -607,7 +614,7 @@ fun OwnerSubscriptionsScreen(
                 onDismiss = { showKycDialog = false },
                 onKycCompleted = {
                     showKycDialog = false
-                    pendingProductId?.let { pid ->
+                    pendingBasePlanId?.let { pid ->
                         if (activity != null) {
                             viewModel.launchGooglePaySubscription(activity, pid)
                         }
@@ -663,18 +670,25 @@ fun OwnerSubscriptionsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CompactPlanCard(
-    plan: PackagePlan,
+    basePlanId: String,
     isCurrent: Boolean,
     playProduct: com.android.billingclient.api.ProductDetails? = null,
+    savingsPercent: Int? = null,
     modifier: Modifier = Modifier,
     onSelect: () -> Unit
 ) {
-    val isFeatured = plan.isFeatured
-    val trialLabel = PlayOfferText.trialLabel(playProduct)
-    val introLabel = PlayOfferText.introLabel(playProduct)
+    // The yearly plan is the highlighted one ("Save XX%" against twelve monthly payments).
+    val isFeatured = basePlanId == PlayCatalog.BASE_PLAN_YEARLY
+    val trialLabel = PlayOfferText.trialLabel(playProduct, basePlanId)
+    val introLabel = PlayOfferText.introLabel(playProduct, basePlanId)
     // Full terms when there's a trial/intro ("Free for 1 month, then $4.99 / month"), else "per month".
-    val periodLabel = PlayOfferText.caption(playProduct)
-    val priceText = PackagePlan.displayPrice(plan, PlayOfferText.recurringPrice(playProduct))
+    val periodLabel = PlayOfferText.caption(playProduct, basePlanId)
+    val priceText = PlayOfferText.recurringPrice(playProduct, basePlanId) ?: "—"
+    val planName = when (basePlanId) {
+        PlayCatalog.BASE_PLAN_MONTHLY -> "Monthly"
+        PlayCatalog.BASE_PLAN_YEARLY -> "Yearly"
+        else -> basePlanId
+    }
 
     Box(modifier = modifier) {
         Card(
@@ -722,7 +736,7 @@ fun CompactPlanCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = plan.badgeName.ifBlank { plan.name },
+                        text = planName,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (isCurrent) MaterialTheme.proColors.onBrandHeader else MaterialTheme.colorScheme.onSurface,
@@ -783,15 +797,6 @@ fun CompactPlanCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 FeatureRow("Unlimited bookings")
 
-                if (plan.description.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = plan.description,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (isCurrent) MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2
-                    )
-                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -834,8 +839,8 @@ fun CompactPlanCard(
             }
         }
 
-        // "Most Popular" badge on featured plans
-        if (isFeatured && !isCurrent) {
+        // "Save XX%" on the yearly plan, computed from Google Play's own prices.
+        if (isFeatured && !isCurrent && savingsPercent != null) {
             Surface(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -845,7 +850,7 @@ fun CompactPlanCard(
                 shadowElevation = 4.dp
             ) {
                 Text(
-                    text = "★ POPULAR",
+                    text = "SAVE $savingsPercent%",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onSecondary,
