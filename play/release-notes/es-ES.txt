@@ -1,5 +1,5 @@
-Notas de la versión ProHost v1.0.34 (Build 34):
-• Optimización del rendimiento de inicio con perfiles base.
-• Canje de códigos promocionales y restauración de compras mejorados en Google Play.
-• Listas más fluidas y detección precisa del país en el centro del mapa.
+Notas de la versión ProHost v1.0.35 (Build 35):
+• Filtros de exploración mejorados por país y por asistente.
+• Hoja inferior de disponibilidad redimensionable para una navegación más cómoda.
+• Activación fiable de suscripciones de Google Play y reintento de compras.
 • Correcciones de estabilidad y sincronización en tiempo real.
