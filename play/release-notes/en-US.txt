@@ -1,5 +1,5 @@
-ProHost v1.0.33 (Build 33) Release Notes:
-• Redesigned Explore search controls strip with real-time country filter and listing count indicators.
-• Upgraded Google Sign-In button with official Google brand guidelines & One Tap fallback.
-• Enhanced Space Details availability strip, subdivision editor, and subscription plan management.
-• Improved real-time database synchronization, FCM push notifications, and performance.
+ProHost v1.0.34 (Build 34) Release Notes:
+• Startup performance optimization with Baseline Profiles.
+• Improved Google Play Billing promo code redemption and purchase restoration.
+• Enhanced list responsiveness and map center country detection.
+• Real-time database synchronization and stability fixes.

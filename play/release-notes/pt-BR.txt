@@ -1,5 +1,5 @@
-Notas de versão do ProHost v1.0.33 (Build 33):
-• Barra de busca do Explorar reformulada com filtro de país em tempo real e contagem de anúncios.
-• Botão de login do Google atualizado conforme as diretrizes oficiais do Google.
-• Detalhes de disponibilidade do espaço, editor de subdivisões e gestão de planos aprimorados.
-• Sincronização em tempo real e notificações push FCM otimizadas.
+Notas de versão do ProHost v1.0.34 (Build 34):
+• Otimização de desempenho de inicialização com perfis base.
+• Resgate de códigos promocionais e restauração de compras aprimorados no Google Play.
+• Listas mais rápidas e detecção precisa do país no centro do mapa.
+• Melhorias gerais de estabilidade e sincronização em tempo real.
