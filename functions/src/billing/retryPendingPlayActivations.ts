@@ -5,6 +5,7 @@ import { recordAuditLog } from "../lib/auditLog";
 import { sendPushToUser } from "../lib/push";
 import "../lib/admin";
 import { PENDING_COLLECTION, activatePlayPurchase } from "./activatePurchase";
+import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
 
 const ALERT_AFTER_MS = 6 * 60 * 60 * 1000;
 // Play refunds unacknowledged purchases after 3 days; past 4 nothing is left to save.
@@ -64,6 +65,9 @@ export const retryPendingPlayActivations = onSchedule({ schedule: "*/15 * * * *"
 
       if (now - createdAt > GIVE_UP_AFTER_MS) {
         Object.assign(update, { resolved: true, outcome: "gave_up", resolvedAt: now });
+        await notifyAdminsOfSubscriptionChange(uid, "ACTIVATION_AT_RISK", {
+          note: `gave up after ${attempts} attempts — check Play Console › Order management`,
+        });
         await recordAuditLog({
           actionType: "PLAY_BILLING_ACTIVATION_FAILED",
           details: `Gave up activating uid=${uid}, product=${productId} after ${attempts} attempts: ${lastError}. Check Play Console › Order management.`,
@@ -72,6 +76,9 @@ export const retryPendingPlayActivations = onSchedule({ schedule: "*/15 * * * *"
         });
       } else if (!d.alerted && now - createdAt > ALERT_AFTER_MS) {
         update.alerted = true;
+        await notifyAdminsOfSubscriptionChange(uid, "ACTIVATION_AT_RISK", {
+          note: `still not activated after 6 h (${attempts} attempts): ${lastError.slice(0, 80)}`,
+        });
         await recordAuditLog({
           actionType: "PLAY_BILLING_ACTIVATION_STUCK",
           details: `Paid purchase for uid=${uid}, product=${productId} still not activated after 6 h (${attempts} attempts): ${lastError}. Play refunds it 3 days after purchase if it stays unacknowledged.`,

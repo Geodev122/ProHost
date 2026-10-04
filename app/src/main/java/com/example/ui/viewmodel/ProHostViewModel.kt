@@ -529,7 +529,17 @@ class ProHostViewModel(
 
             _billingPriorExpiryMillis.value = currentUser.value?.ownerPackageExpiryMillis
             // The "Activating" banner waits for Play's PURCHASED result (purchaseEvents).
-            manager.launchSubscriptionPurchase(activity, product, userId = uid, basePlanId = basePlanId, oldPurchaseToken = oldPurchaseToken)
+            // Play's recommended replacement modes: an upgrade (to yearly) applies now with credit
+            // for unused time; a downgrade (to monthly) starts at the next renewal date.
+            val replacementMode = if (basePlanId == com.example.data.billing.PlayCatalog.BASE_PLAN_YEARLY) {
+                com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_PRORATED_PRICE
+            } else {
+                com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.DEFERRED
+            }
+            manager.launchSubscriptionPurchase(
+                activity, product, userId = uid, basePlanId = basePlanId,
+                oldPurchaseToken = oldPurchaseToken, replacementMode = replacementMode
+            )
         } else {
             // Store the intent and retry automatically once products load from Play
             _pendingRetryBasePlanId = basePlanId
@@ -568,8 +578,11 @@ class ProHostViewModel(
     }
 
     fun showBillingInAppMessages(activity: android.app.Activity) {
-        playBillingManager?.showInAppMessages(activity) {
-            refreshPlayPurchases(activity)
+        val manager = playBillingManager ?: run { initPlayBilling(activity); playBillingManager } ?: return
+        manager.showInAppMessages(activity) {
+            // The person fixed their payment in Play's message: re-sync with the server now
+            // rather than waiting for the notification.
+            refreshPlayPurchases(activity, forceServerSync = true)
         }
     }
 
@@ -597,11 +610,11 @@ class ProHostViewModel(
     private val processedPurchaseTokens = java.util.Collections.synchronizedSet(mutableSetOf<String>())
 
     /** [userInitiated] (the Restore button) reports every outcome; the silent on-open check only reports a restore. */
-    fun refreshPlayPurchases(context: Context, userInitiated: Boolean = false) {
+    fun refreshPlayPurchases(context: Context, userInitiated: Boolean = false, forceServerSync: Boolean = false) {
         val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager } ?: return
         // If the user already has a Firestore entitlement, just refresh the local
-        // purchases cache — no server call needed.
-        if (currentUser.value?.ownerPackageId != null) {
+        // purchases cache — no server call needed (unless Play just told us the status changed).
+        if (currentUser.value?.ownerPackageId != null && !forceServerSync) {
             manager.queryActivePurchases()
             if (userInitiated) {
                 com.example.analytics.AnalyticsTracker.premiumRestoreResult("already_active")
@@ -635,7 +648,7 @@ class ProHostViewModel(
                 }
                 // Unprocessed purchases are already on their way through purchaseEvents;
                 // don't send the same token twice (the Restore button always retries).
-                if (!processedPurchaseTokens.add(activePurchase.purchaseToken) && !userInitiated) return@runCatching
+                if (!processedPurchaseTokens.add(activePurchase.purchaseToken) && !userInitiated && !forceServerSync) return@runCatching
                 repository.verifyAndRestorePlayPurchase(activePurchase.purchaseToken, productId)
                     .onSuccess {
                         com.example.analytics.AnalyticsTracker.premiumRestoreResult("restored")

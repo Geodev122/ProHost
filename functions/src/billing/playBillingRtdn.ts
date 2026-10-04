@@ -8,6 +8,7 @@ import { recordAuditLog } from "../lib/auditLog";
 import { PACKAGE_NAME, queryPlaySubscription, acknowledgeIfNeeded } from "./billingHelpers";
 import { PLAY_PRODUCT_ID, planInterval, planLabel } from "./playCatalog";
 import { logPurchaseOnce, syncSubscription } from "./subscriptionService";
+import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
 import { sendGa4Event } from "../lib/ga4";
 import { resolvePurchaseUid } from "./purchaseLinks";
 import { classifyPlayError, PlaySubscription } from "./playSubscription";
@@ -116,6 +117,12 @@ export const playBillingRtdn = onMessagePublished(
       logger.warn(
         `playBillingRtdn: purchase not linked to an account yet product=${productId} type=${notificationType} — waiting for in-app restore`
       );
+      if (notificationType === SUBSCRIPTION_PURCHASED) {
+        await notifyAdminsOfSubscriptionChange(null, "UNLINKED_PURCHASE", {
+          planId: purchase.basePlanId || productId,
+          note: "started in the Play Store (e.g. promo code) — activates when its owner opens the app",
+        });
+      }
       await getFirestore().collection("play_billing_unresolved").add({
         purchaseToken,
         productId,
@@ -178,14 +185,31 @@ export const playBillingRtdn = onMessagePublished(
           await emailTo((ctx) => subscriptionRenewedTemplate(ctx, planName, expiryDate));
         }
         break;
-      case SUBSCRIPTION_CANCELED:
+      case SUBSCRIPTION_CANCELED: {
         // Access continues until expiry (CANCELED grants until then).
+        const until = new Date(purchase.expiryMillis).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+        await sendPushToUser(
+          uid,
+          "Subscription canceled",
+          `ProHost Premium won't renew. You keep Pro Host access until ${until}. Changed your mind? Resubscribe from ProHost Premium.`,
+          { category: "PACKAGE_EXPIRED", targetTab: "owner_subscriptions" }
+        );
         await recordAuditLog({
           actionType: "PLAY_BILLING_SUBSCRIPTION_CANCELED",
           details: `uid=${uid} canceled ${productId}/${purchase.basePlanId ?? "?"} (order ${orderId}). Access until ${new Date(purchase.expiryMillis).toISOString()}.`,
           actorEmail: "play-billing@system.prohost.app",
           severity: "INFO",
         });
+        break;
+      }
+      case SUBSCRIPTION_RECOVERED:
+      case SUBSCRIPTION_RESTARTED:
+        if (result.hasAccess) {
+          await sendPushToUser(uid, "Welcome back to ProHost Premium", "Your subscription is active again — your Pro Host access and listings are restored.", {
+            category: "PACKAGE_ACTIVATED",
+            targetTab: "owner_subscriptions",
+          });
+        }
         break;
       case SUBSCRIPTION_IN_GRACE_PERIOD:
         await sendPushToUser(

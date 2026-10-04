@@ -176,7 +176,8 @@ class PlayBillingManager(
         productDetails: ProductDetails,
         userId: String,
         basePlanId: String,
-        oldPurchaseToken: String? = null
+        oldPurchaseToken: String? = null,
+        replacementMode: Int = BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_PRORATED_PRICE
     ): Boolean {
         val plan = PlayCatalog.planInterval(basePlanId) ?: basePlanId
         // The offer for the chosen base plan (monthly or yearly), never just the first one.
@@ -209,7 +210,9 @@ class PlayBillingManager(
         if (!oldPurchaseToken.isNullOrBlank()) {
             val subscriptionUpdateParams = BillingFlowParams.SubscriptionUpdateParams.newBuilder()
                 .setOldPurchaseToken(oldPurchaseToken)
-                .setSubscriptionReplacementMode(BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_FULL_PRICE)
+                // Play's recommendation: upgrade with CHARGE_PRORATED_PRICE (immediate, credit for
+                // unused time), downgrade with DEFERRED (current plan runs to its renewal date).
+                .setSubscriptionReplacementMode(replacementMode)
                 .build()
             billingFlowParamsBuilder.setSubscriptionUpdateParams(subscriptionUpdateParams)
         }
@@ -425,17 +428,24 @@ class PlayBillingManager(
      * Calls [onSubscriptionUpdated] and re-queries active purchases if the user takes action
      * (e.g. fixes a failed payment) inside the Play-managed dialog.
      */
+    /**
+     * Play's transactional in-app messages (payment declined during grace period / account
+     * hold): a snackbar, at most once a day, that lets the user fix payment without leaving
+     * the app. Connects first when needed.
+     */
     fun showInAppMessages(activity: Activity, onSubscriptionUpdated: (() -> Unit)? = null) {
-        if (!billingClient.isReady) return
-        val params = InAppMessageParams.newBuilder()
-            .addInAppMessageCategoryToShow(InAppMessageParams.InAppMessageCategoryId.TRANSACTIONAL)
-            .build()
-        billingClient.showInAppMessages(activity, params) { result ->
-            if (result.responseCode == InAppMessageResult.InAppMessageResponseCode.SUBSCRIPTION_STATUS_UPDATED) {
-                queryActivePurchases()
-                onSubscriptionUpdated?.invoke()
+        val show = {
+            val params = InAppMessageParams.newBuilder()
+                .addInAppMessageCategoryToShow(InAppMessageParams.InAppMessageCategoryId.TRANSACTIONAL)
+                .build()
+            billingClient.showInAppMessages(activity, params) { result ->
+                if (result.responseCode == InAppMessageResult.InAppMessageResponseCode.SUBSCRIPTION_STATUS_UPDATED) {
+                    queryActivePurchases()
+                    onSubscriptionUpdated?.invoke()
+                }
             }
         }
+        if (billingClient.isReady) show() else startConnection { show() }
     }
 
     private fun emitMessage(msg: String, isError: Boolean = true) {

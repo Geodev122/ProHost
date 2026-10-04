@@ -10,6 +10,7 @@ import { subscriptionExpiringTemplate, subscriptionExpiredTemplate, UserContext 
 import { planLabel } from "../billing/playCatalog";
 import { queryPlaySubscription } from "../billing/billingHelpers";
 import { syncSubscription } from "../billing/subscriptionService";
+import { notifyAdminsOfSubscriptionChange } from "../billing/adminBillingAlerts";
 import "../lib/admin";
 import { sendGa4Event } from "../lib/ga4";
 
@@ -52,13 +53,16 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *", secrets: [host
     for (const doc of warningSnap.docs) {
       const data = doc.data();
       if (data.expiryWarningSent === true) continue;
+      // An auto-renewing Play subscription isn't "expiring" — Google renews it and emails
+      // about payment problems itself. Warn only when it won't renew (canceled) or isn't Play.
+      if (data.entitlementSource === "google_play" && data.billingStatus !== "CANCELED") continue;
       const userId = doc.id;
       const expiry = data.ownerPackageExpiryMillis as number;
       const daysLeft = Math.max(1, Math.ceil((expiry - now) / (24 * 60 * 60 * 1000)));
       await sendPushToUser(
         userId,
-        "Package Expiring Soon",
-        `Your ProHost subscription package is expiring in ${daysLeft} day(s). Renew now to maintain your active workspace listings.`,
+        "ProHost Premium ends soon",
+        `Your Pro Host access ends in ${daysLeft} day(s) and your listings will be hidden. Resubscribe from ProHost Premium to keep them live.`,
         {
           category: "PAYMENT_REMINDER",
           targetTab: "owner_subscriptions",
@@ -137,6 +141,10 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *", secrets: [host
             logger.warn(`expirePackages: revokeRefreshTokens failed for ${uid}: ${(e as Error).message}`);
           }
           demotedCount++;
+          await notifyAdminsOfSubscriptionChange(uid, "EXPIRED", {
+            planId: (doc.data()?.ownerPackageId as string | undefined) ?? null,
+            note: "demoted to Specialist by the expiry sweep",
+          });
           await sendGa4Event(uid, "subscription_expired", { plan_id: (doc.data()?.ownerPackageId as string | undefined) ?? undefined });
 
           const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", uid).get();
@@ -151,8 +159,8 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *", secrets: [host
 
           await sendPushToUser(
             uid,
-            "Package Expired",
-            "Your ProHost package has expired and your Pro Host status was paused. Renew a package to restore it and your listings.",
+            "ProHost Premium expired",
+            "Your Pro Host access has ended and your listings are hidden. Subscribe to ProHost Premium to restore them.",
             { category: "PACKAGE_EXPIRED", targetTab: "owner_subscriptions" }
           );
           try {

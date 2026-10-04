@@ -5,6 +5,7 @@ import { recordAuditLog } from "../lib/auditLog";
 import { sendPushToUser } from "../lib/push";
 import { grantProHost } from "../billing/entitlementManager";
 import { ADMIN_FORCED_PLAN_ID, LIFETIME_EXPIRY_MILLIS } from "../billing/playCatalog";
+import { notifyAdminsOfSubscriptionChange } from "../billing/adminBillingAlerts";
 import "../lib/admin";
 
 /**
@@ -47,6 +48,10 @@ export const forceProHostUpgrade = onCall<{ targetUid?: string }>(async (request
   await sendPushToUser(targetUid, "You're a Pro Host", "An administrator upgraded your account to Pro Host. You can publish workspace listings now.", {
     category: "PACKAGE_ACTIVATED",
     targetTab: "owner_subscriptions",
+  });
+  await notifyAdminsOfSubscriptionChange(targetUid, "FORCED_UPGRADE", {
+    planId: ADMIN_FORCED_PLAN_ID,
+    note: `by ${auth.token.email ?? "an admin"}`,
   });
   return { ok: true, targetUid };
 });

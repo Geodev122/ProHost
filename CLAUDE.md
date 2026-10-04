@@ -33,6 +33,19 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   sync job also migrates pre-refactor entitlements once (Play purchase ⇒ synced, otherwise ⇒ admin_forced).
 - Admin → Packages has one billing action: **Force Upgrade → ProHost** (`forceProHostUpgrade`, permanent,
   `entitlementSource: admin_forced`). Undo = Users tab → Revoke Pro Host (`revokeProHostRole`).
+- Premium screen follows Play's subscription UX guidance: a `SubscriptionStatusBanner` per lifecycle state
+  (grace period / on hold → "Fix payment", paused → "Resume", canceled → "Resubscribe", pending), all deep-
+  linking to the Play subscription center (`sku=package_pro_mrr`); current plan + recurring price + date;
+  "Switch to …" with Play's replacement modes (to yearly `CHARGE_PRORATED_PRICE`, to monthly `DEFERRED`);
+  trial disclosure; `SubscriptionTermsFooter` (renewal, cancel, "only publishing needs Premium", Terms &
+  Privacy). Profile has a "Manage subscription" settings link. Play's transactional in-app messages show on
+  every app resume for Play subscribers (`showBillingInAppMessages`, re-syncs on SUBSCRIPTION_STATUS_UPDATED).
+- Admins get a push for every subscription change (`billing/adminBillingAlerts.ts`
+  `notifyAdminsOfSubscriptionChange`, category `ADMIN_SUBSCRIPTION`, opens `admin_console`): new subscriber,
+  renewal, plan switch, every status change (from `syncSubscription` via `adminEventFor`, skipped for
+  unchanged re-syncs and the migration), forced upgrade, admin revoke, expiry sweep, unlinked Play-Store
+  purchase, activation parked/stuck/given up. Billing pushes use the `prohost_billing` channel. The 3-day
+  "ends soon" push goes only to subscriptions that won't renew (canceled) — never to auto-renewing ones.
 - Every billing outcome goes through `PlayBillingManager.billingMessages` (typed, buffered) and
   `ProHostViewModel` routes it into `billingError`/`billingSuccess`. Never emit a billing result only to
   Logcat. `launchSubscriptionPurchase` returns whether Play's sheet opened.

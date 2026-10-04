@@ -56,3 +56,14 @@ test("v2 reads the base plan and auto-renew from the latest line item", () => {
   assert.equal(s.basePlanId, "pro-yearly");
   assert.equal(s.autoRenewing, true);
 });
+
+test("admins are alerted on real changes only", async () => {
+  const { adminEventFor } = await import("./playCatalog");
+  const sub = { basePlanId: "pro-yearly", expiryMillis: 2_000_000_000_000 };
+  assert.equal(adminEventFor(undefined, "ACTIVE", sub), "NEW_SUBSCRIPTION");
+  assert.equal(adminEventFor(undefined, "PENDING", sub), "STATUS_CHANGED");
+  assert.equal(adminEventFor({ status: "ACTIVE", basePlanId: "pro-yearly", expiryDate: 2_000_000_000_000 }, "ACTIVE", sub), null);
+  assert.equal(adminEventFor({ status: "ACTIVE", basePlanId: "pro-yearly", expiryDate: 1_000_000_000_000 }, "ACTIVE", sub), "RENEWED");
+  assert.equal(adminEventFor({ status: "ACTIVE", basePlanId: "pro-montly", expiryDate: 2_000_000_000_000 }, "ACTIVE", sub), "PLAN_CHANGED");
+  assert.equal(adminEventFor({ status: "ACTIVE", basePlanId: "pro-yearly", expiryDate: 2_000_000_000_000 }, "GRACE_PERIOD", sub), "STATUS_CHANGED");
+});

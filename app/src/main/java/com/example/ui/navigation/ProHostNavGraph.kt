@@ -753,11 +753,18 @@ fun ProHostAppRoot(
     // PENDING payments that completed meanwhile get verified, granted and acknowledged by
     // the backend — without the person finding Subscriptions › Restore Purchases.
     val autoLinkUser = currentUser?.takeIf { it.role != UserRole.ADMIN }
+    // Play subscribers (and those with a payment problem) also get Play's transactional
+    // in-app message on app open — Play shows it at most once a day, so it's safe to ask.
+    val hasPlaySubscription = currentUser?.entitlementSource == "google_play" ||
+        currentUser?.ownerPackageId in com.example.data.billing.PlayCatalog.BASE_PLANS ||
+        currentUser?.billingStatus in setOf("GRACE_PERIOD", "ON_HOLD", "PAUSED")
+    val rootActivity = androidx.activity.compose.LocalActivity.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    androidx.compose.runtime.DisposableEffect(lifecycleOwner, autoLinkUser?.id) {
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner, autoLinkUser?.id, hasPlaySubscription) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME && autoLinkUser != null) {
                 viewModel.refreshPlayPurchases(appContext)
+                if (hasPlaySubscription && rootActivity != null) viewModel.showBillingInAppMessages(rootActivity)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

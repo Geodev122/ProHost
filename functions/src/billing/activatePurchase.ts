@@ -15,6 +15,7 @@ import { claimPurchaseToken, linkKey } from "./purchaseLinks";
 import { PlayApiError, PlaySubscription, classifyPlayError } from "./playSubscription";
 import { syncSubscription } from "./subscriptionService";
 import "../lib/admin";
+import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
 
 export const PENDING_COLLECTION = "play_billing_pending";
 
@@ -113,6 +114,10 @@ export async function parkPendingActivation(
       alerted: false,
     });
     logger.warn(`${source}: parked purchase for retry uid=${uid} product=${productId}: ${reason}`);
+    // Money may have been taken without access: admins should know right away.
+    await notifyAdminsOfSubscriptionChange(uid, "ACTIVATION_AT_RISK", {
+      note: `parked for automatic retry — ${reason.slice(0, 80)}`,
+    });
   } catch (e) {
     logger.error(`${source}: could not park purchase uid=${uid} product=${productId}`, e);
   }

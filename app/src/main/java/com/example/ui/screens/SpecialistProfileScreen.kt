@@ -845,6 +845,32 @@ fun SpecialistProfileScreen(
             // and it now sits alongside Legal/Favorites where a specialist already
             // looks for account-level actions.
 
+            // Play: a settings-level link to manage the subscription (cancel, payment method,
+            // pause, resubscribe), deep-linked to ProHost Premium in Google Play.
+            if (user.role != UserRole.ADMIN) {
+                val settingsActivity = androidx.activity.compose.LocalActivity.current
+                ProSurfaceCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        ProSectionHeader(
+                            title = "ProHost Premium",
+                            subtitle = user.ownerPackageId?.let { com.example.data.billing.PlayCatalog.planLabel(it) }
+                                ?: "Not subscribed",
+                            icon = Icons.Default.WorkspacePremium
+                        )
+                        TextButton(
+                            onClick = {
+                                settingsActivity?.let {
+                                    viewModel.openManageSubscriptions(it, com.example.data.billing.PlayCatalog.PRODUCT_ID)
+                                }
+                            },
+                            enabled = settingsActivity != null
+                        ) {
+                            Text("Manage subscription in Google Play", style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
+                }
+            }
+
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     ProSectionHeader(

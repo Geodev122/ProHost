@@ -7,11 +7,12 @@
  * Server-only collection (firestore.rules denies clients; it holds purchase tokens).
  */
 import { getFirestore } from "firebase-admin/firestore";
-import { BillingStatus, grantsAccess, planInterval, statusFor } from "./playCatalog";
+import { BillingStatus, adminEventFor, grantsAccess, planInterval, statusFor } from "./playCatalog";
 import { sendGa4Event, transactionIdFor } from "../lib/ga4";
 import { PlaySubscription } from "./playSubscription";
 import { grantProHost, removeProHost } from "./entitlementManager";
 import { linkKey } from "./purchaseLinks";
+import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
 import "../lib/admin";
 
 export const SUBSCRIPTIONS = "subscriptions";
@@ -45,6 +46,7 @@ export async function syncSubscription(
   const subscriptionId = linkKey(purchaseToken);
   const ref = db.collection(SUBSCRIPTIONS).doc(subscriptionId);
   const existing = await ref.get();
+  const prev = existing.data();
 
   await ref.set(
     {
@@ -65,9 +67,10 @@ export async function syncSubscription(
     { merge: true }
   );
 
-  if (status === "PENDING") return { status, subscriptionId, hasAccess: false, removed: false };
-
-  if (grantsAccess(status, sub.expiryMillis, now)) {
+  let result: SyncResult;
+  if (status === "PENDING") {
+    result = { status, subscriptionId, hasAccess: false, removed: false };
+  } else if (grantsAccess(status, sub.expiryMillis, now)) {
     await grantProHost(uid, {
       source: "google_play",
       planId: sub.basePlanId || sub.productId,
@@ -77,16 +80,31 @@ export async function syncSubscription(
       subscriptionId,
       purchaseToken,
     });
-    return { status, subscriptionId, hasAccess: true, removed: false };
+    result = { status, subscriptionId, hasAccess: true, removed: false };
+  } else {
+    const removed = await removeProHost(uid, {
+      status,
+      reason: `Google Play reports ${status} (${opts.source})`,
+      pushMessage: REMOVAL_MESSAGES[status] ?? REMOVAL_MESSAGES.EXPIRED!,
+      subscriptionId,
+    });
+    result = { status, subscriptionId, hasAccess: false, removed };
   }
 
-  const removed = await removeProHost(uid, {
-    status,
-    reason: `Google Play reports ${status} (${opts.source})`,
-    pushMessage: REMOVAL_MESSAGES[status] ?? REMOVAL_MESSAGES.EXPIRED!,
-    subscriptionId,
-  });
-  return { status, subscriptionId, hasAccess: false, removed };
+  // Admins hear about every real change (not re-syncs of an unchanged subscription, and not
+  // the one-time migration of existing subscribers).
+  if (opts.source !== "migration") {
+    const event = adminEventFor(prev, status, sub);
+    if (event) {
+      await notifyAdminsOfSubscriptionChange(uid, event, {
+        planId: sub.basePlanId || sub.productId,
+        status,
+        previousStatus: (prev?.status as string | undefined) ?? null,
+        expiryMillis: sub.expiryMillis,
+      });
+    }
+  }
+  return result;
 }
 
 /**

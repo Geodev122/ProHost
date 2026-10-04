@@ -5,6 +5,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { recordAuditLog } from "../lib/auditLog";
 import { setClaimsThenFirestore } from "../lib/roles";
 import "../lib/admin";
+import { notifyAdminsOfSubscriptionChange } from "../billing/adminBillingAlerts";
 
 interface RevokeProHostRoleData {
   targetUid?: string;
@@ -117,5 +118,8 @@ export const revokeProHostRole = onCall<RevokeProHostRoleData>(async (request) =
     severity: "SECURE",
   });
 
+  await notifyAdminsOfSubscriptionChange(targetUid, "ADMIN_REVOKED", {
+    note: `by ${auth.token.email ?? "an admin"}; ${ownedListingsCount} listing(s) deactivated`,
+  });
   return { ok: true, targetUid };
 });

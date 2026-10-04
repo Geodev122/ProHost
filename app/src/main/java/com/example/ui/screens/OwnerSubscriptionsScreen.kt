@@ -54,6 +54,7 @@ fun OwnerSubscriptionsScreen(
     var showKycDialog by remember { mutableStateOf(false) }
     var pendingBasePlanId by remember { mutableStateOf<String?>(null) }
     var showRedeemDialog by remember { mutableStateOf(false) }
+    var showLegalDocuments by remember { mutableStateOf(false) }
     var redeemCodeInput by remember { mutableStateOf("") }
     // A code that arrived by promo link opens the Redeem dialog pre-filled.
     val linkedPromoCode by com.example.data.billing.PendingPromoCode.code.collectAsState()
@@ -235,6 +236,15 @@ fun OwnerSubscriptionsScreen(
             }
         }
 
+        // Play's lifecycle states (grace period, account hold, paused, canceled, pending),
+        // each with the action Google recommends — fixing payment or resubscribing happens in
+        // Google Play's subscription center, deep-linked to this subscription.
+        SubscriptionStatusBanner(
+            billingStatus = currentUser?.billingStatus,
+            expiryDate = expiryDateString,
+            onOpenPlay = activity?.let { act -> { viewModel.openManageSubscriptions(act, PlayCatalog.PRODUCT_ID) } }
+        )
+
         billingSuccess?.let { msg ->
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -321,9 +331,14 @@ fun OwnerSubscriptionsScreen(
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.proColors.onBrandHeader
                 )
+                val currentPrice = currentPlanId?.takeIf { it in PlayCatalog.BASE_PLANS }
+                    ?.let { PlayOfferText.describe(premiumProduct, it) }
                 Text(
-                    if (currentPlanId != null) "Unlimited workspace listings and booking requests."
-                    else "Subscribe to ProHost Premium to publish unlimited workspace listings.",
+                    when {
+                        currentPrice != null -> "$currentPrice · unlimited workspace listings"
+                        currentPlanId != null -> "Unlimited workspace listings and booking requests."
+                        else -> "Subscribe to ProHost Premium to publish unlimited workspace listings."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f)
                 )
@@ -570,13 +585,29 @@ fun OwnerSubscriptionsScreen(
         } else {
             // Vertical list — all plans visible without horizontal scroll.
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                val hasLivePlaySubscription = currentPlanId in PlayCatalog.BASE_PLANS && !isSubscriptionExpired
                 enabledPlans.forEach { plan ->
                     val isCurrent = currentPlanId == plan && !isSubscriptionExpired
+                    // Play: make the current plan and the options to change it obvious. Upgrades
+                    // (to yearly) apply now with credit for unused time; downgrades start at renewal.
+                    val isUpgrade = plan == PlayCatalog.BASE_PLAN_YEARLY
+                    val actionLabel = when {
+                        isForcedUpgrade -> "Included in your access"
+                        hasLivePlaySubscription && !isCurrent -> "Switch to ${PlayCatalog.planBadge(plan)}"
+                        else -> "Subscribe"
+                    }
+                    val switchNote = if (hasLivePlaySubscription && !isCurrent) {
+                        if (isUpgrade) "Starts now — Google Play credits the unused part of your current plan."
+                        else "Starts on your renewal date${expiryDateString?.let { " ($it)" }.orEmpty()}; your current plan runs until then."
+                    } else null
                     CompactPlanCard(
                         basePlanId = plan,
                         isCurrent = isCurrent,
                         playProduct = premiumProduct,
                         savingsPercent = if (plan == PlayCatalog.BASE_PLAN_YEARLY) yearlySavings else null,
+                        actionLabel = actionLabel,
+                        actionEnabled = !isForcedUpgrade,
+                        footnote = switchNote,
                         modifier = Modifier.fillMaxWidth(),
                         onSelect = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -595,12 +626,11 @@ fun OwnerSubscriptionsScreen(
                     )
                 }
             }
-            Text(
-                "Subscriptions renew automatically at the price and period shown until you cancel. " +
-                    "Cancel anytime in Google Play › Payments & subscriptions; you keep access until the end of the paid period.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp)
+            // Play subscriptions policy: billing frequency, auto-renewal, how to cancel and
+            // whether a subscription is required — visible without any extra tap.
+            SubscriptionTermsFooter(
+                onManage = activity?.let { act -> { viewModel.openManageSubscriptions(act, PlayCatalog.PRODUCT_ID) } },
+                onOpenLegal = { showLegalDocuments = true }
             )
         }
 
@@ -622,6 +652,10 @@ fun OwnerSubscriptionsScreen(
                 }
             )
         }
+    }
+
+    if (showLegalDocuments) {
+        com.example.ui.components.LegalDocumentsMenu(onDismiss = { showLegalDocuments = false })
     }
 
     if (showRedeemDialog) {
@@ -674,6 +708,9 @@ fun CompactPlanCard(
     isCurrent: Boolean,
     playProduct: com.android.billingclient.api.ProductDetails? = null,
     savingsPercent: Int? = null,
+    actionLabel: String = "Subscribe",
+    actionEnabled: Boolean = true,
+    footnote: String? = null,
     modifier: Modifier = Modifier,
     onSelect: () -> Unit
 ) {
@@ -693,7 +730,7 @@ fun CompactPlanCard(
     Box(modifier = modifier) {
         Card(
             onClick = onSelect,
-            enabled = !isCurrent,
+            enabled = !isCurrent && actionEnabled,
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(
@@ -797,13 +834,25 @@ fun CompactPlanCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 FeatureRow("Unlimited bookings")
 
+                // Free-trial terms Play asks apps to state: no charge during the trial, how to
+                // avoid being charged, and the temporary payment-method check.
+                if (trialLabel != null && !isCurrent && actionEnabled) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "No charge during the free trial. Cancel in Google Play before it ends and you won't be charged. " +
+                            "Google Play may place a temporary verification hold on your payment method.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
 
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // CTA button
                 Button(
                     onClick = onSelect,
-                    enabled = !isCurrent,
+                    enabled = !isCurrent && actionEnabled,
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
                     colors = ButtonDefaults.buttonColors(
@@ -820,14 +869,23 @@ fun CompactPlanCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = if (isCurrent) "Active Plan" else "Subscribe",
+                        text = if (isCurrent) "Current plan" else actionLabel,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
+                footnote?.let {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
                 // "Secured by Google Play" label
-                if (!isCurrent) {
+                if (!isCurrent && actionEnabled) {
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "via Google Play",
@@ -856,6 +914,104 @@ fun CompactPlanCard(
                     color = MaterialTheme.colorScheme.onSecondary,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
+            }
+        }
+    }
+}
+
+/**
+ * One banner per Google Play lifecycle state, with the action Play recommends. Built on the
+ * shared [com.example.ui.components.ProHostAlertBanner].
+ */
+@Composable
+private fun SubscriptionStatusBanner(
+    billingStatus: String?,
+    expiryDate: String?,
+    onOpenPlay: (() -> Unit)?
+) {
+    data class StatusCopy(
+        val severity: com.example.ui.components.ProHostAlertSeverity,
+        val title: String,
+        val message: String,
+        val action: String?
+    )
+    val copy = when (billingStatus) {
+        "GRACE_PERIOD" -> StatusCopy(
+            com.example.ui.components.ProHostAlertSeverity.WARNING,
+            "Payment problem",
+            "Google Play couldn't renew your subscription. You still have Pro Host access for now — update your payment method to keep it.",
+            "Fix payment"
+        )
+        "ON_HOLD" -> StatusCopy(
+            com.example.ui.components.ProHostAlertSeverity.ERROR,
+            "Subscription on hold",
+            "Your payment didn't go through, so Pro Host access is paused and your listings are hidden. Fix your payment method in Google Play to restore them.",
+            "Fix payment"
+        )
+        "PAUSED" -> StatusCopy(
+            com.example.ui.components.ProHostAlertSeverity.INFO,
+            "Subscription paused",
+            "Pro Host access and your listings return when the subscription resumes. You can resume it now in Google Play.",
+            "Resume"
+        )
+        "CANCELED" -> StatusCopy(
+            com.example.ui.components.ProHostAlertSeverity.WARNING,
+            "Subscription canceled",
+            "It won't renew. You keep Pro Host access${expiryDate?.let { " until $it" } ?: " until the end of the paid period"}. Changed your mind? Resubscribe in Google Play.",
+            "Resubscribe"
+        )
+        "PENDING" -> StatusCopy(
+            com.example.ui.components.ProHostAlertSeverity.INFO,
+            "Payment processing",
+            "Google Play is still processing your payment. Pro Host access starts as soon as it completes — no need to pay again.",
+            null
+        )
+        else -> null
+    } ?: return
+
+    val actionLabel = copy.action
+    val actionContent: (@Composable () -> Unit)? = if (actionLabel != null && onOpenPlay != null) {
+        { TextButton(onClick = onOpenPlay) { Text(actionLabel, fontWeight = FontWeight.Bold) } }
+    } else null
+    com.example.ui.components.ProHostAlertBanner(
+        message = copy.message,
+        title = copy.title,
+        severity = copy.severity,
+        action = actionContent
+    )
+}
+
+/** Policy disclosures under the plans: renewal, cancellation, what needs a subscription, terms. */
+@Composable
+private fun SubscriptionTermsFooter(
+    onManage: (() -> Unit)?,
+    onOpenLegal: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            "Browsing and booking workspaces is free. ProHost Premium is needed only to publish listings.",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            "Payment is charged to your Google Play account. Subscriptions renew automatically at the price and " +
+                "period shown until you cancel. Cancel anytime in Google Play › Payments & subscriptions; you keep " +
+                "access until the end of the paid period.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (onManage != null) {
+                TextButton(onClick = onManage, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                    Text("Manage subscription", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+            TextButton(onClick = onOpenLegal, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                Text("Terms & Privacy", style = MaterialTheme.typography.labelMedium)
             }
         }
     }

@@ -82,3 +82,31 @@ export function planInterval(basePlanId: string | null | undefined): "monthly" |
   if (basePlanId === BASE_PLAN_YEARLY) return "yearly";
   return null;
 }
+
+export type AdminBillingEvent =
+  | "NEW_SUBSCRIPTION"
+  | "RENEWED"
+  | "PLAN_CHANGED"
+  | "STATUS_CHANGED"
+  | "FORCED_UPGRADE"
+  | "ADMIN_REVOKED"
+  | "EXPIRED"
+  | "UNLINKED_PURCHASE"
+  | "ACTIVATION_AT_RISK";
+
+/**
+ * What changed between the stored subscriptions record ([prev]) and Google's current state,
+ * for the admin push; null when nothing did (an unchanged daily re-sync).
+ */
+export function adminEventFor(
+  prev: { status?: unknown; basePlanId?: unknown; expiryDate?: unknown } | undefined,
+  status: BillingStatus,
+  sub: Pick<PlaySubscription, "basePlanId" | "expiryMillis">
+): AdminBillingEvent | null {
+  if (!prev) return status === "ACTIVE" || status === "GRACE_PERIOD" ? "NEW_SUBSCRIPTION" : "STATUS_CHANGED";
+  if (prev.status !== status) return "STATUS_CHANGED";
+  if (typeof prev.basePlanId === "string" && sub.basePlanId && prev.basePlanId !== sub.basePlanId) return "PLAN_CHANGED";
+  const prevExpiry = typeof prev.expiryDate === "number" ? prev.expiryDate : 0;
+  if (status === "ACTIVE" && prevExpiry > 0 && sub.expiryMillis > prevExpiry + 60_000) return "RENEWED";
+  return null;
+}

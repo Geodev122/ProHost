@@ -214,7 +214,10 @@ export async function removeProHost(uid: string, p: RemoveParams): Promise<boole
       await bw.close();
     }
     const { sendPushToUser } = await import("../lib/push");
-    await sendPushToUser(uid, "Pro Host access ended", p.pushMessage, {
+    const title = p.status === "ON_HOLD" ? "Payment problem — Pro Host paused"
+      : p.status === "PAUSED" ? "ProHost Premium paused"
+      : "Pro Host access ended";
+    await sendPushToUser(uid, title, p.pushMessage, {
       category: "PACKAGE_EXPIRED",
       targetTab: "owner_subscriptions",
     });

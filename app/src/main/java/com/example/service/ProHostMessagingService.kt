@@ -96,6 +96,13 @@ class ProHostMessagingService : FirebaseMessagingService() {
         private const val CHANNEL_NAME = "ProHost Real-time Alerts"
         private const val CHANNEL_DESCRIPTION = "Receives real-time updates regarding suite rental contracts, booking states, and host due reminders."
 
+        // Subscription and billing notices get their own channel so people can tune them
+        // separately (Android settings) from booking traffic.
+        private const val BILLING_CHANNEL_ID = "prohost_billing"
+        private const val BILLING_CHANNEL_NAME = "ProHost Premium & billing"
+        private const val BILLING_CHANNEL_DESCRIPTION = "Subscription activations, renewals, payment problems and expiry. Admins also receive subscriber changes here."
+        private val BILLING_CATEGORIES = setOf("PACKAGE_ACTIVATED", "PACKAGE_RENEWED", "PACKAGE_EXPIRED", "ADMIN_SUBSCRIPTION")
+
         /**
          * Core notification routine triggered by real-time Firebase Cloud Messaging and in-app system events.
          * Supports deep-linking directly to target screens.
@@ -118,6 +125,11 @@ class ProHostMessagingService : FirebaseMessagingService() {
                 enableVibration(true)
             }
             notificationManager.createNotificationChannel(channel)
+            notificationManager.createNotificationChannel(
+                NotificationChannel(BILLING_CHANNEL_ID, BILLING_CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = BILLING_CHANNEL_DESCRIPTION
+                }
+            )
         }
 
         fun showPhysicalNotification(
@@ -157,7 +169,8 @@ class ProHostMessagingService : FirebaseMessagingService() {
             )
 
             // Build system bar notification targeting standard safe system alert asset icons
-            val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
+            val channelId = if (notificationType in BILLING_CATEGORIES) BILLING_CHANNEL_ID else CHANNEL_ID
+            val notificationBuilder = NotificationCompat.Builder(context, channelId)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(title)
                 .setContentText(body)
@@ -172,6 +185,9 @@ class ProHostMessagingService : FirebaseMessagingService() {
                     "owner_requests" -> "View Requests"
                     "owner_progress" -> "View Progress"
                     "pro_rentals" -> "My Rentals"
+                    "owner_subscriptions" -> "Manage subscription"
+                    "admin_console" -> "Open Admin Console"
+                    "manage_listings" -> "My Listings"
                     else -> "Open Screen"
                 }
                 notificationBuilder.addAction(
