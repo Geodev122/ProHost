@@ -92,6 +92,7 @@ fun SpecialistProfileScreen(
     var pendingCancelRequest by remember { mutableStateOf<RentalBookingRequest?>(null) }
     var isSavingProfile by remember { mutableStateOf(false) }
     var profilePicUploadError by remember { mutableStateOf<String?>(null) }
+    var showRequirementsSheet by remember { mutableStateOf(false) }
     val profileDetailsRequester = remember { BringIntoViewRequester() }
     val scrollToProfileDetails: () -> Unit = { coroutineScope.launch { profileDetailsRequester.bringIntoView() } }
 
@@ -118,13 +119,21 @@ fun SpecialistProfileScreen(
                 currentPlanId = user.ownerPackageId
             )
 
-            // KYC completion banner — shown for all non-ADMIN roles at levels 0–2
+            // Readiness banner: the same checks as booking / hosting, completed in the shared sheet.
             if (user.role != UserRole.ADMIN) {
                 com.example.ui.components.KycCompletionBanner(
                     user = user,
-                    onResendVerificationEmail = { viewModel.resendEmailVerification(context) },
-                    onAddProfilePhoto = scrollToProfileDetails,
-                    onAddAddress = scrollToProfileDetails
+                    phoneLinked = com.example.data.auth.PhoneLink.isLinked(),
+                    onComplete = { showRequirementsSheet = true }
+                )
+            }
+            if (showRequirementsSheet) {
+                com.example.ui.components.RequirementsSheet(
+                    user = user,
+                    viewModel = viewModel,
+                    requireAddress = user.role == UserRole.PRO_HOST,
+                    onDismiss = { showRequirementsSheet = false },
+                    onReady = { showRequirementsSheet = false }
                 )
             }
 

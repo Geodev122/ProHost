@@ -115,7 +115,8 @@ object AnalyticsTracker {
             UserProp.COUNTRY to user.country.ifBlank { null },
             UserProp.GOVERNORATE to user.governorate.ifBlank { null },
             UserProp.SPECIALTY to user.specialty.ifBlank { null }?.take(36),
-            UserProp.KYC_COMPLETE to user.isKycComplete.toString(),
+            // kyc_complete keeps its GA4 name; it now means "can send a booking request".
+            UserProp.KYC_COMPLETE to user.canTransact(com.example.data.auth.PhoneLink.isLinked()).toString(),
             UserProp.IS_VERIFIED to user.isVerified.toString(),
             UserProp.PLAN_ID to (user.ownerPackageId?.take(36) ?: "none"),
             UserProp.PLAN_STATUS to planStatus,

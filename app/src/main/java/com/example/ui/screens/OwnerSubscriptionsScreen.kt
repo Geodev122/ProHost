@@ -413,7 +413,7 @@ fun OwnerSubscriptionsScreen(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             upsellPlan?.let { plan ->
-                                if (currentUser?.isKycComplete == false) {
+                                if (currentUser?.canHost(com.example.data.auth.PhoneLink.isLinked()) == false) {
                                     pendingBasePlanId = plan
                                     showKycDialog = true
                                 } else if (activity != null) {
@@ -544,7 +544,7 @@ fun OwnerSubscriptionsScreen(
                             // Same KYC gate as the primary CTA above — this per-plan
                             // "Select" button used to skip it entirely and let an
                             // un-verified user reach Google Pay billing directly.
-                            if (currentUser?.isKycComplete == false) {
+                            if (currentUser?.canHost(com.example.data.auth.PhoneLink.isLinked()) == false) {
                                 pendingBasePlanId = plan
                                 showKycDialog = true
                             } else if (activity != null) {
@@ -569,11 +569,13 @@ fun OwnerSubscriptionsScreen(
 
     if (showKycDialog) {
         currentUser?.let { user ->
-            com.example.ui.components.KycVerificationDialog(
+            // Same sheet as booking (photo + verified phone) plus the hosting address step.
+            com.example.ui.components.RequirementsSheet(
                 user = user,
+                viewModel = viewModel,
+                requireAddress = true,
                 onDismiss = { showKycDialog = false },
-                onResendVerificationEmail = { viewModel.resendEmailVerification(context) },
-                onKycCompleted = {
+                onReady = {
                     showKycDialog = false
                     pendingBasePlanId?.let { pid ->
                         if (activity != null) {

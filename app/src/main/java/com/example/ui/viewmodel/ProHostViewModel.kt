@@ -450,7 +450,7 @@ class ProHostViewModel(
     private var awaitingServerActivation = false
 
     private val _kycPromptAfterActivation = MutableStateFlow(false)
-    /** True once a plan activates for someone whose KYC is incomplete (e.g. a promo redemption). */
+    /** True once a plan activates for someone who can't host yet (e.g. a promo redemption). */
     val kycPromptAfterActivation: StateFlow<Boolean> = _kycPromptAfterActivation.asStateFlow()
     fun consumeKycPromptAfterActivation() { _kycPromptAfterActivation.value = false }
 
@@ -461,7 +461,9 @@ class ProHostViewModel(
         _billingSuccess.value = message
         // Force-refresh the ID token so the new PRO_HOST claim takes effect immediately.
         refreshCurrentUserRoleAfterEntitlement()
-        if (currentUser.value?.isKycComplete == false) _kycPromptAfterActivation.value = true
+        if (currentUser.value?.canHost(com.example.data.auth.PhoneLink.isLinked()) == false) {
+            _kycPromptAfterActivation.value = true
+        }
     }
 
     fun resendEmailVerification(context: android.content.Context) {
@@ -889,6 +891,16 @@ class ProHostViewModel(
             reportFailure(context.applicationContext, e, "The photo couldn't be uploaded. Please try again.")
             "The photo couldn't be uploaded. Please try again."
         }
+    }
+
+    /** Saves country + city (RequirementsSheet hosting step); returns an error message or null. */
+    suspend fun updateAddress(context: Context, country: String, city: String): String? = try {
+        if (repository.updateAddress(country, city)) null else "Your address couldn't be saved. Please try again."
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        reportFailure(context.applicationContext, e, "Your address couldn't be saved. Please try again.")
+        "Your address couldn't be saved. Please try again."
     }
 
     suspend fun updateProfile(

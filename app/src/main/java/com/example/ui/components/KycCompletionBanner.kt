@@ -12,67 +12,34 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.AppUser
+import com.example.data.model.UserRole
 import com.example.ui.theme.Spacing
 import com.example.ui.theme.proColors
 
 /**
- * Inline KYC progress card for SpecialistProfileScreen.
- * Shows the user's progress through the 3 verification steps and the next action.
- * Hidden entirely once all steps are complete.
+ * Profile progress card: the same items the app checks in place — photo and verified phone
+ * ([AppUser.canTransact]), plus country and city for Pro Hosts ([AppUser.canHost]). Email is
+ * not a step: email and Google sign-ups are verified by signing in. [onComplete] opens the
+ * shared RequirementsSheet. Hidden once everything is done.
  */
 @Composable
 fun KycCompletionBanner(
     user: AppUser,
-    onResendVerificationEmail: () -> Unit,
-    onAddProfilePhoto: () -> Unit = {},
-    onAddAddress: () -> Unit = {},
+    phoneLinked: Boolean,
+    onComplete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (user.isKycComplete) return
+    val isHost = user.role == UserRole.PRO_HOST
+    if (if (isHost) user.canHost(phoneLinked) else user.canTransact(phoneLinked)) return
 
-    val hasProfilePic = !user.profilePictureUrl.isNullOrBlank()
-    val emailVerified = user.emailVerified
-    val hasAddress = user.country.isNotBlank() && user.city.isNotBlank()
+    data class Step(val icon: ImageVector, val label: String, val done: Boolean)
 
-    data class KycStep(val icon: ImageVector, val label: String, val done: Boolean)
-
-    val steps = listOf(
-        KycStep(Icons.Default.Person, "Registered", true),
-        KycStep(Icons.Default.Photo, "Profile photo", hasProfilePic),
-        KycStep(Icons.Default.Email, "Email verified", emailVerified),
-        KycStep(Icons.Default.LocationOn, "Address set", hasAddress)
-    )
-
-    val nextTitle: String
-    val nextDesc: String
-    val nextAction: (() -> Unit)?
-    val nextActionLabel: String
-    when {
-        !hasProfilePic -> {
-            nextTitle = "Add a profile picture"
-            nextDesc = "Upload a photo to unlock booking features."
-            nextAction = onAddProfilePhoto
-            nextActionLabel = "Upload Photo"
-        }
-        !emailVerified -> {
-            nextTitle = "Verify your email"
-            nextDesc = "Check your inbox for a verification link. Tap below to resend if needed."
-            nextAction = onResendVerificationEmail
-            nextActionLabel = "Resend Verification Email"
-        }
-        !hasAddress -> {
-            nextTitle = "Add your address"
-            nextDesc = "Set your country and city in the profile fields below."
-            nextAction = onAddAddress
-            nextActionLabel = "Set Address"
-        }
-        else -> {
-            nextTitle = ""
-            nextDesc = ""
-            nextAction = null
-            nextActionLabel = ""
-        }
+    val steps = buildList {
+        add(Step(Icons.Default.Photo, "Profile photo", !user.profilePictureUrl.isNullOrBlank()))
+        add(Step(Icons.Default.PhoneAndroid, "Verified phone", user.hasVerifiedPhone(phoneLinked)))
+        if (isHost) add(Step(Icons.Default.LocationOn, "Country & city", user.country.isNotBlank() && user.city.isNotBlank()))
     }
+    val next = steps.first { !it.done }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -87,7 +54,7 @@ fun KycCompletionBanner(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Default.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
                 Text(
-                    "Profile Verification",
+                    if (isHost) "Ready to host" else "Ready to book",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -99,58 +66,44 @@ fun KycCompletionBanner(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                steps.forEachIndexed { index, step ->
-                    val isCurrent = !step.done && steps.take(index).all { it.done }
-                    val color = when {
-                        step.done -> MaterialTheme.proColors.onSuccessContainer
-                        isCurrent -> MaterialTheme.colorScheme.onSecondaryContainer
-                        else -> MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.55f)
+                steps.forEach { step ->
+                    val color = if (step.done) {
+                        MaterialTheme.proColors.onSuccessContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSecondaryContainer
                     }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.weight(1f)
-                    ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
                         Icon(
                             imageVector = if (step.done) Icons.Default.CheckCircle else step.icon,
-                            contentDescription = null,
+                            contentDescription = if (step.done) "${step.label}: done" else "${step.label}: to do",
                             tint = color,
                             modifier = Modifier.size(20.dp)
                         )
-                        Text(
-                            step.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = color,
-                            maxLines = 1
-                        )
-                    }
-                    if (index < steps.lastIndex) {
-                        Spacer(modifier = Modifier.weight(0.3f).height(1.dp))
+                        Text(step.label, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 1)
                     }
                 }
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
             Text(
-                "Next: $nextTitle",
+                "Next: ${next.label.lowercase()}",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
             Text(
-                nextDesc,
+                if (isHost) "Needed once before you publish listings." else "Needed once before your first booking request.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f)
             )
-            if (nextAction != null) {
-                OutlinedButton(
-                    onClick = nextAction,
-                    modifier = Modifier.fillMaxWidth(),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
-                    shape = MaterialTheme.shapes.medium,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
-                ) {
-                    Text(nextActionLabel, style = MaterialTheme.typography.labelMedium)
-                }
+            OutlinedButton(
+                onClick = onComplete,
+                modifier = Modifier.fillMaxWidth(),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
+                shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
+            ) {
+                Text("Complete now", style = MaterialTheme.typography.labelMedium)
             }
         }
     }

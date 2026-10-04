@@ -112,13 +112,18 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   `.limit(200)` cap or unbounded admin collection listeners. While a search/filter is active and fewer than
   20 listings match, `DiscoveryViewModel` auto-loads further pages (`shouldSearchMore`, cap 1,000) and shows
   "Searching more listings…"; "No workspaces found" appears only once the catalog is exhausted.
-- Verification rules: `AppUser.hasVerifiedPhone` gates only the Pro Host workspaces; `AppUser.canTransact()`
-  (photo + verified phone) is checked in place when a specialist sends a booking request. My Rentals,
-  browsing and Saved are never gated. `isKycComplete` is profile completeness (banner, Premium checkout).
-  "Verified phone" = `hasVerifiedPhone(PhoneLink.isLinked())` (phone linked in Firebase Auth) — never
-  `isVerified`, which email verification also sets. Missing steps are collected by the shared
-  `RequirementsSheet` (photo + `PhoneVerificationSection`, the same body `KycScreen` and
-  `KycVerificationDialog` use) over the booking page, keeping the selected slots.
+- Verification rules (the only two): `AppUser.canTransact(phoneLinked)` = photo + verified phone, checked
+  in place when a specialist sends a booking request; `AppUser.canHost(phoneLinked)` = that + country and
+  city, checked at Premium checkout and after a plan activates. `hasVerifiedPhone` alone gates the Pro Host
+  workspaces. My Rentals, browsing and Saved are never gated; there is no `isKycComplete` and email is never
+  a requirement. "Verified phone" = `hasVerifiedPhone(PhoneLink.isLinked())` (phone linked in Firebase
+  Auth) — never `isVerified`, which email verification also sets. Missing steps are collected by the one
+  shared `RequirementsSheet` (photo, `PhoneVerificationSection` — the same body `KycScreen` uses — and the
+  address step with `requireAddress`), opened over the booking page, Premium or Profile's
+  `KycCompletionBanner`.
+- Email verification is server-mirrored: `assignInitialRole` sets `emailVerified` on every sign-in when
+  `emailVerifiedByToken` (email_verified claim or Google provider, `auth/emailVerifiedRule.ts`); the email
+  code path marks the Auth user verified; `backfillEmailVerified` (admin) fixes existing profiles.
 - Specialist routing: bottom tabs Explore · Saved · My Rentals · Profile (`SPECIALIST_BOTTOM_TABS`; there is
   no "Saved only" filter and no drawer Billing dialog — Premium covers it). Tapping a room in Explore opens
   its availability sheet; after a request the "Request sent" sheet offers "View request" (opens My Rentals

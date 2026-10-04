@@ -79,7 +79,7 @@ private suspend fun refreshFcmToken(repository: ProHostRepository, uid: String) 
  * picture is simply kept on file (its Storage URL, already uploaded by the caller once
  * [firebaseUser.uid] existed to key the upload path on). Registration never collects a
  * government ID — that only happens later, through the KYC flow (KycScreen.kt /
- * KycVerificationDialog.kt) required before a Specialist can book, or before upgrading
+ * RequirementsSheet.kt) required before a Specialist can book, or before upgrading
  * to Pro Host.
  */
 suspend fun completeVerifiedRegistration(

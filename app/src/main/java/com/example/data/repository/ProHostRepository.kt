@@ -2196,6 +2196,14 @@ class ProHostRepository(
     suspend fun registerFcmToken(uid: String, token: String): Boolean = firestoreService.saveFcmToken(uid, token)
 
     /** Sets only the signed-in user's photo (RequirementsSheet). A targeted, rules-safe write. */
+    /** Address-only profile update (RequirementsSheet's hosting step). */
+    suspend fun updateAddress(country: String, city: String): Boolean {
+        val current = _currentUser.value ?: return false
+        val success = firestoreService.updateUserProfileFields(current.id, mapOf("country" to country, "city" to city))
+        if (success) _currentUser.value = current.copy(country = country, city = city)
+        return success
+    }
+
     suspend fun updateProfilePicture(profilePictureUrl: String): Boolean {
         val current = _currentUser.value ?: return false
         val success = firestoreService.updateUserProfileFields(current.id, mapOf("profilePictureUrl" to profilePictureUrl))

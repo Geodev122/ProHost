@@ -8,6 +8,7 @@ import { enforcePlayIntegrity } from "../lib/playIntegrity";
 import { hostingerSmtpSecret } from "../lib/email";
 import { emailVerificationSecret, sendEmailVerificationInternal } from "../auth/emailVerification";
 import * as logger from "firebase-functions/logger";
+import { emailVerifiedByToken } from "../auth/emailVerifiedRule";
 import "../lib/admin";
 
 /**
@@ -143,6 +144,12 @@ export const assignInitialRole = onCall(
     Boolean(auth.token.phone_number) ||
     (Boolean(auth.token.email) && Boolean(auth.token.email_verified));
   const now = Date.now();
+  // Email/Google sign-ups are verified by signing in: mirror it onto the profile on every
+  // sign-in (never un-set it — a later phone sign-in doesn't undo a proven address).
+  const emailVerifiedUpdate =
+    emailVerifiedByToken(auth.token) && profileSnap.data()?.emailVerified !== true
+      ? { emailVerified: true, emailVerifiedAt: now }
+      : {};
 
   const existingRole = auth.token.role;
   if (isAppRole(existingRole)) {
@@ -153,7 +160,7 @@ export const assignInitialRole = onCall(
       ? { email: auth.token.email }
       : {};
     await db.collection("user_profiles").doc(auth.uid).set(
-      { isVerified, lastSignInAtMillis: now, updatedAt: now, ...emailUpdate },
+      { isVerified, lastSignInAtMillis: now, updatedAt: now, ...emailUpdate, ...emailVerifiedUpdate },
       { merge: true }
     );
     return { role: existingRole, assigned: false };
@@ -176,9 +183,7 @@ export const assignInitialRole = onCall(
       ...(registration && !profileSnap.data()?.tosAcceptedAtMillis
         ? { tosAcceptedAtMillis: now, consentVersion: CURRENT_CONSENT_VERSION }
         : {}),
-      ...(auth.token.email_verified === true
-        ? { emailVerified: true, emailVerifiedAt: now }
-        : {}),
+      ...emailVerifiedUpdate,
       updatedAt: now,
     },
     { merge: true }

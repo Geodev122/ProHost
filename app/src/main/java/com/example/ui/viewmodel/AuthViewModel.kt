@@ -54,7 +54,7 @@ class AuthViewModel(
      * already authenticated (phone OTP, email link, or Google). [phoneE164] defaults
      * to "" for email/Google-auth users — phone verification moves to the KYC gate.
      * Registration never collects a government ID document — that's the KYC flow's
-     * job (KycScreen.kt / KycVerificationDialog.kt), required before a Specialist can
+     * job (KycScreen.kt / RequirementsSheet.kt), required before a Specialist can
      * book a space or before upgrading to Pro Host.
      */
     data class PendingRegistration(

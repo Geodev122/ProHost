@@ -1389,11 +1389,6 @@ data class AppUser(
     // Server-assigned public code ("U-XXXXXX"); read-only on the client, never written back.
     val displayCode: String = ""
 ) {
-    // Profile completeness (Profile banner + Premium checkout): verified phone and email,
-    // country and city. Not a gate for browsing, My Rentals or booking.
-    val isKycComplete: Boolean
-        get() = isVerified && emailVerified && country.isNotBlank() && city.isNotBlank()
-
     /**
      * Phone verified through KYC: the number is on the profile AND linked to the Firebase
      * Auth account ([phoneLinkedInAuth], see data/auth/PhoneLink). isVerified can't be used —
@@ -1408,6 +1403,10 @@ data class AppUser(
      */
     fun canTransact(phoneLinkedInAuth: Boolean): Boolean =
         hasVerifiedPhone(phoneLinkedInAuth) && !profilePictureUrl.isNullOrBlank()
+
+    /** Hosting (Premium checkout, Pro Host profile): [canTransact] plus country and city. */
+    fun canHost(phoneLinkedInAuth: Boolean): Boolean =
+        canTransact(phoneLinkedInAuth) && country.isNotBlank() && city.isNotBlank()
     // Full map — only for admin/server-side contexts (e.g. bootstrapping a new profile
     // from an admin console write). NEVER use for client-initiated profile updates;
     // firestore.rules blocks writes to protected fields (role, isVerified, ownerPackageId,

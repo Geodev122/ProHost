@@ -148,13 +148,16 @@ async function validateAndConsumeOtp(email: string, code: string): Promise<strin
   if (outcome === "wrong") throw new HttpsError("invalid-argument", "Incorrect code. Please try again.");
 
   // Look up or create the Firebase Auth user
+  // Entering the emailed code proves the address: the Auth user is marked verified, so
+  // the ID token carries email_verified and assignInitialRole mirrors it to the profile.
   let uid: string;
   try {
     const user = await admin.auth().getUserByEmail(email);
     uid = user.uid;
+    if (!user.emailVerified) await admin.auth().updateUser(uid, { emailVerified: true });
   } catch {
     // New user — create a minimal Firebase Auth account
-    const newUser = await admin.auth().createUser({ email });
+    const newUser = await admin.auth().createUser({ email, emailVerified: true });
     uid = newUser.uid;
   }
 

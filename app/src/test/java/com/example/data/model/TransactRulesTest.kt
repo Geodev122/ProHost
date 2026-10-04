@@ -25,4 +25,13 @@ class TransactRulesTest {
         assertFalse(base.copy(phone = phone, isVerified = true).hasVerifiedPhone(phoneLinkedInAuth = false))
         assertTrue(base.copy(phone = phone).hasVerifiedPhone(phoneLinkedInAuth = true))
     }
+
+    @Test
+    fun `hosting also needs country and city, never email verification`() {
+        val ready = base.copy(phone = phone, profilePictureUrl = photo)
+        assertFalse(ready.canHost(phoneLinkedInAuth = true))
+        assertFalse(ready.copy(country = "Lebanon").canHost(phoneLinkedInAuth = true))
+        assertTrue(ready.copy(country = "Lebanon", city = "Beirut", emailVerified = false).canHost(phoneLinkedInAuth = true))
+        assertFalse(ready.copy(country = "Lebanon", city = "Beirut").canHost(phoneLinkedInAuth = false))
+    }
 }
