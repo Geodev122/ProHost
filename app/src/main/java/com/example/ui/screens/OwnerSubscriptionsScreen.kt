@@ -445,15 +445,13 @@ fun OwnerSubscriptionsScreen(
                     Text("Restore Purchases", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f))
                 }
 
-                if ((currentPlan == null || isSubscriptionExpired) && enabledPlans.isNotEmpty()) {
-                    // Renewal re-subscribes to the same plan; otherwise offer the admin's top-priority plan.
-                    val upsellPlan = if (isSubscriptionExpired) {
-                        enabledPlans.firstOrNull { it.id == currentPlan?.id } ?: enabledPlans.firstOrNull()
-                    } else {
-                        enabledPlans.firstOrNull()
-                    }
+                // New members subscribe from the plan cards below (each shows its own price and
+                // terms); this shortcut is only for renewing the plan that expired, with its
+                // terms right under the button (Play policy: terms next to every purchase button).
+                if (isSubscriptionExpired && enabledPlans.isNotEmpty()) {
+                    val upsellPlan = enabledPlans.firstOrNull { it.id == currentPlan?.id } ?: enabledPlans.firstOrNull()
                     CustomButton(
-                        text = if (isSubscriptionExpired) "Renew Subscription" else "Choose a Package",
+                        text = "Renew Subscription",
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             upsellPlan?.let { plan ->
@@ -472,6 +470,17 @@ fun OwnerSubscriptionsScreen(
                         icon = Icons.Default.AddCircle,
                         modifier = Modifier.fillMaxWidth()
                     )
+                    upsellPlan?.let { plan ->
+                        PlayOfferText.describe(playProductMap[plan.googlePlayProductId.ifBlank { plan.id }])?.let { terms ->
+                            Text(
+                                text = "$terms · renews automatically until you cancel",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f),
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -653,7 +662,8 @@ fun CompactPlanCard(
     val isFeatured = plan.isFeatured
     val trialLabel = PlayOfferText.trialLabel(playProduct)
     val introLabel = PlayOfferText.introLabel(playProduct)
-    val periodLabel = PlayOfferText.billingPeriodLabel(playProduct)
+    // Full terms when there's a trial/intro ("Free for 1 month, then $4.99 / month"), else "per month".
+    val periodLabel = PlayOfferText.caption(playProduct)
     val priceText = PackagePlan.displayPrice(plan, PlayOfferText.recurringPrice(playProduct))
 
     Box(modifier = modifier) {

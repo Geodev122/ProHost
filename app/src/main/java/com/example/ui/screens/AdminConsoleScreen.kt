@@ -2084,7 +2084,7 @@ private fun AdminSecurityAuditTab(
             }
         }
 
-        items(uiState.auditLogs) { log ->
+        items(uiState.auditLogs, key = { it.id }) { log ->
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(

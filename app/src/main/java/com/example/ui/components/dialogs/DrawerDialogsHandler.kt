@@ -246,7 +246,7 @@ fun DrawerDialogsHandler(
                                     verticalArrangement = Arrangement.spacedBy(6.dp),
                                     modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
                                 ) {
-                                    items(filteredAuditLogs) { log ->
+                                    items(filteredAuditLogs, key = { it.id }) { log ->
                                         Card(
                                             modifier = Modifier.fillMaxWidth(),
                                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -480,7 +480,7 @@ fun DrawerDialogsHandler(
                                         verticalArrangement = Arrangement.spacedBy(8.dp),
                                         modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp)
                                     ) {
-                                        items(fcmAlerts) { alert ->
+                                        items(fcmAlerts, key = { it.id }) { alert ->
                                             Card(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 colors = CardDefaults.cardColors(

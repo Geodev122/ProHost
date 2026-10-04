@@ -105,10 +105,13 @@ Code shared as https://pro-host.tech/redeem?code=XXXX   (or in-app: prohost://re
 
 **Done now:** the splash screen held for at least 1.3 s on every cold start (a 400 ms fade plus a fixed 900 ms). The fixed part is now 300 ms. Session restore still keeps the splash up when it is genuinely slower.
 
-**Next, in priority order:**
-1. **Baseline Profile** (`androidx.baselineprofile` with a macrobenchmark module). Usually 20–30% faster cold start and less scroll jank in Compose. It must be generated on a device or emulator, so add it in Android Studio.
-2. **List keys:** about 35 `items(...)` calls in `ui/` have no `key =`. Add stable keys (doc ids) so Compose doesn't recompose or reuse the wrong rows when Firestore updates arrive.
-3. **Image sizes:** request thumbnails at card size (`ImageRequest.size(…)`) everywhere listing photos appear in lists. Full-resolution photos in lists are the main memory and scroll cost.
-4. **Firestore listeners:** most live listeners have no `.limit()`. Fine at the current scale, but paginate Explore and the admin lists (`limit` plus "load more") before reaching about 1,000 listings or users.
-5. **Subscriptions UX:** show the trial or promo terms on the plan card first ("Free for 1 month, then …"), keep one primary "Subscribe with Google Play" button, and keep "Redeem a code" visible for non-subscribers.
-6. **Play policy hygiene:** keep the renewal disclaimer and price and period text next to every Subscribe button (already present). Keep the "Manage in Play Store" link reachable.
+**Status of the recommendations (2026-10-04):**
+
+| # | Recommendation | Status |
+|---|---|---|
+| 1 | Baseline Profile | **Partly done.** A hand-written startup profile (`app/src/main/baseline-prof.txt`) covers the launch → Explore path and is compiled into release builds. Compose, Firebase and Coil ship their own library profiles. **Still to do in Android Studio:** add a `:baselineprofile` module (`androidx.baselineprofile` + macrobenchmark), run *Generate Baseline Profile* on a device or emulator, and replace the hand-written file with the generated one. |
+| 2 | Stable list keys | **Done.** Every live, data-backed list is keyed by its id: Explore, My Bookings, Favorites, Owner Hub, Renting Progress, Analytics, admin users and listings, plus the admin and drawer audit logs and push alerts. The remaining unkeyed `items()` iterate fixed option lists (weekdays, months, enum values, colour presets), where keys make no difference. |
+| 3 | Image sizes | **Already correct.** Listing and map cards request sized images (800 / 200 px), and avatars request 256 px. The other thumbnails use Coil 2.7 `AsyncImage`, which decodes at the composable's own size when none is given. |
+| 4 | Firestore pagination | **Deferred on purpose.** Explore filters and searches client-side over the full live list, so paging it means moving search and filters server-side. Revisit at about 1,000 listings or users. Firestore's offline cache already makes repeat loads cheap. |
+| 5 | Subscriptions UX | **Done.** Plan cards show the full terms ("Free for 1 month, then $X / month") under the price. The cards are the primary Subscribe buttons. The banner's purchase shortcut now appears only for renewals, with its terms under it. "Redeem Code" stays visible to everyone. |
+| 6 | Play policy hygiene | **Verified.** The renewal disclaimer sits under the plan list and on the renewal button. "Manage in Play Store" shows for any active Play subscription. "Restore Purchases" is always available. |
