@@ -5,13 +5,22 @@
 App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`). Google Play
 requires v8.0.0+ for any app selling in-app products/subscriptions.
 
-- `QueryProductDetailsResult` / `ProductDetailsResult` callback types changed shape across
-  v8→v9. Never assign the raw callback result to a typed list directly — always safe-cast
-  first: `(result as ProductDetailsResult).productDetailsList?.filterNotNull() ?: emptyList()`.
+- Subscriptions only (`ProductType.SUBS`). Product queries use the documented Billing 8+ callback
+  `queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult -> }` and read
+  `queryProductDetailsResult.productDetailsList` / `.unfetchedProductList` (reasons surface in the
+  "no plans" message). Never cast the callback argument (`as? List<*>` / `as? ProductDetailsResult` both
+  silently produced an empty plan list). Re-query on every Subscriptions visit — don't rely on stale
+  `ProductDetails`. One offer for display and checkout: `PlayOfferText.preferredOffer()`.
+- Purchase processing follows Play's verify → grant → acknowledge: the device never acknowledges or
+  grants. `handlePurchase` sends PURCHASED (non-suspended) purchases from checkout, and unacknowledged
+  ones from `queryPurchasesAsync` (with `includeSuspendedSubscriptions`), through `purchaseEvents` to
+  `verifyAndRestorePurchase`, which verifies with the Play Developer API, grants, then acknowledges. RTDN
+  does the same server-side and never acknowledges while `paymentState` is 0 (pending). The local RSA
+  signature check is advisory only. Purchases are re-queried whenever the app returns to the foreground.
 - `PlayBillingManager.kt` is the single source of truth for billing state
   (`_productDetailsList: MutableStateFlow<List<ProductDetails>>`). Don't reintroduce raw
   `List<Any>` intermediates.
-- Verify `queryProductDetailsAsync` and `acknowledgePurchase` signatures against the installed
+- Verify `queryProductDetailsAsync` / `queryPurchasesAsync` signatures against the installed
   Billing Client version before any future dependency bump — check NIGHTHAWK's "Billing
   Acknowledgement" check after upgrading.
 - Every billing outcome goes through `PlayBillingManager.billingMessages` (typed `BillingMessage`,
@@ -126,9 +135,6 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
   checks it whenever the functions SDK manifest has an `extensions` key, which it always does.
   Until that IAM role is granted, nothing in `functions/`, `firestore.rules` or `storage.rules`
   reaches production (this is why `sendSignInEmailLink`/`deleteOwnAccount` returned NOT_FOUND).
-- Product queries use billing-ktx `queryProductDetails()` / `queryPurchasesAsync()` (typed). Never cast
-  the raw `queryProductDetailsAsync` callback argument (`as? List<*>` / `as? ProductDetailsResult` both
-  silently gave an empty plan list). One offer for display and checkout: `PlayOfferText.preferredOffer()`.
 - Purchases started outside the app (promo codes redeemed in the Play Store) have no
   `obfuscatedExternalAccountId`: RTDN acknowledges + parks them, `verifyAndRestorePurchase` claims the
   token for the first account that restores it (`billing/purchaseLinks.ts`, `play_purchase_links`), and

@@ -284,20 +284,36 @@ class ProHostViewModel(
             }
             viewModelScope.launch {
                 try {
-                    manager.purchaseEvents.collect { purchase ->
+                    // Play's "verify on your backend, grant, then acknowledge": the server
+                    // (verifyAndRestorePurchase) checks the token with Google, grants the plan
+                    // and acknowledges it. One attempt per token per session.
+                    manager.purchaseEvents.collect { event ->
+                        val purchase = event.purchase
                         val productId = purchase.products.firstOrNull() ?: return@collect
-                        // Per-event handling: one failed write must not stop later purchases being recorded.
-                        val recorded = try {
-                            repository.recordActivePurchaseToken(productId, purchase.purchaseToken)
+                        if (!processedPurchaseTokens.add(purchase.purchaseToken)) return@collect
+                        val result = try {
+                            repository.verifyAndRestorePlayPurchase(purchase.purchaseToken, productId)
                         } catch (e: kotlinx.coroutines.CancellationException) {
                             throw e
                         } catch (e: Exception) {
-                            android.util.Log.e("ProHostVM", "recordActivePurchaseToken failed", e)
-                            false
+                            Result.failure(e)
                         }
-                        if (!recorded) {
-                            _billingError.value = "Your purchase went through, but we couldn't link it to your account yet. " +
-                                "Reopen Subscriptions to retry, or contact support if your plan doesn't activate."
+                        result.onSuccess {
+                            runCatching { repository.recordActivePurchaseToken(productId, purchase.purchaseToken) }
+                            if (event.fromCheckout) manager.logPurchase(purchase)
+                            _billingError.value = null
+                            _billingSuccess.value = "Your Pro Host plan is active."
+                            refreshCurrentUserRoleAfterEntitlement()
+                        }.onFailure { e ->
+                            // Let a later resume retry it; RTDN also processes it server-side.
+                            processedPurchaseTokens.remove(purchase.purchaseToken)
+                            android.util.Log.w("ProHostVM", "Server activation failed: ${e.message}")
+                            if (event.fromCheckout) {
+                                _billingError.value = e.toUserMessage(
+                                    "Your payment went through, but we couldn't activate your plan yet. " +
+                                        "Reopen Subscriptions in a moment, or tap Restore Purchases."
+                                )
+                            }
                         }
                     }
                 } catch (e: kotlinx.coroutines.CancellationException) {
@@ -559,6 +575,8 @@ class ProHostViewModel(
     }
 
     private var restoreCheckJob: kotlinx.coroutines.Job? = null
+    // Purchase tokens already sent for server activation this session.
+    private val processedPurchaseTokens = java.util.Collections.synchronizedSet(mutableSetOf<String>())
 
     /** [userInitiated] (the Restore button) reports every outcome; the silent on-open check only reports a restore. */
     fun refreshPlayPurchases(context: Context, userInitiated: Boolean = false) {
@@ -587,7 +605,7 @@ class ProHostViewModel(
                     return@runCatching
                 }
                 val activePurchase = purchases.firstOrNull {
-                    it.purchaseState == com.android.billingclient.api.Purchase.PurchaseState.PURCHASED
+                    it.purchaseState == com.android.billingclient.api.Purchase.PurchaseState.PURCHASED && !it.isSuspended
                 }
                 val productId = activePurchase?.products?.firstOrNull()
                 if (activePurchase == null || productId == null) {
@@ -597,6 +615,9 @@ class ProHostViewModel(
                     }
                     return@runCatching
                 }
+                // Unprocessed purchases are already on their way through purchaseEvents;
+                // don't send the same token twice (the Restore button always retries).
+                if (!processedPurchaseTokens.add(activePurchase.purchaseToken) && !userInitiated) return@runCatching
                 repository.verifyAndRestorePlayPurchase(activePurchase.purchaseToken, productId)
                     .onSuccess {
                         com.example.analytics.AnalyticsTracker.restorePurchases("restored")
@@ -605,6 +626,7 @@ class ProHostViewModel(
                         refreshCurrentUserRoleAfterEntitlement()
                     }
                     .onFailure {
+                        processedPurchaseTokens.remove(activePurchase.purchaseToken)
                         android.util.Log.w("ProHostViewModel", "verifyAndRestorePurchase failed: ${it.message}")
                         com.example.analytics.AnalyticsTracker.restorePurchases("failed")
                         // The silent on-open check stays quiet; the Restore button reports why.

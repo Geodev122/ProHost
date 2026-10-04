@@ -29,6 +29,7 @@ const SUBSCRIPTION_DEFERRED = 9;      // expiry deferred (promotional)
 const SUBSCRIPTION_PAUSED = 10;       // user paused
 const SUBSCRIPTION_REVOKED = 12;      // refunded/revoked by Google
 const SUBSCRIPTION_EXPIRED = 13;      // fully expired
+const SUBSCRIPTION_PENDING_PURCHASE_CANCELED = 20; // pending payment never completed
 
 /**
  * Google Play Real-Time Developer Notification handler.
@@ -87,14 +88,19 @@ export const playBillingRtdn = onMessagePublished(
     const uid = await resolvePurchaseUid(
       purchase.obfuscatedExternalAccountId, purchaseToken, purchase.linkedPurchaseToken
     );
+    if (!uid && notificationType === SUBSCRIPTION_PENDING_PURCHASE_CANCELED) {
+      logger.info(`playBillingRtdn: unlinked pending purchase canceled product=${productId}`);
+      return;
+    }
     if (!uid) {
       // Acknowledge now: Play cancels and refunds anything unacknowledged for 3 days,
       // and nobody may open the app that soon. The owner claims it on their next app
       // open (verifyAndRestorePurchase); retrying this message would never succeed.
       if (
-        notificationType === SUBSCRIPTION_PURCHASED ||
-        notificationType === SUBSCRIPTION_RESTARTED ||
-        notificationType === SUBSCRIPTION_RECOVERED
+        (notificationType === SUBSCRIPTION_PURCHASED ||
+          notificationType === SUBSCRIPTION_RESTARTED ||
+          notificationType === SUBSCRIPTION_RECOVERED) &&
+        purchase.paymentState !== 0
       ) {
         await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledgementState, "playBillingRtdn");
       }
@@ -118,14 +124,6 @@ export const playBillingRtdn = onMessagePublished(
     // Play API calls keep using productId; Firestore entitlements use the catalog plan id.
     const planId = await planIdForPlayProduct(productId);
     const planName = (await getPackagePlan(planId))?.name ?? "Pro Host";
-
-    if (
-      notificationType === SUBSCRIPTION_PURCHASED ||
-      notificationType === SUBSCRIPTION_RESTARTED ||
-      notificationType === SUBSCRIPTION_RECOVERED
-    ) {
-      await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledgementState, "playBillingRtdn");
-    }
 
     // 3. Dispatch by notification type
     switch (notificationType) {
@@ -261,11 +259,28 @@ export const playBillingRtdn = onMessagePublished(
         );
         break;
 
+      case SUBSCRIPTION_PENDING_PURCHASE_CANCELED:
+        // A PENDING purchase (e.g. cash at a store) was never paid. Nothing was granted
+        // (PURCHASED grants only once paymentState settles) and nothing needs acknowledging.
+        logger.info(`playBillingRtdn: pending purchase canceled uid=${uid} product=${productId}`);
+        break;
+
       default:
         logger.info(`playBillingRtdn: unhandled notificationType ${notificationType}`);
     }
 
-    // 4. GA4 (consent-gated, never throws). PURCHASED/RENEWED are revenue → "purchase",
+    // 4. Acknowledge after the entitlement is granted (Play: verify → grant → acknowledge),
+    //    and never while payment is still pending — the 3-day window starts at PURCHASED.
+    if (
+      (notificationType === SUBSCRIPTION_PURCHASED ||
+        notificationType === SUBSCRIPTION_RESTARTED ||
+        notificationType === SUBSCRIPTION_RECOVERED) &&
+      purchase.paymentState !== 0
+    ) {
+      await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledgementState, "playBillingRtdn");
+    }
+
+    // 5. GA4 (consent-gated, never throws). PURCHASED/RENEWED are revenue → "purchase",
     // with the same transaction_id the app derives so GA4 dedupes the client's event.
     const gaEvents: Record<number, string> = {
       [SUBSCRIPTION_PURCHASED]: "purchase",

@@ -468,14 +468,27 @@ function checkPaymentFlow() {
 // ─── CHECK 17: Billing purchase acknowledgement ───────────────────────────────
 
 function checkBillingFlow() {
+  // Play's order is verify → grant → acknowledge, on the backend when one exists. Either the
+  // backend acknowledges (functions/src/billing) and the app routes purchases to it, or the
+  // app acknowledges itself. Unacknowledged purchases are auto-refunded after 3 days.
   const billingFile = path.join(KT_DATA, 'billing/PlayBillingManager.kt');
-  const content = readSafe(billingFile) || '';
-  if (!content.includes('acknowledgePurchase')) {
+  const client = readSafe(billingFile) || '';
+  const fnDir = path.join(ROOT, 'functions/src/billing');
+  const rtdn = readSafe(path.join(fnDir, 'playBillingRtdn.ts')) || '';
+  const restore = readSafe(path.join(fnDir, 'verifyAndRestorePurchase.ts')) || '';
+  const serverAcks = rtdn.includes('acknowledgeIfNeeded') && restore.includes('acknowledgeIfNeeded');
+  const clientRoutes = client.includes('purchaseEvents') && client.includes('queryPurchasesAsync');
+  const clientAcks = client.includes('acknowledgePurchase');
+  if (!(serverAcks && clientRoutes) && !clientAcks) {
     bug('CRITICAL','reliability','Purchase Acknowledgement Missing', relPath(billingFile), null,
-      'PlayBillingManager does not call acknowledgePurchase(). Purchases will auto-refund after 3 days.',
-      'Call acknowledgePurchase().');
+      'Purchases are neither acknowledged by the backend (RTDN + verifyAndRestorePurchase) nor by the app. Play auto-refunds them after 3 days.',
+      'Route purchases to verifyAndRestorePurchase (which acknowledges after granting), or call acknowledgePurchase().');
+  } else if (/await acknowledgeIfNeeded\([\s\S]{0,400}await grantSubscription\(/.test(restore)) {
+    bug('HIGH','reliability','Acknowledged Before Grant', 'functions/src/billing/verifyAndRestorePurchase.ts', null,
+      'The purchase is acknowledged before the entitlement is granted.',
+      'Grant first, then acknowledge (Play: verify → grant → acknowledge).');
   } else {
-    pass('Purchase Acknowledgement', 'PlayBillingManager calls acknowledgePurchase().');
+    pass('Purchase Acknowledgement', serverAcks ? 'Backend verifies, grants, then acknowledges; app routes every purchase to it.' : 'App acknowledges purchases.');
   }
 }
 

@@ -79,6 +79,8 @@ fun OwnerSubscriptionsScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.refreshPlayPurchases(context)
+                // Fresh ProductDetails each visit: stale ones can make launchBillingFlow fail.
+                viewModel.retryBillingQuery(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

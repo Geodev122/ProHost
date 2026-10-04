@@ -77,8 +77,9 @@ export const verifyAndRestorePurchase = onCall<{
     throw new HttpsError("failed-precondition", "Payment is still pending — please wait a moment and try again.");
   }
 
-  await acknowledgeIfNeeded(cleanProductId, cleanToken, purchase.acknowledgementState, "verifyAndRestorePurchase");
+  // Play's order: verify (above) → grant → acknowledge.
   await grantSubscription(uid, await planIdForPlayProduct(cleanProductId), expiryMs, purchase.orderId ?? cleanProductId);
+  await acknowledgeIfNeeded(cleanProductId, cleanToken, purchase.acknowledgementState, "verifyAndRestorePurchase");
 
   logger.info(`verifyAndRestorePurchase: restored uid=${uid} product=${cleanProductId} expiry=${new Date(expiryMs).toISOString()}`);
   await sendGa4Event(uid, "subscription_restored", { item_id: cleanProductId });

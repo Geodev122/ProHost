@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
-import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
@@ -18,7 +17,6 @@ import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
-import com.android.billingclient.api.queryProductDetails
 import com.android.billingclient.api.queryPurchasesAsync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -81,8 +79,8 @@ class PlayBillingManager(
     private val pendingOnConnected = mutableListOf<() -> Unit>()
     private var isConnecting = false
 
-    private val _purchaseEvents = MutableSharedFlow<Purchase>()
-    val purchaseEvents: SharedFlow<Purchase> = _purchaseEvents.asSharedFlow()
+    private val _purchaseEvents = MutableSharedFlow<PurchaseEvent>(extraBufferCapacity = 8)
+    val purchaseEvents: SharedFlow<PurchaseEvent> = _purchaseEvents.asSharedFlow()
 
     private val billingClient: BillingClient = BillingClient.newBuilder(context)
         .setListener(this)
@@ -156,24 +154,25 @@ class PlayBillingManager(
             .setProductList(productList)
             .build()
 
-        // billing-ktx's typed result: the raw callback's second argument changed type across
-        // Billing 7→8→9 and every untyped cast of it silently produced an empty plan list.
-        coroutineScope.launch {
-            val result = billingClient.queryProductDetails(params)
-            val billingResult = result.billingResult
+        // Billing 8+ format: the callback receives a QueryProductDetailsResult — the products
+        // Play returned plus unfetchedProductList with a status code for each one it couldn't.
+        billingClient.queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                val list = result.productDetailsList.orEmpty()
-                Log.d(TAG, "Retrieved ${list.size} subscription products from Google Play")
+                val list = queryProductDetailsResult.productDetailsList
+                val unfetched = queryProductDetailsResult.unfetchedProductList
+                Log.d(TAG, "Retrieved ${list.size} subscription products from Google Play; ${unfetched.size} unfetched")
                 _productDetailsList.value = list
-                if (list.isEmpty() && productIds.isNotEmpty()) {
-                    Log.w(TAG, "Play returned no products for IDs: ${productIds.joinToString()}")
-                    com.example.analytics.AnalyticsTracker.plansLoadFailed(productIds.size)
-                    emitMessage(
-                        "No subscription plans were returned by Google Play. " +
-                        "Queried: ${productIds.joinToString()}. " +
-                        "Verify these product IDs exist and are active in Play Console, " +
-                        "and that you're using a Play Store–installed build."
-                    )
+                if (unfetched.isNotEmpty()) {
+                    val reasons = unfetched.joinToString { "${it.productId} (status ${it.statusCode})" }
+                    Log.w(TAG, "Play couldn't fetch: $reasons")
+                    if (list.isEmpty()) {
+                        com.example.analytics.AnalyticsTracker.plansLoadFailed(unfetched.size)
+                        emitMessage(
+                            "No subscription plans were returned by Google Play: $reasons. " +
+                                "Check these product IDs are active in Play Console and that this is a " +
+                                "Play Store–installed build."
+                        )
+                    }
                 }
             } else {
                 Log.e(TAG, "Error querying product details: ${billingResult.debugMessage}")
@@ -196,6 +195,16 @@ class PlayBillingManager(
                 emitMessage("\"${productDetails.title}\" has no active offer in Google Play yet. Please try again later.")
                 return false
             }
+
+        // Very old Play Store versions can't sell subscriptions (or replace one on upgrade).
+        val feature = if (oldPurchaseToken.isNullOrBlank()) BillingClient.FeatureType.SUBSCRIPTIONS
+            else BillingClient.FeatureType.SUBSCRIPTIONS_UPDATE
+        val support = billingClient.isFeatureSupported(feature)
+        if (support.responseCode != BillingClient.BillingResponseCode.OK) {
+            com.example.analytics.AnalyticsTracker.purchaseError(support.responseCode)
+            emitMessage(userMessageFor(BillingClient.BillingResponseCode.FEATURE_NOT_SUPPORTED))
+            return false
+        }
 
         val productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
             .setProductDetails(productDetails)
@@ -248,11 +257,7 @@ class PlayBillingManager(
     override fun onPurchasesUpdated(billingResult: BillingResult, purchases: MutableList<Purchase>?) {
         when (billingResult.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
-                if (!purchases.isNullOrEmpty()) {
-                    for (purchase in purchases) {
-                        handlePurchase(purchase)
-                    }
-                }
+                purchases.orEmpty().forEach { handlePurchase(it, fromCheckout = true) }
             }
             BillingClient.BillingResponseCode.USER_CANCELED -> {
                 com.example.analytics.AnalyticsTracker.purchaseCancelled(lastLaunched)
@@ -271,22 +276,20 @@ class PlayBillingManager(
         }
     }
 
+    // Subscriptions only. Suspended (on hold / paused) subscriptions are included so the
+    // app knows about them; they are never sent for activation.
+    private fun subsQueryParams(): QueryPurchasesParams = QueryPurchasesParams.newBuilder()
+        .setProductType(BillingClient.ProductType.SUBS)
+        .includeSuspendedSubscriptions(true)
+        .build()
+
     fun queryActivePurchases() {
         if (!billingClient.isReady) return
-
-        val params = QueryPurchasesParams.newBuilder()
-            .setProductType(BillingClient.ProductType.SUBS)
-            .build()
-
-        billingClient.queryPurchasesAsync(params) { billingResult, purchases ->
+        billingClient.queryPurchasesAsync(subsQueryParams()) { billingResult, purchases ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.d(TAG, "Found ${purchases.size} active purchases")
+                Log.d(TAG, "Found ${purchases.size} subscription purchases")
                 _activePurchases.value = purchases
-                for (purchase in purchases) {
-                    if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
-                        acknowledgePurchase(purchase)
-                    }
-                }
+                purchases.forEach { handlePurchase(it, fromCheckout = false) }
             } else {
                 Log.e(TAG, "Error querying active purchases: ${billingResult.debugMessage}")
             }
@@ -294,9 +297,9 @@ class PlayBillingManager(
     }
 
     /**
-     * Fresh active-subscription list straight from Play (connecting first if needed), or
-     * null when Play can't be reached. Also refreshes [activePurchases] and acknowledges
-     * anything still unacknowledged (e.g. a promo code redeemed in the Play Store).
+     * Fresh subscription list straight from Play (connecting first if needed), or null when
+     * Play can't be reached. Also refreshes [activePurchases] and sends any purchase still
+     * waiting for processing (e.g. a promo code redeemed in the Play Store) for activation.
      */
     suspend fun fetchActivePurchases(): List<Purchase>? {
         if (!billingClient.isReady) {
@@ -308,68 +311,57 @@ class PlayBillingManager(
             }
             if (!billingClient.isReady) return null
         }
-        val params = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build()
-        val result = billingClient.queryPurchasesAsync(params)
+        val result = billingClient.queryPurchasesAsync(subsQueryParams())
         if (result.billingResult.responseCode != BillingClient.BillingResponseCode.OK) {
             Log.e(TAG, "fetchActivePurchases failed: ${result.billingResult.debugMessage}")
             return null
         }
         val purchases = result.purchasesList
         _activePurchases.value = purchases
-        purchases.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED && !it.isAcknowledged }
-            .forEach { acknowledgePurchase(it) }
+        purchases.forEach { handlePurchase(it, fromCheckout = false) }
         return purchases
     }
 
-    private fun handlePurchase(purchase: Purchase) {
-        if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
-            val isValid = PlayBillingSecurity.verifyPurchase(purchase.originalJson, purchase.signature)
-            if (!isValid) {
-                Log.e(TAG, "Purchase signature verification failed for order ${purchase.orderId}")
-                emitMessage("Purchase security check failed")
-                return
-            }
+    /** A purchase that needs (or may need) server-side processing. */
+    data class PurchaseEvent(val purchase: Purchase, val fromCheckout: Boolean)
 
-            if (!purchase.isAcknowledged) {
-                acknowledgePurchase(purchase)
-            } else {
-                emitMessage("Subscription verified and active!", isError = false)
-                coroutineScope.launch { _purchaseEvents.emit(purchase) }
+    /**
+     * Play's "Detect and process purchases" step. Entitlement is granted and the purchase
+     * acknowledged only by the backend (verifyAndRestorePurchase / RTDN, via the Play
+     * Developer API) after it verifies the token — never on the device. PENDING purchases
+     * get no entitlement and are not acknowledged; the 3-day window starts at PURCHASED.
+     */
+    private fun handlePurchase(purchase: Purchase, fromCheckout: Boolean) {
+        when (purchase.purchaseState) {
+            Purchase.PurchaseState.PURCHASED -> {
+                if (purchase.isSuspended) return
+                // The device-side signature check is advisory only: the server verifies with
+                // Google. A stale embedded key must never block a real, paid purchase.
+                if (!PlayBillingSecurity.verifyPurchase(purchase.originalJson, purchase.signature)) {
+                    Log.w(TAG, "Local signature check failed for order ${purchase.orderId}; deferring to server verification")
+                }
+                // Checkout results always go to the server; from a query, only purchases Play
+                // still considers unprocessed (renewals need no acknowledgement).
+                if (fromCheckout || !purchase.isAcknowledged) {
+                    coroutineScope.launch { _purchaseEvents.emit(PurchaseEvent(purchase, fromCheckout)) }
+                }
             }
-            queryActivePurchases()
-        } else if (purchase.purchaseState == Purchase.PurchaseState.PENDING) {
-            com.example.analytics.AnalyticsTracker.purchasePending()
-            emitMessage("Your payment is pending — your plan activates once Google Play confirms it.", isError = false)
+            Purchase.PurchaseState.PENDING -> if (fromCheckout) {
+                com.example.analytics.AnalyticsTracker.purchasePending()
+                emitMessage("Your payment is pending — your plan activates once Google Play confirms it.", isError = false)
+            }
+            else -> Unit
         }
     }
 
     // Same transaction_id the server derives in functions/src/lib/ga4.ts, so GA4 dedupes
-    // the client and RTDN purchase events.
-    private fun logPurchase(purchase: Purchase) {
+    // the client and RTDN purchase events. Called once the server has activated the plan.
+    fun logPurchase(purchase: Purchase) {
         val productId = purchase.products.firstOrNull() ?: return
         val details = _productDetailsList.value.firstOrNull { it.productId == productId }
-        val phase = details?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.lastOrNull()
+        val phase = PlayOfferText.preferredOffer(details)?.pricingPhases?.pricingPhaseList?.lastOrNull()
         val txn = com.example.analytics.AnalyticsTracker.transactionId(purchase.orderId ?: purchase.purchaseToken)
         com.example.analytics.AnalyticsTracker.purchase(txn, productId, phase?.priceAmountMicros, phase?.priceCurrencyCode)
-    }
-
-    private fun acknowledgePurchase(purchase: Purchase) {
-        val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
-            .setPurchaseToken(purchase.purchaseToken)
-            .build()
-
-        billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.d(TAG, "Purchase acknowledged successfully: ${purchase.orderId}")
-                logPurchase(purchase)
-                emitMessage("Subscription activated successfully!", isError = false)
-                coroutineScope.launch { _purchaseEvents.emit(purchase) }
-            } else {
-                Log.e(TAG, "Failed to acknowledge purchase: ${billingResult.debugMessage}")
-                // The server also acknowledges on the RTDN, so this is recoverable.
-                emitMessage("Your payment went through, but confirming it with Google Play failed. Reopen Subscriptions in a moment to finish activation.")
-            }
-        }
     }
 
     /**
@@ -390,11 +382,9 @@ class PlayBillingManager(
                     )
                 )
                 .build()
-            coroutineScope.launch {
-                val result = billingClient.queryProductDetails(params)
-                val billingResult = result.billingResult
+            billingClient.queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult ->
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    val found = result.productDetailsList.orEmpty().firstOrNull { it.productId == productId }
+                    val found = queryProductDetailsResult.productDetailsList.firstOrNull { it.productId == productId }
                     // Merge into the main list so future launch calls don't need a re-query
                     if (found != null) {
                         val merged = _productDetailsList.value.filter { it.productId != productId } + found

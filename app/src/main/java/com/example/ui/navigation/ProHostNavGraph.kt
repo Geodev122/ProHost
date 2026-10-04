@@ -750,11 +750,11 @@ fun ProHostAppRoot(
         }
     }
 
-    // A promo code redeemed in the Play Store (or a resubscribe from Play) arrives with
-    // no link to a ProHost account. Whenever a signed-in member without a plan returns to
-    // the app, look for such a purchase and link it (verifyAndRestorePurchase) — so the
-    // plan activates without them finding Subscriptions › Restore Purchases.
-    val autoLinkUser = currentUser?.takeIf { it.role == UserRole.SPECIALIST && it.ownerPackageId == null }
+    // Play Billing: query purchases whenever the app returns to the foreground, so purchases
+    // made outside the app (promo codes redeemed in the Play Store, another device) and
+    // PENDING payments that completed meanwhile get verified, granted and acknowledged by
+    // the backend — without the person finding Subscriptions › Restore Purchases.
+    val autoLinkUser = currentUser?.takeIf { it.role != UserRole.ADMIN }
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner, autoLinkUser?.id) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
