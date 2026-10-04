@@ -15,6 +15,7 @@ export { grantPackageToUser } from "./admin/grantPackage";
 export { lookupUserForGrant } from "./admin/lookupUserForGrant";
 export { getAdminAnalytics, backfillProHostUpgradeDates } from "./admin/adminAnalytics";
 export { setListingVerification, setListingSubscriptionActive, requestListingVerification } from "./admin/listings";
+export { configureGa4ApiSecret } from "./admin/ga4Config";
 
 export { recordClientAuditLog } from "./audit/recordClientAuditLog";
 

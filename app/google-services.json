@@ -14,6 +14,62 @@
       },
       "oauth_client": [
         {
+          "client_id": "646730915838-4a2ps52lee6trgbniajtiihelfchiekr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.geonajjar.prohost",
+            "certificate_hash": "eb843b766f981fc325bbf762b43ff3017a8bad9e"
+          }
+        },
+        {
+          "client_id": "646730915838-9g92raturfvc44feaj1lkvmh4kac1dhl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.geonajjar.prohost",
+            "certificate_hash": "2841e4776e995b2bc5b307259791aac4b9623cd1"
+          }
+        },
+        {
+          "client_id": "646730915838-9vavmij8mtjuh71sni13sv3r6l3k13uh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.geonajjar.prohost",
+            "certificate_hash": "28af97deeebc4fa59a58d7179acb790be6639639"
+          }
+        },
+        {
+          "client_id": "646730915838-f7crlokmgmdr0ivankktprdn5onj3s4n.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.geonajjar.prohost",
+            "certificate_hash": "8da3bb5d3a952d77bd41304bcbc0b8b3e4144a79"
+          }
+        },
+        {
+          "client_id": "646730915838-q2kmfvs9voel071kapu0jh1m3fj15rrb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.geonajjar.prohost",
+            "certificate_hash": "9cf65ab672a4cd761e99df8bc9be2c8c72541caa"
+          }
+        },
+        {
+          "client_id": "646730915838-qrtgstrm90anuetle86hrju9nie84ind.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.geonajjar.prohost",
+            "certificate_hash": "46fe602794218c07d6b6c2c0a1ca33284fa5ab68"
+          }
+        },
+        {
+          "client_id": "646730915838-vhoku601ahnvup16826ssce152mm46ev.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.geonajjar.prohost",
+            "certificate_hash": "2e0acb90abfb03c13527c67c959518299a730800"
+          }
+        },
+        {
           "client_id": "646730915838-5qthdffkm475g09mgsf0kr9ampvc4s4n.apps.googleusercontent.com",
           "client_type": 3
         }
