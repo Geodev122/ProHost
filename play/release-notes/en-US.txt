@@ -1,5 +1,5 @@
-ProHost v1.0.34 (Build 34) Release Notes:
-• Startup performance optimization with Baseline Profiles.
-• Improved Google Play Billing promo code redemption and purchase restoration.
-• Enhanced list responsiveness and map center country detection.
-• Real-time database synchronization and stability fixes.
+ProHost v1.0.35 (Build 35) Release Notes:
+• Enhanced Explore filter controls with country & per-attendee options.
+• Resizable availability bottom sheet for smoother workspace browsing.
+• Reliable Google Play subscription activation & purchase retry engine.
+• Real-time database synchronization and performance stability.
